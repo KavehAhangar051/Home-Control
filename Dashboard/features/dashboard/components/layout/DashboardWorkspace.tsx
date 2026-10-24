@@ -68,9 +68,7 @@ export default function DashboardWorkspace() {
             <WorkspaceSkeleton groupsCols={groupsCols} />
           </div>
         ) : segmentsLength === 0 ? (
-          <React.Suspense fallback={<div className="w-full h-96 flex items-center justify-center"><div className="w-12 h-12 rounded-full border-2 border-[var(--accent3)] border-t-transparent animate-spin" /></div>}><WelcomePortal
-            animationsEnabled={animationsEnabled}
-          /></React.Suspense>
+          <React.Suspense fallback={<div className="w-full h-96 flex items-center justify-center"><div className="w-12 h-12 rounded-full border-2 border-[var(--accent3)] border-t-transparent animate-spin" /></div>}><WelcomePortal /></React.Suspense>
         ) : (
           <div className="w-full flex flex-col gap-4">
             <div className="-mt-6 sm:-mt-10 mb-2 w-full flex justify-center">
