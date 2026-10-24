@@ -29,7 +29,7 @@ const overviewSections = [
     description: "ماژول‌های متصل به ESP32 را کنار هم مدیریت کن و تجهیزات خانه را در یک نمای واحد ببین.",
     hint: "ESP32 و ارتباط شبکه‌ای",
     Icon: Network,
-    color: "text-info",
+    color: "text-muted-foreground",
   },
   {
     id: "welcome-automation",
@@ -52,7 +52,6 @@ export default function WelcomePortal() {
     >
       <Card className="overflow-hidden">
         <CardHeader className="flex flex-col gap-3 px-6 py-7 sm:px-8 sm:py-9">
-          <p className="text-sm font-medium text-muted-foreground">خانه هوشمند</p>
           <CardTitle
             id="welcome-title"
             role="heading"
@@ -100,7 +99,7 @@ export default function WelcomePortal() {
 
             <div
               ref={overviewRef}
-              className="relative h-80 min-w-0 overflow-y-auto rounded-lg border border-border bg-muted/20 scroll-smooth"
+              className="relative h-80 min-w-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-lg border border-border bg-muted/20 scroll-smooth"
               aria-label="توضیحات قابلیت‌های سامانه"
             >
               {overviewSections.map((item) => (
