@@ -2,6 +2,7 @@ import { Settings as SettingsIcon, Layers, Clock3, House } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import VoiceCommandButton from "../VoiceCommandButton";
+import SidebarTooltip from "../SidebarTooltip";
 import type { QuickAccessControlsProps } from "./types";
 
 type WorkspaceView = "home" | "modules" | "automations" | "settings";
@@ -36,44 +37,47 @@ export default function VerticalControls({
         </span>
       )}
 
+      <SidebarTooltip label="داشبورد خانه" enabled={Boolean(isSidebarCollapsed)}>
       <Button variant="ghost"
         type="button"
         onClick={() => navigateTo("home")}
         className={navClass("home")}
         aria-current={activeWorkspaceView === "home" ? "page" : undefined}
-        title={isSidebarCollapsed ? "داشبورد خانه" : undefined}
         data-tooltip={isSidebarCollapsed ? "داشبورد خانه" : undefined}
         aria-label="داشبورد خانه"
       >
         <House className="h-4 w-4 shrink-0" />
         {!isSidebarCollapsed && <span className="text-sm">داشبورد خانه</span>}
       </Button>
+      </SidebarTooltip>
 
+      <SidebarTooltip label="پالایه و ماژول‌ها" enabled={Boolean(isSidebarCollapsed)}>
       <Button variant="ghost"
         type="button"
         onClick={() => navigateTo("modules")}
         className={navClass("modules")}
         aria-current={activeWorkspaceView === "modules" ? "page" : undefined}
-        title={isSidebarCollapsed ? "پالایه و ماژول‌ها" : undefined}
         data-tooltip={isSidebarCollapsed ? "پالایه و ماژول‌ها" : undefined}
         aria-label="پالایه و ماژول‌ها"
       >
         <Layers className="h-4 w-4 shrink-0" />
         {!isSidebarCollapsed && <span className="text-sm">پالایه و ماژول‌ها</span>}
       </Button>
+      </SidebarTooltip>
 
+      <SidebarTooltip label="اتوماسیون‌ها" enabled={Boolean(isSidebarCollapsed)}>
       <Button variant="ghost"
         type="button"
         onClick={() => navigateTo("automations")}
         className={navClass("automations")}
         aria-current={activeWorkspaceView === "automations" ? "page" : undefined}
-        title={isSidebarCollapsed ? "اتوماسیون‌ها" : undefined}
         data-tooltip={isSidebarCollapsed ? "اتوماسیون‌ها" : undefined}
         aria-label="اتوماسیون‌ها"
       >
         <Clock3 className="h-4 w-4 shrink-0" />
         {!isSidebarCollapsed && <span className="text-sm">اتوماسیون‌ها</span>}
       </Button>
+      </SidebarTooltip>
 
       <VoiceCommandButton
         animationsEnabled={animationsEnabled}
@@ -83,18 +87,19 @@ export default function VerticalControls({
 
       <div className="my-3 border-t border-[var(--sidebar-border)]" />
 
+      <SidebarTooltip label="تنظیمات اصلی" enabled={Boolean(isSidebarCollapsed)}>
       <Button variant="ghost"
         type="button"
         onClick={() => navigateTo("settings")}
         className={navClass("settings")}
         aria-current={activeWorkspaceView === "settings" ? "page" : undefined}
-        title={isSidebarCollapsed ? "تنظیمات اصلی" : undefined}
         data-tooltip={isSidebarCollapsed ? "تنظیمات اصلی" : undefined}
         aria-label="تنظیمات اصلی"
       >
         <SettingsIcon className="h-4 w-4 shrink-0" />
         {!isSidebarCollapsed && <span className="text-sm">تنظیمات اصلی</span>}
       </Button>
+      </SidebarTooltip>
     </nav>
   );
 }
