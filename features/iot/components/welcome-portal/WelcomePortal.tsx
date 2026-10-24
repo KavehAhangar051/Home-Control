@@ -9,7 +9,6 @@ import {
   Card,
   CardContent,
   CardFooter,
-  CardHeader,
 } from "@/components/ui/card";
 
 const overviewSections = [
@@ -48,9 +47,6 @@ export default function WelcomePortal() {
       dir="rtl"
     >
       <Card className="overflow-hidden">
-        <CardHeader className="flex flex-col gap-3 px-6 py-7 sm:px-8 sm:py-9">
-        </CardHeader>
-
         <CardContent className="space-y-5 px-6 pb-6 sm:px-8 sm:pb-8">
           <div className="space-y-1">
             <h2 className="text-base font-semibold text-foreground">نمای کلی سامانه</h2>
