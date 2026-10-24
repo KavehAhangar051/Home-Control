@@ -2,8 +2,8 @@
 
 import React from "react";
 import { motion } from "motion/react";
-import { ArrowUpLeft, Compass, House, Layers3, Settings2, Wifi } from "lucide-react";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Compass, House, Layers3, Settings2, Wifi } from "lucide-react";
+import { Card, CardDescription, CardHeader } from "@/components/ui/card";
 
 export interface WelcomePortalProps {
   animationsEnabled?: boolean;
@@ -19,84 +19,100 @@ export default function WelcomePortal({
       animate={{ opacity: 1, y: 0 }}
       exit={animationsEnabled ? { opacity: 0, y: 8 } : undefined}
       transition={{ duration: animationsEnabled ? 0.24 : 0 }}
-      className="mx-auto w-full max-w-5xl px-3 py-5 text-right sm:px-5 sm:py-8"
+      className="mx-auto w-full max-w-6xl px-3 py-5 text-right sm:px-5 sm:py-8"
       dir="rtl"
       aria-labelledby="welcome-title"
     >
-      <Card className="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-sm">
-        <div className="grid min-w-0 lg:grid-cols-[minmax(0,1fr)_minmax(250px,0.72fr)]">
-          <CardHeader className="min-w-0 gap-5 px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-11">
+      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="grid min-w-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
+          <CardHeader className="min-w-0 gap-6 px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex min-h-7 items-center gap-2 rounded-md border border-[var(--border-color)] bg-[var(--card-hover-bg)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)]">
-                <Compass className="h-3.5 w-3.5 text-[var(--accent3)]" aria-hidden="true" />
+              <span className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                <Compass className="h-4 w-4 text-primary" aria-hidden="true" />
                 داشبورد خانه هوشمند
               </span>
-              <span className="inline-flex min-h-7 items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
-                آماده راه‌اندازی
+              <span className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-info/25 bg-info/10 px-3 py-1.5 text-xs font-medium text-info">
+                <span className="h-1.5 w-1.5 rounded-full bg-info" aria-hidden="true" />
+                آماده افزودن ماژول
               </span>
             </div>
 
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-[var(--text-secondary)]">درود، خوش آمدید</p>
-              <CardTitle
+            <div className="space-y-3 sm:space-y-4">
+              <p className="text-sm font-medium text-muted-foreground">درود، خوش آمدید</p>
+              <h1
                 id="welcome-title"
-                className="max-w-2xl text-balance text-right text-2xl font-bold leading-[1.65] tracking-tight text-[var(--text-primary)] sm:text-3xl sm:leading-[1.55] lg:text-4xl"
+                className="max-w-xl text-balance text-right text-3xl font-bold leading-[1.45] tracking-tight text-foreground sm:text-4xl sm:leading-[1.4] lg:text-[2.7rem]"
               >
-                کنترل خانه،{" "}
-                <span className="text-[var(--accent3)]">یکپارچه و ساده</span>
-              </CardTitle>
-              <CardDescription className="max-w-xl text-sm leading-7 text-[var(--text-secondary)] sm:text-base sm:leading-8">
+                کنترل خانه،
+                <span className="block text-[var(--accent3)]">ساده و یکپارچه</span>
+              </h1>
+              <CardDescription className="max-w-lg text-sm leading-7 text-muted-foreground sm:text-base sm:leading-8">
                 چراغ‌ها، ماژول‌ها و اتوماسیون‌های خانه را از یک فضای کاری مدیریت کنید.
               </CardDescription>
             </div>
 
+            <div className="flex items-start gap-3 border-t border-border pt-4 text-sm leading-6 text-muted-foreground">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-info/10 text-info">
+                <Settings2 className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <p>
+                <span className="font-semibold text-foreground">برای شروع:</span>{" "}
+                از بخش ماژول‌ها، اولین ماژول خانه را اضافه کنید.
+              </p>
+            </div>
           </CardHeader>
 
-          <aside className="relative flex min-h-52 flex-col justify-between overflow-hidden border-t border-[var(--border-color)] bg-[var(--bg-main)] p-5 sm:p-7 lg:border-r lg:border-t-0 lg:p-8">
-            <div className="pointer-events-none absolute inset-0 opacity-40" aria-hidden="true">
-              <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full border border-[var(--border-color)]" />
-              <div className="absolute -left-5 -top-5 h-28 w-28 rounded-full border border-[var(--border-color)]" />
-              <div className="absolute bottom-0 left-0 h-px w-full bg-[var(--border-color)]" />
-            </div>
-
-            <div className="relative flex items-center justify-between gap-3">
-              <span className="text-xs font-medium text-[var(--text-secondary)]">نمای کلی سامانه</span>
-              <span className="rounded-md border border-[var(--border-color)] bg-[var(--card-bg)] px-2 py-1 font-mono text-[10px] text-[var(--text-secondary)]" dir="ltr">
-                EDGE / IOT
+          <aside className="flex min-w-0 flex-col gap-5 border-t border-border bg-muted/30 p-5 sm:p-7 lg:border-r lg:border-t-0 lg:p-8" aria-labelledby="system-overview-title">
+            <header className="flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">اتصال تجهیزات و ماژول‌ها</p>
+                <h2 id="system-overview-title" className="text-base font-semibold text-foreground">
+                  نمای کلی سامانه
+                </h2>
+              </div>
+              <span className="shrink-0 rounded-lg border border-border bg-card px-2.5 py-1.5 font-mono text-[10px] text-muted-foreground" dir="ltr">
+                ESP32 · MQTT
               </span>
+            </header>
+
+            <div className="relative flex min-h-44 flex-1 items-center justify-center py-2 sm:min-h-48" aria-hidden="true">
+              <div className="absolute right-[calc(50%+3.5rem)] top-1/2 h-px w-7 bg-border sm:right-[calc(50%+4rem)]" />
+              <div className="absolute left-[calc(50%+3.5rem)] top-1/2 h-px w-7 bg-border sm:left-[calc(50%+4rem)]" />
+
+              <div className="relative z-10 flex h-24 w-24 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary sm:h-28 sm:w-28">
+                <House className="h-11 w-11 sm:h-12 sm:w-12" strokeWidth={1.5} />
+              </div>
+
+              <div className="absolute right-0 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-border bg-card text-info sm:h-11 sm:w-11">
+                <Wifi className="h-5 w-5" />
+              </div>
+              <div className="absolute left-0 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-border bg-card text-primary sm:h-11 sm:w-11">
+                <Layers3 className="h-5 w-5" />
+              </div>
             </div>
 
-            <div className="relative my-7 flex items-center justify-center">
-              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-sm sm:h-28 sm:w-28">
-                <House className="h-11 w-11 text-[var(--accent3)] sm:h-12 sm:w-12" strokeWidth={1.5} aria-hidden="true" />
-              </div>
-              <div className="absolute right-[calc(50%+3.5rem)] top-1/2 h-px w-7 bg-[var(--border-color)] sm:right-[calc(50%+4rem)]" />
-              <div className="absolute left-[calc(50%+3.5rem)] top-1/2 h-px w-7 bg-[var(--border-color)] sm:left-[calc(50%+4rem)]" />
-              <div className="absolute right-0 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] text-[var(--accent4)] sm:h-11 sm:w-11">
-                <Wifi className="h-5 w-5" aria-hidden="true" />
-              </div>
-              <div className="absolute left-0 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] text-[var(--accent3)] sm:h-11 sm:w-11">
-                <Layers3 className="h-5 w-5" aria-hidden="true" />
-              </div>
-            </div>
-
-            <div className="relative grid grid-cols-2 gap-3">
-              <div className="min-w-0 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] p-3">
-                <div className="mb-2 flex items-center gap-2 text-[var(--text-secondary)]">
-                  <Wifi className="h-4 w-4" aria-hidden="true" />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="min-w-0 rounded-xl border border-border bg-card p-3.5">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Wifi className="h-4 w-4 shrink-0 text-info" aria-hidden="true" />
                   <span className="text-xs">ارتباط دستگاه</span>
                 </div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">MQTT / WebSocket</p>
+                <p className="mt-2 text-sm font-semibold text-foreground" dir="ltr">
+                  MQTT / WebSocket
+                </p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  تبادل فرمان و وضعیت دستگاه‌ها
+                </p>
               </div>
-              <div className="min-w-0 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] p-3">
-                <div className="mb-2 flex items-center gap-2 text-[var(--text-secondary)]">
-                  <Settings2 className="h-4 w-4" aria-hidden="true" />
-                  <span className="text-xs">شروع کار</span>
+
+              <div className="min-w-0 rounded-xl border border-border bg-card p-3.5">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Layers3 className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                  <span className="text-xs">تجهیزات خانه</span>
                 </div>
-                <p className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-                  راه‌اندازی سامانه
-                  <ArrowUpLeft className="h-3.5 w-3.5 shrink-0 text-[var(--accent3)]" aria-hidden="true" />
+                <p className="mt-2 text-sm font-semibold text-foreground">ماژول‌ها و سگمنت‌ها</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  مدیریت متمرکز از داشبورد
                 </p>
               </div>
             </div>
