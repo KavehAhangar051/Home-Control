@@ -10,12 +10,12 @@ interface SidebarTooltipProps {
 }
 
 export default function SidebarTooltip({ label, enabled, children }: SidebarTooltipProps) {
-  const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
   const showTooltip = (element: HTMLElement) => {
     if (!enabled) return;
     const rect = element.getBoundingClientRect();
-    setPosition({ top: rect.top + rect.height / 2, right: window.innerWidth - rect.left + 10 });
+    setPosition({ top: rect.top + rect.height / 2, left: rect.right + 8 });
   };
 
   return (
@@ -31,8 +31,8 @@ export default function SidebarTooltip({ label, enabled, children }: SidebarTool
         createPortal(
           <div
             role="tooltip"
-            className="pointer-events-none fixed z-[9999] -translate-y-1/2 whitespace-nowrap rounded-lg border border-[var(--sidebar-border)] bg-[var(--card-bg-solid)] px-3 py-2 text-xs font-medium text-[var(--sidebar-text)] shadow-xl"
-            style={{ top: position.top, right: position.right }}
+            className="pointer-events-none fixed z-[9999] -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-3 py-1.5 text-xs text-background shadow-md"
+            style={{ top: position.top, left: position.left }}
           >
             {label}
           </div>,
