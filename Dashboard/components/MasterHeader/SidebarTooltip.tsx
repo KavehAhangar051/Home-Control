@@ -20,7 +20,7 @@ export default function SidebarTooltip({ label, enabled, children }: SidebarTool
 
   return (
     <div
-      className="contents"
+      className={enabled ? "inline-flex" : "flex w-full"}
       onMouseEnter={event => showTooltip(event.currentTarget)}
       onMouseLeave={() => setPosition(null)}
       onFocusCapture={event => showTooltip(event.currentTarget)}
