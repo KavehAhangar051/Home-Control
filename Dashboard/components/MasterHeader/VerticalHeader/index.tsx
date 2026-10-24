@@ -20,7 +20,7 @@ export default function VerticalHeader(props: MasterHeaderProps) {
               <button
                 type="button"
                 onClick={() => setIsSidebarCollapsed(false)}
-                className="absolute inset-0 flex items-center justify-center rounded-md text-[var(--sidebar-muted)] opacity-0 transition-colors hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent4)] group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 relative after:pointer-events-none after:absolute after:right-full after:top-1/2 after:z-50 after:mr-2 after:-translate-y-1/2 after:whitespace-nowrap after:rounded-lg after:border after:border-[var(--sidebar-border)] after:bg-[var(--card-bg-solid)] after:px-3 after:py-2 after:text-xs after:font-medium after:text-[var(--sidebar-text)] after:shadow-lg after:content-[attr(data-tooltip)] after:opacity-0 after:transition-opacity hover:after:opacity-100 focus-visible:after:opacity-100"
+                className="absolute inset-0 flex items-center justify-center rounded-md text-[var(--sidebar-muted)] opacity-0 transition-colors hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent4)] group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
                 data-tooltip="باز کردن منوی کناری"
                 aria-label="باز کردن منوی کناری"
               >
@@ -37,7 +37,7 @@ export default function VerticalHeader(props: MasterHeaderProps) {
               <button
                 type="button"
                 onClick={() => setIsSidebarCollapsed(true)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--sidebar-muted)] transition-colors hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent4)] relative after:pointer-events-none after:absolute after:right-full after:top-1/2 after:z-50 after:mr-2 after:-translate-y-1/2 after:whitespace-nowrap after:rounded-lg after:border after:border-[var(--sidebar-border)] after:bg-[var(--card-bg-solid)] after:px-3 after:py-2 after:text-xs after:font-medium after:text-[var(--sidebar-text)] after:shadow-lg after:content-[attr(data-tooltip)] after:opacity-0 after:transition-opacity hover:after:opacity-100 focus-visible:after:opacity-100"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--sidebar-muted)] transition-colors hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent4)]"
                 data-tooltip="بستن منوی کناری"
                 aria-label="بستن منوی کناری"
               >
