@@ -1,17 +1,14 @@
 "use client";
 
 import { useRef } from "react";
-import { House, Lightbulb, Network, Workflow } from "lucide-react";
+import { Lightbulb, Network, Workflow } from "lucide-react";
 import { IconStack } from "@/components/reui/icon-stack";
 import { Scrollspy } from "@/components/reui/scrollspy";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 
 const overviewSections = [
@@ -48,23 +45,8 @@ export default function WelcomePortal() {
     <section
       className="mx-auto w-full max-w-5xl px-3 py-5 text-right sm:px-5 sm:py-8"
       dir="rtl"
-      aria-labelledby="welcome-title"
     >
       <Card className="overflow-hidden">
-        <CardHeader className="flex flex-col gap-3 px-6 py-7 sm:px-8 sm:py-9">
-          <CardTitle
-            id="welcome-title"
-            role="heading"
-            aria-level={1}
-            className="text-2xl font-semibold leading-9 sm:text-3xl"
-          >
-            کنترل خانه، ساده و یکپارچه
-          </CardTitle>
-          <CardDescription className="max-w-2xl text-sm leading-7 sm:text-base">
-            چراغ‌ها، ماژول‌ها و اتوماسیون‌های خانه را در یک فضای کاری مدیریت کن.
-          </CardDescription>
-        </CardHeader>
-
         <CardContent className="space-y-5 px-6 pb-6 sm:px-8 sm:pb-8">
           <div className="space-y-1">
             <h2 className="text-base font-semibold text-foreground">نمای کلی سامانه</h2>
