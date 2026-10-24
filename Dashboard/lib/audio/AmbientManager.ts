@@ -38,6 +38,23 @@ export class AmbientManager {
     if (typeof window === "undefined") return;
 
     const source = localStorage.getItem("music_source") || "local";
+    if (!direction && source === "api") {
+      try {
+        const saved = localStorage.getItem("music_cached_track");
+        if (saved) {
+          const selection = JSON.parse(saved) as { source?: string; track?: Track };
+          if (selection.source === source && selection.track?.url) {
+            this.currentTrack = selection.track;
+            if (this.isAmbientPlaying) await this.playCurrentTrack();
+            this.onTrackUpdateCallback?.(this.currentTrack);
+            return;
+          }
+        }
+      } catch (error) {
+        debugLog.warn("Audio", "Could not restore the saved music selection.", error);
+      }
+    }
+
     if (source === "local") {
       const url = new URL("06 Dele Divaneh.mp3", document.baseURI).toString();
       this.currentTrack = { title: "Dele Divaneh", creator: "Home-Control", url, isLocal: true };
@@ -82,6 +99,17 @@ export class AmbientManager {
           this.currentTrack = { title: "Dele Divaneh", creator: "Fallback", url, isLocal: true };
           debugLog.warn("Audio", "Online tracks unavailable; selected bundled fallback track.");
         }
+      }
+    }
+
+    if (this.currentTrack) {
+      try {
+        localStorage.setItem(
+          "music_cached_track",
+          JSON.stringify({ source, track: this.currentTrack }),
+        );
+      } catch (error) {
+        debugLog.warn("Audio", "Could not persist the current music selection.", error);
       }
     }
 
