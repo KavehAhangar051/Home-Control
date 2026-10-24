@@ -15,7 +15,11 @@ export default function SidebarTooltip({ label, enabled, children }: SidebarTool
   const showTooltip = (element: HTMLElement) => {
     if (!enabled) return;
     const rect = element.getBoundingClientRect();
-    setPosition({ top: rect.top + rect.height / 2, left: rect.right + 8 });
+    const isRtl = getComputedStyle(element).direction === "rtl";
+    setPosition({
+      top: rect.top + rect.height / 2,
+      left: isRtl ? rect.right + 8 : rect.left - 8,
+    });
   };
 
   return (
@@ -32,8 +36,16 @@ export default function SidebarTooltip({ label, enabled, children }: SidebarTool
           <div
             role="tooltip"
             className="pointer-events-none fixed z-[9999] -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-3 py-1.5 text-xs text-background shadow-md"
-            style={{ top: position.top, left: position.left }}
+            style={{
+              top: position.top,
+              left: position.left,
+              transform: `translate(${getComputedStyle(document.documentElement).direction === "rtl" ? "0" : "-100%"}, -50%)`,
+            }}
           >
+            <span
+              aria-hidden="true"
+              className={`absolute top-1/2 size-1.5 -translate-y-1/2 rotate-45 bg-foreground ${getComputedStyle(document.documentElement).direction === "rtl" ? "-left-0.5" : "-right-0.5"}`}
+            />
             {label}
           </div>,
           document.body,
