@@ -14,24 +14,37 @@ export default function VerticalHeader(props: MasterHeaderProps) {
     >
       <div className={`flex min-h-10 gap-2 border-b border-[var(--sidebar-border)] pb-4 ${isSidebarCollapsed ? "flex-col items-center" : "items-center justify-between"}`}>
         {isSidebarCollapsed ? (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--sidebar-text)]" aria-hidden="true">
-            <HousePlug className="h-5 w-5" strokeWidth={1.8} />
+          <div className="group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--sidebar-text)]">
+            <HousePlug className="h-5 w-5 transition-opacity group-hover:opacity-0 group-focus-within:opacity-0" aria-hidden="true" strokeWidth={1.8} />
+            {setIsSidebarCollapsed && (
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="absolute inset-0 flex items-center justify-center rounded-md text-[var(--sidebar-muted)] opacity-0 transition-colors hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent4)] group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
+                title="باز کردن منوی کناری"
+                aria-label="باز کردن منوی کناری"
+              >
+                <PanelLeftClose className="h-4 w-4 rotate-180" />
+              </button>
+            )}
           </div>
         ) : (
-          <div className="hidden min-w-0 flex-1 md:block">
-            <BrandBox headerTitle={props.headerTitle} />
-          </div>
-        )}
-        {setIsSidebarCollapsed && (
-          <button
-            type="button"
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--sidebar-muted)] transition-colors hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent4)]"
-            title={isSidebarCollapsed ? "باز کردن منوی کناری" : "بستن منوی کناری"}
-            aria-label={isSidebarCollapsed ? "باز کردن منوی کناری" : "بستن منوی کناری"}
-          >
-            {isSidebarCollapsed ? <PanelLeftClose className="h-4 w-4 rotate-180" /> : <PanelRightClose className="h-4 w-4" />}
-          </button>
+          <>
+            <div className="hidden min-w-0 flex-1 md:block">
+              <BrandBox headerTitle={props.headerTitle} />
+            </div>
+            {setIsSidebarCollapsed && (
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed(true)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--sidebar-muted)] transition-colors hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent4)]"
+                title="بستن منوی کناری"
+                aria-label="بستن منوی کناری"
+              >
+                <PanelRightClose className="h-4 w-4" />
+              </button>
+            )}
+          </>
         )}
       </div>
 
