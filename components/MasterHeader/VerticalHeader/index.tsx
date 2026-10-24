@@ -2,6 +2,7 @@ import { HousePlug, PanelRightClose, PanelLeftClose } from "lucide-react";
 import type { MasterHeaderProps } from "../types";
 import BrandBox from "../BrandBox";
 import ControlsIsland from "./ControlsIsland";
+import SidebarTooltip from "../SidebarTooltip";
 
 export default function VerticalHeader(props: MasterHeaderProps) {
   const { isSidebarCollapsed, setIsSidebarCollapsed } = props;
@@ -14,6 +15,7 @@ export default function VerticalHeader(props: MasterHeaderProps) {
     >
       <div className={`flex min-h-10 gap-2 border-b border-[var(--sidebar-border)] pb-4 ${isSidebarCollapsed ? "flex-col items-center" : "items-center justify-between"}`}>
         {isSidebarCollapsed ? (
+          <SidebarTooltip label="باز کردن منوی کناری" enabled>
           <div className="group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--sidebar-text)]">
             <HousePlug className="h-5 w-5 transition-opacity group-hover:opacity-0 group-focus-within:opacity-0" aria-hidden="true" strokeWidth={1.8} />
             {setIsSidebarCollapsed && (
@@ -28,12 +30,14 @@ export default function VerticalHeader(props: MasterHeaderProps) {
               </button>
             )}
           </div>
+          </SidebarTooltip>
         ) : (
           <>
             <div className="hidden min-w-0 flex-1 md:block">
               <BrandBox headerTitle={props.headerTitle} />
             </div>
             {setIsSidebarCollapsed && (
+              <SidebarTooltip label="بستن منوی کناری" enabled>
               <button
                 type="button"
                 onClick={() => setIsSidebarCollapsed(true)}
@@ -43,6 +47,7 @@ export default function VerticalHeader(props: MasterHeaderProps) {
               >
                 <PanelRightClose className="h-5 w-5" />
               </button>
+              </SidebarTooltip>
             )}
           </>
         )}
