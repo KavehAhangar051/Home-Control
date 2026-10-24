@@ -22,9 +22,7 @@ export default function SidebarTooltip({ label, enabled, children }: SidebarTool
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger render={children as ReactElement}>
-          {null}
-        </TooltipTrigger>
+        <TooltipTrigger render={children as ReactElement} />
         <TooltipContent side="left" sideOffset={8}>
           {label}
         </TooltipContent>
