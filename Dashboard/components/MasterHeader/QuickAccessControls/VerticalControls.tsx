@@ -17,7 +17,7 @@ export default function VerticalControls({
   const activeWorkspaceView = useIoTStore(s => s.activeWorkspaceView);
   const setActiveWorkspaceView = useIoTStore(s => s.setActiveWorkspaceView);
 
-  const itemClass = "flex w-full items-center justify-start gap-3 rounded-md border border-transparent px-3 py-2.5 text-right text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--accent3-transparent)] hover:text-[var(--accent3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent4)]";
+  const itemClass = `relative flex items-center rounded-md border border-transparent text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--accent3-transparent)] hover:text-[var(--accent3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent4)] ${isSidebarCollapsed ? "h-10 w-10 justify-center px-0 py-0 after:pointer-events-none after:absolute after:right-full after:top-1/2 after:z-50 after:mr-2 after:-translate-y-1/2 after:whitespace-nowrap after:rounded-lg after:border after:border-[var(--sidebar-border)] after:bg-[var(--card-bg-solid)] after:px-3 after:py-2 after:text-xs after:font-medium after:text-[var(--sidebar-text)] after:shadow-lg after:content-[attr(data-tooltip)] after:opacity-0 after:transition-opacity hover:after:opacity-100 focus-visible:after:opacity-100" : "w-full justify-start gap-3 px-3 py-2.5 text-right"}`;
   const navClass = (view: WorkspaceView) =>
     `${itemClass} ${activeWorkspaceView === view ? "border-[var(--accent3-medium)] bg-[var(--accent3-transparent)] text-[var(--accent3)]" : ""}`;
 
@@ -41,7 +41,7 @@ export default function VerticalControls({
         onClick={() => navigateTo("home")}
         className={navClass("home")}
         aria-current={activeWorkspaceView === "home" ? "page" : undefined}
-        title="داشبورد خانه"
+        data-tooltip={isSidebarCollapsed ? "داشبورد خانه" : undefined}
         aria-label="داشبورد خانه"
       >
         <House className="h-4 w-4 shrink-0" />
@@ -53,7 +53,7 @@ export default function VerticalControls({
         onClick={() => navigateTo("modules")}
         className={navClass("modules")}
         aria-current={activeWorkspaceView === "modules" ? "page" : undefined}
-        title="پالایه و ماژول‌ها"
+        data-tooltip={isSidebarCollapsed ? "پالایه و ماژول‌ها" : undefined}
         aria-label="پالایه و ماژول‌ها"
       >
         <Layers className="h-4 w-4 shrink-0" />
@@ -65,7 +65,7 @@ export default function VerticalControls({
         onClick={() => navigateTo("automations")}
         className={navClass("automations")}
         aria-current={activeWorkspaceView === "automations" ? "page" : undefined}
-        title="اتوماسیون‌ها"
+        data-tooltip={isSidebarCollapsed ? "اتوماسیون‌ها" : undefined}
         aria-label="اتوماسیون‌ها"
       >
         <Clock3 className="h-4 w-4 shrink-0" />
@@ -85,7 +85,7 @@ export default function VerticalControls({
         onClick={() => navigateTo("settings")}
         className={navClass("settings")}
         aria-current={activeWorkspaceView === "settings" ? "page" : undefined}
-        title="تنظیمات اصلی"
+        data-tooltip={isSidebarCollapsed ? "تنظیمات اصلی" : undefined}
         aria-label="تنظیمات اصلی"
       >
         <SettingsIcon className="h-4 w-4 shrink-0" />
