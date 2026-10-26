@@ -96,16 +96,16 @@ jobs:
             fi
           }
 
-          import_subtree "Hardware" "KamyarAhangar8778/Home-Control-Hardwar-Codes"
-          import_subtree "Database" "KamyarAhangar8778/Home-Control-DB"
-          import_subtree "Dashboard" "KamyarAhangar8778/Home-Control-Dashboard"
+          import_subtree "Hardware" "KavehAhangar051/Home-Control-Hardwar-Codes"
+          import_subtree "Database" "KavehAhangar051/Home-Control-DB"
+          import_subtree "Dashboard" "KavehAhangar051/Home-Control-Dashboard"
 
           # Merge any commits made directly in child repositories into the matching
           # parent folder before splitting/pushing. No force push is used. If Git
           # detects conflicting edits to the same file, this step stops safely.
-          reconcile_subtree "Hardware" "KamyarAhangar8778/Home-Control-Hardwar-Codes"
-          reconcile_subtree "Database" "KamyarAhangar8778/Home-Control-DB"
-          reconcile_subtree "Dashboard" "KamyarAhangar8778/Home-Control-Dashboard"
+          reconcile_subtree "Hardware" "KavehAhangar051/Home-Control-Hardwar-Codes"
+          reconcile_subtree "Database" "KavehAhangar051/Home-Control-DB"
+          reconcile_subtree "Dashboard" "KavehAhangar051/Home-Control-Dashboard"
 
           # Restore the checkout credential so pushes back to the parent work.
           if [[ -n "$parent_auth_header" ]]; then
@@ -128,7 +128,7 @@ jobs:
           auth_header="$(printf '%s:%s' "$GITHUB_ACTOR" "$CHILD_REPOS_TOKEN" | base64 -w 0)"
           git subtree split --prefix=Hardware -b sync-hardware
           git -c "http.extraheader=AUTHORIZATION: basic ${auth_header}" push \
-            "https://github.com/KamyarAhangar8778/Home-Control-Hardwar-Codes.git" sync-hardware:main
+            "https://github.com/KavehAhangar051/Home-Control-Hardwar-Codes.git" sync-hardware:main
 
       - name: Push Database subtree to its repository
         env:
@@ -140,7 +140,7 @@ jobs:
           auth_header="$(printf '%s:%s' "$GITHUB_ACTOR" "$CHILD_REPOS_TOKEN" | base64 -w 0)"
           git subtree split --prefix=Database -b sync-database
           git -c "http.extraheader=AUTHORIZATION: basic ${auth_header}" push \
-            "https://github.com/KamyarAhangar8778/Home-Control-DB.git" sync-database:main
+            "https://github.com/KavehAhangar051/Home-Control-DB.git" sync-database:main
 
       - name: Push Dashboard subtree to its repository
         env:
@@ -152,4 +152,4 @@ jobs:
           auth_header="$(printf '%s:%s' "$GITHUB_ACTOR" "$CHILD_REPOS_TOKEN" | base64 -w 0)"
           git subtree split --prefix=Dashboard -b sync-dashboard
           git -c "http.extraheader=AUTHORIZATION: basic ${auth_header}" push \
-            "https://github.com/KamyarAhangar8778/Home-Control-Dashboard.git" sync-dashboard:main
+            "https://github.com/KavehAhangar051/Home-Control-Dashboard.git" sync-dashboard:main
