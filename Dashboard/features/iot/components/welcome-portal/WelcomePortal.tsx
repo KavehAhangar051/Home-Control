@@ -82,6 +82,7 @@ export default function WelcomePortal() {
             <div
               ref={overviewRef}
               className="relative h-80 min-w-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-lg border border-border bg-muted/20 scroll-smooth"
+              role="region"
               aria-label="توضیحات قابلیت‌های سامانه"
             >
               {overviewSections.map((item) => (
