@@ -10,8 +10,13 @@ import AutomationForm from "@/features/iot/components/AutomationsDrawer/componen
 import AutomationList from "@/features/iot/components/AutomationsDrawer/components/AutomationList";
 import AddSegmentForm from "@/features/iot/components/modules-drawer/components/AddSegmentForm";
 import SegmentList from "@/features/iot/components/modules-drawer/components/SegmentList";
-import { SETTINGS_TABS, type SettingsDrawerProps } from "@/features/settings/components/SettingsDrawer/types";
-import { SettingsTabContent } from "@/features/settings/components/SettingsDrawer/SettingsTabContent";
+import LayoutSection from "@/features/settings/components/layout-section/LayoutSection";
+import MqttSection from "@/features/settings/components/mqtt-section/MqttSection";
+import WifiSection from "@/features/settings/components/wifi-section/WifiSection";
+import AudioSection from "@/features/settings/components/audio-section/AudioSection";
+import ConditionsSection from "@/features/settings/components/conditions-section/ConditionsSection";
+import VoiceCommandsSection from "@/features/settings/components/voice-commands-section/VoiceCommandsSection";
+import StabilitySection from "@/features/settings/components/stability-section/StabilitySection";
 
 type WorkspaceView = "modules" | "automations" | "settings";
 
@@ -102,11 +107,19 @@ function AutomationsWorkspace() {
   );
 }
 
+const SETTINGS_TABS = [
+  { id: "layout", title: "چیدمان و عنوان", compactTitle: "چیدمان" },
+  { id: "mqtt", title: "ارتباط MQTT", compactTitle: "ارتباط MQTT" },
+  { id: "wifi", title: "شبکه‌های وای‌فای", compactTitle: "وای‌فای" },
+  { id: "audio", title: "صدا و موسیقی", compactTitle: "صدا" },
+  { id: "conditions", title: "شرط‌ها و ورودی‌ها", compactTitle: "شرط‌ها" },
+  { id: "voice", title: "دستورات صوتی", compactTitle: "دستورات صوتی" },
+  { id: "stability", title: "پایداری و بهینه‌سازی", compactTitle: "پایداری" },
+];
+
 function SettingsWorkspace() {
   const activeTab = useIoTStore(state => state.activeSettingsTab);
   const setActiveTab = useIoTStore(state => state.setActiveSettingsTab);
-  const accent3 = useIoTStore(state => state.accent3);
-  const accent4 = useIoTStore(state => state.accent4);
   const animationsEnabled = useIoTStore(state => state.animationsEnabled);
   const setAnimationsEnabled = useIoTStore(state => state.setAnimationsEnabled);
   const animationsFps = useIoTStore(state => state.animationsFps);
@@ -115,23 +128,36 @@ function SettingsWorkspace() {
   const setHeaderTitle = useIoTStore(state => state.setHeaderTitle);
   const isDark = useIoTStore(state => state.isDark);
 
-  const settingsProps: SettingsDrawerProps = {
-    isOpen: true,
-    onClose: () => {},
-    activeTab,
-    setActiveTab,
-    accent3,
-    accent4,
-    animationsEnabled,
-    setAnimationsEnabled,
-    animationsFps,
-    setAnimationsFps,
-    headerTitle,
-    setHeaderTitle,
-    isDark,
-  };
-
   const activeSettings = SETTINGS_TABS.find(tab => tab.id === activeTab) ?? SETTINGS_TABS[0];
+
+  const renderActiveSettings = () => {
+    switch (activeTab) {
+      case "mqtt":
+        return <MqttSection />;
+      case "wifi":
+        return <WifiSection />;
+      case "audio":
+        return <AudioSection />;
+      case "conditions":
+        return <ConditionsSection />;
+      case "voice":
+        return <VoiceCommandsSection />;
+      case "stability":
+        return (
+          <StabilitySection
+            animationsEnabled={animationsEnabled}
+            setAnimationsEnabled={setAnimationsEnabled}
+            animationsFps={animationsFps}
+            setAnimationsFps={setAnimationsFps}
+            hideHeader
+            isDark={isDark}
+          />
+        );
+      case "layout":
+      default:
+        return <LayoutSection headerTitle={headerTitle} setHeaderTitle={setHeaderTitle} />;
+    }
+  };
 
   return (
     <div className="grid min-w-0 grid-cols-1 items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
@@ -141,7 +167,6 @@ function SettingsWorkspace() {
       >
         <div className="flex min-w-max gap-2 lg:min-w-0 lg:flex-col">
           {SETTINGS_TABS.map(tab => {
-            const Icon = tab.Icon;
             const isActive = tab.id === activeTab;
 
             return (
@@ -150,11 +175,12 @@ function SettingsWorkspace() {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex min-h-11 min-w-[150px] items-center gap-3 rounded-md border px-3 py-2.5 text-right transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] lg:w-full lg:min-w-0 ${isActive
-                  ? "border-[var(--accent3)] bg-[var(--card-hover-bg)] text-[var(--text-primary)]"
-                  : "border-transparent text-[var(--text-secondary)] hover:border-[var(--border-color)] hover:bg-[var(--card-hover-bg)] hover:text-[var(--text-primary)]"}`}
+                className={`flex min-h-11 min-w-[150px] items-center gap-3 rounded-md border px-3 py-2.5 text-right transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] lg:w-full lg:min-w-0 ${
+                  isActive
+                    ? "border-[var(--accent3)] bg-[var(--card-hover-bg)] text-[var(--text-primary)]"
+                    : "border-transparent text-[var(--text-secondary)] hover:border-[var(--border-color)] hover:bg-[var(--card-hover-bg)] hover:text-[var(--text-primary)]"
+                }`}
               >
-                <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-[var(--accent3)]" : ""}`} aria-hidden="true" />
                 <span className="text-sm font-medium leading-5">{tab.compactTitle}</span>
               </button>
             );
@@ -175,7 +201,7 @@ function SettingsWorkspace() {
           </p>
         </header>
         <div className="min-w-0 p-4 sm:p-6">
-          <SettingsTabContent {...settingsProps} activeTab={activeTab} />
+          {renderActiveSettings()}
         </div>
       </section>
     </div>
