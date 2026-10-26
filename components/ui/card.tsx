@@ -29,25 +29,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-title"
-      className={cn("cn-card-title cn-font-heading", className)}
-      {...props}
-    />
-  );
-}
 
-function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-description"
-      className={cn("cn-card-description", className)}
-      {...props}
-    />
-  );
-}
 
 function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -73,7 +55,5 @@ export {
   Card,
   CardHeader,
   CardFooter,
-  CardTitle,
-  CardDescription,
   CardContent,
 };
