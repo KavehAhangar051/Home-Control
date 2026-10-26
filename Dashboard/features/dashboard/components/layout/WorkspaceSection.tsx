@@ -16,7 +16,7 @@ import WifiSection from "@/features/settings/components/wifi-section/WifiSection
 import AudioSection from "@/features/settings/components/audio-section/AudioSection";
 import ConditionsSection from "@/features/settings/components/conditions-section/ConditionsSection";
 import VoiceCommandsSection from "@/features/settings/components/voice-commands-section/VoiceCommandsSection";
-import StabilitySection from "@/features/settings/components/stability-section/StabilitySection";
+import StabilitySection from "@/features/settings/components/StabilitySection";
 
 type WorkspaceView = "modules" | "automations" | "settings";
 
