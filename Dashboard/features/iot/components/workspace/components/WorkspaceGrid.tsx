@@ -11,6 +11,12 @@ import { getEffectiveGroupsCols } from "../core/gridUtils";
 import { useShallow } from "zustand/react/shallow";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
+const GROUP_STYLE_LUT: Record<number, React.CSSProperties> = {
+  1: { flexBasis: "100%" },
+  2: { flexBasis: "calc(50% - 1rem - 0.1px)" },
+  3: { flexBasis: "calc(33.3333% - 1.3333rem - 0.1px)" },
+};
+
 const ConnectedSegmentCard = React.memo((props: any) => {
   const segment = useIoTStore(React.useCallback((s) => s.segments.find((seg) => seg.id === props.segmentId), [props.segmentId]));
   if (!segment) return null;
@@ -21,9 +27,17 @@ const ConnectedGroup = React.memo((props: any) => {
   const { groupName, groupIndex, groupConfigs, handleGroupColsChange, handleAddPlaceholder, handleRemoveGroup, animationsEnabled, filteredGroupsOrderLength, groupsCols, isMobilePortrait, segmentProps } = props;
 
   const segmentIds = useIoTStore(
-    useShallow((state) =>
-      state.segments.filter((seg) => (seg.group || "Test") === groupName).map((seg) => seg.id)
-    )
+    useShallow((state) => {
+      const ids: string[] = [];
+      const len = state.segments.length;
+      for (let i = 0; i < len; i++) {
+        const seg = state.segments[i];
+        if ((seg.group || "Test") === groupName) {
+          ids.push(seg.id);
+        }
+      }
+      return ids;
+    })
   );
 
   const effectiveGroupsCols = getEffectiveGroupsCols(
@@ -32,12 +46,11 @@ const ConnectedGroup = React.memo((props: any) => {
     groupsCols
   );
 
-  const flexBasis = (isMobilePortrait || groupsCols === 1) 
-    ? FLEX_BASIS_LUT[1] 
-    : FLEX_BASIS_LUT[groupsCols] || FLEX_BASIS_LUT[3];
+  const style = (isMobilePortrait || groupsCols === 1) 
+    ? GROUP_STYLE_LUT[1] 
+    : GROUP_STYLE_LUT[groupsCols] || GROUP_STYLE_LUT[3];
 
   const baseClasses = "flex-grow flex-shrink-0 min-w-0 max-w-full";
-  const style = { flexBasis };
 
   return (
     <div className={baseClasses} style={style}>
@@ -70,12 +83,6 @@ const ConnectedGroup = React.memo((props: any) => {
     </div>
   );
 });
-
-const FLEX_BASIS_LUT: Record<number, string> = {
-  1: "100%",
-  2: "calc(50% - 1rem - 0.1px)",
-  3: "calc(33.3333% - 1.3333rem - 0.1px)"
-};
 
 type WorkspaceGridProps = Omit<
   IoTWorkspaceProps,
@@ -117,41 +124,53 @@ export default function WorkspaceGrid({
     selectedGroupFilter,
   });
 
-  const renderGroup = (groupName: string, groupIndex: number) => {
-    return (
-      <ConnectedGroup
-        key={groupName}
-        groupName={groupName}
-        groupIndex={groupIndex}
-        groupConfigs={groupConfigs}
-        handleGroupColsChange={handleGroupColsChange}
-        handleAddPlaceholder={handleAddPlaceholder}
-        handleRemoveGroup={handleRemoveGroup}
-        animationsEnabled={animationsEnabled}
-        filteredGroupsOrderLength={filteredGroupsOrder.length}
-        groupsCols={groupsCols}
-        isMobilePortrait={isMobilePortrait}
-        segmentProps={{
-          onRemove: handleRemoveSegment,
-          onTogglePin: handleTogglePin,
-          onSetPinState: handleSetPinState,
-          onUpdateSegmentMode: handleUpdateSegmentMode,
-          onUpdateSegmentAutoOff: handleUpdateSegmentAutoOff,
-          onUpdateSegmentRule: handleUpdateSegmentRule,
-          isLoadingIoT,
-          onSetupPlaceholder: handleSetupPlaceholder,
-        }}
-      />
-    );
-  };
+  const segmentProps = React.useMemo(() => ({
+    onRemove: handleRemoveSegment,
+    onTogglePin: handleTogglePin,
+    onSetPinState: handleSetPinState,
+    onUpdateSegmentMode: handleUpdateSegmentMode,
+    onUpdateSegmentAutoOff: handleUpdateSegmentAutoOff,
+    onUpdateSegmentRule: handleUpdateSegmentRule,
+    isLoadingIoT,
+    onSetupPlaceholder: handleSetupPlaceholder,
+  }), [
+    handleRemoveSegment,
+    handleTogglePin,
+    handleSetPinState,
+    handleUpdateSegmentMode,
+    handleUpdateSegmentAutoOff,
+    handleUpdateSegmentRule,
+    isLoadingIoT,
+    handleSetupPlaceholder,
+  ]);
+
+  const sortableGroupItems = React.useMemo(
+    () => filteredGroupsOrder.map((g) => `group-${g}`),
+    [filteredGroupsOrder]
+  );
 
   return (
     <SortableContext
-      items={filteredGroupsOrder.map((g) => `group-${g}`)}
+      items={sortableGroupItems}
       strategy={isMobilePortrait ? () => null : rectSortingStrategy}
     >
       <div className="flex flex-wrap gap-8 w-full items-start">
-        {filteredGroupsOrder.map((groupName, groupIndex) => renderGroup(groupName, groupIndex))}
+        {filteredGroupsOrder.map((groupName, groupIndex) => (
+          <ConnectedGroup
+            key={groupName}
+            groupName={groupName}
+            groupIndex={groupIndex}
+            groupConfigs={groupConfigs}
+            handleGroupColsChange={handleGroupColsChange}
+            handleAddPlaceholder={handleAddPlaceholder}
+            handleRemoveGroup={handleRemoveGroup}
+            animationsEnabled={animationsEnabled}
+            filteredGroupsOrderLength={filteredGroupsOrder.length}
+            groupsCols={groupsCols}
+            isMobilePortrait={isMobilePortrait}
+            segmentProps={segmentProps}
+          />
+        ))}
       </div>
     </SortableContext>
   );

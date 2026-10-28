@@ -20,6 +20,17 @@ interface ActiveCardProps
   setIsSettingsOpen?: (val: boolean) => void;
 }
 
+const CARD_MOTION_TRANSITION = { type: "spring", stiffness: 380, damping: 32 } as const;
+const CARD_MOTION_INITIAL = { opacity: 0, scale: 0.93, y: 10 } as const;
+const CARD_MOTION_ANIMATE = { opacity: 1, scale: 1, y: 0 } as const;
+const CARD_MOTION_EXIT = {
+  opacity: 0,
+  scale: 0.85,
+  y: -10,
+  transition: { duration: 0.2, ease: "easeIn" },
+} as const;
+const CARD_SPACING_STYLE: React.CSSProperties = { "--card-spacing": "0px" } as React.CSSProperties;
+
 function ActiveCard({
   segment,
   isPinOn = false,
@@ -60,21 +71,17 @@ function ActiveCard({
   return (
     <motion.div
       layout={animationsEnabled ? "position" : false}
-      transition={animationsEnabled ? { type: "spring", stiffness: 380, damping: 32 } : undefined}
-      initial={animationsEnabled ? { opacity: 0, scale: 0.93, y: 10 } : false}
-      animate={animationsEnabled ? { opacity: 1, scale: 1, y: 0 } : false}
-      exit={
-        animationsEnabled
-          ? { opacity: 0, scale: 0.85, y: -10, transition: { duration: 0.2, ease: "easeIn" } }
-          : undefined
-      }
+      transition={animationsEnabled ? CARD_MOTION_TRANSITION : undefined}
+      initial={animationsEnabled ? CARD_MOTION_INITIAL : false}
+      animate={animationsEnabled ? CARD_MOTION_ANIMATE : false}
+      exit={animationsEnabled ? CARD_MOTION_EXIT : undefined}
       className="relative h-full"
     >
       <Card
         className={`group relative flex h-full flex-col justify-between border border-[var(--border)] shadow-sm ${
           isUltraCompact ? "min-h-[90px]" : "min-h-[140px]"
         }`}
-        style={{ "--card-spacing": "0px" } as React.CSSProperties}
+        style={CARD_SPACING_STYLE}
       >
         <CardHeader
           segment={segment}

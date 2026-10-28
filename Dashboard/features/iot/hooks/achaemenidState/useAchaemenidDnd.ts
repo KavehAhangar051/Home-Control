@@ -40,36 +40,37 @@ export function useAchaemenidDnd({
 
   const handleDragOver = useCallback((e: DragOverEvent) => {
     const { active, over } = e;
-    if (!over || active.data.current?.type === "Group" || over.data.current?.type === "Group")
+    if (!over || active.id === over.id || active.data.current?.type === "Group" || over.data.current?.type === "Group")
       return;
 
     const segments = useIoTStore.getState().segments;
-    const activeSeg = segments.find((s) => s.id === active.id);
+    const len = segments.length;
+    let activeSeg: (typeof segments)[0] | undefined;
+    let overSeg: (typeof segments)[0] | undefined;
+    let activeIdx = -1;
+    let overIdx = -1;
+
+    for (let i = 0; i < len; i++) {
+      const s = segments[i];
+      if (s.id === active.id) {
+        activeSeg = s;
+        activeIdx = i;
+      }
+      if (s.id === over.id) {
+        overSeg = s;
+        overIdx = i;
+      }
+      if (activeSeg && overSeg) break;
+    }
+
     if (!activeSeg) return;
-    const overSeg = segments.find((s) => s.id === over.id);
 
     if (overSeg) {
-      const activeGroup = activeSeg.group || "Test";
-      const overGroup = overSeg.group || "Test";
-      setSegments((prev) => {
-        const activeIdx = prev.findIndex((s) => s.id === active.id);
-        const overIdx = prev.findIndex((s) => s.id === over.id);
-        if (activeIdx === -1 || overIdx === -1) return prev;
-        if (activeGroup !== overGroup) {
-          return prev;
-        }
-        return activeIdx !== overIdx ? arrayMove(prev, activeIdx, overIdx) : prev;
-      });
-    } else {
-      const groupsOrder = useIoTStore.getState().groupsOrder;
-      const overIdStr = over.id.toString();
-      const targetGroup = overIdStr.startsWith("group-")
-        ? overIdStr.replace("group-", "")
-        : groupsOrder.includes(overIdStr)
-          ? overIdStr
-          : "";
-      if (targetGroup && (activeSeg.group || "Test") !== targetGroup) {
-        // Do nothing to prevent cross-group dragging
+      if ((activeSeg.group || "Test") !== (overSeg.group || "Test")) {
+        return;
+      }
+      if (activeIdx !== -1 && overIdx !== -1 && activeIdx !== overIdx) {
+        setSegments((prev) => arrayMove(prev, activeIdx, overIdx));
       }
     }
   }, [setSegments]);
@@ -79,15 +80,22 @@ export function useAchaemenidDnd({
     setActiveGroupId(null);
     const { active, over } = e;
     if (!over) return;
+
     if (over.id === "trash-dropzone") {
-      if (active.data.current?.type === "Group")
-        handleRemoveGroup(active.id.toString().replace("group-", ""));
-      else if (active.data.current?.type === "Segment") handleRemoveSegment(active.id.toString());
+      const activeStr = String(active.id);
+      if (active.data.current?.type === "Group") {
+        handleRemoveGroup(activeStr.startsWith("group-") ? activeStr.slice(6) : activeStr);
+      } else if (active.data.current?.type === "Segment") {
+        handleRemoveSegment(activeStr);
+      }
       return;
     }
+
     if (active.data.current?.type === "Group") {
-      const activeIdStr = active.id.toString().replace("group-", "");
-      const overIdStr = over.id.toString().replace("group-", "");
+      const activeStr = String(active.id);
+      const overStr = String(over.id);
+      const activeIdStr = activeStr.startsWith("group-") ? activeStr.slice(6) : activeStr;
+      const overIdStr = overStr.startsWith("group-") ? overStr.slice(6) : overStr;
       if (activeIdStr !== overIdStr) {
         setGroupsOrder((prev) => {
           const activeIdx = prev.indexOf(activeIdStr);
@@ -96,7 +104,7 @@ export function useAchaemenidDnd({
         });
       }
     }
-  }, [handleRemoveGroup, handleRemoveSegment, setGroupsOrder]);
+  }, [handleRemoveGroup, handleRemoveSegment, setGroupsOrder, setActiveSegmentId, setActiveGroupId]);
 
   return {
     sensors,
