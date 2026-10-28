@@ -1,8 +1,16 @@
 "use client";
 
 import React from "react";
-import ModulesDrawer from "@/features/iot/components/ModulesDrawer";
-import AutomationsDrawer from "@/features/iot/components/AutomationsDrawer";
+import dynamic from "next/dynamic";
+
+const ModulesDrawer = dynamic(
+  () => import("@/features/iot/components/ModulesDrawer"),
+  { ssr: false }
+);
+const AutomationsDrawer = dynamic(
+  () => import("@/features/iot/components/AutomationsDrawer"),
+  { ssr: false }
+);
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 

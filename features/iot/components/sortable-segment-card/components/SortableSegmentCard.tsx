@@ -9,6 +9,9 @@ import { useSegmentDensity } from "../hooks/useSegmentDensity";
 import PlaceholderCard from "./PlaceholderCard";
 import ActiveCard from "./ActiveCard";
 
+const DEFAULT_CARD_TRANSITION = "transform 350ms cubic-bezier(0.16, 1, 0.3, 1)";
+const EMPTY_RECORD = Object.freeze({});
+
 function SortableSegmentCard(props: SortableSegmentCardProps) {
   const {
     segment,
@@ -37,10 +40,10 @@ function SortableSegmentCard(props: SortableSegmentCardProps) {
     disabled: props.isOverlayItem,
   });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: animationsEnabled
-      ? transition || "transform 350ms cubic-bezier(0.16, 1, 0.3, 1)"
+      ? transition || DEFAULT_CARD_TRANSITION
       : "none",
     zIndex: isDragging ? 50 : isSettingsOpen ? 40 : "auto",
     opacity: isDragging ? 0.35 : 1,
@@ -65,8 +68,8 @@ function SortableSegmentCard(props: SortableSegmentCardProps) {
           isUltraCompact={isUltraCompact}
           isMobileTwoCol={isMobileTwoCol}
           densityFactor={densityFactor}
-          attributes={{}}
-          listeners={{}}
+          attributes={EMPTY_RECORD}
+          listeners={EMPTY_RECORD}
           isSettingsOpen={isSettingsOpen}
           setIsSettingsOpen={setIsSettingsOpen}
         />

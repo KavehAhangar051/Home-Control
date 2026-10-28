@@ -12,6 +12,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SortableGroupProps } from "../core/types";
 import GroupHeader from "./GroupHeader";
 
+const GROUP_COLS_STYLE_LUT: Record<number, React.CSSProperties> = {
+  1: { "--group-cols": 1 } as React.CSSProperties,
+  2: { "--group-cols": 2 } as React.CSSProperties,
+  3: { "--group-cols": 3 } as React.CSSProperties,
+  4: { "--group-cols": 4 } as React.CSSProperties,
+  5: { "--group-cols": 5 } as React.CSSProperties,
+  6: { "--group-cols": 6 } as React.CSSProperties,
+};
+
+const COLUMN_INDICATORS: number[][] = [
+  [],
+  [1],
+  [1, 2],
+  [1, 2, 3],
+  [1, 2, 3, 4],
+  [1, 2, 3, 4, 5],
+  [1, 2, 3, 4, 5, 6],
+];
+
 export default function SortableGroup({
   id,
   items,
@@ -42,7 +61,7 @@ export default function SortableGroup({
     disabled: isOverlayItem,
   });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(isDragging ? null : transform),
     transition: animationsEnabled
       ? transition || "transform 350ms cubic-bezier(0.16, 1, 0.3, 1)"
@@ -52,11 +71,12 @@ export default function SortableGroup({
   };
 
   const effectiveCols = Math.min(Math.max(1, items.length), maxCols);
+  const contentStyle = GROUP_COLS_STYLE_LUT[effectiveCols] || { "--group-cols": effectiveCols } as React.CSSProperties;
 
   const renderContent = () => (
     <div
       className="grid w-full min-w-0 grid-cols-1 gap-3 p-3 text-right relative z-10 sm:grid-cols-[repeat(var(--group-cols),minmax(0,1fr))] sm:gap-4 sm:p-4"
-      style={{ "--group-cols": effectiveCols } as React.CSSProperties}
+      style={contentStyle}
     >
       <AnimatePresence mode="popLayout">{children}</AnimatePresence>
     </div>
@@ -101,7 +121,7 @@ export default function SortableGroup({
           <div className="absolute inset-0 rounded-2xl border border-[var(--accent3)] shadow-xl opacity-0 transition-opacity duration-350 md:group-hover/group-card:opacity-100 pointer-events-none" />
           <CardContent className="!px-2 !py-0">
             <div className="flex gap-1.5 opacity-50 transition-opacity md:group-hover/group-card:opacity-100 relative z-10">
-              {Array.from({ length: maxCols }, (_, index) => index + 1).map((column) => (
+              {(COLUMN_INDICATORS[maxCols] || COLUMN_INDICATORS[3]).map((column) => (
                 <div key={`column-${column}`} className="w-2.5 h-1.5 bg-[var(--accent3)] rounded-full" />
               ))}
             </div>
