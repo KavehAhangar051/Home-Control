@@ -29,9 +29,9 @@ export function useSegmentDensity({
 
   const effectiveParentCols = isMobilePortrait ? 1 : parentGroupsCols;
   const rawDensityFactor = rowOccupiedCols * effectiveParentCols;
-  
+
   const densityFactor = Math.max(1, rawDensityFactor);
-  
+
   const isMobileTwoCol = isMobilePortrait && rowOccupiedCols >= 2;
   const isUltraCompact = densityFactor >= 6;
   const isCompact = (densityFactor >= 3 && densityFactor < 6) || isMobileTwoCol;

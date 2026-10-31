@@ -28,7 +28,6 @@ export function useConnectionStrategy() {
 
       if (ws?.readyState === WebSocket.OPEN || ws?.readyState === WebSocket.CONNECTING) return;
 
-      
       console.log(`[LocalWS] Attempting connection to ws://${localIp}:81`);
       ws = new WebSocket(`ws://${localIp}:81`);
       setLocalWs(ws);
@@ -45,7 +44,7 @@ export function useConnectionStrategy() {
         if (!isMounted) return;
         try {
           const data = JSON.parse(event.data);
-          
+
           if (data.type === "state_sync" && data.states) {
             // Bulk sync on connect
             setPinsState(data.states);
@@ -64,7 +63,7 @@ export function useConnectionStrategy() {
         console.warn("[LocalWS] Disconnected. Falling back to Global (MQTT).");
         setIsLocal(false);
         setLocalWs(null);
-        
+
         // Try reconnecting after 5 seconds if still on the same IP
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = setTimeout(connect, 5000);

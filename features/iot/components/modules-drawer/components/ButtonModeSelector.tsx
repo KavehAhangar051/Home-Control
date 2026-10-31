@@ -14,9 +14,7 @@ export default function ButtonModeSelector({
 }: ButtonModeSelectorProps) {
   return (
     <div className="space-y-1.5">
-      <div className="text-[10px] theme-text-tertiary font-bold block">
-        نوع عملکرد کلید کنترل:
-      </div>
+      <div className="text-[10px] theme-text-tertiary font-bold block">نوع عملکرد کلید کنترل:</div>
       <div className="grid grid-cols-2 gap-2">
         <motion.button
           type="button"

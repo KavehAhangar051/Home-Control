@@ -12,8 +12,8 @@ import { useIoTStore } from "./useIoTStore";
 import { useConnectionStrategy } from "./achaemenidState/useConnectionStrategy";
 
 export function useAchaemenidState() {
-  const setIsModulesMenuOpen = useIoTStore(s => s.setIsModulesMenuOpen);
-  
+  const setIsModulesMenuOpen = useIoTStore((s) => s.setIsModulesMenuOpen);
+
   useConnectionStrategy();
 
   const { mounted, refetchIot } = useCloudflareQuery();
@@ -33,7 +33,13 @@ export function useAchaemenidState() {
 
   const { triggerCloudflarePush } = useCloudflarePush(isFullyReady);
 
-  const { isLoadingIoT, updatePinOnServer, handleTogglePin, handleSetPinState, handleBatchPinState } = usePinOperations({
+  const {
+    isLoadingIoT,
+    updatePinOnServer,
+    handleTogglePin,
+    handleSetPinState,
+    handleBatchPinState,
+  } = usePinOperations({
     refetchIot,
   });
 
@@ -50,11 +56,8 @@ export function useAchaemenidState() {
     updatePinOnServer,
   });
 
-  const {
-    handleUpdateSegmentMode,
-    handleUpdateSegmentRule,
-    handleUpdateSegmentAutoOff,
-  } = useSegmentUpdates();
+  const { handleUpdateSegmentMode, handleUpdateSegmentRule, handleUpdateSegmentAutoOff } =
+    useSegmentUpdates();
 
   const dnd = useAchaemenidDnd({
     handleRemoveGroup,
@@ -89,3 +92,5 @@ export function useAchaemenidState() {
     triggerCloudflarePush,
   };
 }
+
+export const useDashboardState = useAchaemenidState;

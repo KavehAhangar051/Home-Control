@@ -50,9 +50,7 @@ export default function GroupSettingsMenu({
         </div>
         {(isCompact || isMobile) && (
           <div className="relative z-10 flex flex-col gap-2 w-full">
-            <span className="text-[10px] font-bold text-slate-500">
-              تعداد ستون‌های سگمنت
-            </span>
+            <span className="text-[10px] font-bold text-slate-500">تعداد ستون‌های سگمنت</span>
             <LayoutSelector
               maxCols={maxCols}
               onColsChange={(cols) => {
@@ -66,9 +64,11 @@ export default function GroupSettingsMenu({
         )}
 
         <div
-          className={`relative z-10 flex flex-col gap-2 ${(isCompact || isMobile) ? "pt-2 border-t border-[var(--border-color)]" : ""}`}
+          className={`relative z-10 flex flex-col gap-2 ${isCompact || isMobile ? "pt-2 border-t border-[var(--border-color)]" : ""}`}
         >
-          <Button variant="ghost" type="button"
+          <Button
+            variant="ghost"
+            type="button"
             onClick={() => {
               onAddPlaceholder(id);
               setIsSettingsOpen(false);

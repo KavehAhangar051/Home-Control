@@ -1,92 +1,88 @@
-import { audioContextManager } from './context';
+import { audioContextManager } from "./context";
+
+interface ToneConfig {
+  type?: OscillatorType;
+  freqStart: number;
+  freqEnd?: number;
+  startTime?: number;
+  duration: number;
+  peakGain: number;
+  attackTime?: number;
+}
+
+/**
+ * Deep helper to schedule an audio tone with an envelope on an AudioContext.
+ * Hides node creation, oscillator configuration, gain ramp calculation, and lifecycle cleanup.
+ */
+function playTone(ctx: AudioContext, config: ToneConfig) {
+  const t = config.startTime ?? ctx.currentTime;
+  const attack = config.attackTime ?? 0.01;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.type = config.type || "sine";
+  osc.frequency.setValueAtTime(config.freqStart, t);
+  if (config.freqEnd !== undefined && config.freqEnd !== config.freqStart) {
+    osc.frequency.exponentialRampToValueAtTime(Math.max(1, config.freqEnd), t + config.duration);
+  }
+
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(config.peakGain, t + attack);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + config.duration);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + config.duration);
+}
 
 export function playClickSynth() {
   const ctx = audioContextManager.getContext();
   if (!ctx) return;
-  const t = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(800, t);
-  osc.frequency.exponentialRampToValueAtTime(300, t + 0.02);
-  gain.gain.setValueAtTime(0, t);
-  gain.gain.linearRampToValueAtTime(0.05, t + 0.005);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start(t);
-  osc.stop(t + 0.02);
+  playTone(ctx, {
+    freqStart: 800,
+    freqEnd: 300,
+    duration: 0.02,
+    peakGain: 0.05,
+    attackTime: 0.005,
+  });
 }
 
 export function playToggleOnSynth() {
   const ctx = audioContextManager.getContext();
   if (!ctx) return;
-  const t = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(400, t);
-  osc.frequency.exponentialRampToValueAtTime(800, t + 0.08);
-  gain.gain.setValueAtTime(0, t);
-  gain.gain.linearRampToValueAtTime(0.06, t + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start(t);
-  osc.stop(t + 0.08);
+  playTone(ctx, { freqStart: 400, freqEnd: 800, duration: 0.08, peakGain: 0.06, attackTime: 0.01 });
 }
 
 export function playToggleOffSynth() {
   const ctx = audioContextManager.getContext();
   if (!ctx) return;
-  const t = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(800, t);
-  osc.frequency.exponentialRampToValueAtTime(400, t + 0.08);
-  gain.gain.setValueAtTime(0, t);
-  gain.gain.linearRampToValueAtTime(0.06, t + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start(t);
-  osc.stop(t + 0.08);
+  playTone(ctx, { freqStart: 800, freqEnd: 400, duration: 0.08, peakGain: 0.06, attackTime: 0.01 });
 }
 
 export function playSuccessSynth() {
   const ctx = audioContextManager.getContext();
   if (!ctx) return;
   const t = ctx.currentTime;
-  [400, 600].forEach((freq, i) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, t + i * 0.1);
-    gain.gain.setValueAtTime(0, t + i * 0.1);
-    gain.gain.linearRampToValueAtTime(0.04, t + i * 0.1 + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.15);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(t + i * 0.1);
-    osc.stop(t + i * 0.1 + 0.15);
+  playTone(ctx, { freqStart: 400, startTime: t, duration: 0.15, peakGain: 0.04, attackTime: 0.02 });
+  playTone(ctx, {
+    freqStart: 600,
+    startTime: t + 0.1,
+    duration: 0.15,
+    peakGain: 0.04,
+    attackTime: 0.02,
   });
 }
 
 export function playErrorSynth() {
   const ctx = audioContextManager.getContext();
   if (!ctx) return;
-  const t = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(150, t);
-  osc.frequency.exponentialRampToValueAtTime(100, t + 0.2);
-  gain.gain.setValueAtTime(0, t);
-  gain.gain.linearRampToValueAtTime(0.05, t + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start(t);
-  osc.stop(t + 0.2);
+  playTone(ctx, {
+    type: "sawtooth",
+    freqStart: 150,
+    freqEnd: 100,
+    duration: 0.2,
+    peakGain: 0.05,
+    attackTime: 0.02,
+  });
 }

@@ -1,6 +1,12 @@
 import { Clock } from "lucide-react";
 
-export default function RealTimeClock({ time, className }: { time: Date | null; className?: string }) {
+export default function RealTimeClock({
+  time,
+  className,
+}: {
+  time: Date | null;
+  className?: string;
+}) {
   if (!time) {
     return <Clock className={className} />;
   }

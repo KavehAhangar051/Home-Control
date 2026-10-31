@@ -5,14 +5,16 @@ interface PinSelectorProps {
   setCustomPin: (val: string) => void;
 }
 
-export default function PinSelector({
-  customPin,
-  setCustomPin,
-}: PinSelectorProps) {
+export default function PinSelector({ customPin, setCustomPin }: PinSelectorProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label htmlFor="esp32-hardware-pin" className="text-[10px] theme-text-tertiary font-bold w-full text-right">تعیین پایه سخت‌افزاری ESP32:</label>
+        <label
+          htmlFor="esp32-hardware-pin"
+          className="text-[10px] theme-text-tertiary font-bold w-full text-right"
+        >
+          تعیین پایه سخت‌افزاری ESP32:
+        </label>
       </div>
       <input
         id="esp32-hardware-pin"

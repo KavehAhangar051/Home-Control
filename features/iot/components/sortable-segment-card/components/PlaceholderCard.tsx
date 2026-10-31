@@ -30,22 +30,28 @@ export default function PlaceholderCard({
       className="w-full h-full relative"
       layout={animationsEnabled ? "position" : false}
       transition={animationsEnabled ? { type: "spring", stiffness: 380, damping: 32 } : undefined}
-      initial={animationsEnabled ? { opacity: 0, scale: 0.93, y: 10 } : false}
-      animate={animationsEnabled ? { opacity: 1, scale: 1, y: 0 } : false}
+      initial={animationsEnabled ? { opacity: 0, y: 12, filter: "blur(4px)" } : false}
+      animate={animationsEnabled ? { opacity: 1, y: 0, filter: "blur(0px)" } : false}
       exit={
         animationsEnabled
-          ? { opacity: 0, scale: 0.85, y: -10, transition: { duration: 0.2, ease: "easeIn" } }
+          ? {
+              opacity: 0,
+              y: -12,
+              filter: "blur(4px)",
+              transition: { duration: 0.15, ease: "easeOut" },
+            }
           : undefined
       }
     >
       <div className="absolute top-2 left-2 z-20 flex gap-1.5">
-        <button type="button"
+        <button
+          type="button"
           onClick={() => onRemove(segment.id)}
           onPointerDown={(e) => e.stopPropagation()}
-          className="p-1.5 bg-[var(--secondary)] border border-[var(--border)] md:hover:bg-[var(--accent)] text-[var(--secondary-foreground)] transition-colors cursor-pointer rounded-md shadow-sm"
+          className="p-1.5 bg-[var(--secondary)] border border-[var(--border)] md:hover:bg-[var(--accent)] text-[var(--secondary-foreground)] transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer rounded-md shadow-sm"
           title="حذف جایگاه خالی"
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-3.5 h-3.5" strokeWidth={2} />
         </button>
         <div
           {...attributes}
@@ -59,30 +65,31 @@ export default function PlaceholderCard({
       {/* Translate lives here — GPU composited, never causes paint */}
       <div className="w-full h-full md:hover:-translate-y-1.5 transition-transform duration-350 rounded-xl group/ph-card">
         <Card className="w-full h-full !gap-0 !overflow-hidden !rounded-xl !border-dashed !border-[var(--border)] !bg-[var(--card)] !p-0 !shadow-none">
-        <button type="button"
-          onClick={() => onSetupPlaceholder && onSetupPlaceholder(segment.id)}
-          className={`relative w-full h-full border-0 bg-transparent flex flex-col items-center justify-center gap-2 cursor-pointer text-center rounded-xl overflow-hidden ${
-            isUltraCompact
-              ? "p-3 min-h-[90px]"
-              : isCompact
-                ? "p-4 min-h-[128px]"
-                : "p-6 min-h-[178px]"
-          }`}
-        >
-          <div
-            className="relative z-10 p-2 rounded-md bg-[var(--muted)] text-[var(--muted-foreground)]"
-            style={{ clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)" }}
+          <button
+            type="button"
+            onClick={() => onSetupPlaceholder && onSetupPlaceholder(segment.id)}
+            className={`relative w-full h-full border-0 bg-transparent flex flex-col items-center justify-center gap-2 cursor-pointer text-center rounded-xl overflow-hidden ${
+              isUltraCompact
+                ? "p-3 min-h-[90px]"
+                : isCompact
+                  ? "p-4 min-h-[128px]"
+                  : "p-6 min-h-[178px]"
+            }`}
           >
-            <Plus className="w-4 h-4" />
-          </div>
-          {!isUltraCompact && (
-            <div className="relative z-10">
-              <span className="block font-sans font-bold text-xs md:text-sm theme-text-primary">
-                {isCompact ? "تعیین سگمنت" : "جایگذاری سگمنت در اینجا"}
-              </span>
+            <div
+              className="relative z-10 p-2 rounded-md bg-[var(--muted)] text-[var(--muted-foreground)]"
+              style={{ clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)" }}
+            >
+              <Plus className="w-4 h-4" />
             </div>
-          )}
-        </button>
+            {!isUltraCompact && (
+              <div className="relative z-10">
+                <span className="block font-sans font-bold text-xs md:text-sm theme-text-primary">
+                  {isCompact ? "تعیین سگمنت" : "جایگذاری سگمنت در اینجا"}
+                </span>
+              </div>
+            )}
+          </button>
         </Card>
       </div>
     </motion.div>

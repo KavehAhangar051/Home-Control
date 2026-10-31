@@ -2,7 +2,7 @@ import {
   pointerWithin,
   closestCorners,
   CollisionDetection,
-  getFirstCollision
+  getFirstCollision,
 } from "@dnd-kit/core";
 
 /**

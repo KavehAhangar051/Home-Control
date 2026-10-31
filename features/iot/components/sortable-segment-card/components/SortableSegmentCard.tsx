@@ -22,16 +22,9 @@ function SortableSegmentCard(props: SortableSegmentCardProps) {
     animationsEnabled = true,
   } = props;
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
-  const isPinOn = useIoTStore(s => !!s.pinsState[segment.pin]);
+  const isPinOn = useIoTStore((s) => !!s.pinsState[segment.pin]);
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: segment.id,
     data: {
       type: "Segment",
@@ -42,9 +35,7 @@ function SortableSegmentCard(props: SortableSegmentCardProps) {
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition: animationsEnabled
-      ? transition || DEFAULT_CARD_TRANSITION
-      : "none",
+    transition: animationsEnabled ? transition || DEFAULT_CARD_TRANSITION : "none",
     zIndex: isDragging ? 50 : isSettingsOpen ? 40 : "auto",
     opacity: isDragging ? 0.35 : 1,
     scale: isDragging ? 0.96 : 1,

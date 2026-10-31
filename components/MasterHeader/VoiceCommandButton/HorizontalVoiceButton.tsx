@@ -34,7 +34,10 @@ export default function HorizontalVoiceButton({
       title="فرمان صوتی (نگه دارید)"
       aria-label="فرمان صوتی (نگه دارید)"
     >
-      <Mic aria-hidden="true" className={`w-4 h-4 transition-transform duration-300 ${isListening && animationsEnabled ? "animate-pulse scale-110" : animationsEnabled ? "md:group-hover:scale-110" : ""}`} />
+      <Mic
+        aria-hidden="true"
+        className={`w-4 h-4 transition-transform duration-300 ${isListening && animationsEnabled ? "animate-pulse scale-110" : animationsEnabled ? "md:group-hover:scale-110" : ""}`}
+      />
     </motion.button>
   );
 }

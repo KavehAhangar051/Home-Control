@@ -21,13 +21,13 @@ interface ActiveCardProps
 }
 
 const CARD_MOTION_TRANSITION = { type: "spring", stiffness: 380, damping: 32 } as const;
-const CARD_MOTION_INITIAL = { opacity: 0, scale: 0.93, y: 10 } as const;
-const CARD_MOTION_ANIMATE = { opacity: 1, scale: 1, y: 0 } as const;
+const CARD_MOTION_INITIAL = { opacity: 0, y: 12, filter: "blur(4px)" } as const;
+const CARD_MOTION_ANIMATE = { opacity: 1, y: 0, filter: "blur(0px)" } as const;
 const CARD_MOTION_EXIT = {
   opacity: 0,
-  scale: 0.85,
-  y: -10,
-  transition: { duration: 0.2, ease: "easeIn" },
+  y: -12,
+  filter: "blur(4px)",
+  transition: { duration: 0.15, ease: "easeOut" },
 } as const;
 const CARD_SPACING_STYLE: React.CSSProperties = { "--card-spacing": "0px" } as React.CSSProperties;
 

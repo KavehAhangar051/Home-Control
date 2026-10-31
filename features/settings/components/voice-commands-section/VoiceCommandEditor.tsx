@@ -14,10 +14,14 @@ interface Props {
 }
 
 export function VoiceCommandEditor({
-  newCommandPhrase, setNewCommandPhrase,
-  tempActions, setTempActions,
-  onSave, onCancel,
-  segments, macros
+  newCommandPhrase,
+  setNewCommandPhrase,
+  tempActions,
+  setTempActions,
+  onSave,
+  onCancel,
+  segments,
+  macros,
 }: Props) {
   return (
     <div className="flex flex-col gap-4">
@@ -51,8 +55,10 @@ export function VoiceCommandEditor({
       </div>
 
       <VoiceCommandActionsEditor
-        tempActions={tempActions} setTempActions={setTempActions}
-        segments={segments} macros={macros}
+        tempActions={tempActions}
+        setTempActions={setTempActions}
+        segments={segments}
+        macros={macros}
       />
     </div>
   );

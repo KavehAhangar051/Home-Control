@@ -16,7 +16,7 @@ export function usePageVisibility() {
 
     // Set initial value
     setIsPageVisible(!document.hidden);
-    // Don't publish initial presence here because initMqtt does it automatically, 
+    // Don't publish initial presence here because initMqtt does it automatically,
     // or we might publish before connected. We rely on the event listener for subsequent changes.
 
     document.addEventListener("visibilitychange", handleVisibilityChange);

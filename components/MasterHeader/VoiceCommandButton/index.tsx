@@ -14,7 +14,11 @@ export default function VoiceCommandButton(props: VoiceCommandButtonProps) {
   const button = <HorizontalVoiceButton {...props} {...handler} />;
 
   if (props.variant === "vertical" && props.isSidebarCollapsed) {
-    return <SidebarTooltip label="فرمان صوتی (نگه دارید)" enabled>{button}</SidebarTooltip>;
+    return (
+      <SidebarTooltip label="فرمان صوتی (نگه دارید)" enabled>
+        {button}
+      </SidebarTooltip>
+    );
   }
 
   return button;

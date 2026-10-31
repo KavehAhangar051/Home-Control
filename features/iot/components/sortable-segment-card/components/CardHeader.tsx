@@ -82,7 +82,9 @@ export default function CardHeader({
             : "justify-between p-4"
       }`}
     >
-      <div className={`flex items-center ${!showIconInHeader || isSmall ? "justify-center" : "gap-1.5 md:gap-2"}`}>
+      <div
+        className={`flex items-center ${!showIconInHeader || isSmall ? "justify-center" : "gap-1.5 md:gap-2"}`}
+      >
         {!isSmall && (
           <SegmentActions
             segment={segment}
@@ -99,7 +101,8 @@ export default function CardHeader({
 
         {isSmall && (
           <div className="relative flex justify-center group/btn h-6 items-center">
-            <button type="button"
+            <button
+              type="button"
               ref={buttonRef}
               onClick={() => currentSetIsSettingsOpen(!currentIsSettingsOpen)}
               className={`py-1 bg-[var(--secondary)] border border-[var(--border)] transition-colors cursor-pointer rounded-md flex items-center justify-center ${
@@ -143,7 +146,9 @@ export default function CardHeader({
               ICON_MAP[segment.icon] ? (
                 React.createElement(ICON_MAP[segment.icon], { className: "w-4 h-4" })
               ) : (
-                <span className="text-sm leading-none flex items-center justify-center w-4 h-4">{segment.icon}</span>
+                <span className="text-sm leading-none flex items-center justify-center w-4 h-4">
+                  {segment.icon}
+                </span>
               )
             ) : (
               React.createElement(ICON_MAP["Cpu"], { className: "w-4 h-4" })

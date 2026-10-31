@@ -20,7 +20,7 @@ export interface ModulesDrawerProps {
     mode?: "switch" | "push",
     auto_off?: number,
     icon?: string,
-    groupIcon?: string
+    groupIcon?: string,
   ) => void;
   segments: Segment[];
   onRemoveSegment: (id: string) => void;

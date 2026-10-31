@@ -5,7 +5,7 @@ export function useAutomationForm() {
   const automations = useIoTStore((state) => state.automations);
   const setAutomations = useIoTStore((state) => state.setAutomations);
   const showToast = useIoTStore((state) => state.showToast);
-  
+
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form State
@@ -13,32 +13,34 @@ export function useAutomationForm() {
   const [time, setTime] = useState("");
   const [days, setDays] = useState<number[]>([]);
   const [repeatCount, setRepeatCount] = useState<number | "">("");
-  
+
   const [autoType, setAutoType] = useState<"schedule" | "timer" | "weather">("schedule");
   const [delayHours, setDelayHours] = useState<number | "">("");
   const [delayMinutes, setDelayMinutes] = useState<number | "">("");
-  
+
   const [city, setCity] = useState("");
   const [temperatureThreshold, setTemperatureThreshold] = useState<number | "">("");
   const [temperatureCondition, setTemperatureCondition] = useState<"greater" | "less">("greater");
-  
+
   const [intervalMinutes, setIntervalMinutes] = useState<number | "">("");
   const [hasWeatherCondition, setHasWeatherCondition] = useState<boolean>(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   // Actions state
-  const [actions, setActions] = useState<Array<{
-    targetPin?: string;
-    targetMacro?: string;
-    actionOn?: boolean;
-  }>>([]);
+  const [actions, setActions] = useState<
+    Array<{
+      targetPin?: string;
+      targetMacro?: string;
+      actionOn?: boolean;
+    }>
+  >([]);
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       showToast("مرورگر شما از قابلیت مکان‌یابی پشتیبانی نمی‌کند.", "error");
       return;
     }
-    
+
     setIsGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -51,7 +53,7 @@ export function useAutomationForm() {
       (error) => {
         setIsGettingLocation(false);
         showToast("خطا در دریافت مکان. لطفاً دسترسی دستگاه را بررسی کنید.", "error");
-      }
+      },
     );
   };
 
@@ -79,7 +81,7 @@ export function useAutomationForm() {
     setDays(auto.days ? [...auto.days] : []);
     setRepeatCount(auto.repeatCount || "");
     setIntervalMinutes(auto.intervalMinutes || "");
-    
+
     if (auto.city && auto.temperatureThreshold !== undefined) {
       setHasWeatherCondition(true);
       setCity(auto.city);
@@ -98,36 +100,39 @@ export function useAutomationForm() {
     } else {
       setAutoType("schedule");
     }
-    
+
     setActions(auto.actions ? [...auto.actions] : []);
   };
 
   const handleSave = () => {
     let finalTime = time;
     let finalDays = [...days];
-    let finalRepeatCount = typeof repeatCount === 'number' && repeatCount > 0 ? repeatCount : undefined;
+    let finalRepeatCount =
+      typeof repeatCount === "number" && repeatCount > 0 ? repeatCount : undefined;
     let finalConditionType: "time" | "weather" = "time";
     let finalCity = city;
-    let finalTempThresh = typeof temperatureThreshold === 'number' ? temperatureThreshold : undefined;
+    let finalTempThresh =
+      typeof temperatureThreshold === "number" ? temperatureThreshold : undefined;
     let finalTempCond = temperatureCondition;
 
-    let finalIntervalMinutes = typeof intervalMinutes === 'number' && intervalMinutes > 0 ? intervalMinutes : undefined;
+    let finalIntervalMinutes =
+      typeof intervalMinutes === "number" && intervalMinutes > 0 ? intervalMinutes : undefined;
 
     if (autoType === "timer") {
       const dHours = Number(delayHours) || 0;
       const dMins = Number(delayMinutes) || 0;
-      
+
       if (dHours === 0 && dMins === 0) {
         showToast("لطفاً زمان تاخیر را مشخص کنید.", "error");
         return;
       }
-      
+
       const now = new Date();
       now.setHours(now.getHours() + dHours);
       now.setMinutes(now.getMinutes() + dMins);
-      
-      finalTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      finalDays = [now.getDay()]; 
+
+      finalTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+      finalDays = [now.getDay()];
       finalRepeatCount = 1;
     } else if (autoType === "weather") {
       if (!city || finalTempThresh === undefined || !finalIntervalMinutes) {
@@ -135,7 +140,7 @@ export function useAutomationForm() {
         return;
       }
       finalConditionType = "weather";
-      finalTime = ""; 
+      finalTime = "";
       finalDays = [];
     } else {
       if (!time || days.length === 0) {
@@ -158,7 +163,7 @@ export function useAutomationForm() {
       showToast("لطفاً عنوان را وارد کنید.", "error");
       return;
     }
-    
+
     if (actions.length === 0) {
       showToast("حداقل یک عملیات مشخص کنید.", "error");
       return;
@@ -180,7 +185,9 @@ export function useAutomationForm() {
     };
 
     if (editingId) {
-      setAutomations(automations.map(a => a.id === editingId ? { ...newAuto, enabled: a.enabled } : a));
+      setAutomations(
+        automations.map((a) => (a.id === editingId ? { ...newAuto, enabled: a.enabled } : a)),
+      );
     } else {
       setAutomations([...automations, newAuto]);
     }
@@ -189,31 +196,44 @@ export function useAutomationForm() {
   };
 
   const handleDelete = (id: string) => {
-    setAutomations(automations.filter(a => a.id !== id));
+    setAutomations(automations.filter((a) => a.id !== id));
     showToast("اتوماسیون حذف شد.", "success");
   };
 
   const handleToggle = (id: string, enabled: boolean) => {
-    setAutomations(automations.map(a => a.id === id ? { ...a, enabled } : a));
+    setAutomations(automations.map((a) => (a.id === id ? { ...a, enabled } : a)));
   };
 
   return {
     // states
     editingId,
-    title, setTitle,
-    time, setTime,
-    days, setDays,
-    repeatCount, setRepeatCount,
-    autoType, setAutoType,
-    delayHours, setDelayHours,
-    delayMinutes, setDelayMinutes,
-    city, setCity,
-    temperatureThreshold, setTemperatureThreshold,
-    temperatureCondition, setTemperatureCondition,
-    intervalMinutes, setIntervalMinutes,
-    hasWeatherCondition, setHasWeatherCondition,
+    title,
+    setTitle,
+    time,
+    setTime,
+    days,
+    setDays,
+    repeatCount,
+    setRepeatCount,
+    autoType,
+    setAutoType,
+    delayHours,
+    setDelayHours,
+    delayMinutes,
+    setDelayMinutes,
+    city,
+    setCity,
+    temperatureThreshold,
+    setTemperatureThreshold,
+    temperatureCondition,
+    setTemperatureCondition,
+    intervalMinutes,
+    setIntervalMinutes,
+    hasWeatherCondition,
+    setHasWeatherCondition,
     isGettingLocation,
-    actions, setActions,
+    actions,
+    setActions,
 
     // actions
     handleGetLocation,
@@ -221,6 +241,6 @@ export function useAutomationForm() {
     handleEdit,
     handleSave,
     handleDelete,
-    handleToggle
+    handleToggle,
   };
 }

@@ -3,10 +3,10 @@
 // Title: Icon Stack
 // Description: Layered icon illustration container
 
-import type React from "react"
-import { cn } from "@/lib/utils"
+import type React from "react";
+import { cn } from "@/lib/utils";
 
-type IconStackProps = React.ComponentProps<"div">
+type IconStackProps = React.ComponentProps<"div">;
 
 function IconStack({ className, children, style, ...props }: IconStackProps) {
   return (
@@ -14,7 +14,7 @@ function IconStack({ className, children, style, ...props }: IconStackProps) {
       data-slot="icon-stack"
       className={cn(
         "text-foreground **:data-[slot=icon-stack-layer]:fill-background relative h-20 w-18",
-        className
+        className,
       )}
       style={
         {
@@ -55,7 +55,7 @@ function IconStack({ className, children, style, ...props }: IconStackProps) {
         </div>
       ) : null}
     </div>
-  )
+  );
 }
 
 function IconStackLayer({
@@ -64,10 +64,10 @@ function IconStackLayer({
   x = 0,
   y = 0,
 }: {
-  active?: boolean
-  opacity: string
-  x?: number
-  y?: number
+  active?: boolean;
+  opacity: string;
+  x?: number;
+  y?: number;
 }) {
   return (
     <g opacity={opacity} transform={`translate(${x} ${y})`}>
@@ -90,7 +90,7 @@ function IconStackLayer({
         strokeLinejoin="round"
       />
     </g>
-  )
+  );
 }
 
-export { IconStack, type IconStackProps }
+export { IconStack, type IconStackProps };

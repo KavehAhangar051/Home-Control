@@ -2,9 +2,7 @@ import { HousePlug } from "lucide-react";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import type { BrandBoxProps } from "./types";
 
-export default function VerticalBrandBox({
-  headerTitle,
-}: Omit<BrandBoxProps, "variant">) {
+export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "variant">) {
   const { isFullyReady } = useDashboard();
 
   return (
@@ -13,7 +11,11 @@ export default function VerticalBrandBox({
         <HousePlug aria-label="Home Control" className="h-5 w-5" strokeWidth={1.8} />
       </div>
       <h1 className="min-w-0 truncate text-right text-sm font-semibold tracking-tight text-[var(--sidebar-text)]">
-        {isFullyReady ? headerTitle : <div className="h-4 w-28 animate-pulse rounded bg-[var(--text-muted)] opacity-20" />}
+        {isFullyReady ? (
+          headerTitle
+        ) : (
+          <div className="h-4 w-28 animate-pulse rounded bg-[var(--text-muted)] opacity-20" />
+        )}
       </h1>
     </div>
   );

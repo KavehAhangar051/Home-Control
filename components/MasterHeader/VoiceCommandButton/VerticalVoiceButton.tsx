@@ -18,7 +18,8 @@ export default function VerticalVoiceButton({
   handlePointerCancel,
 }: VerticalVoiceButtonProps) {
   return (
-    <Button variant="ghost"
+    <Button
+      variant="ghost"
       type="button"
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
@@ -33,10 +34,17 @@ export default function VerticalVoiceButton({
       aria-label={isListening ? "در حال شنیدن فرمان صوتی" : "فرمان صوتی (نگه دارید)"}
     >
       <div className="flex items-center gap-2.5">
-        <div className={`p-1.5 rounded-md transition-colors ${isListening ? "bg-[var(--accent4)] text-white" : "bg-[var(--sidebar-hover)] text-[var(--sidebar-text)]"}`}>
-          <Mic aria-hidden="true" className={`w-4 h-4 ${isListening && animationsEnabled ? "animate-pulse" : ""}`} />
+        <div
+          className={`p-1.5 rounded-md transition-colors ${isListening ? "bg-[var(--accent4)] text-white" : "bg-[var(--sidebar-hover)] text-[var(--sidebar-text)]"}`}
+        >
+          <Mic
+            aria-hidden="true"
+            className={`w-4 h-4 ${isListening && animationsEnabled ? "animate-pulse" : ""}`}
+          />
         </div>
-        <span className="text-xs font-semibold">{isListening ? "در حال شنیدن..." : "فرمان صوتی (نگه دارید)"}</span>
+        <span className="text-xs font-semibold">
+          {isListening ? "در حال شنیدن..." : "فرمان صوتی (نگه دارید)"}
+        </span>
       </div>
       <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--sidebar-hover)] text-[var(--sidebar-muted)] font-mono">
         Voice

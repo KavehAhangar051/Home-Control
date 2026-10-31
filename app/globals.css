@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./reui-nova.css";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --radius: 0.625rem;
@@ -18,16 +19,16 @@
   --accent: var(--color-zinc-100);
   --accent-foreground: var(--color-zinc-900);
   --destructive: var(--color-red-600);
-  --destructive-foreground: var(--color-red-800);
+  --destructive-foreground: var(--color-white);
   --border: var(--color-zinc-200);
   --input: var(--color-zinc-200);
   --ring: var(--color-zinc-400);
   --success: var(--color-emerald-500);
-  --success-foreground: var(--color-emerald-900);
+  --success-foreground: var(--color-emerald-950);
   --warning: var(--color-yellow-500);
-  --warning-foreground: var(--color-yellow-900);
+  --warning-foreground: var(--color-yellow-950);
   --info: var(--color-violet-500);
-  --info-foreground: var(--color-violet-900);
+  --info-foreground: var(--color-violet-950);
   --invert: var(--color-zinc-900);
   --invert-foreground: var(--color-zinc-50);
   --sidebar: var(--color-zinc-50);
@@ -38,6 +39,12 @@
   --sidebar-accent-foreground: var(--color-zinc-900);
   --sidebar-border: var(--color-zinc-200);
   --sidebar-ring: var(--color-zinc-400);
+  --shadow-border:
+    0px 0px 0px 1px oklch(0 0 0 / 0.06), 0px 1px 2px -1px oklch(0 0 0 / 0.06),
+    0px 2px 4px 0px oklch(0 0 0 / 0.04);
+  --shadow-border-hover:
+    0px 0px 0px 1px oklch(0 0 0 / 0.08), 0px 1px 2px -1px oklch(0 0 0 / 0.08),
+    0px 2px 4px 0px oklch(0 0 0 / 0.06);
 }
 
 .dark {
@@ -56,16 +63,16 @@
   --accent: var(--color-zinc-800);
   --accent-foreground: var(--color-zinc-50);
   --destructive: var(--color-red-600);
-  --destructive-foreground: var(--color-red-600);
+  --destructive-foreground: var(--color-zinc-50);
   --border: var(--color-zinc-800);
   --input: var(--color-zinc-700);
   --ring: var(--color-zinc-600);
   --success: var(--color-emerald-500);
-  --success-foreground: var(--color-emerald-600);
+  --success-foreground: var(--color-zinc-50);
   --warning: var(--color-yellow-500);
-  --warning-foreground: var(--color-yellow-600);
+  --warning-foreground: var(--color-yellow-950);
   --info: var(--color-violet-500);
-  --info-foreground: var(--color-violet-600);
+  --info-foreground: var(--color-zinc-50);
   --invert: var(--color-zinc-700);
   --invert-foreground: var(--color-zinc-50);
   --sidebar: var(--color-zinc-900);
@@ -76,6 +83,8 @@
   --sidebar-accent-foreground: var(--color-zinc-50);
   --sidebar-border: var(--color-zinc-800);
   --sidebar-ring: var(--color-zinc-600);
+  --shadow-border: 0 0 0 1px oklch(1 0 0 / 0.08);
+  --shadow-border-hover: 0 0 0 1px oklch(1 0 0 / 0.13);
 }
 
 @theme inline {
@@ -122,8 +131,12 @@
 }
 
 @keyframes svg-border-spin {
-  from { stroke-dashoffset: 100; }
-  to { stroke-dashoffset: 0; }
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 @keyframes text-gradient-pan {
@@ -136,7 +149,12 @@
 }
 
 .title-animated {
-  background: linear-gradient(to right, var(--text-primary) 20%, var(--accent3) 50%, var(--text-primary) 80%);
+  background: linear-gradient(
+    to right,
+    var(--text-primary) 20%,
+    var(--accent3) 50%,
+    var(--text-primary) 80%
+  );
   background-size: 200% auto;
   color: transparent;
   -webkit-background-clip: text;
@@ -146,6 +164,11 @@
 
 .title-animated:hover {
   animation-duration: 3s;
-  background: linear-gradient(to right, var(--text-primary) 20%, var(--accent4) 50%, var(--text-primary) 80%);
+  background: linear-gradient(
+    to right,
+    var(--text-primary) 20%,
+    var(--accent4) 50%,
+    var(--text-primary) 80%
+  );
   background-size: 200% auto;
 }

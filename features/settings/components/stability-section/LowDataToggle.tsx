@@ -31,7 +31,8 @@ export default function LowDataToggle({
         دریافت‌های خودکار متوقف شده و مصرف پس‌زمینه کاملاً مهار گردد:
       </p>
 
-      <button type="button"
+      <button
+        type="button"
         onClick={handleToggle}
         className={`switch-toggle w-full p-4 rounded-2xl border transition-all duration-300 flex items-center justify-between cursor-pointer text-right group ${
           lowDataMode

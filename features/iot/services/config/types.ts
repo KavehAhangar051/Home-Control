@@ -85,10 +85,10 @@ export interface EspConfig {
     enabled: boolean;
     repeatCount?: number;
     intervalMinutes?: number;
-    conditionType?: 'time' | 'weather';
+    conditionType?: "time" | "weather";
     city?: string;
     temperatureThreshold?: number;
-    temperatureCondition?: 'greater' | 'less';
+    temperatureCondition?: "greater" | "less";
     actions: Array<{
       targetPin?: string;
       targetMacro?: string;

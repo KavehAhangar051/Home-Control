@@ -26,7 +26,7 @@ const viewIcons = {
 } as const;
 
 export default function DashboardBreadcrumb() {
-  const activeView = useIoTStore(s => s.activeWorkspaceView);
+  const activeView = useIoTStore((s) => s.activeWorkspaceView);
   const ActiveIcon = viewIcons[activeView];
 
   return (
@@ -35,7 +35,7 @@ export default function DashboardBreadcrumb() {
         <BreadcrumbItem>
           <BreadcrumbLink
             href="#"
-            onClick={event => {
+            onClick={(event) => {
               event.preventDefault();
               useIoTStore.getState().setActiveWorkspaceView("home");
               useIoTStore.getState().setIsModulesMenuOpen(false);

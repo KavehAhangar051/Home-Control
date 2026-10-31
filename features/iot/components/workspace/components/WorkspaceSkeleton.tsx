@@ -6,20 +6,38 @@ interface WorkspaceSkeletonProps {
 
 export default function WorkspaceSkeleton({ groupsCols }: WorkspaceSkeletonProps) {
   const dummyGroups = [1, 2, 3];
-  const flexBasis = groupsCols === 1 ? "100%" : groupsCols === 2 ? "calc(50% - 1rem - 0.1px)" : "calc(33.3333% - 1.3333rem - 0.1px)";
+  const flexBasis =
+    groupsCols === 1
+      ? "100%"
+      : groupsCols === 2
+        ? "calc(50% - 1rem - 0.1px)"
+        : "calc(33.3333% - 1.3333rem - 0.1px)";
 
   return (
     <div className="flex flex-wrap gap-8 w-full items-start">
       {dummyGroups.map((groupId) => (
-        <div key={groupId} className="space-y-3 flex-grow flex-shrink-0 min-w-0 max-w-full max-[767px]:basis-full" style={{ flexBasis }}>
+        <div
+          key={groupId}
+          className="space-y-3 flex-grow flex-shrink-0 min-w-0 max-w-full max-[767px]:basis-full"
+          style={{ flexBasis }}
+        >
           <Card className="w-full !gap-3 !rounded-3xl !border-[var(--border-color)] !bg-[var(--card-bg)] !p-3 !shadow-md relative transition-all duration-300">
             <div className="w-full flex items-center justify-between p-1">
-              <div className="flex items-center gap-2"><div className="w-6 h-6 rounded-md bg-[var(--text-muted)] opacity-20 animate-pulse" /><div className="w-24 h-4 rounded bg-[var(--text-muted)] opacity-20 animate-pulse" /></div>
-              <div className="flex items-center gap-2 bg-[var(--bg-main)] p-1 rounded-xl"><div className="w-6 h-6 rounded-md bg-[var(--text-muted)] opacity-20 animate-pulse" /><div className="w-6 h-6 rounded-md bg-[var(--text-muted)] opacity-20 animate-pulse" /></div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-[var(--text-muted)] opacity-20 animate-pulse" />
+                <div className="w-24 h-4 rounded bg-[var(--text-muted)] opacity-20 animate-pulse" />
+              </div>
+              <div className="flex items-center gap-2 bg-[var(--bg-main)] p-1 rounded-xl">
+                <div className="w-6 h-6 rounded-md bg-[var(--text-muted)] opacity-20 animate-pulse" />
+                <div className="w-6 h-6 rounded-md bg-[var(--text-muted)] opacity-20 animate-pulse" />
+              </div>
             </div>
             <div className="w-full border-t border-[var(--border-color)] pt-4 mt-1 px-1 min-h-[140px] flex gap-3">
               {[1, 2].map((segId) => (
-                <Card key={segId} className="flex-1 !h-[120px] !gap-2 !rounded-2xl !border-[var(--border-color)] !bg-[var(--card-bg-solid)] !p-4 !shadow-sm">
+                <Card
+                  key={segId}
+                  className="flex-1 !h-[120px] !gap-2 !rounded-2xl !border-[var(--border-color)] !bg-[var(--card-bg-solid)] !p-4 !shadow-sm"
+                >
                   <div className="w-full flex justify-between items-center mb-2">
                     <div className="w-10 h-5 rounded-full bg-[var(--text-muted)] opacity-20 animate-pulse" />
                     <div className="w-6 h-6 rounded-md bg-[var(--text-muted)] opacity-20 animate-pulse" />

@@ -12,11 +12,11 @@ export default function ClockWidget({ variant, isSidebarCollapsed }: ClockWidget
 
   useEffect(() => {
     setTime(new Date());
-    
+
     if (!isPageVisible) return;
-    
+
     const timer = setInterval(() => {
-      setTime(prev => {
+      setTime((prev) => {
         const now = new Date();
         if (prev && prev.getSeconds() === now.getSeconds()) return prev;
         return now;
@@ -27,8 +27,10 @@ export default function ClockWidget({ variant, isSidebarCollapsed }: ClockWidget
 
   if (!time) {
     return (
-      <div className={`flex items-center justify-center p-2 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg-solid)] ${variant === "vertical" ? "w-full" : ""}`}>
-         <Clock className="w-4 h-4 text-[var(--text-muted)] animate-pulse" />
+      <div
+        className={`flex items-center justify-center p-2 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg-solid)] ${variant === "vertical" ? "w-full" : ""}`}
+      >
+        <Clock className="w-4 h-4 text-[var(--text-muted)] animate-pulse" />
       </div>
     );
   }
@@ -37,7 +39,14 @@ export default function ClockWidget({ variant, isSidebarCollapsed }: ClockWidget
   const dateString = getPersianDateString(time);
 
   if (variant === "vertical") {
-    return <VerticalClock time={time} timeString={timeString} dateString={dateString} isSidebarCollapsed={isSidebarCollapsed} />;
+    return (
+      <VerticalClock
+        time={time}
+        timeString={timeString}
+        dateString={dateString}
+        isSidebarCollapsed={isSidebarCollapsed}
+      />
+    );
   }
 
   return <HorizontalClock time={time} timeString={timeString} dateString={dateString} />;

@@ -36,7 +36,7 @@ export const createUiSlice: StateCreator<IoTStoreState, [], [], UiSlice> = (set)
   setIsListening: (b) => set({ isListening: b }),
 
   setVoiceTranscript: (t) => set({ voiceTranscript: t }),
-  
+
   setActiveSegmentId: (id) => set({ activeSegmentId: id }),
   setActiveGroupId: (id) => set({ activeGroupId: id }),
   setIsLocal: (local) => set({ isLocal: local }),

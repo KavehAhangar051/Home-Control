@@ -1,4 +1,4 @@
-import { Track } from "./types";
+import type { Track, ArchiveTrackItem } from "./types";
 import { audioContextManager } from "./context";
 import { fetchArchivePlaylist, fetchTrackUrl } from "./playlist";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
@@ -11,7 +11,7 @@ export class AmbientManager {
   public isAmbientPlaying = false;
   public currentTrack: Track | null = null;
   private onTrackUpdateCallback: ((track: Track) => void) | null = null;
-  public playlist: any[] = [];
+  public playlist: ArchiveTrackItem[] = [];
   public currentTrackIndex = -1;
   private activeObjectUrl: string | null = null;
 
@@ -67,7 +67,8 @@ export class AmbientManager {
         if (direction === "next") {
           this.currentTrackIndex = (this.currentTrackIndex + 1) % this.playlist.length;
         } else if (direction === "prev") {
-          this.currentTrackIndex = (this.currentTrackIndex - 1 + this.playlist.length) % this.playlist.length;
+          this.currentTrackIndex =
+            (this.currentTrackIndex - 1 + this.playlist.length) % this.playlist.length;
         }
 
         let found = false;
@@ -130,7 +131,9 @@ export class AmbientManager {
       if (response) {
         debugLog.info("Audio", "Using locally cached audio.", { url: requestUrl });
       } else {
-        debugLog.info("Audio", "Downloading audio after explicit user playback request.", { url: requestUrl });
+        debugLog.info("Audio", "Downloading audio after explicit user playback request.", {
+          url: requestUrl,
+        });
         response = await fetch(requestUrl);
         if (!response.ok) {
           throw new Error(`Audio request failed: ${response.status} ${response.statusText}`);
@@ -138,7 +141,9 @@ export class AmbientManager {
 
         try {
           await cache.put(requestUrl, response.clone());
-          debugLog.info("Audio", "Audio cached locally for subsequent playback.", { url: requestUrl });
+          debugLog.info("Audio", "Audio cached locally for subsequent playback.", {
+            url: requestUrl,
+          });
         } catch (error) {
           debugLog.warn("Audio", "Audio playback can continue, but local caching failed.", error);
         }
@@ -149,7 +154,11 @@ export class AmbientManager {
       this.activeObjectUrl = URL.createObjectURL(blob);
       return this.activeObjectUrl;
     } catch (error) {
-      debugLog.error("Audio", "Local audio cache failed; falling back to direct playback URL.", error);
+      debugLog.error(
+        "Audio",
+        "Local audio cache failed; falling back to direct playback URL.",
+        error,
+      );
       return requestUrl;
     }
   }
@@ -176,9 +185,11 @@ export class AmbientManager {
         source: this.currentTrack.url,
         error,
       });
-      window.dispatchEvent(new CustomEvent("ambientMusicError", {
-        detail: { message: "پخش آهنگ ناموفق بود. اتصال و منبع فایل را بررسی کن.", error },
-      }));
+      window.dispatchEvent(
+        new CustomEvent("ambientMusicError", {
+          detail: { message: "پخش آهنگ ناموفق بود. اتصال و منبع فایل را بررسی کن.", error },
+        }),
+      );
     }
 
     audioContextManager.getContext();

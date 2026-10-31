@@ -14,6 +14,141 @@ interface CardBodyProps {
   animationsEnabled?: boolean;
 }
 
+export function InputSegmentBody({ segment, isPinOn }: { segment: SegmentData; isPinOn: boolean }) {
+  return (
+    <div className="flex items-center justify-between py-2 w-full">
+      <span
+        className={`text-xs font-sans font-semibold tabular-nums ${
+          isPinOn ? "text-[var(--success)]" : "text-[var(--muted-foreground)]"
+        }`}
+      >
+        {isPinOn ? "ورودی فعال (۱)" : "ورودی غیرفعال (۰)"}
+      </span>
+      <div className="flex items-center gap-3 text-right">
+        <div>
+          <span className="block text-xs font-sans font-bold theme-text-primary tabular-nums">
+            وضعیت پایه {segment.pin}
+          </span>
+          <span className="block text-[11px] theme-text-muted mt-0.5">حسگر ورودی دیجیتال</span>
+        </div>
+        <div
+          className={`w-9 h-9 rounded-full flex items-center justify-center ${isPinOn ? "bg-[var(--success)]/15" : "bg-[var(--muted)]"}`}
+        >
+          <div
+            className={`w-3.5 h-3.5 rounded-full ${isPinOn ? "bg-[var(--success)]" : "bg-[var(--muted-foreground)]"}`}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function UltraCompactSegmentBody({
+  isPinOn,
+  buttonProps,
+  animationsEnabled,
+}: {
+  isPinOn: boolean;
+  buttonProps: any;
+  animationsEnabled: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-center w-full">
+      <PinToggle
+        isPinOn={isPinOn}
+        buttonProps={buttonProps}
+        animationsEnabled={animationsEnabled}
+        isUltraCompact={true}
+      />
+    </div>
+  );
+}
+
+export function MobileTwoColSegmentBody({
+  segment,
+  isPinOn,
+  buttonProps,
+  animationsEnabled,
+}: {
+  segment: SegmentData;
+  isPinOn: boolean;
+  buttonProps: any;
+  animationsEnabled: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center w-full overflow-hidden h-full gap-2 py-1">
+      <span
+        className="text-[11px] font-sans font-bold theme-text-secondary line-clamp-2 leading-tight text-center w-full"
+        title={segment.title}
+      >
+        {segment.title}
+      </span>
+      <PinToggle
+        isPinOn={isPinOn}
+        buttonProps={buttonProps}
+        animationsEnabled={animationsEnabled}
+        isVertical={false}
+      />
+    </div>
+  );
+}
+
+export function CompactSegmentBody({
+  segment,
+  isPinOn,
+  buttonProps,
+  animationsEnabled,
+  densityFactor,
+}: {
+  segment: SegmentData;
+  isPinOn: boolean;
+  buttonProps: any;
+  animationsEnabled: boolean;
+  densityFactor: number;
+}) {
+  return (
+    <div className="flex items-center justify-between w-full overflow-hidden h-full py-1">
+      <span
+        className="text-[11px] font-sans font-bold theme-text-secondary line-clamp-2 leading-tight pl-2 flex-1 text-right"
+        title={segment.title}
+      >
+        {segment.title}
+      </span>
+      <PinToggle
+        isPinOn={isPinOn}
+        buttonProps={buttonProps}
+        animationsEnabled={animationsEnabled}
+        isVertical={densityFactor >= 4}
+      />
+    </div>
+  );
+}
+
+export function StandardSegmentBody({
+  segment,
+  isPinOn,
+  buttonProps,
+  animationsEnabled,
+}: {
+  segment: SegmentData;
+  isPinOn: boolean;
+  buttonProps: any;
+  animationsEnabled: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between py-2 w-full">
+      <span className="block font-sans font-bold theme-text-primary text-sm truncate pl-3">
+        {segment.title}
+      </span>
+      <PinToggle
+        isPinOn={isPinOn}
+        buttonProps={buttonProps}
+        animationsEnabled={animationsEnabled}
+      />
+    </div>
+  );
+}
+
 export default function CardBody({
   segment,
   isPinOn,
@@ -21,79 +156,47 @@ export default function CardBody({
   isUltraCompact,
   isMobileTwoCol,
   densityFactor = 0,
-  mode,
   buttonProps,
   animationsEnabled = true,
 }: CardBodyProps) {
+  const containerClass = isUltraCompact
+    ? "p-2 flex-grow flex items-center justify-center"
+    : isCompact
+      ? "p-3 flex-1 flex items-center"
+      : "p-4 flex-1";
+
   return (
-    <div className={`${isUltraCompact ? "p-2 flex-grow flex items-center justify-center" : isCompact ? "p-3 flex-1 flex items-center" : "p-4 flex-1"}`}>
+    <div className={containerClass}>
       {segment.type === "input" ? (
-        <div className="flex items-center justify-between bg-[var(--background)] p-4 border border-[var(--border)] rounded-lg w-full">
-          <span className={`text-[10px] font-sans font-bold px-2.5 py-0.5 border rounded-lg ${
-            isPinOn ? "border-[var(--success)] text-[var(--success)] bg-[var(--success)]/10" : "border-[var(--border)] text-[var(--muted-foreground)]"
-          }`}>
-            {isPinOn ? "ورودی HIGH (1)" : "ورودی LOW (0)"}
-          </span>
-          <div className="flex items-center gap-3 text-right">
-            <div>
-              <span className="block text-xs font-sans font-bold theme-text-primary">
-                وضیعت پایه {segment.pin}
-              </span>
-              <span className="block text-[9px] theme-text-muted mt-0.5">
-                Digital Input Status
-              </span>
-            </div>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-inner ${isPinOn ? "bg-[var(--success)]/10" : "bg-[var(--muted)]"}`} style={{ boxShadow: isPinOn ? 'inset 0 0 10px color-mix(in srgb, var(--success) 12%, transparent)' : '' }}>
-              <div className={`w-4 h-4 rounded-full ${isPinOn ? "bg-[var(--success)]" : "bg-[var(--muted-foreground)]"}`} style={{ boxShadow: isPinOn ? '0 0 10px color-mix(in srgb, var(--success) 25%, transparent)' : '' }} />
-            </div>
-          </div>
-        </div>
+        <InputSegmentBody segment={segment} isPinOn={isPinOn} />
       ) : isUltraCompact ? (
-        <div className="flex items-center justify-center w-full">
-          <PinToggle
-            isPinOn={isPinOn}
-            buttonProps={buttonProps}
-            animationsEnabled={animationsEnabled}
-            isUltraCompact={true}
-          />
-        </div>
+        <UltraCompactSegmentBody
+          isPinOn={isPinOn}
+          buttonProps={buttonProps}
+          animationsEnabled={animationsEnabled}
+        />
       ) : isMobileTwoCol ? (
-        <div className="flex flex-col items-center justify-center w-full bg-[var(--card-bg-solid)] p-2 border border-[var(--border-color)] rounded-xl overflow-hidden h-full gap-2">
-          <span className="text-[10px] font-sans font-bold theme-text-secondary line-clamp-2 leading-tight text-center w-full" title={segment.title}>
-            {segment.title}
-          </span>
-          <PinToggle
-            isPinOn={isPinOn}
-            buttonProps={buttonProps}
-            animationsEnabled={animationsEnabled}
-            isVertical={false}
-          />
-        </div>
+        <MobileTwoColSegmentBody
+          segment={segment}
+          isPinOn={isPinOn}
+          buttonProps={buttonProps}
+          animationsEnabled={animationsEnabled}
+        />
       ) : isCompact ? (
-        <div className="flex items-center justify-between w-full bg-[var(--card-bg-solid)] p-2 border border-[var(--border-color)] rounded-xl overflow-hidden h-full">
-          <span className="text-[10px] font-sans font-bold theme-text-secondary line-clamp-2 leading-tight pl-2 flex-1 text-right" title={segment.title}>
-            {segment.title}
-          </span>
-          <PinToggle
-            isPinOn={isPinOn}
-            buttonProps={buttonProps}
-            animationsEnabled={animationsEnabled}
-            isVertical={densityFactor >= 4}
-          />
-        </div>
+        <CompactSegmentBody
+          segment={segment}
+          isPinOn={isPinOn}
+          buttonProps={buttonProps}
+          animationsEnabled={animationsEnabled}
+          densityFactor={densityFactor}
+        />
       ) : (
-        <div className="flex items-center justify-end bg-[var(--card-bg-solid)] p-4 border border-[var(--border-color)] rounded-xl w-full">
-          <div className="flex items-center gap-3 text-right">
-            <span className="block font-sans font-extrabold theme-text-primary text-xs">
-              {segment.title}
-            </span>
-            <PinToggle
-              isPinOn={isPinOn}
-              buttonProps={buttonProps}
-              animationsEnabled={animationsEnabled}
-            />
-          </div>
-        </div>
+        <StandardSegmentBody
+          segment={segment}
+          isPinOn={isPinOn}
+          buttonProps={buttonProps}
+          animationsEnabled={animationsEnabled}
+        />
       )}
     </div>
   );

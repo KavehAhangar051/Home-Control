@@ -17,7 +17,7 @@ export default function GroupFilterSelector({
   const [direction, setDirection] = useState(1);
   const [offset, setOffset] = useState(0);
   const { isFullyReady } = useDashboard();
-  
+
   if (!isFullyReady) {
     return <SkeletonLoader isCompact={isCompact} />;
   }
@@ -25,41 +25,59 @@ export default function GroupFilterSelector({
   if (groupsOrder.length === 0) return null;
 
   const allGroups = [null, ...groupsOrder];
-  
+
   const currIndex = allGroups.indexOf(selectedGroupFilter);
   const safeCurrIndex = currIndex === -1 ? 0 : currIndex;
-  
+
   const goNext = () => {
     setDirection(-1);
-    setOffset(prev => prev + 1);
+    setOffset((prev) => prev + 1);
     const nextIndex = (safeCurrIndex + 1) % allGroups.length;
     setSelectedGroupFilter(allGroups[nextIndex]);
   };
 
   const goPrev = () => {
     setDirection(1);
-    setOffset(prev => prev - 1);
+    setOffset((prev) => prev - 1);
     const prevIndex = (safeCurrIndex - 1 + allGroups.length) % allGroups.length;
     setSelectedGroupFilter(allGroups[prevIndex]);
   };
 
   return (
-    <div className={`flex items-center justify-center pointer-events-auto max-w-full overflow-hidden ${!isCompact ? 'mb-2' : ''}`} dir="rtl">
-      <div className={`flex flex-row items-center justify-center ${isCompact ? 'gap-1' : 'gap-2'} max-w-full`}>
-        
-        <Button type="button" variant="ghost" size={isCompact ? "icon-xs" : "icon-sm"} onClick={goPrev} className={`hidden md:inline-flex rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-white shrink-0 ${isCompact ? 'p-0.5' : 'p-1'}`} title="قبلی" aria-label="گروه قبلی">
+    <div
+      className={`flex items-center justify-center pointer-events-auto max-w-full overflow-hidden ${!isCompact ? "mb-2" : ""}`}
+      dir="rtl"
+    >
+      <div
+        className={`flex flex-row items-center justify-center ${isCompact ? "gap-1" : "gap-2"} max-w-full`}
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          size={isCompact ? "icon-xs" : "icon-sm"}
+          onClick={goPrev}
+          className={`hidden md:inline-flex rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-white shrink-0 ${isCompact ? "p-0.5" : "p-1"}`}
+          title="قبلی"
+          aria-label="گروه قبلی"
+        >
           <ChevronRight className={isCompact ? "w-3.5 h-3.5" : "w-5 h-5"} />
         </Button>
-        
-        <div className={`flex flex-row items-center justify-center relative overflow-hidden ${isCompact ? 'gap-1 p-0.5 max-w-[300px]' : 'gap-2 p-1 max-w-[460px]'}`}>
-          <AnimatePresence mode="popLayout" custom={direction}>
+
+        <div
+          className={`flex flex-row items-center justify-center relative overflow-hidden ${isCompact ? "gap-1 p-0.5 max-w-[300px]" : "gap-2 p-1 max-w-[460px]"}`}
+        >
+          <AnimatePresence initial={false} mode="popLayout" custom={direction}>
             {[
-              { group: allGroups[(safeCurrIndex - 1 + allGroups.length) % allGroups.length], key: offset - 1 },
+              {
+                group: allGroups[(safeCurrIndex - 1 + allGroups.length) % allGroups.length],
+                key: offset - 1,
+              },
               { group: allGroups[safeCurrIndex], key: offset },
-              { group: allGroups[(safeCurrIndex + 1) % allGroups.length], key: offset + 1 }
+              { group: allGroups[(safeCurrIndex + 1) % allGroups.length], key: offset + 1 },
             ].map(({ group, key }, index) => {
               const isCenter = index === 1;
-              const onClick = index === 0 ? goPrev : index === 2 ? goNext : () => setSelectedGroupFilter(group);
+              const onClick =
+                index === 0 ? goPrev : index === 2 ? goNext : () => setSelectedGroupFilter(group);
               return (
                 <FilterButton
                   key={String(key)}
@@ -76,7 +94,15 @@ export default function GroupFilterSelector({
           </AnimatePresence>
         </div>
 
-        <Button type="button" variant="ghost" size={isCompact ? "icon-xs" : "icon-sm"} onClick={goNext} className={`hidden md:inline-flex rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-white shrink-0 ${isCompact ? 'p-0.5' : 'p-1'}`} title="بعدی" aria-label="گروه بعدی">
+        <Button
+          type="button"
+          variant="ghost"
+          size={isCompact ? "icon-xs" : "icon-sm"}
+          onClick={goNext}
+          className={`hidden md:inline-flex rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-white shrink-0 ${isCompact ? "p-0.5" : "p-1"}`}
+          title="بعدی"
+          aria-label="گروه بعدی"
+        >
           <ChevronLeft className={isCompact ? "w-3.5 h-3.5" : "w-5 h-5"} />
         </Button>
       </div>

@@ -16,18 +16,22 @@ export default function LayoutSelector({
   fullWidth = false,
 }: LayoutSelectorProps) {
   return (
-    <div className={`flex ${parentGroupsCols === 3 ? "flex-row" : "flex-col sm:flex-row"} ${fullWidth ? "w-full *:flex-1" : ""} items-center bg-[var(--bg-main)] border border-[var(--border-color)] p-0.5 sm:p-1 rounded-xl text-xs gap-0.5 shrink-0 shadow-sm`}>
-      <button type="button"
+    <div
+      className={`flex ${parentGroupsCols === 3 ? "flex-row" : "flex-col sm:flex-row"} ${fullWidth ? "w-full *:flex-1" : ""} items-center bg-[var(--bg-main)] border border-[var(--border-color)] p-0.5 sm:p-1 rounded-xl text-xs gap-0.5 shrink-0 shadow-sm`}
+    >
+      <button
+        type="button"
         onClick={() => onColsChange(1)}
         aria-label="تک ستون"
-        className={`${parentGroupsCols === 3 ? "p-0.5 sm:p-1" : "p-1.5"} flex items-center justify-center rounded-lg transition-all cursor-pointer select-none ${
+        className={`${parentGroupsCols === 3 ? "p-0.5 sm:p-1" : "p-1.5"} flex items-center justify-center rounded-lg transition-[background-color,color,box-shadow,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer select-none ${
           maxCols === 1
             ? "bg-[var(--accent3-transparent)] text-[var(--accent3)] shadow-inner"
             : "text-[var(--text-secondary)] md:hover:text-[var(--foreground)] md:hover:bg-[var(--accent)]"
         }`}
         title="نمایش تک ستونه"
       >
-        <svg aria-hidden="true"
+        <svg
+          aria-hidden="true"
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -42,17 +46,19 @@ export default function LayoutSelector({
           <rect width="18" height="6" x="3" y="13" rx="2" />
         </svg>
       </button>
-      <button type="button"
+      <button
+        type="button"
         onClick={() => onColsChange(2)}
         aria-label="دو ستون"
-        className={`${parentGroupsCols === 3 ? "p-0.5 sm:p-1" : "p-1.5"} flex items-center justify-center rounded-lg transition-all cursor-pointer select-none ${
+        className={`${parentGroupsCols === 3 ? "p-0.5 sm:p-1" : "p-1.5"} flex items-center justify-center rounded-lg transition-[background-color,color,box-shadow,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer select-none ${
           maxCols === 2
             ? "bg-[var(--accent3-transparent)] text-[var(--accent3)] shadow-inner"
             : "text-[var(--text-secondary)] md:hover:text-[var(--foreground)] md:hover:bg-[var(--accent)]"
         }`}
         title="نمایش دو ستونه"
       >
-        <svg aria-hidden="true"
+        <svg
+          aria-hidden="true"
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -69,17 +75,19 @@ export default function LayoutSelector({
           <circle cx="17" cy="17" r="3" />
         </svg>
       </button>
-      <button type="button"
+      <button
+        type="button"
         onClick={() => onColsChange(3)}
         aria-label="سه ستون"
-        className={`${parentGroupsCols === 3 ? "p-0.5 sm:p-1" : "p-1.5"} flex items-center justify-center rounded-lg transition-all cursor-pointer select-none ${
+        className={`${parentGroupsCols === 3 ? "p-0.5 sm:p-1" : "p-1.5"} flex items-center justify-center rounded-lg transition-[background-color,color,box-shadow,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer select-none ${
           maxCols === 3
             ? "bg-[var(--accent3-transparent)] text-[var(--accent3)] shadow-inner"
             : "text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--card-bg-solid)]"
         }`}
         title="نمایش سه ستونه"
       >
-        <svg aria-hidden="true"
+        <svg
+          aria-hidden="true"
           width="24"
           height="24"
           viewBox="0 0 24 24"

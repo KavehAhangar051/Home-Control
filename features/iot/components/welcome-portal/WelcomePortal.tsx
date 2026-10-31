@@ -1,15 +1,12 @@
 "use client";
 
 import { useRef } from "react";
+import { motion } from "motion/react";
 import { Lightbulb, Network, Workflow } from "lucide-react";
 import { IconStack } from "@/components/reui/icon-stack";
 import { Scrollspy } from "@/components/reui/scrollspy";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 
 const overviewSections = [
   {
@@ -23,7 +20,8 @@ const overviewSections = [
   {
     id: "welcome-modules",
     label: "اتصال ماژول‌ها",
-    description: "ماژول‌های متصل به ESP32 را کنار هم مدیریت کن و تجهیزات خانه را در یک نمای واحد ببین.",
+    description:
+      "ماژول‌های متصل به ESP32 را کنار هم مدیریت کن و تجهیزات خانه را در یک نمای واحد ببین.",
     hint: "ESP32 و ارتباط شبکه‌ای",
     Icon: Network,
     color: "text-muted-foreground",
@@ -38,24 +36,44 @@ const overviewSections = [
   },
 ] as const;
 
+const chunkVariants = {
+  hidden: { opacity: 0, y: 12, filter: "blur(4px)" },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.35, ease: "easeOut" as const },
+  },
+};
+
 export default function WelcomePortal() {
   const overviewRef = useRef<HTMLElement | null>(null);
 
   return (
-    <section
+    <motion.section
+      initial="hidden"
+      animate="visible"
+      variants={{
+        visible: { transition: { staggerChildren: 0.1 } },
+      }}
       className="mx-auto w-full max-w-5xl px-3 py-5 text-right sm:px-5 sm:py-8"
       dir="rtl"
     >
       <Card className="overflow-hidden">
         <CardContent className="space-y-5 px-6 pb-6 sm:px-8 sm:pb-8">
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold text-foreground">نمای کلی سامانه</h2>
+          <motion.div variants={chunkVariants} className="space-y-1">
+            <h2 className="text-base font-semibold text-balance text-foreground">
+              نمای کلی سامانه
+            </h2>
             <p className="text-sm leading-6 text-muted-foreground">
               برای آشنایی با بخش‌های اصلی، گزینه‌ها را انتخاب کن یا محتوای این پنل را مرور کن.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-4">
+          <motion.div
+            variants={chunkVariants}
+            className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-4"
+          >
             <nav aria-label="بخش‌های نمای کلی">
               <Scrollspy
                 targetRef={overviewRef}
@@ -72,7 +90,7 @@ export default function WelcomePortal() {
                     data-scrollspy-anchor={item.id}
                     className="shrink-0 justify-start gap-2 data-[active=true]:border-primary data-[active=true]:bg-primary/10 data-[active=true]:text-foreground sm:w-full"
                   >
-                    <item.Icon className="size-4 shrink-0" aria-hidden="true" />
+                    <item.Icon className="size-4 shrink-0" strokeWidth={2} aria-hidden="true" />
                     {item.label}
                   </Button>
                 ))}
@@ -92,11 +110,8 @@ export default function WelcomePortal() {
                   className="relative flex min-h-72 items-center p-5 sm:p-6"
                 >
                   <div className="flex w-full flex-col items-center gap-4 text-center sm:flex-row sm:gap-6 sm:text-right">
-                    <IconStack
-                      className={"h-28 w-24 shrink-0 " + item.color}
-                      aria-hidden="true"
-                    >
-                      <item.Icon className="size-6" strokeWidth={1.6} />
+                    <IconStack className={"h-28 w-24 shrink-0 " + item.color} aria-hidden="true">
+                      <item.Icon className="size-6" strokeWidth={2} />
                     </IconStack>
 
                     <div className="min-w-0 space-y-2">
@@ -106,27 +121,25 @@ export default function WelcomePortal() {
                       >
                         {item.label}
                       </h3>
-                      <p className="text-sm leading-7 text-muted-foreground">
-                        {item.description}
-                      </p>
-                      <p className="text-xs font-medium text-muted-foreground">
-                        {item.hint}
-                      </p>
+                      <p className="text-sm leading-7 text-muted-foreground">{item.description}</p>
+                      <p className="text-xs font-medium text-muted-foreground">{item.hint}</p>
                     </div>
                   </div>
                 </section>
               ))}
             </section>
-          </div>
+          </motion.div>
         </CardContent>
 
-        <CardFooter className="text-sm leading-6 text-muted-foreground">
-          <p>
-            <span className="font-medium text-foreground">برای شروع:</span>{" "}
-            از بخش «ماژول‌ها» در ناوبری، اولین ماژول خانه را اضافه کن.
-          </p>
-        </CardFooter>
+        <motion.div variants={chunkVariants}>
+          <CardFooter className="text-sm leading-6 text-muted-foreground">
+            <p>
+              <span className="font-medium text-foreground">برای شروع:</span> از بخش «ماژول‌ها» در
+              ناوبری، اولین ماژول خانه را اضافه کن.
+            </p>
+          </CardFooter>
+        </motion.div>
       </Card>
-    </section>
+    </motion.section>
   );
 }

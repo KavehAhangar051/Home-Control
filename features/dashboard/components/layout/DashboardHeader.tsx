@@ -5,12 +5,12 @@ import MasterHeader from "@/components/MasterHeader";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
 export default function DashboardHeader() {
-  const setIsModulesMenuOpen = useIoTStore(s => s.setIsModulesMenuOpen);
-  const setIsMenuOpen = useIoTStore(s => s.setIsMenuOpen);
-  const headerTitle = useIoTStore(s => s.headerTitle);
-  const animationsEnabled = useIoTStore(s => s.animationsEnabled);
-  const isSidebarCollapsed = useIoTStore(s => s.isSidebarCollapsed);
-  const setIsSidebarCollapsed = useIoTStore(s => s.setIsSidebarCollapsed);
+  const setIsModulesMenuOpen = useIoTStore((s) => s.setIsModulesMenuOpen);
+  const setIsMenuOpen = useIoTStore((s) => s.setIsMenuOpen);
+  const headerTitle = useIoTStore((s) => s.headerTitle);
+  const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const isSidebarCollapsed = useIoTStore((s) => s.isSidebarCollapsed);
+  const setIsSidebarCollapsed = useIoTStore((s) => s.setIsSidebarCollapsed);
 
   return (
     <aside

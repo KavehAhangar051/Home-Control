@@ -1,11 +1,10 @@
-import { getMqttClient, getMqttSettings } from "./client";
+import { publishMqttCommand } from "./client";
+import { MQTT_OPCODES, PIN_STATE_HIGH, PIN_STATE_LOW } from "./protocol";
 
 export const publishPresence = (isVisible: boolean) => {
-  const client = getMqttClient();
-  if (!client || !client.connected) return;
-  const settings = getMqttSettings();
-  const commandTopic = `${settings.baseTopic}/Command`;
-  const presenceBuf = new Uint8Array([0x04, isVisible ? 0x01 : 0x00]);
-  client.publish(commandTopic, presenceBuf as Buffer, { qos: settings.qos });
-  console.log(`[MQTT] Published presence: ${isVisible}`);
+  const presenceBuf = new Uint8Array([
+    MQTT_OPCODES.PRESENCE,
+    isVisible ? PIN_STATE_HIGH : PIN_STATE_LOW,
+  ]);
+  publishMqttCommand(presenceBuf, `Published presence: ${isVisible}`);
 };

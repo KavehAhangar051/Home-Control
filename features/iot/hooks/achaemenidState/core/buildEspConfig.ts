@@ -3,11 +3,11 @@ import { getCloudflareWorkerUrl } from "@/features/iot/services/cloudflareServic
 
 export function buildEspConfig(params: any): EspConfig {
   return {
-    version: "1.2.0-Achaemenid",
+    version: "1.2.0",
     device: {
-      name: "سامانه مرزی پاسارگاد",
+      name: "سامانه مرکزی IoT",
       chip: "ESP32-S3-WROOM-1",
-      firmware: "v3.4.1-Achaemenid-OS",
+      firmware: "v3.4.1-Smart-OS",
       reboot_count: 0,
       last_boot: new Date().toISOString(),
     },

@@ -15,7 +15,8 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
         پخش پیوسته موزیک پس‌زمینه برای افزایش تمرکز و آرامش حین استفاده از داشبورد هوشمند.
       </p>
 
-      <Button variant="ghost"
+      <Button
+        variant="ghost"
         onClick={onToggle}
         type="button"
         disabled={isLoading}
@@ -27,7 +28,9 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
       >
         <div
           className={`flex h-6 w-10 shrink-0 items-center rounded-full p-1 transition-colors duration-300 ${
-            isMusicOn ? "bg-[var(--accent3)]" : "bg-[var(--card-hover-bg)] border border-[var(--border-color)]"
+            isMusicOn
+              ? "bg-[var(--accent3)]"
+              : "bg-[var(--card-hover-bg)] border border-[var(--border-color)]"
           }`}
         >
           <div
@@ -45,8 +48,8 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
           >
             موزیک پس‌زمینه
           </span>
-          <span className="block text-[10px] leading-relaxed text-[var(--text-muted)] font-mono uppercase tracking-wider">
-            {isLoading ? "Loading..." : isMusicOn ? "Active / Playing" : "Disabled / Paused"}
+          <span className="block text-xs leading-relaxed text-[var(--text-muted)]">
+            {isLoading ? "در حال بارگذاری..." : isMusicOn ? "فعال · در حال پخش" : "غیرفعال · متوقف"}
           </span>
         </div>
 
@@ -57,7 +60,11 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
               : "bg-[var(--card-hover-bg)] text-[var(--text-muted)]"
           }`}
         >
-          {isMusicOn ? <Activity className="w-5 h-5 animate-pulse" /> : <VolumeX className="w-5 h-5" />}
+          {isMusicOn ? (
+            <Activity className="w-5 h-5 animate-pulse" />
+          ) : (
+            <VolumeX className="w-5 h-5" />
+          )}
         </div>
       </Button>
     </div>

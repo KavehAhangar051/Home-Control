@@ -7,7 +7,7 @@ export const createAestheticSlice: StateCreator<IoTStoreState, [], [], Aesthetic
   accent4: "#3B82F6",
   animationsEnabled: true,
   animationsFps: 60,
-  headerTitle: "سامانه هوشمند پادشاهی هخامنش",
+  headerTitle: "سامانه کنترل هوشمند IoT",
   isSidebarCollapsed: false,
 
   setAnimationsEnabled: (e) => set({ animationsEnabled: e }),

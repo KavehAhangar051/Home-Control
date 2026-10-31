@@ -8,7 +8,7 @@ export interface SegmentData {
   state?: boolean;
   mode?: "switch" | "push";
   auto_off?: number;
-  rule?: { 
+  rule?: {
     highActions?: Array<{
       reqHold: number;
       targetPin: string;
@@ -35,8 +35,8 @@ export interface SortableSegmentCardProps {
   onUpdateSegmentMode?: (id: string, mode: "switch" | "push") => void;
   onUpdateSegmentAutoOff?: (id: string, autoOff: number) => void;
   onUpdateSegmentRule?: (
-    id: string, 
-    rule: { 
+    id: string,
+    rule: {
       highActions?: Array<{
         reqHold: number;
         targetPin: string;
@@ -51,7 +51,7 @@ export interface SortableSegmentCardProps {
         actionType?: number;
         delay?: number;
       }>;
-    }
+    },
   ) => void;
   isLoadingIoT: boolean;
   onSetupPlaceholder?: (id: string) => void;

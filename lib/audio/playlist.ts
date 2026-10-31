@@ -32,7 +32,10 @@ export async function fetchTrackUrl(identifier: string): Promise<string | null> 
     const mp3File = files.find(
       (file: { format?: string; name?: string }) =>
         file.name &&
-        (file.format === "128Kbps MP3" || file.format === "VBR MP3" || file.name.toLowerCase().endsWith(".mp3")),
+        (file.format === "128Kbps MP3" ||
+          file.format === "VBR MP3" ||
+          file.name.endsWith(".mp3") ||
+          file.name.endsWith(".MP3")),
     );
 
     if (!mp3File?.name) {
@@ -40,10 +43,11 @@ export async function fetchTrackUrl(identifier: string): Promise<string | null> 
       return null;
     }
 
-    return `https://archive.org/download/${encodeURIComponent(identifier)}/${mp3File.name
-      .split("/")
-      .map(encodeURIComponent)
-      .join("/")}`;
+    const encodedFileName = mp3File.name.includes("/")
+      ? mp3File.name.split("/").map(encodeURIComponent).join("/")
+      : encodeURIComponent(mp3File.name);
+
+    return `https://archive.org/download/${encodeURIComponent(identifier)}/${encodedFileName}`;
   } catch (error) {
     debugLog.error("AudioPlaylist", "Could not resolve online track URL.", { identifier, error });
     return null;

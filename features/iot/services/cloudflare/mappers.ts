@@ -6,11 +6,11 @@ import { getCloudflareWorkerUrl } from "./config";
  */
 export function serializeToCloudflare(config: any): any {
   return {
-    version: config.version || "1.2.0-Achaemenid",
+    version: config.version || "1.2.0",
     device: config.device || {
-      name: "سامانه مرزی پاسارگاد",
+      name: "سامانه مرکزی IoT",
       chip: "ESP32-S3-WROOM-1",
-      firmware: "v3.4.1-Achaemenid-OS",
+      firmware: "v3.4.1-Smart-OS",
       reboot_count: 0,
       last_boot: new Date().toISOString(),
     },
@@ -22,7 +22,7 @@ export function serializeToCloudflare(config: any): any {
       animations_enabled: config.preferences?.animations_enabled ?? true,
       animations_fps: config.preferences?.animations_fps ?? 60,
       header_animation: config.preferences?.header_animation || "fade",
-      header_title: config.preferences?.header_title || "سامانه هوشمند پادشاهی هخامنش",
+      header_title: config.preferences?.header_title || "سامانه کنترل هوشمند IoT",
       matrix_density: config.preferences?.matrix_density ?? 40,
       matrix_size: config.preferences?.matrix_size ?? 4,
       matrix_hover_size: config.preferences?.matrix_hover_size ?? 3,
@@ -61,11 +61,11 @@ export function serializeToCloudflare(config: any): any {
  */
 export function deserializeFromCloudflare(cfData: any): EspConfig {
   return {
-    version: cfData.version || "1.2.0-Achaemenid",
+    version: cfData.version || "1.2.0",
     device: cfData.device || {
-      name: "سامانه مرزی پاسارگاد",
+      name: "سامانه مرکزی IoT",
       chip: "ESP32-S3-WROOM-1",
-      firmware: "v3.4.1-Achaemenid-OS",
+      firmware: "v3.4.1-Smart-OS",
       reboot_count: 0,
       last_boot: new Date().toISOString(),
     },
@@ -77,7 +77,7 @@ export function deserializeFromCloudflare(cfData: any): EspConfig {
       animations_enabled: cfData.preferences?.animations_enabled ?? true,
       animations_fps: cfData.preferences?.animations_fps ?? 60,
       header_animation: cfData.preferences?.header_animation || "fade",
-      header_title: cfData.preferences?.header_title || "سامانه هوشمند پادشاهی هخامنش",
+      header_title: cfData.preferences?.header_title || "سامانه کنترل هوشمند IoT",
       matrix_density: cfData.preferences?.matrix_density ?? 40,
       matrix_size: cfData.preferences?.matrix_size ?? 4,
       matrix_hover_size: cfData.preferences?.matrix_hover_size ?? 3,

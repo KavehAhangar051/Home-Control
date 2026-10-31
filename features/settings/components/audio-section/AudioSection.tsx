@@ -119,7 +119,12 @@ export default function AudioSection() {
       )}
       <AudioSourceSelector musicSource={musicSource} onSourceChange={handleSourceChange} />
       {isMusicOn && trackInfo && (
-        <AudioTrackInfo trackInfo={trackInfo} isLoading={isLoading} onNext={handleNext} onPrev={handlePrev} />
+        <AudioTrackInfo
+          trackInfo={trackInfo}
+          isLoading={isLoading}
+          onNext={handleNext}
+          onPrev={handlePrev}
+        />
       )}
     </div>
   );

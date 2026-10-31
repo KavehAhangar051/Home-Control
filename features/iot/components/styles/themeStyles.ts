@@ -4,11 +4,7 @@ interface ThemeStylesParams {
   isDark: boolean;
 }
 
-export function getThemeStyles({
-  accent3,
-  accent4,
-  isDark,
-}: ThemeStylesParams): string {
+export function getThemeStyles({ accent3, accent4, isDark }: ThemeStylesParams): string {
   const selectedFontFamily = "var(--font-vazirmatn)";
 
   const defaultBg = isDark ? "#09090b" : "#ffffff";
@@ -85,19 +81,34 @@ export function getThemeStyles({
       --accent: ${isDark ? "#27272a" : "#f4f4f5"};
       --accent-foreground: ${isDark ? "#fafafa" : "#18181b"};
       --destructive: var(--color-red-600);
-      --destructive-foreground: ${isDark ? "var(--color-red-600)" : "var(--color-red-800)"};
+      --destructive-foreground: ${isDark ? "var(--color-zinc-50)" : "var(--color-white)"};
       --border: ${isDark ? "#27272a" : "#e4e4e7"};
       --input: ${isDark ? "#27272a" : "#e4e4e7"};
       --ring: ${isDark ? "#a1a1aa" : "#71717a"};
       --radius: 0.5rem;
       --success: var(--color-emerald-500);
-      --success-foreground: ${isDark ? "var(--color-emerald-600)" : "var(--color-emerald-900)"};
+      --success-foreground: ${isDark ? "var(--color-zinc-50)" : "var(--color-emerald-950)"};
       --warning: var(--color-yellow-500);
-      --warning-foreground: ${isDark ? "var(--color-yellow-600)" : "var(--color-yellow-900)"};
+      --warning-foreground: var(--color-yellow-950);
       --info: var(--color-violet-500);
-      --info-foreground: ${isDark ? "var(--color-violet-600)" : "var(--color-violet-900)"};
+      --info-foreground: ${isDark ? "var(--color-zinc-50)" : "var(--color-violet-950)"};
       --invert: ${isDark ? "var(--color-zinc-700)" : "var(--color-zinc-900)"};
       --invert-foreground: var(--color-zinc-50);
+      --shadow-border: ${
+        isDark
+          ? "0 0 0 1px oklch(1 0 0 / 0.08)"
+          : "0px 0px 0px 1px oklch(0 0 0 / 0.06), 0px 1px 2px -1px oklch(0 0 0 / 0.06), 0px 2px 4px 0px oklch(0 0 0 / 0.04)"
+      };
+      --shadow-border-hover: ${
+        isDark
+          ? "0 0 0 1px oklch(1 0 0 / 0.13)"
+          : "0px 0px 0px 1px oklch(0 0 0 / 0.08), 0px 1px 2px -1px oklch(0 0 0 / 0.08), 0px 2px 4px 0px oklch(0 0 0 / 0.06)"
+      };
+    }
+
+    img {
+      outline: 1px solid ${isDark ? "oklch(1 0 0 / 0.1)" : "oklch(0 0 0 / 0.1)"};
+      outline-offset: -1px;
     }
     
     html, body, button, h1, h2, h3, h4, h5, h6, select, span, input, textarea, .font-sans {

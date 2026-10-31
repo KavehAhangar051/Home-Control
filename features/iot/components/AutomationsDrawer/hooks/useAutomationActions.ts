@@ -1,8 +1,8 @@
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
 export function useAutomationActions(
-  actions: Array<{ targetPin?: string; targetMacro?: string; actionOn?: boolean; }>, 
-  setActions: (actions: any) => void
+  actions: Array<{ targetPin?: string; targetMacro?: string; actionOn?: boolean }>,
+  setActions: (actions: any) => void,
 ) {
   const segments = useIoTStore((state) => state.segments);
   const macros = useIoTStore((state) => state.macros);
@@ -30,6 +30,6 @@ export function useAutomationActions(
     updateAction,
     removeAction,
     segments,
-    macros
+    macros,
   };
 }
