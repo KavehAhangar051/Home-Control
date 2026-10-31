@@ -33,21 +33,22 @@ export default function SegmentActions({
 }: SegmentActionsProps) {
   return (
     <>
-      <button type="button"
+      <button
+        type="button"
         onClick={() => onRemove(segment.id)}
-        className="p-1.5 bg-slate-200/90 dark:bg-slate-950 border border-slate-300/85 dark:border-slate-800 text-slate-700 dark:text-gray-300 md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)] transition-all cursor-pointer rounded-lg shadow-sm"
+        className="p-1.5 bg-slate-200/90 dark:bg-slate-950 border border-slate-300/85 dark:border-slate-800 text-slate-700 dark:text-gray-300 md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)] transition-[border-color,color,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer rounded-lg shadow-sm"
         title="حذف این سگمنت"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <X className="w-3.5 h-3.5" />
+        <X className="w-3.5 h-3.5" strokeWidth={2} />
       </button>
       <div
         {...attributes}
         {...listeners}
-        className="p-1.5 bg-slate-200/90 dark:bg-slate-950 border border-slate-300/85 dark:border-slate-800 text-slate-700 dark:text-gray-300 md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)] cursor-grab active:cursor-grabbing transition-all rounded-lg shadow-sm"
+        className="p-1.5 bg-slate-200/90 dark:bg-slate-950 border border-slate-300/85 dark:border-slate-800 text-slate-700 dark:text-gray-300 md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)] cursor-grab active:cursor-grabbing transition-[border-color,color] duration-150 ease-out rounded-lg shadow-sm"
         title="کشیدن برای جابه‌جایی"
       >
-        <GripVertical className="w-4 h-4" />
+        <GripVertical className="w-4 h-4" strokeWidth={2} />
       </div>
       {onUpdateSegmentMode && segment.type !== "input" && (
         <div className="mr-1.5">

@@ -11,7 +11,7 @@
 export function getEffectiveGroupsCols(
   groupIndex: number,
   totalGroups: number,
-  maxCols: number
+  maxCols: number,
 ): number {
   let actualParentGroupsCols = maxCols;
 

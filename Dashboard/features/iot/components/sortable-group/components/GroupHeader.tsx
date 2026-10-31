@@ -50,17 +50,19 @@ export default function GroupHeader({
     <div className="flex items-stretch justify-between w-full min-w-0 gap-2 sm:gap-4 relative z-10 pointer-events-none">
       {/* Right Part: Title and Layout Selector */}
       <Card
-        className={`flex items-center justify-between flex-1 min-w-0 pointer-events-auto !overflow-visible !bg-[var(--card-bg)] backdrop-blur-md !border !border-[var(--border-color)] shadow-sm !rounded-2xl relative ${parentGroupsCols === 3 ? "!gap-2 !py-1.5 p-1.5 pr-2 sm:pr-3" : "!gap-2 sm:!gap-3 !py-2 p-2 pr-3 sm:pr-4 sm:!py-2.5 sm:p-2.5 sm:pr-5 sm:gap-4"}` }
+        className={`flex items-center justify-between flex-1 min-w-0 pointer-events-auto !overflow-visible !bg-[var(--card-bg)] !border !border-[var(--border-color)] !shadow-none !rounded-2xl relative ${parentGroupsCols === 3 ? "!gap-2 !py-1.5 p-1.5 pr-2 sm:pr-3" : "!gap-2 sm:!gap-3 !py-2 p-2 pr-3 sm:pr-4 sm:!py-2.5 sm:p-2.5 sm:pr-5 sm:gap-4"}`}
       >
-        <div className="absolute inset-0 rounded-2xl border border-[var(--accent3)] shadow-xl opacity-0 transition-opacity duration-350 md:group-hover/group-card:opacity-100 pointer-events-none" />
-        <div ref={titleContainerRef} className="flex items-center gap-2 min-w-0 flex-1 relative z-10">
+        <div
+          ref={titleContainerRef}
+          className="flex items-center gap-2 min-w-0 flex-1 relative z-10"
+        >
           <div className="relative flex justify-center items-center">
             <button
               type="button"
               ref={buttonRef}
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
               aria-expanded={isSettingsOpen}
-              className={`flex items-center justify-center transition-all cursor-pointer md:hover:opacity-80 ${isSettingsOpen ? "bg-[var(--accent3)] text-black shadow-[0_0_8px_rgba(255,165,0,0.3)]" : "bg-[var(--accent3-transparent)] text-[var(--accent3)]"} shrink-0 ${
+              className={`flex items-center justify-center transition-[background-color,color,opacity,box-shadow,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer md:hover:opacity-80 ${isSettingsOpen ? "bg-[var(--accent3)] text-black shadow-[0_0_8px_rgba(255,165,0,0.3)]" : "bg-[var(--accent3-transparent)] text-[var(--accent3)]"} shrink-0 ${
                 parentGroupsCols === 3 ? "p-1 w-6 h-6" : "p-1.5 w-7 h-7 sm:p-2 sm:w-auto sm:h-auto"
               }`}
               style={{
@@ -106,14 +108,14 @@ export default function GroupHeader({
           <div className="min-w-0 flex-1 text-right leading-tight">
             <h4
               ref={titleTextRef}
-              className={`font-sans font-extrabold text-slate-900 dark:text-[var(--accent3)] truncate ${
-                parentGroupsCols === 3 ? "text-[11px]" : "text-xs sm:text-base"
+              className={`font-sans font-bold text-slate-900 dark:text-[var(--text-primary)] truncate ${
+                parentGroupsCols === 3 ? "text-xs" : "text-xs sm:text-sm"
               }`}
             >
               {id}
             </h4>
-            <span className="text-[9px] theme-text-muted mt-0.5 whitespace-nowrap block">
-              ({segmentCount} دستگاه)
+            <span className="text-[11px] tabular-nums theme-text-muted mt-0.5 whitespace-nowrap block">
+              {segmentCount} قطعه
             </span>
           </div>
         </div>

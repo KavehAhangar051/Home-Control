@@ -3,7 +3,10 @@ import { soundManager } from "@/lib/audio";
 import { reconnectMqtt, getMqttSettings } from "@/features/iot/services/mqttService";
 import { RefreshCw, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fetchConfigFromCloudflare, saveConfigToCloudflare } from "@/features/iot/services/cloudflare/api";
+import {
+  fetchConfigFromCloudflare,
+  saveConfigToCloudflare,
+} from "@/features/iot/services/cloudflare/api";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { MqttFormFields } from "./MqttFormFields";
 import { MqttQosSelector } from "./MqttQosSelector";
@@ -26,7 +29,7 @@ export default function MqttSection() {
     setBaseTopic(settings.baseTopic);
     setQos(settings.qos);
 
-    fetchConfigFromCloudflare().then(config => {
+    fetchConfigFromCloudflare().then((config) => {
       if (config && config.mqtt) {
         setBrokerWsUrl(config.mqtt.broker_ws_url);
         setBrokerHost(config.mqtt.broker_host);
@@ -49,7 +52,7 @@ export default function MqttSection() {
       broker_host: brokerHost,
       broker_port: brokerPort,
       base_topic: baseTopic,
-      qos: qos
+      qos: qos,
     };
     setMqttConfig(newMqttConfig);
 
@@ -80,16 +83,21 @@ export default function MqttSection() {
     <div className="space-y-6">
       <div className="space-y-2">
         <p className="text-[10px] text-[var(--text-tertiary)] leading-relaxed text-right">
-          تنظیمات ارتباطی داشبورد با ماژول‌های ESP را مدیریت کنید. پس از ذخیره، اتصال مجدداً برقرار می‌شود.
+          تنظیمات ارتباطی داشبورد با ماژول‌های ESP را مدیریت کنید. پس از ذخیره، اتصال مجدداً برقرار
+          می‌شود.
         </p>
       </div>
 
       <div className="space-y-4">
         <MqttFormFields
-          brokerWsUrl={brokerWsUrl} setBrokerWsUrl={setBrokerWsUrl}
-          brokerHost={brokerHost} setBrokerHost={setBrokerHost}
-          brokerPort={brokerPort} setBrokerPort={setBrokerPort}
-          baseTopic={baseTopic} setBaseTopic={setBaseTopic}
+          brokerWsUrl={brokerWsUrl}
+          setBrokerWsUrl={setBrokerWsUrl}
+          brokerHost={brokerHost}
+          setBrokerHost={setBrokerHost}
+          brokerPort={brokerPort}
+          setBrokerPort={setBrokerPort}
+          baseTopic={baseTopic}
+          setBaseTopic={setBaseTopic}
         />
         <MqttQosSelector qos={qos} setQos={setQos} />
       </div>

@@ -4,3 +4,9 @@ export interface Track {
   url: string;
   isLocal: boolean;
 }
+
+export interface ArchiveTrackItem {
+  identifier: string;
+  title?: string;
+  creator?: string;
+}

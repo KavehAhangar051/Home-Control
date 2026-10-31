@@ -11,9 +11,9 @@ export function useApplyEspConfig() {
 
     store.setAnimationsEnabled(config.preferences.animations_enabled);
 
-    if (config.preferences.animations_fps !== undefined) store.setAnimationsFps(config.preferences.animations_fps);
+    if (config.preferences.animations_fps !== undefined)
+      store.setAnimationsFps(config.preferences.animations_fps);
     store.setHeaderTitle(config.preferences.header_title);
-
 
     if (config.preferences.manual_save_mode !== undefined) {
       store.setManualSaveMode(config.preferences.manual_save_mode);

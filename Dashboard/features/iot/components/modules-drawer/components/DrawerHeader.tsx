@@ -16,13 +16,13 @@ export default function DrawerHeader({ onClose, animationsEnabled }: DrawerHeade
         </div>
         <div>
           <h4
-            className="font-sans font-black text-sm text-accent3"
+            className="font-sans font-bold text-sm text-accent3"
             style={{ color: "var(--accent3)" }}
           >
-            منوی مدیریت ماژول‌ها و سگمنت‌ها
+            مدیریت ماژول‌ها و قطعات
           </h4>
-          <p className="text-[9px] theme-text-muted font-sans tracking-wide uppercase">
-            Modular IoT Panel Node
+          <p className="text-[11px] theme-text-muted font-sans mt-0.5">
+            افزودن و چیدمان کلیدها و ورودی‌ها
           </p>
         </div>
       </div>

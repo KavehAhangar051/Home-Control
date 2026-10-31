@@ -20,11 +20,39 @@ export const getMqttSettings = () => {
   return {
     brokerUrl: mqttConfig?.broker_ws_url || "wss://broker.emqx.io:8084/mqtt",
     baseTopic: mqttConfig?.base_topic || "KamyarIoT/Achaemenid",
-    qos: (mqttConfig?.qos ?? 1) as 0 | 1 | 2
+    qos: (mqttConfig?.qos ?? 1) as 0 | 1 | 2,
   };
 };
 
 export const getMqttClient = () => client;
 export const setMqttClient = (newClient: MqttClient | null) => {
   client = newClient;
+};
+
+/**
+ * Deep module command publisher:
+ * Encapsulates client readiness check, lazy initialization, topic resolution,
+ * binary buffer transmission, and diagnostic logging in one place.
+ */
+export const publishMqttCommand = (buf: Uint8Array, logLabel?: string): boolean => {
+  let activeClient = getMqttClient();
+  if (!activeClient) {
+    // Lazy initialization on first command if not already started
+    const { initMqtt } = require("./init");
+    initMqtt();
+    activeClient = getMqttClient();
+  }
+
+  if (activeClient?.connected) {
+    const settings = getMqttSettings();
+    const commandTopic = `${settings.baseTopic}/Command`;
+    activeClient.publish(commandTopic, buf as Buffer, { qos: settings.qos });
+    if (logLabel) {
+      console.log(`[MQTT Binary] ${logLabel}`);
+    }
+    return true;
+  }
+
+  console.warn(`[MQTT] Client not connected. Cannot publish${logLabel ? ` (${logLabel})` : ""}.`);
+  return false;
 };

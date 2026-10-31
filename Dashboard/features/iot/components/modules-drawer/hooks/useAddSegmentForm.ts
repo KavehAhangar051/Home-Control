@@ -40,8 +40,17 @@ export function useAddSegmentForm(segments: Segment[], onAddSegment: any, onClos
       return;
     }
 
-    onAddSegment(selectedType, finalPin, customTitle.trim() || `کنترل پایه دیجیتال (GPIO ${finalPin})`, groupName.trim() || "Test", buttonMode, undefined, segmentIcon || undefined, groupIcon || undefined);
-    
+    onAddSegment(
+      selectedType,
+      finalPin,
+      customTitle.trim() || `کنترل پایه دیجیتال (GPIO ${finalPin})`,
+      groupName.trim() || "Test",
+      buttonMode,
+      undefined,
+      segmentIcon || undefined,
+      groupIcon || undefined,
+    );
+
     setCustomTitle("");
     setGroupName(groupsOrder.length > 0 ? groupsOrder[0] : "Test");
     setTargetPin("");
@@ -53,16 +62,24 @@ export function useAddSegmentForm(segments: Segment[], onAddSegment: any, onClos
   };
 
   return {
-    selectedType, setSelectedType,
-    targetPin, setTargetPin,
-    customTitle, setCustomTitle,
-    groupName, setGroupName,
-    segmentIcon, setSegmentIcon,
-    groupIcon, setGroupIcon,
+    selectedType,
+    setSelectedType,
+    targetPin,
+    setTargetPin,
+    customTitle,
+    setCustomTitle,
+    groupName,
+    setGroupName,
+    segmentIcon,
+    setSegmentIcon,
+    groupIcon,
+    setGroupIcon,
     errorText,
-    buttonMode, setButtonMode,
-    showAdvanced, setShowAdvanced,
+    buttonMode,
+    setButtonMode,
+    showAdvanced,
+    setShowAdvanced,
     groupsOrder,
-    handleSubmit
+    handleSubmit,
   };
 }

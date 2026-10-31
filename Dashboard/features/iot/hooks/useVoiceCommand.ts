@@ -1,23 +1,30 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { useIoTStore } from './useIoTStore';
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useIoTStore } from "./useIoTStore";
 
 export const useVoiceCommand = () => {
-  const { isListening, setIsListening, voiceTranscript: transcript, setVoiceTranscript: setTranscript, showToast } = useIoTStore();
+  const {
+    isListening,
+    setIsListening,
+    voiceTranscript: transcript,
+    setVoiceTranscript: setTranscript,
+    showToast,
+  } = useIoTStore();
   const transcriptRef = useRef("");
   const recognitionRef = useRef<any>(null);
   const onCommandCompleteRef = useRef<((text: string) => void) | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (typeof window !== "undefined") {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = true;
         recognitionRef.current.interimResults = true;
-        recognitionRef.current.lang = 'fa-IR'; // Support Persian
+        recognitionRef.current.lang = "fa-IR"; // Support Persian
 
         recognitionRef.current.onresult = (event: any) => {
-          let fullTranscript = '';
+          let fullTranscript = "";
           for (let i = 0; i < event.results.length; ++i) {
             fullTranscript += event.results[i][0].transcript;
           }
@@ -46,26 +53,29 @@ export const useVoiceCommand = () => {
     }
   }, []);
 
-  const startListening = useCallback((onComplete?: (text: string) => void) => {
-    setTranscript("");
-    transcriptRef.current = "";
-    if (onComplete) {
-      onCommandCompleteRef.current = onComplete;
-    } else {
-      onCommandCompleteRef.current = null;
-    }
-
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.start();
-        setIsListening(true);
-      } catch (e) {
-        console.error(e);
+  const startListening = useCallback(
+    (onComplete?: (text: string) => void) => {
+      setTranscript("");
+      transcriptRef.current = "";
+      if (onComplete) {
+        onCommandCompleteRef.current = onComplete;
+      } else {
+        onCommandCompleteRef.current = null;
       }
-    } else {
-      showToast("مرورگر شما از قابلیت تشخیص صدا پشتیبانی نمی‌کند.", "error");
-    }
-  }, [showToast]);
+
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        showToast("مرورگر شما از قابلیت تشخیص صدا پشتیبانی نمی‌کند.", "error");
+      }
+    },
+    [showToast],
+  );
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
@@ -75,7 +85,7 @@ export const useVoiceCommand = () => {
         console.error(e);
       }
     }
-    // We don't set isListening to false here, we wait for the onend event 
+    // We don't set isListening to false here, we wait for the onend event
     // to guarantee we receive the final result before showing the notification
   }, []);
 
@@ -83,6 +93,6 @@ export const useVoiceCommand = () => {
     isListening,
     transcript,
     startListening,
-    stopListening
+    stopListening,
   };
 };

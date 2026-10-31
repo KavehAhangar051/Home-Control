@@ -11,9 +11,9 @@ const vazirmatn = Vazirmatn({
 });
 
 export const metadata: Metadata = {
-  title: "سامانه اینترنت اشیاء هخامنشی | Achaemenid IoT Dashboard",
+  title: "سامانه هوشمند اینترنت اشیاء | Smart IoT Dashboard",
   description:
-    "داشبورد هوشمند اینترنت اشیا مبتنی بر معماری میکروکنترلر ESP32 با الهام از معماری و نگاره‌های پاسارگاد و تخت جمشید",
+    "داشبورد مدرن و هوشمند کنترل و پایش دستگاه‌های اینترنت اشیاء مبتنی بر میکروکنترلر ESP32",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

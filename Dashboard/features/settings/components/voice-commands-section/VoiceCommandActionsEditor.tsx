@@ -2,13 +2,20 @@ import React from "react";
 import { Trash2 } from "lucide-react";
 
 interface Props {
-  tempActions: Array<{targetPin?: string, targetMacro?: string, actionOn?: boolean}>;
-  setTempActions: (actions: Array<{targetPin?: string, targetMacro?: string, actionOn?: boolean}>) => void;
+  tempActions: Array<{ targetPin?: string; targetMacro?: string; actionOn?: boolean }>;
+  setTempActions: (
+    actions: Array<{ targetPin?: string; targetMacro?: string; actionOn?: boolean }>,
+  ) => void;
   segments: any[];
   macros: any[];
 }
 
-export function VoiceCommandActionsEditor({ tempActions, setTempActions, segments, macros }: Props) {
+export function VoiceCommandActionsEditor({
+  tempActions,
+  setTempActions,
+  segments,
+  macros,
+}: Props) {
   const handleAddAction = () => {
     if (segments.length === 0 && macros.length === 0) return;
     if (segments.length > 0) {
@@ -24,10 +31,16 @@ export function VoiceCommandActionsEditor({ tempActions, setTempActions, segment
     setTempActions(newActions);
   };
 
-  const handleUpdateAction = (index: number, updates: Partial<{targetPin?: string, targetMacro?: string, actionOn?: boolean}>) => {
+  const handleUpdateAction = (
+    index: number,
+    updates: Partial<{ targetPin?: string; targetMacro?: string; actionOn?: boolean }>,
+  ) => {
     const newActions = [...tempActions];
     if (updates.targetPin !== undefined) {
-      newActions[index] = { targetPin: updates.targetPin, actionOn: newActions[index].actionOn ?? true };
+      newActions[index] = {
+        targetPin: updates.targetPin,
+        actionOn: newActions[index].actionOn ?? true,
+      };
     } else if (updates.targetMacro !== undefined) {
       newActions[index] = { targetMacro: updates.targetMacro };
     } else {
@@ -59,7 +72,10 @@ export function VoiceCommandActionsEditor({ tempActions, setTempActions, segment
         const isMacroAction = action.targetMacro !== undefined;
         const actionKey = action.targetPin ?? action.targetMacro ?? `action-${index}`;
         return (
-          <div key={actionKey} className="flex flex-wrap items-center gap-2 bg-[var(--card-bg-solid)] border border-[var(--border-color)] p-2 rounded-xl">
+          <div
+            key={actionKey}
+            className="flex flex-wrap items-center gap-2 bg-[var(--card-bg-solid)] border border-[var(--border-color)] p-2 rounded-xl"
+          >
             <select
               value={isMacroAction ? "macro" : "pin"}
               onChange={(e) => {
@@ -72,7 +88,9 @@ export function VoiceCommandActionsEditor({ tempActions, setTempActions, segment
               className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-all"
             >
               <option value="pin">ماژول/سگمنت</option>
-              <option value="macro" disabled={macros.length === 0}>دکمه سفارشی (ماکرو)</option>
+              <option value="macro" disabled={macros.length === 0}>
+                دکمه سفارشی (ماکرو)
+              </option>
             </select>
 
             {isMacroAction ? (

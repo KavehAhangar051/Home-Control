@@ -24,7 +24,8 @@ export const createSystemSlice: StateCreator<IoTStoreState, [], [], SystemSlice>
 
   setVoiceCommands: (voiceCommands) => {
     set((state) => {
-      const next = typeof voiceCommands === "function" ? voiceCommands(state.voiceCommands) : voiceCommands;
+      const next =
+        typeof voiceCommands === "function" ? voiceCommands(state.voiceCommands) : voiceCommands;
       return { voiceCommands: next };
     });
   },

@@ -1,11 +1,7 @@
 "use client";
 
 import React from "react";
-import {
-  useSortable,
-  SortableContext,
-  rectSortingStrategy,
-} from "@dnd-kit/sortable";
+import { useSortable, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,15 +17,18 @@ const GROUP_COLS_STYLE_LUT: Record<number, React.CSSProperties> = {
   6: { "--group-cols": 6 } as React.CSSProperties,
 };
 
-const COLUMN_INDICATORS: number[][] = [
-  [],
-  [1],
-  [1, 2],
-  [1, 2, 3],
-  [1, 2, 3, 4],
-  [1, 2, 3, 4, 5],
-  [1, 2, 3, 4, 5, 6],
-];
+function GroupGrid({ style, children }: { style: React.CSSProperties; children: React.ReactNode }) {
+  return (
+    <div
+      className="grid w-full min-w-0 grid-cols-1 gap-3 p-3 text-right relative z-10 sm:grid-cols-[repeat(var(--group-cols),minmax(0,1fr))] sm:gap-4 sm:p-4"
+      style={style}
+    >
+      <AnimatePresence initial={false} mode="popLayout">
+        {children}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export default function SortableGroup({
   id,
@@ -45,14 +44,7 @@ export default function SortableGroup({
   children,
   isOverlayItem,
 }: SortableGroupProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `group-${id}`,
     data: {
       type: "Group",
@@ -71,16 +63,9 @@ export default function SortableGroup({
   };
 
   const effectiveCols = Math.min(Math.max(1, items.length), maxCols);
-  const contentStyle = GROUP_COLS_STYLE_LUT[effectiveCols] || { "--group-cols": effectiveCols } as React.CSSProperties;
-
-  const renderContent = () => (
-    <div
-      className="grid w-full min-w-0 grid-cols-1 gap-3 p-3 text-right relative z-10 sm:grid-cols-[repeat(var(--group-cols),minmax(0,1fr))] sm:gap-4 sm:p-4"
-      style={contentStyle}
-    >
-      <AnimatePresence mode="popLayout">{children}</AnimatePresence>
-    </div>
-  );
+  const contentStyle =
+    GROUP_COLS_STYLE_LUT[effectiveCols] ||
+    ({ "--group-cols": effectiveCols } as React.CSSProperties);
 
   return (
     <div
@@ -102,32 +87,17 @@ export default function SortableGroup({
       />
 
       {/* Body Island */}
-      <Card className="w-full relative group/body flex-grow !gap-0 !overflow-visible !rounded-2xl !border !border-[var(--border-color)] !bg-[var(--card-bg)] !py-0 !shadow-sm !ring-0 backdrop-blur-md">
-        <div className="absolute inset-0 rounded-2xl border border-[var(--accent3)] shadow-xl opacity-0 transition-opacity duration-350 md:group-hover/group-card:opacity-100 pointer-events-none" />
+      <Card className="w-full relative group/body flex-grow !gap-0 !overflow-visible !rounded-2xl !border !border-[var(--border-color)] !bg-[var(--card-bg)] !py-0 !shadow-none !ring-0">
         <CardContent className="!px-0 !py-0">
           {isOverlayItem ? (
-            renderContent()
+            <GroupGrid style={contentStyle}>{children}</GroupGrid>
           ) : (
             <SortableContext id={id} items={items} strategy={rectSortingStrategy}>
-              {renderContent()}
+              <GroupGrid style={contentStyle}>{children}</GroupGrid>
             </SortableContext>
           )}
         </CardContent>
       </Card>
-
-      {/* Footer Island */}
-      <div className="flex justify-center mt-2 w-full">
-        <Card className="relative z-10 w-fit !gap-0 !overflow-visible !rounded-2xl !border !border-[var(--border-color)] !bg-[var(--card-bg)] !p-2 !shadow-sm !ring-0 backdrop-blur-md">
-          <div className="absolute inset-0 rounded-2xl border border-[var(--accent3)] shadow-xl opacity-0 transition-opacity duration-350 md:group-hover/group-card:opacity-100 pointer-events-none" />
-          <CardContent className="!px-2 !py-0">
-            <div className="flex gap-1.5 opacity-50 transition-opacity md:group-hover/group-card:opacity-100 relative z-10">
-              {(COLUMN_INDICATORS[maxCols] || COLUMN_INDICATORS[3]).map((column) => (
-                <div key={`column-${column}`} className="w-2.5 h-1.5 bg-[var(--accent3)] rounded-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

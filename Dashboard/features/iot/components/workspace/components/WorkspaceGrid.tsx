@@ -1,8 +1,5 @@
 import React from "react";
-import {
-  SortableContext,
-  rectSortingStrategy,
-} from "@dnd-kit/sortable";
+import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import SortableGroup from "../../SortableGroup";
 import SortableSegmentCard from "../../SortableSegmentCard";
 import type { IoTWorkspaceProps } from "../core/types";
@@ -18,13 +15,30 @@ const GROUP_STYLE_LUT: Record<number, React.CSSProperties> = {
 };
 
 const ConnectedSegmentCard = React.memo((props: any) => {
-  const segment = useIoTStore(React.useCallback((s) => s.segments.find((seg) => seg.id === props.segmentId), [props.segmentId]));
+  const segment = useIoTStore(
+    React.useCallback(
+      (s) => s.segments.find((seg) => seg.id === props.segmentId),
+      [props.segmentId],
+    ),
+  );
   if (!segment) return null;
   return <SortableSegmentCard segment={segment} {...props} />;
 });
 
 const ConnectedGroup = React.memo((props: any) => {
-  const { groupName, groupIndex, groupConfigs, handleGroupColsChange, handleAddPlaceholder, handleRemoveGroup, animationsEnabled, filteredGroupsOrderLength, groupsCols, isMobilePortrait, segmentProps } = props;
+  const {
+    groupName,
+    groupIndex,
+    groupConfigs,
+    handleGroupColsChange,
+    handleAddPlaceholder,
+    handleRemoveGroup,
+    animationsEnabled,
+    filteredGroupsOrderLength,
+    groupsCols,
+    isMobilePortrait,
+    segmentProps,
+  } = props;
 
   const segmentIds = useIoTStore(
     useShallow((state) => {
@@ -37,18 +51,19 @@ const ConnectedGroup = React.memo((props: any) => {
         }
       }
       return ids;
-    })
+    }),
   );
 
   const effectiveGroupsCols = getEffectiveGroupsCols(
     groupIndex,
     filteredGroupsOrderLength,
-    groupsCols
+    groupsCols,
   );
 
-  const style = (isMobilePortrait || groupsCols === 1) 
-    ? GROUP_STYLE_LUT[1] 
-    : GROUP_STYLE_LUT[groupsCols] || GROUP_STYLE_LUT[3];
+  const style =
+    isMobilePortrait || groupsCols === 1
+      ? GROUP_STYLE_LUT[1]
+      : GROUP_STYLE_LUT[groupsCols] || GROUP_STYLE_LUT[3];
 
   const baseClasses = "flex-grow flex-shrink-0 min-w-0 max-w-full";
 
@@ -114,39 +129,38 @@ export default function WorkspaceGrid({
   handleUpdateSegmentRule,
   handleSetupPlaceholder,
 }: WorkspaceGridProps) {
-  const {
-    isMobilePortrait,
-    filteredGroupsOrder,
-    groupsCols,
-  } = useWorkspaceGrid({
+  const { isMobilePortrait, filteredGroupsOrder, groupsCols } = useWorkspaceGrid({
     groupsOrder,
     initialGroupsCols,
     selectedGroupFilter,
   });
 
-  const segmentProps = React.useMemo(() => ({
-    onRemove: handleRemoveSegment,
-    onTogglePin: handleTogglePin,
-    onSetPinState: handleSetPinState,
-    onUpdateSegmentMode: handleUpdateSegmentMode,
-    onUpdateSegmentAutoOff: handleUpdateSegmentAutoOff,
-    onUpdateSegmentRule: handleUpdateSegmentRule,
-    isLoadingIoT,
-    onSetupPlaceholder: handleSetupPlaceholder,
-  }), [
-    handleRemoveSegment,
-    handleTogglePin,
-    handleSetPinState,
-    handleUpdateSegmentMode,
-    handleUpdateSegmentAutoOff,
-    handleUpdateSegmentRule,
-    isLoadingIoT,
-    handleSetupPlaceholder,
-  ]);
+  const segmentProps = React.useMemo(
+    () => ({
+      onRemove: handleRemoveSegment,
+      onTogglePin: handleTogglePin,
+      onSetPinState: handleSetPinState,
+      onUpdateSegmentMode: handleUpdateSegmentMode,
+      onUpdateSegmentAutoOff: handleUpdateSegmentAutoOff,
+      onUpdateSegmentRule: handleUpdateSegmentRule,
+      isLoadingIoT,
+      onSetupPlaceholder: handleSetupPlaceholder,
+    }),
+    [
+      handleRemoveSegment,
+      handleTogglePin,
+      handleSetPinState,
+      handleUpdateSegmentMode,
+      handleUpdateSegmentAutoOff,
+      handleUpdateSegmentRule,
+      isLoadingIoT,
+      handleSetupPlaceholder,
+    ],
+  );
 
   const sortableGroupItems = React.useMemo(
     () => filteredGroupsOrder.map((g) => `group-${g}`),
-    [filteredGroupsOrder]
+    [filteredGroupsOrder],
   );
 
   return (

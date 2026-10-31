@@ -7,8 +7,8 @@ import { serializeToCloudflare, deserializeFromCloudflare } from "./mappers";
  */
 export async function fetchConfigFromCloudflare(): Promise<EspConfig | null> {
   if (!isCloudflareEnabled()) return null;
-  
-  const baseUrl = getCloudflareWorkerUrl().replace(/\/$/, "");
+
+  const baseUrl = getCloudflareWorkerUrl();
   const url = `${baseUrl}/config`;
 
   try {
@@ -20,7 +20,9 @@ export async function fetchConfigFromCloudflare(): Promise<EspConfig | null> {
     });
 
     if (!res.ok) {
-      throw new Error(`Failed to fetch Cloudflare config from ${url}: ${res.status} ${res.statusText}`);
+      throw new Error(
+        `Failed to fetch Cloudflare config from ${url}: ${res.status} ${res.statusText}`,
+      );
     }
 
     const data = await res.json();
@@ -41,17 +43,29 @@ export interface AckResult {
   message: string;
 }
 
-/**
- * Save configuration to Cloudflare Worker.
- * پاسخ ACK از سرور دریافت و به عنوان نتیجه برگردانده می‌شود.
- */
-export async function saveConfigToCloudflare(config: EspConfig): Promise<AckResult> {
-  if (!isCloudflareEnabled()) return { success: false, message: "اتصال کلودفلر غیرفعال است." };
-  const baseUrl = getCloudflareWorkerUrl().replace(/\/$/, "");
-  const payload = serializeToCloudflare(config);
+interface WorkerAckResponse {
+  ack?: boolean;
+  message?: string;
+  error?: string;
+}
 
+/**
+ * Deep helper to execute Cloudflare Worker JSON POST requests,
+ * validating configuration, status, ACK responses, and error conditions.
+ */
+async function postWorkerJson(
+  endpoint: string,
+  payload: unknown,
+  defaultSuccessMessage: string,
+  errorContextLabel: string,
+): Promise<AckResult> {
+  if (!isCloudflareEnabled()) {
+    return { success: false, message: "اتصال کلودفلر غیرفعال است." };
+  }
+
+  const baseUrl = getCloudflareWorkerUrl();
   try {
-    const res = await fetch(`${baseUrl}/config`, {
+    const res = await fetch(`${baseUrl}${endpoint}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -59,78 +73,50 @@ export async function saveConfigToCloudflare(config: EspConfig): Promise<AckResu
       body: JSON.stringify(payload),
     });
 
-    const data = (await res.json()) as any;
-
+    const data = (await res.json()) as WorkerAckResponse;
     if (res.ok && data?.ack) {
-      return { success: true, message: data.message || "تنظیمات با موفقیت ذخیره شد." };
+      return { success: true, message: data.message || defaultSuccessMessage };
     }
 
-    return { success: false, message: data?.error || "خطا در ذخیره تنظیمات." };
+    return { success: false, message: data?.error || `خطا در ${errorContextLabel}.` };
   } catch (error) {
-    console.error("Cloudflare saveConfig error:", error);
-    return { success: false, message: "تغییرات بنا به دلایل فنی ذخیره نشد." };
+    console.error(`Cloudflare ${endpoint} error:`, error);
+    return { success: false, message: `تغییرات ${errorContextLabel} بنا به دلایل فنی ذخیره نشد.` };
   }
 }
 
 /**
+ * Save configuration to Cloudflare Worker.
+ */
+export async function saveConfigToCloudflare(config: EspConfig): Promise<AckResult> {
+  const payload = serializeToCloudflare(config);
+  return postWorkerJson("/config", payload, "تنظیمات با موفقیت ذخیره شد.", "ذخیره تنظیمات");
+}
+
+/**
  * Update pin state on Durable Objects via Cloudflare Worker.
- * پاسخ ACK از سرور دریافت و به عنوان نتیجه برگردانده می‌شود.
  */
 export async function updatePinOnCloudflare(pin: string, value: boolean): Promise<AckResult> {
-  if (!isCloudflareEnabled()) return { success: false, message: "اتصال کلودفلر غیرفعال است." };
-  const baseUrl = getCloudflareWorkerUrl().replace(/\/$/, "");
-
-  try {
-    const res = await fetch(`${baseUrl}/pins/${pin}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ value }),
-    });
-
-    const data = (await res.json()) as any;
-
-    if (res.ok && data?.ack) {
-      return { success: true, message: data.message || `وضعیت پین ${pin} ذخیره شد.` };
-    }
-
-    return { success: false, message: data?.error || `خطا در ذخیره وضعیت پین ${pin}.` };
-  } catch (error) {
-    console.error(`Cloudflare updatePinOnCloudflare error for pin ${pin}:`, error);
-    return { success: false, message: `تغییرات پین ${pin} بنا به دلایل فنی ذخیره نشد.` };
-  }
+  return postWorkerJson(`/pins/${pin}`, { value }, `وضعیت پین ${pin} ذخیره شد.`, `پین ${pin}`);
 }
 
 /**
  * Update multiple pins state simultaneously on Durable Objects via Cloudflare Worker.
  */
 export async function updateBatchPinsOnCloudflare(
-  actions: Array<{ pin: string; state: boolean }>
+  actions: Array<{ pin: string; state: boolean }>,
 ): Promise<AckResult> {
-  if (!isCloudflareEnabled()) return { success: false, message: "اتصال کلودفلر غیرفعال است." };
-  if (actions.length === 0) return { success: true, message: "دستوری برای اجرا وجود ندارد." };
-  
-  const baseUrl = getCloudflareWorkerUrl().replace(/\/$/, "");
-
-  try {
-    const res = await fetch(`${baseUrl}/pins/batch`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ actions }),
-    });
-
-    const data = (await res.json()) as any;
-
-    if (res.ok && data?.ack) {
-      return { success: true, message: data.message || `وضعیت ${actions.length} پین گروهی ذخیره شد.` };
-    }
-
-    return { success: false, message: data?.error || `خطا در ذخیره وضعیت گروهی پین‌ها.` };
-  } catch (error) {
-    console.error(`Cloudflare updateBatchPinsOnCloudflare error:`, error);
-    return { success: false, message: `تغییرات گروهی بنا به دلایل فنی ذخیره نشد.` };
+  if (!isCloudflareEnabled()) {
+    return { success: false, message: "اتصال کلودفلر غیرفعال است." };
   }
+  if (actions.length === 0) {
+    return { success: true, message: "دستوری برای اجرا وجود ندارد." };
+  }
+
+  return postWorkerJson(
+    "/pins/batch",
+    { actions },
+    `وضعیت ${actions.length} پین گروهی ذخیره شد.`,
+    "گروهی",
+  );
 }

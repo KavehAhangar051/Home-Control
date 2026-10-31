@@ -24,7 +24,7 @@ export const getPersianDateString = (time: Date) => {
     month: "numeric",
     day: "numeric",
   });
-  
+
   const parts = formatter.formatToParts(time);
   let jYear = 1400;
   let jMonth = 1;
@@ -38,7 +38,7 @@ export const getPersianDateString = (time: Date) => {
 
   const shahanshahiYear = jYear + 1180;
   const monthName = ZOROASTRIAN_MONTHS[jMonth - 1] || "نامشخص";
-  
+
   return `${toPersianDigits(jDay)} ${monthName} ${toPersianDigits(shahanshahiYear)}`;
 };
 

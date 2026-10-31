@@ -1,59 +1,50 @@
-import { getMqttClient, getMqttSettings } from "./client";
-import { initMqtt } from "./init";
+import { publishMqttCommand } from "./client";
+import {
+  MQTT_OPCODES,
+  PIN_COMMAND_BUFFER_SIZE,
+  DEFAULT_TIMER_DISABLED,
+  MAX_BATCH_ACTIONS,
+  BATCH_HEADER_SIZE,
+  BATCH_ACTION_SIZE,
+  PIN_STATE_HIGH,
+  PIN_STATE_LOW,
+} from "./protocol";
 
 export const publishPinCommand = (pinId: string, value: boolean, timer?: number) => {
-  let client = getMqttClient();
-  if (!client) {
-    initMqtt();
-    client = getMqttClient();
-  }
+  const buf = new Uint8Array(PIN_COMMAND_BUFFER_SIZE);
+  const view = new DataView(buf.buffer);
+  buf[0] = MQTT_OPCODES.TOGGLE_PIN;
+  buf[1] = (Number(pinId) | 0) & 0xff;
+  buf[2] = value ? PIN_STATE_HIGH : PIN_STATE_LOW;
+  view.setInt32(3, timer !== undefined ? timer : DEFAULT_TIMER_DISABLED, true);
 
-  if (client?.connected) {
-    const settings = getMqttSettings();
-    const commandTopic = `${settings.baseTopic}/Command`;
-    
-    const buf = new Uint8Array(7);
-    const view = new DataView(buf.buffer);
-    buf[0] = 0x01;
-    buf[1] = parseInt(pinId, 10) || 0;
-    buf[2] = value ? 0x01 : 0x00;
-    view.setInt32(3, timer !== undefined ? timer : -1, true);
-    
-    client.publish(commandTopic, buf as Buffer, { qos: settings.qos });
-    console.log(`[MQTT Binary] Published toggle command: pin=${buf[1]} state=${value} timer=${timer}`);
-  } else {
-    console.warn("[MQTT] Client not connected. Cannot publish.");
-  }
+  publishMqttCommand(buf, `Published toggle command: pin=${buf[1]} state=${value} timer=${timer}`);
 };
 
-export const publishBatchPinCommand = (actions: Array<{ pin: string; state: boolean; timer?: number }>) => {
-  let client = getMqttClient();
-  if (!client) {
-    initMqtt();
-    client = getMqttClient();
+export const publishBatchPinCommand = (
+  actions: Array<{ pin: string; state: boolean; timer?: number }>,
+) => {
+  const actionsLen = actions.length;
+  if (actionsLen === 0) return;
+
+  const count = Math.min(actionsLen, MAX_BATCH_ACTIONS);
+  const buf = new Uint8Array(BATCH_HEADER_SIZE + count * BATCH_ACTION_SIZE);
+  const view = new DataView(buf.buffer);
+  buf[0] = MQTT_OPCODES.BATCH_PINS;
+  buf[1] = count;
+
+  let offset = BATCH_HEADER_SIZE;
+  for (let i = 0; i < count; i++) {
+    const action = actions[i];
+    buf[offset] = (Number(action.pin) | 0) & 0xff;
+    buf[offset + 1] = action.state ? PIN_STATE_HIGH : PIN_STATE_LOW;
+    view.setInt32(
+      offset + 2,
+      action.timer !== undefined ? action.timer : DEFAULT_TIMER_DISABLED,
+      true,
+    );
+    offset += BATCH_ACTION_SIZE;
   }
 
-  if (client?.connected && actions.length > 0) {
-    const settings = getMqttSettings();
-    const commandTopic = `${settings.baseTopic}/Command`;
-    
-    const buf = new Uint8Array(2 + actions.length * 6);
-    const view = new DataView(buf.buffer);
-    buf[0] = 0x08;
-    buf[1] = Math.min(actions.length, 255);
-    
-    let offset = 2;
-    for (let i = 0; i < buf[1]; i++) {
-      const action = actions[i];
-      buf[offset] = parseInt(action.pin, 10) || 0;
-      buf[offset + 1] = action.state ? 0x01 : 0x00;
-      view.setInt32(offset + 2, action.timer !== undefined ? action.timer : -1, true);
-      offset += 6;
-    }
-    
-    client.publish(commandTopic, buf as Buffer, { qos: settings.qos });
-    console.log(`[MQTT Binary] Published batch toggle command with ${buf[1]} actions`);
-  } else if (!client?.connected) {
-    console.warn("[MQTT] Client not connected. Cannot publish batch.");
-  }
+  publishMqttCommand(buf, `Published batch toggle command with ${count} actions`);
 };

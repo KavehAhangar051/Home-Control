@@ -15,7 +15,8 @@ export const createGroupsSlice: StateCreator<IoTStoreState, [], [], GroupsSlice>
 
   setGroupConfigs: (groupConfigs) => {
     set((state) => {
-      const next = typeof groupConfigs === "function" ? groupConfigs(state.groupConfigs) : groupConfigs;
+      const next =
+        typeof groupConfigs === "function" ? groupConfigs(state.groupConfigs) : groupConfigs;
       return { groupConfigs: next };
     });
   },

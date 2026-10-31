@@ -6,7 +6,10 @@ interface HeaderSettingsContentProps {
   setHeaderTitle: (val: string) => void;
 }
 
-export default function HeaderSettingsContent({ headerTitle, setHeaderTitle }: HeaderSettingsContentProps) {
+export default function HeaderSettingsContent({
+  headerTitle,
+  setHeaderTitle,
+}: HeaderSettingsContentProps) {
   return (
     <div className="space-y-4 text-right font-sans">
       <TitleInput headerTitle={headerTitle} setHeaderTitle={setHeaderTitle} />

@@ -57,9 +57,16 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     setSegments([]);
     setGroupsOrder([]);
     setGroupConfigs({});
-    setSyncStatus(false, 0, "تنظیمات از سرور دریافت نشد؛ داشبورد با گروه‌ها و سگمنت‌های خالی آماده است.");
+    setSyncStatus(
+      false,
+      0,
+      "تنظیمات از سرور دریافت نشد؛ داشبورد با گروه‌ها و سگمنت‌های خالی آماده است.",
+    );
     setIsFullyReady(true);
-    debugLog.warn("ConfigSync", "Cloud configuration unavailable; initialized empty groups and segments.");
+    debugLog.warn(
+      "ConfigSync",
+      "Cloud configuration unavailable; initialized empty groups and segments.",
+    );
   }, [handleApplyEspConfig, setGroupConfigs, setGroupsOrder, setSegments, setSyncStatus]);
 
   const initCloudflareSync = useCallback(async () => {
@@ -75,7 +82,10 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     }
 
     if (!isCloudflareEnabled()) {
-      debugLog.warn("ConfigSync", "Cloudflare is disabled; no default configuration will be applied.");
+      debugLog.warn(
+        "ConfigSync",
+        "Cloudflare is disabled; no default configuration will be applied.",
+      );
       handleBypassSync();
       return;
     }
@@ -125,7 +135,11 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
 
       if (bypassedRef.current) return;
       if (attemptCount < maxAttempts) {
-        setSyncStatus(true, Math.min(10 + attemptCount * 15, 95), "دریافت تنظیمات ناموفق بود؛ تلاش مجدد...");
+        setSyncStatus(
+          true,
+          Math.min(10 + attemptCount * 15, 95),
+          "دریافت تنظیمات ناموفق بود؛ تلاش مجدد...",
+        );
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }

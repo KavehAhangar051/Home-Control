@@ -49,7 +49,7 @@ export function getUtilityStyles({ isDark, animationsEnabled }: UtilityStylesPar
     .text-accent4 { color: var(--accent4); }
     .bg-accent3 { background-color: var(--accent3); }
     .bg-accent4 { background-color: var(--accent4); }
-    .border-accent3 { border-color: var(--accent3)0; }
+    .border-accent3 { border-color: var(--accent3); }
     .border-accent4 { border-color: var(--accent4); }
     .border-accent3-medium { border-color: var(--accent3-medium); }
     .border-accent4-medium { border-color: var(--accent4-medium); }

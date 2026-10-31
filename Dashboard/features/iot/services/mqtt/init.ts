@@ -2,8 +2,9 @@ import mqtt from "mqtt";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { getMqttClient, setMqttClient, getMqttSettings, stateCallbacks } from "./client";
 
-// Queue for batched state updates
-const pendingStateUpdates = new Map<string, boolean>();
+// Queue for batched state updates with double-buffered map to avoid per-frame allocations
+let pendingStateUpdates = new Map<string, boolean>();
+let processingStateUpdates = new Map<string, boolean>();
 let updateRafId: number | null = null;
 
 // ESP32 online/offline detection از طریق LWT
@@ -19,24 +20,32 @@ const markEspStatus = (isOnline: boolean) => {
 const flushStateUpdates = () => {
   updateRafId = null;
   if (pendingStateUpdates.size === 0) return;
-  
-  const updatesToProcess = new Map(pendingStateUpdates);
+
+  // Swap buffers: zero allocation per frame
+  const temp = pendingStateUpdates;
+  pendingStateUpdates = processingStateUpdates;
+  processingStateUpdates = temp;
   pendingStateUpdates.clear();
-  
+
   // Batch update zustand store
   useIoTStore.getState().setPinsState((prev) => {
     const next = { ...prev };
-    updatesToProcess.forEach((state, pinId) => {
+    for (const [pinId, state] of processingStateUpdates) {
       next[pinId] = state;
-    });
+    }
     return next;
   });
 
-  stateCallbacks.forEach((cb) => {
-    updatesToProcess.forEach((state, pinId) => {
-      cb(pinId, state);
-    });
-  });
+  const cbLen = stateCallbacks.length;
+  if (cbLen > 0) {
+    for (const [pinId, state] of processingStateUpdates) {
+      for (let i = 0; i < cbLen; i++) {
+        stateCallbacks[i](pinId, state);
+      }
+    }
+  }
+
+  processingStateUpdates.clear();
 };
 
 const queueStateUpdate = (pinId: string, state: boolean) => {
@@ -65,12 +74,12 @@ export const initMqtt = () => {
       console.log(`[MQTT] Connected to ${settings.brokerUrl}!`);
       client?.subscribe(stateTopic);
       client?.subscribe(statusTopic);
-      
+
       queueMicrotask(() => {
         const isPageVisible = useIoTStore.getState().isPageVisible;
         const presenceBuf = new Uint8Array([0x04, isPageVisible ? 0x01 : 0x00]);
         client?.publish(commandTopic, presenceBuf as Buffer, { qos });
-        
+
         // Request full state from ESP32 RAM (Global SSOT)
         const syncBuf = new Uint8Array([0x09]);
         client?.publish(commandTopic, syncBuf as Buffer, { qos });
@@ -79,11 +88,14 @@ export const initMqtt = () => {
 
     client.on("message", (topic, payload) => {
       if (topic === statusTopic) {
-        try {
-          const strPayload = payload.toString().toLowerCase();
-          if (strPayload === "offline") {
-            markEspStatus(false);
-          } else {
+        if (payload.length === 0) return;
+        const strPayload = payload.toString().trim();
+        if (strPayload === "offline" || strPayload === "OFFLINE") {
+          markEspStatus(false);
+          return;
+        }
+        if (strPayload.charCodeAt(0) === 123) {
+          try {
             const data = JSON.parse(strPayload);
             if (data.status === "online") {
               markEspStatus(true);
@@ -93,26 +105,21 @@ export const initMqtt = () => {
             } else if (data.status === "offline") {
               markEspStatus(false);
             }
-          }
-        } catch (e) {
-          // Fallback if not JSON (e.g. LWT is plain text "offline")
-          if (payload.toString() === "offline") {
-            markEspStatus(false);
+          } catch (e) {
+            console.error("[MQTT] Failed to parse status JSON", e);
           }
         }
-      }
-      else if (topic === stateTopic) {
+      } else if (topic === stateTopic) {
         try {
           if (payload.length > 0) {
             const cmdType = payload[0];
-            
+
             if (cmdType === 0x06 && payload.length >= 3) {
               const pinNum = payload[1];
               const state = payload[2] === 0x01;
               console.log(`[MQTT] Received state update from ESP32: pin=${pinNum} state=${state}`);
               queueStateUpdate(pinNum.toString(), state);
-            }
-            else if (payload[0] === 123) {
+            } else if (payload[0] === 123) {
               const data = JSON.parse(payload.toString());
               if (data.type === "state_sync" && data.states) {
                 // Full state sync from ESP32
@@ -125,7 +132,9 @@ export const initMqtt = () => {
                   client?.publish(commandTopic, presenceBuf as Buffer, { qos });
                 });
               } else if (data.id !== undefined && data.value !== undefined) {
-                console.log(`[MQTT] Received JSON state update from ESP32: pin=${data.id} state=${data.value}`);
+                console.log(
+                  `[MQTT] Received JSON state update from ESP32: pin=${data.id} state=${data.value}`,
+                );
                 queueStateUpdate(data.id.toString(), data.value);
               }
             }

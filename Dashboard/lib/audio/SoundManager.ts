@@ -1,4 +1,5 @@
 import { AmbientManager } from "./AmbientManager";
+import type { Track } from "./types";
 import {
   playClickSynth,
   playToggleOnSynth,
@@ -11,12 +12,20 @@ export class SoundManager {
   private enabled = true;
   private ambientManager = new AmbientManager();
 
-  get isAmbientPlaying() { return this.ambientManager.isAmbientPlaying; }
-  get currentTrack() { return this.ambientManager.currentTrack; }
-  get playlist() { return this.ambientManager.playlist; }
-  get currentTrackIndex() { return this.ambientManager.currentTrackIndex; }
+  get isAmbientPlaying() {
+    return this.ambientManager.isAmbientPlaying;
+  }
+  get currentTrack() {
+    return this.ambientManager.currentTrack;
+  }
+  get playlist() {
+    return this.ambientManager.playlist;
+  }
+  get currentTrackIndex() {
+    return this.ambientManager.currentTrackIndex;
+  }
 
-  public setOnTrackUpdate(cb: (track: any) => void) {
+  public setOnTrackUpdate(cb: (track: Track) => void) {
     this.ambientManager.setOnTrackUpdate(cb);
   }
 

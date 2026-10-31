@@ -3,21 +3,18 @@ import { Plus, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { AnimatePresence } from "motion/react";
-import { WifiNetworkCard } from "./WifiNetworkCard";
+import { WifiNetworkEditCard, WifiNetworkViewCard } from "./WifiNetworkCard";
 
 export default function WifiSection() {
   const { wifiNetworks, setWifiNetworks } = useIoTStore();
-  
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempSsid, setTempSsid] = useState("");
   const [tempPassword, setTempPassword] = useState("");
 
   const handleAddNetwork = () => {
     const newId = `wifi_${Date.now()}`;
-    setWifiNetworks((prev) => [
-      ...prev,
-      { id: newId, ssid: "شبکه جدید", password: "" },
-    ]);
+    setWifiNetworks((prev) => [...prev, { id: newId, ssid: "شبکه جدید", password: "" }]);
     setEditingId(newId);
     setTempSsid("شبکه جدید");
     setTempPassword("");
@@ -32,11 +29,7 @@ export default function WifiSection() {
   const handleSaveNetwork = (id: string) => {
     if (!tempSsid.trim()) return;
     setWifiNetworks((prev) =>
-      prev.map((net) =>
-        net.id === id
-          ? { ...net, ssid: tempSsid, password: tempPassword }
-          : net
-      )
+      prev.map((net) => (net.id === id ? { ...net, ssid: tempSsid, password: tempPassword } : net)),
     );
     setEditingId(null);
   };
@@ -67,32 +60,46 @@ export default function WifiSection() {
           <Plus className="w-4 h-4" />
         </Button>
       </div>
-      
+
       <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed">
-        در این بخش می‌توانید اطلاعات شبکه‌های وای‌فای (SSID و رمز عبور) را برای تراشه ESP32 تعریف کنید. تراشه به هنگام راه‌اندازی به ترتیب به این شبکه‌ها متصل خواهد شد.
+        در این بخش می‌توانید اطلاعات شبکه‌های وای‌فای (SSID و رمز عبور) را برای تراشه ESP32 تعریف کنید.
+        تراشه به هنگام راه‌اندازی به ترتیب به این شبکه‌ها متصل خواهد شد.
       </p>
 
       <div className="space-y-4">
-        <AnimatePresence>
-          {wifiNetworks.map((net) => (
-            <WifiNetworkCard
-              key={net.id}
-              net={net}
-              isEditing={editingId === net.id}
-              tempSsid={tempSsid} setTempSsid={setTempSsid}
-              tempPassword={tempPassword} setTempPassword={setTempPassword}
-              onEditStart={() => handleEditNetwork(net.id, net.ssid, net.password)}
-              onDelete={() => handleRemoveNetwork(net.id)}
-              onSave={() => handleSaveNetwork(net.id)}
-              onCancel={() => setEditingId(null)}
-            />
-          ))}
+        <AnimatePresence initial={false}>
+          {wifiNetworks.map((net) =>
+            editingId === net.id ? (
+              <WifiNetworkEditCard
+                key={net.id}
+                tempSsid={tempSsid}
+                setTempSsid={setTempSsid}
+                tempPassword={tempPassword}
+                setTempPassword={setTempPassword}
+                onSave={() => handleSaveNetwork(net.id)}
+                onCancel={() => setEditingId(null)}
+              />
+            ) : (
+              <WifiNetworkViewCard
+                key={net.id}
+                net={net}
+                onEditStart={() => handleEditNetwork(net.id, net.ssid, net.password)}
+                onDelete={() => handleRemoveNetwork(net.id)}
+              />
+            ),
+          )}
         </AnimatePresence>
-        
+
         {wifiNetworks.length === 0 && (
-          <div className="text-center p-6 bg-[var(--card-bg-solid)] rounded-2xl border border-dashed border-[var(--border-color)]">
-            <Wifi className="w-8 h-8 mx-auto mb-2 text-[var(--text-secondary)] opacity-50" />
-            <p className="text-sm text-[var(--text-secondary)]">هیچ شبکه وای‌فای تعریف نشده است.</p>
+          <div className="text-center p-6 bg-[var(--card-bg-solid)] rounded-2xl border border-dashed border-[var(--border-color)] space-y-2">
+            <Wifi className="w-7 h-7 mx-auto text-[var(--text-secondary)] opacity-45" />
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              هنوز شبکه وای‌فای ثبت نشده است
+            </p>
+            <p className="text-xs text-[var(--text-secondary)] max-w-xs mx-auto leading-relaxed">
+              نام شبکه (SSID) و رمز عبور مودم را اضافه کنید تا برد ESP32 هنگام راه‌اندازی به آن متصل
+              شود.
+            </p>
           </div>
         )}
       </div>

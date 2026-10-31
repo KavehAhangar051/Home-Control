@@ -10,11 +10,20 @@ export type { IoTWorkspaceProps };
 
 export default function IoTWorkspace(props: IoTWorkspaceProps) {
   return (
-    <DndContext sensors={props.sensors} collisionDetection={optimizedCollisionDetection} autoScroll={{ layoutShiftCompensation: false }} onDragStart={props.handleDragStart} onDragOver={props.handleDragOver} onDragEnd={props.handleDragEnd}>
+    <DndContext
+      sensors={props.sensors}
+      collisionDetection={optimizedCollisionDetection}
+      autoScroll={{ layoutShiftCompensation: false }}
+      onDragStart={props.handleDragStart}
+      onDragOver={props.handleDragOver}
+      onDragEnd={props.handleDragEnd}
+    >
       <WorkspaceGrid {...props} />
       <WorkspaceDragOverlay {...props} />
       <TrashDropZone activeId={props.activeSegmentId || props.activeGroupId} />
-      {(props.activeSegmentId || props.activeGroupId) && <style>{"* { cursor: grabbing !important; }"}</style>}
+      {(props.activeSegmentId || props.activeGroupId) && (
+        <style>{"* { cursor: grabbing !important; }"}</style>
+      )}
     </DndContext>
   );
 }

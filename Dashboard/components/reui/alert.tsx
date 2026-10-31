@@ -9,7 +9,8 @@ const variants: Record<AlertVariant, string> = {
   info: "border-info/30 bg-info/4 [&>svg]:text-info",
   success: "border-success/30 bg-success/4 [&>svg]:text-success",
   warning: "border-warning/30 bg-warning/4 [&>svg]:text-warning",
-  invert: "border-invert bg-invert text-invert-foreground [&_[data-slot=alert-description]]:text-invert-foreground/70",
+  invert:
+    "border-invert bg-invert text-invert-foreground [&_[data-slot=alert-description]]:text-invert-foreground/70",
 };
 
 function Alert({
@@ -36,7 +37,10 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-title"
-      className={cn("cn-alert-title col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight", className)}
+      className={cn(
+        "cn-alert-title col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight",
+        className,
+      )}
       {...props}
     />
   );
@@ -46,7 +50,10 @@ function AlertDescription({ className, ...props }: React.ComponentProps<"div">) 
   return (
     <div
       data-slot="alert-description"
-      className={cn("cn-alert-description text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed", className)}
+      className={cn(
+        "cn-alert-description text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
+        className,
+      )}
       {...props}
     />
   );
@@ -56,7 +63,10 @@ function AlertAction({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-action"
-      className={cn("flex gap-1.5 max-sm:col-start-2 max-sm:mt-2 max-sm:justify-start sm:col-start-3 sm:row-start-1 sm:justify-end sm:self-center", className)}
+      className={cn(
+        "flex gap-1.5 max-sm:col-start-2 max-sm:mt-2 max-sm:justify-start sm:col-start-3 sm:row-start-1 sm:justify-end sm:self-center",
+        className,
+      )}
       {...props}
     />
   );

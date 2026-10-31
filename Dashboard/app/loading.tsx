@@ -14,13 +14,13 @@ export default function Loading() {
           <div className="w-5 h-5 bg-amber-500 rotate-45 animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.6)]" />
         </div>
 
-        {/* Loading text with ancient title */}
+        {/* Loading text */}
         <h3 className="text-sm font-sans font-black tracking-widest text-[#c5a880] uppercase">
-          سامانه هوشمند هخامنشی
+          سامانه کنترل هوشمند IoT
         </h3>
 
         <p className="text-[10px] text-gray-500 font-mono tracking-wider mt-2 animate-pulse uppercase">
-          Achaemenid IoT System Connecting...
+          Smart IoT System Connecting...
         </p>
 
         {/* Stylized step indicators */}
