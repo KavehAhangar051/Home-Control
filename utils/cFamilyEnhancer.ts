@@ -119,3 +119,26 @@ export function enhanceHighlightedHtml(html: string, language: string): string {
 
   return parts.join('');
 }
+
+const CONTROL_FLOW_KEYWORD_REGEX =
+  /<span class="hljs-keyword">(import|from|export|default|return|if|else|elif|for|while|do|switch|case|break|continue|try|catch|finally|throw|raise|await|async|yield|with|as|pass|match|goto|defer|package)<\/span>/g;
+
+/**
+ * Upgrades control-flow keywords (`import`, `from`, `export`, `return`, `if`, `for`, `await`, etc.)
+ * from generic `.hljs-keyword` to `.hljs-keyword hljs-keyword-control` so VSCode Dark+ (`#c586c0`)
+ * and VSCode Light+ (`#af00db`) distinguish control flow from storage keywords (`const`, `function`, `def`, `int`).
+ * Does not allocate any extra `<span>` elements.
+ *
+ * @param {string} html - Highlighted HTML string.
+ * @returns {string} HTML string with control-flow keyword modifier classes.
+ */
+export function enhanceControlKeywords(html: string): string {
+  if (!html || !html.includes('hljs-keyword')) {
+    return html;
+  }
+
+  return html.replace(
+    CONTROL_FLOW_KEYWORD_REGEX,
+    '<span class="hljs-keyword hljs-keyword-control">$1</span>'
+  );
+}

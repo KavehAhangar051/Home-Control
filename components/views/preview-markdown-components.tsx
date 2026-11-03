@@ -43,7 +43,7 @@ const markdownComponents: Components = {
 
     if (cls === 'katex') {
       return (
-        <span className={`${cls} katex-inline-wrapper`} dir="ltr" {...props}>
+        <span className={cls} dir="ltr" {...props}>
           {children}
         </span>
       );

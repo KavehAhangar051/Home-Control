@@ -4,16 +4,17 @@
  */
 
 /**
- * Transforms standard Markdown text into an RTL-aligned Markdown structure.
- * 
- * @param markdown - Raw Markdown string input.
- * @returns Transformed RTL Markdown string.
+ * Transforms standard Markdown text into an RTL-aligned Markdown structure
+ * and normalizes ChatGPT/Claude/Gemini math delimiters (`$$...$$`, `\[...\]`, `\(...\)`)
+ * outside code blocks so `remark-math` renders both display and inline math accurately.
+ *
+ * @param {string} markdown - Raw Markdown string input.
+ * @returns {string} Transformed RTL Markdown string.
  */
 export function convertToRtlMarkdown(markdown: string): string {
   if (!markdown) return '';
 
-  // Ensure table columns are right-aligned if they lack explicit alignment
-  return alignMarkdownTablesRtl(markdown);
+  return transformMarkdownOutsideCodeFences(markdown);
 }
 
 /**
@@ -24,6 +25,11 @@ export const CODE_FENCE_REGEX = /^\s*(`{3,}|~{3,})/;
 
 const CLOSING_CODE_FENCE_REGEX = /^\s*(`{3,}|~{3,})\s*$/;
 const MATH_BLOCK_REGEX = /^\s*\$\$/;
+const SINGLE_LINE_DISPLAY_MATH_REGEX = /^(\s*(?:>\s*)*)\$\$\s*(.+?)\s*\$\$\s*$/;
+const SINGLE_LINE_BRACKET_MATH_REGEX = /^(\s*(?:>\s*)*)\\\[\s*(.+?)\s*\\\]\s*$/;
+const OPEN_BRACKET_MATH_REGEX = /^(\s*(?:>\s*)*)\\\[\s*$/;
+const CLOSE_BRACKET_MATH_REGEX = /^(\s*(?:>\s*)*)\\\]\s*$/;
+const INLINE_PAREN_MATH_REGEX = /(`+[^`]*`+)|\\\((.+?)\\\)/g;
 const TABLE_DIVIDER_REGEX = /^\s*(?:\|(?:\s*:?-+:?\s*\|)+|:?-+:?\s*\|(?:\s*:?-+:?\s*\|?)+)\s*$/;
 const ALIGN_REPLACE_REGEX = /:?-+:?/g;
 
@@ -64,15 +70,21 @@ export function updateCodeFenceState(
 }
 
 /**
- * Ensures Markdown tables align text to the right by modifying header separator rows.
- * Fenced code blocks and math blocks are preserved intact without modifying their inner content.
- * 
+ * Single-pass line scanner that:
+ * 1. Aligns GFM table separator rows to RTL (`---:`).
+ * 2. Expands standalone single-line `$$ formula $$` and `\[ formula \]` into multi-line
+ *    `$$\nformula\n$$` so `remark-math` v6 renders them as true `.katex-display` blocks.
+ * 3. Converts ChatGPT/Claude `\[ ... \]` and `\( ... \)` delimiters into standard `$` / `$$`
+ *    while leaving fenced code blocks and inline code spans untouched.
+ *
  * @param {string} md - Raw markdown text.
- * @returns {string} Processed markdown text with RTL-aligned tables.
+ * @returns {string} Processed markdown text.
  */
-function alignMarkdownTablesRtl(md: string): string {
-  // Quick character guard: skip line splitting if text contains no table delimiters
-  if (!md.includes('|') || !md.includes('-')) {
+function transformMarkdownOutsideCodeFences(md: string): string {
+  const hasTableCandidate = md.includes('|') && md.includes('-');
+  const hasMathCandidate = md.includes('$$') || md.includes('\\[') || md.includes('\\(');
+
+  if (!hasTableCandidate && !hasMathCandidate) {
     return md;
   }
 
@@ -83,9 +95,9 @@ function alignMarkdownTablesRtl(md: string): string {
   let hasModified = false;
 
   for (let i = 0; i < lineCount; i++) {
-    const line = lines[i];
+    let line = lines[i];
 
-    // Check if opening or closing fenced code blocks (``` or ~~~)
+    // 1. Preserve fenced code blocks (``` or ~~~) intact
     const fenceState = updateCodeFenceState(line, activeFence);
     activeFence = fenceState.activeFence;
 
@@ -93,24 +105,79 @@ function alignMarkdownTablesRtl(md: string): string {
       continue;
     }
 
-    // Check if toggling math block ($$)
+    // 2. Expand standalone single-line `$$ formula $$` into multi-line `$$\nformula\n$$`
+    if (!inMathBlock && line.includes('$$')) {
+      const singleDollarMatch = SINGLE_LINE_DISPLAY_MATH_REGEX.exec(line);
+
+      if (singleDollarMatch) {
+        const prefix = singleDollarMatch[1];
+        const formula = singleDollarMatch[2];
+        lines[i] = `${prefix}$$\n${prefix}${formula}\n${prefix}$$`;
+        hasModified = true;
+        continue;
+      }
+    }
+
+    // 3. Expand standalone single-line `\[ formula \]` (ChatGPT/Claude style)
+    if (!inMathBlock && line.includes('\\[')) {
+      const singleBracketMatch = SINGLE_LINE_BRACKET_MATH_REGEX.exec(line);
+
+      if (singleBracketMatch) {
+        const prefix = singleBracketMatch[1];
+        const formula = singleBracketMatch[2];
+        lines[i] = `${prefix}$$\n${prefix}${formula}\n${prefix}$$`;
+        hasModified = true;
+        continue;
+      }
+
+      if (OPEN_BRACKET_MATH_REGEX.test(line)) {
+        lines[i] = line.replace('\\[', '$$');
+        inMathBlock = true;
+        hasModified = true;
+        continue;
+      }
+    }
+
+    if (inMathBlock && line.includes('\\]') && CLOSE_BRACKET_MATH_REGEX.test(line)) {
+      lines[i] = line.replace('\\]', '$$');
+      inMathBlock = false;
+      hasModified = true;
+      continue;
+    }
+
+    // 4. Track multi-line `$$` blocks
     if (MATH_BLOCK_REGEX.test(line) && (line.split('$$').length - 1) % 2 !== 0) {
       inMathBlock = !inMathBlock;
       continue;
     }
 
-    // Never modify lines inside math blocks
     if (inMathBlock) {
       continue;
     }
 
-    // Check if line is a table header divider only when both '|' and '-' are present
-    if (line.includes('|') && line.includes('-') && TABLE_DIVIDER_REGEX.test(line)) {
-      lines[i] = line.replace(ALIGN_REPLACE_REGEX, '---:'); // Force right-alignment for all columns
+    // 5. Convert inline `\( ... \)` to `$...$` outside inline backtick spans
+    if (line.includes('\\(') && line.includes('\\)')) {
+      const replaced = line.replace(
+        INLINE_PAREN_MATH_REGEX,
+        (match, codeSpan: string | undefined, formula: string | undefined) => {
+          if (codeSpan !== undefined) return codeSpan;
+          return `$${(formula ?? '').trim()}$`;
+        }
+      );
+
+      if (replaced !== line) {
+        line = replaced;
+        lines[i] = line;
+        hasModified = true;
+      }
+    }
+
+    // 6. Force right-alignment on GFM table divider rows
+    if (hasTableCandidate && line.includes('|') && line.includes('-') && TABLE_DIVIDER_REGEX.test(line)) {
+      lines[i] = line.replace(ALIGN_REPLACE_REGEX, '---:');
       hasModified = true;
     }
   }
 
-  // If no table dividers were altered, return original string directly avoiding rejoining
   return hasModified ? lines.join('\n') : md;
 }

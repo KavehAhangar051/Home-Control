@@ -7,8 +7,13 @@
 
 import assert from 'node:assert/strict';
 import { createBoundedCache } from '../utils/lruCache';
-import { isDigitCode, isPersianChar, hasPersianText } from '../utils/persianizer';
-import { segmentTextByScript, segmentHtmlByLanguage, segmentMixedTextToReact } from '../utils/typographySegmenter';
+import { isDigitCode, isPersianChar, hasPersianText, normalizeDigitsToAscii } from '../utils/persianizer';
+import {
+  FONT_MONO_STYLE,
+  segmentTextByScript,
+  segmentHtmlByLanguage,
+  segmentMixedTextToReact,
+} from '../utils/typographySegmenter';
 import { convertToRtlMarkdown, CODE_FENCE_REGEX, updateCodeFenceState } from '../utils/rtlConverter';
 import { calculateDocumentStats, EMPTY_DOCUMENT_STATS } from '../utils/statsCalculator';
 import { validateMarkdownUploadFile, processUploadedMarkdownFile } from '../utils/fileHelpers';
@@ -66,19 +71,24 @@ function verifyBoundedLruCacheContracts(): void {
 }
 
 function verifyPersianAndDigitDryContracts(): void {
+  // Font contract: Latin/digit tokens must prioritize Kode Mono per DESIGN.md
+  assert.equal(FONT_MONO_STYLE.startsWith("'Kode Mono'"), true);
+
   // Digits (ASCII, Arabic, Persian) must be classified as digits and NEVER as Persian text letters
   assert.equal(isDigitCode('5'.charCodeAt(0)), true);
   assert.equal(isDigitCode('۵'.charCodeAt(0)), true);
   assert.equal(isDigitCode('٥'.charCodeAt(0)), true);
+  assert.equal(normalizeDigitsToAscii('۰۱۲۳۴۵۶۷۸۹ ٠١٢٣٤٥٦٧٨٩'), '0123456789 0123456789');
 
   assert.equal(isPersianChar('۵'), false);
   assert.equal(hasPersianText('12345 ۰۱۲۳۴۵'), false);
   assert.equal(hasPersianText('سلام 123'), true);
 
-  const segments = segmentTextByScript('نسخه 2.0 پایدار');
+  const segments = segmentTextByScript('نسخه ۲.۰ پایدار');
   assert.equal(segments.length, 3);
   assert.equal(segments[0].script, 'persian');
   assert.equal(segments[1].script, 'latin');
+  assert.equal(segments[1].text, '2.0 ');
   assert.equal(segments[2].script, 'persian');
 
   // Pure Persian prose inside a Persian container must return the raw string without allocating span wrappers
@@ -164,6 +174,24 @@ function verifyRtlMarkdownAndEngineContracts(): void {
   assert.equal(nestedDoc.rtlMarkdown.includes('| --- | --- |'), true);
   assert.equal(nestedDoc.rtlMarkdown.includes('\n--- |\n'), true);
   assert.equal(nestedDoc.rtlMarkdown.includes('---: | ---:'), true);
+
+  // ChatGPT / Claude / Gemini math delimiter normalization contracts
+  const mathMd = [
+    'فرمول درون‌خطی \\( E = mc^2 \\) و کد `\\( not math \\)` در یک خط.',
+    '$$ \\int_0^1 x^2 dx = \\frac{1}{3} $$',
+    '\\[ \\sum_{k=1}^n k = \\frac{n(n+1)}{2} \\]',
+    '```tex',
+    '\\[ untouched inside code fence \\]',
+    '$$ untouched single line $$',
+    '```',
+  ].join('\n');
+
+  const mathConverted = convertToRtlMarkdown(mathMd);
+  assert.equal(mathConverted.includes('فرمول درون‌خطی $E = mc^2$ و کد `\\( not math \\)`'), true);
+  assert.equal(mathConverted.includes('$$\n\\int_0^1 x^2 dx = \\frac{1}{3}\n$$'), true);
+  assert.equal(mathConverted.includes('$$\n\\sum_{k=1}^n k = \\frac{n(n+1)}{2}\n$$'), true);
+  assert.equal(mathConverted.includes('\\[ untouched inside code fence \\]'), true);
+  assert.equal(mathConverted.includes('$$ untouched single line $$'), true);
 }
 
 function verifyStatsAndSyncScrollContracts(): void {

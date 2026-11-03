@@ -35,7 +35,7 @@ import makefile from 'highlight.js/lib/languages/makefile';
 import { segmentHtmlByLanguage } from '@/utils/typographySegmenter';
 import { hasPersianText } from '@/utils/persianizer';
 import { createBoundedCache, CacheTelemetryStats } from '@/utils/lruCache';
-import { enhanceHighlightedHtml } from '@/utils/cFamilyEnhancer';
+import { enhanceHighlightedHtml, enhanceControlKeywords } from '@/utils/cFamilyEnhancer';
 
 // Register core and popular languages on startup
 const REGISTERED_LANGUAGES = [
@@ -214,7 +214,7 @@ export function highlightCode(code: string, language?: string): HighlightResult 
   }
 
   // Enhance C-family & systems languages with VSCode-level semantic tokens
-  const enhancedHtml = enhanceHighlightedHtml(rawHtml, resolvedLang);
+  const enhancedHtml = enhanceControlKeywords(enhanceHighlightedHtml(rawHtml, resolvedLang));
 
   // Plain-text blocks containing Persian characters render RTL; code blocks always render LTR
   const dir: 'ltr' | 'rtl' =

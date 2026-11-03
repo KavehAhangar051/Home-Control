@@ -4,17 +4,27 @@
  */
 
 import React from 'react';
-import { isPersianCharCode, isDigitCode, hasPersianText } from '@/utils/persianizer';
+import {
+  isPersianCharCode,
+  isDigitCode,
+  hasPersianText,
+  hasNonAsciiDigit,
+  normalizeDigitsToAscii,
+} from '@/utils/persianizer';
 
 /** CSS font-family string for Persian typography (Dana with Vazirmatn fallback) */
 export const FONT_VAZIR_STYLE = "'Dana', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
-/** CSS font-family string for Latin Kode Mono */
+/** CSS font-family string for Latin & numeric typography (Kode Mono per DESIGN.md) */
 export const FONT_MONO_STYLE = "'Kode Mono', monospace";
 
 /** Shared frozen style objects to eliminate per-span object allocations during React rendering */
 const PERSIAN_SPAN_STYLE = { fontFamily: FONT_VAZIR_STYLE } as const;
-const LATIN_SPAN_STYLE = { fontFamily: FONT_MONO_STYLE } as const;
+const LATIN_SPAN_STYLE = {
+  fontFamily: FONT_MONO_STYLE,
+  direction: 'ltr',
+  unicodeBidi: 'isolate',
+} as const;
 
 /** Script category classification */
 export type ScriptType = 'persian' | 'latin';
@@ -60,9 +70,20 @@ function findFirstScriptInText(text: string, startIndex: number): ScriptType | n
 }
 
 /**
+ * Creates a ScriptSegment, normalizing any Persian/Arabic digits to ASCII 0-9 when script is 'latin'
+ * so that Kode Mono renders its native numeric glyphs instead of falling back to system fonts.
+ */
+function buildSegment(rawSlice: string, script: ScriptType): ScriptSegment {
+  return {
+    text: script === 'latin' ? normalizeDigitsToAscii(rawSlice) : rawSlice,
+    script,
+  };
+}
+
+/**
  * Segments an input string into consecutive runs of Persian vs Latin text chunks.
  * Uses range-based slicing instead of per-character string concatenation to minimize GC pressure.
- * Digits are routed to the Latin/Kode Mono font stack per typography specifications.
+ * Digits are routed to the Latin/Kode Mono font stack and normalized to ASCII 0-9 per typography specifications.
  *
  * @param {string} text - Raw string to analyze.
  * @param {ScriptType} [defaultScript='persian'] - Fallback script when context has no letters.
@@ -82,7 +103,7 @@ export function segmentTextByScript(text: string, defaultScript: ScriptType = 'p
     if (isDigitCode(code)) {
       if (currentScript !== 'latin') {
         if (i > segmentStart) {
-          segments.push({ text: text.slice(segmentStart, i), script: currentScript ?? 'persian' });
+          segments.push(buildSegment(text.slice(segmentStart, i), currentScript ?? 'persian'));
         }
 
         currentScript = 'latin';
@@ -91,7 +112,7 @@ export function segmentTextByScript(text: string, defaultScript: ScriptType = 'p
     } else if (isPersianCharCode(code)) {
       if (currentScript !== 'persian') {
         if (i > segmentStart) {
-          segments.push({ text: text.slice(segmentStart, i), script: currentScript ?? 'latin' });
+          segments.push(buildSegment(text.slice(segmentStart, i), currentScript ?? 'latin'));
         }
 
         currentScript = 'persian';
@@ -100,7 +121,7 @@ export function segmentTextByScript(text: string, defaultScript: ScriptType = 'p
     } else if (isLatinLetterCode(code)) {
       if (currentScript !== 'latin') {
         if (i > segmentStart) {
-          segments.push({ text: text.slice(segmentStart, i), script: currentScript ?? 'persian' });
+          segments.push(buildSegment(text.slice(segmentStart, i), currentScript ?? 'persian'));
         }
 
         currentScript = 'latin';
@@ -115,10 +136,9 @@ export function segmentTextByScript(text: string, defaultScript: ScriptType = 'p
   }
 
   if (segmentStart < len && currentScript) {
-    segments.push({
-      text: segmentStart === 0 ? text : text.slice(segmentStart),
-      script: currentScript,
-    });
+    segments.push(
+      buildSegment(segmentStart === 0 ? text : text.slice(segmentStart), currentScript)
+    );
   }
 
   return segments;
@@ -130,7 +150,7 @@ const HTML_TOKEN_REGEX = /(<[^>]+>|&(?:[a-zA-Z0-9]+|#\d+|#x[0-9a-fA-F]+);|[^<>&]
 /**
  * Transforms an HTML string (such as highlight.js output) by wrapping text runs in font-specific spans.
  * Preserves all HTML tags, attributes, and entities.
- * Includes a fast-path bypass when no Persian text exists, preventing thousands of redundant DOM nodes.
+ * Includes a fast-path bypass when no Persian text or non-ASCII digits exist, preventing redundant DOM nodes.
  *
  * @param {string} html - Raw HTML markup to segment.
  * @returns {string} HTML markup with character-analyzed font spans.
@@ -138,8 +158,8 @@ const HTML_TOKEN_REGEX = /(<[^>]+>|&(?:[a-zA-Z0-9]+|#\d+|#x[0-9a-fA-F]+);|[^<>&]
 export function segmentHtmlByLanguage(html: string): string {
   if (!html) return '';
 
-  // Fast-path: If the highlighted HTML contains no Persian characters, return as-is.
-  if (!hasPersianText(html)) {
+  // Fast-path: If the highlighted HTML contains no Persian characters and no Persian/Arabic digits, return as-is.
+  if (!hasPersianText(html) && !hasNonAsciiDigit(html)) {
     return html;
   }
 
@@ -162,9 +182,9 @@ export function segmentHtmlByLanguage(html: string): string {
       continue;
     }
 
-    // Fast-path per token: if this text node has no Persian characters, it already inherits Kode Mono from .hljs / pre / code
+    // Fast-path per token: if this text node has no Persian characters, normalize any Persian digits and inherit Kode Mono
     if (!hasPersianText(token)) {
-      output += token;
+      output += normalizeDigitsToAscii(token);
       continue;
     }
 
@@ -176,9 +196,9 @@ export function segmentHtmlByLanguage(html: string): string {
       const segment = segments[s];
 
       if (segment.script === 'persian') {
-        output += `<span class="font-vazir font-persian-token" style="font-family: ${FONT_VAZIR_STYLE};">${segment.text}</span>`;
+        output += `<span class="font-vazir font-persian-token" dir="rtl" style="font-family: ${FONT_VAZIR_STYLE}; unicode-bidi: isolate;">${segment.text}</span>`;
       } else {
-        output += `<span class="font-mono font-latin-token" style="font-family: ${FONT_MONO_STYLE};">${segment.text}</span>`;
+        output += `<span class="font-mono font-latin-token" dir="ltr" style="font-family: ${FONT_MONO_STYLE}; unicode-bidi: isolate;">${segment.text}</span>`;
       }
     }
   }
@@ -228,7 +248,7 @@ export function segmentMixedTextToReact(
 
   // Fast-path: pure Latin/neutral text inside a Latin container needs zero span wrappers
   if (defaultScript === 'latin' && !hasPersianText(text)) {
-    return text;
+    return normalizeDigitsToAscii(text);
   }
 
   const segments = segmentTextByScript(text, defaultScript);
@@ -236,7 +256,7 @@ export function segmentMixedTextToReact(
   if (segments.length === 0) return text;
 
   if (segments.length === 1 && segments[0].script === defaultScript) {
-    return text;
+    return segments[0].text;
   }
 
   if (segments.length === 1) {
@@ -249,7 +269,7 @@ export function segmentMixedTextToReact(
         className: isPersian ? 'font-vazir font-persian-token' : 'font-mono font-latin-token',
         style: isPersian ? PERSIAN_SPAN_STYLE : LATIN_SPAN_STYLE,
       },
-      text
+      segments[0].text
     );
   }
 
@@ -319,18 +339,28 @@ export function renderHybridChildren(
     const element = children as React.ReactElement<{
       children?: React.ReactNode;
       className?: string;
+      node?: { tagName?: string };
     }>;
 
-    // Preserve KaTeX math trees and MathML nodes untouched so KaTeX fonts and metrics are never overridden
+    // Preserve KaTeX math trees, MathML nodes, and CodeBlock/Pre elements untouched
+    // so CodeBlock receives raw string children and KaTeX keeps its internal font metrics.
     const cls = element.props?.className ?? '';
     const tagType = String(element.type);
+    const nodeTag = element.props?.node?.tagName ?? '';
+    const elemDisplayName = (element.type as { displayName?: string })?.displayName ?? '';
 
     if (
       cls.includes('katex') ||
       cls.includes('math') ||
+      cls.includes('language-') ||
       tagType === 'math' ||
       tagType === 'semantics' ||
-      tagType === 'annotation'
+      tagType === 'annotation' ||
+      tagType === 'code' ||
+      tagType === 'pre' ||
+      nodeTag === 'code' ||
+      nodeTag === 'pre' ||
+      elemDisplayName === 'CodeBlock'
     ) {
       return children;
     }

@@ -99,13 +99,11 @@ export const MathDisplayBlock = React.memo(function MathDisplayBlock({
   return (
     <span
       dir="ltr"
-      className={`group/math relative my-4 block w-full rounded-xl border px-4 py-3.5 transition-colors select-text ${
-        isDark
-          ? 'bg-zinc-900/55 border-zinc-800/80 hover:border-zinc-700/80 shadow-inner shadow-black/40'
-          : 'bg-zinc-50/90 border-zinc-200/90 hover:border-zinc-300 shadow-xs'
+      className={`group/math relative my-5 block w-full rounded-lg px-3 py-2.5 transition-colors duration-150 select-text ${
+        isDark ? 'hover:bg-white/[0.025]' : 'hover:bg-black/[0.025]'
       }`}
     >
-      {/* Floating Copy LaTeX Button (ChatGPT / Gemini style) */}
+      {/* Subtle Hover Copy LaTeX Button (Gemini / Claude / ChatGPT style) */}
       <m.button
         type="button"
         onClick={handleCopyLatex}
@@ -113,16 +111,14 @@ export const MathDisplayBlock = React.memo(function MathDisplayBlock({
         transition={SPRING_PRESS}
         title={copyTitle}
         aria-label={copyTitle}
-        className={`absolute top-2 right-2 z-10 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg border text-[11px] transition-[opacity,color,background-color,border-color] duration-150 cursor-pointer opacity-80 sm:opacity-0 sm:group-hover/math:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
-          isDark ? 'focus-visible:ring-offset-zinc-950' : 'focus-visible:ring-offset-white'
-        } ${
+        className={`absolute top-1.5 right-1.5 z-10 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 sm:w-7 sm:h-7 flex items-center justify-center rounded-md border text-[11px] transition-[opacity,color,background-color,border-color] duration-150 cursor-pointer opacity-0 group-hover/math:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
           copied
             ? isDark
-              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 opacity-100 sm:opacity-100'
-              : 'bg-emerald-50 text-emerald-600 border-emerald-300 opacity-100 sm:opacity-100'
+              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 opacity-100'
+              : 'bg-emerald-50 text-emerald-600 border-emerald-300 opacity-100'
             : isDark
-            ? 'bg-zinc-800/90 text-zinc-400 border-zinc-700/80 hover:text-zinc-100 hover:bg-zinc-700'
-            : 'bg-white/90 text-zinc-600 border-zinc-300 hover:text-zinc-950 hover:bg-zinc-100 shadow-xs'
+            ? 'bg-zinc-900/90 text-zinc-400 border-zinc-800 hover:text-zinc-100 hover:bg-zinc-800'
+            : 'bg-white/95 text-zinc-500 border-zinc-200/90 hover:text-zinc-900 hover:bg-zinc-100 shadow-2xs'
         }`}
       >
         <ActionSwapIcon
@@ -138,8 +134,8 @@ export const MathDisplayBlock = React.memo(function MathDisplayBlock({
         </ActionSwapIcon>
       </m.button>
 
-      {/* Scrollable LTR Equation Viewport */}
-      <span className="block w-full overflow-x-auto overflow-y-hidden py-1 text-center editor-scrollbar">
+      {/* Scrollable Centered LTR Equation Viewport */}
+      <span className="block w-full overflow-x-auto overflow-y-hidden py-1 text-center">
         <span className={className} dir="ltr">
           {children}
         </span>

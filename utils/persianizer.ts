@@ -54,6 +54,59 @@ export function isPersianChar(char: string): boolean {
 }
 
 /**
+ * Fast check whether a string contains any non-ASCII Persian (۰-۹) or Arabic (٠-٩) digits.
+ *
+ * @param {string} text - Input string to check.
+ * @returns {boolean} True if text contains at least one Persian or Arabic-Indic digit.
+ */
+export function hasNonAsciiDigit(text: string): boolean {
+  if (!text) return false;
+
+  const len = text.length;
+
+  for (let i = 0; i < len; i++) {
+    const code = text.charCodeAt(i);
+
+    if ((code >= 0x0660 && code <= 0x0669) || (code >= 0x06f0 && code <= 0x06f9)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Converts Persian (۰-۹) and Arabic-Indic (٠-٩) digits in a string to ASCII digits (0-9)
+ * so that Latin monospace fonts like Kode Mono can render their native numeric glyphs
+ * instead of falling back to system monospace fonts.
+ *
+ * @param {string} text - Input string potentially containing Persian/Arabic digits.
+ * @returns {string} String with all digits normalized to ASCII 0-9.
+ */
+export function normalizeDigitsToAscii(text: string): string {
+  if (!hasNonAsciiDigit(text)) {
+    return text;
+  }
+
+  const len = text.length;
+  let out = '';
+
+  for (let i = 0; i < len; i++) {
+    const code = text.charCodeAt(i);
+
+    if (code >= 0x06f0 && code <= 0x06f9) {
+      out += String.fromCharCode(code - 0x06f0 + 0x0030);
+    } else if (code >= 0x0660 && code <= 0x0669) {
+      out += String.fromCharCode(code - 0x0660 + 0x0030);
+    } else {
+      out += text[i];
+    }
+  }
+
+  return out;
+}
+
+/**
  * Checks if a string contains any Persian/Arabic characters using the authoritative charCode rule.
  * @param text - Input string to check.
  * @returns True if text contains any non-digit Persian/Arabic glyphs.
@@ -71,4 +124,5 @@ export function hasPersianText(text: string): boolean {
 
   return false;
 }
+
 

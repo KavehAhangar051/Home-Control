@@ -8,7 +8,7 @@
 import React, { useCallback, useMemo, useContext } from 'react';
 import { useStudioUI } from '@/store/MarkdownContext';
 import { highlightCode } from '@/utils/syntaxHighlighter';
-import { hasPersianText } from '@/utils/persianizer';
+import { hasPersianText, normalizeDigitsToAscii } from '@/utils/persianizer';
 import { CodeBlockHeader } from '@/components/ui/code-block-header';
 import { useClipboard } from '@/hooks/useClipboard';
 import { CLIPBOARD_RESET_DURATION_MS } from '@/constants/domain';
@@ -30,7 +30,7 @@ interface CodeBlockProps extends React.HTMLAttributes<HTMLElement> {
   children?: React.ReactNode;
 }
 
-/** Hybrid code font stack guaranteeing Kode Mono for Latin & Dana / Vazirmatn for Persian characters */
+/** Hybrid font stack guaranteeing Kode Mono for Latin/digits & Dana / Vazirmatn for Persian characters */
 const HYBRID_CODE_FONT =
   "'Kode Mono', 'Dana', 'Vazirmatn', var(--font-vazir-local), monospace";
 
@@ -43,24 +43,43 @@ function extractLanguageFromClassName(className?: string): string {
   return match ? match[1] : '';
 }
 
+/**
+ * Recursively extracts plain text from React children in case upstream plugins wrap text nodes.
+ */
+function extractPlainText(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === 'boolean') return '';
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(extractPlainText).join('');
+  if (React.isValidElement(node)) {
+    const elem = node as React.ReactElement<{ children?: React.ReactNode }>;
+    return extractPlainText(elem.props?.children);
+  }
+  return '';
+}
+
 function InlineCodePill({
   isDark,
   containsPersian,
+  rawText,
   className,
-  children,
   style,
   ...props
-}: CodeBlockProps & { isDark: boolean; containsPersian: boolean }): React.JSX.Element {
+}: CodeBlockProps & {
+  isDark: boolean;
+  containsPersian: boolean;
+  rawText: string;
+}): React.JSX.Element {
   const themeClass = isDark
-    ? 'bg-zinc-800/90 text-emerald-400 border-zinc-700/70'
-    : 'bg-emerald-50 text-emerald-800 border-emerald-200/80';
+    ? 'bg-zinc-900/90 text-zinc-200 border-zinc-800/90'
+    : 'bg-zinc-100/90 text-zinc-800 border-zinc-200/90';
 
-  const inlineClass = `text-[0.875em] px-1.5 py-0.5 rounded-md border font-normal transition-colors inline align-baseline ${themeClass} ${className || ''}`.trim();
+  const inlineClass = `text-[0.86em] px-1.5 py-0.5 mx-0.5 rounded-md border font-normal tracking-normal transition-colors inline align-baseline ${themeClass} ${className || ''}`.trim();
 
   return (
     <code
       className={inlineClass}
-      dir="auto"
+      dir={containsPersian ? 'rtl' : 'ltr'}
       style={{
         fontFamily: HYBRID_CODE_FONT,
         unicodeBidi: 'isolate',
@@ -68,16 +87,17 @@ function InlineCodePill({
       }}
       {...props}
     >
-      {containsPersian ? renderHybridChildren(children, 'persian') : children}
+      {containsPersian ? renderHybridChildren(rawText, 'persian') : normalizeDigitsToAscii(rawText)}
     </code>
   );
 }
 
 /**
- * Code Block Component with full syntax highlighting support for markdown previews.
+ * VSCode-grade Code Block Component with line numbers gutter, semantic syntax highlighting,
+ * and BiDi-safe hybrid typography for markdown previews.
  *
  * @param {CodeBlockProps} props - Code component properties.
- * @returns {React.JSX.Element} Rendered syntax-highlighted code block or inline code pill.
+ * @returns {React.JSX.Element} Rendered VSCode code block or inline code token.
  */
 export const CodeBlock = React.memo(function CodeBlock({
   inline,
@@ -91,7 +111,10 @@ export const CodeBlock = React.memo(function CodeBlock({
   const isInsidePre = useContext(PreContext);
 
   const specifiedLang = extractLanguageFromClassName(className);
-  const rawCode = String(children ?? '').replace(TRAILING_NEWLINE_REGEX, '');
+  const rawCode = useMemo(
+    () => extractPlainText(children).replace(TRAILING_NEWLINE_REGEX, ''),
+    [children]
+  );
   const isInlineCode = inline ?? (!isInsidePre && !specifiedLang && !rawCode.includes('\n'));
   const containsPersian = useMemo(
     () => (isInlineCode ? hasPersianText(rawCode) : false),
@@ -100,10 +123,16 @@ export const CodeBlock = React.memo(function CodeBlock({
 
   const highlighted = useMemo(() => {
     if (isInlineCode || !rawCode) {
-      return { html: '', language: specifiedLang || 'text', dir: 'ltr' as const };
+      return { html: '', language: specifiedLang || 'text', dir: 'ltr' as const, lineCount: 1 };
     }
 
-    return highlightCode(rawCode, specifiedLang);
+    const res = highlightCode(rawCode, specifiedLang);
+    let lines = 1;
+    for (let i = 0; i < rawCode.length; i++) {
+      if (rawCode.charCodeAt(i) === 10) lines++;
+    }
+
+    return { ...res, lineCount: lines };
   }, [rawCode, specifiedLang, isInlineCode]);
 
   const handleCopy = useCallback(() => {
@@ -117,48 +146,73 @@ export const CodeBlock = React.memo(function CodeBlock({
       <InlineCodePill
         isDark={isDark}
         containsPersian={containsPersian}
+        rawText={rawCode}
         className={className}
         {...props}
-      >
-        {children}
-      </InlineCodePill>
+      />
     );
   }
 
+  const showLineNumbers = highlighted.language !== 'text' && highlighted.dir === 'ltr';
+
   const containerThemeClass = isDark
-    ? 'bg-zinc-950/95 border-zinc-800/90 shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
-    : 'bg-white border-zinc-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)]';
+    ? 'bg-zinc-950/90 border-zinc-800/80 shadow-black/40'
+    : 'bg-white/95 border-zinc-200/90 shadow-zinc-200/50';
 
   const preThemeClass = isDark
-    ? '!bg-zinc-950 !text-zinc-100'
-    : '!bg-slate-50 !text-zinc-900';
+    ? '!bg-transparent !text-zinc-200'
+    : '!bg-transparent !text-zinc-800';
+
+  const gutterColorClass = isDark
+    ? 'text-zinc-600 border-zinc-800/80'
+    : 'text-zinc-400 border-zinc-200/80';
 
   return (
     <div
-      className={`my-4 rounded-xl border overflow-hidden transition-colors ${containerThemeClass}`}
+      className={`my-5 rounded-xl border overflow-hidden transition-colors duration-200 shadow-lg ${containerThemeClass}`}
       dir="ltr"
     >
       <CodeBlockHeader
-        languageName={highlighted.language}
+        languageName={specifiedLang || highlighted.language}
         isDark={isDark}
         isPersian={language === 'fa'}
         copied={copied}
         onCopy={handleCopy}
       />
 
-      {/* Highlighted Code Container */}
+      {/* VSCode Editor Viewport */}
       <pre
-        className={`p-4 overflow-x-auto text-[13px] leading-relaxed !rounded-none !border-0 !m-0 !shadow-none text-start ${preThemeClass}`}
+        className={`py-3.5 px-4 overflow-x-auto overflow-y-hidden text-[13.5px] leading-[1.68] !rounded-none !border-0 !m-0 !shadow-none code-scrollbar ${
+          highlighted.dir === 'rtl' ? 'text-right' : 'text-left'
+        } ${preThemeClass}`}
         dir={highlighted.dir}
         style={{ fontFamily: HYBRID_CODE_FONT }}
       >
-        <code
-          className={`hljs !bg-transparent !border-none !p-0 block select-text ${
-            isDark ? '!text-zinc-100' : '!text-zinc-900'
-          }`}
-          style={{ fontFamily: HYBRID_CODE_FONT }}
-          dangerouslySetInnerHTML={{ __html: highlighted.html }}
-        />
+        {showLineNumbers ? (
+          <div className="flex items-start min-w-max">
+            <span
+              aria-hidden="true"
+              className={`select-none pr-3.5 mr-3.5 border-r text-right font-mono tabular-nums shrink-0 leading-[1.68] ${gutterColorClass}`}
+            >
+              {Array.from({ length: highlighted.lineCount }, (_, idx) => (
+                <span key={idx} className="block">
+                  {idx + 1}
+                </span>
+              ))}
+            </span>
+            <code
+              className="hljs !bg-transparent !border-none !p-0 block flex-1 select-text leading-[1.68]"
+              style={{ fontFamily: HYBRID_CODE_FONT }}
+              dangerouslySetInnerHTML={{ __html: highlighted.html }}
+            />
+          </div>
+        ) : (
+          <code
+            className="hljs !bg-transparent !border-none !p-0 block select-text leading-[1.75]"
+            style={{ fontFamily: HYBRID_CODE_FONT }}
+            dangerouslySetInnerHTML={{ __html: highlighted.html }}
+          />
+        )}
       </pre>
     </div>
   );
