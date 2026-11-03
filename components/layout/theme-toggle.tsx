@@ -9,7 +9,7 @@ import React from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { useThemeToggle } from '@/components/motion/theme-toggle';
 import { ActionSwapIcon } from '@/components/motion/action-swap';
-import { useMarkdownContext } from '@/store/MarkdownContext';
+import { useStudioUI } from '@/store/MarkdownContext';
 
 /**
  * Renders the theme switcher button in the application header with Circle Blur View Transition.
@@ -22,7 +22,7 @@ export function ThemeToggle(): React.JSX.Element {
     start: 'center',
   });
 
-  const { t } = useMarkdownContext();
+  const { t } = useStudioUI();
 
   const handleToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -47,7 +47,7 @@ export function ThemeToggle(): React.JSX.Element {
             : 'bg-zinc-100 hover:bg-zinc-200/80 border-zinc-200 hover:border-zinc-300 text-zinc-700 hover:text-zinc-900 focus-visible:ring-offset-white'
         }`}
       >
-        <span className="relative flex items-center justify-center shrink-0">
+        <span className="relative flex items-center justify-center shrink-0" aria-hidden="true">
           {mounted ? (
             <ActionSwapIcon
               value={isDark ? 'dark' : 'light'}
@@ -55,9 +55,9 @@ export function ThemeToggle(): React.JSX.Element {
               className="w-3.5 h-3.5"
             >
               {isDark ? (
-                <Sun className="w-3.5 h-3.5 text-amber-400 transition-transform duration-300 group-hover:rotate-45" />
+                <Sun aria-hidden="true" className="w-3.5 h-3.5 text-amber-400 transition-transform duration-300 group-hover:rotate-45" />
               ) : (
-                <Moon className="w-3.5 h-3.5 text-indigo-600 transition-transform duration-300 group-hover:-rotate-12" />
+                <Moon aria-hidden="true" className="w-3.5 h-3.5 text-emerald-600 transition-transform duration-300 group-hover:-rotate-12" />
               )}
             </ActionSwapIcon>
           ) : (

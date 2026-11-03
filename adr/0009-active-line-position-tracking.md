@@ -23,4 +23,4 @@ We engineered an optimized cursor line tracking pipeline (`hooks/useActiveLinePo
 ## Consequences
 - **Positive:** Zero keystroke latency and zero forced reflows during fast typing.
 - **Positive:** Accurate line tracking across scrolling, cursor jumping, and multi-line pastes.
-- **Positive:** Easily unit-tested via the pure `calculateActiveLinePosition` function (`tests/unit/active-line-position.test.ts`).
+- **Positive:** Easily unit-tested via the pure `calculateActiveLinePosition` function (`tests/domain-contracts.test.ts`).

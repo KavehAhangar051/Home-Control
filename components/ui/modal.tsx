@@ -9,7 +9,7 @@ import React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { m, AnimatePresence, useReducedMotion } from 'motion/react';
 import { X } from 'lucide-react';
-import { useMarkdownContext } from '@/store/MarkdownContext';
+import { useStudioUI } from '@/store/MarkdownContext';
 import { modalBackdropVariants, modalContentVariants } from '@/components/motion/motion-variants';
 import { SPRING_PRESS } from '@/lib/ease';
 
@@ -28,7 +28,7 @@ export function Modal({
   description,
   children,
 }: ModalProps): React.JSX.Element {
-  const { theme, language } = useMarkdownContext();
+  const { theme, language } = useStudioUI();
   const isDark = theme === 'dark';
   const reduceMotion = useReducedMotion();
 
@@ -50,7 +50,10 @@ export function Modal({
 
             {/* Modal Dialog Positioner */}
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-              <DialogPrimitive.Content asChild>
+              <DialogPrimitive.Content
+                asChild
+                {...(description ? {} : { 'aria-describedby': undefined })}
+              >
                 <m.div
                   variants={modalContentVariants}
                   initial="hidden"
@@ -87,13 +90,13 @@ export function Modal({
                         }`}
                         aria-label={language === 'fa' ? 'بستن پنجره' : 'Close dialog'}
                       >
-                        <X className="w-4 h-4" />
+                        <X aria-hidden="true" className="w-4 h-4" />
                       </m.button>
                     </DialogPrimitive.Close>
                   </div>
                   {description && (
                     <DialogPrimitive.Description
-                      className={`text-xs mb-4 leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}
+                      className={`text-xs mb-4 leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}
                     >
                       {description}
                     </DialogPrimitive.Description>

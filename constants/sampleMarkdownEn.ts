@@ -3,13 +3,13 @@
  * @description Comprehensive English sample Markdown document showcasing GFM features, typography, and bidirectional layout.
  */
 
-export const SAMPLE_RTL_MARKDOWN_EN = `# Welcome to RTL Markdown Studio 👋
+export const SAMPLE_RTL_MARKDOWN_EN = `# Welcome to RTL Markdown Studio
 
 This is a comprehensive reference document designed to test and demonstrate **all standard Markdown & GFM (GitHub Flavored Markdown) features** in a modern dual-language environment.
 
 ---
 
-## 📑 1. Typography & Inline Formatting
+## 1. Typography & Inline Formatting
 
 Markdown provides versatile inline formatting for technical documentation and everyday notes:
 - **Bold text:** Highlight mission-critical architectural concepts like **Client-Side Privacy**
@@ -27,7 +27,7 @@ Markdown provides versatile inline formatting for technical documentation and ev
 
 ---
 
-## 📋 2. Lists & Task Management (GFM Task Lists)
+## 2. Lists & Task Management (GFM Task Lists)
 
 ### A) Ordered Step-by-Step Sequence:
 1. Enter raw markdown text or load an existing \`.md\` file in the **Left Editor**
@@ -52,17 +52,17 @@ Markdown provides versatile inline formatting for technical documentation and ev
 
 ---
 
-## 💬 3. Blockquotes & Nested Callouts
+## 3. Blockquotes & Nested Callouts
 
-> 💡 **Privacy Guarantee:** All text processing, formatting, and conversion executes 100% locally in your browser sandbox. Zero data ever leaves your device.
+> **Privacy Guarantee:** All text processing, formatting, and conversion executes 100% locally in your browser sandbox. Zero data ever leaves your device.
 >
 > Your documents and notes remain entirely private and under your control.
->> ⚙️ **Under the Hood:** An intelligent LRU memoization pipeline allows large documents to scroll at over **60 FPS** without stutter.
->>> 🔒 **Client Isolation:** Temporary data is held solely in browser-isolated state.
+>> **Under the Hood:** An intelligent LRU memoization pipeline allows large documents to scroll at over **60 FPS** without stutter.
+>>> **Client Isolation:** Temporary data is held solely in browser-isolated state.
 
 ---
 
-## 💻 4. Code Blocks Across Popular Languages
+## 4. Code Blocks Across Popular Languages
 
 ### 1. Plain Text or System Logs (No Language Tag):
 \`\`\`text
@@ -132,18 +132,18 @@ bun run dev
 
 ---
 
-## 📊 5. Advanced GFM Data Tables
+## 5. Advanced GFM Data Tables
 
 | ID | System Module | Algorithm Core | Alignment | Engine Status |
 | :--- | :--- | :---: | :---: | ---: |
-| 01 | **Parser Engine** | LRU Memoized Regex | RTL Optimized | ✅ Active |
-| 02 | **Syntax Highlighter** | Highlight.js Wrapper | Isolated LTR | ✅ Active |
-| 03 | **Sync Scroll** | Proportional Ratio | Bidirectional | ⚡ 60 FPS |
-| 04 | **Font Segmenter** | Unicode Range Segmenter | Hybrid | 🛡️ Conflict-Free |
+| 01 | **Parser Engine** | LRU Memoized Regex | RTL Optimized | Active |
+| 02 | **Syntax Highlighter** | Highlight.js Wrapper | Isolated LTR | Active |
+| 03 | **Sync Scroll** | Proportional Ratio | Bidirectional | 60 FPS |
+| 04 | **Font Segmenter** | Unicode Range Segmenter | Hybrid | Conflict-Free |
 
 ---
 
-## 🧮 6. Scientific & Mathematical Formulas (LaTeX & KaTeX)
+## 6. Scientific & Mathematical Formulas (LaTeX & KaTeX)
 
 Full bidirectional KaTeX math rendering support for inline equations and standalone display blocks:
 
@@ -163,7 +163,7 @@ $$
 
 ---
 
-## 🔗 7. Links & Media
+## 7. Links & Media
 
 - Official project repository: [GitHub Studio Repository](https://github.com)
 - Direct web address: <https://github.com>

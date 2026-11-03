@@ -10,7 +10,9 @@ import { HeaderBrand } from '@/components/layout/header-brand';
 import { LanguageToggle } from '@/components/layout/language-toggle';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { FocusToggle } from '@/components/layout/focus-toggle';
+import { ShowcaseToggle } from '@/components/layout/showcase-toggle';
 import { useStudioUI } from '@/store/MarkdownContext';
+import { STUDIO_VT_NAMES } from '@/utils/viewTransitions';
 
 function getHeaderGlassClass(isDark: boolean, isScrolled: boolean): string {
   if (isDark) {
@@ -70,7 +72,8 @@ export const Header = React.memo(function Header(): React.JSX.Element {
     <div id="header-island-wrapper" className="w-full flex justify-center px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 pointer-events-none">
       <header
         id="main-app-header"
-        className={`pointer-events-auto relative w-full max-w-[1580px] rounded-2xl sm:rounded-full transition-[background-color,border-color,box-shadow] duration-300 backdrop-blur-3xl backdrop-saturate-150 ${headerGlassClass}`}
+        style={{ viewTransitionName: STUDIO_VT_NAMES.PERSISTENT_HEADER }}
+        className={`pointer-events-auto relative w-full max-w-[1580px] rounded-2xl sm:rounded-full transition-[background-color,border-color,box-shadow] duration-300 backdrop-blur-xl ${headerGlassClass}`}
       >
         {/* Top ambient specular line along island top */}
         <div
@@ -87,6 +90,7 @@ export const Header = React.memo(function Header(): React.JSX.Element {
 
           {/* Controls: Focus, Theme & Language */}
           <div id="header-actions-group" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <ShowcaseToggle />
             <FocusToggle />
             <ThemeToggle />
             <LanguageToggle />

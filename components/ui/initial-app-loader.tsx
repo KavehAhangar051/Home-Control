@@ -37,7 +37,7 @@ export function InitialAppLoader(): React.JSX.Element {
     const preFallback = document.getElementById('pre-hydration-loader');
 
     if (preFallback) {
-      preFallback.remove();
+      preFallback.style.display = 'none';
     }
 
     let rafId: number | null = null;

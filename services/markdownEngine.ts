@@ -6,8 +6,8 @@
 
 import { DocumentStats } from '@/types/markdown';
 import { DEFAULT_READING_SPEED_WPM } from '@/constants/domain';
-import { convertToRtlMarkdown } from '@/utils/rtlConverter';
-import { calculateDocumentStats } from '@/utils/statsCalculator';
+import { convertToRtlMarkdown, CODE_FENCE_REGEX, updateCodeFenceState } from '@/utils/rtlConverter';
+import { calculateDocumentStats, EMPTY_DOCUMENT_STATS } from '@/utils/statsCalculator';
 import { createBoundedCache, CacheTelemetryStats } from '@/utils/lruCache';
 
 /**
@@ -44,6 +44,17 @@ export interface ExportBundle {
   readonly filename: string;
   readonly mimeType: string;
 }
+
+/**
+ * Canonical immutable Special Case Value Object for an empty processed Markdown document.
+ */
+export const EMPTY_PROCESSED_DOCUMENT: ProcessedDocument = Object.freeze({
+  raw: '',
+  rtlMarkdown: '',
+  stats: EMPTY_DOCUMENT_STATS,
+  hasContent: false,
+  title: '',
+});
 
 /** Maximum number of processed document states cached in memory */
 const DOCUMENT_CACHE_LIMIT = 64;
@@ -87,6 +98,11 @@ export function processDocument(
   options?: ProcessDocumentOptions
 ): ProcessedDocument {
   const safeText = rawText ?? '';
+
+  if (!safeText) {
+    return EMPTY_PROCESSED_DOCUMENT;
+  }
+
   const alignTables = options?.alignTablesRtl ?? true;
 
   const wpm =
@@ -128,7 +144,6 @@ export function processDocument(
 }
 
 /** Pre-compiled regexes for title extraction to prevent re-compilation in loop */
-const TITLE_CODE_FENCE_REGEX = /^\s*(```|~~~)/;
 const ATX_H1_REGEX = /^#\s+(.+)$/;
 const SETEXT_H1_REGEX = /^\s*={3,}\s*$/;
 
@@ -165,7 +180,7 @@ export function prepareExportBundle(
  */
 function extractDocumentTitle(text: string): string {
   if (!text) return '';
-  let inCode = false;
+  let activeFence: string | null = null;
   let lineStart = 0;
   let lineCount = 0;
   let prevLine = '';
@@ -181,13 +196,15 @@ function extractDocumentTitle(text: string): string {
     lineCount++;
     lineStart = lineEnd + 1;
 
-    if (TITLE_CODE_FENCE_REGEX.test(line)) {
-      inCode = !inCode;
+    const fenceState = updateCodeFenceState(line, activeFence);
+    activeFence = fenceState.activeFence;
+
+    if (fenceState.toggled) {
       prevLine = line;
       continue;
     }
 
-    if (!inCode) {
+    if (activeFence === null) {
       // ATX Level 1 heading: # Title
       const atxMatch = line.match(ATX_H1_REGEX);
 
@@ -196,7 +213,7 @@ function extractDocumentTitle(text: string): string {
       }
 
       // Setext Level 1 heading: Title on prevLine, ===... on current line
-      if (SETEXT_H1_REGEX.test(line) && prevLine.trim().length > 0 && !TITLE_CODE_FENCE_REGEX.test(prevLine)) {
+      if (SETEXT_H1_REGEX.test(line) && prevLine.trim().length > 0 && !CODE_FENCE_REGEX.test(prevLine)) {
         return prevLine.trim();
       }
     }

@@ -8,7 +8,7 @@
 import React from 'react';
 import { m, useReducedMotion } from 'motion/react';
 import { Languages } from 'lucide-react';
-import { useMarkdownContext } from '@/store/MarkdownContext';
+import { useStudioUI } from '@/store/MarkdownContext';
 import { SPRING_PRESS } from '@/lib/ease';
 
 /**
@@ -17,7 +17,7 @@ import { SPRING_PRESS } from '@/lib/ease';
  * @returns {React.JSX.Element} The rendered LanguageToggle component.
  */
 export function LanguageToggle(): React.JSX.Element {
-  const { language, toggleLanguage, t, theme } = useMarkdownContext();
+  const { language, toggleLanguage, t, theme } = useStudioUI();
   const isDark = theme === 'dark';
   const reduceMotion = useReducedMotion();
 
@@ -39,6 +39,7 @@ export function LanguageToggle(): React.JSX.Element {
         }`}
       >
         <Languages
+          aria-hidden="true"
           className={`w-3.5 h-3.5 transition-colors shrink-0 ${
             isDark ? 'text-zinc-400 group-hover:text-emerald-400' : 'text-zinc-500 group-hover:text-emerald-600'
           }`}

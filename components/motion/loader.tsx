@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import { EASE_IN_OUT } from '@/lib/ease';
 import { cn } from '@/lib/utils';
 import {
@@ -45,7 +45,7 @@ function Spinner({ size, speed, reduce }: PartProps): React.JSX.Element {
   const r = (size - stroke) / 2;
 
   return (
-    <motion.svg
+    <m.svg
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
@@ -72,7 +72,7 @@ function Spinner({ size, speed, reduce }: PartProps): React.JSX.Element {
         strokeWidth={stroke}
         strokeLinecap="round"
       />
-    </motion.svg>
+    </m.svg>
   );
 }
 
@@ -85,7 +85,7 @@ function Dots({ size, speed, reduce }: PartProps): React.JSX.Element {
   return (
     <span className="flex items-center" style={{ gap: size * 0.14 }}>
       {[0, 1, 2].map((i) => (
-        <motion.span
+        <m.span
           key={i}
           className="rounded-full bg-current"
           style={{ width: dot, height: dot }}
@@ -115,7 +115,7 @@ function Bars({ size, speed, reduce }: PartProps): React.JSX.Element {
   return (
     <span className="flex items-center" style={{ gap: size * 0.1, height: size }}>
       {[0, 1, 2, 3].map((i) => (
-        <motion.span
+        <m.span
           key={i}
           className="rounded-full bg-current"
           style={{ width: bar, height: size, originY: 1 }}
@@ -166,6 +166,24 @@ export function Ascii({
   );
 }
 
+const VARIANT_COMPONENTS: Record<
+  Exclude<LoaderVariant, keyof typeof ASCII_SETS>,
+  React.ComponentType<PartProps>
+> = {
+  spinner: Spinner,
+  dots: Dots,
+  bars: Bars,
+  'dot-matrix': DotMatrix,
+  dither: Dither,
+  morph: Morph,
+  comet: Comet,
+  scramble: Scramble,
+  metaballs: Metaballs,
+  newton: Newton,
+  helix: Helix,
+  percent: Percent,
+};
+
 /**
  * Universal Loader component rendering any chosen motion variant.
  * Supports standard ASCII line spinner: `variant="ascii-line"`.
@@ -184,6 +202,10 @@ export function Loader({
   // ASCII line has 4 frames. 0.8s cycle gives 200ms/frame (50ms faster than standard 250ms/frame).
   const effectiveSpeed = speed ?? (variant === 'ascii-line' ? 0.8 : 1);
 
+  const VariantComponent = isAsciiVariant(variant)
+    ? null
+    : VARIANT_COMPONENTS[variant];
+
   return (
     <span
       role="status"
@@ -193,28 +215,17 @@ export function Loader({
         className,
       )}
     >
-      {variant === 'spinner' && <Spinner size={size} speed={effectiveSpeed} reduce={reduce} />}
-      {variant === 'dots' && <Dots size={size} speed={effectiveSpeed} reduce={reduce} />}
-      {variant === 'bars' && <Bars size={size} speed={effectiveSpeed} reduce={reduce} />}
-      {variant === 'dot-matrix' && (
-        <DotMatrix size={size} speed={effectiveSpeed} reduce={reduce} />
-      )}
-      {variant === 'dither' && <Dither size={size} speed={effectiveSpeed} reduce={reduce} />}
-      {isAsciiVariant(variant) && (
-        <Ascii frames={ASCII_SETS[variant]} size={size} speed={effectiveSpeed} reduce={reduce} />
-      )}
-      {variant === 'morph' && <Morph size={size} speed={effectiveSpeed} reduce={reduce} />}
-      {variant === 'comet' && <Comet size={size} speed={effectiveSpeed} reduce={reduce} />}
-      {variant === 'scramble' && (
-        <Scramble size={size} speed={effectiveSpeed} reduce={reduce} />
-      )}
-      {variant === 'metaballs' && (
-        <Metaballs size={size} speed={effectiveSpeed} reduce={reduce} />
-      )}
-      {variant === 'newton' && <Newton size={size} speed={effectiveSpeed} reduce={reduce} />}
-      {variant === 'helix' && <Helix size={size} speed={effectiveSpeed} reduce={reduce} />}
-      {variant === 'percent' && (
-        <Percent size={size} speed={effectiveSpeed} reduce={reduce} />
+      {isAsciiVariant(variant) ? (
+        <Ascii
+          frames={ASCII_SETS[variant]}
+          size={size}
+          speed={effectiveSpeed}
+          reduce={reduce}
+        />
+      ) : (
+        VariantComponent && (
+          <VariantComponent size={size} speed={effectiveSpeed} reduce={reduce} />
+        )
       )}
       <span className="sr-only">{label}</span>
     </span>

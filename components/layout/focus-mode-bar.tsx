@@ -7,7 +7,7 @@
 
 import React, { useEffect } from 'react';
 import { m, useReducedMotion } from 'motion/react';
-import { useMarkdownContext } from '@/store/MarkdownContext';
+import { useStudioUI } from '@/store/MarkdownContext';
 import { Minimize2 } from 'lucide-react';
 import { DURATION, EASE_OUT, SPRING_PRESS } from '@/lib/ease';
 
@@ -17,7 +17,7 @@ import { DURATION, EASE_OUT, SPRING_PRESS } from '@/lib/ease';
  * @returns {React.JSX.Element} The rendered FocusModeBar component.
  */
 export function FocusModeBar(): React.JSX.Element {
-  const { toggleFocusMode, t, theme } = useMarkdownContext();
+  const { toggleFocusMode, t, theme } = useStudioUI();
   const isDark = theme === 'dark';
   const reduceMotion = useReducedMotion();
 
@@ -66,7 +66,7 @@ export function FocusModeBar(): React.JSX.Element {
             : 'bg-white/90 hover:bg-zinc-50 text-zinc-800 border-zinc-200 hover:border-zinc-300 shadow-zinc-300/60 focus-visible:ring-offset-white'
         }`}
       >
-        <Minimize2 className="w-4 h-4 text-zinc-400 group-hover:text-amber-400 transition-colors" />
+        <Minimize2 aria-hidden="true" className="w-4 h-4 text-zinc-400 group-hover:text-amber-400 transition-colors" />
       </m.button>
     </m.div>
   );

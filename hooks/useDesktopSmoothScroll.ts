@@ -20,6 +20,30 @@ export function useDesktopSmoothScroll(): void {
     let animationFrameId: number | null = null;
     let isCancelled = false;
 
+    const raf = (time: number) => {
+      const lenis = lenisRef.current;
+
+      if (!lenis) {
+        animationFrameId = null;
+
+        return;
+      }
+
+      lenis.raf(time);
+
+      if (lenis.isScrolling) {
+        animationFrameId = requestAnimationFrame(raf);
+      } else {
+        animationFrameId = null;
+      }
+    };
+
+    const wakeLoop = () => {
+      if (animationFrameId === null && !isCancelled && lenisRef.current) {
+        animationFrameId = requestAnimationFrame(raf);
+      }
+    };
+
     /**
      * Initializes Lenis smooth scroll if environment is verified as desktop/laptop.
      */
@@ -45,13 +69,10 @@ export function useDesktopSmoothScroll(): void {
         });
 
         lenisRef.current = lenis;
-
-        function raf(time: number) {
-          lenis.raf(time);
-          animationFrameId = requestAnimationFrame(raf);
-        }
-
-        animationFrameId = requestAnimationFrame(raf);
+        lenis.on('scroll', wakeLoop);
+        window.addEventListener('wheel', wakeLoop, { passive: true });
+        window.addEventListener('touchmove', wakeLoop, { passive: true });
+        window.addEventListener('keydown', wakeLoop, { passive: true });
       } catch (err) {
         console.error('Failed to initialize Lenis smooth scroll:', err);
       }
@@ -61,6 +82,10 @@ export function useDesktopSmoothScroll(): void {
      * Tears down active Lenis instance and animation loop.
      */
     function destroyLenis() {
+      window.removeEventListener('wheel', wakeLoop);
+      window.removeEventListener('touchmove', wakeLoop);
+      window.removeEventListener('keydown', wakeLoop);
+
       if (animationFrameId !== null) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;

@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useMarkdownContext } from '@/store/MarkdownContext';
+import { useStudioUI } from '@/store/MarkdownContext';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Clipboard, Trash } from 'lucide-react';
@@ -17,7 +17,7 @@ import { Clipboard, Trash } from 'lucide-react';
  * @returns {React.JSX.Element} The rendered PasteModal component.
  */
 export function PasteModal(): React.JSX.Element {
-  const { isPasteOpen, setIsPasteOpen, setRawMarkdown, showToast, t, language, theme } = useMarkdownContext();
+  const { isPasteOpen, setIsPasteOpen, applyExternalMarkdown, showToast, t, language, theme } = useStudioUI();
   const [pastedText, setPastedText] = useState<string>('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isDark = theme === 'dark';
@@ -45,7 +45,7 @@ export function PasteModal(): React.JSX.Element {
       return;
     }
 
-    setRawMarkdown(pastedText);
+    applyExternalMarkdown(pastedText);
     showToast(t.toasts.textApplied, 'success');
     handleClose();
   };
@@ -58,6 +58,9 @@ export function PasteModal(): React.JSX.Element {
       description={t.pasteModal.description}
     >
       <div className="flex flex-col gap-4">
+        <label htmlFor="paste-modal-textarea" className="sr-only">
+          {t.pasteModal.title}
+        </label>
         <textarea
           id="paste-modal-textarea"
           ref={textareaRef}
@@ -66,7 +69,7 @@ export function PasteModal(): React.JSX.Element {
           placeholder={t.pasteModal.placeholder}
           aria-label={t.pasteModal.title}
           dir={language === 'fa' ? 'rtl' : 'ltr'}
-          className={`w-full h-44 p-3.5 text-sm leading-relaxed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 resize-none rounded-xl border shadow-inner transition-colors ${
+          className={`w-full h-44 p-3.5 text-base sm:text-sm leading-relaxed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 resize-none rounded-xl border shadow-inner transition-colors ${
             isDark
               ? 'bg-zinc-950/90 text-zinc-100 border-zinc-800 placeholder:text-zinc-600 focus-visible:ring-offset-zinc-950'
               : 'bg-zinc-50 text-zinc-900 border-zinc-300 placeholder:text-zinc-500 focus-visible:ring-offset-white'
@@ -83,7 +86,7 @@ export function PasteModal(): React.JSX.Element {
             disabled={!pastedText}
             className={isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-600 hover:text-zinc-900'}
           >
-            <Trash className="w-4 h-4" />
+            <Trash aria-hidden="true" className="w-4 h-4" />
             {t.pasteModal.clearButton}
           </Button>
 
@@ -101,7 +104,7 @@ export function PasteModal(): React.JSX.Element {
               onClick={handleApply}
               disabled={!pastedText.trim()}
             >
-              <Clipboard className="w-4 h-4" />
+              <Clipboard aria-hidden="true" className="w-4 h-4" />
               {t.pasteModal.applyButton}
             </Button>
           </div>

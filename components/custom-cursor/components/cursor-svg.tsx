@@ -5,7 +5,8 @@
  */
 
 import React from 'react';
-import { motion, MotionValue } from 'motion/react';
+import { m, MotionValue } from 'motion/react';
+import { STUDIO_VT_NAMES } from '@/utils/viewTransitions';
 
 interface CursorSvgProps {
   isVisible: boolean;
@@ -33,15 +34,16 @@ export const CursorSvg = React.memo(function CursorSvg({
   mouseY,
 }: CursorSvgProps) {
   return (
-    <motion.div
-      className="fixed top-0 left-0 pointer-events-none z-[99999] will-change-transform select-none transform-gpu"
+    <m.div
+      className="fixed top-0 left-0 pointer-events-none z-[99999] select-none transform-gpu"
       style={{
+        viewTransitionName: STUDIO_VT_NAMES.CUSTOM_CURSOR,
         x: mouseX,
         y: mouseY,
         opacity: isVisible ? 1 : 0,
       }}
     >
-      <motion.div
+      <m.div
         className="transform-gpu will-change-transform"
         animate={{
           rotateX: isMouseDown ? 20 : 0,
@@ -63,8 +65,13 @@ export const CursorSvg = React.memo(function CursorSvg({
           viewBox="0 0 28 28"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="drop-shadow-[0_3px_8px_rgba(0,0,0,0.3)] dark:drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]"
         >
+          {/* Hardware-accelerated vector shadow path (eliminates per-frame CSS filter drop-shadow pass) */}
+          <path
+            d="M4.093 2.502a1.08 1.08 0 0 1 1.405-1.405l20.407 8.163a1.08 1.08 0 0 1 .032 1.996l-8.547 4.274-4.274 8.547a1.08 1.08 0 0 1-1.996-.032L4.093 2.502Z"
+            fill="rgba(0,0,0,0.28)"
+            transform="translate(0.5, 1.75)"
+          />
           {/* Light Theme: Deep obsidian with metallic sheen and crisp white highlight stroke */}
           <path
             className="dark:hidden"
@@ -96,8 +103,8 @@ export const CursorSvg = React.memo(function CursorSvg({
             </linearGradient>
           </defs>
         </svg>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 });
 

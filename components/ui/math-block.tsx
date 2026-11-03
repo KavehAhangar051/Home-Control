@@ -113,7 +113,9 @@ export const MathDisplayBlock = React.memo(function MathDisplayBlock({
         transition={SPRING_PRESS}
         title={copyTitle}
         aria-label={copyTitle}
-        className={`absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] transition-[opacity,color,background-color,border-color] duration-150 cursor-pointer opacity-80 sm:opacity-0 sm:group-hover/math:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+        className={`absolute top-2 right-2 z-10 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg border text-[11px] transition-[opacity,color,background-color,border-color] duration-150 cursor-pointer opacity-80 sm:opacity-0 sm:group-hover/math:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
+          isDark ? 'focus-visible:ring-offset-zinc-950' : 'focus-visible:ring-offset-white'
+        } ${
           copied
             ? isDark
               ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 opacity-100 sm:opacity-100'
@@ -129,9 +131,9 @@ export const MathDisplayBlock = React.memo(function MathDisplayBlock({
           className="w-3.5 h-3.5"
         >
           {copied ? (
-            <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" />
+            <Check aria-hidden="true" className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" />
           ) : (
-            <Copy className="w-3.5 h-3.5" />
+            <Copy aria-hidden="true" className="w-3.5 h-3.5" />
           )}
         </ActionSwapIcon>
       </m.button>

@@ -31,6 +31,9 @@ const C_UPPER_TYPES = new Set(['FILE', 'DIR', 'BOOL', 'DWORD', 'HANDLE', 'LPSTR'
 const C_TOKEN_ENHANCE_REGEX =
   /(-&gt;|\.)(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*\()|(-&gt;|\.)(\s*)([a-zA-Z_][a-zA-Z0-9_]*)\b|\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*\()|\b([A-Z][A-Z0-9_]+)\b|\b([A-Z][a-zA-Z0-9_]*|[a-zA-Z_][a-zA-Z0-9_]*_t)\b/g;
 
+const HTML_TAG_SPLIT_REGEX = /(<[^>]+>)/g;
+const SPAN_CLASS_REGEX = /class="([^"]+)"/;
+
 /**
  * Enriches highlight.js HTML output with VSCode-level semantic spans for C/C++ and systems languages.
  * Safely skips comments, strings, and preprocessor directives.
@@ -44,7 +47,7 @@ export function enhanceHighlightedHtml(html: string, language: string): string {
     return html;
   }
 
-  const parts = html.split(/(<[^>]+>)/g);
+  const parts = html.split(HTML_TAG_SPLIT_REGEX);
   const spanStack: string[] = [];
 
   for (let i = 0; i < parts.length; i++) {
@@ -52,9 +55,9 @@ export function enhanceHighlightedHtml(html: string, language: string): string {
 
     if (!part) continue;
 
-    if (part.startsWith('<')) {
+    if (part.charCodeAt(0) === 60) {
       if (part.startsWith('<span')) {
-        const classMatch = /class="([^"]+)"/.exec(part);
+        const classMatch = SPAN_CLASS_REGEX.exec(part);
 
         spanStack.push(classMatch?.[1] ?? '');
       } else if (part.startsWith('</span')) {

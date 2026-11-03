@@ -8,7 +8,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { m, AnimatePresence } from 'motion/react';
-import { MarkdownProvider, useMarkdownContext } from '@/store/MarkdownContext';
+import { MarkdownProvider, useStudioUI } from '@/store/MarkdownContext';
 import { Header } from '@/components/layout/header';
 import { StudioDock } from '@/components/layout/studio-dock';
 import { FocusModeBar } from '@/components/layout/focus-mode-bar';
@@ -17,6 +17,7 @@ import { PreviewView } from '@/components/views/preview-view';
 import { ToastNotification } from '@/components/ui/toast-notification';
 import { useSyncScroll } from '@/hooks/useSyncScroll';
 import { viewModeVariants } from '@/components/motion/motion-variants';
+import { SharedPanelTransition } from '@/components/motion/studio-view-transition';
 import { DURATION, EASE_OUT } from '@/lib/ease';
 
 const UploadModal = dynamic(
@@ -29,22 +30,78 @@ const PasteModal = dynamic(
   { ssr: false }
 );
 
+const WorkspaceViews = React.memo(function WorkspaceViews({
+  viewMode,
+}: {
+  viewMode: 'split' | 'editor' | 'preview';
+}) {
+  return (
+    <div className="w-full flex flex-col gap-2.5 sm:gap-3">
+      {viewMode === 'split' && (
+        <m.div
+          key="view-split"
+          variants={viewModeVariants}
+          initial="initial"
+          animate="animate"
+          className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 h-full w-full"
+        >
+          <SharedPanelTransition panel="editor">
+            <EditorView />
+          </SharedPanelTransition>
+          <SharedPanelTransition panel="preview">
+            <PreviewView />
+          </SharedPanelTransition>
+        </m.div>
+      )}
+
+      {viewMode === 'editor' && (
+        <m.div
+          key="view-editor"
+          variants={viewModeVariants}
+          initial="initial"
+          animate="animate"
+          className="w-full h-full"
+        >
+          <SharedPanelTransition panel="editor">
+            <EditorView />
+          </SharedPanelTransition>
+        </m.div>
+      )}
+
+      {viewMode === 'preview' && (
+        <m.div
+          key="view-preview"
+          variants={viewModeVariants}
+          initial="initial"
+          animate="animate"
+          className="w-full h-auto min-h-full flex justify-center"
+        >
+          <div className="w-full max-w-[1120px] mx-auto">
+            <SharedPanelTransition panel="preview">
+              <PreviewView />
+            </SharedPanelTransition>
+          </div>
+        </m.div>
+      )}
+    </div>
+  );
+});
+
 function MainAppContent() {
   const {
     viewMode,
     language,
     theme,
     isFocusMode,
-    isUploadOpen,
-    isPasteOpen,
     toast,
     closeToast,
     editorElement,
     previewElement,
     isSyncScroll,
-  } = useMarkdownContext();
+  } = useStudioUI();
 
   const isDark = theme === 'dark';
+  const isFa = language === 'fa';
 
   // Synchronize scrolling between editor and preview in Split View mode
   useSyncScroll({
@@ -55,14 +112,22 @@ function MainAppContent() {
 
   const isPageScrollable = viewMode === 'preview';
 
+  const scrollContainerClass = isPageScrollable
+    ? 'min-h-screen overflow-x-clip'
+    : 'h-screen max-h-screen overflow-hidden';
+
+  const themeContainerClass = isDark
+    ? 'bg-black text-zinc-100 dark'
+    : 'bg-slate-100/70 text-zinc-900 light';
+
+  const mainPaddingClass = isFocusMode
+    ? 'p-1.5 sm:p-2 pt-1.5 sm:pt-2 pb-2'
+    : 'p-2 sm:p-3 md:p-3.5 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(5rem+env(safe-area-inset-bottom,0px))]';
+
   return (
     <div
-      className={`${
-        isPageScrollable ? 'min-h-screen overflow-x-clip' : 'h-screen max-h-screen overflow-hidden'
-      } flex flex-col bg-noise relative transition-colors duration-300 ${
-        isDark ? 'bg-black text-zinc-100 dark' : 'bg-slate-100/70 text-zinc-900 light'
-      } ${language === 'fa' ? 'font-vazir' : 'font-sans'}`}
-      dir={language === 'fa' ? 'rtl' : 'ltr'}
+      className={`${scrollContainerClass} flex flex-col bg-noise relative transition-colors duration-300 ${themeContainerClass} ${isFa ? 'font-vazir' : 'font-sans'}`}
+      dir={isFa ? 'rtl' : 'ltr'}
     >
       {/* Animated Header (Smoothly transitions in/out in Focus Mode without layout thrashing) */}
       <AnimatePresence initial={false}>
@@ -91,59 +156,10 @@ function MainAppContent() {
         transition={{ duration: DURATION.slow, ease: EASE_OUT }}
         className={`flex-1 max-w-[1580px] w-full mx-auto flex flex-col gap-2.5 sm:gap-3 z-10 ${
           isPageScrollable ? '' : 'min-h-0 overflow-hidden'
-        } ${
-          isFocusMode
-            ? 'p-1.5 sm:p-2 pt-1.5 sm:pt-2 pb-2'
-            : 'p-2 sm:p-3 md:p-3.5 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(5rem+env(safe-area-inset-bottom,0px))]'
-        }`}
+        } ${mainPaddingClass}`}
       >
         <div className="flex-1 w-full flex flex-col gap-2.5 sm:gap-3 items-start">
-          {/* Main Workspace Views with smooth cross-fade */}
-          <div className="w-full flex flex-col gap-2.5 sm:gap-3">
-            <AnimatePresence mode="wait">
-              {viewMode === 'split' && (
-                <m.div
-                  key="view-split"
-                  variants={viewModeVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 h-full w-full"
-                >
-                  <EditorView />
-                  <PreviewView />
-                </m.div>
-              )}
-
-              {viewMode === 'editor' && (
-                <m.div
-                  key="view-editor"
-                  variants={viewModeVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="w-full h-full"
-                >
-                  <EditorView />
-                </m.div>
-              )}
-
-              {viewMode === 'preview' && (
-                <m.div
-                  key="view-preview"
-                  variants={viewModeVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="w-full h-auto min-h-full flex justify-center"
-                >
-                  <div className="w-full max-w-[1120px] mx-auto">
-                    <PreviewView />
-                  </div>
-                </m.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <WorkspaceViews viewMode={viewMode} />
         </div>
       </m.main>
 
@@ -157,12 +173,12 @@ function MainAppContent() {
         toast={toast}
         onClose={closeToast}
         isDark={isDark}
-        isFa={language === 'fa'}
+        isFa={isFa}
       />
 
-      {/* Lazy-Loaded Modals */}
-      {isUploadOpen && <UploadModal />}
-      {isPasteOpen && <PasteModal />}
+      {/* Lazy-Loaded Modals (Modal component handles AnimatePresence enter/exit internally) */}
+      <UploadModal />
+      <PasteModal />
     </div>
   );
 }

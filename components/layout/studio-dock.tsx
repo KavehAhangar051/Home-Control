@@ -10,6 +10,7 @@ import { m, useReducedMotion } from 'motion/react';
 import { MagnificationDock } from '@/components/ui/magnification-dock';
 import { useStudioDockActions } from '@/hooks/useStudioDockActions';
 import { DURATION, EASE_OUT } from '@/lib/ease';
+import { STUDIO_VT_NAMES } from '@/utils/viewTransitions';
 
 /**
  * Floating studio dock offering quick access to RTL Markdown tools, paste, download, and view modes.
@@ -21,6 +22,7 @@ export function StudioDock(): React.JSX.Element {
   return (
     <m.div
       id="studio-floating-dock-container"
+      style={{ viewTransitionName: STUDIO_VT_NAMES.PERSISTENT_DOCK }}
       initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 28, scale: 0.96 }}
       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
       exit={

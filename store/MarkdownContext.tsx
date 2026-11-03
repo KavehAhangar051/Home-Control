@@ -5,16 +5,16 @@
  * @description React Context providing centralized state management for Markdown conversion and UI workflows.
  */
 
-import React, { createContext, useContext, useState, useMemo, useCallback, useSyncExternalStore, useRef, useDeferredValue } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useSyncExternalStore, useRef, useDeferredValue, useEffect } from 'react';
 import { MarkdownContextType } from '@/types/markdown';
-import { ViewMode, Theme } from '@/types/ui';
+import { ViewMode, Theme, ToastState, ToastType, ToastActionConfig } from '@/types/ui';
 import { Language, Translations } from '@/types/i18n';
 import { TRANSLATIONS } from '@/constants/translations';
 import { processDocument } from '@/services/markdownEngine';
 import { useTheme } from 'next-themes';
 import { SAMPLE_RTL_MARKDOWN_FA, SAMPLE_RTL_MARKDOWN_EN } from '@/constants/sampleMarkdown';
-import { ToastState } from '@/components/ui/toast-notification';
 import { TOAST_DISMISS_DURATION_MS } from '@/constants/domain';
+import { resolveViewModeTransitionType, runStudioTransition } from '@/utils/viewTransitions';
 
 export type { MarkdownContextType };
 
@@ -38,17 +38,54 @@ export const MarkdownProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     ? resolvedTheme
     : 'dark';
 
-  const [language, setLanguage] = useState<Language>('fa');
-  const [rawMarkdown, setRawMarkdown] = useState<string>('');
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
+  const [language, setLanguageState] = useState<Language>('fa');
+  const [rawMarkdown, setRawMarkdownState] = useState<string>('');
+  const [committedMarkdown, setCommittedMarkdown] = useState<string>('');
+  const [viewMode, setViewModeState] = useState<ViewMode>('split');
   const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
   const [isPasteOpen, setIsPasteOpen] = useState<boolean>(false);
-  const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
+  const [isFocusMode, setIsFocusModeState] = useState<boolean>(false);
   const [isSyncScroll, setIsSyncScroll] = useState<boolean>(true);
   const [editorElement, setEditorElement] = useState<HTMLTextAreaElement | null>(null);
   const [previewElement, setPreviewElement] = useState<HTMLDivElement | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rawMarkdownRef = useRef<string>(rawMarkdown);
+  const isSyncScrollRef = useRef<boolean>(isSyncScroll);
+  const isFocusModeRef = useRef<boolean>(isFocusMode);
+
+  useEffect(() => {
+    rawMarkdownRef.current = rawMarkdown;
+    isSyncScrollRef.current = isSyncScroll;
+    isFocusModeRef.current = isFocusMode;
+  }, [rawMarkdown, isSyncScroll, isFocusMode]);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, []);
+
+  const setRawMarkdown = useCallback((value: string) => {
+    setRawMarkdownState(value);
+
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+    }
+
+    if (!value) {
+      setCommittedMarkdown('');
+
+      return;
+    }
+
+    typingTimerRef.current = setTimeout(() => {
+      typingTimerRef.current = null;
+      setCommittedMarkdown(value);
+    }, 90);
+  }, []);
 
   const closeToast = useCallback(() => {
     setToast(null);
@@ -56,8 +93,8 @@ export const MarkdownProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const showToast = useCallback((
     message: string,
-    type: 'success' | 'info' | 'error' = 'success',
-    action?: { label: string; onClick: () => void }
+    type: ToastType = 'success',
+    action?: ToastActionConfig
   ) => {
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
@@ -69,19 +106,50 @@ export const MarkdownProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, TOAST_DISMISS_DURATION_MS);
   }, []);
 
-  const toggleFocusMode = useCallback(() => {
-    setIsFocusMode((prev) => !prev);
+  const applyExternalMarkdown = useCallback((content: string) => {
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+
+    runStudioTransition('content-load', () => {
+      setRawMarkdownState(content);
+      setCommittedMarkdown(content);
+    });
   }, []);
 
-  const t = useMemo(() => TRANSLATIONS[language], [language]);
+  const setViewMode = useCallback((mode: ViewMode) => {
+    runStudioTransition(resolveViewModeTransitionType(mode), () => {
+      setViewModeState(mode);
+    });
+  }, []);
+
+  const setIsFocusMode = useCallback((value: boolean) => {
+    runStudioTransition(value ? 'focus-enter' : 'focus-exit', () => {
+      setIsFocusModeState(value);
+    });
+  }, []);
+
+  const toggleFocusMode = useCallback(() => {
+    const next = !isFocusModeRef.current;
+
+    runStudioTransition(next ? 'focus-enter' : 'focus-exit', () => {
+      setIsFocusModeState((prev) => !prev);
+    });
+  }, []);
+
+  const setLanguage = useCallback((lang: Language) => {
+    runStudioTransition('lang-switch', () => {
+      setLanguageState(lang);
+    });
+  }, []);
+
+  const t = TRANSLATIONS[language];
 
   const toggleSyncScroll = useCallback(() => {
-    setIsSyncScroll((prev) => {
-      const next = !prev;
-      showToast(next ? t.editor.syncScrollEnabled : t.editor.syncScrollDisabled, 'info');
-
-      return next;
-    });
+    const next = !isSyncScrollRef.current;
+    setIsSyncScroll((prev) => !prev);
+    showToast(next ? t.editor.syncScrollEnabled : t.editor.syncScrollDisabled, 'info');
   }, [showToast, t.editor.syncScrollEnabled, t.editor.syncScrollDisabled]);
 
   const setTheme = useCallback((newTheme: Theme) => {
@@ -97,142 +165,167 @@ export const MarkdownProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const nextLang: Language = language === 'fa' ? 'en' : 'fa';
     setLanguage(nextLang);
     showToast(TRANSLATIONS[nextLang].toasts.langSwitched(nextLang === 'fa' ? 'فارسی' : 'English'), 'info');
-  }, [language, showToast]);
+  }, [language, setLanguage, showToast]);
 
-  const deferredRawMarkdown = useDeferredValue(rawMarkdown);
-  const isProcessing = deferredRawMarkdown !== rawMarkdown;
+  const deferredRawMarkdown = useDeferredValue(committedMarkdown);
+  const isProcessing = rawMarkdown !== deferredRawMarkdown;
 
   const processedDoc = useMemo(() => {
     return processDocument(deferredRawMarkdown);
   }, [deferredRawMarkdown]);
 
-  const { rtlMarkdown, stats } = processedDoc;
+  const { rtlMarkdown, stats, title: documentTitle } = processedDoc;
+  const exportSnapshotRef = useRef({ rtlMarkdown, documentTitle });
+
+  useEffect(() => {
+    exportSnapshotRef.current = { rtlMarkdown, documentTitle };
+  }, [rtlMarkdown, documentTitle]);
+
+  const getExportSnapshot = useCallback(() => exportSnapshotRef.current, []);
 
   const clearContent = useCallback(() => {
-    if (!rawMarkdown) {
+    const currentMarkdown = rawMarkdownRef.current;
+
+    if (!currentMarkdown) {
       showToast(t.toasts.editorCleared, 'info');
 
       return;
     }
 
-    const backup = rawMarkdown;
-    setRawMarkdown('');
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+
+    const backup = currentMarkdown;
+
+    runStudioTransition('content-clear', () => {
+      setRawMarkdownState('');
+      setCommittedMarkdown('');
+    });
+
     showToast(
       t.toasts.editorCleared,
       'info',
       {
         label: t.toasts.undoAction,
         onClick: () => {
-          setRawMarkdown(backup);
+          applyExternalMarkdown(backup);
           showToast(t.toasts.contentRestored, 'success');
         },
       }
     );
-  }, [rawMarkdown, showToast, t.toasts.editorCleared, t.toasts.undoAction, t.toasts.contentRestored]);
+  }, [applyExternalMarkdown, showToast, t.toasts.editorCleared, t.toasts.undoAction, t.toasts.contentRestored]);
 
   const loadSample = useCallback(() => {
     const sample = language === 'fa' ? SAMPLE_RTL_MARKDOWN_FA : SAMPLE_RTL_MARKDOWN_EN;
-    setRawMarkdown(sample);
+    applyExternalMarkdown(sample);
     showToast(t.toasts.sampleLoaded, 'success');
-  }, [language, showToast, t.toasts.sampleLoaded]);
+  }, [applyExternalMarkdown, language, showToast, t.toasts.sampleLoaded]);
 
   const contextValue: MarkdownContextType = useMemo(
     () => ({
-      theme,
-      setTheme,
-      toggleTheme,
-      language,
-      setLanguage,
-      toggleLanguage,
-      t,
-      rawMarkdown,
-      setRawMarkdown,
-      rtlMarkdown,
-      viewMode,
-      setViewMode,
-      stats,
-      isProcessing,
-      isUploadOpen,
-      setIsUploadOpen,
-      isPasteOpen,
-      setIsPasteOpen,
-      isFocusMode,
-      setIsFocusMode,
-      toggleFocusMode,
-      isSyncScroll,
-      setIsSyncScroll,
-      toggleSyncScroll,
-      editorElement,
-      setEditorElement,
-      previewElement,
-      setPreviewElement,
-      clearContent,
-      loadSample,
-      toast,
-      showToast,
-      closeToast,
+      theme, setTheme, toggleTheme, language, setLanguage, toggleLanguage, t,
+      rawMarkdown, setRawMarkdown, applyExternalMarkdown, rtlMarkdown, documentTitle,
+      viewMode, setViewMode, stats, isProcessing, isUploadOpen, setIsUploadOpen,
+      isPasteOpen, setIsPasteOpen, isFocusMode, setIsFocusMode, toggleFocusMode,
+      isSyncScroll, setIsSyncScroll, toggleSyncScroll, editorElement, setEditorElement,
+      previewElement, setPreviewElement, clearContent, loadSample, toast, showToast, closeToast,
     }),
     [
-      theme,
-      setTheme,
-      toggleTheme,
-      language,
-      toggleLanguage,
-      t,
-      rawMarkdown,
-      rtlMarkdown,
-      viewMode,
-      stats,
-      isProcessing,
-      isUploadOpen,
-      isPasteOpen,
-      isFocusMode,
-      toggleFocusMode,
-      isSyncScroll,
-      toggleSyncScroll,
-      editorElement,
-      previewElement,
-      clearContent,
-      loadSample,
-      toast,
-      showToast,
-      closeToast,
+      theme, setTheme, toggleTheme, language, setLanguage, toggleLanguage, t,
+      rawMarkdown, setRawMarkdown, applyExternalMarkdown, rtlMarkdown, documentTitle,
+      viewMode, setViewMode, stats, isProcessing, isUploadOpen, isPasteOpen,
+      isFocusMode, setIsFocusMode, toggleFocusMode, isSyncScroll, toggleSyncScroll,
+      editorElement, previewElement, clearContent, loadSample, toast, showToast, closeToast,
     ]
   );
 
-  const uiContextValue = useMemo(
+  const uiContextValue: StudioUIContextType = useMemo(
     () => ({
-      theme,
-      language,
-      t,
-      showToast,
+      theme, setTheme, toggleTheme, language, setLanguage, toggleLanguage, t,
+      viewMode, setViewMode, isFocusMode, setIsFocusMode, toggleFocusMode,
+      isSyncScroll, setIsSyncScroll, toggleSyncScroll, isUploadOpen, setIsUploadOpen,
+      isPasteOpen, setIsPasteOpen, editorElement, setEditorElement,
+      previewElement, setPreviewElement, applyExternalMarkdown, clearContent,
+      loadSample, getExportSnapshot, toast, showToast, closeToast,
     }),
-    [theme, language, t, showToast]
+    [
+      theme, setTheme, toggleTheme, language, setLanguage, toggleLanguage, t,
+      viewMode, setViewMode, isFocusMode, setIsFocusMode, toggleFocusMode,
+      isSyncScroll, toggleSyncScroll, isUploadOpen, isPasteOpen,
+      editorElement, previewElement, applyExternalMarkdown, clearContent,
+      loadSample, getExportSnapshot, toast, showToast, closeToast,
+    ]
+  );
+
+  const previewContextValue: PreviewDocumentContextType = useMemo(
+    () => ({
+      rtlMarkdown,
+      stats,
+      documentTitle,
+      isProcessing,
+    }),
+    [rtlMarkdown, stats, documentTitle, isProcessing]
   );
 
   return (
     <StudioUIContext.Provider value={uiContextValue}>
-      <MarkdownContext.Provider value={contextValue}>
-        {children}
-      </MarkdownContext.Provider>
+      <PreviewDocumentContext.Provider value={previewContextValue}>
+        <MarkdownContext.Provider value={contextValue}>
+          {children}
+        </MarkdownContext.Provider>
+      </PreviewDocumentContext.Provider>
     </StudioUIContext.Provider>
   );
 };
 
 export interface StudioUIContextType {
   theme: Theme;
+  setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
   language: Language;
+  setLanguage: (lang: Language) => void;
+  toggleLanguage: () => void;
   t: Translations;
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
+  isFocusMode: boolean;
+  setIsFocusMode: (focus: boolean) => void;
+  toggleFocusMode: () => void;
+  isSyncScroll: boolean;
+  setIsSyncScroll: (val: boolean | ((prev: boolean) => boolean)) => void;
+  toggleSyncScroll: () => void;
+  isUploadOpen: boolean;
+  setIsUploadOpen: (open: boolean) => void;
+  isPasteOpen: boolean;
+  setIsPasteOpen: (open: boolean) => void;
+  editorElement: HTMLTextAreaElement | null;
+  setEditorElement: (el: HTMLTextAreaElement | null) => void;
+  previewElement: HTMLDivElement | null;
+  setPreviewElement: (el: HTMLDivElement | null) => void;
+  applyExternalMarkdown: (content: string) => void;
+  clearContent: () => void;
+  loadSample: () => void;
+  getExportSnapshot: () => { rtlMarkdown: string; documentTitle: string };
+  toast: ToastState | null;
   showToast: MarkdownContextType['showToast'];
+  closeToast: () => void;
+}
+
+export interface PreviewDocumentContextType {
+  rtlMarkdown: string;
+  stats: MarkdownContextType['stats'];
+  documentTitle: string;
+  isProcessing: boolean;
 }
 
 const StudioUIContext = createContext<StudioUIContextType | undefined>(undefined);
+const PreviewDocumentContext = createContext<PreviewDocumentContextType | undefined>(undefined);
 
 /**
- * Lightweight hook subscribing only to stable UI settings (theme, language, translations, toast)
+ * Lightweight hook subscribing only to stable UI/workspace settings and actions
  * so consumers do not re-render on every keystroke in the Markdown editor.
- *
- * @returns {StudioUIContextType} Stable UI state and toast dispatcher.
  */
 export const useStudioUI = (): StudioUIContextType => {
   const context = useContext(StudioUIContext);
@@ -245,10 +338,21 @@ export const useStudioUI = (): StudioUIContextType => {
 };
 
 /**
- * Custom hook to access the global MarkdownContext values and dispatchers.
- *
- * @returns MarkdownContextType with all state and methods.
- * @throws Error if used outside of a MarkdownProvider.
+ * Hook subscribing only to deferred/processed preview document output.
+ * Prevents PreviewView from re-rendering on raw keystroke events before debounce settles.
+ */
+export const usePreviewDocument = (): PreviewDocumentContextType => {
+  const context = useContext(PreviewDocumentContext);
+
+  if (!context) {
+    throw new Error('usePreviewDocument must be used within a MarkdownProvider');
+  }
+
+  return context;
+};
+
+/**
+ * Custom hook to access the full MarkdownContext values and dispatchers.
  */
 export const useMarkdownContext = (): MarkdownContextType => {
   const context = useContext(MarkdownContext);

@@ -33,130 +33,55 @@ import dart from 'highlight.js/lib/languages/dart';
 import powershell from 'highlight.js/lib/languages/powershell';
 import makefile from 'highlight.js/lib/languages/makefile';
 import { segmentHtmlByLanguage } from '@/utils/typographySegmenter';
+import { hasPersianText } from '@/utils/persianizer';
 import { createBoundedCache, CacheTelemetryStats } from '@/utils/lruCache';
 import { enhanceHighlightedHtml } from '@/utils/cFamilyEnhancer';
 
 // Register core and popular languages on startup
-hljs.registerLanguage('javascript', javascript);
+const REGISTERED_LANGUAGES = [
+  ['javascript', javascript], ['typescript', typescript], ['python', python],
+  ['bash', bash], ['json', json], ['yaml', yaml], ['markdown', markdown],
+  ['xml', xml], ['css', css], ['cpp', cpp], ['csharp', csharp], ['go', go],
+  ['rust', rust], ['sql', sql], ['ruby', ruby], ['java', java], ['php', php],
+  ['c', c], ['diff', diff], ['ini', ini], ['scss', scss], ['graphql', graphql],
+  ['dockerfile', dockerfile], ['kotlin', kotlin], ['swift', swift], ['dart', dart],
+  ['powershell', powershell], ['makefile', makefile],
+] as const;
 
-hljs.registerLanguage('typescript', typescript);
-
-hljs.registerLanguage('python', python);
-
-hljs.registerLanguage('bash', bash);
-
-hljs.registerLanguage('json', json);
-
-hljs.registerLanguage('yaml', yaml);
-
-hljs.registerLanguage('markdown', markdown);
-
-hljs.registerLanguage('xml', xml);
-
-hljs.registerLanguage('css', css);
-
-hljs.registerLanguage('cpp', cpp);
-
-hljs.registerLanguage('csharp', csharp);
-
-hljs.registerLanguage('go', go);
-
-hljs.registerLanguage('rust', rust);
-
-hljs.registerLanguage('sql', sql);
-
-hljs.registerLanguage('ruby', ruby);
-
-hljs.registerLanguage('java', java);
-
-hljs.registerLanguage('php', php);
-
-hljs.registerLanguage('c', c);
-
-hljs.registerLanguage('diff', diff);
-
-hljs.registerLanguage('ini', ini);
-
-hljs.registerLanguage('scss', scss);
-
-hljs.registerLanguage('graphql', graphql);
-
-hljs.registerLanguage('dockerfile', dockerfile);
-
-hljs.registerLanguage('kotlin', kotlin);
-
-hljs.registerLanguage('swift', swift);
-
-hljs.registerLanguage('dart', dart);
-
-hljs.registerLanguage('powershell', powershell);
-
-hljs.registerLanguage('makefile', makefile);
+for (const [name, grammar] of REGISTERED_LANGUAGES) {
+  hljs.registerLanguage(name, grammar);
+}
 
 /** Static module-level language alias mapping avoiding per-call object allocations */
 const LANGUAGE_ALIAS_MAP = {
-  js: 'javascript',
-  ts: 'typescript',
-  tsx: 'typescript',
-  jsx: 'javascript',
-  py: 'python',
-  python3: 'python',
-  py3: 'python',
-  sh: 'bash',
-  shell: 'bash',
-  zsh: 'bash',
-  bash: 'bash',
-  yml: 'yaml',
-  yaml: 'yaml',
-  md: 'markdown',
-  markdown: 'markdown',
-  rb: 'ruby',
-  ruby: 'ruby',
-  cs: 'csharp',
-  csharp: 'csharp',
-  'c#': 'csharp',
-  'c++': 'cpp',
-  cpp: 'cpp',
-  c: 'c',
-  golang: 'go',
-  go: 'go',
-  rs: 'rust',
-  rust: 'rust',
-  htm: 'xml',
-  html: 'xml',
-  xhtml: 'xml',
-  svg: 'xml',
-  xml: 'xml',
-  json: 'json',
-  css: 'css',
-  scss: 'scss',
-  sass: 'scss',
-  diff: 'diff',
-  docker: 'dockerfile',
-  dockerfile: 'dockerfile',
-  ini: 'ini',
-  graphql: 'graphql',
-  gql: 'graphql',
-  kt: 'kotlin',
-  kotlin: 'kotlin',
-  swift: 'swift',
-  dart: 'dart',
-  sql: 'sql',
-  ps1: 'powershell',
-  pwsh: 'powershell',
-  powershell: 'powershell',
-  make: 'makefile',
-  makefile: 'makefile',
-  txt: 'text',
-  plain: 'text',
-  plaintext: 'text',
-  none: 'text',
-  raw: 'text',
-  text: 'text',
+  js: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript',
+  py: 'python', python3: 'python', py3: 'python',
+  sh: 'bash', shell: 'bash', zsh: 'bash', bash: 'bash',
+  yml: 'yaml', yaml: 'yaml', md: 'markdown', markdown: 'markdown',
+  rb: 'ruby', ruby: 'ruby', cs: 'csharp', csharp: 'csharp', 'c#': 'csharp',
+  'c++': 'cpp', cpp: 'cpp', c: 'c', golang: 'go', go: 'go', rs: 'rust', rust: 'rust',
+  htm: 'xml', html: 'xml', xhtml: 'xml', svg: 'xml', xml: 'xml',
+  json: 'json', css: 'css', scss: 'scss', sass: 'scss', diff: 'diff',
+  docker: 'dockerfile', dockerfile: 'dockerfile', ini: 'ini',
+  graphql: 'graphql', gql: 'graphql', kt: 'kotlin', kotlin: 'kotlin',
+  swift: 'swift', dart: 'dart', sql: 'sql',
+  ps1: 'powershell', pwsh: 'powershell', powershell: 'powershell',
+  make: 'makefile', makefile: 'makefile',
+  txt: 'text', plain: 'text', plaintext: 'text', none: 'text', raw: 'text', text: 'text',
   auto: 'auto',
 } as const;
 
 type KnownLanguageAlias = keyof typeof LANGUAGE_ALIAS_MAP;
+
+const LANGUAGE_DISPLAY_MAP = {
+  javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python',
+  bash: 'Bash', json: 'JSON', yaml: 'YAML', markdown: 'Markdown',
+  xml: 'HTML / XML', css: 'CSS', cpp: 'C++', csharp: 'C#', c: 'C',
+  go: 'Go', rust: 'Rust', sql: 'SQL', ruby: 'Ruby', java: 'Java', php: 'PHP',
+  dockerfile: 'Docker', graphql: 'GraphQL', kotlin: 'Kotlin', swift: 'Swift',
+  dart: 'Dart', scss: 'SCSS', diff: 'Diff', ini: 'INI',
+  makefile: 'Makefile', powershell: 'PowerShell',
+} as const;
 
 /**
  * Normalizes common language aliases to highlight.js supported identifiers.
@@ -168,20 +93,44 @@ export function normalizeLanguage(lang?: string): string {
   if (!lang) return '';
   const clean = lang.trim().toLowerCase();
 
-  if (Object.prototype.hasOwnProperty.call(LANGUAGE_ALIAS_MAP, clean)) {
-    // SAFETY: Verified membership in LANGUAGE_ALIAS_MAP via hasOwnProperty
+  if (Object.hasOwn(LANGUAGE_ALIAS_MAP, clean)) {
+    // SAFETY: Verified membership in LANGUAGE_ALIAS_MAP via Object.hasOwn
     return LANGUAGE_ALIAS_MAP[clean as KnownLanguageAlias];
   }
 
   return clean;
 }
 
+/**
+ * Formats a raw or normalized language identifier into a human-readable badge label.
+ * Pulls display-label resolution into the syntaxHighlighter module so UI callers do not duplicate tables.
+ *
+ * @param {string} [lang] - Raw or normalized language identifier.
+ * @param {boolean} [isPersian] - Whether the active UI locale is Persian.
+ * @returns {string} Display label for code block headers.
+ */
+export function formatLanguageDisplayName(lang?: string, isPersian?: boolean): string {
+  const norm = normalizeLanguage(lang);
+
+  if (!norm || norm === 'text') {
+    return isPersian ? 'متن' : 'TEXT';
+  }
+
+  // SAFETY: Checked via Object.hasOwn before indexing LANGUAGE_DISPLAY_MAP
+  if (Object.hasOwn(LANGUAGE_DISPLAY_MAP, norm)) {
+    return LANGUAGE_DISPLAY_MAP[norm as keyof typeof LANGUAGE_DISPLAY_MAP];
+  }
+
+  return norm.toUpperCase();
+}
+
 /** Maximum number of highlighted code snippets retained in memory */
 const HIGHLIGHT_CACHE_LIMIT = 200;
 
-interface HighlightResult {
+export interface HighlightResult {
   readonly html: string;
   readonly language: string;
+  readonly dir: 'ltr' | 'rtl';
 }
 
 /** Internal bounded LRU cache for syntax highlight computations */
@@ -210,10 +159,12 @@ export function getHighlightCacheStats(): HighlightCacheStats {
 
 /**
  * Highlights a string of source code using highlight.js with LRU caching.
+ * Encapsulates language alias normalization, C-family semantic token enhancement,
+ * hybrid Persian/Latin script segmentation, and block text direction (`ltr` vs `rtl`).
  *
  * @param {string} code - The raw source code string to highlight.
  * @param {string} [language] - Target programming language.
- * @returns {HighlightResult} Highlighted HTML markup and resolved language.
+ * @returns {HighlightResult} Highlighted HTML markup, resolved language, and block direction.
  */
 export function highlightCode(code: string, language?: string): HighlightResult {
   const normLang = normalizeLanguage(language);
@@ -225,14 +176,14 @@ export function highlightCode(code: string, language?: string): HighlightResult 
     return cached;
   }
 
-  let result: HighlightResult | null = null;
+  let rawHtml = '';
+  let resolvedLang = normLang || 'text';
+  const isPlainTextBlock = !normLang || normLang === 'text';
 
   // Plain text or unlabelled blocks: guarantee zero false-positive syntax guessing
-  if (!normLang || normLang === 'text') {
-    result = {
-      html: escapeHtml(code),
-      language: 'text',
-    };
+  if (isPlainTextBlock) {
+    rawHtml = escapeHtml(code);
+    resolvedLang = 'text';
   } else if (hljs.getLanguage(normLang)) {
     try {
       const hlResult = hljs.highlight(code, {
@@ -240,45 +191,48 @@ export function highlightCode(code: string, language?: string): HighlightResult 
         ignoreIllegals: true,
       });
 
-      result = { html: hlResult.value, language: normLang };
+      rawHtml = hlResult.value;
+      resolvedLang = normLang;
     } catch {
-      // Fallback to plain text on highlight error
-      result = { html: escapeHtml(code), language: normLang };
+      rawHtml = escapeHtml(code);
     }
   } else if (normLang === 'auto') {
-    // Only attempt auto-detection when explicitly requested via "auto"
     try {
       const autoResult = hljs.highlightAuto(code);
 
       if (autoResult.language && (autoResult.relevance ?? 0) >= 4 && autoResult.value) {
-        result = { html: autoResult.value, language: autoResult.language };
+        rawHtml = autoResult.value;
+        resolvedLang = autoResult.language;
       }
     } catch {
       // Fallback on auto-detection error
     }
   }
 
-  // Safe fallback for unknown languages or low-confidence auto-detection
-  if (!result) {
-    result = {
-      html: escapeHtml(code),
-      language: normLang || 'text',
-    };
+  if (!rawHtml && code) {
+    rawHtml = escapeHtml(code);
   }
 
   // Enhance C-family & systems languages with VSCode-level semantic tokens
-  const enhancedHtml = enhanceHighlightedHtml(result.html, result.language);
+  const enhancedHtml = enhanceHighlightedHtml(rawHtml, resolvedLang);
+
+  // Plain-text blocks containing Persian characters render RTL; code blocks always render LTR
+  const dir: 'ltr' | 'rtl' =
+    resolvedLang === 'text' && hasPersianText(code) ? 'rtl' : 'ltr';
 
   // Apply character-level font segmentation to HTML tokens
   const segmentedResult: HighlightResult = {
     html: segmentHtmlByLanguage(enhancedHtml),
-    language: result.language,
+    language: resolvedLang,
+    dir,
   };
 
   highlightCache.set(cacheKey, segmentedResult);
 
   return segmentedResult;
 }
+
+const HTML_ESCAPE_TEST_REGEX = /[&<>"']/;
 
 /**
  * Escapes special HTML characters to prevent XSS.
@@ -289,7 +243,7 @@ export function highlightCode(code: string, language?: string): HighlightResult 
 function escapeHtml(text: string): string {
   if (!text) return '';
 
-  if (!/[&<>"']/.test(text)) return text;
+  if (!HTML_ESCAPE_TEST_REGEX.test(text)) return text;
 
   return text
     .replace(/&/g, '&amp;')

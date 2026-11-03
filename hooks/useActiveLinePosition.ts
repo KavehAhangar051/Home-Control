@@ -55,11 +55,14 @@ export function calculateActiveLinePosition(
   value: string,
   scrollTop: number,
   clientHeight: number,
-  options?: { lineHeight?: number; paddingTop?: number }
+  options?: { lineHeight?: number; paddingTop?: number; cachedLineNumber?: number }
 ): ActiveLineInfo {
   const text = value ?? '';
   const limit = Math.min(Math.max(0, selectionStart), text.length);
-  const lineNumber = 1 + countNewlinesBeforeIndex(text, limit);
+  const lineNumber =
+    options?.cachedLineNumber && options.cachedLineNumber > 0
+      ? options.cachedLineNumber
+      : 1 + countNewlinesBeforeIndex(text, limit);
 
   const lineHeight = options?.lineHeight && options.lineHeight > 0 ? options.lineHeight : 24;
   const paddingTop = options?.paddingTop ?? 16;
@@ -111,22 +114,13 @@ export function useActiveLinePosition(
     if (!textarea || typeof window === 'undefined') return;
 
     const style = window.getComputedStyle(textarea);
-    let lineHeight = 24;
-    let paddingTop = 16;
-
     const parsedLineHeight = parseFloat(style.lineHeight);
-
-    if (!isNaN(parsedLineHeight) && parsedLineHeight > 0) {
-      lineHeight = parsedLineHeight;
-    }
-
     const parsedPaddingTop = parseFloat(style.paddingTop);
 
-    if (!isNaN(parsedPaddingTop)) {
-      paddingTop = parsedPaddingTop;
-    }
-
-    styleMetricsRef.current = { lineHeight, paddingTop };
+    styleMetricsRef.current = {
+      lineHeight: parsedLineHeight > 0 ? parsedLineHeight : 24,
+      paddingTop: Number.isFinite(parsedPaddingTop) ? parsedPaddingTop : 16,
+    };
   }, [textareaRef]);
 
   useEffect(() => {
@@ -158,28 +152,25 @@ export function useActiveLinePosition(
       const { lineHeight = 24, paddingTop = 16 } = styleMetricsRef.current || {};
       const text = textarea.value ?? '';
       const selectionStart = textarea.selectionStart ?? 0;
-      let lineNumber = 1;
-
-      if (
+      const isCacheHit =
         lineCacheRef.current.selectionStart === selectionStart &&
-        lineCacheRef.current.text === text
-      ) {
-        lineNumber = lineCacheRef.current.lineNumber;
-      } else {
-        const limit = Math.min(Math.max(0, selectionStart), text.length);
-        lineNumber = 1 + countNewlinesBeforeIndex(text, limit);
-        lineCacheRef.current = { text, selectionStart, lineNumber };
+        lineCacheRef.current.text === text;
+
+      const computed = calculateActiveLinePosition(
+        selectionStart,
+        text,
+        textarea.scrollTop,
+        textarea.clientHeight,
+        {
+          lineHeight,
+          paddingTop,
+          cachedLineNumber: isCacheHit ? lineCacheRef.current.lineNumber : undefined,
+        }
+      );
+
+      if (!isCacheHit) {
+        lineCacheRef.current = { text, selectionStart, lineNumber: computed.lineNumber };
       }
-
-      const lineTop = paddingTop + (lineNumber - 1) * lineHeight - textarea.scrollTop;
-      const isVisible = lineTop >= 0 && lineTop <= textarea.clientHeight;
-
-      const computed: ActiveLineInfo = {
-        lineNumber,
-        top: lineTop,
-        height: lineHeight,
-        isVisible,
-      };
 
       setActiveLine((prev) => {
         if (

@@ -7,6 +7,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { m, MotionValue, AnimatePresence } from 'motion/react';
+import { useStudioUI } from '@/store/MarkdownContext';
 
 export interface DockLabelProps {
   className?: string;
@@ -29,6 +30,8 @@ export function DockLabel({
   isHovered,
 }: DockLabelProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const { theme } = useStudioUI();
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     if (!isHovered) return;
@@ -48,7 +51,11 @@ export function DockLabel({
           animate={{ opacity: 1, y: -10 }}
           exit={{ opacity: 0, y: 0 }}
           transition={{ duration: 0.15 }}
-          className={`absolute -top-8 left-1/2 pointer-events-none z-50 whitespace-nowrap rounded-lg border border-white/10 bg-zinc-900/95 px-2.5 py-1 text-xs font-vazir text-zinc-100 shadow-xl backdrop-blur-md select-none ${className}`}
+          className={`absolute -top-8 left-1/2 pointer-events-none z-50 whitespace-nowrap rounded-lg border px-2.5 py-1 text-xs font-vazir shadow-xl backdrop-blur-md select-none ${
+            isDark
+              ? 'border-white/10 bg-zinc-900/95 text-zinc-100'
+              : 'border-zinc-200 bg-white/95 text-zinc-900 shadow-zinc-300/60'
+          } ${className}`}
           role="tooltip"
           style={{ x: '-50%' }}
         >

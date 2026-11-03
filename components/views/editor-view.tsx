@@ -6,14 +6,13 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
-import { m, useReducedMotion } from 'motion/react';
+import { useReducedMotion } from 'motion/react';
 import { useMarkdownContext } from '@/store/MarkdownContext';
 import { useActiveLinePosition } from '@/hooks/useActiveLinePosition';
-import { FileText, Link2, Unlink } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { EditorStatsBadges } from './editor-stats-badges';
 import { EditorActiveLine } from './editor-active-line';
-import { SPRING_PRESS } from '@/lib/ease';
-import { ActionSwapIcon } from '@/components/motion/action-swap';
+import { SyncScrollToggleButton } from './sync-scroll-toggle';
 
 /**
  * Raw Markdown Editor View containing integrated metric pills and interactive text area.
@@ -41,7 +40,8 @@ export const EditorView = React.memo(function EditorView(): React.JSX.Element {
   const { activeLine, recalculateLine } = useActiveLinePosition(textareaRef);
 
   const isDark = theme === 'dark';
-  const locale = language === 'fa' ? 'fa-IR' : 'en-US';
+  const isFa = language === 'fa';
+  const locale = isFa ? 'fa-IR' : 'en-US';
   const reduceMotion = useReducedMotion();
 
   const handleCursorUpdate = useCallback(() => {
@@ -56,68 +56,57 @@ export const EditorView = React.memo(function EditorView(): React.JSX.Element {
     [setEditorElement]
   );
 
+  const panelThemeClass = isDark
+    ? 'border-zinc-800 bg-black/90'
+    : 'border-zinc-200/90 bg-white/95 shadow-zinc-200/60';
+
+  const headerThemeClass = isDark
+    ? 'bg-zinc-950/90 border-zinc-800 text-zinc-200'
+    : 'bg-zinc-100/90 border-zinc-200 text-zinc-800';
+
+  const iconBadgeClass = isDark
+    ? 'bg-zinc-900 border-zinc-800 text-zinc-300'
+    : 'bg-white border-zinc-300 text-zinc-700 shadow-xs';
+
+  const textareaThemeClass = isDark
+    ? 'text-zinc-100 border-zinc-800 placeholder:text-zinc-600 focus-visible:ring-offset-zinc-950'
+    : 'text-zinc-900 border-zinc-300 placeholder:text-zinc-500 focus-visible:ring-offset-white';
+
+  const viewportHeightClass = isFocusMode
+    ? 'h-[calc(100vh-110px)] min-h-[480px]'
+    : 'h-[calc(100vh-195px)] min-h-[480px] max-h-[820px]';
+
   return (
-    <div
+    <section
       id="editor-view-container"
-      className={`flex flex-col h-full glass-panel rounded-2xl border overflow-hidden shadow-2xl transition-colors duration-200 ${
-        isDark ? 'border-zinc-800 bg-black/90' : 'border-zinc-200/90 bg-white/95 shadow-zinc-200/60'
-      }`}
+      aria-labelledby="editor-panel-title"
+      className={`flex flex-col h-full glass-panel rounded-2xl border overflow-hidden shadow-2xl transition-colors duration-200 ${panelThemeClass}`}
     >
       {/* Editor Header with Integrated Stats & SyncScroll Toggle */}
       <div
         id="editor-toolbar-header"
-        className={`flex flex-wrap items-center justify-between px-4 py-2.5 min-h-[45px] border-b text-xs gap-2 transition-colors ${
-          isDark ? 'bg-zinc-950/90 border-zinc-800' : 'bg-zinc-100/90 border-zinc-200 text-zinc-800'
-        }`}
+        className={`flex flex-wrap items-center justify-between px-4 py-2.5 min-h-[45px] border-b text-xs gap-2 transition-colors ${headerThemeClass}`}
       >
-        <div className={`flex items-center gap-2 font-semibold flex-wrap ${isDark ? 'text-zinc-200' : 'text-zinc-800'}`}>
-          <div className={`p-1.5 rounded-lg border ${isDark ? 'bg-zinc-900 border-zinc-800 text-zinc-300' : 'bg-white border-zinc-300 text-zinc-700 shadow-xs'}`}>
-            <FileText className="w-4 h-4" />
+        <div className="flex items-center gap-2 font-semibold flex-wrap">
+          <div className={`p-1.5 rounded-lg border ${iconBadgeClass}`} aria-hidden="true">
+            <FileText className="w-4 h-4" aria-hidden="true" />
           </div>
-          <h2 className="text-xs font-semibold">{t.editor.title}</h2>
+          <h2 id="editor-panel-title" className="text-xs font-semibold">{t.editor.title}</h2>
 
           <EditorStatsBadges stats={stats} isDark={isDark} locale={locale} t={t} />
         </div>
 
         {/* SyncScroll Switcher in Split View */}
         {viewMode === 'split' && (
-          <m.button
-            id="sync-scroll-toggle-btn"
-            type="button"
-            onClick={toggleSyncScroll}
-            whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-            whileHover={reduceMotion ? undefined : { scale: 1.02 }}
-            transition={SPRING_PRESS}
-            title={isSyncScroll ? t.editor.syncScrollEnabled : t.editor.syncScrollDisabled}
-            aria-label={t.editor.syncScroll}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer select-none touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
-              isSyncScroll
-                ? isDark
-                  ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400 hover:bg-emerald-950/60 shadow-xs focus-visible:ring-offset-zinc-950'
-                  : 'bg-emerald-50 border-emerald-300/80 text-emerald-700 hover:bg-emerald-100 shadow-xs focus-visible:ring-offset-white'
-                : isDark
-                ? 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 focus-visible:ring-offset-zinc-950'
-                : 'bg-zinc-100 border-zinc-300 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200 focus-visible:ring-offset-white'
-            }`}
-          >
-            <ActionSwapIcon
-              value={isSyncScroll ? 'sync' : 'unsync'}
-              animation="blur"
-              className="w-3.5 h-3.5"
-            >
-              {isSyncScroll ? (
-                <Link2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-              ) : (
-                <Unlink className="w-3.5 h-3.5 opacity-60 shrink-0" />
-              )}
-            </ActionSwapIcon>
-            <span>{t.editor.syncScroll}</span>
-            <span
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                isSyncScroll ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)] animate-pulse' : 'bg-zinc-500'
-              }`}
-            />
-          </m.button>
+          <SyncScrollToggleButton
+            isSyncScroll={isSyncScroll}
+            isDark={isDark}
+            reduceMotion={reduceMotion}
+            onToggle={toggleSyncScroll}
+            label={t.editor.syncScroll}
+            enabledTitle={t.editor.syncScrollEnabled}
+            disabledTitle={t.editor.syncScrollDisabled}
+          />
         )}
       </div>
 
@@ -125,11 +114,7 @@ export const EditorView = React.memo(function EditorView(): React.JSX.Element {
       <div className={`relative flex-1 p-2 pb-2.5 transition-colors ${isDark ? 'bg-black' : 'bg-zinc-50/50'}`}>
         <div
           data-lenis-prevent="true"
-          className={`relative w-full rounded-xl overflow-hidden transition-colors duration-300 ${
-            isFocusMode
-              ? 'h-[calc(100vh-110px)] min-h-[480px]'
-              : 'h-[calc(100vh-195px)] min-h-[480px] max-h-[820px]'
-          }`}
+          className={`relative w-full rounded-xl overflow-hidden transition-colors duration-300 ${viewportHeightClass}`}
         >
           <EditorActiveLine
             isVisible={isFocused && activeLine.isVisible}
@@ -138,6 +123,9 @@ export const EditorView = React.memo(function EditorView(): React.JSX.Element {
             height={activeLine.height}
           />
 
+          <label htmlFor="editor-markdown-textarea" className="sr-only">
+            {t.editor.title}
+          </label>
           <textarea
             id="editor-markdown-textarea"
             ref={handleTextareaRef}
@@ -154,7 +142,6 @@ export const EditorView = React.memo(function EditorView(): React.JSX.Element {
             onClick={handleCursorUpdate}
             onScroll={handleCursorUpdate}
             onWheel={(e) => {
-              // Ensure mouse wheel scrolling smoothly advances textarea content without bubbling
               e.stopPropagation();
             }}
             onFocus={() => {
@@ -163,16 +150,12 @@ export const EditorView = React.memo(function EditorView(): React.JSX.Element {
             }}
             onBlur={() => setIsFocused(false)}
             placeholder={t.editor.placeholder}
-            dir={language === 'fa' ? 'rtl' : 'ltr'}
-            className={`relative z-10 w-full h-full p-3.5 sm:p-4 pb-12 sm:pb-16 text-sm leading-relaxed overflow-y-auto overscroll-contain editor-scrollbar focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 resize-none glass-input rounded-xl border shadow-inner transition-colors bg-transparent ${
-              isDark
-                ? 'text-zinc-100 border-zinc-800 placeholder:text-zinc-600 focus-visible:ring-offset-zinc-950'
-                : 'text-zinc-900 border-zinc-300 placeholder:text-zinc-500 focus-visible:ring-offset-white'
-            } ${language === 'fa' ? 'font-vazir' : 'font-sans'}`}
+            dir={isFa ? 'rtl' : 'ltr'}
+            className={`relative z-10 w-full h-full p-3.5 sm:p-4 pb-12 sm:pb-16 text-base sm:text-sm leading-relaxed overflow-y-auto overscroll-contain editor-scrollbar focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 resize-none glass-input rounded-xl border shadow-inner transition-colors bg-transparent ${textareaThemeClass} ${isFa ? 'font-vazir' : 'font-sans'}`}
           />
         </div>
       </div>
-    </div>
+    </section>
   );
 });
 

@@ -8,6 +8,17 @@ import { DEFAULT_READING_SPEED_WPM } from '@/constants/domain';
 import { isPersianCharCode } from './persianizer';
 
 /**
+ * Canonical immutable Special Case Value Object representing zeroed metrics for an empty document.
+ */
+export const EMPTY_DOCUMENT_STATS: DocumentStats = Object.freeze({
+  characterCount: 0,
+  wordCount: 0,
+  persianCharCount: 0,
+  lineCount: 0,
+  estimatedReadTimeMinutes: 0,
+});
+
+/**
  * Calculates comprehensive document statistics for a given text using a high-performance,
  * single-pass scan that eliminates intermediate string arrays and garbage-collection pressure.
  * Operates purely on UTF-16 numeric character codes (SMI) avoiding single-character string allocations.
@@ -18,13 +29,7 @@ import { isPersianCharCode } from './persianizer';
  */
 export function calculateDocumentStats(text: string, wordsPerMinute?: number): DocumentStats {
   if (!text) {
-    return {
-      characterCount: 0,
-      wordCount: 0,
-      persianCharCount: 0,
-      lineCount: 0,
-      estimatedReadTimeMinutes: 0,
-    };
+    return EMPTY_DOCUMENT_STATS;
   }
 
   const characterCount = text.length;

@@ -24,14 +24,14 @@ export const TRANSLATIONS: Record<Language, Translations> = {
       lines: 'خطوط:',
       words: 'کلمات:',
       chars: 'کاراکتر:',
-      placeholder: 'متن مارک‌داون خود را اینجا تایپ یا پیست کنید...',
+      placeholder: 'متن مارک‌داون خود را اینجا تایپ یا پیست کنید…',
       syncScroll: 'اسکرول همگام',
       syncScrollEnabled: 'اسکرول همگام فعال شد',
       syncScrollDisabled: 'اسکرول همگام غیرفعال شد',
     },
     preview: {
       title: 'پیش‌نمایش راست‌چین',
-      emptyTitle: 'پیش‌نمایش راست‌چین',
+      emptyTitle: 'هنوز متنی برای پیش‌نمایش وجود ندارد',
       emptyDescription: 'متن مارک‌داون را در ویرایشگر بنویسید یا پیست کنید تا پیش‌نمایش آن اینجا دیده شود.',
     },
     dock: {
@@ -61,7 +61,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     pasteModal: {
       title: 'پیست متن در ویرایشگر',
       description: 'متن را در کادر زیر پیست کنید و دکمه درج را بزنید.',
-      placeholder: 'متن را اینجا پیست کنید (Ctrl+V)...',
+      placeholder: 'متن را اینجا پیست کنید (Ctrl+V)…',
       clearButton: 'پاک کردن',
       cancelButton: 'انصراف',
       applyButton: 'درج در ویرایشگر',
@@ -102,14 +102,14 @@ export const TRANSLATIONS: Record<Language, Translations> = {
       lines: 'Lines:',
       words: 'Words:',
       chars: 'Chars:',
-      placeholder: 'Type or paste Markdown text here...',
+      placeholder: 'Type or paste Markdown text here…',
       syncScroll: 'Sync Scroll',
       syncScrollEnabled: 'Sync scroll enabled',
       syncScrollDisabled: 'Sync scroll disabled',
     },
     preview: {
       title: 'RTL Preview',
-      emptyTitle: 'RTL Preview',
+      emptyTitle: 'No Markdown to preview yet',
       emptyDescription: 'Type or paste Markdown in the editor to see the preview here.',
     },
     dock: {
@@ -139,7 +139,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     pasteModal: {
       title: 'Paste Text into Editor',
       description: 'Paste your text below and click Insert.',
-      placeholder: 'Paste your text here (Ctrl+V)...',
+      placeholder: 'Paste your text here (Ctrl+V)…',
       clearButton: 'Clear',
       cancelButton: 'Cancel',
       applyButton: 'Insert into Editor',

@@ -6,16 +6,15 @@
 import React from 'react';
 import { isPersianCharCode, isDigitCode, hasPersianText } from '@/utils/persianizer';
 
-export { isDigitCode };
-
 /** CSS font-family string for Persian typography (Dana with Vazirmatn fallback) */
 export const FONT_VAZIR_STYLE = "'Dana', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
-/** Alias for Persian font style */
-export const FONT_PERSIAN_STYLE = FONT_VAZIR_STYLE;
-
 /** CSS font-family string for Latin Kode Mono */
 export const FONT_MONO_STYLE = "'Kode Mono', monospace";
+
+/** Shared frozen style objects to eliminate per-span object allocations during React rendering */
+const PERSIAN_SPAN_STYLE = { fontFamily: FONT_VAZIR_STYLE } as const;
+const LATIN_SPAN_STYLE = { fontFamily: FONT_MONO_STYLE } as const;
 
 /** Script category classification */
 export type ScriptType = 'persian' | 'latin';
@@ -27,37 +26,13 @@ export interface ScriptSegment {
 }
 
 /**
- * Checks if a character is a numeric digit (ASCII 0-9, Arabic, or Persian digits).
- *
- * @param {string} char - Single character.
- * @returns {boolean} True if character is a digit.
- */
-export function isDigit(char: string): boolean {
-  if (!char) return false;
-
-  return isDigitCode(char.charCodeAt(0));
-}
-
-/**
  * Fast numeric check if UTF-16 character code is a Latin letter (A-Z, a-z).
  *
  * @param {number} code - Character code.
  * @returns {boolean} True if character code represents an English/Latin letter.
  */
-export function isLatinLetterCode(code: number): boolean {
+function isLatinLetterCode(code: number): boolean {
   return (code >= 0x0041 && code <= 0x005a) || (code >= 0x0061 && code <= 0x007a);
-}
-
-/**
- * Checks if a character is a Latin alphabet character (A-Z, a-z).
- *
- * @param {string} char - Single character.
- * @returns {boolean} True if the character is an English/Latin letter.
- */
-export function isLatinLetter(char: string): boolean {
-  if (!char) return false;
-
-  return isLatinLetterCode(char.charCodeAt(0));
 }
 
 /**
@@ -140,7 +115,10 @@ export function segmentTextByScript(text: string, defaultScript: ScriptType = 'p
   }
 
   if (segmentStart < len && currentScript) {
-    segments.push({ text: text.slice(segmentStart), script: currentScript });
+    segments.push({
+      text: segmentStart === 0 ? text : text.slice(segmentStart),
+      script: currentScript,
+    });
   }
 
   return segments;
@@ -184,7 +162,13 @@ export function segmentHtmlByLanguage(html: string): string {
       continue;
     }
 
-    // Analyze plain text node for Persian and Latin segments
+    // Fast-path per token: if this text node has no Persian characters, it already inherits Kode Mono from .hljs / pre / code
+    if (!hasPersianText(token)) {
+      output += token;
+      continue;
+    }
+
+    // Analyze mixed/Persian text node for Persian and Latin segments (e.g. numbers inside Persian comments)
     const segments = segmentTextByScript(token, 'latin');
     const segCount = segments.length;
 
@@ -203,12 +187,32 @@ export function segmentHtmlByLanguage(html: string): string {
 }
 
 /**
- * Converts a mixed Persian/Latin string into an array of React spans with dedicated fonts.
+ * Fast scan checking whether a string contains any Latin letters or numeric digits.
+ * Allows pure-Persian strings to bypass array/object allocation in segmentMixedTextToReact.
+ */
+function hasLatinOrDigit(text: string): boolean {
+  const len = text.length;
+
+  for (let i = 0; i < len; i++) {
+    const code = text.charCodeAt(i);
+
+    if (isDigitCode(code) || isLatinLetterCode(code)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Converts a mixed Persian/Latin string into React nodes with dedicated fonts.
+ * Segments matching `defaultScript` are returned as plain strings (inheriting the parent font)
+ * to minimize React element and DOM node allocations on mid/low-tier devices.
  *
  * @param {string} text - Plain text to segment.
  * @param {string} [keyPrefix='seg'] - Unique prefix for React element keys.
  * @param {ScriptType} [defaultScript='persian'] - Fallback script for neutral text.
- * @returns {React.ReactNode} Array of React span elements or plain string.
+ * @returns {React.ReactNode} React node(s) or plain string.
  */
 export function segmentMixedTextToReact(
   text: string,
@@ -217,39 +221,55 @@ export function segmentMixedTextToReact(
 ): React.ReactNode {
   if (!text) return text;
 
+  // Fast-path: pure Persian/neutral text inside a Persian container needs zero span wrappers or array allocations
+  if (defaultScript === 'persian' && !hasLatinOrDigit(text)) {
+    return text;
+  }
+
+  // Fast-path: pure Latin/neutral text inside a Latin container needs zero span wrappers
+  if (defaultScript === 'latin' && !hasPersianText(text)) {
+    return text;
+  }
+
   const segments = segmentTextByScript(text, defaultScript);
 
   if (segments.length === 0) return text;
 
-  if (segments.length === 1 && segments[0].script === 'persian') {
+  if (segments.length === 1 && segments[0].script === defaultScript) {
+    return text;
+  }
+
+  if (segments.length === 1) {
+    const isPersian = segments[0].script === 'persian';
+
     return React.createElement(
       'span',
-      { key: `${keyPrefix}-0`, className: 'font-vazir font-persian-token', style: { fontFamily: FONT_VAZIR_STYLE } },
+      {
+        key: `${keyPrefix}-0`,
+        className: isPersian ? 'font-vazir font-persian-token' : 'font-mono font-latin-token',
+        style: isPersian ? PERSIAN_SPAN_STYLE : LATIN_SPAN_STYLE,
+      },
       text
     );
   }
 
-  if (segments.length === 1 && segments[0].script === 'latin') {
-    return React.createElement(
-      'span',
-      { key: `${keyPrefix}-0`, className: 'font-mono font-latin-token', style: { fontFamily: FONT_MONO_STYLE } },
-      text
-    );
-  }
+  return segments.map((seg, idx) => {
+    if (seg.script === defaultScript) {
+      return seg.text;
+    }
 
-  return segments.map((seg, idx) =>
-    React.createElement(
+    const isPersian = seg.script === 'persian';
+
+    return React.createElement(
       'span',
       {
         key: `${keyPrefix}-${idx}`,
-        className: seg.script === 'persian' ? 'font-vazir font-persian-token' : 'font-mono font-latin-token',
-        style: {
-          fontFamily: seg.script === 'persian' ? FONT_VAZIR_STYLE : FONT_MONO_STYLE,
-        },
+        className: isPersian ? 'font-vazir font-persian-token' : 'font-mono font-latin-token',
+        style: isPersian ? PERSIAN_SPAN_STYLE : LATIN_SPAN_STYLE,
       },
       seg.text
-    )
-  );
+    );
+  });
 }
 
 function isBooleanPrimitive(val: React.ReactNode): val is boolean {

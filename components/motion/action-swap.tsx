@@ -88,7 +88,7 @@ function ActionSwapText({
             initial="initial"
             animate="animate"
             exit="exit"
-            className="absolute left-0 top-[0.08em] inline-block whitespace-pre"
+            className="absolute start-0 top-[0.08em] inline-block whitespace-pre"
           >
             {label.split("").map((char, i) => (
               <m.span
@@ -108,7 +108,7 @@ function ActionSwapText({
             initial={reduce ? false : "initial"}
             animate={reduce ? { opacity: 1, filter: "blur(0px)", scale: 1, y: 0 } : "animate"}
             exit={reduce ? undefined : "exit"}
-            className="absolute left-0 top-[0.08em] inline-block max-w-full truncate"
+            className="absolute start-0 top-[0.08em] inline-block max-w-full truncate"
           >
             {children}
           </m.span>

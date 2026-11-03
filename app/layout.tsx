@@ -71,7 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <span id="pre-ascii-char">|</span>
               <script>
                 (function() {
-                  var f = ['|', '/', '-', '\\'];
+                  var f = ['|', '/', '-', '\\\\'];
                   var i = 0;
                   var el = document.getElementById('pre-ascii-char');
                   if (el) {

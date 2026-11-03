@@ -9,7 +9,7 @@ import React from 'react';
 import { m, useMotionValue } from 'motion/react';
 import { DockProps } from '@/types/dock';
 import { DockItem, DockIcon, DockLabel } from '@/components/ui/dock-item';
-import { useMarkdownContext } from '@/store/MarkdownContext';
+import { useStudioUI } from '@/store/MarkdownContext';
 import { SPRING_DOCK } from '@/lib/ease';
 
 function isStringLabel(val: unknown): val is string {
@@ -32,7 +32,7 @@ export function MagnificationDock({
   baseItemSize = 42,
 }: DockProps) {
   const mouseX = useMotionValue(Infinity);
-  const { theme, language } = useMarkdownContext();
+  const { theme, language } = useStudioUI();
   const isDark = theme === 'dark';
 
   return (
@@ -44,7 +44,7 @@ export function MagnificationDock({
         onMouseLeave={() => {
           mouseX.set(Infinity);
         }}
-        className={`flex items-end w-fit gap-2 rounded-2xl border backdrop-blur-2xl pb-2 px-3 shadow-2xl select-none transition-colors duration-200 ${
+        className={`flex items-end w-fit max-w-[calc(100vw-1rem)] gap-1 sm:gap-2 rounded-2xl border backdrop-blur-xl pb-2 px-2 sm:px-3 shadow-2xl select-none transition-colors duration-200 ${
           isDark
             ? 'border-white/10 bg-zinc-950/85 shadow-black/80'
             : 'border-zinc-300/80 bg-white/90 shadow-xl shadow-zinc-300/60'

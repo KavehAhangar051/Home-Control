@@ -22,6 +22,7 @@ export default function config(phase: string): NextConfig {
   compress: true,
   poweredByHeader: false,
   experimental: {
+    viewTransition: true,
     optimizePackageImports: ['lucide-react', 'motion'],
   },
   eslint: {

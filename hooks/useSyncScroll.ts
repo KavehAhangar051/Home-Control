@@ -51,15 +51,12 @@ export function useSyncScroll({
     };
 
     // Keep dimensions synchronized when container sizes change or content expands
-    let resizeObserver: ResizeObserver | null = null;
+    const resizeObserver = new ResizeObserver(() => {
+      refreshDimensions();
+    });
 
-    if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(() => {
-        refreshDimensions();
-      });
-      resizeObserver.observe(editorEl);
-      resizeObserver.observe(previewEl);
-    }
+    resizeObserver.observe(editorEl);
+    resizeObserver.observe(previewEl);
 
     const scheduleResetActive = () => {
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
@@ -173,13 +170,16 @@ export function useSyncScroll({
     previewEl.addEventListener('scroll', handlePreviewScroll, { passive: true });
 
     return () => {
-      if (resizeObserver) resizeObserver.disconnect();
+      resizeObserver.unobserve(editorEl);
+      resizeObserver.unobserve(previewEl);
+      resizeObserver.disconnect();
 
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
 
       if (editorRafId !== null) cancelAnimationFrame(editorRafId);
 
       if (previewRafId !== null) cancelAnimationFrame(previewRafId);
+
       editorEl.removeEventListener('wheel', onEditorInput);
       editorEl.removeEventListener('pointerdown', onEditorInput);
       editorEl.removeEventListener('touchstart', onEditorInput);

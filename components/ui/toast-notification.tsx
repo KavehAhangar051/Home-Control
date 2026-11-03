@@ -15,16 +15,10 @@ import {
   SUCCESS_POP_VARIANTS,
 } from '@/components/motion/motion-variants';
 import { SPRING_PRESS } from '@/lib/ease';
+import { STUDIO_VT_NAMES } from '@/utils/viewTransitions';
+import { ToastState } from '@/types/ui';
 
-export interface ToastState {
-  message: string;
-  type?: 'success' | 'info' | 'error';
-  id: number;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-}
+export type { ToastState };
 
 interface ToastNotificationProps {
   toast: ToastState | null;
@@ -63,29 +57,29 @@ interface ToastIconProps {
 function ToastIcon({ type, reduceMotion }: ToastIconProps): React.JSX.Element {
   if (type === 'error') {
     return (
-      <div className="shrink-0 text-rose-500">
-        <X className="w-4 h-4 stroke-[2.5]" />
+      <div className="shrink-0 text-rose-500" aria-hidden="true">
+        <X aria-hidden="true" className="w-4 h-4 stroke-[2.5]" />
       </div>
     );
   }
 
   if (type === 'info') {
     return (
-      <div className="shrink-0 text-sky-500">
-        <Info className="w-4 h-4" />
+      <div className="shrink-0 text-sky-500" aria-hidden="true">
+        <Info aria-hidden="true" className="w-4 h-4" />
       </div>
     );
   }
 
   return (
-    <div className="shrink-0">
+    <div className="shrink-0" aria-hidden="true">
       <m.div
         variants={reduceMotion ? undefined : SUCCESS_POP_VARIANTS}
         initial="initial"
         animate="animate"
         className="text-emerald-500"
       >
-        <Check className="w-4 h-4 stroke-[2.5]" />
+        <Check aria-hidden="true" className="w-4 h-4 stroke-[2.5]" />
       </m.div>
     </div>
   );
@@ -126,6 +120,8 @@ function ToastAction({
 
 /**
  * Render a floating animated toast banner for immediate action feedback.
+ * Wrapped in an always-mounted `viewTransitionName: studio-toaster` layer so mid-transition
+ * notifications never get captured or frozen in root snapshots.
  *
  * @param props - Component properties containing toast state and close handler.
  * @returns Toast notification element.
@@ -140,57 +136,62 @@ export function ToastNotification({
   const isError = toast?.type === 'error';
 
   return (
-    <AnimatePresence>
-      {toast && (
-        <m.div
-          key={toast.id}
-          variants={toastNotificationVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] sm:bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-50 max-w-md w-auto px-4 pointer-events-auto"
-          dir={isFa ? 'rtl' : 'ltr'}
-        >
-          {/* Error Shake Layer (only shakes on error) */}
+    <div
+      style={{ viewTransitionName: STUDIO_VT_NAMES.FLOATING_TOASTER }}
+      className="pointer-events-none fixed inset-0 z-50"
+    >
+      <AnimatePresence>
+        {toast && (
           <m.div
-            animate={
-              isError && !reduceMotion
-                ? { x: ERROR_SHAKE_X, transition: ERROR_SHAKE_TRANSITION }
-                : { x: 0 }
-            }
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border shadow-2xl backdrop-blur-xl text-xs font-medium transition-colors ${getToastContainerClass(isDark, isError)}`}
+            key={toast.id}
+            variants={toastNotificationVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            role="status"
+            aria-live="polite"
+            className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] sm:bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-50 max-w-md w-auto px-4 pointer-events-auto"
+            dir={isFa ? 'rtl' : 'ltr'}
           >
-            <ToastIcon type={toast.type} reduceMotion={reduceMotion} />
-
-            <span className={`leading-normal ${isFa ? 'font-vazir' : 'font-sans'}`}>
-              {toast.message}
-            </span>
-
-            {toast.action && (
-              <ToastAction
-                action={toast.action}
-                onClose={onClose}
-                isDark={isDark}
-                isFa={isFa}
-                reduceMotion={reduceMotion}
-              />
-            )}
-
-            <m.button
-              onClick={onClose}
-              type="button"
-              whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-              transition={SPRING_PRESS}
-              className={`min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-colors cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${getCloseButtonClass(isDark)}`}
-              aria-label={isFa ? 'بستن پیام' : 'Close notification'}
+            {/* Error Shake Layer (only shakes on error) */}
+            <m.div
+              animate={
+                isError && !reduceMotion
+                  ? { x: ERROR_SHAKE_X, transition: ERROR_SHAKE_TRANSITION }
+                  : { x: 0 }
+              }
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border shadow-2xl backdrop-blur-xl text-xs font-medium transition-colors ${getToastContainerClass(isDark, isError)}`}
             >
-              <X className="w-3.5 h-3.5" />
-            </m.button>
+              <ToastIcon type={toast.type} reduceMotion={reduceMotion} />
+
+              <span className={`leading-normal ${isFa ? 'font-vazir' : 'font-sans'}`}>
+                {toast.message}
+              </span>
+
+              {toast.action && (
+                <ToastAction
+                  action={toast.action}
+                  onClose={onClose}
+                  isDark={isDark}
+                  isFa={isFa}
+                  reduceMotion={reduceMotion}
+                />
+              )}
+
+              <m.button
+                onClick={onClose}
+                type="button"
+                whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+                transition={SPRING_PRESS}
+                className={`min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-colors cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${getCloseButtonClass(isDark)}`}
+                aria-label={isFa ? 'بستن پیام' : 'Close notification'}
+              >
+                <X aria-hidden="true" className="w-3.5 h-3.5" />
+              </m.button>
+            </m.div>
           </m.div>
-        </m.div>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

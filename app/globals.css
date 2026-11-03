@@ -1,10 +1,11 @@
 @import "tailwindcss";
+@import "../styles/view-transitions.css";
 @import url('https://fonts.googleapis.com/css2?family=Kode+Mono:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
 
-/* Dana Font Family from public/Fonts */
+/* Dana Font Family (local system lookup with bundled Vazirmatn fallback) */
 @font-face {
   font-family: 'Dana';
-  src: url('/Fonts/Dana-Medium.woff2') format('woff2');
+  src: local('Dana Medium'), local('Dana-Medium'), local('Dana');
   font-weight: 300 500;
   font-style: normal;
   font-display: swap;
@@ -12,23 +13,7 @@
 
 @font-face {
   font-family: 'Dana';
-  src: url('/Fonts/Dana-ExtraBold.woff2') format('woff2');
-  font-weight: 600 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'DanaFaNum';
-  src: url('/Fonts/DanaFaNum-Regular.woff') format('woff');
-  font-weight: 300 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'DanaFaNum';
-  src: url('/Fonts/DanaFaNum-Bold.woff') format('woff');
+  src: local('Dana ExtraBold'), local('Dana-ExtraBold'), local('Dana Bold');
   font-weight: 600 900;
   font-style: normal;
   font-display: swap;
@@ -72,7 +57,7 @@ html.lenis, html.lenis body {
   --font-mono: 'Kode Mono', monospace;
   --font-sans: 'Kode Mono', 'Dana', 'Vazirmatn', monospace, system-ui, sans-serif;
 
-  /* Semantic Colors (better-colors role tokens) */
+  /* Semantic Colors (better-colors & frontend-ui-engineering role tokens) */
   --color-canvas: var(--color-canvas);
   --color-surface: var(--color-surface);
   --color-surface-raised: var(--color-surface-raised);
@@ -80,9 +65,14 @@ html.lenis, html.lenis body {
   --color-border-subtle: var(--color-border-subtle);
   --color-border-default: var(--color-border-default);
   --color-border-strong: var(--color-border-strong);
+  --color-subtle: var(--color-border-subtle);
+  --color-default: var(--color-border-default);
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
   --color-text-disabled: var(--color-text-disabled);
+  --color-primary: var(--color-text-primary);
+  --color-secondary: var(--color-text-secondary);
+  --color-muted: var(--color-text-secondary);
   --color-accent-solid: #10b981;
   --color-accent-solid-hover: #059669;
   --color-accent-text: var(--color-accent-text);
@@ -126,7 +116,7 @@ html.lenis, html.lenis body {
     --color-border-default: rgba(0, 0, 0, 0.14);
     --color-border-strong: rgba(0, 0, 0, 0.35);
     --color-text-primary: #09090b;
-    --color-text-secondary: #71717a;
+    --color-text-secondary: #52525b;
     --color-text-disabled: #a1a1aa;
     --color-accent-text: #047857;
     --color-accent-subtle: rgba(16, 185, 129, 0.08);
@@ -141,6 +131,7 @@ html.lenis, html.lenis body {
 
   code, pre, kbd, samp, .hljs {
     font-family: 'Kode Mono', 'Dana', 'Vazirmatn', monospace;
+    font-variant-ligatures: contextual common-ligatures;
     font-feature-settings: 'calt' 1, 'liga' 1;
   }
 
@@ -161,26 +152,23 @@ html.lenis, html.lenis body {
 
 .glass-panel {
   background: var(--color-surface);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--color-border-subtle);
   box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
-  transform: translateZ(0);
+  contain: layout style;
 }
 
 .glass-card {
   background: var(--color-surface-raised);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--color-border-subtle);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  transform: translateZ(0);
 }
 
 .glass-input {
   background: var(--color-surface-sunken);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--color-border-default);
   color: var(--color-text-primary);
   transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out, background-color 0.2s ease-out;
@@ -197,7 +185,8 @@ html.lenis, html.lenis body {
 }
 
 .bg-noise {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctave='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.22'/%3E%3C/svg%3E");
+  background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 0);
+  background-size: 24px 24px;
 }
 
 html.light,
@@ -268,13 +257,95 @@ body.light,
 
 .markdown-rtl-content h1,
 .markdown-rtl-content h2,
-.markdown-rtl-content h3 {
+.markdown-rtl-content h3,
+.markdown-rtl-content h4 {
   text-wrap: balance;
   line-height: 1.35;
+  color: var(--color-text-primary);
+}
+
+.markdown-rtl-content h1 {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.markdown-rtl-content h1:first-child {
+  margin-top: 0;
+}
+
+.markdown-rtl-content h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 1.25rem;
+  margin-bottom: 0.6rem;
+}
+
+.markdown-rtl-content h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-rtl-content h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.875rem;
+  margin-bottom: 0.375rem;
+}
+
+.markdown-rtl-content h5 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.45;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.markdown-rtl-content h6 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
 }
 
 .markdown-rtl-content p {
   text-wrap: pretty;
+  margin-block: 0.65rem;
+}
+
+.markdown-rtl-content ul,
+.markdown-rtl-content ol {
+  margin-block: 0.65rem;
+  padding-inline-start: 1.5rem;
+}
+
+.markdown-rtl-content ul {
+  list-style-type: disc;
+}
+
+.markdown-rtl-content ol {
+  list-style-type: decimal;
+}
+
+.markdown-rtl-content li {
+  margin-block: 0.25rem;
+}
+
+.markdown-rtl-content blockquote {
+  margin-block: 0.85rem;
+  padding: 0.65rem 1rem;
+  border-inline-start: 3px solid var(--color-accent-solid);
+  background: var(--color-accent-subtle);
+  border-radius: 0.5rem;
 }
 
 .markdown-rtl-content pre {

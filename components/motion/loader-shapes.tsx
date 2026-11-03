@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useId, useState } from 'react';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { EASE_IN_OUT } from '@/lib/ease';
 import { PartProps } from './loader-types';
 
@@ -59,7 +59,7 @@ const MORPH_SCALE = [1, 1, 0.88, 0.88, 1, 1, 0.88, 0.88, 1, 1, 1];
 
 export function Morph({ size, speed, reduce }: PartProps): React.JSX.Element {
   return (
-    <motion.svg
+    <m.svg
       width={size}
       height={size}
       viewBox="0 0 100 100"
@@ -76,7 +76,7 @@ export function Morph({ size, speed, reduce }: PartProps): React.JSX.Element {
       }
     >
       <title>Loading</title>
-      <motion.path
+      <m.path
         fill="currentColor"
         d={MORPH_PATHS[0]}
         animate={reduce ? undefined : { d: MORPH_SEQ }}
@@ -86,7 +86,7 @@ export function Morph({ size, speed, reduce }: PartProps): React.JSX.Element {
             : { duration: speed * 5, ease: EASE_IN_OUT, repeat: Infinity }
         }
       />
-    </motion.svg>
+    </m.svg>
   );
 }
 
@@ -98,7 +98,7 @@ export function Comet({ size, speed, reduce }: PartProps): React.JSX.Element {
 
   return (
     <span className="relative inline-block" style={{ width: size, height: size }}>
-      <motion.span
+      <m.span
         className="absolute inset-0"
         animate={reduce ? REDUCED.animate : { rotate: 360 }}
         transition={
@@ -126,7 +126,7 @@ export function Comet({ size, speed, reduce }: PartProps): React.JSX.Element {
             />
           );
         })}
-      </motion.span>
+      </m.span>
     </span>
   );
 }
@@ -195,14 +195,14 @@ export function Metaballs({ size, speed, reduce }: PartProps): React.JSX.Element
         </filter>
       </defs>
       <g filter={`url(#${id})`} fill="currentColor">
-        <motion.circle
+        <m.circle
           cy="50"
           r="15"
           animate={reduce ? { opacity: [0.4, 1, 0.4] } : { cx: [30, 70, 30] }}
           transition={{ duration: speed * 1.6, ease: EASE_IN_OUT, repeat: Infinity }}
           cx={reduce ? 40 : 30}
         />
-        <motion.circle
+        <m.circle
           cy="50"
           r="15"
           animate={reduce ? { opacity: [0.4, 1, 0.4] } : { cx: [70, 30, 70] }}
@@ -238,7 +238,7 @@ export function Newton({ size, speed, reduce }: PartProps): React.JSX.Element {
         const move = getNewtonMove(i);
 
         return (
-          <motion.span
+          <m.span
             key={i}
             className="rounded-full bg-current"
             style={{ width: d, height: d }}
@@ -273,7 +273,7 @@ export function Helix({ size, speed, reduce }: PartProps): React.JSX.Element {
 
         return (
           <span key={`row-${top}`}>
-            <motion.span
+            <m.span
               className="absolute rounded-full bg-current"
               style={{ width: dot, height: dot, left: size / 2 - dot / 2, top }}
               animate={
@@ -292,7 +292,7 @@ export function Helix({ size, speed, reduce }: PartProps): React.JSX.Element {
                 delay,
               }}
             />
-            <motion.span
+            <m.span
               className="absolute rounded-full bg-current"
               style={{ width: dot, height: dot, left: size / 2 - dot / 2, top }}
               animate={
@@ -380,7 +380,7 @@ export function DotMatrix({ size, speed, reduce }: PartProps): React.JSX.Element
         const delay = ((x + y) / (2 * (n - 1))) * speed;
 
         return (
-          <motion.span
+          <m.span
             key={idx}
             className="rounded-full bg-current"
             style={{ width: dot, height: dot }}
@@ -416,9 +416,9 @@ export function Dither({ size, speed, reduce }: PartProps): React.JSX.Element {
       className="grid"
       style={{ gap, gridTemplateColumns: `repeat(${n}, ${cell}px)` }}
     >
-      {BAYER_4.map((order, idx) => (
-        <motion.span
-          key={`dither-${idx}`}
+      {BAYER_4.map((order) => (
+        <m.span
+          key={`dither-${order}`}
           className="bg-current"
           style={{ width: cell, height: cell }}
           animate={reduce ? { opacity: [0.3, 1, 0.3] } : { opacity: [0.1, 1, 0.1] }}

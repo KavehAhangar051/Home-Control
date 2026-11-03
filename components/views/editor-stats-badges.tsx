@@ -58,7 +58,7 @@ export const EditorStatsBadges: React.FC<EditorStatsBadgesProps> = React.memo(({
         className={badgeClass}
         title={t.editor.lines}
       >
-        <WrapText className={iconClass} />
+        <WrapText aria-hidden="true" className={iconClass} />
         <span className={labelClass}>{t.editor.lines}</span>
         <strong className={valueClass}>{stats.lineCount.toLocaleString(locale)}</strong>
       </m.span>
@@ -71,7 +71,7 @@ export const EditorStatsBadges: React.FC<EditorStatsBadgesProps> = React.memo(({
         className={badgeClass}
         title={t.editor.words}
       >
-        <CaseSensitive className={iconClass} />
+        <CaseSensitive aria-hidden="true" className={iconClass} />
         <span className={labelClass}>{t.editor.words}</span>
         <strong className={valueClass}>{stats.wordCount.toLocaleString(locale)}</strong>
       </m.span>
@@ -84,7 +84,7 @@ export const EditorStatsBadges: React.FC<EditorStatsBadgesProps> = React.memo(({
         className={badgeClass}
         title={t.editor.chars}
       >
-        <Type className={iconClass} />
+        <Type aria-hidden="true" className={iconClass} />
         <span className={labelClass}>{t.editor.chars}</span>
         <strong className={valueClass}>{stats.characterCount.toLocaleString(locale)}</strong>
       </m.span>

@@ -76,32 +76,63 @@ export function downloadFile(
 }
 
 /**
+ * Discriminated union outcome for the full file upload pipeline (validation + async text read).
+ */
+export type UploadedMarkdownFileResult =
+  | { readonly status: 'ok'; readonly content: string; readonly fileName: string }
+  | { readonly status: 'invalid_type' }
+  | { readonly status: 'file_too_large' }
+  | { readonly status: 'read_error' };
+
+/**
+ * Deep adapter interface that validates a Markdown file's extension and size,
+ * reads its UTF-8 text content, and returns an explicit discriminated union outcome.
+ *
+ * @param {File | null | undefined} file - User-selected or dropped File instance.
+ * @returns {Promise<UploadedMarkdownFileResult>} Validated file payload or explicit failure status.
+ */
+export async function processUploadedMarkdownFile(
+  file?: File | null
+): Promise<UploadedMarkdownFileResult> {
+  if (!file) {
+    return { status: 'invalid_type' };
+  }
+
+  const validation = validateMarkdownUploadFile(file.name, file.size);
+
+  if (validation !== 'valid') {
+    return { status: validation };
+  }
+
+  try {
+    const content = await file.text();
+
+    return {
+      status: 'ok',
+      content,
+      fileName: file.name,
+    };
+  } catch {
+    return { status: 'read_error' };
+  }
+}
+
+/**
  * Reads plain text content asynchronously from a user-provided File object.
  * Defines errors out of existence: returns empty string rather than rejecting on empty or unreadable files.
  *
  * @param {File | null | undefined} file - The File object selected or dropped by the user.
  * @returns {Promise<string>} A Promise resolving to the file's text content.
  */
-export function readTextFile(file?: File | null): Promise<string> {
+export async function readTextFile(file?: File | null): Promise<string> {
   if (!file) {
-    return Promise.resolve('');
+    return '';
   }
 
-  return new Promise((resolve) => {
-    try {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        // SAFETY: readAsText produces a string result upon successful completion
-        const result = e.target?.result as string;
-        resolve(result || '');
-      };
-
-      reader.onerror = () => resolve('');
-
-      reader.readAsText(file);
-    } catch {
-      resolve('');
-    }
-  });
+  try {
+    return await file.text();
+  } catch {
+    return '';
+  }
 }
 

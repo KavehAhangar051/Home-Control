@@ -11,6 +11,8 @@ import { useCursorState } from './hooks/use-cursor-state';
 import { CursorSvg } from './components/cursor-svg';
 
 const emptySubscribe = () => () => {};
+const getCanRenderCursor = () => !window.matchMedia('(pointer: coarse)').matches;
+const getServerCanRenderCursor = () => false;
 
 /**
  * Custom kinematic cursor that provides responsive physical interactions on fine pointer devices.
@@ -19,19 +21,15 @@ const emptySubscribe = () => () => {};
  * @returns {React.JSX.Element | null} The cursor component or null when unmounted / on touch devices.
  */
 export function CustomCursor() {
-  const mounted = useSyncExternalStore(
+  const canRender = useSyncExternalStore(
     emptySubscribe,
-    () => true,
-    () => false
+    getCanRenderCursor,
+    getServerCanRenderCursor
   );
 
   const state = useCursorState();
 
-  if (!mounted) {
-    return null;
-  }
-
-  if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
+  if (!canRender) {
     return null;
   }
 

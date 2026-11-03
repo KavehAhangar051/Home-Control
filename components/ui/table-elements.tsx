@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { useMarkdownContext } from '@/store/MarkdownContext';
+import { useStudioUI } from '@/store/MarkdownContext';
 
 /**
  * Custom table head section element with theme-responsive borders.
@@ -16,7 +16,7 @@ export function MarkdownTableHead({
   className,
   ...props
 }: React.HTMLAttributes<HTMLTableSectionElement>): React.JSX.Element {
-  const { theme } = useMarkdownContext();
+  const { theme } = useStudioUI();
   const isDark = theme === 'dark';
 
   return (
@@ -56,7 +56,7 @@ export function MarkdownTableRow({
   className,
   ...props
 }: React.HTMLAttributes<HTMLTableRowElement>): React.JSX.Element {
-  const { theme } = useMarkdownContext();
+  const { theme } = useStudioUI();
   const isDark = theme === 'dark';
 
   return (
@@ -82,7 +82,7 @@ export function MarkdownTableHeaderCell({
   style,
   ...props
 }: React.ThHTMLAttributes<HTMLTableCellElement>): React.JSX.Element {
-  const { theme } = useMarkdownContext();
+  const { theme } = useStudioUI();
   const isDark = theme === 'dark';
 
   return (
@@ -109,7 +109,7 @@ export function MarkdownTableCell({
   style,
   ...props
 }: React.TdHTMLAttributes<HTMLTableCellElement>): React.JSX.Element {
-  const { theme } = useMarkdownContext();
+  const { theme } = useStudioUI();
   const isDark = theme === 'dark';
 
   return (

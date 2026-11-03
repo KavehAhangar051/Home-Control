@@ -3,17 +3,15 @@
  * @description Type definitions for Markdown document state and stats.
  */
 
-import { ViewMode, Theme } from '@/types/ui';
+import { ViewMode, Theme, ToastState, ToastType, ToastActionConfig } from '@/types/ui';
 import { Language, Translations } from '@/types/i18n';
 
-import { ToastState } from '@/components/ui/toast-notification';
-
 export interface DocumentStats {
-  characterCount: number;
-  wordCount: number;
-  persianCharCount: number;
-  lineCount: number;
-  estimatedReadTimeMinutes: number;
+  readonly characterCount: number;
+  readonly wordCount: number;
+  readonly persianCharCount: number;
+  readonly lineCount: number;
+  readonly estimatedReadTimeMinutes: number;
 }
 
 export interface MarkdownContextType {
@@ -26,7 +24,9 @@ export interface MarkdownContextType {
   t: Translations;
   rawMarkdown: string;
   setRawMarkdown: (val: string) => void;
+  applyExternalMarkdown: (content: string) => void;
   rtlMarkdown: string;
+  documentTitle: string;
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
   stats: DocumentStats;
@@ -48,7 +48,7 @@ export interface MarkdownContextType {
   clearContent: () => void;
   loadSample: () => void;
   toast: ToastState | null;
-  showToast: (message: string, type?: 'success' | 'info' | 'error', action?: { label: string; onClick: () => void }) => void;
+  showToast: (message: string, type?: ToastType, action?: ToastActionConfig) => void;
   closeToast: () => void;
 }
 

@@ -14,3 +14,17 @@ export interface DecodeEffectOptions {
   enabled?: boolean;
 }
 
+export type ToastType = 'success' | 'info' | 'error';
+
+export interface ToastActionConfig {
+  readonly label: string;
+  readonly onClick: () => void;
+}
+
+export interface ToastState {
+  readonly message: string;
+  readonly type?: ToastType;
+  readonly id: number;
+  readonly action?: ToastActionConfig;
+}
+

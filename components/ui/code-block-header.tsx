@@ -10,6 +10,7 @@ import { m, useReducedMotion } from 'motion/react';
 import { Copy, Check } from 'lucide-react';
 import { SPRING_PRESS, EASE_OUT } from '@/lib/ease';
 import { ActionSwapIcon } from '@/components/motion/action-swap';
+import { formatLanguageDisplayName } from '@/utils/syntaxHighlighter';
 
 interface CodeBlockHeaderProps {
   languageName: string;
@@ -22,7 +23,7 @@ interface CodeBlockHeaderProps {
 function getHeaderClass(isDark: boolean): string {
   return isDark
     ? 'bg-zinc-900/90 border-zinc-800/90 text-zinc-300'
-    : 'bg-zinc-100 border-zinc-200 text-zinc-950';
+    : 'bg-zinc-50 border-zinc-200 text-zinc-950';
 }
 
 function getButtonClass(copied: boolean, isDark: boolean): string {
@@ -70,61 +71,12 @@ function CopyButtonContent({
       className="w-3.5 h-3.5"
     >
       {copied ? (
-        <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" />
+        <Check aria-hidden="true" className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" />
       ) : (
-        <Copy className="w-3.5 h-3.5" />
+        <Copy aria-hidden="true" className="w-3.5 h-3.5" />
       )}
     </ActionSwapIcon>
   );
-}
-
-/**
- * Formats programming language identifier into a clean display label.
- *
- * @param {string} [lang] - Raw or normalized language name.
- * @param {boolean} [isPersian] - Whether the active interface language is Persian.
- * @returns {string} Human-readable language display label.
- */
-function formatLanguageName(lang?: string, isPersian?: boolean): string {
-  if (!lang || lang === 'text' || lang === 'plain' || lang === 'plaintext') {
-    return isPersian ? 'متن' : 'TEXT';
-  }
-
-  const displayMap = {
-    javascript: 'JavaScript',
-    typescript: 'TypeScript',
-    python: 'Python',
-    bash: 'Bash',
-    json: 'JSON',
-    yaml: 'YAML',
-    markdown: 'Markdown',
-    xml: 'HTML / XML',
-    css: 'CSS',
-    cpp: 'C++',
-    csharp: 'C#',
-    c: 'C',
-    go: 'Go',
-    rust: 'Rust',
-    sql: 'SQL',
-    ruby: 'Ruby',
-    java: 'Java',
-    php: 'PHP',
-    dockerfile: 'Docker',
-    graphql: 'GraphQL',
-    kotlin: 'Kotlin',
-    swift: 'Swift',
-    dart: 'Dart',
-    scss: 'SCSS',
-    diff: 'Diff',
-    ini: 'INI',
-    makefile: 'Makefile',
-    powershell: 'PowerShell',
-  } as const;
-
-  // SAFETY: Key is normalized to lower case and safely falls back via index lookup
-  const key = lang.toLowerCase() as keyof typeof displayMap;
-
-  return displayMap[key] || lang.toUpperCase();
 }
 
 /**
@@ -146,15 +98,19 @@ export function CodeBlockHeader({
       className={`flex items-center justify-between px-3.5 py-1.5 border-b text-[11px] font-mono select-none ${getHeaderClass(isDark)}`}
       dir="ltr"
     >
-      <div className="flex items-center gap-2">
-        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]" />
+      <div className="flex items-center gap-2.5">
+        <div aria-hidden="true" className="flex items-center gap-1.5">
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500/90" />
+          <span className={`inline-block w-2 h-2 rounded-full ${isDark ? 'bg-zinc-700' : 'bg-zinc-300'}`} />
+          <span className={`inline-block w-2 h-2 rounded-full ${isDark ? 'bg-zinc-700' : 'bg-zinc-300'}`} />
+        </div>
         <span
           data-code-header-lang
           className={`font-black tracking-wider text-[11px] ${
             isDark ? 'text-zinc-200' : 'text-zinc-950'
           }`}
         >
-          {formatLanguageName(languageName, isPersian)}
+          {formatLanguageDisplayName(languageName, isPersian)}
         </span>
       </div>
 
@@ -168,7 +124,7 @@ export function CodeBlockHeader({
             : { scale: 1 }
         }
         transition={SPRING_PRESS}
-        className={`w-7 h-7 flex items-center justify-center rounded-lg text-[11px] transition-colors cursor-pointer border touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${getButtonClass(copied, isDark)}`}
+        className={`min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg text-[11px] transition-colors cursor-pointer border touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${getButtonClass(copied, isDark)}`}
         title={title}
         aria-label={ariaLabel}
       >

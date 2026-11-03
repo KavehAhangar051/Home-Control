@@ -30,7 +30,7 @@ Writing technical documentation in Right-to-Left (RTL) languages like Persian (F
 Intelligently isolates RTL paragraphs, headers, blockquotes, and lists while preserving standard CommonMark and GFM specifications without mangling Markdown syntax.
 
 ### 💻 Zero-Disruption Code Blocks (ADR-0003)
-Code fences and inline spans remain strictly Left-to-Right (LTR). Includes real-time syntax highlighting via `Highlight.js`, line numbering, language tags, and hybrid font fallback pairing `JetBrains Mono` with `Vazirmatn` for embedded RTL comments.
+Code fences and inline spans remain strictly Left-to-Right (LTR). Includes real-time syntax highlighting via `Highlight.js` (with custom C/C++ semantic token enhancement), line numbering, language tags, and hybrid font fallback pairing `Kode Mono` with `Dana` / `Vazirmatn` for embedded RTL comments.
 
 ### 🔒 100% Zero-Backend Privacy (ADR-0008)
 All transformations, rendering, and statistical evaluations run entirely in local browser RAM. No servers, tracking cookies, analytics pixels, or external API endpoints.
@@ -59,10 +59,10 @@ Fully compatible with Next.js static exports (`output: 'export'`), sub-path depl
 | **Framework** | Next.js 15.4 (App Router) + React 19 |
 | **Language** | TypeScript 5.9 (Strict Type Safety) |
 | **Styling & Design System** | Tailwind CSS v4 + Radix UI Primitives |
-| **Animation & Motion** | Motion (Framer Motion v12) + Lenis Smooth Scroll |
-| **Markdown Processing** | `react-markdown` + `remark-gfm` + `highlight.js` |
+| **Animation & Motion** | Motion (`LazyMotion domMax`) + React 19 `<ViewTransition>` + Lenis Smooth Scroll |
+| **Markdown & Math Processing** | `react-markdown` + `remark-gfm` + `remark-math` + `rehype-katex` (`KaTeX`) + `highlight.js` |
 | **Icons** | Lucide React |
-| **Testing** | Bun Test Suite + Unit / Integration Tests |
+| **Testing** | Bun Domain Contract Test Suite (`tests/domain-contracts.test.ts`) |
 
 ---
 
@@ -114,8 +114,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### 3. Linting & Quality Verification
 ```bash
 npm run typecheck    # Validate TypeScript types
-npm run lint         # Run ESLint validation
-npm run check        # Run typecheck and lint in sequence
+npm run lint         # Run ESLint + Oxlint anti-slop validation
+npm run test         # Run automated domain contract test suite
+npm run check        # Run typecheck, lint, and tests in sequence
 ```
 
 ### 4. Production Build & Static Export

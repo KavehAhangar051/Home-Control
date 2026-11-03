@@ -8,14 +8,38 @@
 import assert from 'node:assert/strict';
 import { createBoundedCache } from '../utils/lruCache';
 import { isDigitCode, isPersianChar, hasPersianText } from '../utils/persianizer';
-import { segmentTextByScript, segmentHtmlByLanguage } from '../utils/typographySegmenter';
-import { convertToRtlMarkdown } from '../utils/rtlConverter';
-import { calculateDocumentStats } from '../utils/statsCalculator';
-import { validateMarkdownUploadFile } from '../utils/fileHelpers';
-import { processDocument, prepareExportBundle, clearDocumentCache, getDocumentCacheStats } from '../services/markdownEngine';
-import { highlightCode, normalizeLanguage, clearHighlightCache, getHighlightCacheStats } from '../utils/syntaxHighlighter';
+import { segmentTextByScript, segmentHtmlByLanguage, segmentMixedTextToReact } from '../utils/typographySegmenter';
+import { convertToRtlMarkdown, CODE_FENCE_REGEX, updateCodeFenceState } from '../utils/rtlConverter';
+import { calculateDocumentStats, EMPTY_DOCUMENT_STATS } from '../utils/statsCalculator';
+import { validateMarkdownUploadFile, processUploadedMarkdownFile } from '../utils/fileHelpers';
+import {
+  processDocument,
+  prepareExportBundle,
+  clearDocumentCache,
+  getDocumentCacheStats,
+  EMPTY_PROCESSED_DOCUMENT,
+} from '../services/markdownEngine';
+import {
+  highlightCode,
+  normalizeLanguage,
+  formatLanguageDisplayName,
+  clearHighlightCache,
+  getHighlightCacheStats,
+} from '../utils/syntaxHighlighter';
+import { enhanceHighlightedHtml } from '../utils/cFamilyEnhancer';
+import { calculateActiveLinePosition } from '../hooks/useActiveLinePosition';
 import { getScrollProgress, calculateTargetScrollTop } from '../utils/syncScroll';
 import { MAX_UPLOAD_FILE_SIZE_BYTES } from '../constants/domain';
+import { SAMPLE_RTL_MARKDOWN_FA, SAMPLE_RTL_MARKDOWN_EN } from '../constants/sampleMarkdown';
+import {
+  STUDIO_VT_NAMES,
+  STUDIO_TRANSITION_TYPES,
+  STUDIO_VT_ANIMATIONS,
+  resolveViewModeTransitionType,
+  runStudioTransition,
+} from '../utils/viewTransitions';
+
+const EMOJI_CODEPOINT_REGEX = /\p{Extended_Pictographic}/u;
 
 function verifyBoundedLruCacheContracts(): void {
   const cache = createBoundedCache<number>(2);
@@ -57,6 +81,10 @@ function verifyPersianAndDigitDryContracts(): void {
   assert.equal(segments[1].script, 'latin');
   assert.equal(segments[2].script, 'persian');
 
+  // Pure Persian prose inside a Persian container must return the raw string without allocating span wrappers
+  const purePersianProse = 'این یک متن کاملاً فارسی بدون کاراکتر لاتین است.';
+  assert.equal(segmentMixedTextToReact(purePersianProse, 'seg', 'persian'), purePersianProse);
+
   const pureLatinHtml = '<span class="hljs-number">42</span>';
   assert.equal(segmentHtmlByLanguage(pureLatinHtml), pureLatinHtml);
 }
@@ -64,7 +92,18 @@ function verifyPersianAndDigitDryContracts(): void {
 function verifyRtlMarkdownAndEngineContracts(): void {
   clearDocumentCache();
 
+  // PoEAA Special Case Value Object contract for empty documents
+  assert.equal(processDocument(''), EMPTY_PROCESSED_DOCUMENT);
+  assert.equal(Object.isFrozen(EMPTY_PROCESSED_DOCUMENT), true);
+
+  assert.equal(CODE_FENCE_REGEX.test('```ts'), true);
+  assert.equal(CODE_FENCE_REGEX.test('  ~~~python'), true);
+
   const raw = [
+    '```bash',
+    '# comment inside code block must not become document title',
+    '```',
+    '',
     '# عنوان آزمایشی',
     '',
     '| ستون ۱ | ستون ۲ |',
@@ -84,6 +123,10 @@ function verifyRtlMarkdownAndEngineContracts(): void {
   // Table inside code fence must remain untouched
   assert.equal(doc.rtlMarkdown.includes('| --- | --- | --- |'), true);
 
+  // Setext H1 title extraction contract
+  const setextDoc = processDocument('عنوان ستکست\n===========\nمتن آزمایشی');
+  assert.equal(setextDoc.title, 'عنوان ستکست');
+
   // Second call with identical input must hit LRU cache
   const cachedDoc = processDocument(raw);
   assert.equal(cachedDoc, doc);
@@ -92,11 +135,41 @@ function verifyRtlMarkdownAndEngineContracts(): void {
   const bundle = prepareExportBundle(doc.rtlMarkdown, doc.title);
   assert.equal(bundle.filename, 'عنوان-آزمایشی.md');
   assert.equal(bundle.mimeType, 'text/markdown;charset=utf-8');
+
+  const fallbackBundle = prepareExportBundle('بدون تیتر', '!!!');
+  assert.equal(fallbackBundle.filename, 'rtl-document.md');
   assert.equal(convertToRtlMarkdown(''), '');
+
+  // Plan 006: 4-backtick outer fence containing 3-backtick inner fence + single-pipe false-positive guard
+  assert.deepEqual(updateCodeFenceState('````markdown', null), { toggled: true, activeFence: '````' });
+  assert.deepEqual(updateCodeFenceState('```', '````'), { toggled: false, activeFence: '````' });
+  assert.deepEqual(updateCodeFenceState('````', '````'), { toggled: true, activeFence: null });
+
+  const nestedFenceMd = [
+    '````markdown',
+    '```',
+    '# تیتر داخل کد نباید استخراج شود',
+    '| col1 | col2 |',
+    '| --- | --- |',
+    '```',
+    '````',
+    '# تیتر واقعی بیرون کد',
+    '--- |',
+    'ستون اول | ستون دوم',
+    '--- | ---',
+  ].join('\n');
+
+  const nestedDoc = processDocument(nestedFenceMd);
+  assert.equal(nestedDoc.title, 'تیتر واقعی بیرون کد');
+  assert.equal(nestedDoc.rtlMarkdown.includes('| --- | --- |'), true);
+  assert.equal(nestedDoc.rtlMarkdown.includes('\n--- |\n'), true);
+  assert.equal(nestedDoc.rtlMarkdown.includes('---: | ---:'), true);
 }
 
 function verifyStatsAndSyncScrollContracts(): void {
   const emptyStats = calculateDocumentStats('');
+  assert.equal(emptyStats, EMPTY_DOCUMENT_STATS);
+  assert.equal(Object.isFrozen(EMPTY_DOCUMENT_STATS), true);
   assert.equal(emptyStats.wordCount, 0);
   assert.equal(emptyStats.lineCount, 0);
   assert.equal(emptyStats.estimatedReadTimeMinutes, 0);
@@ -110,37 +183,137 @@ function verifyStatsAndSyncScrollContracts(): void {
   assert.equal(getScrollProgress(50, 200, 100), 0.5);
   assert.equal(getScrollProgress(NaN, 200, 100), 0);
   assert.equal(calculateTargetScrollTop(50, 200, 100, 500, 100), 200);
+
+  // Plan 007: Active line position pure calculation contracts (ADR-0009)
+  const line1 = calculateActiveLinePosition(0, 'خط اول\nخط دوم\nخط سوم', 0, 300);
+  assert.equal(line1.lineNumber, 1);
+  assert.equal(line1.top, 16);
+  assert.equal(line1.height, 24);
+  assert.equal(line1.isVisible, true);
+
+  const line3 = calculateActiveLinePosition(16, 'خط اول\nخط دوم\nخط سوم', 5, 300, {
+    lineHeight: 20,
+    paddingTop: 10,
+  });
+  assert.equal(line3.lineNumber, 3);
+  assert.equal(line3.top, 45);
+  assert.equal(line3.isVisible, true);
+
+  const cachedLine = calculateActiveLinePosition(16, 'خط اول\nخط دوم\nخط سوم', 10, 300, {
+    lineHeight: 20,
+    paddingTop: 10,
+    cachedLineNumber: 3,
+  });
+  assert.equal(cachedLine.lineNumber, 3);
+  assert.equal(cachedLine.top, 40);
+
+  const offscreenLine = calculateActiveLinePosition(999, 'a\nb\nc\nd', 500, 100);
+  assert.equal(offscreenLine.lineNumber, 4);
+  assert.equal(offscreenLine.isVisible, false);
 }
 
-function verifyFileValidationAndSyntaxHighlighterContracts(): void {
+async function verifyFileValidationAndSyntaxHighlighterContracts(): Promise<void> {
   // Case-insensitive extension check + size boundary check
   assert.equal(validateMarkdownUploadFile('README.MD', 1024), 'valid');
   assert.equal(validateMarkdownUploadFile('notes.txt', 0), 'valid');
   assert.equal(validateMarkdownUploadFile('virus.exe', 512), 'invalid_type');
   assert.equal(validateMarkdownUploadFile('huge.md', MAX_UPLOAD_FILE_SIZE_BYTES + 1), 'file_too_large');
 
+  const nullFileResult = await processUploadedMarkdownFile(null);
+  assert.equal(nullFileResult.status, 'invalid_type');
+
+  const validFile = new File(['# سلام دنیا'], 'sample.md', { type: 'text/markdown' });
+  const uploadedResult = await processUploadedMarkdownFile(validFile);
+  assert.equal(uploadedResult.status, 'ok');
+  if (uploadedResult.status === 'ok') {
+    assert.equal(uploadedResult.content, '# سلام دنیا');
+    assert.equal(uploadedResult.fileName, 'sample.md');
+  }
+
   clearHighlightCache();
   assert.equal(normalizeLanguage('C++'), 'cpp');
   assert.equal(normalizeLanguage('py3'), 'python');
+  assert.equal(formatLanguageDisplayName('c++', true), 'C++');
+  assert.equal(formatLanguageDisplayName('plaintext', true), 'متن');
+  assert.equal(formatLanguageDisplayName('', false), 'TEXT');
 
-  const cHighlight = highlightCode('PacketNode_t* node = create_node(MAX_BUF); node->len = 0;', 'c');
+  const plainPersianBlock = highlightCode('این یک متن ساده فارسی است', 'text');
+  assert.equal(plainPersianBlock.language, 'text');
+  assert.equal(plainPersianBlock.dir, 'rtl');
+
+  const cHighlight = highlightCode(
+    '// نسخه 2.0 پایدار\nPacketNode_t* node = create_node(MAX_BUF); node->len = 0;',
+    'c'
+  );
+
   assert.equal(cHighlight.language, 'c');
+  assert.equal(cHighlight.dir, 'ltr');
   assert.equal(cHighlight.html.includes('hljs-type'), true);
   assert.equal(cHighlight.html.includes('hljs-title function_ invoke_'), true);
   assert.equal(cHighlight.html.includes('hljs-variable constant_'), true);
   assert.equal(cHighlight.html.includes('hljs-property'), true);
+  assert.equal(cHighlight.html.includes('font-persian-token'), true);
+  assert.equal(cHighlight.html.includes('font-latin-token'), true);
+
+  // Performance budget guard (Step 5): pure-Latin tokens inside a mixed code block must not be wrapped in redundant font-latin-token spans
+  const spanCount = (cHighlight.html.match(/<span/g) || []).length;
+  assert.equal(spanCount <= 16, true);
 
   // Cache hit check
-  highlightCode('PacketNode_t* node = create_node(MAX_BUF); node->len = 0;', 'c');
+  highlightCode(
+    '// نسخه 2.0 پایدار\nPacketNode_t* node = create_node(MAX_BUF); node->len = 0;',
+    'c'
+  );
+
   assert.equal(getHighlightCacheStats().hits, 1);
+
+  // Plan 007: C-family enhancer immunity for non-systems languages and string/comment spans
+  assert.equal(enhanceHighlightedHtml('call_fn(MAX_VAL)', 'python'), 'call_fn(MAX_VAL)');
+  const stringAndCommentHtml =
+    '<span class="hljs-string">"ptr-&gt;secret(MAX_KEY)"</span> <span class="hljs-comment">// obj.field</span>';
+  assert.equal(enhanceHighlightedHtml(stringAndCommentHtml, 'c'), stringAndCommentHtml);
 }
 
-verifyBoundedLruCacheContracts();
+function verifyViewTransitionContracts(): void {
+  // Every registered view-transition-name must be non-empty and globally unique
+  const names = Object.values(STUDIO_VT_NAMES);
+  const uniqueNames = new Set(names);
+  assert.equal(uniqueNames.size, names.length);
 
-verifyPersianAndDigitDryContracts();
+  for (const name of names) {
+    assert.equal(name.length > 0 && name !== 'none', true);
+  }
 
-verifyRtlMarkdownAndEngineContracts();
+  // Transition type mapping for all studio ViewMode values
+  assert.equal(resolveViewModeTransitionType('split'), 'view-split');
+  assert.equal(resolveViewModeTransitionType('editor'), 'view-editor');
+  assert.equal(resolveViewModeTransitionType('preview'), 'view-preview');
 
-verifyStatsAndSyncScrollContracts();
+  // Animation and transition registries must include 'default' / 'none'
+  assert.equal(STUDIO_TRANSITION_TYPES.includes('default'), true);
+  assert.equal(STUDIO_VT_ANIMATIONS.includes('none'), true);
 
-verifyFileValidationAndSyntaxHighlighterContracts();
+  // runStudioTransition must invoke the synchronous state update callback
+  let executed = false;
+
+  runStudioTransition(['view-split', 'default'], () => {
+    executed = true;
+  });
+
+  assert.equal(executed, true);
+
+  // minimalist-skill contract: sample documents must be 100% emoji-free
+  assert.equal(EMOJI_CODEPOINT_REGEX.test(SAMPLE_RTL_MARKDOWN_FA), false);
+  assert.equal(EMOJI_CODEPOINT_REGEX.test(SAMPLE_RTL_MARKDOWN_EN), false);
+}
+
+async function runAllContractVerifications(): Promise<void> {
+  verifyBoundedLruCacheContracts();
+  verifyPersianAndDigitDryContracts();
+  verifyRtlMarkdownAndEngineContracts();
+  verifyStatsAndSyncScrollContracts();
+  await verifyFileValidationAndSyntaxHighlighterContracts();
+  verifyViewTransitionContracts();
+}
+
+void runAllContractVerifications();

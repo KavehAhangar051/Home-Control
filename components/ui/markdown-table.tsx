@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { useMarkdownContext } from '@/store/MarkdownContext';
+import { useStudioUI } from '@/store/MarkdownContext';
 
 /**
  * Props for the MarkdownTable container component.
@@ -23,7 +23,7 @@ export interface MarkdownTableProps extends React.TableHTMLAttributes<HTMLTableE
  * @returns {React.JSX.Element} Fully styled table wrapped in a clean container.
  */
 export function MarkdownTable({ children, className, ...props }: MarkdownTableProps): React.JSX.Element {
-  const { theme } = useMarkdownContext();
+  const { theme } = useStudioUI();
   const isDark = theme === 'dark';
 
   return (

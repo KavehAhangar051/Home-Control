@@ -15,9 +15,10 @@ import {
   useReducedMotion,
   type SpringOptions,
 } from 'motion/react';
-import { useMarkdownContext } from '@/store/MarkdownContext';
+import { useStudioUI } from '@/store/MarkdownContext';
 import { DockLabel, DockIcon, DockLabelProps, DockIconProps } from '@/components/ui/dock-label';
 import { SPRING_LAYOUT, SPRING_PRESS } from '@/lib/ease';
+import { STUDIO_VT_NAMES, StudioViewTransition } from '@/utils/viewTransitions';
 
 export { DockLabel, DockIcon };
 
@@ -68,17 +69,17 @@ export const DockItem = React.memo(function DockItem({
   id,
   label,
   ariaLabel,
-  isActive = false,
+  isActive,
   mouseX,
   spring,
   distance,
   magnification,
   baseItemSize,
 }: DockItemProps): React.JSX.Element {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLButtonElement>(null);
   const isHovered = useMotionValue(0);
   const reduceMotion = useReducedMotion();
-  const { theme } = useMarkdownContext();
+  const { theme } = useStudioUI();
   const isDark = theme === 'dark';
 
   // Cached center X to eliminate layout thrashing (getBoundingClientRect) on high-frequency mouse movements
@@ -117,26 +118,15 @@ export const DockItem = React.memo(function DockItem({
 
   const size = useSpring(targetSize, spring);
 
-  /**
-   * Keyboard activation handler for WCAG 2.1 compliance (Enter / Space keys).
-   *
-   * @param {React.KeyboardEvent<HTMLDivElement>} e - Keyboard event.
-   */
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClick?.();
-    }
-  };
-
   const computedAriaLabel = ariaLabel || label || id || 'Dock item';
-  const stateClass = getDockItemStateClass(isActive, isDark);
+  const stateClass = getDockItemStateClass(Boolean(isActive), isDark);
   const focusOffsetClass = isDark ? 'focus-visible:ring-offset-zinc-950' : 'focus-visible:ring-offset-white';
 
   return (
-    <m.div
+    <m.button
       ref={ref}
       id={id}
+      type="button"
       style={{
         width: size,
         height: size,
@@ -148,10 +138,7 @@ export const DockItem = React.memo(function DockItem({
       onFocus={() => isHovered.set(1)}
       onBlur={() => isHovered.set(0)}
       onClick={onClick}
-      onKeyDown={handleKeyDown}
-      className={`relative inline-flex items-center justify-center rounded-2xl border cursor-pointer transition-colors shadow-lg touch-manipulation min-w-[44px] min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 ${focusOffsetClass} ${stateClass} ${className}`}
-      tabIndex={0}
-      role="button"
+      className={`relative inline-flex items-center justify-center rounded-2xl border cursor-pointer transition-colors shadow-lg touch-manipulation min-w-[38px] min-h-[38px] sm:min-w-[44px] sm:min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 ${focusOffsetClass} ${stateClass} ${className}`}
       aria-label={computedAriaLabel}
       aria-pressed={isActive}
     >
@@ -166,13 +153,20 @@ export const DockItem = React.memo(function DockItem({
         return cloneElement(element, { isHovered });
       })}
       {isActive && (
-        <m.span
-          layoutId="dock-active-indicator"
-          transition={SPRING_LAYOUT}
-          className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)]"
-        />
+        <StudioViewTransition
+          name={STUDIO_VT_NAMES.DOCK_INDICATOR}
+          share="vt-tab-indicator"
+          default="none"
+        >
+          <m.span
+            aria-hidden="true"
+            layoutId="dock-active-indicator"
+            transition={SPRING_LAYOUT}
+            className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)]"
+          />
+        </StudioViewTransition>
       )}
-    </m.div>
+    </m.button>
   );
 });
 

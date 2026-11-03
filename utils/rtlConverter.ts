@@ -16,11 +16,52 @@ export function convertToRtlMarkdown(markdown: string): string {
   return alignMarkdownTablesRtl(markdown);
 }
 
-/** Pre-compiled static regexes to avoid re-compilation in hot processing passes */
-const CODE_FENCE_REGEX = /^\s*(```|~~~)/;
+/**
+ * Authoritative pre-compiled regex for Markdown fenced code block boundaries (``` or ~~~).
+ * Shared across RTL conversion and title extraction to enforce DRY knowledge representation.
+ */
+export const CODE_FENCE_REGEX = /^\s*(`{3,}|~{3,})/;
+
+const CLOSING_CODE_FENCE_REGEX = /^\s*(`{3,}|~{3,})\s*$/;
 const MATH_BLOCK_REGEX = /^\s*\$\$/;
-const TABLE_DIVIDER_REGEX = /^\s*\|?(\s*:?-+:?\s*\|)+\s*$/;
+const TABLE_DIVIDER_REGEX = /^\s*(?:\|(?:\s*:?-+:?\s*\|)+|:?-+:?\s*\|(?:\s*:?-+:?\s*\|?)+)\s*$/;
 const ALIGN_REPLACE_REGEX = /:?-+:?/g;
+
+/**
+ * Tracks CommonMark/GFM fenced code block state across lines.
+ * An opening fence of N backticks or tildes is only closed by a closing fence
+ * using the same character with length >= N and no info string.
+ *
+ * @param {string} line - Current markdown line.
+ * @param {string | null} activeFence - Currently open fence marker (e.g. "```" or "````"), or null if outside a code block.
+ * @returns {{ toggled: boolean; activeFence: string | null }} Updated fence state and whether this line is a fence delimiter.
+ */
+export function updateCodeFenceState(
+  line: string,
+  activeFence: string | null
+): { toggled: boolean; activeFence: string | null } {
+  if (activeFence === null) {
+    const openMatch = CODE_FENCE_REGEX.exec(line);
+
+    if (openMatch) {
+      return { toggled: true, activeFence: openMatch[1] };
+    }
+
+    return { toggled: false, activeFence: null };
+  }
+
+  const closeMatch = CLOSING_CODE_FENCE_REGEX.exec(line);
+
+  if (
+    closeMatch &&
+    closeMatch[1][0] === activeFence[0] &&
+    closeMatch[1].length >= activeFence.length
+  ) {
+    return { toggled: true, activeFence: null };
+  }
+
+  return { toggled: false, activeFence };
+}
 
 /**
  * Ensures Markdown tables align text to the right by modifying header separator rows.
@@ -37,38 +78,25 @@ function alignMarkdownTablesRtl(md: string): string {
 
   const lines = md.split('\n');
   const lineCount = lines.length;
-  let inCodeBlock = false;
+  let activeFence: string | null = null;
   let inMathBlock = false;
   let hasModified = false;
 
   for (let i = 0; i < lineCount; i++) {
     const line = lines[i];
 
-    // Check if toggling fenced code blocks (``` or ~~~)
-    if (CODE_FENCE_REGEX.test(line)) {
-      inCodeBlock = !inCodeBlock;
+    // Check if opening or closing fenced code blocks (``` or ~~~)
+    const fenceState = updateCodeFenceState(line, activeFence);
+    activeFence = fenceState.activeFence;
+
+    if (fenceState.toggled || activeFence !== null) {
       continue;
     }
 
-    // Never modify lines inside code blocks
-    if (inCodeBlock) {
+    // Check if toggling math block ($$)
+    if (MATH_BLOCK_REGEX.test(line) && (line.split('$$').length - 1) % 2 !== 0) {
+      inMathBlock = !inMathBlock;
       continue;
-    }
-
-    // Check if toggling math block ($$) without regex match allocation
-    if (MATH_BLOCK_REGEX.test(line)) {
-      let matchCount = 0;
-      let pos = line.indexOf('$$');
-
-      while (pos !== -1) {
-        matchCount++;
-        pos = line.indexOf('$$', pos + 2);
-      }
-
-      if (matchCount % 2 !== 0) {
-        inMathBlock = !inMathBlock;
-        continue;
-      }
     }
 
     // Never modify lines inside math blocks

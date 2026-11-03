@@ -8,16 +8,17 @@
 import React from 'react';
 import { m, useReducedMotion } from 'motion/react';
 import { Maximize2, Minimize2 } from 'lucide-react';
-import { useMarkdownContext } from '@/store/MarkdownContext';
+import { useStudioUI } from '@/store/MarkdownContext';
 import { SPRING_PRESS } from '@/lib/ease';
+import { ActionSwapIcon } from '@/components/motion/action-swap';
 
 /**
  * Renders the Focus Mode toggle button in the application header.
  *
  * @returns {React.JSX.Element} The rendered FocusToggle component.
  */
-export function FocusToggle(): React.JSX.Element {
-  const { isFocusMode, toggleFocusMode, t, theme } = useMarkdownContext();
+export const FocusToggle = React.memo(function FocusToggle(): React.JSX.Element {
+  const { isFocusMode, toggleFocusMode, t, theme } = useStudioUI();
   const isDark = theme === 'dark';
   const reduceMotion = useReducedMotion();
 
@@ -39,19 +40,27 @@ export function FocusToggle(): React.JSX.Element {
             : 'bg-zinc-100 hover:bg-zinc-200/80 border-zinc-200 hover:border-zinc-300 text-zinc-700 hover:text-zinc-900 focus-visible:ring-offset-white'
         }`}
       >
-        {isFocusMode ? (
-          <Minimize2
-            className={`w-3.5 h-3.5 transition-colors shrink-0 ${
-              isDark ? 'text-amber-400' : 'text-amber-600'
-            }`}
-          />
-        ) : (
-          <Maximize2
-            className={`w-3.5 h-3.5 transition-colors shrink-0 ${
-              isDark ? 'text-emerald-400 group-hover:text-emerald-300' : 'text-emerald-600 group-hover:text-emerald-700'
-            }`}
-          />
-        )}
+        <ActionSwapIcon
+          value={isFocusMode ? 'exit-focus' : 'enter-focus'}
+          animation="blur"
+          className="w-3.5 h-3.5"
+        >
+          {isFocusMode ? (
+            <Minimize2
+              aria-hidden="true"
+              className={`w-3.5 h-3.5 transition-colors shrink-0 ${
+                isDark ? 'text-amber-400' : 'text-amber-600'
+              }`}
+            />
+          ) : (
+            <Maximize2
+              aria-hidden="true"
+              className={`w-3.5 h-3.5 transition-colors shrink-0 ${
+                isDark ? 'text-emerald-400 group-hover:text-emerald-300' : 'text-emerald-600 group-hover:text-emerald-700'
+              }`}
+            />
+          )}
+        </ActionSwapIcon>
 
         <span className="hidden sm:inline leading-none font-medium">
           {isFocusMode ? t.dock.exitFocusMode : t.dock.focusMode}
@@ -59,4 +68,6 @@ export function FocusToggle(): React.JSX.Element {
       </m.button>
     </div>
   );
-}
+});
+
+FocusToggle.displayName = 'FocusToggle';
