@@ -10,8 +10,6 @@ on:
       - "Database/**"
       - "Dashboard/**"
   workflow_dispatch:
-  schedule:
-    - cron: "*/10 * * * *"
 
 permissions:
   contents: write
@@ -22,7 +20,7 @@ concurrency:
 
 jobs:
   sync:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'push' || github.event.head_commit.committer.email != '41898282+github-actions[bot]@users.noreply.github.com')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
