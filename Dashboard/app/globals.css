@@ -1,0 +1,707 @@
+@import "tailwindcss";
+@import "../styles/view-transitions.css";
+@import url('https://fonts.googleapis.com/css2?family=Kode+Mono:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
+
+/* Dana Font Family (local system lookup with bundled Vazirmatn fallback) */
+@font-face {
+  font-family: 'Dana';
+  src: local('Dana Medium'), local('Dana-Medium'), local('Dana');
+  font-weight: 300 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Dana';
+  src: local('Dana ExtraBold'), local('Dana-ExtraBold'), local('Dana Bold');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-dana: 'Dana', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-vazir-local: 'Dana', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-code-en-local: 'Kode Mono', monospace;
+  --font-dual-hybrid: 'Kode Mono', 'Dana', 'Vazirmatn', monospace, system-ui, sans-serif;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Lenis Smooth Scroll Rules */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+@theme {
+  --font-vazir: 'Dana', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-dana: 'Dana', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-code-en: 'Kode Mono', monospace;
+  --font-code-hybrid: 'Kode Mono', 'Dana', 'Vazirmatn', monospace;
+  --font-mono: 'Kode Mono', monospace;
+  --font-sans: 'Kode Mono', 'Dana', 'Vazirmatn', monospace, system-ui, sans-serif;
+
+  /* Semantic Colors (better-colors & frontend-ui-engineering role tokens) */
+  --color-canvas: var(--color-canvas);
+  --color-surface: var(--color-surface);
+  --color-surface-raised: var(--color-surface-raised);
+  --color-surface-sunken: var(--color-surface-sunken);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-default: var(--color-border-default);
+  --color-border-strong: var(--color-border-strong);
+  --color-subtle: var(--color-border-subtle);
+  --color-default: var(--color-border-default);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-disabled: var(--color-text-disabled);
+  --color-primary: var(--color-text-primary);
+  --color-secondary: var(--color-text-secondary);
+  --color-muted: var(--color-text-secondary);
+  --color-accent-solid: #10b981;
+  --color-accent-solid-hover: #059669;
+  --color-accent-text: var(--color-accent-text);
+  --color-accent-subtle: var(--color-accent-subtle);
+  --color-status-danger: #ef4444;
+  --color-status-success: #10b981;
+}
+
+@layer base {
+  :root {
+    --font-vazir: 'Dana', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-dana: 'Dana', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-code-en: 'Kode Mono', monospace;
+    --font-code-hybrid: 'Kode Mono', 'Dana', 'Vazirmatn', monospace;
+    --font-mono: 'Kode Mono', monospace;
+    --font-sans: 'Kode Mono', 'Dana', 'Vazirmatn', monospace, system-ui, sans-serif;
+
+    /* Theme Role Semantics - Dark default */
+    --color-canvas: #000000;
+    --color-surface: rgba(12, 12, 15, 0.85);
+    --color-surface-raised: rgba(20, 20, 24, 0.70);
+    --color-surface-sunken: rgba(10, 10, 12, 0.95);
+    --color-border-subtle: rgba(255, 255, 255, 0.08);
+    --color-border-default: rgba(255, 255, 255, 0.12);
+    --color-border-strong: rgba(255, 255, 255, 0.25);
+    --color-text-primary: #fafafa;
+    --color-text-secondary: #a1a1aa;
+    --color-text-disabled: #71717a;
+    --color-accent-text: #34d399;
+    --color-accent-subtle: rgba(16, 185, 129, 0.12);
+  }
+
+  html.light,
+  body.light,
+  .light {
+    --color-canvas: #f8fafc;
+    --color-surface: rgba(255, 255, 255, 0.88);
+    --color-surface-raised: rgba(255, 255, 255, 0.92);
+    --color-surface-sunken: rgba(255, 255, 255, 0.98);
+    --color-border-subtle: rgba(0, 0, 0, 0.08);
+    --color-border-default: rgba(0, 0, 0, 0.14);
+    --color-border-strong: rgba(0, 0, 0, 0.35);
+    --color-text-primary: #09090b;
+    --color-text-secondary: #52525b;
+    --color-text-disabled: #a1a1aa;
+    --color-accent-text: #047857;
+    --color-accent-subtle: rgba(16, 185, 129, 0.08);
+  }
+
+  body {
+    font-family: var(--font-vazir);
+    background-color: var(--color-canvas);
+    color: var(--color-text-primary);
+    overflow-x: hidden;
+  }
+
+  code, pre, kbd, samp, .hljs {
+    font-family: 'Kode Mono', 'Dana', 'Vazirmatn', monospace;
+    font-variant-ligatures: contextual common-ligatures;
+    font-feature-settings: 'calt' 1, 'liga' 1;
+  }
+
+  code .font-persian-token,
+  pre .font-persian-token,
+  .hljs .font-persian-token,
+  .font-persian-token {
+    font-family: 'Dana', 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-style: normal !important;
+  }
+
+  code .font-latin-token,
+  pre .font-latin-token,
+  .hljs .font-latin-token,
+  .font-latin-token {
+    font-family: 'Kode Mono', monospace !important;
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+}
+
+.glass-panel {
+  background: var(--color-surface);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  contain: layout style;
+}
+
+.glass-card {
+  background: var(--color-surface-raised);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.glass-input {
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-default);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out, background-color 0.2s ease-out;
+}
+
+.glass-panel .glass-input {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.glass-input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.05), inset 0 0 10px rgba(255, 255, 255, 0.02);
+}
+
+.bg-noise {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+html.light,
+body.light,
+.light {
+  background-color: var(--color-canvas) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.light .glass-panel {
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+}
+
+.light .glass-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.light .glass-input:focus {
+  border-color: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+}
+
+.light ::-webkit-scrollbar-track {
+  background: rgba(240, 240, 245, 0.9);
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.markdown-rtl-content :not(pre) > code {
+  font-family: var(--font-dual-hybrid);
+  font-feature-settings: 'calt' 1, 'liga' 1;
+  display: inline;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  unicode-bidi: isolate;
+}
+
+.markdown-rtl-content,
+.markdown-rtl-content p,
+.markdown-rtl-content h1,
+.markdown-rtl-content h2,
+.markdown-rtl-content h3,
+.markdown-rtl-content h4,
+.markdown-rtl-content h5,
+.markdown-rtl-content h6,
+.markdown-rtl-content li,
+.markdown-rtl-content blockquote,
+.markdown-rtl-content td,
+.markdown-rtl-content th {
+  direction: rtl;
+  text-align: right;
+  font-family: var(--font-vazir);
+  line-height: 1.85;
+}
+
+.markdown-rtl-content h1,
+.markdown-rtl-content h2,
+.markdown-rtl-content h3,
+.markdown-rtl-content h4 {
+  text-wrap: balance;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+}
+
+.markdown-rtl-content h1 {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.markdown-rtl-content h1:first-child {
+  margin-top: 0;
+}
+
+.markdown-rtl-content h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 1.25rem;
+  margin-bottom: 0.6rem;
+}
+
+.markdown-rtl-content h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-rtl-content h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.875rem;
+  margin-bottom: 0.375rem;
+}
+
+.markdown-rtl-content h5 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.45;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.markdown-rtl-content h6 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.markdown-rtl-content p {
+  text-wrap: pretty;
+  margin-block: 0.65rem;
+}
+
+.markdown-rtl-content ul,
+.markdown-rtl-content ol {
+  margin-block: 0.65rem;
+  padding-inline-start: 1.5rem;
+}
+
+.markdown-rtl-content ul {
+  list-style-type: disc;
+}
+
+.markdown-rtl-content ol {
+  list-style-type: decimal;
+}
+
+.markdown-rtl-content ol > li::marker {
+  font-family: 'Kode Mono', monospace;
+}
+
+.markdown-rtl-content li {
+  margin-block: 0.25rem;
+}
+
+.markdown-rtl-content blockquote {
+  margin-block: 0.85rem;
+  padding: 0.65rem 1rem;
+  border-inline-start: 3px solid var(--color-accent-solid);
+  background: var(--color-accent-subtle);
+  border-radius: 0.5rem;
+}
+
+.markdown-rtl-content pre {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+  background-color: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  font-family: var(--font-dual-hybrid);
+  font-feature-settings: 'calt' 1, 'liga' 1;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 180px;
+}
+
+.markdown-rtl-content pre[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+.markdown-rtl-content table {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 160px;
+}
+
+.markdown-rtl-content pre code {
+  font-family: inherit;
+  background: transparent;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  display: block;
+  color: #d4d4d4;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.editor-scrollbar {
+  scrollbar-width: thin !important;
+  -ms-overflow-style: auto !important;
+  scrollbar-color: rgba(255, 255, 255, 0.24) rgba(0, 0, 0, 0.25) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+}
+
+.editor-scrollbar::-webkit-scrollbar {
+  display: block !important;
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.editor-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25) !important;
+  border-radius: 9999px !important;
+  margin: 6px 0 !important;
+}
+
+.editor-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.24) !important;
+  border-radius: 9999px !important;
+  border: 2px solid transparent !important;
+  background-clip: padding-box !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.editor-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.75) !important;
+}
+
+.light .editor-scrollbar {
+  scrollbar-color: rgba(0, 0, 0, 0.25) rgba(0, 0, 0, 0.04) !important;
+}
+
+.light .editor-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+.light .editor-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.25) !important;
+  border-radius: 9999px !important;
+  border: 2px solid transparent !important;
+  background-clip: padding-box !important;
+}
+
+.light .editor-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.85) !important;
+}
+
+/* Horizontal-only scrollbar for code blocks — never traps vertical wheel scrolling */
+.code-scrollbar {
+  scrollbar-width: thin !important;
+  -ms-overflow-style: auto !important;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  overscroll-behavior-y: auto !important;
+}
+
+.code-scrollbar::-webkit-scrollbar {
+  display: block !important;
+  width: 0px !important;
+  height: 6px !important;
+}
+
+.code-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.code-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-radius: 9999px !important;
+}
+
+.code-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.75) !important;
+}
+
+.light .code-scrollbar {
+  scrollbar-color: rgba(0, 0, 0, 0.22) transparent !important;
+}
+
+.light .code-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.22) !important;
+}
+
+.light .code-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.85) !important;
+}
+
+/* KaTeX Math Rendering & RTL Isolation (Gemini / Claude / ChatGPT Standard) */
+.markdown-rtl-content .katex,
+.markdown-rtl-content .katex-display {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  color: var(--color-text-primary);
+}
+
+.markdown-rtl-content .katex {
+  font-family: KaTeX_Main, 'Times New Roman', serif;
+  font-size: 1.14em;
+  line-height: 1.2;
+  text-indent: 0;
+  text-rendering: auto;
+}
+
+/* Inline math: natural baseline flow inside RTL sentences without pill boxes */
+.markdown-rtl-content :not(.katex-display) > .katex {
+  display: inline;
+  margin-inline: 0.14em;
+  vertical-align: baseline;
+}
+
+/* Support Persian/Arabic labels inside \text{...} within equations */
+.markdown-rtl-content .katex .text {
+  font-family: KaTeX_Main, 'Times New Roman', var(--font-vazir), serif;
+}
+
+.markdown-rtl-content .katex svg {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+.markdown-rtl-content .katex-display {
+  display: block;
+  margin: 0 !important;
+  padding: 0.25rem 0;
+  text-align: center !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.markdown-rtl-content .katex-display > .katex {
+  display: inline-block;
+  text-align: center !important;
+  font-size: 1.28em;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+/* VSCode Dark+ & Light+ Authentic Syntax Highlighting */
+.hljs {
+  color: #d4d4d4;
+}
+
+.hljs-keyword,
+.hljs-selector-tag {
+  color: #569cd6;
+}
+
+.hljs-keyword.hljs-keyword-control,
+.hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-doctag {
+  color: #c586c0;
+}
+
+.hljs-type,
+.hljs-class,
+.hljs-title.class_,
+.hljs-built_in {
+  color: #4ec9b0;
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-title.function_.invoke_,
+.hljs-section {
+  color: #dcdcaa;
+}
+
+.hljs-string,
+.hljs-meta .hljs-string,
+.hljs-regexp,
+.hljs-addition {
+  color: #ce9178;
+}
+
+.hljs-subst {
+  color: #9cdcfe;
+}
+
+.hljs-number,
+.hljs-deletion {
+  color: #b5cea8;
+}
+
+.hljs-literal,
+.hljs-symbol,
+.hljs-bullet {
+  color: #569cd6;
+}
+
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-property,
+.hljs-params {
+  color: #9cdcfe;
+}
+
+.hljs-variable.constant_,
+.hljs-variable.language_ {
+  color: #4fc1ff;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.hljs-operator,
+.hljs-punctuation,
+.hljs-tag {
+  color: #d4d4d4;
+}
+
+/* VSCode Light+ Theme */
+.light .markdown-rtl-content pre {
+  background-color: var(--color-surface-sunken);
+  border-color: var(--color-border-subtle);
+}
+
+.light .markdown-rtl-content pre code,
+.light .hljs {
+  color: #1e293b;
+}
+
+.light .hljs-keyword,
+.light .hljs-selector-tag {
+  color: #0000ff;
+}
+
+.light .hljs-keyword.hljs-keyword-control,
+.light .hljs-meta,
+.light .hljs-meta .hljs-keyword,
+.light .hljs-doctag {
+  color: #af00db;
+}
+
+.light .hljs-type,
+.light .hljs-class,
+.light .hljs-title.class_,
+.light .hljs-built_in {
+  color: #267f99;
+}
+
+.light .hljs-title,
+.light .hljs-title.function_,
+.light .hljs-title.function_.invoke_,
+.light .hljs-section {
+  color: #795e26;
+}
+
+.light .hljs-string,
+.light .hljs-meta .hljs-string,
+.light .hljs-regexp,
+.light .hljs-addition {
+  color: #a31515;
+}
+
+.light .hljs-subst {
+  color: #001080;
+}
+
+.light .hljs-number,
+.light .hljs-deletion {
+  color: #098658;
+}
+
+.light .hljs-literal,
+.light .hljs-symbol,
+.light .hljs-bullet {
+  color: #0000ff;
+}
+
+.light .hljs-attr,
+.light .hljs-variable,
+.light .hljs-template-variable,
+.light .hljs-property,
+.light .hljs-params {
+  color: #001080;
+}
+
+.light .hljs-variable.constant_,
+.light .hljs-variable.language_ {
+  color: #0070c1;
+}
+
+.light .hljs-comment,
+.light .hljs-quote {
+  color: #008000;
+  font-style: italic;
+}
+
+.light .hljs-operator,
+.light .hljs-punctuation,
+.light .hljs-tag {
+  color: #334155;
+}
+
+@media (pointer: fine) {
+  html,
+  body,
+  body * {
+    cursor: none !important;
+  }
+}
