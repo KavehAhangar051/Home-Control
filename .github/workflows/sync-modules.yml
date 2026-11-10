@@ -129,7 +129,28 @@ jobs:
             git config --local http.https://github.com/.extraheader "$parent_auth_header"
           fi
 
-          git push origin HEAD:main
+          # Retry if a normal parent commit lands while this sync is running.
+          # Merge the newest parent main so unrelated concurrent changes are preserved.
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if git merge-base --is-ancestor origin/main HEAD; then
+              if git push origin HEAD:main; then
+                exit 0
+              fi
+            else
+              if git merge --no-edit origin/main; then
+                if git push origin HEAD:main; then
+                  exit 0
+                fi
+              else
+                echo "::error::Could not merge the latest parent main; refusing to overwrite concurrent changes."
+                exit 1
+              fi
+            fi
+            echo "Parent main changed during push (attempt ${attempt}); retrying."
+          done
+          echo "::error::Could not push after three attempts."
+          exit 1
 
       - name: Push Hardware subtree to its repository
         env:
