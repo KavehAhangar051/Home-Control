@@ -46,7 +46,7 @@ jobs:
           set -euo pipefail
 
           if [[ -z "${CHILD_REPOS_TOKEN:-}" ]]; then
-            echo "::error::Create the repository secret CHILD_REPOS_TOKEN with Contents read/write access to all three child repositories."
+            echo "::error::Create CHILD_REPOS_TOKEN with Contents: Read and write access to Home-Control-Hardwar-Codes, Home-Control-DB, and Home-Control-Dashboard."
             exit 1
           fi
 
@@ -77,27 +77,48 @@ jobs:
             if pull_output="$(git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
               subtree pull --prefix="$prefix" "$child_url" main \
               -m "chore: reconcile ${prefix} with ${repository}" 2>&1)"; then
-              printf '%s\n' "$pull_output"
+              printf '%s\\n' "$pull_output"
               return
             else
               pull_status=$?
-              printf '%s\n' "$pull_output"
+              printf '%s\\n' "$pull_output"
             fi
 
-            if [[ "$pull_output" != *"fatal: refusing to merge unrelated histories"* ]]; then
-              echo "::error::Subtree pull failed for ${prefix} for a reason other than unrelated histories."
-              return "$pull_status"
+            if [[ "$pull_output" == *"fatal: refusing to merge unrelated histories"* ]]; then
+              echo "Reconnecting unrelated histories for ${prefix}; child repository is authoritative."
+              git merge --abort >/dev/null 2>&1 || true
+              git reset --hard HEAD
+              git rm -r --force -- "$prefix"
+              git commit -m "chore: remove ${prefix} before subtree history recovery"
+              git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
+                subtree add --prefix="$prefix" "$child_url" main \
+                -m "chore: reconnect ${prefix} history from ${repository}"
+              return
             fi
 
-            echo "Rebuilding ${prefix}/ from ${repository}:main to reconnect the histories."
-            git merge --abort >/dev/null 2>&1 || true
-            git reset --hard HEAD
-            git rm -r --force -- "$prefix"
-            git commit -m "chore: remove ${prefix} before subtree history recovery"
+            if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+              echo "Merge conflict in ${prefix}; resolving only conflicting paths in favor of child."
+              while IFS= read -r -d '' conflicted_path; do
+                if git cat-file -e "MERGE_HEAD:${conflicted_path}" 2>/dev/null; then
+                  git checkout --theirs -- "$conflicted_path"
+                  git add -- "$conflicted_path"
+                else
+                  git rm -f -- "$conflicted_path"
+                fi
+              done < <(git diff --name-only --diff-filter=U -z)
 
-            git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
-              subtree add --prefix="$prefix" "$child_url" main \
-              -m "chore: reconnect ${prefix} history from ${repository}"
+              if [[ -n "$(git diff --name-only --diff-filter=U)" ]]; then
+                echo "::error::Could not resolve every conflict in ${prefix}."
+                git merge --abort || true
+                return 1
+              fi
+
+              git commit -m "chore: resolve ${prefix} conflicts in favor of child"
+              return
+            fi
+
+            echo "::error::Subtree pull failed for ${prefix}; refusing to overwrite files automatically."
+            return "$pull_status"
           }
 
           reconcile_subtree "Hardware" "KavehAhangar051/Home-Control-Hardwar-Codes"
