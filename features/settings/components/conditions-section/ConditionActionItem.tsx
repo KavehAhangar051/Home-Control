@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Trash2 } from "@/components/ui/hugeicons";
 
 export interface ConditionAction {
   reqHold: number;

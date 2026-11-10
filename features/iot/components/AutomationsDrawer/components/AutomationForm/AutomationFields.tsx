@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { MapPin } from "@/components/ui/hugeicons";
 import { Button } from "@/components/ui/button";
 import type { AutomationFormHookValue } from "../../context/AutomationContext";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, XCircle, X } from "lucide-react";
+import { CheckCircle, XCircle, X } from "@/components/ui/hugeicons";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";

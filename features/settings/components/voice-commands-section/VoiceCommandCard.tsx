@@ -1,5 +1,5 @@
 import React from "react";
-import { Edit2, Trash2, Mic } from "lucide-react";
+import { Edit2, Trash2, Mic } from "@/components/ui/hugeicons";
 import { motion } from "motion/react";
 import { VoiceCommandEditor } from "./VoiceCommandEditor";
 

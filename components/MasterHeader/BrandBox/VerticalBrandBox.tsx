@@ -1,4 +1,4 @@
-import { HousePlug } from "lucide-react";
+import { HousePlug } from "@/components/ui/hugeicons";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import type { BrandBoxProps } from "./types";
 

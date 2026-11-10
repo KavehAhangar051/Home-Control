@@ -1,5 +1,5 @@
 import React from "react";
-import { X, GripVertical } from "lucide-react";
+import { X, GripVertical } from "@/components/ui/hugeicons";
 import { SegmentData } from "../core/types";
 import SegmentControls from "./SegmentControls";
 

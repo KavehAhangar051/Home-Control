@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
-import { X } from "lucide-react";
+import { X } from "@/components/ui/hugeicons";
 import { ICON_MAP } from "@/features/iot/utils/icons";
 import { BUTTON_CLIP } from "@/lib/presets";
 import type { SegmentData } from "../core/types";

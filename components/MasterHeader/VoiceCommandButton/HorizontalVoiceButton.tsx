@@ -1,5 +1,5 @@
 import type { PointerEvent } from "react";
-import { Mic } from "lucide-react";
+import { Mic } from "@/components/ui/hugeicons";
 import { motion } from "motion/react";
 import type { VoiceCommandButtonProps } from "./types";
 

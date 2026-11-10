@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Edit2, Plus } from "lucide-react";
+import { Edit2, Plus } from "@/components/ui/hugeicons";
 import ActionBuilder from "./ActionBuilder";
 import {
   ScheduleFields,

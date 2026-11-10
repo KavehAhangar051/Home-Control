@@ -3,7 +3,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "motion/react";
-import { Clock, X, Info } from "lucide-react";
+import { Clock, X, Info } from "@/components/ui/hugeicons";
 import { Alert } from "@/components/reui/alert";
 import { AutomationProvider } from "./context/AutomationContext";
 import AutomationForm from "./components/AutomationForm";

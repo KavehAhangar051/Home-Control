@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Sliders, Trash2 } from "lucide-react";
+import { Sliders, Trash2 } from "@/components/ui/hugeicons";
 import { Segment } from "../core/types";
 import { Card } from "@/components/ui/card";
 

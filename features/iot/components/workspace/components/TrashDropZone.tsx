@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import { Trash2 } from "lucide-react";
+import { Trash2 } from "@/components/ui/hugeicons";
 import { Card } from "@/components/ui/card";
 
 export default function TrashDropZone({ activeId }: { activeId: string | null }) {

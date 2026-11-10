@@ -1,6 +1,6 @@
 "use client";
 
-import { House } from "lucide-react";
+import { House } from "@/components/ui/hugeicons";
 import {
   Breadcrumb,
   BreadcrumbItem,

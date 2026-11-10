@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
-import { Activity, ChevronLeft } from "lucide-react";
+import { Activity, ChevronLeft } from "@/components/ui/hugeicons";
 import { ACCORDION_CLIP } from "@/lib/presets";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import type { StabilitySectionProps } from "./types";

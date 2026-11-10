@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Activity, VolumeX } from "lucide-react";
+import { Activity, VolumeX } from "@/components/ui/hugeicons";
 
 interface Props {
   isMusicOn: boolean;

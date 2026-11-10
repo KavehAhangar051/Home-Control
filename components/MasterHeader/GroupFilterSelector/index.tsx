@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "@/components/ui/hugeicons";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence } from "motion/react";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";

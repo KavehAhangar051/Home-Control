@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   request-parent-sync:
-    if: (github.event_name != 'push' || github.event.head_commit.committer.email != '41898282+github-actions[bot]@users.noreply.github.com') && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_commit.committer.email != '41898282+github-actions[bot]@users.noreply.github.com'))
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -30,8 +30,8 @@ jobs:
           set -euo pipefail
 
           if [[ -z "${PARENT_SYNC_TOKEN:-}" ]]; then
-            echo "::error::PARENT_SYNC_TOKEN is not configured. Add this secret to enable immediate parent synchronization."
-            exit 1
+            echo "::warning::PARENT_SYNC_TOKEN is not configured. The parent's scheduled reconciliation will pick up this commit; add the secret for immediate synchronization."
+            exit 0
           fi
 
           curl --fail-with-body --silent --show-error \

@@ -1,4 +1,4 @@
-import { Download, Music, SkipBack, SkipForward } from "lucide-react";
+import { Download, Music, SkipBack, SkipForward } from "@/components/ui/hugeicons";
 
 interface AudioTrack {
   title: string;

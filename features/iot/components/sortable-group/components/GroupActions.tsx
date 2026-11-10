@@ -1,5 +1,5 @@
 import React from "react";
-import { Trash2, GripVertical } from "lucide-react";
+import { Trash2, GripVertical } from "@/components/ui/hugeicons";
 import { Card } from "@/components/ui/card";
 
 interface GroupActionsProps {
