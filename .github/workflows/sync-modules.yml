@@ -61,28 +61,43 @@ jobs:
             local prefix="$1"
             local repository="$2"
             local child_url="https://github.com/${repository}.git"
+            local pull_output
+            local pull_status
 
             echo "Reconciling ${repository} into ${prefix}/"
 
-            if git cat-file -e "HEAD:${prefix}" 2>/dev/null; then
-              if git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
-                subtree pull --prefix="${prefix}" "$child_url" main \
-                -m "chore: reconcile ${prefix} with ${repository}"; then
-                echo "Pull succeeded for ${prefix}"
-              else
-                echo "Pull failed for ${prefix}; treating child repository as the source of truth for this subtree."
-                git reset --hard HEAD
-                git rm -r --force -- "$prefix" || true
-                git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
-                  subtree add --prefix="${prefix}" "$child_url" main \
-                  -m "chore: bootstrap ${prefix} from ${repository}"
-              fi
-            else
-              echo "No ${prefix} folder exists yet; importing subtree."
+            if ! git cat-file -e "HEAD:${prefix}" 2>/dev/null; then
+              echo "Importing ${repository} as a subtree."
               git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
-                subtree add --prefix="${prefix}" "$child_url" main \
+                subtree add --prefix="$prefix" "$child_url" main \
                 -m "chore: import ${prefix} from ${repository}"
+              return
             fi
+
+            if pull_output="$(git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
+              subtree pull --prefix="$prefix" "$child_url" main \
+              -m "chore: reconcile ${prefix} with ${repository}" 2>&1)"; then
+              printf '%s\n' "$pull_output"
+              return
+            else
+              pull_status=$?
+              printf '%s\n' "$pull_output"
+            fi
+
+            if [[ "$pull_output" != *"fatal: refusing to merge unrelated histories"* ]]; then
+              echo "::error::Subtree pull failed for ${prefix} for a reason other than unrelated histories."
+              return "$pull_status"
+            fi
+
+            echo "Rebuilding ${prefix}/ from ${repository}:main to reconnect the histories."
+            git merge --abort >/dev/null 2>&1 || true
+            git reset --hard HEAD
+            git rm -r --force -- "$prefix"
+            git commit -m "chore: remove ${prefix} before subtree history recovery"
+
+            git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
+              subtree add --prefix="$prefix" "$child_url" main \
+              -m "chore: reconnect ${prefix} history from ${repository}"
           }
 
           reconcile_subtree "Hardware" "KavehAhangar051/Home-Control-Hardwar-Codes"
