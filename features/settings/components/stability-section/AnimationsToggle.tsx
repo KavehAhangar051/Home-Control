@@ -1,0 +1,86 @@
+"use client";
+
+import { soundManager } from "@/lib/audio";
+
+interface AnimationsToggleProps {
+  animationsEnabled: boolean;
+  setAnimationsEnabled: (val: boolean) => void;
+  animationsFps?: number;
+  setAnimationsFps?: (val: number) => void;
+  isDark?: boolean;
+}
+
+export default function AnimationsToggle({
+  animationsEnabled,
+  setAnimationsEnabled,
+  animationsFps = 60,
+  setAnimationsFps,
+  isDark = true,
+}: AnimationsToggleProps) {
+  const handleToggle = () => {
+    const nextVal = !animationsEnabled;
+    setAnimationsEnabled(nextVal);
+    if (nextVal) soundManager.playToggleOn();
+    else soundManager.playToggleOff();
+  };
+
+  return (
+    <div className="space-y-4 border-b border-accent3-medium/10 pb-4">
+      <p className="text-[10px] theme-text-tertiary leading-relaxed">
+        اگر دستگاه شما با تاخیر یا بار پردازشی بالایی مواجه است، انیمیشن‌های سنگین یا ترنزیشن‌های
+        حرکتی را متوقف کنید:
+      </p>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={animationsEnabled}
+        onClick={handleToggle}
+        className={`switch-toggle w-full p-4 rounded-2xl border transition-all duration-300 flex items-center justify-between cursor-pointer text-right group ${animationsEnabled ? (isDark ? "bg-emerald-950/20 border-accent4/60 shadow-[0_0_12px_rgba(16,185,129,0.1)]" : "bg-emerald-50 border-emerald-300 shadow-[0_2px_4px_rgba(16,185,129,0.06)]") : isDark ? "bg-slate-950/40 border-slate-800 hover:border-slate-700" : "bg-slate-50/80 border-slate-200 hover:border-slate-300 shadow-sm"}`}
+      >
+        <span className="text-right space-y-0.5 max-w-[70%]">
+          <span
+            className={`font-sans font-bold text-xs block transition-colors duration-200 ${animationsEnabled ? "text-emerald-500" : isDark ? "text-gray-200" : "text-slate-800"}`}
+          >
+            {animationsEnabled ? "انیمیشن‌های رابط کاربری: فعال" : "انیمیشن‌های رابط کاربری: غیرفعال"}
+          </span>
+          <span
+            className={`text-[11px] block leading-normal font-sans transition-colors duration-200 ${isDark ? "text-gray-400 group-hover:text-gray-300" : "text-slate-500 group-hover:text-slate-600"}`}
+          >
+            {animationsEnabled
+              ? "نمایش نرم جابه‌جایی کارت‌ها و بازخورد حرکتی کنترل‌ها"
+              : "کاهش بار پردازشی و حذف جلوه‌های حرکتی"}
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          className={`relative inline-flex h-6 w-11 rounded-full p-0.5 items-center transition-colors duration-200 shrink-0 select-none ${animationsEnabled ? "bg-[var(--accent4)]" : isDark ? "bg-black/30 border border-slate-800/40" : "bg-slate-200 border border-slate-300"}`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-[var(--text-primary)] shadow-md transform ${animationsEnabled ? "transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-5" : "translate-x-0"}`}
+          />
+        </span>
+      </button>
+      {animationsEnabled && setAnimationsFps && (
+        <div className="pt-2 px-2 flex justify-between items-center">
+          <span className="text-xs theme-text-secondary font-medium">نرخ نوسازی انیمیشن‌ها</span>
+          <div className="flex gap-2" dir="ltr">
+            {[30, 60].map((fps) => (
+              <button
+                key={fps}
+                type="button"
+                aria-pressed={animationsFps === fps}
+                onClick={() => {
+                  setAnimationsFps(fps);
+                  soundManager.playClick();
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-sans font-bold tabular-nums transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] ${animationsFps === fps ? "bg-[var(--accent4)] text-[var(--bg-main)] shadow-sm" : isDark ? "bg-black/20 text-gray-400 hover:text-gray-200 border border-slate-700/50" : "bg-gray-100 text-gray-500 hover:text-gray-700 border border-gray-200"}`}
+              >
+                {fps} FPS
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

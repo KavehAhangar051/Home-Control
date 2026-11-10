@@ -1,0 +1,129 @@
+import React, { useState, useEffect } from "react";
+import { soundManager } from "@/lib/audio";
+import { reconnectMqtt, getMqttSettings } from "@/features/iot/services/mqttService";
+import { RefreshCw, Save } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  fetchConfigFromCloudflare,
+  saveConfigToCloudflare,
+} from "@/features/iot/services/cloudflare/api";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { MqttFormFields } from "./MqttFormFields";
+import { MqttQosSelector } from "./MqttQosSelector";
+
+export default function MqttSection() {
+  const [brokerWsUrl, setBrokerWsUrl] = useState("");
+  const [brokerHost, setBrokerHost] = useState("");
+  const [brokerPort, setBrokerPort] = useState(1883);
+  const [baseTopic, setBaseTopic] = useState("");
+  const [qos, setQos] = useState<0 | 1 | 2>(1);
+  const [isSaved, setIsSaved] = useState(false);
+  const setMqttConfig = useIoTStore((state) => state.setMqttConfig);
+  const showToast = useIoTStore((state) => state.showToast);
+
+  useEffect(() => {
+    const settings = getMqttSettings();
+    setBrokerWsUrl(settings.brokerUrl);
+    setBrokerHost("broker.emqx.io");
+    setBrokerPort(1883);
+    setBaseTopic(settings.baseTopic);
+    setQos(settings.qos);
+
+    fetchConfigFromCloudflare().then((config) => {
+      if (config && config.mqtt) {
+        setBrokerWsUrl(config.mqtt.broker_ws_url);
+        setBrokerHost(config.mqtt.broker_host);
+        setBrokerPort(config.mqtt.broker_port);
+        setBaseTopic(config.mqtt.base_topic);
+        setQos(config.mqtt.qos);
+      }
+    });
+  }, []);
+
+  const handleSaveAndReconnect = async () => {
+    soundManager.playClick();
+
+    localStorage.setItem("mqtt_broker_url", brokerWsUrl);
+    localStorage.setItem("mqtt_base_topic", baseTopic);
+    localStorage.setItem("mqtt_qos", qos.toString());
+
+    const newMqttConfig = {
+      broker_ws_url: brokerWsUrl,
+      broker_host: brokerHost,
+      broker_port: brokerPort,
+      base_topic: baseTopic,
+      qos: qos,
+    };
+    setMqttConfig(newMqttConfig);
+
+    try {
+      const config = await fetchConfigFromCloudflare();
+      if (!config) {
+        showToast("تنظیمات سرور دریافت نشد؛ اتصال کلودفلر را بررسی کنید.", "error");
+        return;
+      }
+      config.mqtt = newMqttConfig;
+      const res = await saveConfigToCloudflare(config);
+      if (res.success) {
+        showToast(res.message, "success");
+        setIsSaved(true);
+        setTimeout(() => setIsSaved(false), 2000);
+      } else {
+        showToast(res.message, "error");
+      }
+    } catch (e) {
+      console.error("Failed to save MQTT settings to cloud", e);
+      showToast("خطا در ارتباط با سرور کلودفلر", "error");
+    }
+
+    reconnectMqtt();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <p className="text-[10px] text-[var(--text-tertiary)] leading-relaxed text-right">
+          تنظیمات ارتباطی داشبورد با ماژول‌های ESP را مدیریت کنید. پس از ذخیره، اتصال مجدداً برقرار
+          می‌شود.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <MqttFormFields
+          brokerWsUrl={brokerWsUrl}
+          setBrokerWsUrl={setBrokerWsUrl}
+          brokerHost={brokerHost}
+          setBrokerHost={setBrokerHost}
+          brokerPort={brokerPort}
+          setBrokerPort={setBrokerPort}
+          baseTopic={baseTopic}
+          setBaseTopic={setBaseTopic}
+        />
+        <MqttQosSelector qos={qos} setQos={setQos} />
+      </div>
+
+      <Button
+        type="button"
+        variant={isSaved ? "outline" : "default"}
+        onClick={handleSaveAndReconnect}
+        className={`w-full h-auto min-h-12 rounded-xl px-4 py-3.5 text-sm font-bold transition-colors focus-visible:ring-[var(--accent3)] ${
+          isSaved
+            ? "border-[var(--accent4)] bg-[var(--accent4-transparent)] text-[var(--accent4)] hover:border-[var(--accent4)] hover:bg-[var(--accent4-transparent)] hover:text-[var(--accent4)]"
+            : "border-transparent bg-[var(--accent3)] text-white shadow-sm hover:bg-[var(--accent3-dark)] hover:text-white"
+        }`}
+      >
+        {isSaved ? (
+          <>
+            <Save className="w-4 h-4" />
+            ذخیره شد
+          </>
+        ) : (
+          <>
+            <RefreshCw className="w-4 h-4" />
+            ذخیره و اتصال مجدد
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}
