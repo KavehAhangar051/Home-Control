@@ -1,0 +1,49 @@
+"use client";
+
+import React from "react";
+import { MotionConfig } from "motion/react";
+import DashboardStyles from "@/features/iot/components/DashboardStyles";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import DashboardHeader from "./DashboardHeader";
+import DashboardMain from "./DashboardMain";
+import DashboardDrawers from "./DashboardDrawers";
+import ToastNotification from "@/features/iot/components/notifications/ToastNotification";
+import ScrollToTopButton from "../widgets/ScrollToTopButton";
+import { usePageVisibility } from "@/features/iot/hooks/usePageVisibility";
+
+export default function DashboardContainer() {
+  usePageVisibility();
+
+  const accent3 = useIoTStore((s) => s.accent3);
+  const accent4 = useIoTStore((s) => s.accent4);
+  const isDark = useIoTStore((s) => s.isDark);
+  const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+
+  return (
+    <MotionConfig reducedMotion={animationsEnabled ? "user" : "always"}>
+      <div
+        className={`style-nova theme-bg-main theme-text-secondary min-h-screen relative font-sans leading-relaxed selection:bg-[var(--accent3-transparent)] selection:text-[var(--accent3)] overflow-x-clip ${isDark ? "dark" : ""}`}
+      >
+        <div className="animate-fade-in">
+          <DashboardStyles
+            accent3={accent3}
+            accent4={accent4}
+            isDark={isDark}
+            animationsEnabled={animationsEnabled}
+          />
+
+          <div className="relative z-10 flex flex-row items-stretch w-full min-h-screen">
+            <DashboardHeader />
+            <div className="flex-1 min-w-0 flex flex-col justify-between gap-8 p-3 md:p-6 md:pt-1 md:pb-8 md:px-8 w-full mx-auto">
+              <DashboardMain />
+            </div>
+          </div>
+
+          <DashboardDrawers />
+          <ToastNotification />
+          <ScrollToTopButton />
+        </div>
+      </div>
+    </MotionConfig>
+  );
+}
