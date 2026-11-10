@@ -1,2 +1,0 @@
-Parent to Child Sync Test
-Created by ChatGPT to verify bidirectional repository synchronization.
