@@ -57,60 +57,33 @@ jobs:
           git config --local --unset-all http.https://github.com/.extraheader || true
           child_auth_header="$(printf '%s:%s' "$GITHUB_ACTOR" "$CHILD_REPOS_TOKEN" | base64 -w 0)"
 
-          imported=false
-          reconciled=false
-
-          import_subtree() {
-            local prefix="$1"
-            local repository="$2"
-
-            if ! git cat-file -e "HEAD:${prefix}" 2>/dev/null; then
-              echo "Importing ${repository} into ${prefix}/ with its history"
-              git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
-                subtree add --prefix="${prefix}" "https://github.com/${repository}.git" main
-              imported=true
-            fi
-          }
-
           reconcile_subtree() {
             local prefix="$1"
             local repository="$2"
-            local before
-            local after
-            local pull_output
+            local child_url="https://github.com/${repository}.git"
 
-            before="$(git rev-parse HEAD)"
-            echo "Reconciling commits from ${repository}:main into ${prefix}/"
+            echo "Reconciling ${repository} into ${prefix}/"
 
-            if pull_output="$(git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
-              subtree pull --prefix="${prefix}" "https://github.com/${repository}.git" main \
-              -m "chore: reconcile ${prefix} with ${repository}" 2>&1)"; then
-              printf '%s\n' "$pull_output"
-            else
-              printf '%s\n' "$pull_output"
-
-              if [[ "$pull_output" != *"fatal: refusing to merge unrelated histories"* ]]; then
-                return 1
+            if git cat-file -e "HEAD:${prefix}" 2>/dev/null; then
+              if git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
+                subtree pull --prefix="${prefix}" "$child_url" main \
+                -m "chore: reconcile ${prefix} with ${repository}"; then
+                echo "Pull succeeded for ${prefix}"
+              else
+                echo "Pull failed for ${prefix}; treating child repository as the source of truth for this subtree."
+                git reset --hard HEAD
+                git rm -r --force -- "$prefix" || true
+                git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
+                  subtree add --prefix="${prefix}" "$child_url" main \
+                  -m "chore: bootstrap ${prefix} from ${repository}"
               fi
-
-              echo "Unrelated histories detected for ${prefix}; retrying once with ${repository} as the baseline."
-              git merge --abort >/dev/null 2>&1 || true
-              git reset --hard "$before"
+            else
+              echo "No ${prefix} folder exists yet; importing subtree."
               git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
-                subtree pull --prefix="${prefix}" "https://github.com/${repository}.git" main \
-                --allow-unrelated-histories -X theirs \
-                -m "chore: bootstrap ${prefix} history from ${repository}"
-            fi
-
-            after="$(git rev-parse HEAD)"
-            if [[ "$after" != "$before" ]]; then
-              reconciled=true
+                subtree add --prefix="${prefix}" "$child_url" main \
+                -m "chore: import ${prefix} from ${repository}"
             fi
           }
-
-          import_subtree "Hardware" "KavehAhangar051/Home-Control-Hardwar-Codes"
-          import_subtree "Database" "KavehAhangar051/Home-Control-DB"
-          import_subtree "Dashboard" "KavehAhangar051/Home-Control-Dashboard"
 
           reconcile_subtree "Hardware" "KavehAhangar051/Home-Control-Hardwar-Codes"
           reconcile_subtree "Database" "KavehAhangar051/Home-Control-DB"
@@ -120,11 +93,7 @@ jobs:
             git config --local http.https://github.com/.extraheader "$parent_auth_header"
           fi
 
-          if [[ "$imported" == "true" || "$reconciled" == "true" ]]; then
-            git push origin HEAD:main
-          else
-            echo "Child histories already match the parent subtrees; no parent merge commit needed."
-          fi
+          git push origin HEAD:main
 
       - name: Push Hardware subtree to its repository
         env:
