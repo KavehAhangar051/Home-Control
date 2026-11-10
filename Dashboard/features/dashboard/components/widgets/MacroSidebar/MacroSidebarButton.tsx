@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "motion/react";
-import { Play } from "lucide-react";
+import { Play } from "@/components/ui/hugeicons";
 import { ICON_MAP } from "@/features/iot/utils/icons";
 
 interface MacroSidebarButtonProps {

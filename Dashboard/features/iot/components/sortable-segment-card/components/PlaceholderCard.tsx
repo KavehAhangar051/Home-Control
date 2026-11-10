@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import { X, Plus, GripVertical } from "lucide-react";
+import { X, Plus, GripVertical } from "@/components/ui/hugeicons";
 import { Card } from "@/components/ui/card";
 import { SegmentData } from "../core/types";
 

@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { motion } from "motion/react";
-import { Lightbulb, Network, Workflow } from "lucide-react";
+import { Lightbulb, Network, Workflow } from "@/components/ui/hugeicons";
 import { IconStack } from "@/components/reui/icon-stack";
 import { Scrollspy } from "@/components/reui/scrollspy";
 import { Button } from "@/components/ui/button";

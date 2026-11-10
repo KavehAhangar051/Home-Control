@@ -1,4 +1,4 @@
-import { Clock } from "lucide-react";
+import { Clock } from "@/components/ui/hugeicons";
 
 export default function RealTimeClock({
   time,

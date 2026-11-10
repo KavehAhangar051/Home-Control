@@ -1,12 +1,19 @@
-import { Clock3, House, Layers, Settings, Settings2, type LucideIcon } from "lucide-react";
+import {
+  Clock3,
+  House,
+  Layers,
+  Settings,
+  Settings2,
+  type HugeIconComponent,
+} from "@/components/ui/hugeicons";
 import type { WorkspaceView } from "@/features/iot/hooks/store/types";
 
 export interface WorkspaceViewMeta {
   id: WorkspaceView;
   title: string;
   description: string;
-  navIcon: LucideIcon;
-  sectionIcon: LucideIcon;
+  navIcon: HugeIconComponent;
+  sectionIcon: HugeIconComponent;
 }
 
 /**

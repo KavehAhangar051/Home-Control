@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/ui/hugeicons";
 import { ConditionActionItem, type ConditionAction } from "./ConditionActionItem";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 

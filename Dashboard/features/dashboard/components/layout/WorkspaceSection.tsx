@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clock3 } from "lucide-react";
+import { Clock3 } from "@/components/ui/hugeicons";
 import { Alert } from "@/components/reui/alert";
 import {
   SETTINGS_TABS,

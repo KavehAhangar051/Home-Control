@@ -1,5 +1,5 @@
 import React from "react";
-import { Globe, HardDrive } from "lucide-react";
+import { Globe, HardDrive } from "@/components/ui/hugeicons";
 
 interface Props {
   musicSource: "local" | "api";

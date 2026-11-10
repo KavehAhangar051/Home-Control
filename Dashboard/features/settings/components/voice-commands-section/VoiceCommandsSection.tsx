@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { Plus, Mic } from "lucide-react";
+import { Plus, Mic } from "@/components/ui/hugeicons";
 import { motion, AnimatePresence } from "motion/react";
 import { VoiceTranscriptOverlay } from "./VoiceTranscriptOverlay";
 import { VoiceCommandEditCard, VoiceCommandViewCard } from "./VoiceCommandCard";

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Globe, CloudLightning, Server } from "lucide-react";
+import { Globe, CloudLightning, Server } from "@/components/ui/hugeicons";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
   getCloudflareWorkerUrl,

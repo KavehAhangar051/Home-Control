@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ICON_MAP, AVAILABLE_ICONS, SUGGESTED_EMOJIS } from "@/features/iot/utils/icons";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp } from "@/components/ui/hugeicons";
 
 interface IconPickerProps {
   label: string;
@@ -16,7 +16,7 @@ export default function IconPicker({
   onSelectIcon,
 }: IconPickerProps) {
   const [showIcons, setShowIcons] = useState(false);
-  const [iconMode, setIconMode] = useState<"emoji" | "lucide">("lucide");
+  const [iconMode, setIconMode] = useState<"emoji" | "hugeicons">("hugeicons");
 
   return (
     <div className="space-y-1.5">
@@ -61,10 +61,10 @@ export default function IconPicker({
             </button>
             <button
               type="button"
-              onClick={() => setIconMode("lucide")}
-              className={`flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-colors ${iconMode === "lucide" ? "bg-[var(--accent3)] text-white shadow-sm" : "bg-[var(--bg-primary)] hover:text-[var(--accent3)] text-[var(--text-secondary)]"}`}
+              onClick={() => setIconMode("hugeicons")}
+              className={`flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-colors ${iconMode === "hugeicons" ? "bg-[var(--accent3)] text-white shadow-sm" : "bg-[var(--bg-primary)] hover:text-[var(--accent3)] text-[var(--text-secondary)]"}`}
             >
-              آیکون ساده
+              آیکون هیوج
             </button>
           </div>
 

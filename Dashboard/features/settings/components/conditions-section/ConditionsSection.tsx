@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Info, Settings2 } from "lucide-react";
+import { Info, Settings2 } from "@/components/ui/hugeicons";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { publishUpdateRuleCommand } from "@/features/iot/services/mqttService";
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";

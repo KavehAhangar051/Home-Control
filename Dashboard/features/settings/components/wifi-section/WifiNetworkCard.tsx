@@ -1,5 +1,5 @@
 import React from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2 } from "@/components/ui/hugeicons";
 import { motion } from "motion/react";
 import { WifiNetworkEditor } from "./WifiNetworkEditor";
 

@@ -1,4 +1,4 @@
-import { Settings2 } from "lucide-react";
+import { Settings2 } from "@/components/ui/hugeicons";
 import { ConditionActionsList } from "./ConditionActionsList";
 import type { ConditionAction } from "./ConditionActionItem";
 

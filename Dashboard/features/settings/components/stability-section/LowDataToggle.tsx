@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { WifiOff } from "lucide-react";
+import { WifiOff } from "@/components/ui/hugeicons";
 import { soundManager } from "@/lib/audio";
 
 interface LowDataToggleProps {

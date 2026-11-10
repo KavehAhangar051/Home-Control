@@ -1,5 +1,5 @@
 import React from "react";
-import { Mic } from "lucide-react";
+import { Mic } from "@/components/ui/hugeicons";
 import { motion } from "motion/react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useMobileVoiceCommand } from "../../hooks/useMobileVoiceCommand";

@@ -4,7 +4,12 @@ import React, { useState } from "react";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { AnimatePresence } from "motion/react";
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from "@/components/ui/hugeicons";
 import { CarouselMacroButton, SimpleMacroButton } from "./MacroSidebarButton";
 
 interface MacroSidebarProps {

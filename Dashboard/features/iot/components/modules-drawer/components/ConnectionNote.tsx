@@ -1,5 +1,5 @@
 import React from "react";
-import { Info } from "lucide-react";
+import { Info } from "@/components/ui/hugeicons";
 import { Alert } from "@/components/reui/alert";
 
 interface ConnectionNoteProps {

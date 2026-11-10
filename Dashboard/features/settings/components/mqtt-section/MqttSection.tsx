@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { soundManager } from "@/lib/audio";
 import { reconnectMqtt, getMqttSettings } from "@/features/iot/services/mqttService";
-import { RefreshCw, Save } from "lucide-react";
+import { RefreshCw, Save } from "@/components/ui/hugeicons";
 import { Button } from "@/components/ui/button";
 import {
   fetchConfigFromCloudflare,

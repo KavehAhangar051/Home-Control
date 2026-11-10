@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import { X, Layers } from "lucide-react";
+import { X, Layers } from "@/components/ui/hugeicons";
 
 interface DrawerHeaderProps {
   onClose: () => void;

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { CloudUpload, WifiOff } from "lucide-react";
+import { CloudUpload, WifiOff } from "@/components/ui/hugeicons";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
 
 interface LowDataModeBannerProps {

@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { X, Play, Square, Layers, Plus } from "lucide-react";
+import { X, Play, Square, Layers, Plus } from "@/components/ui/hugeicons";
 import { useAutomationActions } from "../../hooks/useAutomationActions";
 import { Card } from "@/components/ui/card";
 

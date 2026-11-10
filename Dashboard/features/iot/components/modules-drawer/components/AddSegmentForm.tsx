@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Settings2, ChevronDown } from "lucide-react";
+import { Plus, Settings2, ChevronDown } from "@/components/ui/hugeicons";
 import { Segment } from "../core/types";
 import { useAddSegmentForm } from "../hooks/useAddSegmentForm";
 import ButtonModeSelector from "./ButtonModeSelector";

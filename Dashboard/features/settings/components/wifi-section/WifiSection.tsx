@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Wifi } from "lucide-react";
+import { Plus, Wifi } from "@/components/ui/hugeicons";
 import { Button } from "@/components/ui/button";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { AnimatePresence } from "motion/react";

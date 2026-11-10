@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, Clock, Thermometer, Layers } from "lucide-react";
+import { Edit2, Trash2, Clock, Thermometer, Layers } from "@/components/ui/hugeicons";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { Card } from "@/components/ui/card";
 import { useOptionalAutomationContext } from "../../context/AutomationContext";

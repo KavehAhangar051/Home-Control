@@ -1,4 +1,8 @@
-import { HousePlug, PanelRightClose, PanelLeftClose } from "lucide-react";
+import {
+  HousePlug,
+  PanelRightClose,
+  PanelLeftClose,
+} from "@/components/ui/hugeicons";
 import type { MasterHeaderProps } from "../types";
 import BrandBox from "../BrandBox";
 import ControlsIsland from "./ControlsIsland";

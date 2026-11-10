@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Clock } from "lucide-react";
+import { Clock } from "@/components/ui/hugeicons";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { getPersianDateString, getTimeString } from "./persianDateUtils";
 import type { ClockWidgetProps } from "./types";

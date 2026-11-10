@@ -1,5 +1,5 @@
 import React from "react";
-import { Settings } from "lucide-react";
+import { Settings } from "@/components/ui/hugeicons";
 import { ICON_MAP } from "@/features/iot/utils/icons";
 import { AnimatePresence } from "motion/react";
 import { BUTTON_CLIP } from "@/lib/presets";
