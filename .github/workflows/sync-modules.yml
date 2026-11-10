@@ -11,7 +11,6 @@ on:
       - "Dashboard/**"
   workflow_dispatch:
   schedule:
-    # Backup: reconcile child-only commits even if a child PAT secret is not configured.
     - cron: "*/10 * * * *"
 
 permissions:
@@ -54,11 +53,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Keep the parent repository credential for the eventual push to origin.
           parent_auth_header="$(git config --local --get http.https://github.com/.extraheader || true)"
-
-          # Remove the parent-only credential while reading child repositories, so
-          # the child PAT is the credential Git sends to the child repositories.
           git config --local --unset-all http.https://github.com/.extraheader || true
           child_auth_header="$(printf '%s:%s' "$GITHUB_ACTOR" "$CHILD_REPOS_TOKEN" | base64 -w 0)"
 
@@ -82,13 +77,30 @@ jobs:
             local repository="$2"
             local before
             local after
+            local pull_output
 
             before="$(git rev-parse HEAD)"
             echo "Reconciling commits from ${repository}:main into ${prefix}/"
 
-            git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
+            if pull_output="$(git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
               subtree pull --prefix="${prefix}" "https://github.com/${repository}.git" main \
-              -m "chore: reconcile ${prefix} with ${repository}"
+              -m "chore: reconcile ${prefix} with ${repository}" 2>&1)"; then
+              printf '%s\n' "$pull_output"
+            else
+              printf '%s\n' "$pull_output"
+
+              if [[ "$pull_output" != *"fatal: refusing to merge unrelated histories"* ]]; then
+                return 1
+              fi
+
+              echo "Unrelated histories detected for ${prefix}; retrying once with ${repository} as the baseline."
+              git merge --abort >/dev/null 2>&1 || true
+              git reset --hard "$before"
+              git -c "http.extraheader=AUTHORIZATION: basic ${child_auth_header}" \
+                subtree pull --prefix="${prefix}" "https://github.com/${repository}.git" main \
+                --allow-unrelated-histories -X theirs \
+                -m "chore: bootstrap ${prefix} history from ${repository}"
+            fi
 
             after="$(git rev-parse HEAD)"
             if [[ "$after" != "$before" ]]; then
@@ -100,14 +112,10 @@ jobs:
           import_subtree "Database" "KavehAhangar051/Home-Control-DB"
           import_subtree "Dashboard" "KavehAhangar051/Home-Control-Dashboard"
 
-          # Merge any commits made directly in child repositories into the matching
-          # parent folder before splitting/pushing. No force push is used. If Git
-          # detects conflicting edits to the same file, this step stops safely.
           reconcile_subtree "Hardware" "KavehAhangar051/Home-Control-Hardwar-Codes"
           reconcile_subtree "Database" "KavehAhangar051/Home-Control-DB"
           reconcile_subtree "Dashboard" "KavehAhangar051/Home-Control-Dashboard"
 
-          # Restore the checkout credential so pushes back to the parent work.
           if [[ -n "$parent_auth_header" ]]; then
             git config --local http.https://github.com/.extraheader "$parent_auth_header"
           fi
