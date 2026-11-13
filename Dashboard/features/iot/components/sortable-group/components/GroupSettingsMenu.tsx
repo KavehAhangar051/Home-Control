@@ -1,6 +1,7 @@
-import React from "react";
+import { m } from "motion/react";
+import type React from "react";
 import { Button } from "@/components/ui/button";
-import { motion } from "motion/react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus } from "@/components/ui/hugeicons";
 import LayoutSelector from "./LayoutSelector";
 
@@ -12,60 +13,62 @@ interface GroupSettingsMenuProps {
   maxCols: number;
   onColsChange: (cols: number) => void;
   onAddPlaceholder: (groupId: string) => void;
+  onDeleteGroup: (groupId: string) => void;
   setIsSettingsOpen: (open: boolean) => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
 }
 
+/**
+ * Dropdown menu for managing a Smart Home group:
+ * allows changing segment grid columns, adding a new segment slot,
+ * or safely deleting the entire group.
+ */
 export default function GroupSettingsMenu({
   id,
   isSettingsOpen,
-  isCompact,
-  isMobile,
   maxCols,
   onColsChange,
   onAddPlaceholder,
+  onDeleteGroup,
   setIsSettingsOpen,
   menuRef,
 }: GroupSettingsMenuProps) {
   if (!isSettingsOpen) return null;
 
   return (
-    <motion.div
+    <m.div
       ref={menuRef}
-      className="absolute top-[calc(100%+8px)] z-[100]"
+      className="absolute top-[calc(100%+8px)] left-0 z-[100]"
       onPointerDown={(e) => e.stopPropagation()}
-      initial={{ opacity: 0, scale: 0.95, y: -5 }}
+      initial={{ opacity: 0, scale: 0.96, y: -4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: -5 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      style={{ right: 0 }}
+      exit={{ opacity: 0, scale: 0.96, y: -4 }}
+      transition={{ duration: 0.16, ease: "easeOut" }}
     >
-      <div className="relative w-auto bg-[var(--card-bg-solid)] backdrop-blur-xl border border-[var(--border-color)] rounded-2xl shadow-xl p-3 sm:p-4 flex flex-col gap-3 md:hover:-translate-y-1.5 transition-transform duration-300 cursor-default">
-        {/* Hover glow overlay — opacity-only, GPU composited */}
-        <div className="absolute inset-0 rounded-2xl border border-[var(--accent3)] shadow-2xl opacity-0 transition-opacity duration-300 md:hover:opacity-100 pointer-events-none" />
-        <div className="relative z-10 flex items-center justify-between border-b border-[var(--border-color)] pb-2 min-w-[150px] sm:min-w-[180px]">
-          <span className="font-sans font-extrabold theme-text-primary text-xs sm:text-sm truncate max-w-[180px] sm:max-w-[220px]">
+      <div className="relative w-56 sm:w-64 bg-[var(--card-bg-solid)] backdrop-blur-xl border border-[var(--border-color)] rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right">
+        <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
+          <span className="text-[11px] font-medium text-[var(--text-muted)]">تنظیمات گروه</span>
+          <span className="font-sans font-bold theme-text-primary text-xs sm:text-sm truncate max-w-[140px]">
             {id}
           </span>
         </div>
-        {(isCompact || isMobile) && (
-          <div className="relative z-10 flex flex-col gap-2 w-full">
-            <span className="text-[10px] font-bold text-slate-500">تعداد ستون‌های سگمنت</span>
-            <LayoutSelector
-              maxCols={maxCols}
-              onColsChange={(cols) => {
-                onColsChange(cols);
-                setIsSettingsOpen(false);
-              }}
-              parentGroupsCols={3}
-              fullWidth={true}
-            />
-          </div>
-        )}
 
-        <div
-          className={`relative z-10 flex flex-col gap-2 ${isCompact || isMobile ? "pt-2 border-t border-[var(--border-color)]" : ""}`}
-        >
+        <div className="flex flex-col gap-1.5 w-full">
+          <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
+            چیدمان ستون‌های قطعات
+          </span>
+          <LayoutSelector
+            maxCols={maxCols}
+            onColsChange={(cols) => {
+              onColsChange(cols);
+              setIsSettingsOpen(false);
+            }}
+            parentGroupsCols={3}
+            fullWidth={true}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--border-color)]">
           <Button
             variant="ghost"
             type="button"
@@ -73,13 +76,28 @@ export default function GroupSettingsMenu({
               onAddPlaceholder(id);
               setIsSettingsOpen(false);
             }}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors w-full"
+            className="flex items-center justify-start gap-2 px-3 py-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-xl md:hover:bg-emerald-500/20 transition-colors w-full cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span>اضافه کردن سگمنت</span>
+            <Plus className="w-4 h-4 shrink-0" />
+            <span>افزودن جایگاه قطعه</span>
           </Button>
+
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-[var(--secondary)]">
+            <span className="text-xs font-bold text-red-600 dark:text-red-400 truncate">
+              حذف کامل این گروه
+            </span>
+            <DeleteButton
+              size="sm"
+              resetAfter={0}
+              onConfirm={() => {
+                setIsSettingsOpen(false);
+                onDeleteGroup(id);
+              }}
+              label={`حذف کامل گروه ${id}`}
+            />
+          </div>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

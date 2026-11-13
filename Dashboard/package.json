@@ -13,7 +13,10 @@
     "clean": "node -e \"['.next', 'out', 'tsconfig.tsbuildinfo'].forEach(p => require('fs').rmSync(p, { recursive: true, force: true }))\""
   },
   "dependencies": {
+    "@animate-ui/react": "^2.4.3",
     "@base-ui/react": "^1.4.1",
+    "@danfessler/trellis": "^0.3.0",
+    "@danfessler/trellis-react": "^0.3.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -33,11 +36,13 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
     "@next/bundle-analyzer": "^16.2.6",
+    "@oxlint/plugins": "1.93.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "^1.0.0",
+    "oxlint": "1.93.0",
     "tailwindcss": "4.1.11",
     "typescript": "^5.9.3"
   }

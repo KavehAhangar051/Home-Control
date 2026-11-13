@@ -1,48 +1,39 @@
-import React from "react";
-import { motion } from "motion/react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface ButtonModeSelectorProps {
   buttonMode: "switch" | "push";
   setButtonMode: (mode: "switch" | "push") => void;
-  animationsEnabled: boolean;
+  animationsEnabled?: boolean;
 }
 
-export default function ButtonModeSelector({
-  buttonMode,
-  setButtonMode,
-  animationsEnabled,
-}: ButtonModeSelectorProps) {
+export default function ButtonModeSelector({ buttonMode, setButtonMode }: ButtonModeSelectorProps) {
   return (
     <div className="space-y-1.5">
       <div className="text-[10px] theme-text-tertiary font-bold block">نوع عملکرد کلید کنترل:</div>
-      <div className="grid grid-cols-2 gap-2">
-        <motion.button
-          type="button"
-          whileHover={animationsEnabled ? { scale: 1.03 } : undefined}
-          whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-          onClick={() => setButtonMode("switch")}
-          className={`py-2 text-[10px] font-bold font-sans transition-all border rounded-xl cursor-pointer ${
-            buttonMode === "switch"
-              ? "bg-[var(--accent3-transparent)] border-[var(--accent3)] text-[var(--accent3)] shadow-[0_0_12px_var(--accent3-transparent)]"
-              : "border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--card-bg-solid)]"
-          }`}
+      <ToggleGroup
+        variant="outline"
+        spacing={2}
+        value={[buttonMode]}
+        onValueChange={(vals) => {
+          const val = vals[0];
+
+          if (val === "switch" || val === "push") setButtonMode(val);
+        }}
+        className="grid w-full grid-cols-2"
+      >
+        <ToggleGroupItem
+          value="switch"
+          className="h-9 w-full text-[10px] font-bold font-sans rounded-xl cursor-pointer aria-pressed:bg-[var(--accent3-transparent)] aria-pressed:border-[var(--accent3)] aria-pressed:text-[var(--accent3)]"
         >
           سوییچ (دائمی Toggle)
-        </motion.button>
-        <motion.button
-          type="button"
-          whileHover={animationsEnabled ? { scale: 1.03 } : undefined}
-          whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-          onClick={() => setButtonMode("push")}
-          className={`py-2 text-[10px] font-bold font-sans transition-all border rounded-xl cursor-pointer ${
-            buttonMode === "push"
-              ? "bg-[var(--accent3-transparent)] border-[var(--accent3)] text-[var(--accent3)] shadow-[0_0_12px_var(--accent3-transparent)]"
-              : "border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--card-bg-solid)]"
-          }`}
+        </ToggleGroupItem>
+        <ToggleGroupItem
+          value="push"
+          className="h-9 w-full text-[10px] font-bold font-sans rounded-xl cursor-pointer aria-pressed:bg-[var(--accent3-transparent)] aria-pressed:border-[var(--accent3)] aria-pressed:text-[var(--accent3)]"
         >
           شستی (لحظه‌ای Shasti)
-        </motion.button>
-      </div>
+        </ToggleGroupItem>
+      </ToggleGroup>
     </div>
   );
 }

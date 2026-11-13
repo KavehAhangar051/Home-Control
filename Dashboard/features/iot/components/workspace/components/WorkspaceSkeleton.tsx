@@ -6,6 +6,7 @@ interface WorkspaceSkeletonProps {
 
 export default function WorkspaceSkeleton({ groupsCols }: WorkspaceSkeletonProps) {
   const dummyGroups = [1, 2, 3];
+
   const flexBasis =
     groupsCols === 1
       ? "100%"
@@ -21,7 +22,7 @@ export default function WorkspaceSkeleton({ groupsCols }: WorkspaceSkeletonProps
           className="space-y-3 flex-grow flex-shrink-0 min-w-0 max-w-full max-[767px]:basis-full"
           style={{ flexBasis }}
         >
-          <Card className="w-full !gap-3 !rounded-3xl !border-[var(--border-color)] !bg-[var(--card-bg)] !p-3 !shadow-md relative transition-all duration-300">
+          <Card className="w-full !gap-3 !rounded-3xl !border-[var(--border-color)] !bg-[var(--card-bg)] !p-3 !shadow-md relative transition-shadow duration-300">
             <div className="w-full flex items-center justify-between p-1">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md bg-[var(--text-muted)] opacity-20 animate-pulse" />

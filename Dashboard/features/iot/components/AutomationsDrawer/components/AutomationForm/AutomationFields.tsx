@@ -1,20 +1,10 @@
-import { MapPin } from "@/components/ui/hugeicons";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
+import { MapPin } from "@/components/ui/hugeicons";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { AutomationFormHookValue } from "../../context/AutomationContext";
-
-/**
- * Authoritative Persian day-of-week mapping (0 = Sunday .. 6 = Saturday).
- * Shared between AutomationForm and AutomationList (DRY).
- */
-export const DAYS_MAP = [
-  { value: 6, label: "شنبه" },
-  { value: 0, label: "یکشنبه" },
-  { value: 1, label: "دوشنبه" },
-  { value: 2, label: "سه‌شنبه" },
-  { value: 3, label: "چهارشنبه" },
-  { value: 4, label: "پنج‌شنبه" },
-  { value: 5, label: "جمعه" },
-] as const;
+import { DAYS_MAP } from "./constants";
 
 export function ScheduleFields({
   time,
@@ -27,13 +17,21 @@ export function ScheduleFields({
   AutomationFormHookValue,
   "time" | "setTime" | "repeatCount" | "setRepeatCount" | "days" | "setDays"
 >) {
+  const baseId = useId();
+  const timeId = `${baseId}-time`;
+  const repeatId = `${baseId}-repeat`;
+
   return (
     <>
       <div className="col-span-2 md:col-span-1">
-        <div className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+        <label
+          htmlFor={timeId}
+          className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
+        >
           زمان (ساعت):
-        </div>
+        </label>
         <input
+          id={timeId}
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
@@ -42,10 +40,14 @@ export function ScheduleFields({
         />
       </div>
       <div className="col-span-2 md:col-span-1">
-        <div className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+        <label
+          htmlFor={repeatId}
+          className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
+        >
           تعداد تکرار:
-        </div>
+        </label>
         <input
+          id={repeatId}
           type="number"
           min="0"
           value={repeatCount}
@@ -58,26 +60,25 @@ export function ScheduleFields({
         <div className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
           روزهای هفته:
         </div>
-        <div className="flex flex-wrap justify-center gap-2">
+        <ToggleGroup
+          multiple
+          variant="outline"
+          size="sm"
+          spacing={2}
+          value={days.map(String)}
+          onValueChange={(vals) => setDays(vals.map(Number).sort())}
+          className="flex w-full flex-wrap justify-center"
+        >
           {DAYS_MAP.map((d) => (
-            <Button
-              variant="ghost"
-              type="button"
+            <ToggleGroupItem
               key={d.value}
-              onClick={() => {
-                if (days.includes(d.value)) setDays(days.filter((x: number) => x !== d.value));
-                else setDays([...days, d.value].sort());
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)] ${
-                days.includes(d.value)
-                  ? "bg-[var(--accent3)] text-black shadow-sm"
-                  : "bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--text-secondary)] md:hover:bg-[var(--card-hover-bg)] md:hover:text-[var(--text-primary)] md:hover:border-[var(--accent3)]"
-              }`}
+              value={String(d.value)}
+              className="px-3 h-8 rounded-xl text-xs font-bold aria-pressed:bg-[var(--accent3)] aria-pressed:text-[var(--bg-main)] aria-pressed:border-[var(--accent3)]"
             >
               {d.label}
-            </Button>
+            </ToggleGroupItem>
           ))}
-        </div>
+        </ToggleGroup>
       </div>
     </>
   );
@@ -92,13 +93,21 @@ export function TimerFields({
   AutomationFormHookValue,
   "delayHours" | "setDelayHours" | "delayMinutes" | "setDelayMinutes"
 >) {
+  const baseId = useId();
+  const hoursId = `${baseId}-hours`;
+  const minutesId = `${baseId}-minutes`;
+
   return (
     <>
       <div className="col-span-2 md:col-span-1">
-        <div className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+        <label
+          htmlFor={hoursId}
+          className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
+        >
           تاخیر (ساعت):
-        </div>
+        </label>
         <input
+          id={hoursId}
           type="number"
           min="0"
           value={delayHours}
@@ -108,10 +117,14 @@ export function TimerFields({
         />
       </div>
       <div className="col-span-2 md:col-span-1">
-        <div className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+        <label
+          htmlFor={minutesId}
+          className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
+        >
           تاخیر (دقیقه):
-        </div>
+        </label>
         <input
+          id={minutesId}
           type="number"
           min="0"
           max="59"
@@ -129,12 +142,18 @@ export function WeatherIntervalFields({
   intervalMinutes,
   setIntervalMinutes,
 }: Pick<AutomationFormHookValue, "intervalMinutes" | "setIntervalMinutes">) {
+  const intervalId = useId();
+
   return (
     <div className="col-span-2">
-      <div className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+      <label
+        htmlFor={intervalId}
+        className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
+      >
         دوره بررسی (ساعت):
-      </div>
+      </label>
       <select
+        id={intervalId}
         value={intervalMinutes ? intervalMinutes / 60 : ""}
         onChange={(e) =>
           setIntervalMinutes(e.target.value === "" ? "" : Number(e.target.value) * 60)
@@ -174,14 +193,23 @@ export function WeatherConditionFields({
   | "temperatureThreshold"
   | "setTemperatureThreshold"
 >) {
+  const baseId = useId();
+  const cityId = `${baseId}-city`;
+  const conditionId = `${baseId}-condition`;
+  const thresholdId = `${baseId}-threshold`;
+
   return (
     <>
       <div className="col-span-2">
-        <div className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+        <label
+          htmlFor={cityId}
+          className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
+        >
           نام شهر یا مختصات (انگلیسی):
-        </div>
+        </label>
         <div className="flex min-w-0 gap-2">
           <input
+            id={cityId}
             type="text"
             value={city}
             onChange={(e) => setCity(e.target.value)}
@@ -189,34 +217,51 @@ export function WeatherConditionFields({
             className="min-w-0 flex-1 bg-[var(--card-bg)] border border-[var(--border-color)] p-2.5 rounded-xl focus:outline-none focus:border-[var(--accent3)] focus-visible:ring-2 focus-visible:ring-[var(--accent3)]/40 text-sm transition-colors text-[var(--text-primary)]"
             dir="ltr"
           />
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={handleGetLocation}
-            disabled={isGettingLocation}
-            className={`p-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center min-w-[44px] ${
-              isGettingLocation
-                ? "bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)] cursor-not-allowed"
-                : "bg-[var(--card-hover-bg)] border-[var(--border-color)] text-[var(--text-secondary)] md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)]"
-            }`}
-            title="دریافت مکان فعلی"
-          >
-            {isGettingLocation ? (
-              <div className="w-5 h-5 border-2 border-[var(--accent3)] border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <MapPin className="w-5 h-5" />
-            )}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={handleGetLocation}
+                  disabled={isGettingLocation}
+                  className={`p-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center min-w-[44px] ${
+                    isGettingLocation
+                      ? "bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)] cursor-not-allowed"
+                      : "bg-[var(--card-hover-bg)] border-[var(--border-color)] text-[var(--text-secondary)] md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)]"
+                  }`}
+                  aria-label="دریافت مکان فعلی"
+                >
+                  {isGettingLocation ? (
+                    <div className="w-5 h-5 border-2 border-[var(--accent3)] border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <MapPin className="w-5 h-5" />
+                  )}
+                </Button>
+              }
+            />
+            <TooltipContent>دریافت مکان فعلی</TooltipContent>
+          </Tooltip>
         </div>
       </div>
       <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex-1">
-          <div className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+          <label
+            htmlFor={conditionId}
+            className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
+          >
             شرط دما:
-          </div>
+          </label>
           <select
+            id={conditionId}
             value={temperatureCondition}
-            onChange={(e) => setTemperatureCondition(e.target.value as "greater" | "less")}
+            onChange={(e) => {
+              const val = e.target.value;
+
+              if (val === "greater" || val === "less") {
+                setTemperatureCondition(val);
+              }
+            }}
             className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] p-2.5 rounded-xl focus:outline-none focus:border-[var(--accent3)] text-sm transition-colors text-[var(--text-primary)]"
           >
             <option value="greater">بیشتر از</option>
@@ -224,10 +269,14 @@ export function WeatherConditionFields({
           </select>
         </div>
         <div className="flex-1">
-          <div className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+          <label
+            htmlFor={thresholdId}
+            className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
+          >
             دما (°C):
-          </div>
+          </label>
           <input
+            id={thresholdId}
             type="number"
             value={temperatureThreshold}
             onChange={(e) =>

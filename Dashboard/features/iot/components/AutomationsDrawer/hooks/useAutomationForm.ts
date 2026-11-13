@@ -38,6 +38,7 @@ export function useAutomationForm() {
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       showToast("مرورگر شما از قابلیت مکان‌یابی پشتیبانی نمی‌کند.", "error");
+
       return;
     }
 
@@ -50,7 +51,7 @@ export function useAutomationForm() {
         setIsGettingLocation(false);
         showToast("مکان شما با موفقیت ثبت شد.", "success");
       },
-      (error) => {
+      (_error) => {
         setIsGettingLocation(false);
         showToast("خطا در دریافت مکان. لطفاً دسترسی دستگاه را بررسی کنید.", "error");
       },
@@ -102,21 +103,24 @@ export function useAutomationForm() {
     }
 
     setActions(auto.actions ? [...auto.actions] : []);
+    useIoTStore.getState().setActiveAutomationsTab("create");
   };
 
   const handleSave = () => {
     let finalTime = time;
     let finalDays = [...days];
-    let finalRepeatCount =
-      typeof repeatCount === "number" && repeatCount > 0 ? repeatCount : undefined;
-    let finalConditionType: "time" | "weather" = "time";
-    let finalCity = city;
-    let finalTempThresh =
-      typeof temperatureThreshold === "number" ? temperatureThreshold : undefined;
-    let finalTempCond = temperatureCondition;
 
-    let finalIntervalMinutes =
-      typeof intervalMinutes === "number" && intervalMinutes > 0 ? intervalMinutes : undefined;
+    let finalRepeatCount = repeatCount !== "" && repeatCount > 0 ? repeatCount : undefined;
+
+    let finalConditionType: "time" | "weather" = "time";
+    const finalCity = city;
+
+    const finalTempThresh = temperatureThreshold !== "" ? temperatureThreshold : undefined;
+
+    const finalTempCond = temperatureCondition;
+
+    const finalIntervalMinutes =
+      intervalMinutes !== "" && intervalMinutes > 0 ? intervalMinutes : undefined;
 
     if (autoType === "timer") {
       const dHours = Number(delayHours) || 0;
@@ -124,6 +128,7 @@ export function useAutomationForm() {
 
       if (dHours === 0 && dMins === 0) {
         showToast("لطفاً زمان تاخیر را مشخص کنید.", "error");
+
         return;
       }
 
@@ -137,14 +142,17 @@ export function useAutomationForm() {
     } else if (autoType === "weather") {
       if (!city || finalTempThresh === undefined || !finalIntervalMinutes) {
         showToast("لطفاً شهر، شرط دما و دوره بررسی را مشخص کنید.", "error");
+
         return;
       }
+
       finalConditionType = "weather";
       finalTime = "";
       finalDays = [];
     } else {
       if (!time || days.length === 0) {
         showToast("لطفاً زمان و روزهای هفته را مشخص کنید.", "error");
+
         return;
       }
     }
@@ -152,8 +160,10 @@ export function useAutomationForm() {
     if ((autoType === "timer" || autoType === "schedule") && hasWeatherCondition) {
       if (!city || finalTempThresh === undefined) {
         showToast("لطفاً شهر و شرط دما را مشخص کنید.", "error");
+
         return;
       }
+
       finalConditionType = "weather";
     } else if (autoType !== "weather") {
       finalConditionType = "time";
@@ -161,11 +171,13 @@ export function useAutomationForm() {
 
     if (!title) {
       showToast("لطفاً عنوان را وارد کنید.", "error");
+
       return;
     }
 
     if (actions.length === 0) {
       showToast("حداقل یک عملیات مشخص کنید.", "error");
+
       return;
     }
 
@@ -191,6 +203,7 @@ export function useAutomationForm() {
     } else {
       setAutomations([...automations, newAuto]);
     }
+
     resetForm();
     showToast("اتوماسیون با موفقیت ثبت شد.", "success");
   };

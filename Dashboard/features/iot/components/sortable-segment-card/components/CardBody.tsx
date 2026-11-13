@@ -1,6 +1,10 @@
-import React from "react";
-import { SegmentData } from "../core/types";
+import React, { type ComponentPropsWithoutRef } from "react";
+import type { Toggle } from "@/components/ui/toggle";
+import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
+import type { SegmentData } from "../core/types";
 import PinToggle from "./PinToggle";
+
+type PinToggleButtonProps = Omit<ComponentPropsWithoutRef<typeof Toggle>, "pressed" | "className">;
 
 interface CardBodyProps {
   segment: SegmentData;
@@ -10,141 +14,104 @@ interface CardBodyProps {
   isMobileTwoCol?: boolean;
   densityFactor?: number;
   mode: "switch" | "push";
-  buttonProps: any;
+  buttonProps: PinToggleButtonProps;
   animationsEnabled?: boolean;
+  countdown?: number | null;
 }
 
-export function InputSegmentBody({ segment, isPinOn }: { segment: SegmentData; isPinOn: boolean }) {
+function getInputDensityClasses(isUltraCompact: boolean, isCompact: boolean) {
+  if (isUltraCompact) {
+    return {
+      container: "min-h-[78px] p-2.5 gap-2",
+      badge: "w-8 h-8",
+      icon: "w-4 h-4",
+      title: "text-xs",
+    };
+  }
+
+  if (isCompact) {
+    return {
+      container: "min-h-[96px] p-3 gap-2.5",
+      badge: "w-9 h-9",
+      icon: "w-4.5 h-4.5",
+      title: "text-xs sm:text-sm",
+    };
+  }
+
+  return {
+    container: "min-h-[108px] p-3.5 sm:p-4 gap-3",
+    badge: "w-10 h-10 sm:w-11 sm:h-11",
+    icon: "w-5 h-5",
+    title: "text-sm sm:text-[15px]",
+  };
+}
+
+export function InputSegmentBody({
+  segment,
+  isPinOn,
+  isCompact = false,
+  isUltraCompact = false,
+}: {
+  segment: SegmentData;
+  isPinOn: boolean;
+  isCompact?: boolean;
+  isUltraCompact?: boolean;
+}) {
+  const SegmentIcon = getSegmentIcon(segment.icon);
+  const density = getInputDensityClasses(isUltraCompact, isCompact);
+
+  const badgeTone = isPinOn
+    ? "bg-emerald-600 text-white shadow-xs"
+    : "bg-[var(--secondary)] text-[var(--text-secondary)] border border-[var(--border-color)]";
+
+  const showEmojiIcon = Boolean(segment.icon) && !hasIcon(segment.icon);
+
   return (
-    <div className="flex items-center justify-between py-2 w-full">
-      <span
-        className={`text-xs font-sans font-semibold tabular-nums ${
-          isPinOn ? "text-[var(--success)]" : "text-[var(--muted-foreground)]"
-        }`}
-      >
-        {isPinOn ? "ورودی فعال (۱)" : "ورودی غیرفعال (۰)"}
-      </span>
-      <div className="flex items-center gap-3 text-right">
-        <div>
-          <span className="block text-xs font-sans font-bold theme-text-primary tabular-nums">
-            وضعیت پایه {segment.pin}
-          </span>
-          <span className="block text-[11px] theme-text-muted mt-0.5">حسگر ورودی دیجیتال</span>
-        </div>
+    <div
+      data-animate-icon-parent
+      className={`flex flex-col justify-between w-full h-full rounded-xl text-right select-none ${density.container}`}
+    >
+      <div className="flex items-center gap-2.5 sm:gap-3 w-full pl-14 min-w-0">
         <div
-          className={`w-9 h-9 rounded-full flex items-center justify-center ${isPinOn ? "bg-[var(--success)]/15" : "bg-[var(--muted)]"}`}
+          aria-hidden="true"
+          className={`flex items-center justify-center rounded-xl transition-colors shrink-0 ${density.badge} ${badgeTone}`}
         >
-          <div
-            className={`w-3.5 h-3.5 rounded-full ${isPinOn ? "bg-[var(--success)]" : "bg-[var(--muted-foreground)]"}`}
-          />
+          {showEmojiIcon ? (
+            <span className="text-sm leading-none flex items-center justify-center w-5 h-5">
+              {segment.icon}
+            </span>
+          ) : (
+            React.createElement(SegmentIcon, { className: density.icon })
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1 text-right">
+          <span
+            className={`block font-sans font-bold theme-text-primary truncate leading-snug ${density.title}`}
+          >
+            {segment.title}
+          </span>
         </div>
       </div>
-    </div>
-  );
-}
 
-export function UltraCompactSegmentBody({
-  isPinOn,
-  buttonProps,
-  animationsEnabled,
-}: {
-  isPinOn: boolean;
-  buttonProps: any;
-  animationsEnabled: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-center w-full">
-      <PinToggle
-        isPinOn={isPinOn}
-        buttonProps={buttonProps}
-        animationsEnabled={animationsEnabled}
-        isUltraCompact={true}
-      />
-    </div>
-  );
-}
+      <div className="flex items-center justify-between w-full gap-2 pt-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${
+              isPinOn ? "bg-emerald-500 animate-pulse" : "bg-[var(--text-muted)] opacity-45"
+            }`}
+          />
+          <span className="text-xs font-sans font-bold tabular-nums truncate">
+            {isPinOn ? "ورودی فعال (۱)" : "ورودی غیرفعال (۰)"}
+          </span>
+        </div>
 
-export function MobileTwoColSegmentBody({
-  segment,
-  isPinOn,
-  buttonProps,
-  animationsEnabled,
-}: {
-  segment: SegmentData;
-  isPinOn: boolean;
-  buttonProps: any;
-  animationsEnabled: boolean;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center w-full overflow-hidden h-full gap-2 py-1">
-      <span
-        className="text-[11px] font-sans font-bold theme-text-secondary line-clamp-2 leading-tight text-center w-full"
-        title={segment.title}
-      >
-        {segment.title}
-      </span>
-      <PinToggle
-        isPinOn={isPinOn}
-        buttonProps={buttonProps}
-        animationsEnabled={animationsEnabled}
-        isVertical={false}
-      />
-    </div>
-  );
-}
-
-export function CompactSegmentBody({
-  segment,
-  isPinOn,
-  buttonProps,
-  animationsEnabled,
-  densityFactor,
-}: {
-  segment: SegmentData;
-  isPinOn: boolean;
-  buttonProps: any;
-  animationsEnabled: boolean;
-  densityFactor: number;
-}) {
-  return (
-    <div className="flex items-center justify-between w-full overflow-hidden h-full py-1">
-      <span
-        className="text-[11px] font-sans font-bold theme-text-secondary line-clamp-2 leading-tight pl-2 flex-1 text-right"
-        title={segment.title}
-      >
-        {segment.title}
-      </span>
-      <PinToggle
-        isPinOn={isPinOn}
-        buttonProps={buttonProps}
-        animationsEnabled={animationsEnabled}
-        isVertical={densityFactor >= 4}
-      />
-    </div>
-  );
-}
-
-export function StandardSegmentBody({
-  segment,
-  isPinOn,
-  buttonProps,
-  animationsEnabled,
-}: {
-  segment: SegmentData;
-  isPinOn: boolean;
-  buttonProps: any;
-  animationsEnabled: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between py-2 w-full">
-      <span className="block font-sans font-bold theme-text-primary text-sm truncate pl-3">
-        {segment.title}
-      </span>
-      <PinToggle
-        isPinOn={isPinOn}
-        buttonProps={buttonProps}
-        animationsEnabled={animationsEnabled}
-      />
+        {!isUltraCompact && (
+          <span className="text-[11px] font-medium tabular-nums text-[var(--text-muted)] shrink-0">
+            پایه {segment.pin}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -154,48 +121,30 @@ export default function CardBody({
   isPinOn,
   isCompact,
   isUltraCompact,
-  isMobileTwoCol,
-  densityFactor = 0,
+  mode,
   buttonProps,
   animationsEnabled = true,
+  countdown,
 }: CardBodyProps) {
-  const containerClass = isUltraCompact
-    ? "p-2 flex-grow flex items-center justify-center"
-    : isCompact
-      ? "p-3 flex-1 flex items-center"
-      : "p-4 flex-1";
-
   return (
-    <div className={containerClass}>
+    <div className="w-full h-full flex-1 flex items-stretch">
       {segment.type === "input" ? (
-        <InputSegmentBody segment={segment} isPinOn={isPinOn} />
-      ) : isUltraCompact ? (
-        <UltraCompactSegmentBody
-          isPinOn={isPinOn}
-          buttonProps={buttonProps}
-          animationsEnabled={animationsEnabled}
-        />
-      ) : isMobileTwoCol ? (
-        <MobileTwoColSegmentBody
+        <InputSegmentBody
           segment={segment}
           isPinOn={isPinOn}
-          buttonProps={buttonProps}
-          animationsEnabled={animationsEnabled}
-        />
-      ) : isCompact ? (
-        <CompactSegmentBody
-          segment={segment}
-          isPinOn={isPinOn}
-          buttonProps={buttonProps}
-          animationsEnabled={animationsEnabled}
-          densityFactor={densityFactor}
+          isCompact={isCompact}
+          isUltraCompact={isUltraCompact}
         />
       ) : (
-        <StandardSegmentBody
+        <PinToggle
           segment={segment}
           isPinOn={isPinOn}
+          mode={mode}
           buttonProps={buttonProps}
           animationsEnabled={animationsEnabled}
+          isCompact={isCompact}
+          isUltraCompact={isUltraCompact}
+          countdown={countdown}
         />
       )}
     </div>

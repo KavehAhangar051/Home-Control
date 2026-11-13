@@ -62,6 +62,7 @@ export default function ConditionsSection() {
         <div className="grid gap-6">
           {inputSegments.map((segment) => {
             const originalRule = segment.rule || { highActions: [], lowActions: [] };
+
             const rule = localRules[segment.id] || {
               highActions: originalRule.highActions || [],
               lowActions: originalRule.lowActions || [],
@@ -69,11 +70,14 @@ export default function ConditionsSection() {
 
             const handleSave = () => {
               const allActions = [...(rule.highActions || []), ...(rule.lowActions || [])];
+
               for (const action of allActions) {
                 if (action.targetPin) {
                   const val = validateEsp32Pin(action.targetPin, "output");
+
                   if (!val.isValid) {
                     showToast(`خطا در پایه: ${val.message}`, "error");
+
                     return;
                   }
                 }

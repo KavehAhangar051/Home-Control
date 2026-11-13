@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect, useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 export function useGroupHeaderLayout() {
   const [isCompact, setIsCompact] = useState(false);
@@ -12,6 +12,7 @@ export function useGroupHeaderLayout() {
   useLayoutEffect(() => {
     const container = titleContainerRef.current;
     const text = titleTextRef.current;
+
     if (!container || !text) return;
 
     const checkSpace = () => {
@@ -24,6 +25,7 @@ export function useGroupHeaderLayout() {
         }
       } else {
         const layoutSelectorWidth = 100;
+
         if (textClientWidth - layoutSelectorWidth >= textWidth) {
           setIsCompact(false);
           setIsSettingsOpen(false);
@@ -33,23 +35,30 @@ export function useGroupHeaderLayout() {
 
     const observer = new ResizeObserver(checkSpace);
     observer.observe(container);
+
     return () => observer.disconnect();
   }, [isCompact]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Node)) return;
+
       if (
         menuRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
+        !menuRef.current.contains(target) &&
         buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
+        !buttonRef.current.contains(target)
       ) {
         setIsSettingsOpen(false);
       }
     };
+
     if (isSettingsOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };

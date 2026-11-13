@@ -7,4 +7,5 @@ import { useAchaemenidState } from "./useAchaemenidState";
  * Cloudflare synchronization, and drag-and-drop orchestration.
  */
 export const useDashboardState = useAchaemenidState;
+
 export default useDashboardState;

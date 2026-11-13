@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "@/components/ui/hugeicons";
-import { Button } from "@/components/ui/button";
 import { AnimatePresence } from "motion/react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "@/components/ui/hugeicons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
-import type { GroupFilterSelectorProps } from "./types";
-import SkeletonLoader from "./SkeletonLoader";
 import FilterButton from "./FilterButton";
+import SkeletonLoader from "./SkeletonLoader";
+import type { GroupFilterSelectorProps } from "./types";
 
 export default function GroupFilterSelector({
   groupsOrder,
@@ -51,17 +52,23 @@ export default function GroupFilterSelector({
       <div
         className={`flex flex-row items-center justify-center ${isCompact ? "gap-1" : "gap-2"} max-w-full`}
       >
-        <Button
-          type="button"
-          variant="ghost"
-          size={isCompact ? "icon-xs" : "icon-sm"}
-          onClick={goPrev}
-          className={`hidden md:inline-flex rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-white shrink-0 ${isCompact ? "p-0.5" : "p-1"}`}
-          title="قبلی"
-          aria-label="گروه قبلی"
-        >
-          <ChevronRight className={isCompact ? "w-3.5 h-3.5" : "w-5 h-5"} />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size={isCompact ? "icon-xs" : "icon-sm"}
+                onClick={goPrev}
+                className={`hidden md:inline-flex rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-[var(--bg-main)] shrink-0 ${isCompact ? "p-0.5" : "p-1"}`}
+                aria-label="گروه قبلی"
+              >
+                <ChevronRight className={isCompact ? "w-3.5 h-3.5" : "w-5 h-5"} />
+              </Button>
+            }
+          />
+          <TooltipContent>قبلی</TooltipContent>
+        </Tooltip>
 
         <div
           className={`flex flex-row items-center justify-center relative overflow-hidden ${isCompact ? "gap-1 p-0.5 max-w-[300px]" : "gap-2 p-1 max-w-[460px]"}`}
@@ -76,8 +83,10 @@ export default function GroupFilterSelector({
               { group: allGroups[(safeCurrIndex + 1) % allGroups.length], key: offset + 1 },
             ].map(({ group, key }, index) => {
               const isCenter = index === 1;
+
               const onClick =
                 index === 0 ? goPrev : index === 2 ? goNext : () => setSelectedGroupFilter(group);
+
               return (
                 <FilterButton
                   key={String(key)}
@@ -94,17 +103,23 @@ export default function GroupFilterSelector({
           </AnimatePresence>
         </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size={isCompact ? "icon-xs" : "icon-sm"}
-          onClick={goNext}
-          className={`hidden md:inline-flex rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-white shrink-0 ${isCompact ? "p-0.5" : "p-1"}`}
-          title="بعدی"
-          aria-label="گروه بعدی"
-        >
-          <ChevronLeft className={isCompact ? "w-3.5 h-3.5" : "w-5 h-5"} />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size={isCompact ? "icon-xs" : "icon-sm"}
+                onClick={goNext}
+                className={`hidden md:inline-flex rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-[var(--bg-main)] shrink-0 ${isCompact ? "p-0.5" : "p-1"}`}
+                aria-label="گروه بعدی"
+              >
+                <ChevronLeft className={isCompact ? "w-3.5 h-3.5" : "w-5 h-5"} />
+              </Button>
+            }
+          />
+          <TooltipContent>بعدی</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

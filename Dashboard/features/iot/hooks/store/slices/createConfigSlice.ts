@@ -1,5 +1,5 @@
-import { StateCreator } from "zustand";
-import { IoTStoreState, ConfigSlice } from "../types";
+import type { StateCreator } from "zustand";
+import type { ConfigSlice, IoTStoreState } from "../types";
 
 export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice> = (set, get) => ({
   applyEspConfig: (config) => {
@@ -15,6 +15,14 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
       voiceCommands: config.voiceCommands || [],
       wifiNetworks: config.wifi?.networks || [],
     });
+
+    if (config.preferences?.accent_color_3) {
+      set({ accent3: config.preferences.accent_color_3 });
+    }
+
+    if (config.preferences?.accent_color_4) {
+      set({ accent4: config.preferences.accent_color_4 });
+    }
 
     if (config.mqtt && typeof window !== "undefined") {
       const currentMqtt = get().mqttConfig;
@@ -101,6 +109,7 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
       } else if (s.rule) {
         // Ensure arrays exist
         if (!s.rule.highActions) s.rule.highActions = [];
+
         if (!s.rule.lowActions) s.rule.lowActions = [];
       }
     });
@@ -108,6 +117,7 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
     if (Object.keys(importedPins).length > 0) {
       set((state) => {
         const next = { ...state.pinsState, ...importedPins };
+
         return { pinsState: next };
       });
     }

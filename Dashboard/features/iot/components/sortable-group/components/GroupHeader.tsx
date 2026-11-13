@@ -1,14 +1,13 @@
 "use client";
 
+import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
 import React from "react";
-import { ICON_MAP } from "@/features/iot/utils/icons";
-import { Card } from "@/components/ui/card";
+import { GripVertical } from "@/components/ui/hugeicons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/features/iot/hooks/useMediaQuery";
-import LayoutSelector from "./LayoutSelector";
-import GroupSettingsMenu from "./GroupSettingsMenu";
-import GroupActions from "./GroupActions";
+import { getSegmentIcon, hasIcon, ICON_MAP } from "@/features/iot/utils/icons";
 import { useGroupHeaderLayout } from "../hooks/useGroupHeaderLayout";
-import { AnimatePresence } from "motion/react";
+import GroupActions from "./GroupActions";
 
 interface GroupHeaderProps {
   id: string;
@@ -19,10 +18,37 @@ interface GroupHeaderProps {
   onAddPlaceholder: (groupId: string) => void;
   onDeleteGroup: (groupId: string) => void;
   parentGroupsCols: number;
-  attributes: any;
-  listeners: any;
+  attributes: DraggableAttributes | Record<string, string | number | boolean | undefined>;
+  listeners: DraggableSyntheticListeners;
 }
 
+function GroupAvatar({ icon, isDenseHeader }: { icon?: string; isDenseHeader: boolean }) {
+  const iconClass = isDenseHeader ? "w-3.5 h-3.5" : "w-4 h-4 sm:w-4.5 sm:h-4.5";
+
+  if (!icon) {
+    return React.createElement(ICON_MAP.Layers, { className: iconClass });
+  }
+
+  if (hasIcon(icon)) {
+    return React.createElement(getSegmentIcon(icon), { className: iconClass });
+  }
+
+  return (
+    <span
+      className={`leading-none flex items-center justify-center ${
+        isDenseHeader ? "text-sm w-3.5 h-3.5" : "text-base sm:text-lg w-4 h-4"
+      }`}
+    >
+      {icon}
+    </span>
+  );
+}
+
+/**
+ * Renders the top header bar of a Smart Home group card, organizing
+ * the group drag handle and room identity on the right (RTL start)
+ * and layout/segment/settings controls on the left (RTL end).
+ */
 export default function GroupHeader({
   id,
   segmentCount,
@@ -36,6 +62,7 @@ export default function GroupHeader({
   listeners,
 }: GroupHeaderProps) {
   const isMobile = useMediaQuery("(max-width: 639px)");
+
   const {
     isCompact,
     isSettingsOpen,
@@ -46,97 +73,81 @@ export default function GroupHeader({
     menuRef,
   } = useGroupHeaderLayout();
 
-  return (
-    <div className="flex items-stretch justify-between w-full min-w-0 gap-2 sm:gap-4 relative z-10 pointer-events-none">
-      {/* Right Part: Title and Layout Selector */}
-      <Card
-        className={`flex items-center justify-between flex-1 min-w-0 pointer-events-auto !overflow-visible !bg-[var(--card-bg)] !border !border-[var(--border-color)] !shadow-none !rounded-2xl relative ${parentGroupsCols === 3 ? "!gap-2 !py-1.5 p-1.5 pr-2 sm:pr-3" : "!gap-2 sm:!gap-3 !py-2 p-2 pr-3 sm:pr-4 sm:!py-2.5 sm:p-2.5 sm:pr-5 sm:gap-4"}`}
-      >
-        <div
-          ref={titleContainerRef}
-          className="flex items-center gap-2 min-w-0 flex-1 relative z-10"
-        >
-          <div className="relative flex justify-center items-center">
-            <button
-              type="button"
-              ref={buttonRef}
-              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              aria-expanded={isSettingsOpen}
-              className={`flex items-center justify-center transition-[background-color,color,opacity,box-shadow,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer md:hover:opacity-80 ${isSettingsOpen ? "bg-[var(--accent3)] text-black shadow-[0_0_8px_rgba(255,165,0,0.3)]" : "bg-[var(--accent3-transparent)] text-[var(--accent3)]"} shrink-0 ${
-                parentGroupsCols === 3 ? "p-1 w-6 h-6" : "p-1.5 w-7 h-7 sm:p-2 sm:w-auto sm:h-auto"
-              }`}
-              style={{
-                clipPath:
-                  "polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px)",
-              }}
-              title="تنظیمات گروه"
-            >
-              {icon ? (
-                ICON_MAP[icon] ? (
-                  React.createElement(ICON_MAP[icon], {
-                    className: parentGroupsCols === 3 ? "w-3.5 h-3.5" : "w-4 h-4 sm:w-5 sm:h-5",
-                  })
-                ) : (
-                  <span
-                    className={`leading-none flex items-center justify-center ${parentGroupsCols === 3 ? "text-sm w-3.5 h-3.5" : "text-base sm:text-xl w-4 h-4 sm:w-5 sm:h-5"}`}
-                  >
-                    {icon}
-                  </span>
-                )
-              ) : (
-                React.createElement(ICON_MAP["Layers"], {
-                  className: parentGroupsCols === 3 ? "w-3.5 h-3.5" : "w-4 h-4 sm:w-5 sm:h-5",
-                })
-              )}
-            </button>
+  const isDenseHeader = parentGroupsCols === 3;
 
-            <AnimatePresence>
-              <GroupSettingsMenu
-                id={id}
-                isSettingsOpen={isSettingsOpen}
-                isCompact={isCompact}
-                isMobile={isMobile}
-                maxCols={maxCols}
-                onColsChange={onColsChange}
-                onAddPlaceholder={onAddPlaceholder}
-                setIsSettingsOpen={setIsSettingsOpen}
-                menuRef={menuRef}
-              />
-            </AnimatePresence>
+  return (
+    <div
+      className={`flex items-center justify-between w-full min-w-0 gap-2 relative z-20 border-b border-[var(--border-color)] bg-[var(--card-hover-bg)] rounded-t-2xl ${
+        isDenseHeader ? "px-2.5 py-2" : "px-3 py-2.5 sm:px-4 sm:py-3"
+      }`}
+    >
+      {/* RTL Right: Drag Handle + Group Icon + Title & Count */}
+      <div
+        ref={titleContainerRef}
+        className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 relative"
+      >
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <div
+                {...attributes}
+                {...listeners}
+                className={`flex items-center justify-center rounded-lg text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--muted)]/80 transition-colors cursor-grab active:cursor-grabbing shrink-0 ${
+                  isDenseHeader ? "w-6 h-7" : "w-7 h-8"
+                }`}
+              >
+                <GripVertical
+                  strokeWidth={2}
+                  className={isDenseHeader ? "w-4 h-4" : "w-4 h-4 sm:w-4.5 sm:h-4.5"}
+                />
+              </div>
+            }
+          />
+          <TooltipContent>کشیدن کل گروه برای جابه‌جایی</TooltipContent>
+        </Tooltip>
+
+        <div data-animate-icon-parent className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+          <div
+            aria-hidden="true"
+            className={`flex items-center justify-center rounded-xl bg-[var(--accent3-transparent)] text-[var(--accent3)] border border-[var(--accent3)]/20 shrink-0 ${
+              isDenseHeader ? "w-7 h-7" : "w-8 h-8 sm:w-9 sm:h-9"
+            }`}
+          >
+            <GroupAvatar icon={icon} isDenseHeader={isDenseHeader} />
           </div>
 
           <div className="min-w-0 flex-1 text-right leading-tight">
-            <h4
-              ref={titleTextRef}
-              className={`font-sans font-bold text-slate-900 dark:text-[var(--text-primary)] truncate ${
-                parentGroupsCols === 3 ? "text-xs" : "text-xs sm:text-sm"
-              }`}
-            >
-              {id}
-            </h4>
-            <span className="text-[11px] tabular-nums theme-text-muted mt-0.5 whitespace-nowrap block">
-              {segmentCount} قطعه
-            </span>
+            <div className="flex items-center gap-2 min-w-0">
+              <h4
+                ref={titleTextRef}
+                className={`font-sans font-bold text-slate-900 dark:text-[var(--text-primary)] truncate ${
+                  isDenseHeader ? "text-xs" : "text-xs sm:text-sm"
+                }`}
+              >
+                {id}
+              </h4>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums bg-[var(--muted)]/70 text-[var(--text-muted)] shrink-0">
+                {segmentCount} قطعه
+              </span>
+            </div>
           </div>
         </div>
+      </div>
 
-        {!(isCompact || isMobile) && (
-          <div className="shrink-0">
-            <LayoutSelector
-              maxCols={maxCols}
-              onColsChange={onColsChange}
-              parentGroupsCols={parentGroupsCols}
-            />
-          </div>
-        )}
-      </Card>
-
+      {/* RTL Left: Quick Add, Column Layout Selector & Settings Menu */}
       <GroupActions
         id={id}
+        maxCols={maxCols}
+        isCompact={isCompact}
+        isMobile={isMobile}
+        isSettingsOpen={isSettingsOpen}
+        setIsSettingsOpen={setIsSettingsOpen}
+        onColsChange={onColsChange}
+        onAddPlaceholder={onAddPlaceholder}
         onDeleteGroup={onDeleteGroup}
         parentGroupsCols={parentGroupsCols}
-        attributes={attributes}
-        listeners={listeners}
+        buttonRef={buttonRef}
+        menuRef={menuRef}
       />
     </div>
   );

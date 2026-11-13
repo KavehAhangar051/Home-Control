@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
+
+const emptySubscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 /**
  * این hook فقط وضعیت mount را مدیریت می‌کند.
@@ -8,11 +12,7 @@ import { useState, useEffect } from "react";
  * CloudFlare فقط برای UI Config (رنگ، نام، تنظیمات) استفاده می‌شود، نه برای وضعیت پین‌ها.
  */
 export function useCloudflareQuery() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
 
   // refetchIot برای سازگاری با کد موجود نگه داشته شده
   const refetchIot = async () => {};

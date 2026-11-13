@@ -1,8 +1,8 @@
 "use client";
 
-import { motion } from "motion/react";
-import { CloudUpload, WifiOff } from "@/components/ui/hugeicons";
+import { m } from "motion/react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
+import { CloudUpload, WifiOff } from "@/components/ui/hugeicons";
 
 interface LowDataModeBannerProps {
   lowDataMode: boolean;
@@ -32,7 +32,7 @@ export default function LowDataModeBanner({
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 max-md:mt-6 md:mt-0">
       {lowDataMode && (
-        <motion.div
+        <m.div
           initial={animationsEnabled ? { opacity: 0, y: -8 } : {}}
           animate={animationsEnabled ? { opacity: 1, y: 0 } : {}}
           className="w-full"
@@ -46,7 +46,7 @@ export default function LowDataModeBanner({
               دریافت خودکار داده‌ها متوقف شده است.
             </AlertDescription>
             <AlertAction className="max-sm:w-full">
-              <motion.button
+              <m.button
                 type="button"
                 onClick={refetchIot}
                 whileHover={animationsEnabled ? { scale: 1.02 } : undefined}
@@ -54,14 +54,14 @@ export default function LowDataModeBanner({
                 className={actionButtonClass}
               >
                 به‌روزرسانی کنونی
-              </motion.button>
+              </m.button>
             </AlertAction>
           </Alert>
-        </motion.div>
+        </m.div>
       )}
 
       {manualSaveMode && unsavedChangesCount > 0 && (
-        <motion.div
+        <m.div
           initial={animationsEnabled ? { opacity: 0, y: -8 } : {}}
           animate={animationsEnabled ? { opacity: 1, y: 0 } : {}}
           className="w-full"
@@ -75,7 +75,7 @@ export default function LowDataModeBanner({
               {unsavedChangesCount} تغییر هنوز در حافظه ابری کلودفلر ذخیره نشده است.
             </AlertDescription>
             <AlertAction className="max-sm:w-full">
-              <motion.button
+              <m.button
                 type="button"
                 onClick={triggerCloudflarePush}
                 disabled={!triggerCloudflarePush}
@@ -84,10 +84,10 @@ export default function LowDataModeBanner({
                 className={actionButtonClass}
               >
                 ذخیره‌سازی تغییرات
-              </motion.button>
+              </m.button>
             </AlertAction>
           </Alert>
-        </motion.div>
+        </m.div>
       )}
     </div>
   );

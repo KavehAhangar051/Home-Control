@@ -30,6 +30,7 @@ export const validateEsp32Pin = (pinStr: string, type: string): PinValidationRes
         message: "پایه‌های ۳۴، ۳۵، ۳۶ و ۳۹ فقط ورودی هستند و نمی‌توانند خروجی باشند.",
       };
     }
+
     return {
       isValid: true,
       message:

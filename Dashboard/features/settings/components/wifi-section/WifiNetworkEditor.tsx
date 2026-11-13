@@ -32,7 +32,7 @@ export function WifiNetworkEditor({
           value={tempSsid}
           onChange={(e) => setTempSsid(e.target.value)}
           placeholder="SSID..."
-          className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-all"
+          className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
           dir="ltr"
         />
       </div>
@@ -49,7 +49,7 @@ export function WifiNetworkEditor({
           value={tempPassword}
           onChange={(e) => setTempPassword(e.target.value)}
           placeholder="Password..."
-          className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-all"
+          className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
           dir="ltr"
         />
       </div>
@@ -57,7 +57,7 @@ export function WifiNetworkEditor({
         <button
           type="button"
           onClick={onSave}
-          className="flex-1 p-2.5 bg-[var(--accent3)] text-white rounded-xl hover:bg-[var(--accent3-dark)] transition-colors flex items-center justify-center gap-2 shadow-md shadow-[var(--accent3-transparent)]"
+          className="flex-1 p-2.5 bg-[var(--accent3)] text-[var(--bg-main)] rounded-xl hover:bg-[var(--accent3-dark)] transition-colors flex items-center justify-center gap-2 shadow-md shadow-[var(--accent3-transparent)]"
         >
           <Check aria-hidden="true" className="w-4 h-4" />
           <span className="text-sm font-bold">ذخیره</span>

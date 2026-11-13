@@ -22,6 +22,7 @@ function playTone(ctx: AudioContext, config: ToneConfig) {
 
   osc.type = config.type || "sine";
   osc.frequency.setValueAtTime(config.freqStart, t);
+
   if (config.freqEnd !== undefined && config.freqEnd !== config.freqStart) {
     osc.frequency.exponentialRampToValueAtTime(Math.max(1, config.freqEnd), t + config.duration);
   }
@@ -38,6 +39,7 @@ function playTone(ctx: AudioContext, config: ToneConfig) {
 
 export function playClickSynth() {
   const ctx = audioContextManager.getContext();
+
   if (!ctx) return;
   playTone(ctx, {
     freqStart: 800,
@@ -50,18 +52,21 @@ export function playClickSynth() {
 
 export function playToggleOnSynth() {
   const ctx = audioContextManager.getContext();
+
   if (!ctx) return;
   playTone(ctx, { freqStart: 400, freqEnd: 800, duration: 0.08, peakGain: 0.06, attackTime: 0.01 });
 }
 
 export function playToggleOffSynth() {
   const ctx = audioContextManager.getContext();
+
   if (!ctx) return;
   playTone(ctx, { freqStart: 800, freqEnd: 400, duration: 0.08, peakGain: 0.06, attackTime: 0.01 });
 }
 
 export function playSuccessSynth() {
   const ctx = audioContextManager.getContext();
+
   if (!ctx) return;
   const t = ctx.currentTime;
   playTone(ctx, { freqStart: 400, startTime: t, duration: 0.15, peakGain: 0.04, attackTime: 0.02 });
@@ -76,6 +81,7 @@ export function playSuccessSynth() {
 
 export function playErrorSynth() {
   const ctx = audioContextManager.getContext();
+
   if (!ctx) return;
   playTone(ctx, {
     type: "sawtooth",

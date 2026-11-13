@@ -1,24 +1,28 @@
-import { StateCreator } from "zustand";
-import { IoTStoreState, MenuSlice } from "../types";
+import type { StateCreator } from "zustand";
+import type { IoTStoreState, MenuSlice } from "../types";
 
 export const createMenuSlice: StateCreator<IoTStoreState, [], [], MenuSlice> = (set) => ({
   activeWorkspaceView: "home",
   setActiveWorkspaceView: (view) =>
     set({
       activeWorkspaceView: view,
-      isModulesMenuOpen: false,
       isAutomationsMenuOpen: false,
       isMenuOpen: false,
+      openSegmentMenuId: null,
     }),
   isMenuOpen: false,
-  isModulesMenuOpen: false,
   isEspDrawerOpen: false,
   isAutomationsMenuOpen: false,
   activeSettingsTab: "layout",
+  activeModulesTab: "add",
+  activeAutomationsTab: "create",
+  openSegmentMenuId: null,
 
   setIsMenuOpen: (o) => set({ isMenuOpen: o }),
-  setIsModulesMenuOpen: (o) => set({ isModulesMenuOpen: o }),
   setIsEspDrawerOpen: (o) => set({ isEspDrawerOpen: o }),
   setIsAutomationsMenuOpen: (o) => set({ isAutomationsMenuOpen: o }),
   setActiveSettingsTab: (t) => set({ activeSettingsTab: t === "voice-commands" ? "voice" : t }),
+  setActiveModulesTab: (activeModulesTab) => set({ activeModulesTab }),
+  setActiveAutomationsTab: (activeAutomationsTab) => set({ activeAutomationsTab }),
+  setOpenSegmentMenuId: (id) => set({ openSegmentMenuId: id }),
 });

@@ -1,12 +1,12 @@
 "use client";
 
+import { m } from "motion/react";
 import { useRef } from "react";
-import { motion } from "motion/react";
-import { Lightbulb, Network, Workflow } from "@/components/ui/hugeicons";
 import { IconStack } from "@/components/reui/icon-stack";
 import { Scrollspy } from "@/components/reui/scrollspy";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Lightbulb, Network, Workflow } from "@/components/ui/hugeicons";
 
 const overviewSections = [
   {
@@ -37,11 +37,10 @@ const overviewSections = [
 ] as const;
 
 const chunkVariants = {
-  hidden: { opacity: 0, y: 12, filter: "blur(4px)" },
+  hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,
-    filter: "blur(0px)",
     transition: { duration: 0.35, ease: "easeOut" as const },
   },
 };
@@ -50,7 +49,7 @@ export default function WelcomePortal() {
   const overviewRef = useRef<HTMLElement | null>(null);
 
   return (
-    <motion.section
+    <m.section
       initial="hidden"
       animate="visible"
       variants={{
@@ -61,16 +60,16 @@ export default function WelcomePortal() {
     >
       <Card className="overflow-hidden">
         <CardContent className="space-y-5 px-6 pb-6 sm:px-8 sm:pb-8">
-          <motion.div variants={chunkVariants} className="space-y-1">
+          <m.div variants={chunkVariants} className="space-y-1">
             <h2 className="text-base font-semibold text-balance text-foreground">
               نمای کلی سامانه
             </h2>
             <p className="text-sm leading-6 text-muted-foreground">
               برای آشنایی با بخش‌های اصلی، گزینه‌ها را انتخاب کن یا محتوای این پنل را مرور کن.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             variants={chunkVariants}
             className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-4"
           >
@@ -128,18 +127,18 @@ export default function WelcomePortal() {
                 </section>
               ))}
             </section>
-          </motion.div>
+          </m.div>
         </CardContent>
 
-        <motion.div variants={chunkVariants}>
+        <m.div variants={chunkVariants}>
           <CardFooter className="text-sm leading-6 text-muted-foreground">
             <p>
               <span className="font-medium text-foreground">برای شروع:</span> از بخش «ماژول‌ها» در
               ناوبری، اولین ماژول خانه را اضافه کن.
             </p>
           </CardFooter>
-        </motion.div>
+        </m.div>
       </Card>
-    </motion.section>
+    </m.section>
   );
 }

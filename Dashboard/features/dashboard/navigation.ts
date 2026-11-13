@@ -1,10 +1,10 @@
 import {
   Clock3,
   House,
+  type HugeIconComponent,
   Layers,
   Settings,
   Settings2,
-  type HugeIconComponent,
 } from "@/components/ui/hugeicons";
 import type { WorkspaceView } from "@/features/iot/hooks/store/types";
 
@@ -51,8 +51,35 @@ export const WORKSPACE_VIEW_META: Record<WorkspaceView, WorkspaceViewMeta> = {
   },
 };
 
+export type ModulesTabId = "add" | "list";
+
+export interface ModulesTabMeta {
+  id: ModulesTabId;
+  title: string;
+  compactTitle: string;
+}
+
+export const MODULES_TABS: readonly ModulesTabMeta[] = [
+  { id: "add", title: "افزودن قطعه جدید", compactTitle: "افزودن قطعه" },
+  { id: "list", title: "مدیریت و لیست قطعات", compactTitle: "لیست قطعات" },
+] as const;
+
+export type AutomationsTabId = "create" | "manage";
+
+export interface AutomationsTabMeta {
+  id: AutomationsTabId;
+  title: string;
+  compactTitle: string;
+}
+
+export const AUTOMATIONS_TABS: readonly AutomationsTabMeta[] = [
+  { id: "create", title: "افزودن اتوماسیون جدید", compactTitle: "اتوماسیون جدید" },
+  { id: "manage", title: "مدیریت اتوماسیون‌ها", compactTitle: "مدیریت اتوماسیون‌ها" },
+] as const;
+
 export type SettingsTabId =
   | "layout"
+  | "colors"
   | "mqtt"
   | "wifi"
   | "audio"
@@ -71,6 +98,7 @@ export interface SettingsTabMeta {
  */
 export const SETTINGS_TABS: readonly SettingsTabMeta[] = [
   { id: "layout", title: "چیدمان و عنوان", compactTitle: "چیدمان" },
+  { id: "colors", title: "شخصی‌سازی ظاهر و فونت داشبورد", compactTitle: "شخصی‌سازی داشبورد" },
   { id: "mqtt", title: "ارتباط MQTT", compactTitle: "ارتباط MQTT" },
   { id: "wifi", title: "شبکه‌های وای‌فای", compactTitle: "وای‌فای" },
   { id: "audio", title: "صدا و موسیقی", compactTitle: "صدا" },
@@ -85,6 +113,17 @@ export const SETTINGS_TABS: readonly SettingsTabMeta[] = [
  */
 export function resolveSettingsTabId(tab: string): SettingsTabId {
   if (tab === "voice-commands") return "voice";
+
+  if (
+    tab === "theme" ||
+    tab === "color" ||
+    tab === "font" ||
+    tab === "fonts" ||
+    tab === "appearance" ||
+    tab === "personalization"
+  )
+    return "colors";
   const matched = SETTINGS_TABS.find((item) => item.id === tab);
+
   return matched ? matched.id : "layout";
 }

@@ -1,4 +1,4 @@
-const PHONETIC_MAP: Record<string, string> = {
+const PHONETIC_MAP = {
   غ: "ق",
   ص: "س",
   ث: "س",
@@ -9,18 +9,27 @@ const PHONETIC_MAP: Record<string, string> = {
   ط: "ت",
   ي: "ی",
   ك: "ک",
-};
+} satisfies Record<string, string>;
+
 const PHONETIC_REGEX = /[غصثضظذهطيك]|[\u200C\s]+/g;
 
 export function normalizePhonetics(text: string): string {
   if (!text) return "";
+
   return text
     .replace(PHONETIC_REGEX, (match) => {
       const code = match.charCodeAt(0);
+
       if (code === 32 || code === 0x200c || match.length > 1) {
         return " ";
       }
-      return PHONETIC_MAP[match] || match;
+
+      if (match in PHONETIC_MAP) {
+        // SAFETY: in operator verifies match is a valid key of PHONETIC_MAP
+        return PHONETIC_MAP[match as keyof typeof PHONETIC_MAP];
+      }
+
+      return match;
     })
     .trim();
 }
@@ -29,13 +38,16 @@ export function getSimilarity(a: string, b: string): number {
   if (a === b) return 1;
   const aLen = a.length;
   const bLen = b.length;
+
   if (aLen === 0) return bLen === 0 ? 1 : 0;
+
   if (bLen === 0) return 0;
 
   let strA = a;
   let strB = b;
   let lenA = aLen;
   let lenB = bLen;
+
   if (lenA > lenB) {
     strA = b;
     strB = a;
@@ -61,6 +73,7 @@ export function getSimilarity(a: string, b: string): number {
       const sub = row0[j - 1] + cost;
 
       let min = del < ins ? del : ins;
+
       if (sub < min) min = sub;
       row1[j] = min;
     }
@@ -72,6 +85,7 @@ export function getSimilarity(a: string, b: string): number {
 
   const dist = row0[lenA];
   const maxLen = lenB;
+
   return (maxLen - dist) / maxLen;
 }
 
@@ -100,6 +114,7 @@ export function executeVoiceCommand(
     .trim()
     .replace(/[.،!؟]+$/, "")
     .trim();
+
   if (!cleanTranscript) return;
 
   const normalizedTranscript = normalizePhonetics(cleanTranscript);
@@ -107,6 +122,7 @@ export function executeVoiceCommand(
   // 1. Try matching configured custom voice commands
   let bestMatchCmd: NonNullable<VoiceCommandExecutionContext["voiceCommands"]>[number] | null =
     null;
+
   let highestSim = 0;
 
   const VOICE_SIMILARITY_THRESHOLD = 0.8;
@@ -115,6 +131,7 @@ export function executeVoiceCommand(
 
   for (const command of context.voiceCommands ?? []) {
     const similarity = getSimilarity(normalizePhonetics(command.phrase), normalizedTranscript);
+
     if (similarity > highestSim && similarity >= VOICE_SIMILARITY_THRESHOLD) {
       highestSim = similarity;
       bestMatchCmd = command;
@@ -129,6 +146,7 @@ export function executeVoiceCommand(
         batchActions.push({ targetPin: action.targetPin, actionOn: action.actionOn ?? true });
       } else if (action.targetMacro) {
         const macro = context.macros?.find((item) => item.id === action.targetMacro);
+
         if (macro) batchActions.push(...macro.actions);
       }
     });
@@ -136,6 +154,7 @@ export function executeVoiceCommand(
     if (batchActions.length > 0) {
       context.handleBatchPinState(batchActions);
       context.showToast(`فرمان صوتی اجرا شد: ${cleanTranscript}`, "success");
+
       return;
     }
   }
@@ -159,6 +178,7 @@ export function executeVoiceCommand(
 
     for (const segment of context.segments ?? []) {
       const similarity = getSimilarity(normalizePhonetics(segment.title), normalizedSegmentName);
+
       if (similarity > highestSegmentSimilarity && similarity >= VOICE_SIMILARITY_THRESHOLD) {
         highestSegmentSimilarity = similarity;
         bestSegment = segment;

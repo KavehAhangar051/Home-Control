@@ -1,26 +1,20 @@
 "use client";
 
-import React from "react";
-import { useSortable, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import { rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence } from "motion/react";
+import type React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { SortableGroupProps } from "../core/types";
+import { getSegmentGridLayout } from "../../workspace/core/gridUtils";
+import type { SortableGroupProps } from "../core/types";
 import GroupHeader from "./GroupHeader";
 
-const GROUP_COLS_STYLE_LUT: Record<number, React.CSSProperties> = {
-  1: { "--group-cols": 1 } as React.CSSProperties,
-  2: { "--group-cols": 2 } as React.CSSProperties,
-  3: { "--group-cols": 3 } as React.CSSProperties,
-  4: { "--group-cols": 4 } as React.CSSProperties,
-  5: { "--group-cols": 5 } as React.CSSProperties,
-  6: { "--group-cols": 6 } as React.CSSProperties,
-};
+type CustomGridTracksStyle = React.CSSProperties & { "--group-grid-tracks": number };
 
 function GroupGrid({ style, children }: { style: React.CSSProperties; children: React.ReactNode }) {
   return (
     <div
-      className="grid w-full min-w-0 grid-cols-1 gap-3 p-3 text-right relative z-10 sm:grid-cols-[repeat(var(--group-cols),minmax(0,1fr))] sm:gap-4 sm:p-4"
+      className="grid w-full min-w-0 grid-cols-1 gap-3 p-3 text-right relative z-10 sm:grid-cols-[repeat(var(--group-grid-tracks,1),minmax(0,1fr))] sm:gap-3.5 sm:p-4"
       style={style}
     >
       <AnimatePresence initial={false} mode="popLayout">
@@ -30,6 +24,10 @@ function GroupGrid({ style, children }: { style: React.CSSProperties; children: 
   );
 }
 
+/**
+ * Displays a Smart Home zone/room group container with a unified header toolbar
+ * and responsive sortable grid of device segments.
+ */
 export default function SortableGroup({
   id,
   items,
@@ -59,35 +57,35 @@ export default function SortableGroup({
       ? transition || "transform 350ms cubic-bezier(0.16, 1, 0.3, 1)"
       : "none",
     zIndex: isDragging ? 0 : "auto",
-    opacity: isDragging ? 0.3 : 1,
+    opacity: isDragging ? 0.35 : 1,
   };
 
-  const effectiveCols = Math.min(Math.max(1, items.length), maxCols);
-  const contentStyle =
-    GROUP_COLS_STYLE_LUT[effectiveCols] ||
-    ({ "--group-cols": effectiveCols } as React.CSSProperties);
+  const { gridTracks } = getSegmentGridLayout(items.length, maxCols);
+
+  const contentStyle: CustomGridTracksStyle = {
+    "--group-grid-tracks": gridTracks,
+  };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="relative group/group-card w-full mb-6 touch-none flex flex-col gap-2"
+      className="relative group/group-card w-full mb-6 touch-none flex flex-col"
     >
-      <GroupHeader
-        id={id}
-        segmentCount={segmentCount}
-        maxCols={maxCols}
-        icon={icon}
-        onColsChange={onColsChange}
-        onAddPlaceholder={onAddPlaceholder}
-        onDeleteGroup={onDeleteGroup}
-        parentGroupsCols={parentGroupsCols}
-        attributes={attributes}
-        listeners={listeners}
-      />
+      <Card className="w-full relative group/body flex-grow !gap-0 !overflow-visible !rounded-2xl !border !border-[var(--border-color)] !bg-[var(--card-bg)] !py-0 !shadow-xs !ring-0 transition-colors duration-200">
+        <GroupHeader
+          id={id}
+          segmentCount={segmentCount}
+          maxCols={maxCols}
+          icon={icon}
+          onColsChange={onColsChange}
+          onAddPlaceholder={onAddPlaceholder}
+          onDeleteGroup={onDeleteGroup}
+          parentGroupsCols={parentGroupsCols}
+          attributes={attributes}
+          listeners={listeners}
+        />
 
-      {/* Body Island */}
-      <Card className="w-full relative group/body flex-grow !gap-0 !overflow-visible !rounded-2xl !border !border-[var(--border-color)] !bg-[var(--card-bg)] !py-0 !shadow-none !ring-0">
         <CardContent className="!px-0 !py-0">
           {isOverlayItem ? (
             <GroupGrid style={contentStyle}>{children}</GroupGrid>

@@ -1,40 +1,45 @@
-import { useState, useEffect } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { Clock } from "@/components/ui/hugeicons";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import HorizontalClock from "./HorizontalClock";
 import { getPersianDateString, getTimeString } from "./persianDateUtils";
 import type { ClockWidgetProps } from "./types";
 import VerticalClock from "./VerticalClock";
-import HorizontalClock from "./HorizontalClock";
+
+const getClockEpochSecond = () => Math.floor(Date.now() / 1000);
+const getServerClockEpochSecond = () => null;
 
 export default function ClockWidget({ variant, isSidebarCollapsed }: ClockWidgetProps) {
-  const [time, setTime] = useState<Date | null>(null);
   const isPageVisible = useIoTStore((state) => state.isPageVisible);
 
-  useEffect(() => {
-    setTime(new Date());
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!isPageVisible) return () => {};
 
-    if (!isPageVisible) return;
+      const timer = setInterval(onStoreChange, 1000);
 
-    const timer = setInterval(() => {
-      setTime((prev) => {
-        const now = new Date();
-        if (prev && prev.getSeconds() === now.getSeconds()) return prev;
-        return now;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [isPageVisible]);
+      return () => clearInterval(timer);
+    },
+    [isPageVisible],
+  );
 
-  if (!time) {
+  const epochSecond = useSyncExternalStore(
+    subscribe,
+    getClockEpochSecond,
+    getServerClockEpochSecond,
+  );
+
+  if (epochSecond === null) {
     return (
       <div
-        className={`flex items-center justify-center p-2 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg-solid)] ${variant === "vertical" ? "w-full" : ""}`}
+        className={`flex h-9 items-center justify-center rounded-md border border-[var(--sidebar-border)] bg-[var(--sidebar-control-bg)] px-2.5 ${variant === "vertical" ? "w-full" : ""}`}
       >
         <Clock className="w-4 h-4 text-[var(--text-muted)] animate-pulse" />
       </div>
     );
   }
 
+  const time = new Date(epochSecond * 1000);
   const timeString = getTimeString(time);
   const dateString = getPersianDateString(time);
 

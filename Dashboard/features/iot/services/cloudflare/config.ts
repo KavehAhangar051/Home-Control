@@ -1,13 +1,11 @@
 const DEFAULT_WORKER_URL = "https://home-control-db.kamyarahangar157.workers.dev";
-const LEGACY_WORKER_URLS = [
-  "https://api.agkalaa.ir",
-  "https://apii.agkalaa.ir",
-];
+const LEGACY_WORKER_URLS = ["https://api.agkalaa.ir", "https://apii.agkalaa.ir"];
 
 let inMemoryWorkerUrl = DEFAULT_WORKER_URL;
 
 function normalizeWorkerUrl(url: string): string {
   const normalized = url.trim().replace(/\/$/, "");
+
   return LEGACY_WORKER_URLS.includes(normalized) ? DEFAULT_WORKER_URL : normalized;
 }
 
@@ -20,8 +18,10 @@ function updateWorkerState(url: string) {
 
 if (typeof window !== "undefined") {
   const saved = localStorage.getItem("cloudflare_worker_url");
+
   if (saved) {
     updateWorkerState(saved);
+
     if (inMemoryWorkerUrl !== saved) {
       localStorage.setItem("cloudflare_worker_url", inMemoryWorkerUrl);
     }
@@ -36,6 +36,7 @@ export function getCloudflareWorkerUrl(): string {
 
 export function setCloudflareWorkerUrl(url: string) {
   updateWorkerState(url);
+
   if (typeof window !== "undefined") {
     localStorage.setItem("cloudflare_worker_url", inMemoryWorkerUrl);
   }

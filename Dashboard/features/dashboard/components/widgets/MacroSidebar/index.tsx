@@ -1,15 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import { AnimatePresence } from "motion/react";
+import { useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "@/components/ui/hugeicons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { AnimatePresence } from "motion/react";
-import {
-  ChevronUp,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-} from "@/components/ui/hugeicons";
 import { CarouselMacroButton, SimpleMacroButton } from "./MacroSidebarButton";
 
 interface MacroSidebarProps {
@@ -20,6 +16,7 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
   const { handleBatchPinState } = useDashboard();
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const macros = useIoTStore((s) => s.macros);
+
   const visibleMacros = macros.filter(
     (macro) =>
       macro.title
@@ -27,23 +24,21 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
         .replace(/\s+/g, " ")
         .trim() !== "تمام سگمنت ها روشن",
   );
+
   const selectedGroupFilter = useIoTStore((s) => s.selectedGroupFilter);
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [offset, setOffset] = useState(0);
 
-  React.useEffect(() => {
-    if (visibleMacros.length > 0 && activeIndex >= visibleMacros.length) {
-      setActiveIndex(Math.max(0, visibleMacros.length - 1));
-    }
-  }, [visibleMacros.length, activeIndex]);
-
   if (selectedGroupFilter || visibleMacros.length === 0) {
     return null;
   }
 
+  const safeActiveIndex = activeIndex % visibleMacros.length;
+
   const handleExecuteMacro = (macroId: string) => {
     const macro = visibleMacros.find((m) => m.id === macroId);
+
     if (!macro) return;
 
     handleBatchPinState(macro.actions);
@@ -56,6 +51,7 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
     setOffset((prev) => prev + 1);
     setActiveIndex((prev) => (prev + 1) % visibleMacros.length);
   };
+
   const goPrev = () => {
     setDirection(1);
     setOffset((prev) => prev - 1);
@@ -69,18 +65,25 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
     >
       {visibleMacros.length >= 3 ? (
         <>
-          <button
-            type="button"
-            onClick={goPrev}
-            className="p-1 rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-white transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0"
-            title="قبلی"
-          >
-            {isHorizontal ? (
-              <ChevronRight className="w-5 h-5" />
-            ) : (
-              <ChevronUp className="w-5 h-5" />
-            )}
-          </button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="قبلی"
+                  className="p-1 rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-[var(--bg-main)] transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0"
+                >
+                  {isHorizontal ? (
+                    <ChevronRight className="w-5 h-5" />
+                  ) : (
+                    <ChevronUp className="w-5 h-5" />
+                  )}
+                </button>
+              }
+            />
+            <TooltipContent>قبلی</TooltipContent>
+          </Tooltip>
 
           <div
             className={`flex ${isHorizontal ? "flex-row items-center gap-1 max-w-[320px]" : "flex-col items-center gap-2"} relative overflow-hidden p-1`}
@@ -99,15 +102,22 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
               {[
                 {
                   macro:
-                    visibleMacros[(activeIndex - 1 + visibleMacros.length) % visibleMacros.length],
+                    visibleMacros[
+                      (safeActiveIndex - 1 + visibleMacros.length) % visibleMacros.length
+                    ],
                   key: offset - 1,
                 },
-                { macro: visibleMacros[activeIndex], key: offset },
-                { macro: visibleMacros[(activeIndex + 1) % visibleMacros.length], key: offset + 1 },
+                { macro: visibleMacros[safeActiveIndex], key: offset },
+                {
+                  macro: visibleMacros[(safeActiveIndex + 1) % visibleMacros.length],
+                  key: offset + 1,
+                },
               ].map(({ macro, key }, index) => {
                 const isCenter = index === 1;
+
                 const onClick =
                   index === 0 ? goPrev : index === 2 ? goNext : () => handleExecuteMacro(macro.id);
+
                 return (
                   <CarouselMacroButton
                     key={String(key)}
@@ -123,18 +133,25 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
             </AnimatePresence>
           </div>
 
-          <button
-            type="button"
-            onClick={goNext}
-            className="p-1 rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-white transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0"
-            title="بعدی"
-          >
-            {isHorizontal ? (
-              <ChevronLeft className="w-5 h-5" />
-            ) : (
-              <ChevronDown className="w-5 h-5" />
-            )}
-          </button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="بعدی"
+                  className="p-1 rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-[var(--bg-main)] transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0"
+                >
+                  {isHorizontal ? (
+                    <ChevronLeft className="w-5 h-5" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5" />
+                  )}
+                </button>
+              }
+            />
+            <TooltipContent>بعدی</TooltipContent>
+          </Tooltip>
         </>
       ) : (
         <AnimatePresence initial={false}>

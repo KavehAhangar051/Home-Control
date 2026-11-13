@@ -1,9 +1,4 @@
-import {
-  pointerWithin,
-  closestCorners,
-  CollisionDetection,
-  getFirstCollision,
-} from "@dnd-kit/core";
+import { type CollisionDetection, closestCorners, pointerWithin } from "@dnd-kit/core";
 
 /**
  * Optimized Collision Detection Strategy

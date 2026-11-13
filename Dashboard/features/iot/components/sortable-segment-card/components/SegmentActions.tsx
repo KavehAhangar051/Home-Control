@@ -1,17 +1,27 @@
-import React from "react";
-import { X, GripVertical } from "@/components/ui/hugeicons";
-import { SegmentData } from "../core/types";
-import SegmentControls from "./SegmentControls";
+import { AnimatePresence } from "motion/react";
+import type React from "react";
+import { Settings } from "@/components/ui/hugeicons";
+import { Toggle } from "@/components/ui/toggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { SegmentData } from "../core/types";
+import type { SegmentMenuPosition } from "../hooks/useCardHeaderLayout";
+import SegmentSettingsMenu from "./SegmentSettingsMenu";
 
 interface SegmentActionsProps {
   segment: SegmentData;
+  isPinOn: boolean;
+  isUltraCompact: boolean;
+  isCompact: boolean;
   onRemove: (id: string) => void;
-  attributes: any;
-  listeners: any;
   onUpdateSegmentMode?: (id: string, mode: "switch" | "push") => void;
   onUpdateSegmentAutoOff?: (id: string, autoOff: number) => void;
   mode: "switch" | "push";
   countdown?: number | null;
+  isSettingsOpen: boolean;
+  setIsSettingsOpen: (val: boolean) => void;
+  menuPosition: SegmentMenuPosition | null;
+  buttonRef: React.RefObject<HTMLButtonElement | null>;
+  menuRef: React.RefObject<HTMLDivElement | null>;
   autoOffMenuProps: {
     showAutoOffMenu: boolean;
     setShowAutoOffMenu: (val: boolean) => void;
@@ -20,48 +30,76 @@ interface SegmentActionsProps {
   };
 }
 
+/**
+ * Renders the secondary utility trigger (settings & delete popover) on the
+ * top-left corner of a segment card tile.
+ */
 export default function SegmentActions({
   segment,
+  isPinOn,
+  isUltraCompact,
   onRemove,
-  attributes,
-  listeners,
   onUpdateSegmentMode,
   onUpdateSegmentAutoOff,
   mode,
   countdown,
+  isSettingsOpen,
+  setIsSettingsOpen,
+  menuPosition,
+  buttonRef,
+  menuRef,
   autoOffMenuProps,
 }: SegmentActionsProps) {
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => onRemove(segment.id)}
-        className="p-1.5 bg-slate-200/90 dark:bg-slate-950 border border-slate-300/85 dark:border-slate-800 text-slate-700 dark:text-gray-300 md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)] transition-[border-color,color,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer rounded-lg shadow-sm"
-        title="حذف این سگمنت"
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <X className="w-3.5 h-3.5" strokeWidth={2} />
-      </button>
-      <div
-        {...attributes}
-        {...listeners}
-        className="p-1.5 bg-slate-200/90 dark:bg-slate-950 border border-slate-300/85 dark:border-slate-800 text-slate-700 dark:text-gray-300 md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)] cursor-grab active:cursor-grabbing transition-[border-color,color] duration-150 ease-out rounded-lg shadow-sm"
-        title="کشیدن برای جابه‌جایی"
-      >
-        <GripVertical className="w-4 h-4" strokeWidth={2} />
-      </div>
-      {onUpdateSegmentMode && segment.type !== "input" && (
-        <div className="mr-1.5">
-          <SegmentControls
+    <div className="relative flex items-center gap-1 shrink-0">
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Toggle
+              ref={buttonRef}
+              variant="outline"
+              size="sm"
+              pressed={isSettingsOpen}
+              onPressedChange={() => setIsSettingsOpen(!isSettingsOpen)}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`تنظیمات قطعه ${segment.title}`}
+              aria-expanded={isSettingsOpen}
+              className={`rounded-lg transition-colors cursor-pointer ${
+                isUltraCompact ? "h-6 w-6 min-w-6 p-0 px-0" : "h-7 w-7 min-w-7 p-0 px-0"
+              } ${
+                isSettingsOpen
+                  ? "border-[var(--accent3)] text-[var(--accent3)] bg-[var(--accent3-transparent)] aria-pressed:bg-[var(--accent3-transparent)]"
+                  : "border-transparent bg-transparent text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--secondary)] md:hover:border-[var(--border-color)]"
+              }`}
+            >
+              <Settings className="w-3.5 h-3.5 shrink-0" />
+            </Toggle>
+          }
+        />
+        <TooltipContent>تنظیمات و مدیریت قطعه</TooltipContent>
+      </Tooltip>
+
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <SegmentSettingsMenu
             segment={segment}
-            mode={mode}
+            isSettingsOpen={isSettingsOpen}
+            onCloseMenu={() => setIsSettingsOpen(false)}
+            menuPosition={menuPosition}
+            menuRef={menuRef}
+            showIconInMenu={true}
+            isPinOn={isPinOn}
+            isUltraCompact={isUltraCompact}
+            onRemove={onRemove}
             onUpdateSegmentMode={onUpdateSegmentMode}
             onUpdateSegmentAutoOff={onUpdateSegmentAutoOff}
+            mode={mode}
             countdown={countdown}
-            {...autoOffMenuProps}
+            autoOffMenuProps={autoOffMenuProps}
           />
-        </div>
-      )}
-    </>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

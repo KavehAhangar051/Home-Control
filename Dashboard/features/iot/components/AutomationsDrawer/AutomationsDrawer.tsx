@@ -1,13 +1,13 @@
 "use client";
 
+import { AnimatePresence, m } from "motion/react";
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "motion/react";
-import { Clock, X, Info } from "@/components/ui/hugeicons";
 import { Alert } from "@/components/reui/alert";
-import { AutomationProvider } from "./context/AutomationContext";
+import { Button } from "@/components/ui/button";
+import { Clock, Info, X } from "@/components/ui/hugeicons";
 import AutomationForm from "./components/AutomationForm";
 import AutomationList from "./components/AutomationList";
+import { AutomationProvider } from "./context/AutomationContext";
 
 interface AutomationsDrawerProps {
   isOpen: boolean;
@@ -20,25 +20,30 @@ export default function AutomationsDrawer({
   isOpen,
   onClose,
   isDark,
-  animationsEnabled,
+  animationsEnabled: _animationsEnabled,
 }: AutomationsDrawerProps) {
   const backdropBackground = isDark ? "rgba(9, 9, 11, 0.68)" : "rgba(24, 24, 27, 0.18)";
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
+        <m.button
+          type="button"
           key="automations-backdrop"
+          aria-label="بستن مدیریت اتوماسیون‌ها"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onClose();
+          }}
           style={{ backdropFilter: "blur(16px)", background: backdropBackground }}
-          className="fixed inset-0 z-50 cursor-pointer"
+          className="fixed inset-0 z-50 cursor-pointer border-0 p-0"
         />
       )}
       {isOpen && (
-        <motion.div
+        <m.div
           key="automations-panel"
           initial={{ x: "100%" }}
           animate={{ x: 0 }}
@@ -85,7 +90,7 @@ export default function AutomationsDrawer({
               <AutomationList />
             </AutomationProvider>
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

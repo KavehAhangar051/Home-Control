@@ -1,5 +1,4 @@
-import React from "react";
-import { Trash2 } from "@/components/ui/hugeicons";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 interface Props {
   tempActions: Array<{ targetPin?: string; targetMacro?: string; actionOn?: boolean }>;
@@ -18,6 +17,7 @@ export function VoiceCommandActionsEditor({
 }: Props) {
   const handleAddAction = () => {
     if (segments.length === 0 && macros.length === 0) return;
+
     if (segments.length > 0) {
       setTempActions([...tempActions, { targetPin: segments[0].pin, actionOn: true }]);
     } else {
@@ -36,6 +36,7 @@ export function VoiceCommandActionsEditor({
     updates: Partial<{ targetPin?: string; targetMacro?: string; actionOn?: boolean }>,
   ) => {
     const newActions = [...tempActions];
+
     if (updates.targetPin !== undefined) {
       newActions[index] = {
         targetPin: updates.targetPin,
@@ -46,6 +47,7 @@ export function VoiceCommandActionsEditor({
     } else {
       newActions[index] = { ...newActions[index], ...updates };
     }
+
     setTempActions(newActions);
   };
 
@@ -56,7 +58,7 @@ export function VoiceCommandActionsEditor({
         <button
           type="button"
           onClick={handleAddAction}
-          className="text-[var(--accent3)] text-xs font-bold px-2 py-1 bg-[var(--accent3-transparent)] rounded-lg hover:bg-[var(--accent3)] hover:text-white transition-colors"
+          className="text-[var(--accent3)] text-xs font-bold px-2 py-1 bg-[var(--accent3-transparent)] rounded-lg hover:bg-[var(--accent3)] hover:text-[var(--bg-main)] transition-colors"
         >
           + افزودن
         </button>
@@ -70,13 +72,18 @@ export function VoiceCommandActionsEditor({
 
       {tempActions.map((action, index) => {
         const isMacroAction = action.targetMacro !== undefined;
-        const actionKey = action.targetPin ?? action.targetMacro ?? `action-${index}`;
+
+        const actionKey = isMacroAction
+          ? `macro-${action.targetMacro ?? "empty"}`
+          : `pin-${action.targetPin ?? "empty"}-${action.actionOn ? "on" : "off"}`;
+
         return (
           <div
             key={actionKey}
             className="flex flex-wrap items-center gap-2 bg-[var(--card-bg-solid)] border border-[var(--border-color)] p-2 rounded-xl"
           >
             <select
+              aria-label="نوع هدف عملیات"
               value={isMacroAction ? "macro" : "pin"}
               onChange={(e) => {
                 if (e.target.value === "macro" && macros.length > 0) {
@@ -85,7 +92,7 @@ export function VoiceCommandActionsEditor({
                   handleUpdateAction(index, { targetPin: segments[0].pin });
                 }
               }}
-              className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-all"
+              className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
             >
               <option value="pin">ماژول/سگمنت</option>
               <option value="macro" disabled={macros.length === 0}>
@@ -95,9 +102,10 @@ export function VoiceCommandActionsEditor({
 
             {isMacroAction ? (
               <select
+                aria-label="انتخاب ماکرو"
                 value={action.targetMacro}
                 onChange={(e) => handleUpdateAction(index, { targetMacro: e.target.value })}
-                className="flex-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-all"
+                className="flex-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
               >
                 {macros.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -108,9 +116,10 @@ export function VoiceCommandActionsEditor({
             ) : (
               <>
                 <select
+                  aria-label="انتخاب پایه سگمنت"
                   value={action.targetPin}
                   onChange={(e) => handleUpdateAction(index, { targetPin: e.target.value })}
-                  className="flex-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-all"
+                  className="flex-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
                 >
                   {segments.map((seg) => (
                     <option key={seg.id} value={seg.pin}>
@@ -119,9 +128,10 @@ export function VoiceCommandActionsEditor({
                   ))}
                 </select>
                 <select
+                  aria-label="وضعیت خروجی عملیات"
                   value={action.actionOn ? "on" : "off"}
                   onChange={(e) => handleUpdateAction(index, { actionOn: e.target.value === "on" })}
-                  className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-all"
+                  className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
                 >
                   <option value="on">روشن شود</option>
                   <option value="off">خاموش شود</option>
@@ -129,14 +139,12 @@ export function VoiceCommandActionsEditor({
               </>
             )}
 
-            <button
-              type="button"
-              onClick={() => handleRemoveAction(index)}
-              className="p-2 text-[var(--accent4)] hover:bg-[var(--accent4-transparent)] border border-transparent hover:border-[var(--accent4)] rounded-lg transition-colors"
-              aria-label="حذف عملیات"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            <DeleteButton
+              size="sm"
+              resetAfter={0}
+              onConfirm={() => handleRemoveAction(index)}
+              label="حذف عملیات"
+            />
           </div>
         );
       })}

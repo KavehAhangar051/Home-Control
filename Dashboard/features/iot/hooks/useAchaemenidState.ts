@@ -1,18 +1,18 @@
 "use client";
 
+import { useAchaemenidDnd } from "./achaemenidState/useAchaemenidDnd";
+import { useApplyEspConfig } from "./achaemenidState/useApplyEspConfig";
+import { useCloudflareInit } from "./achaemenidState/useCloudflareInit";
+import { useCloudflarePush } from "./achaemenidState/useCloudflarePush";
+import { useCloudflareQuery } from "./achaemenidState/useCloudflareQuery";
+import { useConnectionStrategy } from "./achaemenidState/useConnectionStrategy";
 import { usePinOperations } from "./achaemenidState/usePinOperations";
 import { useSegmentManagement } from "./achaemenidState/useSegmentManagement";
 import { useSegmentUpdates } from "./achaemenidState/useSegmentUpdates";
-import { useCloudflareQuery } from "./achaemenidState/useCloudflareQuery";
-import { useCloudflareInit } from "./achaemenidState/useCloudflareInit";
-import { useCloudflarePush } from "./achaemenidState/useCloudflarePush";
-import { useAchaemenidDnd } from "./achaemenidState/useAchaemenidDnd";
-import { useApplyEspConfig } from "./achaemenidState/useApplyEspConfig";
 import { useIoTStore } from "./useIoTStore";
-import { useConnectionStrategy } from "./achaemenidState/useConnectionStrategy";
 
 export function useAchaemenidState() {
-  const setIsModulesMenuOpen = useIoTStore((s) => s.setIsModulesMenuOpen);
+  const setActiveWorkspaceView = useIoTStore((s) => s.setActiveWorkspaceView);
 
   useConnectionStrategy();
 
@@ -45,6 +45,7 @@ export function useAchaemenidState() {
 
   const {
     targetPlaceholderId,
+    clearTargetPlaceholder,
     handleAddSegment,
     handleAddPlaceholder,
     handleSetupPlaceholder,
@@ -52,7 +53,7 @@ export function useAchaemenidState() {
     handleRemoveSegment,
     handleRemoveGroup,
   } = useSegmentManagement({
-    setIsModulesMenuOpen,
+    setActiveWorkspaceView,
     updatePinOnServer,
   });
 
@@ -72,6 +73,7 @@ export function useAchaemenidState() {
     setIsFullyReady,
     ...dnd,
     targetPlaceholderId,
+    clearTargetPlaceholder,
     handleApplyEspConfig,
     handleAddSegment,
     handleAddPlaceholder,

@@ -1,29 +1,28 @@
 "use client";
 
-import { DndContext } from "@dnd-kit/core";
-import TrashDropZone from "./workspace/components/TrashDropZone";
-import { WorkspaceGrid, WorkspaceDragOverlay } from "./workspace";
+import dynamic from "next/dynamic";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import type { IoTWorkspaceProps } from "./workspace";
-import { optimizedCollisionDetection } from "./workspace/core/collisionStrategy";
 
 export type { IoTWorkspaceProps };
 
+const DndGridWorkspace = dynamic(() => import("./workspace/components/DndGridWorkspace"), {
+  ssr: false,
+});
+
+const TrellisWorkspace = dynamic(() => import("./trellis/TrellisWorkspace"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full min-h-[460px] w-full flex-1 animate-pulse rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)]" />
+  ),
+});
+
 export default function IoTWorkspace(props: IoTWorkspaceProps) {
-  return (
-    <DndContext
-      sensors={props.sensors}
-      collisionDetection={optimizedCollisionDetection}
-      autoScroll={{ layoutShiftCompensation: false }}
-      onDragStart={props.handleDragStart}
-      onDragOver={props.handleDragOver}
-      onDragEnd={props.handleDragEnd}
-    >
-      <WorkspaceGrid {...props} />
-      <WorkspaceDragOverlay {...props} />
-      <TrashDropZone activeId={props.activeSegmentId || props.activeGroupId} />
-      {(props.activeSegmentId || props.activeGroupId) && (
-        <style>{"* { cursor: grabbing !important; }"}</style>
-      )}
-    </DndContext>
-  );
+  const workspaceDisplayMode = useIoTStore((s) => s.workspaceDisplayMode);
+
+  if (workspaceDisplayMode === "trellis") {
+    return <TrellisWorkspace {...props} />;
+  }
+
+  return <DndGridWorkspace {...props} />;
 }

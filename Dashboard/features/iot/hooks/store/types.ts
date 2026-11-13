@@ -1,4 +1,5 @@
-import { EspConfig } from "@/features/iot/services/esp32Config";
+import type { EspConfig } from "@/features/iot/services/esp32Config";
+import type { DashboardFontId } from "@/lib/fonts";
 
 export interface RuleAction {
   reqHold: number;
@@ -128,7 +129,10 @@ export interface SystemSlice {
   setMqttConfig: (config: MqttConfig | null) => void;
 }
 
+export type WorkspaceDisplayMode = "grid" | "trellis";
+
 export interface UiSlice {
+  workspaceDisplayMode: WorkspaceDisplayMode;
   lowDataMode: boolean;
   toast: { message: string; type: "success" | "error" } | null;
   selectedGroupFilter: string | null;
@@ -139,6 +143,7 @@ export interface UiSlice {
   activeGroupId: string | null;
   isLocal: boolean;
   localIp: string | null;
+  setWorkspaceDisplayMode: (mode: WorkspaceDisplayMode) => void;
   setLowDataMode: (enabled: boolean) => void;
   showToast: (message: string, type: "success" | "error") => void;
   clearToast: () => void;
@@ -154,31 +159,51 @@ export interface UiSlice {
 
 export type WorkspaceView = "home" | "modules" | "automations" | "settings";
 
+export type ModulesSubTab = "add" | "list";
+
+export type AutomationsSubTab = "create" | "manage";
+
 export interface MenuSlice {
   activeWorkspaceView: WorkspaceView;
   setActiveWorkspaceView: (view: WorkspaceView) => void;
   isMenuOpen: boolean;
-  isModulesMenuOpen: boolean;
   isEspDrawerOpen: boolean;
   isAutomationsMenuOpen: boolean;
   activeSettingsTab: string;
+  activeModulesTab: ModulesSubTab;
+  activeAutomationsTab: AutomationsSubTab;
+  openSegmentMenuId: string | null;
   setIsMenuOpen: (o: boolean) => void;
-  setIsModulesMenuOpen: (o: boolean) => void;
   setIsEspDrawerOpen: (o: boolean) => void;
   setIsAutomationsMenuOpen: (o: boolean) => void;
   setActiveSettingsTab: (t: string) => void;
+  setActiveModulesTab: (tab: ModulesSubTab) => void;
+  setActiveAutomationsTab: (tab: AutomationsSubTab) => void;
+  setOpenSegmentMenuId: (id: string | null) => void;
 }
 
 export interface AestheticSlice {
   isDark: boolean;
+  setIsDark: (isDark: boolean) => void;
+  toggleTheme: () => void;
   accent3: string;
+  setAccent3: (color: string) => void;
   accent4: string;
+  setAccent4: (color: string) => void;
+  darkBlackness: number;
+  setDarkBlackness: (val: number) => void;
+  lightWhiteness: number;
+  setLightWhiteness: (val: number) => void;
+  resetColors: () => void;
   animationsEnabled: boolean;
   setAnimationsEnabled: (e: boolean) => void;
   animationsFps: number;
   setAnimationsFps: (f: number) => void;
   headerTitle: string;
   setHeaderTitle: (t: string) => void;
+  selectedFont: DashboardFontId;
+  setSelectedFont: (font: DashboardFontId) => void;
+  resetFont: () => void;
   isSidebarCollapsed: boolean;
   setIsSidebarCollapsed: (c: boolean) => void;
 }

@@ -1,37 +1,124 @@
 "use client";
 
-import React from "react";
-import { Clock3 } from "@/components/ui/hugeicons";
+import dynamic from "next/dynamic";
 import { Alert } from "@/components/reui/alert";
+import { Clock3 } from "@/components/ui/hugeicons";
+import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import {
+  AUTOMATIONS_TABS,
+  MODULES_TABS,
+  resolveSettingsTabId,
   SETTINGS_TABS,
   WORKSPACE_VIEW_META,
-  resolveSettingsTabId,
 } from "@/features/dashboard/navigation";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { useDashboard } from "@/features/dashboard/context/DashboardContext";
-import { AutomationProvider } from "@/features/iot/components/AutomationsDrawer/context/AutomationContext";
-import AutomationForm from "@/features/iot/components/AutomationsDrawer/components/AutomationForm";
-import AutomationList from "@/features/iot/components/AutomationsDrawer/components/AutomationList";
-import AddSegmentForm from "@/features/iot/components/modules-drawer/components/AddSegmentForm";
-import SegmentList from "@/features/iot/components/modules-drawer/components/SegmentList";
-import LayoutSection from "@/features/settings/components/layout-section/LayoutSection";
-import MqttSection from "@/features/settings/components/mqtt-section/MqttSection";
-import WifiSection from "@/features/settings/components/wifi-section/WifiSection";
-import AudioSection from "@/features/settings/components/audio-section/AudioSection";
-import ConditionsSection from "@/features/settings/components/conditions-section/ConditionsSection";
-import VoiceCommandsSection from "@/features/settings/components/voice-commands-section/VoiceCommandsSection";
-import { InlineStabilitySection } from "@/features/settings/components/StabilitySection";
+
+const PanelSkeleton = () => (
+  <div className="h-48 w-full animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--card-hover-bg)]/50" />
+);
+
+const AutomationForm = dynamic(
+  () => import("@/features/iot/components/AutomationsDrawer/components/AutomationForm"),
+  { ssr: false, loading: PanelSkeleton },
+);
+
+const AutomationList = dynamic(
+  () => import("@/features/iot/components/AutomationsDrawer/components/AutomationList"),
+  { ssr: false, loading: PanelSkeleton },
+);
+
+const AutomationProvider = dynamic(
+  () =>
+    import("@/features/iot/components/AutomationsDrawer/context/AutomationContext").then(
+      (mod) => mod.AutomationProvider,
+    ),
+  { ssr: false },
+);
+
+const AddSegmentForm = dynamic(
+  () => import("@/features/iot/components/modules-drawer/components/AddSegmentForm"),
+  { ssr: false, loading: PanelSkeleton },
+);
+
+const SegmentList = dynamic(
+  () => import("@/features/iot/components/modules-drawer/components/SegmentList"),
+  { ssr: false, loading: PanelSkeleton },
+);
+
+const AudioSection = dynamic(
+  () => import("@/features/settings/components/audio-section/AudioSection"),
+  { ssr: false, loading: PanelSkeleton },
+);
+
+const ColorsSection = dynamic(
+  () => import("@/features/settings/components/colors-section/ColorsSection"),
+  { ssr: false, loading: PanelSkeleton },
+);
+
+const ConditionsSection = dynamic(
+  () => import("@/features/settings/components/conditions-section/ConditionsSection"),
+  { ssr: false, loading: PanelSkeleton },
+);
+
+const LayoutSection = dynamic(
+  () => import("@/features/settings/components/layout-section/LayoutSection"),
+  { ssr: false, loading: PanelSkeleton },
+);
+
+const MqttSection = dynamic(
+  () => import("@/features/settings/components/mqtt-section/MqttSection"),
+  { ssr: false, loading: PanelSkeleton },
+);
+
+const InlineStabilitySection = dynamic(
+  () =>
+    import("@/features/settings/components/StabilitySection").then(
+      (mod) => mod.InlineStabilitySection,
+    ),
+  { ssr: false, loading: PanelSkeleton },
+);
+
+const VoiceCommandsSection = dynamic(
+  () => import("@/features/settings/components/voice-commands-section/VoiceCommandsSection"),
+  { ssr: false, loading: PanelSkeleton },
+);
+
+const WifiSection = dynamic(
+  () => import("@/features/settings/components/wifi-section/WifiSection"),
+  { ssr: false, loading: PanelSkeleton },
+);
 
 type WorkspaceSectionView = "modules" | "automations" | "settings";
+
+function useActiveSubsectionLabel(view: WorkspaceSectionView): string {
+  const activeModulesTab = useIoTStore((state) => state.activeModulesTab);
+  const activeAutomationsTab = useIoTStore((state) => state.activeAutomationsTab);
+  const rawActiveSettingsTab = useIoTStore((state) => state.activeSettingsTab);
+
+  if (view === "modules") {
+    return MODULES_TABS.find((t) => t.id === activeModulesTab)?.title ?? MODULES_TABS[0].title;
+  }
+
+  if (view === "automations") {
+    return (
+      AUTOMATIONS_TABS.find((t) => t.id === activeAutomationsTab)?.title ??
+      AUTOMATIONS_TABS[0].title
+    );
+  }
+
+  const resolvedSettingsTab = resolveSettingsTabId(rawActiveSettingsTab);
+
+  return SETTINGS_TABS.find((t) => t.id === resolvedSettingsTab)?.title ?? SETTINGS_TABS[0].title;
+}
 
 export default function WorkspaceSection({ view }: { view: WorkspaceSectionView }) {
   const meta = WORKSPACE_VIEW_META[view];
   const Icon = meta.sectionIcon;
+  const activeSubsectionTitle = useActiveSubsectionLabel(view);
 
   return (
     <section
-      className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 text-right sm:px-6 sm:py-10 lg:py-12"
+      className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 text-right sm:px-6 sm:py-10 lg:py-12"
       dir="rtl"
     >
       <header className="flex flex-col gap-3 border-b border-[var(--border-color)] pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -48,8 +135,8 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
             </p>
           </div>
         </div>
-        <span className="text-xs tabular-nums text-[var(--text-secondary)]">
-          {view === "settings" ? `${SETTINGS_TABS.length} بخش تنظیمات` : "فضای کاری"}
+        <span className="text-xs font-medium text-[var(--text-secondary)]">
+          {activeSubsectionTitle}
         </span>
       </header>
 
@@ -60,42 +147,142 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
   );
 }
 
+function MobileSubsectionTabs<T extends string>({
+  items,
+  activeId,
+  onSelect,
+  ariaLabel,
+}: {
+  items: ReadonlyArray<{ id: T; compactTitle: string }>;
+  activeId: T;
+  onSelect: (id: T) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <nav
+      aria-label={ariaLabel}
+      className="min-w-0 overflow-x-auto rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-1.5 md:hidden"
+    >
+      <div className="flex min-w-max gap-1.5">
+        {items.map((tab) => {
+          const isActive = tab.id === activeId;
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onSelect(tab.id)}
+              aria-current={isActive ? "page" : undefined}
+              className={`min-h-10 cursor-pointer rounded-lg border px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors ${
+                isActive
+                  ? "border-[var(--accent3)] bg-[var(--card-hover-bg)] text-[var(--text-primary)]"
+                  : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--card-hover-bg)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {tab.compactTitle}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
 function ModulesWorkspace() {
-  const { handleAddSegment, handleRemoveSegment } = useDashboard();
+  const { handleAddSegment, handleRemoveSegment, targetPlaceholderId, clearTargetPlaceholder } =
+    useDashboard();
+
   const segments = useIoTStore((state) => state.segments);
   const animationsEnabled = useIoTStore((state) => state.animationsEnabled);
+  const setActiveWorkspaceView = useIoTStore((state) => state.setActiveWorkspaceView);
+  const activeModulesTab = useIoTStore((state) => state.activeModulesTab);
+  const setActiveModulesTab = useIoTStore((state) => state.setActiveModulesTab);
+
+  const targetPlaceholder = targetPlaceholderId
+    ? segments.find((seg) => seg.id === targetPlaceholderId)
+    : undefined;
 
   return (
-    <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <AddSegmentForm
-        onAddSegment={handleAddSegment}
-        onClose={() => {}}
-        segments={segments}
-        animationsEnabled={animationsEnabled}
+    <div className="space-y-4">
+      <MobileSubsectionTabs
+        items={MODULES_TABS}
+        activeId={activeModulesTab}
+        onSelect={setActiveModulesTab}
+        ariaLabel="زیربخش‌های پالایه و ماژول‌ها"
       />
-      <div className="min-w-0 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] p-4 sm:p-5">
-        <SegmentList segments={segments} onRemoveSegment={handleRemoveSegment} />
-      </div>
+
+      {targetPlaceholder && (
+        <Alert
+          variant="info"
+          className="!flex !flex-wrap !items-center !justify-between !gap-3 !border-[var(--accent3-medium)] !bg-[var(--accent3-transparent)] text-sm text-[var(--text-primary)]"
+        >
+          <span>
+            در حال تخصیص قطعه به جایگاه خالی در گروه{" "}
+            <strong className="font-bold">«{targetPlaceholder.group || "Test"}»</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              clearTargetPlaceholder();
+              setActiveWorkspaceView("home");
+            }}
+            className="cursor-pointer rounded-md border border-[var(--border-color)] bg-[var(--card-bg)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+          >
+            انصراف و بازگشت
+          </button>
+        </Alert>
+      )}
+
+      {activeModulesTab === "add" ? (
+        <div className="min-w-0">
+          <AddSegmentForm
+            onAddSegment={handleAddSegment}
+            onClose={() => {
+              if (targetPlaceholderId) {
+                setActiveWorkspaceView("home");
+              }
+            }}
+            segments={segments}
+            animationsEnabled={animationsEnabled}
+          />
+        </div>
+      ) : (
+        <div className="min-w-0 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] p-4 sm:p-5">
+          <SegmentList segments={segments} onRemoveSegment={handleRemoveSegment} />
+        </div>
+      )}
     </div>
   );
 }
 
 function AutomationsWorkspace() {
+  const activeAutomationsTab = useIoTStore((state) => state.activeAutomationsTab);
+  const setActiveAutomationsTab = useIoTStore((state) => state.setActiveAutomationsTab);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      <MobileSubsectionTabs
+        items={AUTOMATIONS_TABS}
+        activeId={activeAutomationsTab}
+        onSelect={setActiveAutomationsTab}
+        ariaLabel="زیربخش‌های اتوماسیون‌ها"
+      />
+
       <Alert
         variant="info"
         className="!flex !items-start !gap-3 !border-[var(--border-color)] !bg-[var(--card-bg)] text-sm leading-6 text-[var(--text-secondary)]"
       >
         <Clock3 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-        <p>اتوماسیون‌ها را در همین فضای کاری بسازید، ویرایش کنید و فعال یا غیرفعال کنید.</p>
+        <p>
+          {activeAutomationsTab === "create"
+            ? "زمان‌بندی، تایمر یا شرط دمایی جدید را تنظیم و ذخیره کنید."
+            : "اتوماسیون‌های ثبت‌شده را مشاهده، ویرایش و فعال یا غیرفعال کنید."}
+        </p>
       </Alert>
+
       <AutomationProvider>
-        <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-          <AutomationForm />
-          <div className="min-w-0">
-            <AutomationList />
-          </div>
+        <div className="min-w-0">
+          {activeAutomationsTab === "create" ? <AutomationForm /> : <AutomationList />}
         </div>
       </AutomationProvider>
     </div>
@@ -112,6 +299,8 @@ function ActiveSettingsPanel({ activeTab }: { activeTab: string }) {
   const isDark = useIoTStore((state) => state.isDark);
 
   switch (resolveSettingsTabId(activeTab)) {
+    case "colors":
+      return <ColorsSection />;
     case "mqtt":
       return <MqttSection />;
     case "wifi":
@@ -132,7 +321,6 @@ function ActiveSettingsPanel({ activeTab }: { activeTab: string }) {
           isDark={isDark}
         />
       );
-    case "layout":
     default:
       return <LayoutSection headerTitle={headerTitle} setHeaderTitle={setHeaderTitle} />;
   }
@@ -146,37 +334,17 @@ function SettingsWorkspace() {
   const activeSettings = SETTINGS_TABS.find((tab) => tab.id === activeTab) ?? SETTINGS_TABS[0];
 
   return (
-    <div className="grid min-w-0 grid-cols-1 items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
-      <nav
-        aria-label="دسته‌بندی تنظیمات"
-        className="min-w-0 overflow-x-auto rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-2 lg:sticky lg:top-6 lg:overflow-visible"
-      >
-        <div className="flex min-w-max gap-2 lg:min-w-0 lg:flex-col">
-          {SETTINGS_TABS.map((tab) => {
-            const isActive = tab.id === activeTab;
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                aria-current={isActive ? "page" : undefined}
-                className={`flex min-h-11 min-w-[150px] items-center gap-3 rounded-md border px-3 py-2.5 text-right transition-[background-color,border-color,color,scale] duration-150 ease-out active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] lg:w-full lg:min-w-0 ${
-                  isActive
-                    ? "border-[var(--accent3)] bg-[var(--card-hover-bg)] text-[var(--text-primary)]"
-                    : "border-transparent text-[var(--text-secondary)] hover:border-[var(--border-color)] hover:bg-[var(--card-hover-bg)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                <span className="text-sm font-medium leading-5">{tab.compactTitle}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+    <div className="space-y-4">
+      <MobileSubsectionTabs
+        items={SETTINGS_TABS}
+        activeId={activeTab}
+        onSelect={setActiveTab}
+        ariaLabel="دسته‌بندی تنظیمات"
+      />
 
       <section
         aria-labelledby="active-settings-heading"
-        className="min-w-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)]"
+        className="min-w-0 overflow-visible rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)]"
       >
         <header className="border-b border-[var(--border-color)] px-4 py-4 sm:px-6">
           <h2

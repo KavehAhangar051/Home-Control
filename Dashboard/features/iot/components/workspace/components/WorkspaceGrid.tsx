@@ -1,14 +1,14 @@
+import { rectSortingStrategy, SortableContext } from "@dnd-kit/sortable";
 import React from "react";
-import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import SortableGroup from "../../SortableGroup";
-import SortableSegmentCard from "../../SortableSegmentCard";
-import type { IoTWorkspaceProps } from "../core/types";
-import { useWorkspaceGrid } from "../hooks/useWorkspaceGrid";
-import { getEffectiveGroupsCols } from "../core/gridUtils";
 import { useShallow } from "zustand/react/shallow";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import SortableGroup from "../../SortableGroup";
+import SortableSegmentCard from "../../SortableSegmentCard";
+import { getEffectiveGroupsCols } from "../core/gridUtils";
+import type { IoTWorkspaceProps } from "../core/types";
+import { useWorkspaceGrid } from "../hooks/useWorkspaceGrid";
 
-const GROUP_STYLE_LUT: Record<number, React.CSSProperties> = {
+const GROUP_STYLE_LUT = {
   1: { flexBasis: "100%" },
   2: { flexBasis: "calc(50% - 1rem - 0.1px)" },
   3: { flexBasis: "calc(33.3333% - 1.3333rem - 0.1px)" },
@@ -21,7 +21,9 @@ const ConnectedSegmentCard = React.memo((props: any) => {
       [props.segmentId],
     ),
   );
+
   if (!segment) return null;
+
   return <SortableSegmentCard segment={segment} {...props} />;
 });
 
@@ -44,12 +46,15 @@ const ConnectedGroup = React.memo((props: any) => {
     useShallow((state) => {
       const ids: string[] = [];
       const len = state.segments.length;
+
       for (let i = 0; i < len; i++) {
         const seg = state.segments[i];
+
         if ((seg.group || "Test") === groupName) {
           ids.push(seg.id);
         }
       }
+
       return ids;
     }),
   );
@@ -63,7 +68,9 @@ const ConnectedGroup = React.memo((props: any) => {
   const style =
     isMobilePortrait || groupsCols === 1
       ? GROUP_STYLE_LUT[1]
-      : GROUP_STYLE_LUT[groupsCols] || GROUP_STYLE_LUT[3];
+      : groupsCols === 2
+        ? GROUP_STYLE_LUT[2]
+        : GROUP_STYLE_LUT[3];
 
   const baseClasses = "flex-grow flex-shrink-0 min-w-0 max-w-full";
 

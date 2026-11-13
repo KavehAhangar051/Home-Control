@@ -37,16 +37,20 @@ export function Scrollspy({
       if (!sectionId) return;
       anchorElementsRef.current?.forEach((item) => {
         const id = item.getAttribute(`data-${dataAttribute}-anchor`);
+
         if (id === sectionId) {
           item.setAttribute("data-active", "true");
         } else {
           item.removeAttribute("data-active");
         }
       });
+
       if (onUpdate) onUpdate(sectionId);
+
       if (history && (force || prevIdTracker.current !== sectionId)) {
         window.history.replaceState({}, "", `#${sectionId}`);
       }
+
       prevIdTracker.current = sectionId;
     },
     [anchorElementsRef, dataAttribute, history, onUpdate],
@@ -55,15 +59,18 @@ export function Scrollspy({
   const handleScroll = useCallback(() => {
     if (!anchorElementsRef.current || anchorElementsRef.current.length === 0) return;
 
-    let scrollElement =
+    let scrollElement: HTMLElement | null =
       targetRef?.current === document
         ? document.documentElement
-        : (targetRef?.current as HTMLElement);
+        : targetRef?.current instanceof HTMLElement
+          ? targetRef.current
+          : null;
 
     if (!scrollElement) return;
 
     // If the scrollElement has a data-slot="scroll-area-viewport" inside, use that
     const viewport = scrollElement.querySelector('[data-slot="scroll-area-viewport"]');
+
     if (viewport instanceof HTMLElement) {
       scrollElement = viewport;
     }
@@ -80,10 +87,12 @@ export function Scrollspy({
     anchorElementsRef.current.forEach((anchor, idx) => {
       const sectionId = anchor.getAttribute(`data-${dataAttribute}-anchor`);
       const sectionElement = document.getElementById(sectionId!);
+
       if (!sectionElement) return;
 
       let customOffset = offset;
       const dataOffset = anchor.getAttribute(`data-${dataAttribute}-offset`);
+
       if (dataOffset) customOffset = parseInt(dataOffset, 10);
 
       const delta = Math.abs(sectionElement.offsetTop - customOffset - scrollTop);
@@ -95,8 +104,8 @@ export function Scrollspy({
     });
 
     // If at bottom, force last anchor
-    const scrollHeight = (scrollElement as HTMLElement).scrollHeight;
-    const clientHeight = (scrollElement as HTMLElement).clientHeight;
+    const scrollHeight = scrollElement.scrollHeight;
+    const clientHeight = scrollElement.clientHeight;
 
     if (scrollTop + clientHeight >= scrollHeight - 2) {
       activeIdx = anchorElementsRef.current.length - 1;
@@ -112,17 +121,25 @@ export function Scrollspy({
   const scrollTo = useCallback(
     (anchorElement: HTMLElement) => (event?: Event) => {
       if (event) event.preventDefault();
+
       const sectionId =
         anchorElement.getAttribute(`data-${dataAttribute}-anchor`)?.replace("#", "") || null;
+
       if (!sectionId) return;
       const sectionElement = document.getElementById(sectionId);
+
       if (!sectionElement) return;
 
       let scrollToElement: HTMLElement | Window | null =
-        targetRef?.current === document ? window : (targetRef?.current as HTMLElement);
+        targetRef?.current === document
+          ? window
+          : targetRef?.current instanceof HTMLElement
+            ? targetRef.current
+            : null;
 
       if (scrollToElement instanceof HTMLElement) {
         const viewport = scrollToElement.querySelector('[data-slot="scroll-area-viewport"]');
+
         if (viewport instanceof HTMLElement) {
           scrollToElement = viewport;
         }
@@ -130,6 +147,7 @@ export function Scrollspy({
 
       let customOffset = offset;
       const dataOffset = anchorElement.getAttribute(`data-${dataAttribute}-offset`);
+
       if (dataOffset) {
         customOffset = parseInt(dataOffset, 10);
       }
@@ -143,6 +161,7 @@ export function Scrollspy({
           behavior: smooth ? "smooth" : "auto",
         });
       }
+
       setActiveSection(sectionId, true);
     },
     [dataAttribute, offset, smooth, targetRef, setActiveSection],
@@ -153,40 +172,64 @@ export function Scrollspy({
     const hash = CSS.escape(window.location.hash.replace("#", ""));
 
     if (hash) {
-      const targetElement = document.querySelector(
-        `[data-${dataAttribute}-anchor="${hash}"]`,
-      ) as HTMLElement;
-      if (targetElement) {
+      const targetElement = document.querySelector(`[data-${dataAttribute}-anchor="${hash}"]`);
+
+      if (targetElement instanceof HTMLElement) {
         scrollTo(targetElement)();
       }
     }
   }, [dataAttribute, scrollTo]);
 
+  const handleScrollRef = useRef(handleScroll);
+  const scrollToHashSectionRef = useRef(scrollToHashSection);
+  const scrollToRef = useRef(scrollTo);
+
   useEffect(() => {
+    handleScrollRef.current = handleScroll;
+    scrollToHashSectionRef.current = scrollToHashSection;
+    scrollToRef.current = scrollTo;
+  }, [handleScroll, scrollToHashSection, scrollTo]);
+
+  useEffect(() => {
+    const rootElement = selfRef.current;
+
     // Query elements and store them in the ref, avoiding unnecessary re-renders
-    if (selfRef.current) {
+    if (rootElement) {
       anchorElementsRef.current = Array.from(
-        selfRef.current.querySelectorAll(`[data-${dataAttribute}-anchor]`),
+        rootElement.querySelectorAll(`[data-${dataAttribute}-anchor]`),
       );
     }
 
-    const currentAnchors = anchorElementsRef.current;
-    const anchorListeners = currentAnchors?.map((item) => {
-      const listener = scrollTo(item as HTMLElement);
-      item.addEventListener("click", listener);
-      return { item, listener };
-    });
+    const handleRootClick = (event: Event) => {
+      if (!(event.target instanceof Element)) return;
+
+      const anchor = event.target.closest(`[data-${dataAttribute}-anchor]`);
+
+      if (anchor instanceof HTMLElement) {
+        scrollToRef.current(anchor)(event);
+      }
+    };
+
+    rootElement?.addEventListener("click", handleRootClick);
 
     const onScroll = (event: Event) => {
-      const scrollElement =
-        targetRef?.current === document ? window : (targetRef?.current as HTMLElement);
+      const scrollElement: HTMLElement | Window | null =
+        targetRef?.current === document
+          ? window
+          : targetRef?.current instanceof HTMLElement
+            ? targetRef.current
+            : null;
+
       if (!scrollElement) return;
+
+      const target = event.target;
+      const isTargetNode = target instanceof Node;
 
       if (
         scrollElement === window ||
-        (scrollElement instanceof HTMLElement && scrollElement.contains(event.target as Node))
+        (scrollElement instanceof HTMLElement && isTargetNode && scrollElement.contains(target))
       ) {
-        handleScroll();
+        handleScrollRef.current();
       }
     };
 
@@ -195,18 +238,16 @@ export function Scrollspy({
 
     // Check if there's a hash in the URL and scroll to the corresponding section
     const initialTimeout = setTimeout(() => {
-      scrollToHashSection();
-      handleScroll();
+      scrollToHashSectionRef.current();
+      handleScrollRef.current();
     }, 100);
 
     return () => {
       window.removeEventListener("scroll", onScroll, true);
-      anchorListeners?.forEach(({ item, listener }) => {
-        item.removeEventListener("click", listener);
-      });
+      rootElement?.removeEventListener("click", handleRootClick);
       clearTimeout(initialTimeout);
     };
-  }, [targetRef, selfRef, handleScroll, dataAttribute, scrollTo, scrollToHashSection]);
+  }, [targetRef, dataAttribute]);
 
   return (
     <div data-slot="scrollspy" className={className} ref={selfRef}>

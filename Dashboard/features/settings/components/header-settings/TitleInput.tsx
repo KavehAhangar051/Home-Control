@@ -7,7 +7,7 @@ export default function TitleInput({ headerTitle, setHeaderTitle }: TitleInputPr
   const handleResetTitle = () => setHeaderTitle("سامانه هوشمند پادشاهی بومی");
 
   return (
-    <div className="border-t border-[var(--border-color)] pt-3 space-y-2">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
         <button
           type="button"
@@ -29,7 +29,7 @@ export default function TitleInput({ headerTitle, setHeaderTitle }: TitleInputPr
         value={headerTitle}
         onChange={(e) => setHeaderTitle(e.target.value)}
         maxLength={50}
-        className="w-full px-3 py-2.5 text-[11px] text-right bg-black/20 border border-[var(--border-color)] theme-text-primary rounded-xl focus:outline-none focus:border-[var(--accent4)] transition-colors"
+        className="w-full px-3 py-2.5 text-[11px] text-right bg-[var(--bg-main)] border border-[var(--border-color)] theme-text-primary rounded-xl focus:outline-none focus:border-[var(--accent4)] transition-colors"
         placeholder="مثال: داشبورد هوشمند کاربری"
       />
     </div>

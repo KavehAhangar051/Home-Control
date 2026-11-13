@@ -1,10 +1,20 @@
-import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   experimental: {
     reactCompiler: true,
+    optimizePackageImports: [
+      "lucide-react",
+      "@hugeicons/react",
+      "@hugeicons/core-free-icons",
+      "@base-ui/react",
+      "motion",
+      "@dnd-kit/core",
+      "@dnd-kit/sortable",
+      "zustand",
+    ],
   },
   eslint: {
     ignoreDuringBuilds: true,
@@ -37,13 +47,6 @@ const nextConfig: NextConfig = {
     ],
   },
   output: process.env.DISABLE_HMR === "true" ? undefined : "export",
-  ...(process.env.GITHUB_PAGES === "true"
-    ? {
-        basePath: "/Home-Control-Dashboard",
-        assetPrefix: "/Home-Control-Dashboard/",
-        trailingSlash: true,
-      }
-    : {}),
   transpilePackages: ["motion"],
   webpack: (config, { dev, isServer }) => {
     // HMR is disabled in AI Studio via DISABLE_HMR env var.
@@ -53,6 +56,7 @@ const nextConfig: NextConfig = {
         ignored: /.*/,
       };
     }
+
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -60,9 +64,16 @@ const nextConfig: NextConfig = {
         path: false,
       };
     }
+
     return config;
   },
 };
+
+if (process.env.GITHUB_PAGES === "true") {
+  nextConfig.basePath = "/Home-Control-Dashboard";
+  nextConfig.assetPrefix = "/Home-Control-Dashboard/";
+  nextConfig.trailingSlash = true;
+}
 
 const withAnalyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",

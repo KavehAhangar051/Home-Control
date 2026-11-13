@@ -1,12 +1,12 @@
 import { AmbientManager } from "./AmbientManager";
-import type { Track } from "./types";
 import {
   playClickSynth,
-  playToggleOnSynth,
-  playToggleOffSynth,
-  playSuccessSynth,
   playErrorSynth,
+  playSuccessSynth,
+  playToggleOffSynth,
+  playToggleOnSynth,
 } from "./effects";
+import type { Track } from "./types";
 
 export class SoundManager {
   private enabled = true;
@@ -43,6 +43,7 @@ export class SoundManager {
 
   public setEnabled(val: boolean) {
     this.enabled = val;
+
     if (!val && this.isAmbientPlaying) this.ambientManager.stop();
   }
 
@@ -52,6 +53,7 @@ export class SoundManager {
     } else {
       await this.startAmbient();
     }
+
     return this.isAmbientPlaying;
   }
 

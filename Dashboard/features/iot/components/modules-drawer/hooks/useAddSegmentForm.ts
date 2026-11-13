@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
-import { Segment } from "../core/types";
+import type { Segment } from "../core/types";
 
 export function useAddSegmentForm(segments: Segment[], onAddSegment: any, onClose: () => void) {
   const showToast = useIoTStore((s) => s.showToast);
@@ -21,14 +21,18 @@ export function useAddSegmentForm(segments: Segment[], onAddSegment: any, onClos
     setErrorText("");
 
     const finalPin = targetPin.trim();
+
     if (!finalPin) {
       setErrorText("لطفاً شماره پایه را مشخص کنید.");
+
       return;
     }
 
     const validation = validateEsp32Pin(finalPin, selectedType);
+
     if (!validation.isValid) {
       showToast(validation.message, "error");
+
       return;
     }
 
@@ -38,6 +42,7 @@ export function useAddSegmentForm(segments: Segment[], onAddSegment: any, onClos
 
     if (segments.some((s) => s.type === selectedType && s.pin === finalPin)) {
       setErrorText(`ماژولی برای پایه GPIO ${finalPin} قبلاً اضافه شده است.`);
+
       return;
     }
 

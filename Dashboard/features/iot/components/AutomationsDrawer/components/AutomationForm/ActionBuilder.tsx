@@ -1,8 +1,8 @@
-import React from "react";
 import { Button } from "@/components/ui/button";
-import { X, Play, Square, Layers, Plus } from "@/components/ui/hugeicons";
-import { useAutomationActions } from "../../hooks/useAutomationActions";
 import { Card } from "@/components/ui/card";
+import { DeleteButton } from "@/components/ui/delete-button";
+import { Layers, Play, Plus, Square } from "@/components/ui/hugeicons";
+import { useAutomationActions } from "../../hooks/useAutomationActions";
 
 interface ActionBuilderProps {
   actions: any[];
@@ -26,15 +26,13 @@ export default function ActionBuilder({ actions, setActions }: ActionBuilderProp
           key={act.targetPin ?? act.targetMacro}
           className="!relative !gap-2 !rounded-xl !border-[var(--border-color)] !bg-[var(--card-bg)] !p-3 group"
         >
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => removeAction(index)}
-            aria-label={`حذف عملیات ${index + 1}`}
-            className="absolute -top-2 -left-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-rose-600 text-white opacity-100 shadow-md transition-opacity hover:bg-rose-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 sm:opacity-0 sm:group-hover:opacity-100"
-          >
-            <X className="w-3 h-3" />
-          </Button>
+          <DeleteButton
+            size="xs"
+            resetAfter={0}
+            onConfirm={() => removeAction(index)}
+            label={`حذف عملیات ${index + 1}`}
+            className="absolute -top-3 -left-2 z-10"
+          />
 
           {act.targetPin !== undefined ? (
             <>
@@ -43,6 +41,7 @@ export default function ActionBuilder({ actions, setActions }: ActionBuilderProp
                   پایه
                 </span>
                 <select
+                  aria-label={`انتخاب پایه برای عملیات ${index + 1}`}
                   value={act.targetPin}
                   onChange={(e) => updateAction(index, { targetPin: e.target.value })}
                   className="min-w-0 flex-1 bg-[var(--card-bg-solid)] border border-[var(--border-color)] p-2 rounded-lg focus:outline-none focus:border-[var(--accent3)] focus:ring-2 focus:ring-[var(--accent3)]/20 text-xs transition-colors text-[var(--text-primary)]"
@@ -83,6 +82,7 @@ export default function ActionBuilder({ actions, setActions }: ActionBuilderProp
                 ماکرو
               </span>
               <select
+                aria-label={`انتخاب ماکرو برای عملیات ${index + 1}`}
                 value={act.targetMacro}
                 onChange={(e) => updateAction(index, { targetMacro: e.target.value })}
                 className="min-w-0 flex-1 bg-[var(--card-bg-solid)] border border-[var(--border-color)] p-2 rounded-lg focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 text-xs transition-colors text-[var(--text-primary)]"

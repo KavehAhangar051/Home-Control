@@ -1,3 +1,4 @@
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { soundManager } from "@/lib/audio";
 
 interface Props {
@@ -11,22 +12,30 @@ export function MqttQosSelector({ qos, setQos }: Props) {
       <legend className="text-xs font-bold text-[var(--text-primary)] px-1">
         کیفیت سرویس (QoS)
       </legend>
-      <div className="grid grid-cols-3 gap-2">
+      <ToggleGroup
+        variant="outline"
+        spacing={2}
+        value={[String(qos)]}
+        onValueChange={(vals) => {
+          const num = Number(vals[0]);
+
+          if (num === 0 || num === 1 || num === 2) {
+            soundManager.playClick();
+            setQos(num);
+          }
+        }}
+        className="grid w-full grid-cols-3"
+      >
         {([0, 1, 2] as const).map((q) => (
-          <button
+          <ToggleGroupItem
             key={q}
-            type="button"
-            aria-pressed={qos === q}
-            onClick={() => {
-              soundManager.playClick();
-              setQos(q);
-            }}
-            className={`py-2 px-3 rounded-xl border text-xs font-mono transition-all duration-300 ${qos === q ? "bg-[var(--accent3-transparent)] border-[var(--accent3)] text-[var(--accent3)]" : "bg-[var(--card-bg-solid)] border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--card-hover-bg)] hover:border-[var(--accent4)]"}`}
+            value={String(q)}
+            className="h-9 w-full rounded-xl text-xs font-mono aria-pressed:bg-[var(--accent3-transparent)] aria-pressed:border-[var(--accent3)] aria-pressed:text-[var(--accent3)]"
           >
             QoS {q}
-          </button>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
       <p className="text-[9px] text-[var(--text-muted)] pt-1 px-1">
         {qos === 0 && "ارسال حداکثر یکبار. بدون تضمین تحویل."}
         {qos === 1 && "ارسال حداقل یکبار. تضمین تحویل با احتمال تکرار."}

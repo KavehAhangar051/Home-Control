@@ -1,99 +1,188 @@
+import { type DashboardFontId, getDashboardFontFamilyCss } from "@/lib/fonts";
+
 interface ThemeStylesParams {
   accent3: string;
   accent4: string;
   isDark: boolean;
+  darkBlackness?: number;
+  lightWhiteness?: number;
+  selectedFont?: DashboardFontId;
 }
 
-export function getThemeStyles({ accent3, accent4, isDark }: ThemeStylesParams): string {
-  const selectedFontFamily = "var(--font-vazirmatn)";
+function computeDarkPalette(blackness = 70) {
+  const clamped = Math.max(0, Math.min(100, blackness));
+  const t = (100 - clamped) / 100;
+  const bgVal = Math.round(t * 24);
+  const cardVal = Math.round(bgVal + 3);
+  const hoverVal = Math.round(bgVal + 15);
+  const borderVal = Math.round(bgVal + 28);
 
-  const defaultBg = isDark ? "#09090b" : "#ffffff";
-  const defaultBgGradFrom = isDark ? "#09090b" : "#fafafa";
-  const defaultBgGradVia = isDark ? "#09090b" : "#ffffff";
-  const defaultBgGradTo = isDark ? "#09090b" : "#ffffff";
+  const hex = (n: number) => Math.min(255, Math.max(0, n)).toString(16).padStart(2, "0");
+  const bgHex = `#${hex(bgVal)}${hex(bgVal)}${hex(bgVal + 2)}`;
+  const cardSolidHex = `#${hex(cardVal)}${hex(cardVal)}${hex(cardVal + 2)}`;
+  const hoverHex = `#${hex(hoverVal)}${hex(hoverVal)}${hex(hoverVal + 3)}`;
+  const borderHex = `#${hex(borderVal)}${hex(borderVal)}${hex(borderVal + 3)}`;
 
-  const finalBgMain = defaultBg;
-  const finalBgGradFrom = defaultBgGradFrom;
-  const finalBgGradVia = defaultBgGradVia;
-  const finalBgGradTo = defaultBgGradTo;
+  return {
+    bg: bgHex,
+    card: `rgba(${cardVal}, ${cardVal}, ${cardVal + 2}, 0.92)`,
+    cardSolid: cardSolidHex,
+    cardHover: hoverHex,
+    border: borderHex,
+  };
+}
+
+function computeLightPalette(whiteness = 70) {
+  const clamped = Math.max(0, Math.min(100, whiteness));
+  const t = clamped / 100;
+  // Neutral cool-gray scale (inspired by zinc-50 -> zinc-200):
+  // At whiteness 100% -> #ffffff (pure white)
+  // At whiteness 70% -> #fafafa (default crisp clean light)
+  // At whiteness 0% -> #e2e4e8 (neutral cool gray, completely free of warm/pink/peach tones)
+  const r = Math.round(226 + t * 29);
+  const g = Math.round(228 + t * 27);
+  const b = Math.round(232 + t * 23);
+
+  const cardVal = Math.min(255, Math.round(248 + t * 7));
+  const hoverR = Math.max(215, r - 6);
+  const hoverG = Math.max(217, g - 6);
+  const hoverB = Math.max(221, b - 6);
+
+  const borderR = Math.max(198, r - 22);
+  const borderG = Math.max(200, g - 22);
+  const borderB = Math.max(204, b - 22);
+
+  const hex = (n: number) => Math.min(255, Math.max(0, n)).toString(16).padStart(2, "0");
+  const bgHex = `#${hex(r)}${hex(g)}${hex(b)}`;
+  const cardHex = `#${hex(cardVal)}${hex(cardVal)}${hex(cardVal)}`;
+  const hoverHex = `#${hex(hoverR)}${hex(hoverG)}${hex(hoverB)}`;
+  const borderHex = `#${hex(borderR)}${hex(borderG)}${hex(borderB)}`;
+
+  return {
+    bg: bgHex,
+    card: cardHex,
+    cardSolid: cardHex,
+    cardHover: hoverHex,
+    border: borderHex,
+  };
+}
+
+function toSixDigitHex(color: string, fallback: string): string {
+  const trimmed = color.trim();
+  const sixOrEight = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(trimmed);
+
+  if (sixOrEight) return `#${sixOrEight[1]}`;
+
+  const threeOrFour = /^#([0-9a-f]{3})([0-9a-f])?$/i.exec(trimmed);
+
+  if (threeOrFour) {
+    const [r, g, b] = threeOrFour[1].split("");
+
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+
+  return fallback;
+}
+
+export function getThemeStyles({
+  accent3,
+  accent4,
+  isDark,
+  darkBlackness = 70,
+  lightWhiteness = 70,
+  selectedFont,
+}: ThemeStylesParams): string {
+  const selectedFontFamily = getDashboardFontFamilyCss(selectedFont);
+
+  const palette = isDark ? computeDarkPalette(darkBlackness) : computeLightPalette(lightWhiteness);
+
+  const isDefaultAccent3 = accent3.toUpperCase() === "#E5E7EB";
+  const resolvedAccent3 = !isDark && isDefaultAccent3 ? "#171717" : accent3;
+  const opaqueAccent3 = toSixDigitHex(resolvedAccent3, isDark ? "#e5e7eb" : "#171717");
+  const opaqueAccent4 = toSixDigitHex(accent4, "#3b82f6");
+  const resolvedAccent3Dark = isDark ? "#d4d4d8" : "#262626";
+  const resolvedAccent3Foreground = isDark ? "#09090b" : "#ffffff";
 
   return `
     :root {
       /* Selected Font Custom Configuration */
-      --font-vazir: 'Vazirmatn', sans-serif;
+      --font-vazir: var(--font-dana), sans-serif;
       
       --selected-font: ${selectedFontFamily};
       
-      --accent3: ${accent3};
+      --accent3: ${resolvedAccent3};
+      --accent3-dark: ${resolvedAccent3Dark};
+      --accent3-foreground: ${resolvedAccent3Foreground};
       --accent4: ${accent4};
-      --accent3-transparent: ${accent3}18;
-      --accent4-transparent: ${accent4}18;
-      --accent3-medium: ${accent3}44;
-      --accent4-medium: ${accent4}44;
-      --accent3-heavy: ${accent3}99;
-      --accent4-heavy: ${accent4}99;
+      --accent3-transparent: ${isDark || !isDefaultAccent3 ? `${opaqueAccent3}18` : "rgba(23, 23, 23, 0.07)"};
+      --accent4-transparent: ${opaqueAccent4}18;
+      --accent3-medium: ${isDark || !isDefaultAccent3 ? `${opaqueAccent3}44` : "rgba(23, 23, 23, 0.22)"};
+      --accent4-medium: ${opaqueAccent4}44;
+      --accent3-heavy: ${isDark || !isDefaultAccent3 ? `${opaqueAccent3}99` : "rgba(23, 23, 23, 0.6)"};
+      --accent4-heavy: ${opaqueAccent4}99;
 
       /* Dynamic Theme Solvers */
-      --bg-main: ${finalBgMain};
-      --bg-gradient-from: ${finalBgGradFrom};
-      --bg-gradient-via: ${finalBgGradVia};
-      --bg-gradient-to: ${finalBgGradTo};
-      --card-bg: ${isDark ? "rgba(9, 9, 11, 0.92)" : "rgba(255, 255, 255, 0.92)"};
-      --card-bg-solid: ${isDark ? "#09090b" : "#ffffff"};
-      --card-hover-bg: ${isDark ? "#18181b" : "#f4f4f5"};
-      --text-primary: ${isDark ? "#fafafa" : "#18181b"};
-      --text-secondary: ${isDark ? "#e4e4e7" : "#27272a"};
-      --text-tertiary: ${isDark ? "#a1a1aa" : "#52525b"};
-      --text-muted: ${isDark ? "#a1a1aa" : "#71717a"};
-      --border-color: ${isDark ? "#27272a" : "#e4e4e7"};
-      --drawer-gradient-from: ${isDark ? "#09090b" : "#ffffff"};
-      --drawer-gradient-to: ${isDark ? "#09090b" : "#fafafa"};
+      --bg-main: ${palette.bg};
+      --bg-primary: ${palette.bg};
+      --bg-gradient-from: ${palette.bg};
+      --bg-gradient-via: ${palette.bg};
+      --bg-gradient-to: ${palette.bg};
+      --card-bg: ${palette.card};
+      --card-bg-solid: ${palette.cardSolid};
+      --card-hover-bg: ${palette.cardHover};
+      --text-primary: ${isDark ? "#fafafa" : "#171717"};
+      --text-secondary: ${isDark ? "#e4e4e7" : "#262626"};
+      --text-tertiary: ${isDark ? "#a1a1aa" : "#525252"};
+      --text-muted: ${isDark ? "#a1a1aa" : "#737373"};
+      --border-color: ${palette.border};
+      --drawer-gradient-from: ${palette.bg};
+      --drawer-gradient-to: ${palette.bg};
 
-      /* ReUI-inspired sidebar surfaces: neutral zinc scale, restrained borders. */
-      --sidebar-bg: ${isDark ? "#09090b" : "#ffffff"};
-      --sidebar-border: ${isDark ? "#27272a" : "#e4e4e7"};
-      --sidebar-text: ${isDark ? "#fafafa" : "#18181b"};
-      --sidebar-muted: ${isDark ? "#a1a1aa" : "#52525b"};
-      --sidebar-hover: ${isDark ? "#27272a" : "#f4f4f5"};
-      --sidebar-active: ${isDark ? "#3f3f46" : "#e4e4e7"};
-      --sidebar-control-bg: ${isDark ? "#18181b" : "#fafafa"};
-      --sidebar: ${isDark ? "#09090b" : "#ffffff"};
-      --sidebar-foreground: ${isDark ? "#fafafa" : "#18181b"};
-      --sidebar-primary: ${isDark ? "#fafafa" : "#18181b"};
-      --sidebar-primary-foreground: ${isDark ? "#18181b" : "#fafafa"};
-      --sidebar-accent: ${isDark ? "#27272a" : "#f4f4f5"};
-      --sidebar-accent-foreground: ${isDark ? "#fafafa" : "#18181b"};
-      --sidebar-ring: ${isDark ? "#a1a1aa" : "#71717a"};
+      /* ReUI-inspired sidebar surfaces: pure neutral scale, restrained borders. */
+      --sidebar-bg: ${palette.cardSolid};
+      --sidebar-border: ${palette.border};
+      --sidebar-text: ${isDark ? "#fafafa" : "#171717"};
+      --sidebar-muted: ${isDark ? "#a1a1aa" : "#525252"};
+      --sidebar-hover: ${palette.cardHover};
+      --sidebar-active: ${isDark ? "#3f3f46" : "#e5e5e5"};
+      --sidebar-control-bg: ${palette.bg};
+      --sidebar: ${palette.cardSolid};
+      --sidebar-foreground: ${isDark ? "#fafafa" : "#171717"};
+      --sidebar-primary: ${isDark ? "#fafafa" : "#171717"};
+      --sidebar-primary-foreground: ${palette.bg};
+      --sidebar-accent: ${palette.cardHover};
+      --sidebar-accent-foreground: ${isDark ? "#fafafa" : "#171717"};
+      --sidebar-ring: ${isDark ? "#a1a1aa" : "#737373"};
 
       /* ReUI / shadcn semantic tokens for components installed from the registry. */
-      --background: ${isDark ? "#09090b" : "#ffffff"};
-      --foreground: ${isDark ? "#fafafa" : "#18181b"};
-      --card: ${isDark ? "#09090b" : "#ffffff"};
-      --card-foreground: ${isDark ? "#fafafa" : "#18181b"};
-      --popover: ${isDark ? "#09090b" : "#ffffff"};
-      --popover-foreground: ${isDark ? "#fafafa" : "#18181b"};
-      --primary: ${isDark ? "#fafafa" : "#18181b"};
-      --primary-foreground: ${isDark ? "#18181b" : "#fafafa"};
-      --secondary: ${isDark ? "#27272a" : "#f4f4f5"};
-      --secondary-foreground: ${isDark ? "#fafafa" : "#27272a"};
-      --muted: ${isDark ? "#27272a" : "#f4f4f5"};
-      --muted-foreground: ${isDark ? "#a1a1aa" : "#71717a"};
-      --accent: ${isDark ? "#27272a" : "#f4f4f5"};
-      --accent-foreground: ${isDark ? "#fafafa" : "#18181b"};
+      --background: ${palette.bg};
+      --foreground: ${isDark ? "#fafafa" : "#171717"};
+      --card: ${palette.cardSolid};
+      --card-foreground: ${isDark ? "#fafafa" : "#171717"};
+      --popover: ${palette.cardSolid};
+      --popover-foreground: ${isDark ? "#fafafa" : "#171717"};
+      --primary: ${isDark ? "#fafafa" : "#171717"};
+      --primary-foreground: ${palette.bg};
+      --secondary: ${palette.cardHover};
+      --secondary-foreground: ${isDark ? "#fafafa" : "#262626"};
+      --muted: ${palette.cardHover};
+      --muted-foreground: ${isDark ? "#a1a1aa" : "#737373"};
+      --accent: ${palette.cardHover};
+      --accent-foreground: ${isDark ? "#fafafa" : "#171717"};
       --destructive: var(--color-red-600);
       --destructive-foreground: ${isDark ? "var(--color-zinc-50)" : "var(--color-white)"};
-      --border: ${isDark ? "#27272a" : "#e4e4e7"};
-      --input: ${isDark ? "#27272a" : "#e4e4e7"};
-      --ring: ${isDark ? "#a1a1aa" : "#71717a"};
+      --border: ${palette.border};
+      --input: ${palette.border};
+      --ring: ${isDark ? "#a1a1aa" : "#737373"};
       --radius: 0.5rem;
       --success: var(--color-emerald-500);
       --success-foreground: ${isDark ? "var(--color-zinc-50)" : "var(--color-emerald-950)"};
       --warning: var(--color-yellow-500);
       --warning-foreground: var(--color-yellow-950);
-      --info: var(--color-violet-500);
-      --info-foreground: ${isDark ? "var(--color-zinc-50)" : "var(--color-violet-950)"};
-      --invert: ${isDark ? "var(--color-zinc-700)" : "var(--color-zinc-900)"};
-      --invert-foreground: var(--color-zinc-50);
+      --info: var(--color-sky-500);
+      --info-foreground: ${isDark ? "var(--color-zinc-50)" : "var(--color-sky-950)"};
+      --invert: ${isDark ? "var(--color-zinc-700)" : "var(--color-neutral-900)"};
+      --invert-foreground: var(--color-neutral-50);
       --shadow-border: ${
         isDark
           ? "0 0 0 1px oklch(1 0 0 / 0.08)"
@@ -111,7 +200,7 @@ export function getThemeStyles({ accent3, accent4, isDark }: ThemeStylesParams):
       outline-offset: -1px;
     }
     
-    html, body, button, h1, h2, h3, h4, h5, h6, select, span, input, textarea, .font-sans {
+    html, body, button:not([data-font-preview]), h1:not([data-font-preview]), h2:not([data-font-preview]), h3:not([data-font-preview]), h4:not([data-font-preview]), h5:not([data-font-preview]), h6:not([data-font-preview]), select, span:not([data-font-preview]), input, textarea, .font-sans:not([data-font-preview]) {
       font-family: var(--selected-font) !important;
     }
     

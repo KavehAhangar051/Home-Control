@@ -18,6 +18,7 @@ export function useCloudflarePush(isFullyReady: boolean) {
     const currentConfig = buildEspConfig(store);
 
     const result = await saveConfigToCloudflare(currentConfig);
+
     if (result.success) {
       store.showToast(result.message, "success");
       store.resetUnsavedChanges();
@@ -33,6 +34,7 @@ export function useCloudflarePush(isFullyReady: boolean) {
     store.animationsEnabled,
     store.animationsFps,
     store.headerTitle,
+    store.selectedFont,
     store.manualSaveMode,
     store.segments,
     store.groupsOrder,
@@ -52,6 +54,7 @@ export function useCloudflarePush(isFullyReady: boolean) {
 
     if (isFirstRender.current) {
       isFirstRender.current = false;
+
       return;
     }
 
@@ -62,6 +65,7 @@ export function useCloudflarePush(isFullyReady: boolean) {
         triggerCloudflarePush();
       }
     }, 1200);
+
     return () => clearTimeout(handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -72,6 +76,7 @@ export function useCloudflarePush(isFullyReady: boolean) {
     store.animationsEnabled,
     store.animationsFps,
     store.headerTitle,
+    store.selectedFont,
     store.segments,
     store.groupsOrder,
     store.groupConfigs,

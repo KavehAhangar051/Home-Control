@@ -1,12 +1,12 @@
 "use client";
 
-import { CheckCircle, XCircle, X } from "@/components/ui/hugeicons";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useEffect } from "react";
-import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { Button } from "@/components/ui/button";
-import { soundManager } from "@/lib/audio";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, X, XCircle } from "@/components/ui/hugeicons";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { soundManager } from "@/lib/audio";
 
 /**
  * Displays ESP32 acknowledgement feedback using the shared ReUI Alert styling.
@@ -26,19 +26,19 @@ export default function ToastNotification() {
     }
 
     const timer = setTimeout(clearToast, 3500);
+
     return () => clearTimeout(timer);
   }, [toast, clearToast]);
 
   return (
     <AnimatePresence>
       {toast && (
-        <motion.div
-          initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        <m.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
           exit={{
             opacity: 0,
             y: -12,
-            filter: "blur(4px)",
             transition: { duration: 0.15, ease: "easeOut" },
           }}
           transition={{ duration: 0.2, ease: "easeOut" }}
@@ -60,11 +60,11 @@ export default function ToastNotification() {
               </AlertDescription>
             </div>
             <AnimatePresence initial={false} mode="popLayout">
-              <motion.span
+              <m.span
                 key={toast.type}
-                initial={{ opacity: 0, scale: 0.25, filter: "blur(4px)" }}
-                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                exit={{ opacity: 0, scale: 0.25, filter: "blur(4px)" }}
+                initial={{ opacity: 0, scale: 0.25 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.25 }}
                 transition={{ type: "spring", duration: 0.3, bounce: 0 }}
                 className="!col-start-1 !row-start-1 !mt-0.5 inline-flex"
               >
@@ -73,7 +73,7 @@ export default function ToastNotification() {
                 ) : (
                   <XCircle aria-hidden="true" strokeWidth={2} className="!size-5" />
                 )}
-              </motion.span>
+              </m.span>
             </AnimatePresence>
             <AlertAction className="!col-start-3 !row-start-1 !mt-0 !self-start">
               <Button
@@ -88,7 +88,7 @@ export default function ToastNotification() {
               </Button>
             </AlertAction>
           </Alert>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

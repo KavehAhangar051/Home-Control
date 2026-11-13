@@ -1,5 +1,7 @@
 "use client";
 
+import { Toggle } from "@/components/ui/toggle";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { soundManager } from "@/lib/audio";
 
 interface AnimationsToggleProps {
@@ -8,6 +10,24 @@ interface AnimationsToggleProps {
   animationsFps?: number;
   setAnimationsFps?: (val: number) => void;
   isDark?: boolean;
+}
+
+function getToggleSurfaceClass(animationsEnabled: boolean, isDark: boolean): string {
+  if (animationsEnabled) {
+    return isDark
+      ? "bg-emerald-950/20 aria-pressed:bg-emerald-950/20 data-[state=on]:bg-emerald-950/20 border-accent4/60 shadow-[0_0_12px_rgba(16,185,129,0.1)]"
+      : "bg-emerald-50 aria-pressed:bg-emerald-50 data-[state=on]:bg-emerald-50 border-emerald-300 shadow-[0_2px_4px_rgba(16,185,129,0.06)]";
+  }
+
+  return isDark
+    ? "bg-slate-950/40 border-slate-800 hover:bg-slate-950/60 hover:border-slate-700"
+    : "bg-slate-50/80 border-slate-200 hover:bg-slate-100/80 hover:border-slate-300 shadow-sm";
+}
+
+function getTitleTextClass(animationsEnabled: boolean, isDark: boolean): string {
+  if (animationsEnabled) return "text-emerald-500";
+
+  return isDark ? "text-gray-200" : "text-slate-800";
 }
 
 export default function AnimationsToggle({
@@ -20,9 +40,23 @@ export default function AnimationsToggle({
   const handleToggle = () => {
     const nextVal = !animationsEnabled;
     setAnimationsEnabled(nextVal);
+
     if (nextVal) soundManager.playToggleOn();
     else soundManager.playToggleOff();
   };
+
+  const statusLabel = animationsEnabled
+    ? "انیمیشن‌های رابط کاربری: فعال"
+    : "انیمیشن‌های رابط کاربری: غیرفعال";
+
+  const surfaceClass = getToggleSurfaceClass(animationsEnabled, isDark);
+  const titleClass = getTitleTextClass(animationsEnabled, isDark);
+
+  const trackBgClass = animationsEnabled
+    ? "bg-[var(--accent4)]"
+    : isDark
+      ? "bg-black/30 border border-slate-800/40"
+      : "bg-slate-200 border border-slate-300";
 
   return (
     <div className="space-y-4 border-b border-accent3-medium/10 pb-4">
@@ -30,18 +64,18 @@ export default function AnimationsToggle({
         اگر دستگاه شما با تاخیر یا بار پردازشی بالایی مواجه است، انیمیشن‌های سنگین یا ترنزیشن‌های
         حرکتی را متوقف کنید:
       </p>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={animationsEnabled}
-        onClick={handleToggle}
-        className={`switch-toggle w-full p-4 rounded-2xl border transition-all duration-300 flex items-center justify-between cursor-pointer text-right group ${animationsEnabled ? (isDark ? "bg-emerald-950/20 border-accent4/60 shadow-[0_0_12px_rgba(16,185,129,0.1)]" : "bg-emerald-50 border-emerald-300 shadow-[0_2px_4px_rgba(16,185,129,0.06)]") : isDark ? "bg-slate-950/40 border-slate-800 hover:border-slate-700" : "bg-slate-50/80 border-slate-200 hover:border-slate-300 shadow-sm"}`}
+      <Toggle
+        variant="outline"
+        pressed={animationsEnabled}
+        onPressedChange={handleToggle}
+        aria-label={statusLabel}
+        className={`switch-toggle w-full h-auto p-4 rounded-2xl border whitespace-normal transition-[background-color,border-color,box-shadow] duration-300 flex items-center justify-between cursor-pointer text-right group ${surfaceClass}`}
       >
         <span className="text-right space-y-0.5 max-w-[70%]">
           <span
-            className={`font-sans font-bold text-xs block transition-colors duration-200 ${animationsEnabled ? "text-emerald-500" : isDark ? "text-gray-200" : "text-slate-800"}`}
+            className={`font-sans font-bold text-xs block transition-colors duration-200 ${titleClass}`}
           >
-            {animationsEnabled ? "انیمیشن‌های رابط کاربری: فعال" : "انیمیشن‌های رابط کاربری: غیرفعال"}
+            {statusLabel}
           </span>
           <span
             className={`text-[11px] block leading-normal font-sans transition-colors duration-200 ${isDark ? "text-gray-400 group-hover:text-gray-300" : "text-slate-500 group-hover:text-slate-600"}`}
@@ -53,32 +87,39 @@ export default function AnimationsToggle({
         </span>
         <span
           aria-hidden="true"
-          className={`relative inline-flex h-6 w-11 rounded-full p-0.5 items-center transition-colors duration-200 shrink-0 select-none ${animationsEnabled ? "bg-[var(--accent4)]" : isDark ? "bg-black/30 border border-slate-800/40" : "bg-slate-200 border border-slate-300"}`}
+          className={`relative inline-flex h-6 w-11 rounded-full p-0.5 items-center transition-colors duration-200 shrink-0 select-none ${trackBgClass}`}
         >
           <span
-            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-[var(--text-primary)] shadow-md transform ${animationsEnabled ? "transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-5" : "translate-x-0"}`}
+            className={`pointer-events-none inline-block h-5 w-5 rounded-full shadow-md transform ${animationsEnabled ? "bg-white transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-5" : "bg-[var(--text-secondary)] translate-x-0"}`}
           />
         </span>
-      </button>
+      </Toggle>
       {animationsEnabled && setAnimationsFps && (
         <div className="pt-2 px-2 flex justify-between items-center">
           <span className="text-xs theme-text-secondary font-medium">نرخ نوسازی انیمیشن‌ها</span>
-          <div className="flex gap-2" dir="ltr">
+          <ToggleGroup
+            variant="outline"
+            size="sm"
+            spacing={2}
+            value={[String(animationsFps)]}
+            onValueChange={(vals) => {
+              if (vals.length > 0) {
+                setAnimationsFps(Number(vals[0]));
+                soundManager.playClick();
+              }
+            }}
+            dir="ltr"
+          >
             {[30, 60].map((fps) => (
-              <button
+              <ToggleGroupItem
                 key={fps}
-                type="button"
-                aria-pressed={animationsFps === fps}
-                onClick={() => {
-                  setAnimationsFps(fps);
-                  soundManager.playClick();
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-sans font-bold tabular-nums transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] ${animationsFps === fps ? "bg-[var(--accent4)] text-[var(--bg-main)] shadow-sm" : isDark ? "bg-black/20 text-gray-400 hover:text-gray-200 border border-slate-700/50" : "bg-gray-100 text-gray-500 hover:text-gray-700 border border-gray-200"}`}
+                value={String(fps)}
+                className="px-3 text-xs font-sans font-bold tabular-nums aria-pressed:bg-[var(--accent4)] aria-pressed:text-white aria-pressed:border-[var(--accent4)]"
               >
                 {fps} FPS
-              </button>
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
         </div>
       )}
     </div>

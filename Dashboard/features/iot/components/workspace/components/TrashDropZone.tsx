@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import { Trash2 } from "@/components/ui/hugeicons";
+import React from "react";
 import { Card } from "@/components/ui/card";
+import { Trash2 } from "@/components/ui/hugeicons";
 
 export default function TrashDropZone({ activeId }: { activeId: string | null }) {
   const { isOver, setNodeRef } = useDroppable({

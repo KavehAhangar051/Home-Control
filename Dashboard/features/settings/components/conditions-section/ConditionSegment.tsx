@@ -1,11 +1,12 @@
 import { Settings2 } from "@/components/ui/hugeicons";
-import { ConditionActionsList } from "./ConditionActionsList";
 import type { ConditionAction } from "./ConditionActionItem";
+import { ConditionActionsList } from "./ConditionActionsList";
 
 interface ConditionRule {
   highActions?: ConditionAction[];
   lowActions?: ConditionAction[];
 }
+
 interface Props {
   segment: { title: string; pin: string };
   rule: ConditionRule;
@@ -38,7 +39,7 @@ export function ConditionSegment({ segment, rule, updateLocalRule, onSave }: Pro
         <button
           type="button"
           onClick={onSave}
-          className="w-full py-3 bg-[var(--accent3)] hover:bg-[var(--accent3-dark)] text-white text-sm font-bold rounded-xl transition-colors shadow-md shadow-[var(--accent3-transparent)]"
+          className="w-full py-3 bg-[var(--accent3)] hover:bg-[var(--accent3-dark)] text-[var(--bg-main)] text-sm font-bold rounded-xl transition-colors shadow-md shadow-[var(--accent3-transparent)]"
         >
           ثبت و ارسال
         </button>

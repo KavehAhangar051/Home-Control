@@ -1,6 +1,13 @@
 import React, { useState } from "react";
-import { ICON_MAP, AVAILABLE_ICONS, SUGGESTED_EMOJIS } from "@/features/iot/utils/icons";
 import { ChevronDown, ChevronUp } from "@/components/ui/hugeicons";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AVAILABLE_ICONS,
+  getSegmentIcon,
+  hasIcon,
+  SUGGESTED_EMOJIS,
+} from "@/features/iot/utils/icons";
 
 interface IconPickerProps {
   label: string;
@@ -29,7 +36,7 @@ export default function IconPicker({
         aria-expanded={showIcons}
         aria-label={label}
         onClick={() => setShowIcons(!showIcons)}
-        className="w-full h-10 px-4 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl flex items-center justify-between hover:border-[var(--accent3)] transition-all font-sans shadow-sm"
+        className="w-full h-10 px-4 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl flex items-center justify-between hover:border-[var(--accent3)] transition-colors font-sans shadow-sm"
       >
         {showIcons ? (
           <ChevronUp className="w-4 h-4 opacity-50" />
@@ -39,8 +46,8 @@ export default function IconPicker({
         <div className="flex items-center gap-2">
           <span>{selectedIcon ? "آیکون انتخاب شد" : "انتخاب آیکون"}</span>
           {selectedIcon &&
-            (ICON_MAP[selectedIcon] ? (
-              React.createElement(ICON_MAP[selectedIcon], {
+            (hasIcon(selectedIcon) ? (
+              React.createElement(getSegmentIcon(selectedIcon), {
                 className: "w-4 h-4 text-[var(--accent3)]",
               })
             ) : (
@@ -51,22 +58,31 @@ export default function IconPicker({
 
       {showIcons && (
         <div className="p-3 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl space-y-3 shadow-sm">
-          <div className="flex gap-2 p-1 bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)]">
-            <button
-              type="button"
-              onClick={() => setIconMode("emoji")}
-              className={`flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-colors ${iconMode === "emoji" ? "bg-[var(--accent3)] text-white shadow-sm" : "bg-[var(--bg-primary)] hover:text-[var(--accent3)] text-[var(--text-secondary)]"}`}
+          <ToggleGroup
+            variant="outline"
+            size="sm"
+            spacing={0}
+            value={[iconMode]}
+            onValueChange={(vals) => {
+              const val = vals[0];
+
+              if (val === "emoji" || val === "hugeicons") setIconMode(val);
+            }}
+            className="w-full"
+          >
+            <ToggleGroupItem
+              value="emoji"
+              className="flex-1 text-[11px] font-bold aria-pressed:bg-[var(--accent3)] aria-pressed:text-[var(--bg-main)]"
             >
               ایموجی
-            </button>
-            <button
-              type="button"
-              onClick={() => setIconMode("hugeicons")}
-              className={`flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-colors ${iconMode === "hugeicons" ? "bg-[var(--accent3)] text-white shadow-sm" : "bg-[var(--bg-primary)] hover:text-[var(--accent3)] text-[var(--text-secondary)]"}`}
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="hugeicons"
+              className="flex-1 text-[11px] font-bold aria-pressed:bg-[var(--accent3)] aria-pressed:text-[var(--bg-main)]"
             >
               آیکون هیوج
-            </button>
-          </div>
+            </ToggleGroupItem>
+          </ToggleGroup>
 
           <div className="grid grid-cols-6 gap-2 max-h-32 overflow-y-auto custom-scrollbar pr-1">
             <button
@@ -75,7 +91,7 @@ export default function IconPicker({
                 onSelectIcon("");
                 setShowIcons(false);
               }}
-              className={`p-2 rounded-lg flex items-center justify-center transition-all text-[9px] col-span-2 ${!selectedIcon ? "bg-[var(--accent3)] text-black" : "hover:bg-white/10 text-[var(--text-secondary)]"}`}
+              className={`p-2 rounded-lg flex items-center justify-center transition-colors text-[9px] col-span-2 ${!selectedIcon ? "bg-[var(--accent3)] text-[var(--bg-main)]" : "hover:bg-[var(--card-hover-bg)] text-[var(--text-secondary)]"}`}
             >
               بدون آیکون
             </button>
@@ -88,24 +104,30 @@ export default function IconPicker({
                       onSelectIcon(icon);
                       setShowIcons(false);
                     }}
-                    className={`p-2 rounded-lg flex items-center justify-center text-lg leading-none transition-all ${selectedIcon === icon ? "bg-[var(--accent3)] text-black" : "hover:bg-white/10 text-[var(--text-secondary)]"}`}
+                    className={`p-2 rounded-lg flex items-center justify-center text-lg leading-none transition-colors ${selectedIcon === icon ? "bg-[var(--accent3)] text-[var(--bg-main)]" : "hover:bg-[var(--card-hover-bg)] text-[var(--text-secondary)]"}`}
                   >
                     {icon}
                   </button>
                 ))
               : AVAILABLE_ICONS.map((iconName) => (
-                  <button
-                    key={iconName}
-                    type="button"
-                    onClick={() => {
-                      onSelectIcon(iconName);
-                      setShowIcons(false);
-                    }}
-                    className={`p-2 rounded-lg flex items-center justify-center transition-all ${selectedIcon === iconName ? "bg-[var(--accent3)] text-black" : "hover:bg-white/10 text-[var(--text-secondary)]"}`}
-                    title={iconName}
-                  >
-                    {React.createElement(ICON_MAP[iconName], { className: "w-4 h-4" })}
-                  </button>
+                  <Tooltip key={iconName}>
+                    <TooltipTrigger
+                      render={
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectIcon(iconName);
+                            setShowIcons(false);
+                          }}
+                          className={`p-2 rounded-lg flex items-center justify-center transition-colors ${selectedIcon === iconName ? "bg-[var(--accent3)] text-[var(--bg-main)]" : "hover:bg-[var(--card-hover-bg)] text-[var(--text-secondary)]"}`}
+                          aria-label={iconName}
+                        >
+                          {React.createElement(getSegmentIcon(iconName), { className: "w-4 h-4" })}
+                        </button>
+                      }
+                    />
+                    <TooltipContent>{iconName}</TooltipContent>
+                  </Tooltip>
                 ))}
           </div>
         </div>

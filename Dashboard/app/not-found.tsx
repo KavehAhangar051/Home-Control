@@ -7,7 +7,7 @@ export default function NotFound() {
       <h2 className="text-lg font-bold mb-6">صفحه مورد نظر یافت نشد</h2>
       <Link
         href="/"
-        className="px-6 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all text-xs font-bold rounded-sm"
+        className="px-6 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-bold rounded-sm"
       >
         بازگشت به پیشخوان پادشاهی
       </Link>

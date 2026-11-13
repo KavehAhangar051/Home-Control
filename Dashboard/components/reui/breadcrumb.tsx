@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 import { ChevronLeft } from "@/components/ui/hugeicons";
 import { cn } from "@/lib/utils";
 

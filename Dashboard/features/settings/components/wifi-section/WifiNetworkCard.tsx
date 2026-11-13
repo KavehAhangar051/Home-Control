@@ -1,6 +1,6 @@
-import React from "react";
-import { Trash2 } from "@/components/ui/hugeicons";
-import { motion } from "motion/react";
+import { m } from "motion/react";
+import type React from "react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { WifiNetworkEditor } from "./WifiNetworkEditor";
 
 interface Props {
@@ -18,20 +18,19 @@ interface Props {
 
 function WifiNetworkCardFrame({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+    <m.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{
         opacity: 0,
         y: -12,
-        filter: "blur(4px)",
         transition: { duration: 0.15, ease: "easeOut" },
       }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className="p-4 bg-[var(--card-bg-solid)] border border-[var(--border-color)] rounded-2xl shadow-sm relative overflow-hidden"
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -58,15 +57,13 @@ export function WifiNetworkViewCard({ net, onEditStart, onDelete }: WifiNetworkV
             {net.password ? "رمز عبور تنظیم شده" : "بدون رمز عبور"}
           </div>
         </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="p-2 text-[var(--accent4)] hover:bg-[var(--accent4-transparent)] border border-transparent hover:border-[var(--accent4)] rounded-xl transition-[background-color,border-color,color,scale] duration-150 ease-out active:scale-[0.96] ml-2"
-          title="حذف شبکه"
-          aria-label={`حذف شبکه ${net.ssid}`}
-        >
-          <Trash2 className="w-4 h-4" strokeWidth={2} />
-        </button>
+        <DeleteButton
+          size="sm"
+          resetAfter={0}
+          onConfirm={onDelete}
+          label={`حذف شبکه ${net.ssid}`}
+          className="ml-2 shrink-0"
+        />
       </div>
     </WifiNetworkCardFrame>
   );

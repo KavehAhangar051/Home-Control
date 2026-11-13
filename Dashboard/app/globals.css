@@ -1,44 +1,50 @@
 @import "tailwindcss";
 @import "./reui-nova.css";
+@import "../styles/view-transitions.css";
+
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant data-horizontal (&:where([data-orientation="horizontal"], [data-horizontal]));
+@custom-variant data-vertical (&:where([data-orientation="vertical"], [data-vertical]));
+@custom-variant data-open (&:where([data-state="open"], [data-open]));
+@custom-variant data-closed (&:where([data-state="closed"], [data-closed]));
 
 :root {
   --radius: 0.625rem;
   --background: var(--color-white);
-  --foreground: var(--color-zinc-950);
+  --foreground: var(--color-neutral-950);
   --card: var(--color-white);
-  --card-foreground: var(--color-zinc-950);
+  --card-foreground: var(--color-neutral-950);
   --popover: var(--color-white);
-  --popover-foreground: var(--color-zinc-950);
-  --primary: var(--color-zinc-900);
-  --primary-foreground: var(--color-zinc-50);
-  --secondary: var(--color-zinc-100);
-  --secondary-foreground: var(--color-zinc-900);
-  --muted: var(--color-zinc-100);
-  --muted-foreground: var(--color-zinc-500);
-  --accent: var(--color-zinc-100);
-  --accent-foreground: var(--color-zinc-900);
+  --popover-foreground: var(--color-neutral-950);
+  --primary: var(--color-neutral-900);
+  --primary-foreground: var(--color-neutral-50);
+  --secondary: var(--color-neutral-100);
+  --secondary-foreground: var(--color-neutral-900);
+  --muted: var(--color-neutral-100);
+  --muted-foreground: var(--color-neutral-500);
+  --accent: var(--color-neutral-100);
+  --accent-foreground: var(--color-neutral-900);
   --destructive: var(--color-red-600);
   --destructive-foreground: var(--color-white);
-  --border: var(--color-zinc-200);
-  --input: var(--color-zinc-200);
-  --ring: var(--color-zinc-400);
+  --border: var(--color-neutral-200);
+  --input: var(--color-neutral-200);
+  --ring: var(--color-neutral-400);
   --success: var(--color-emerald-500);
   --success-foreground: var(--color-emerald-950);
   --warning: var(--color-yellow-500);
   --warning-foreground: var(--color-yellow-950);
-  --info: var(--color-violet-500);
-  --info-foreground: var(--color-violet-950);
-  --invert: var(--color-zinc-900);
-  --invert-foreground: var(--color-zinc-50);
-  --sidebar: var(--color-zinc-50);
-  --sidebar-foreground: var(--color-zinc-950);
-  --sidebar-primary: var(--color-zinc-900);
-  --sidebar-primary-foreground: var(--color-zinc-50);
-  --sidebar-accent: var(--color-zinc-100);
-  --sidebar-accent-foreground: var(--color-zinc-900);
-  --sidebar-border: var(--color-zinc-200);
-  --sidebar-ring: var(--color-zinc-400);
+  --info: var(--color-sky-500);
+  --info-foreground: var(--color-sky-950);
+  --invert: var(--color-neutral-900);
+  --invert-foreground: var(--color-neutral-50);
+  --sidebar: var(--color-neutral-50);
+  --sidebar-foreground: var(--color-neutral-950);
+  --sidebar-primary: var(--color-neutral-900);
+  --sidebar-primary-foreground: var(--color-neutral-50);
+  --sidebar-accent: var(--color-neutral-100);
+  --sidebar-accent-foreground: var(--color-neutral-900);
+  --sidebar-border: var(--color-neutral-200);
+  --sidebar-ring: var(--color-neutral-400);
   --shadow-border:
     0px 0px 0px 1px oklch(0 0 0 / 0.06), 0px 1px 2px -1px oklch(0 0 0 / 0.06),
     0px 2px 4px 0px oklch(0 0 0 / 0.04);
@@ -88,7 +94,7 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-vazirmatn), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--selected-font, var(--font-dana)), "Dana", system-ui, -apple-system, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -171,4 +177,62 @@
     var(--text-primary) 80%
   );
   background-size: 200% auto;
+}
+
+@keyframes header-title-marquee {
+  0%,
+  12% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(50%, 0, 0);
+  }
+}
+
+.header-title-marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: header-title-marquee 10s linear infinite;
+}
+
+.header-title-marquee:hover .header-title-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title-animated {
+    animation: none;
+  }
+
+  .header-title-marquee-track {
+    animation: none;
+  }
+}
+
+html.theme-switching *:not(#header-theme-toggle):not(#header-theme-toggle *),
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+}
+
+.trellis-rtl-host .trellis {
+  direction: ltr;
+}
+
+.trellis-rtl-host .trellis [data-trellis-part="tab-title"] {
+  direction: rtl;
+  text-align: right;
+}
+
+.trellis-rtl-host .trellis .trellis-menu {
+  direction: rtl;
+}
+
+.trellis-rtl-host .trellis .trellis-menu-item {
+  text-align: right;
+}
+
+.trellis-rtl-host .trellis [data-trellis-part="content"] {
+  padding-bottom: 56px;
 }
