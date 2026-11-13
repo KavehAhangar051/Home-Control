@@ -7,7 +7,7 @@
 
 namespace uniuno {
 
-WsClientParser::WsClientParser(EventDispatcher* dispatcher) : _dispatcher(dispatcher) {}
+WsClientParser::WsClientParser(IEventDispatcher* dispatcher) : _dispatcher(dispatcher) {}
 
 HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& message) {
     if (LIKELY(message.isBinary())) {

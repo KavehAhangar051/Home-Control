@@ -15,7 +15,7 @@ public:
     ~InsecureEsp32TcpClient() { client.stop(); }
 };
 
-AchaemenidWebSocketClient::AchaemenidWebSocketClient(EventDispatcher* dispatcher, std::function<String()> stateProvider)
+AchaemenidWebSocketClient::AchaemenidWebSocketClient(IEventDispatcher* dispatcher, std::function<String()> stateProvider)
     : isRunning_(false), firstConnection_(true), dispatcher_(dispatcher), stateProvider_(stateProvider)
 {
     parser_ = new WsClientParser(dispatcher_);
