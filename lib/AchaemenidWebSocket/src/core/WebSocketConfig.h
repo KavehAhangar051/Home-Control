@@ -1,9 +1,13 @@
 #pragma once
 
 #include <Optimization/StaticString.h>
+#include <Optimization/FastFunction.h>
 #include <Arduino.h>
 
 namespace uniuno {
+
+// Owns the callable while keeping the small state-provider lambda inline.
+using StateProvider = FastFunction<String(), 16>;
 
 // Cloudflare Workers close idle connections after ~100s.
 // Send a ping every 45s to keep the connection alive.
@@ -21,7 +25,7 @@ static constexpr BaseType_t  WS_CONNECT_TASK_CORE = 0; // Core 0 — away from A
  */
 struct WebSocketConfig {
     uniuno::StaticString<128> serverUrl;
-    
+
     bool isValid() const {
         return !serverUrl.empty();
     }

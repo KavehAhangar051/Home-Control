@@ -3,6 +3,7 @@
 #include <WiFiClientSecure.h>
 #include <tiny_websockets/network/generic_esp/generic_esp_clients.hpp>
 #include <Optimization/CompilerTraits.h>
+#include <utility>
 #include "../parsers/WsClientParser.h"
 
 
@@ -15,8 +16,8 @@ public:
     ~InsecureEsp32TcpClient() { client.stop(); }
 };
 
-AchaemenidWebSocketClient::AchaemenidWebSocketClient(IEventDispatcher* dispatcher, std::function<String()> stateProvider)
-    : isRunning_(false), firstConnection_(true), dispatcher_(dispatcher), stateProvider_(stateProvider)
+AchaemenidWebSocketClient::AchaemenidWebSocketClient(IEventDispatcher* dispatcher, StateProvider stateProvider)
+    : isRunning_(false), firstConnection_(true), dispatcher_(dispatcher), stateProvider_(std::move(stateProvider))
 {
     parser_ = new WsClientParser(dispatcher_);
     auto secureClient = std::make_shared<InsecureEsp32TcpClient>();
@@ -93,7 +94,7 @@ void AchaemenidWebSocketClient::doConnect() {
         delete client_;
         client_ = nullptr;
     }
-    
+
     auto secureClient = std::make_shared<InsecureEsp32TcpClient>();
     client_ = new websockets::WebsocketsClient(secureClient);
 

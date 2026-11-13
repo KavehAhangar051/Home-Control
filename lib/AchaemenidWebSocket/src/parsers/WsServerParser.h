@@ -2,18 +2,18 @@
 
 #include <ArduinoWebsockets.h>
 #include <Events/IEventDispatcher.h>
-#include <functional>
+#include "../core/WebSocketConfig.h"
 
 namespace uniuno {
 
 class WsServerParser {
 public:
-    WsServerParser(IEventDispatcher* dispatcher, std::function<String()> stateProvider);
+    WsServerParser(IEventDispatcher* dispatcher, StateProvider stateProvider);
     void parseMessage(const String& data, websockets::WebsocketsClient& client);
 
 private:
     IEventDispatcher* _dispatcher;
-    std::function<String()> _stateProvider;
+    StateProvider _stateProvider;
 };
 
 } // namespace uniuno

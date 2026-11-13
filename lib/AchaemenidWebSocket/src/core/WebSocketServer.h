@@ -2,6 +2,7 @@
 
 #include <ArduinoWebsockets.h>
 #include <Events/IEventDispatcher.h>
+#include "WebSocketConfig.h"
 
 #define WS_SERVER_MAX_CLIENTS 4
 
@@ -11,7 +12,7 @@ class WsServerParser;
 
 class AchaemenidWebSocketServer {
 public:
-    AchaemenidWebSocketServer(IEventDispatcher* dispatcher, std::function<String()> stateProvider);
+    AchaemenidWebSocketServer(IEventDispatcher* dispatcher, StateProvider stateProvider);
     ~AchaemenidWebSocketServer();
 
     void begin(uint16_t port);
@@ -28,7 +29,6 @@ private:
     uint8_t clientCount = 0;
     bool _isStarted = false;
     IEventDispatcher* dispatcher_;
-    std::function<String()> stateProvider_;
     class WsServerParser* parser_;
 };
 
