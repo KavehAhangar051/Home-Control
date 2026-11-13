@@ -1,6 +1,5 @@
 #include "../PinManager.h"
 #include <Utilities/logging.h>
-#include <Preferences.h>
 
 bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoOffDelay, RuleConfig rule) {
     if (_registry.findById(id) >= 0) {
@@ -32,32 +31,22 @@ bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoO
     entry->pendingRuleActionState = false;
     entry->pendingHoldAction = RuleAction();
     entry->isHandled = false;
-    entry->rule        = rule;
-    
+    entry->rule = rule;
+
     if (type == SegmentType::Input) {
         pinMode(pin, INPUT_PULLUP);
         entry->lastInputState = digitalRead(pin) == HIGH;
         entry->hasGpio = false;
     } else {
         entry->gpio.setPin(pin);
+        // GpioSwitch starts in a known OFF state; live output state is not restored from NVS.
         entry->gpio.begin();
-
-        // Restore the last output state from NVS after initializing the GPIO.
-        Preferences pinPrefs;
-        if (pinPrefs.begin("AchaemenidPins", true)) {
-            String key = "p" + String(pin);
-            bool savedState = pinPrefs.getBool(key.c_str(), false);
-            pinPrefs.end();
-            entry->gpio.setState(savedState);
-            INFOF("[PinManager] Restored pin %d -> %s", pin, savedState ? "ON" : "OFF");
-        }
-
         entry->hasGpio = true;
     }
-    
+
     _registry.mapPin(pin, slot);
     entry->active = true;
-    
+
     INFOF("[PinManager] Added segment '%s' on pin %d (Type: %s)", id, pin, (type == SegmentType::Input ? "input" : "output"));
     _stateManager.rebuildInputCache();
     return true;
@@ -69,7 +58,7 @@ bool PinManager::removeSegment(const char* id) {
         WARNINGF("[PinManager] Segment '%s' not found.", id);
         return false;
     }
-    
+
     PinEntry* entry = _registry.getEntryByIndex(idx);
     if (!entry) return false;
 
@@ -81,7 +70,7 @@ bool PinManager::removeSegment(const char* id) {
     entry->cloudSyncTimer.cancel();
     entry->ruleActionTimer.cancel();
     entry->holdTimer.cancel();
-    
+
     _registry.unmapPin(entry->pinNumber);
 
     entry->active    = false;
@@ -96,7 +85,7 @@ bool PinManager::removeSegment(const char* id) {
     entry->pendingHoldAction = RuleAction();
     entry->holdTimer = uniuno::TimerHandle();
     entry->isHandled = false;
-    
+
     INFOF("[PinManager] Removed segment '%s'", id);
     _stateManager.rebuildInputCache();
     return true;

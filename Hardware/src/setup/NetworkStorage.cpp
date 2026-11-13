@@ -1,6 +1,7 @@
 #include "NetworkStorage.h"
 #include <Preferences.h>
 #include <Utilities/logging.h>
+#include <Optimization/StaticString.h>
 
 Preferences prefs;
 
@@ -14,13 +15,15 @@ void saveNetworkConfig(const ConfigLoadedEvent& config) {
     // Save WiFi
     prefs.putInt("wifiCount", config.wifiCount);
     for (int i = 0; i < config.wifiCount; i++) {
-        String ssidKey = "ssid" + String(i);
-        String passKey = "pass" + String(i);
-        
+        uniuno::StaticString<8> ssidKey("ssid");
+        uniuno::StaticString<8> passKey("pass");
+        ssidKey += static_cast<char>('0' + i);
+        passKey += static_cast<char>('0' + i);
+
         // Smart write: only write if changed to save flash wear
         String currentSsid = prefs.getString(ssidKey.c_str(), "");
         String currentPass = prefs.getString(passKey.c_str(), "");
-        
+
         if (currentSsid != config.wifi[i].ssid) {
             prefs.putString(ssidKey.c_str(), config.wifi[i].ssid);
             INFOF("[NetworkStorage] [DEBUG] WiFi SSID changed from '%s' to '%s'. Updated in NVS.", currentSsid.c_str(), config.wifi[i].ssid);
@@ -58,12 +61,12 @@ void saveNetworkConfig(const ConfigLoadedEvent& config) {
         if (currentQos != config.mqtt.qos) {
             prefs.putInt("mqQos", config.mqtt.qos);
         }
-        
+
         prefs.putBool("mqValid", true);
     }
 
     prefs.end();
-    INFO("[NetworkStorage] Network configuration saved to NVS (Preferences)");
+    INFO("Network configuration saved to NVS (Preferences)");
 }
 
 void loadNetworkConfig(String ssid[3], String pass[3], int& count, MqttConfig& mqttConfig) {
@@ -77,11 +80,13 @@ void loadNetworkConfig(String ssid[3], String pass[3], int& count, MqttConfig& m
 
     count = prefs.getInt("wifiCount", 0);
     if (count > 3) count = 3;
-    
+
     for (int i = 0; i < count; i++) {
-        String ssidKey = "ssid" + String(i);
-        String passKey = "pass" + String(i);
-        
+        uniuno::StaticString<8> ssidKey("ssid");
+        uniuno::StaticString<8> passKey("pass");
+        ssidKey += static_cast<char>('0' + i);
+        passKey += static_cast<char>('0' + i);
+
         ssid[i] = prefs.getString(ssidKey.c_str(), "");
         pass[i] = prefs.getString(passKey.c_str(), "");
         INFOF("[NetworkStorage] [DEBUG] Stored Network %d - SSID: '%s', Pass: '%s'", i, ssid[i].c_str(), pass[i].c_str());
@@ -93,13 +98,13 @@ void loadNetworkConfig(String ssid[3], String pass[3], int& count, MqttConfig& m
         String topic = prefs.getString("mqTopic", "");
         int port = prefs.getInt("mqPort", 1883);
         int qos = prefs.getInt("mqQos", 1);
-        
+
         strncpy(mqttConfig.host, host.c_str(), sizeof(mqttConfig.host) - 1);
         strncpy(mqttConfig.baseTopic, topic.c_str(), sizeof(mqttConfig.baseTopic) - 1);
         mqttConfig.port = port;
         mqttConfig.qos = qos;
         mqttConfig.valid = true;
-        
+
         INFOF("[NetworkStorage] [DEBUG] Stored MQTT Config - Host: '%s', Port: %d, Topic: '%s', QOS: %d", mqttConfig.host, mqttConfig.port, mqttConfig.baseTopic, mqttConfig.qos);
     } else {
         mqttConfig.valid = false;

@@ -1,6 +1,5 @@
 #include "PinStateManager.h"
 #include <Utilities/logging.h>
-#include <Preferences.h>
 #if defined(ESP32)
 #include <soc/gpio_struct.h>
 #endif
@@ -10,17 +9,9 @@ bool PinStateManager::setPinState(int pin, bool state) {
     if (!entry || !entry->hasGpio) {
         return false;
     }
-    entry->gpio.setState(state);
 
-    // Persist output state so it survives power loss and ESP32 reboot.
-    Preferences pinPrefs;
-    if (pinPrefs.begin("AchaemenidPins", false)) {
-        String key = "p" + String(pin);
-        pinPrefs.putBool(key.c_str(), state);
-        pinPrefs.end();
-    } else {
-        WARNINGF("[PinManager] Could not persist state for pin %d", pin);
-    }
+    // Runtime GPIO state belongs in RAM. Durable state is owned by Cloudflare.
+    entry->gpio.setState(state);
 
     INFOF("[PinManager] Pin %d -> %s", pin, state ? "ON" : "OFF");
     return true;
@@ -32,16 +23,9 @@ bool PinStateManager::setStateById(const char* id, bool state) {
     if (!entry || !entry->hasGpio) {
         return false;
     }
-    entry->gpio.setState(state);
 
-    Preferences pinPrefs;
-    if (pinPrefs.begin("AchaemenidPins", false)) {
-        String key = "p" + String(entry->pinNumber);
-        pinPrefs.putBool(key.c_str(), state);
-        pinPrefs.end();
-    } else {
-        WARNINGF("[PinManager] Could not persist state for pin %d", entry->pinNumber);
-    }
+    // Runtime GPIO state belongs in RAM. Durable state is owned by Cloudflare.
+    entry->gpio.setState(state);
 
     INFOF("[PinManager] '%s' (pin %d) -> %s", id, entry->pinNumber, state ? "ON" : "OFF");
     return true;
@@ -57,7 +41,7 @@ void PinStateManager::rebuildInputCache() {
     }
 }
 
-HOT_PATH IRAM_ATTR void PinStateManager::processInputs(std::function<void(int, bool, unsigned long, const RuleConfig&)> onInputChanged) {
+HOT_PATH IRAM_ATTR void PinStateManager::processInputs(uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&> onInputChanged) {
     if (_numInputs == 0) return;
 
     unsigned long currentMillis = millis();
@@ -71,7 +55,7 @@ HOT_PATH IRAM_ATTR void PinStateManager::processInputs(std::function<void(int, b
         uint8_t idx = _inputIndices[i];
         PinEntry* entry = _registry.getEntryByIndex(idx);
         if (!entry) continue;
-        
+
         int pin = entry->pinNumber;
 
         if (entry->stateStartTime == 0) {
@@ -93,7 +77,7 @@ HOT_PATH IRAM_ATTR void PinStateManager::processInputs(std::function<void(int, b
             unsigned long durationSec = (currentMillis - entry->stateStartTime) / 1000;
             entry->stateStartTime = currentMillis;
             entry->lastInputState = currentState;
-            if (onInputChanged != nullptr) {
+            if (onInputChanged) {
                 onInputChanged(pin, currentState, durationSec, entry->rule);
             }
         }

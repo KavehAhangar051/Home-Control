@@ -1,5 +1,7 @@
 #include "../PinManager.h"
 #include <Utilities/logging.h>
+#include <Optimization/StaticString.h>
+#include <cstdio>
 
 PinManager::PinManager() : _registry(), _timerManager(_registry), _stateManager(_registry) {
 }
@@ -37,16 +39,24 @@ void PinManager::printStatus() const {
 }
 
 String PinManager::exportStateJson() const {
-    String json = "{\"type\":\"state_sync\",\"states\":{";
+    // At most 16 configured pins; this fixed buffer covers the worst-case JSON payload.
+    uniuno::StaticString<256> json("{\"type\":\"state_sync\",\"states\":{");
     bool first = true;
+
     for (int i = 0; i < MAX_PINS; i++) {
         const PinEntry* entry = _registry.getEntryByIndexConst(i);
         if (entry->active && entry->type != SegmentType::Input && entry->hasGpio) {
             if (!first) json += ",";
-            json += "\"" + String(entry->pinNumber) + "\":" + (entry->gpio.getState() ? "true" : "false");
+            char pinText[4];
+            snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
+            json += "\"";
+            json += pinText;
+            json += "\":";
+            json += entry->gpio.getState() ? "true" : "false";
             first = false;
         }
     }
+
     json += "}}";
-    return json;
+    return String(json.c_str());
 }
