@@ -20,7 +20,7 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
             const uint8_t state = static_cast<uint8_t>(data[2]);
 
             Serial.printf("[WebSocket] Automation Triggered! Pin: %u, State: %u\n", pin, state);
-            PinStateChangeRequestEvent event{pin, state != 0, 0};
+            PinStateChangeRequestEvent event{pin, state != 0, 0, PinStateChangeOrigin::Cloudflare};
             _dispatcher->dispatch(event);
 
             // getWsClientInstance().sendText("{\"type\":\"automation_ack\",\"status\":\"success\"}");
@@ -55,7 +55,7 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
                 for (JsonPair kv : states) {
                     int pin   = String(kv.key().c_str()).toInt();
                     bool state = kv.value().as<bool>();
-                    PinStateChangeRequestEvent event{pin, state, 0};
+                    PinStateChangeRequestEvent event{pin, state, 0, PinStateChangeOrigin::Cloudflare};
                     _dispatcher->dispatch(event);
                 }
                 Serial.println("[WebSocket] Initial states applied successfully.");
