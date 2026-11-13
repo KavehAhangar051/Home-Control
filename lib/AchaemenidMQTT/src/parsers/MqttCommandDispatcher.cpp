@@ -20,7 +20,7 @@ void MqttCommandDispatcher::registerHandler(IMqttPayloadHandler* handler) {
     }
 }
 
-HOT_PATH IRAM_ATTR void MqttCommandDispatcher::handlePayload(const uint8_t* payload, size_t len, EventDispatcher* dispatcher) {
+HOT_PATH IRAM_ATTR void MqttCommandDispatcher::handlePayload(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (UNLIKELY(dispatcher == nullptr || payload == nullptr || len == 0)) return;
 
     uint8_t cmdType = payload[0];

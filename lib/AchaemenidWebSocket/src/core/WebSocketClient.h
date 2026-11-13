@@ -4,7 +4,7 @@
 #include <freertos/task.h>
 #include <freertos/semphr.h>
 #include <ArduinoWebsockets.h>
-#include <Events/EventDispatcher.h>
+#include <Events/IEventDispatcher.h>
 #include "WebSocketConfig.h"
 
 namespace uniuno {
@@ -13,7 +13,7 @@ class WsClientParser;
 
 class AchaemenidWebSocketClient {
 public:
-    AchaemenidWebSocketClient(EventDispatcher* dispatcher, std::function<String()> stateProvider);
+    AchaemenidWebSocketClient(IEventDispatcher* dispatcher, std::function<String()> stateProvider);
     ~AchaemenidWebSocketClient();
 
     void begin(const String& serverUrl);
@@ -25,8 +25,6 @@ public:
     void loop();
 
 private:
-
-
     void onMessageCallback(websockets::WebsocketsMessage message);
     void onEventsCallback(websockets::WebsocketsEvent event, String data);
 
@@ -43,7 +41,7 @@ private:
     unsigned long lastPingTime_ = 0;
     volatile bool isConnecting_ = false;
     TaskHandle_t connectTaskHandle_ = nullptr;
-    EventDispatcher* dispatcher_;
+    IEventDispatcher* dispatcher_;
     std::function<String()> stateProvider_;
     WsClientParser* parser_;
 };

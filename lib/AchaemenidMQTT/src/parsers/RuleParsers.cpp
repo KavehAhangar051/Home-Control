@@ -19,13 +19,13 @@ bool RuleParsers::canHandle(uint8_t cmdType) const {
     return cmdType == 0x05;
 }
 
-void RuleParsers::handle(const uint8_t* payload, size_t len, EventDispatcher* dispatcher) {
+void RuleParsers::handle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (len > 0 && payload[0] == 0x05) {
         parseUpdateRule(payload, len, dispatcher);
     }
 }
 
-HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateRule(const uint8_t* payload, size_t len, EventDispatcher* dispatcher) {
+HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateRule(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (LIKELY(len >= 3)) {
         size_t offset = 1;
         

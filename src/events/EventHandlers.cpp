@@ -182,7 +182,7 @@ void setupEventBus() {
     eventBus.on<SegmentAddRequestEvent>(onSegmentAdd);
     eventBus.on<SegmentRemoveRequestEvent>(onSegmentRemove);
     eventBus.on<PinStateChangedEvent>(onPinChanged);
-    eventBus.on<ConfigLoadedEvent>(onConfigLoaded);
+    eventBus.once<ConfigLoadedEvent>(onConfigLoaded);
     eventBus.on<StateSyncRequestEvent>(onStateSyncRequest);
     eventBus.on<NetworkStatusEvent>(onNetworkStatus);
     eventBus.on<CloudSyncRequestEvent>(onCloudSyncRequest);

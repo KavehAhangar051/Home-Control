@@ -6,7 +6,7 @@
 
 namespace uniuno {
 
-WsServerParser::WsServerParser(EventDispatcher* dispatcher, std::function<String()> stateProvider)
+WsServerParser::WsServerParser(IEventDispatcher* dispatcher, std::function<String()> stateProvider)
     : _dispatcher(dispatcher), _stateProvider(stateProvider) {}
 
 void WsServerParser::parseMessage(const String& data, websockets::WebsocketsClient& client) {

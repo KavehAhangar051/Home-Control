@@ -1,20 +1,20 @@
 #pragma once
 
 #include <ArduinoWebsockets.h>
-#include <Events/EventDispatcher.h>
+#include <Events/IEventDispatcher.h>
 #include "IMessageParser.h"
 
 namespace uniuno {
 
 class WsClientParser : public IMessageParser {
 public:
-    WsClientParser(EventDispatcher* dispatcher);
+    WsClientParser(IEventDispatcher* dispatcher);
     ~WsClientParser() override = default;
 
     void parseMessage(const websockets::WebsocketsMessage& message) override;
 
 private:
-    EventDispatcher* _dispatcher;
+    IEventDispatcher* _dispatcher;
 };
 
 } // namespace uniuno

@@ -4,7 +4,7 @@
 #include <INetworkManager.h>
 #include <PinManager.h>
 #include <Timer/Timer.h>
-#include <Events/EventDispatcher.h>
+#include <Events/IEventDispatcher.h>
 #include <Core/Async/Executor.h>
 #include <Optimization/StaticFunction.h>
 #include <Optimization/CompilerTraits.h>
@@ -14,7 +14,7 @@ struct BootContext {
     uniuno::INetworkManager* network;
     PinManager* pinManager;
     uniuno::Executor* executor;
-    uniuno::EventDispatcher* eventBus;
+    uniuno::IEventDispatcher* eventBus;
     uniuno::Timer* appTimer;
     uniuno::ISegmentStorage* segmentStorage;
     bool* configLoadedFlag;

@@ -19,7 +19,7 @@ bool StateParsers::canHandle(uint8_t cmdType) const {
     return cmdType == 0x01 || cmdType == 0x06 || cmdType == 0x08 || cmdType == 0x09;
 }
 
-void StateParsers::handle(const uint8_t* payload, size_t len, EventDispatcher* dispatcher) {
+void StateParsers::handle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (len == 0) return;
     switch (payload[0]) {
         case 0x01: parseTogglePin(payload, len, dispatcher); break;
@@ -29,7 +29,7 @@ void StateParsers::handle(const uint8_t* payload, size_t len, EventDispatcher* d
     }
 }
 
-HOT_PATH IRAM_ATTR void StateParsers::parseTogglePin(const uint8_t* payload, size_t len, EventDispatcher* dispatcher) {
+HOT_PATH IRAM_ATTR void StateParsers::parseTogglePin(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (LIKELY(len >= 7)) {
         int pinNum = payload[1];
         bool value = (payload[2] == 0x01);
@@ -41,7 +41,7 @@ HOT_PATH IRAM_ATTR void StateParsers::parseTogglePin(const uint8_t* payload, siz
     }
 }
 
-HOT_PATH IRAM_ATTR void StateParsers::parseAutomationToggle(const uint8_t* payload, size_t len, EventDispatcher* dispatcher) {
+HOT_PATH IRAM_ATTR void StateParsers::parseAutomationToggle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (LIKELY(len >= 3)) {
         int pinNum = payload[1];
         bool value = (payload[2] == 0x01);
@@ -52,7 +52,7 @@ HOT_PATH IRAM_ATTR void StateParsers::parseAutomationToggle(const uint8_t* paylo
     }
 }
 
-HOT_PATH IRAM_ATTR void StateParsers::parseBatchToggle(const uint8_t* payload, size_t len, EventDispatcher* dispatcher) {
+HOT_PATH IRAM_ATTR void StateParsers::parseBatchToggle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (LIKELY(len >= 2)) {
         uint8_t count = payload[1];
         size_t offset = 2;
@@ -70,7 +70,7 @@ HOT_PATH IRAM_ATTR void StateParsers::parseBatchToggle(const uint8_t* payload, s
     }
 }
 
-HOT_PATH IRAM_ATTR void StateParsers::parseSyncState(const uint8_t* /*payload*/, size_t /*len*/, EventDispatcher* dispatcher) {
+HOT_PATH IRAM_ATTR void StateParsers::parseSyncState(const uint8_t* /*payload*/, size_t /*len*/, IEventDispatcher* dispatcher) {
     StateSyncRequestEvent evt{};
     dispatcher->dispatch(evt);
     INFO("[MQTT Handler] Received State Sync Request (0x09)");

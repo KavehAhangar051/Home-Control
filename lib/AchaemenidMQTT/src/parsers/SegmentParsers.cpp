@@ -22,7 +22,7 @@ bool SegmentParsers::canHandle(uint8_t cmdType) const {
     return cmdType == 0x02 || cmdType == 0x03 || cmdType == 0x04;
 }
 
-void SegmentParsers::handle(const uint8_t* payload, size_t len, EventDispatcher* dispatcher) {
+void SegmentParsers::handle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (len == 0) return;
     switch (payload[0]) {
         case 0x02: parseAddSegment(payload, len, dispatcher); break;
@@ -31,7 +31,7 @@ void SegmentParsers::handle(const uint8_t* payload, size_t len, EventDispatcher*
     }
 }
 
-HOT_PATH IRAM_ATTR void SegmentParsers::parseAddSegment(const uint8_t* payload, size_t len, EventDispatcher* dispatcher) {
+HOT_PATH IRAM_ATTR void SegmentParsers::parseAddSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (LIKELY(len >= 6)) {
         int pinNum = payload[1];
         size_t offset = 3;
@@ -48,7 +48,7 @@ HOT_PATH IRAM_ATTR void SegmentParsers::parseAddSegment(const uint8_t* payload, 
     }
 }
 
-HOT_PATH IRAM_ATTR void SegmentParsers::parseDeleteSegment(const uint8_t* payload, size_t len, EventDispatcher* dispatcher) {
+HOT_PATH IRAM_ATTR void SegmentParsers::parseDeleteSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (LIKELY(len >= 2)) {
         size_t offset = 1;
         
@@ -61,7 +61,7 @@ HOT_PATH IRAM_ATTR void SegmentParsers::parseDeleteSegment(const uint8_t* payloa
     }
 }
 
-HOT_PATH IRAM_ATTR void SegmentParsers::parseDashboardPresence(const uint8_t* payload, size_t len, EventDispatcher* dispatcher) {
+HOT_PATH IRAM_ATTR void SegmentParsers::parseDashboardPresence(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (LIKELY(len >= 2)) {
         bool isOnline = (payload[1] == 0x01);
         DashboardPresenceEvent evt{isOnline};

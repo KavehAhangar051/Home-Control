@@ -66,11 +66,15 @@ public:
     } else {
       removed = group->listeners.size();
       group->listeners.clear();
-      group->active = false; // Mark group as free
+      group->active = false;
     }
     return removed;
   }
 
+  /**
+   * @brief Hot path: find group and invoke all active listeners.
+   * UNROLL_LOOP(8) hints compiler to unroll since MaxListeners is known at compile-time.
+   */
   HOT_PATH void dispatchEvent(void* event, uint32_t event_hash) {
     auto* group = storage_.findGroup(event_hash);
     if (UNLIKELY(!group)) return;

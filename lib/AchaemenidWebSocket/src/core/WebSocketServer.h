@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ArduinoWebsockets.h>
-#include <Events/EventDispatcher.h>
+#include <Events/IEventDispatcher.h>
 
 #define WS_SERVER_MAX_CLIENTS 4
 
@@ -11,7 +11,7 @@ class WsServerParser;
 
 class AchaemenidWebSocketServer {
 public:
-    AchaemenidWebSocketServer(EventDispatcher* dispatcher, std::function<String()> stateProvider);
+    AchaemenidWebSocketServer(IEventDispatcher* dispatcher, std::function<String()> stateProvider);
     ~AchaemenidWebSocketServer();
 
     void begin(uint16_t port);
@@ -20,8 +20,6 @@ public:
     void broadcastState(const char* stateJson);
 
 private:
-
-    
     void handleMessage(uint8_t idx, websockets::WebsocketsMessage msg);
     void handleEvent(uint8_t idx, websockets::WebsocketsEvent event, String data);
 
@@ -29,7 +27,7 @@ private:
     websockets::WebsocketsClient clients[WS_SERVER_MAX_CLIENTS];
     uint8_t clientCount = 0;
     bool _isStarted = false;
-    EventDispatcher* dispatcher_;
+    IEventDispatcher* dispatcher_;
     std::function<String()> stateProvider_;
     class WsServerParser* parser_;
 };

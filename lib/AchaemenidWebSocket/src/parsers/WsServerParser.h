@@ -1,18 +1,18 @@
 #pragma once
 
 #include <ArduinoWebsockets.h>
-#include <Events/EventDispatcher.h>
+#include <Events/IEventDispatcher.h>
 #include <functional>
 
 namespace uniuno {
 
 class WsServerParser {
 public:
-    WsServerParser(EventDispatcher* dispatcher, std::function<String()> stateProvider);
+    WsServerParser(IEventDispatcher* dispatcher, std::function<String()> stateProvider);
     void parseMessage(const String& data, websockets::WebsocketsClient& client);
 
 private:
-    EventDispatcher* _dispatcher;
+    IEventDispatcher* _dispatcher;
     std::function<String()> _stateProvider;
 };
 
