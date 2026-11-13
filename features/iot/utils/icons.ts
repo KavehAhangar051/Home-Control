@@ -1,128 +1,132 @@
-import { createHugeIcon } from "@/components/ui/hugeicons";
-import {
-  Activity01Icon,
-  AirplayIcon,
-  AutomotiveBattery01Icon,
-  BatteryFullIcon,
-  BluetoothIcon,
-  Book01Icon,
-  CallIcon,
-  Camera01Icon,
-  Cancel01Icon,
-  Car01Icon,
-  CircleLock01Icon,
-  CircleUnlock01Icon,
-  Clock01Icon,
-  CloudIcon,
-  Coffee01Icon,
-  ComputerIcon,
-  CpuIcon,
-  DropletIcon,
-  DropletsIcon,
-  Fan01Icon,
-  FlameIcon,
-  FlashIcon,
-  GameController01Icon,
-  Home01Icon,
-  Key01Icon,
-  Layers01Icon,
-  Leaf01Icon,
-  LightbulbIcon,
-  MapPinIcon,
-  Menu01Icon,
-  Mic01Icon,
-  Moon01Icon,
-  Music01Icon,
-  Notification01Icon,
-  PauseIcon,
-  PlayIcon,
-  PowerIcon,
-  Radio01Icon,
-  RefreshIcon,
-  Search01Icon,
-  ServerIcon,
-  Settings01Icon,
-  Shield01Icon,
-  SmartPhone01Icon,
-  SnowflakeIcon,
-  Speaker01Icon,
-  SproutIcon,
-  StopIcon,
-  Sun01Icon,
-  ThermometerIcon,
-  ThermometerSunIcon,
-  Tick02Icon,
-  Timer01Icon,
-  Tv01Icon,
-  Video01Icon,
-  ViewIcon,
-  VolumeHighIcon,
-  WavesIcon,
-  Wifi01Icon,
-  WindIcon,
-} from "@hugeicons/core-free-icons";
+import { Activity01 } from "@/components/animate-ui/icons/hugeicons/activity-01";
+import { Airplay } from "@/components/animate-ui/icons/hugeicons/airplay";
+import { BatteryCharging } from "@/components/animate-ui/icons/hugeicons/battery-charging";
+import { BatteryFull } from "@/components/animate-ui/icons/hugeicons/battery-full";
+import { Bluetooth } from "@/components/animate-ui/icons/hugeicons/bluetooth";
+import { Bookmark } from "@/components/animate-ui/icons/hugeicons/bookmark";
+import { Bot } from "@/components/animate-ui/icons/hugeicons/bot";
+import { Camera } from "@/components/animate-ui/icons/hugeicons/camera";
+import { Cancel01 } from "@/components/animate-ui/icons/hugeicons/cancel-01";
+import { Cast } from "@/components/animate-ui/icons/hugeicons/cast";
+import { Check as CheckIcon } from "@/components/animate-ui/icons/hugeicons/check";
+import { CircuitBoard } from "@/components/animate-ui/icons/hugeicons/circuit-board";
+import { Clapperboard } from "@/components/animate-ui/icons/hugeicons/clapperboard";
+import { Clock01 } from "@/components/animate-ui/icons/hugeicons/clock-01";
+import { CloudRain } from "@/components/animate-ui/icons/hugeicons/cloud-rain";
+import { CloudRainWind } from "@/components/animate-ui/icons/hugeicons/cloud-rain-wind";
+import { Coffee02 } from "@/components/animate-ui/icons/hugeicons/coffee-02";
+import { ComputerTerminal01 } from "@/components/animate-ui/icons/hugeicons/computer-terminal-01";
+import { Droplet } from "@/components/animate-ui/icons/hugeicons/droplet";
+import { Fan } from "@/components/animate-ui/icons/hugeicons/fan";
+import { Flame } from "@/components/animate-ui/icons/hugeicons/flame";
+import { Flash } from "@/components/animate-ui/icons/hugeicons/flash";
+import { Home03 } from "@/components/animate-ui/icons/hugeicons/home-03";
+import { Key01 } from "@/components/animate-ui/icons/hugeicons/key-01";
+import { Layers01 } from "@/components/animate-ui/icons/hugeicons/layers-01";
+import { Leaf } from "@/components/animate-ui/icons/hugeicons/leaf";
+import { Lightbulb } from "@/components/animate-ui/icons/hugeicons/lightbulb";
+import { Location01 } from "@/components/animate-ui/icons/hugeicons/location-01";
+import { LockKeyhole } from "@/components/animate-ui/icons/hugeicons/lock-keyhole";
+import { LockKeyholeOpen } from "@/components/animate-ui/icons/hugeicons/lock-keyhole-open";
+import { Menu01 } from "@/components/animate-ui/icons/hugeicons/menu-01";
+import { Mic } from "@/components/animate-ui/icons/hugeicons/mic";
+import { Moon02 } from "@/components/animate-ui/icons/hugeicons/moon-02";
+import { Music3 } from "@/components/animate-ui/icons/hugeicons/music-3";
+import { Notification01 } from "@/components/animate-ui/icons/hugeicons/notification-01";
+import { Pause } from "@/components/animate-ui/icons/hugeicons/pause";
+import { Phone } from "@/components/animate-ui/icons/hugeicons/phone";
+import { PhoneCall } from "@/components/animate-ui/icons/hugeicons/phone-call";
+import { PlaneTakeoff } from "@/components/animate-ui/icons/hugeicons/plane-takeoff";
+import { Play } from "@/components/animate-ui/icons/hugeicons/play";
+import { Power } from "@/components/animate-ui/icons/hugeicons/power";
+import { Radio } from "@/components/animate-ui/icons/hugeicons/radio";
+import { Refresh } from "@/components/animate-ui/icons/hugeicons/refresh";
+import { Search01 } from "@/components/animate-ui/icons/hugeicons/search-01";
+import { Settings02 } from "@/components/animate-ui/icons/hugeicons/settings-02";
+import { ShieldCheck } from "@/components/animate-ui/icons/hugeicons/shield-check";
+import { Snowflake } from "@/components/animate-ui/icons/hugeicons/snowflake";
+import { SquareX } from "@/components/animate-ui/icons/hugeicons/square-x";
+import { Sun03 } from "@/components/animate-ui/icons/hugeicons/sun-03";
+import { Temperature } from "@/components/animate-ui/icons/hugeicons/temperature";
+import { Timer } from "@/components/animate-ui/icons/hugeicons/timer";
+import { View } from "@/components/animate-ui/icons/hugeicons/view";
+import { VolumeHigh } from "@/components/animate-ui/icons/hugeicons/volume-high";
+import { Waves } from "@/components/animate-ui/icons/hugeicons/waves";
+import { Wifi01 } from "@/components/animate-ui/icons/hugeicons/wifi-01";
+import { createHugeIcon, type HugeIconComponent } from "@/components/ui/hugeicons";
 
-export const ICON_MAP: Record<string, any> = {
-  Cpu: createHugeIcon(CpuIcon, "Cpu"),
-  Lightbulb: createHugeIcon(LightbulbIcon, "Lightbulb"),
-  Zap: createHugeIcon(FlashIcon, "Zap"),
-  Power: createHugeIcon(PowerIcon, "Power"),
-  Fan: createHugeIcon(Fan01Icon, "Fan"),
-  Droplets: createHugeIcon(DropletsIcon, "Droplets"),
-  Droplet: createHugeIcon(DropletIcon, "Droplet"),
-  Thermometer: createHugeIcon(ThermometerIcon, "Thermometer"),
-  ThermometerSun: createHugeIcon(ThermometerSunIcon, "ThermometerSun"),
-  Lock: createHugeIcon(CircleLock01Icon, "Lock"),
-  Unlock: createHugeIcon(CircleUnlock01Icon, "Unlock"),
-  Key: createHugeIcon(Key01Icon, "Key"),
-  Shield: createHugeIcon(Shield01Icon, "Shield"),
-  Bell: createHugeIcon(Notification01Icon, "Bell"),
-  Camera: createHugeIcon(Camera01Icon, "Camera"),
-  Video: createHugeIcon(Video01Icon, "Video"),
-  Tv: createHugeIcon(Tv01Icon, "Tv"),
-  Monitor: createHugeIcon(ComputerIcon, "Monitor"),
-  Smartphone: createHugeIcon(SmartPhone01Icon, "Smartphone"),
-  Phone: createHugeIcon(CallIcon, "Phone"),
-  Speaker: createHugeIcon(Speaker01Icon, "Speaker"),
-  Volume2: createHugeIcon(VolumeHighIcon, "Volume2"),
-  Mic: createHugeIcon(Mic01Icon, "Mic"),
-  Music: createHugeIcon(Music01Icon, "Music"),
-  Radio: createHugeIcon(Radio01Icon, "Radio"),
-  Airplay: createHugeIcon(AirplayIcon, "Airplay"),
-  Wifi: createHugeIcon(Wifi01Icon, "Wifi"),
-  Bluetooth: createHugeIcon(BluetoothIcon, "Bluetooth"),
-  Sun: createHugeIcon(Sun01Icon, "Sun"),
-  Moon: createHugeIcon(Moon01Icon, "Moon"),
-  Cloud: createHugeIcon(CloudIcon, "Cloud"),
-  Wind: createHugeIcon(WindIcon, "Wind"),
-  Flame: createHugeIcon(FlameIcon, "Flame"),
-  Snowflake: createHugeIcon(SnowflakeIcon, "Snowflake"),
-  Waves: createHugeIcon(WavesIcon, "Waves"),
-  Sprout: createHugeIcon(SproutIcon, "Sprout"),
-  Leaf: createHugeIcon(Leaf01Icon, "Leaf"),
-  Home: createHugeIcon(Home01Icon, "Home"),
-  Car: createHugeIcon(Car01Icon, "Car"),
-  Settings: createHugeIcon(Settings01Icon, "Settings"),
-  Activity: createHugeIcon(Activity01Icon, "Activity"),
-  Layers: createHugeIcon(Layers01Icon, "Layers"),
-  Battery: createHugeIcon(AutomotiveBattery01Icon, "Battery"),
-  BatteryFull: createHugeIcon(BatteryFullIcon, "BatteryFull"),
-  Clock: createHugeIcon(Clock01Icon, "Clock"),
-  Timer: createHugeIcon(Timer01Icon, "Timer"),
-  Eye: createHugeIcon(ViewIcon, "Eye"),
-  MapPin: createHugeIcon(MapPinIcon, "MapPin"),
-  Book: createHugeIcon(Book01Icon, "Book"),
-  Coffee: createHugeIcon(Coffee01Icon, "Coffee"),
-  Server: createHugeIcon(ServerIcon, "Server"),
-  Gamepad2: createHugeIcon(GameController01Icon, "Gamepad2"),
-  Play: createHugeIcon(PlayIcon, "Play"),
-  Pause: createHugeIcon(PauseIcon, "Pause"),
-  Square: createHugeIcon(StopIcon, "Square"),
-  Check: createHugeIcon(Tick02Icon, "Check"),
-  RefreshCw: createHugeIcon(RefreshIcon, "RefreshCw"),
-  X: createHugeIcon(Cancel01Icon, "X"),
-  Menu: createHugeIcon(Menu01Icon, "Menu"),
-  Search: createHugeIcon(Search01Icon, "Search"),
+export const ICON_MAP = {
+  Cpu: createHugeIcon(CircuitBoard, "Cpu"),
+  Lightbulb: createHugeIcon(Lightbulb, "Lightbulb"),
+  Zap: createHugeIcon(Flash, "Zap"),
+  Power: createHugeIcon(Power, "Power"),
+  Fan: createHugeIcon(Fan, "Fan"),
+  Droplets: createHugeIcon(Droplet, "Droplets"),
+  Droplet: createHugeIcon(Droplet, "Droplet"),
+  Thermometer: createHugeIcon(Temperature, "Thermometer"),
+  ThermometerSun: createHugeIcon(Temperature, "ThermometerSun"),
+  Lock: createHugeIcon(LockKeyhole, "Lock"),
+  Unlock: createHugeIcon(LockKeyholeOpen, "Unlock"),
+  Key: createHugeIcon(Key01, "Key"),
+  Shield: createHugeIcon(ShieldCheck, "Shield"),
+  Bell: createHugeIcon(Notification01, "Bell"),
+  Camera: createHugeIcon(Camera, "Camera"),
+  Video: createHugeIcon(Clapperboard, "Video"),
+  Tv: createHugeIcon(Cast, "Tv"),
+  Monitor: createHugeIcon(ComputerTerminal01, "Monitor"),
+  Smartphone: createHugeIcon(Phone, "Smartphone"),
+  Phone: createHugeIcon(PhoneCall, "Phone"),
+  Speaker: createHugeIcon(VolumeHigh, "Speaker"),
+  Volume2: createHugeIcon(VolumeHigh, "Volume2"),
+  Mic: createHugeIcon(Mic, "Mic"),
+  Music: createHugeIcon(Music3, "Music"),
+  Radio: createHugeIcon(Radio, "Radio"),
+  Airplay: createHugeIcon(Airplay, "Airplay"),
+  Wifi: createHugeIcon(Wifi01, "Wifi"),
+  Bluetooth: createHugeIcon(Bluetooth, "Bluetooth"),
+  Sun: createHugeIcon(Sun03, "Sun"),
+  Moon: createHugeIcon(Moon02, "Moon"),
+  Cloud: createHugeIcon(CloudRain, "Cloud"),
+  Wind: createHugeIcon(CloudRainWind, "Wind"),
+  Flame: createHugeIcon(Flame, "Flame"),
+  Snowflake: createHugeIcon(Snowflake, "Snowflake"),
+  Waves: createHugeIcon(Waves, "Waves"),
+  Sprout: createHugeIcon(Leaf, "Sprout"),
+  Leaf: createHugeIcon(Leaf, "Leaf"),
+  Home: createHugeIcon(Home03, "Home"),
+  Car: createHugeIcon(PlaneTakeoff, "Car"),
+  Settings: createHugeIcon(Settings02, "Settings"),
+  Activity: createHugeIcon(Activity01, "Activity"),
+  Layers: createHugeIcon(Layers01, "Layers"),
+  Battery: createHugeIcon(BatteryCharging, "Battery"),
+  BatteryFull: createHugeIcon(BatteryFull, "BatteryFull"),
+  Clock: createHugeIcon(Clock01, "Clock"),
+  Timer: createHugeIcon(Timer, "Timer"),
+  Eye: createHugeIcon(View, "Eye"),
+  MapPin: createHugeIcon(Location01, "MapPin"),
+  Book: createHugeIcon(Bookmark, "Book"),
+  Coffee: createHugeIcon(Coffee02, "Coffee"),
+  Server: createHugeIcon(ComputerTerminal01, "Server"),
+  Gamepad2: createHugeIcon(Bot, "Gamepad2"),
+  Play: createHugeIcon(Play, "Play"),
+  Pause: createHugeIcon(Pause, "Pause"),
+  Square: createHugeIcon(SquareX, "Square"),
+  Check: createHugeIcon(CheckIcon, "Check"),
+  RefreshCw: createHugeIcon(Refresh, "RefreshCw"),
+  X: createHugeIcon(Cancel01, "X"),
+  Menu: createHugeIcon(Menu01, "Menu"),
+  Search: createHugeIcon(Search01, "Search"),
+} satisfies Record<string, HugeIconComponent>;
+
+export const hasIcon = (icon?: string): boolean => Boolean(icon && icon in ICON_MAP);
+
+export const getSegmentIcon = (icon?: string): HugeIconComponent => {
+  if (icon && icon in ICON_MAP) {
+    // SAFETY: verified key membership in ICON_MAP via in operator
+    return ICON_MAP[icon as keyof typeof ICON_MAP];
+  }
+
+  return ICON_MAP.Cpu;
 };
 
 export const AVAILABLE_ICONS = Object.keys(ICON_MAP);

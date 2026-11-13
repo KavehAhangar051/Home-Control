@@ -1,9 +1,10 @@
 "use client";
 
+import { m } from "motion/react";
 import React from "react";
-import { motion } from "motion/react";
 import { Play } from "@/components/ui/hugeicons";
-import { ICON_MAP } from "@/features/iot/utils/icons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
 
 interface MacroSidebarButtonProps {
   macro: any;
@@ -32,8 +33,8 @@ function MacroButtonIcon({
       <span
         className={`${isHorizontal ? "text-xl" : "text-2xl mb-1"} ${activeScaleClass} transition-transform duration-150 ease-out`}
       >
-        {ICON_MAP[icon]
-          ? React.createElement(ICON_MAP[icon], {
+        {hasIcon(icon)
+          ? React.createElement(getSegmentIcon(icon), {
               className: isHorizontal ? "w-5 h-5" : "w-6 h-6",
               strokeWidth: 2.5,
             })
@@ -41,6 +42,7 @@ function MacroButtonIcon({
       </span>
     );
   }
+
   return (
     <Play
       strokeWidth={2.5}
@@ -65,46 +67,54 @@ export function SimpleMacroButton({
   index = 0,
 }: SimpleMacroButtonProps) {
   return (
-    <motion.button
-      initial={
-        animationsEnabled
-          ? isHorizontal
-            ? { opacity: 0, y: -12, filter: "blur(4px)" }
-            : { opacity: 0, x: -12, filter: "blur(4px)" }
-          : undefined
-      }
-      animate={
-        animationsEnabled
-          ? isHorizontal
-            ? { opacity: 1, y: 0, filter: "blur(0px)" }
-            : { opacity: 1, x: 0, filter: "blur(0px)" }
-          : undefined
-      }
-      exit={
-        animationsEnabled
-          ? {
-              opacity: 0,
-              y: -12,
-              filter: "blur(4px)",
-              transition: { duration: 0.15, ease: "easeOut" },
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <m.button
+            initial={
+              animationsEnabled
+                ? isHorizontal
+                  ? { opacity: 0, y: -12 }
+                  : { opacity: 0, x: -12 }
+                : undefined
             }
-          : undefined
-      }
-      transition={
-        animationsEnabled ? { duration: 0.2, delay: index * 0.05, ease: "easeOut" } : undefined
-      }
-      onClick={onClick}
-      whileTap={animationsEnabled ? { scale: 0.96 } : undefined}
-      className={`flex items-center justify-center rounded-2xl bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-primary)] md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)] md:hover:-translate-y-1 md:hover:shadow-[0_10px_20px_-5px_var(--accent3-transparent)] transition-[transform,border-color,color,box-shadow] duration-200 ease-out shadow-sm relative group ${isHorizontal ? "flex-row gap-2 ps-3.5 pe-4 w-[120px] min-w-min min-h-[48px] h-fit py-2" : "flex-col w-[72px] min-w-min px-2 min-h-[72px] h-fit py-2"}`}
-      title={macro.title}
-    >
-      <MacroButtonIcon icon={macro.icon} isHorizontal={isHorizontal} />
-      <span
-        className={`${isHorizontal ? "text-xs" : "text-[10px] px-1 leading-tight"} font-bold text-center opacity-80 md:group-hover:opacity-100 transition-opacity duration-150 ease-out`}
-      >
-        {macro.title}
-      </span>
-    </motion.button>
+            animate={
+              animationsEnabled
+                ? isHorizontal
+                  ? { opacity: 1, y: 0 }
+                  : { opacity: 1, x: 0 }
+                : undefined
+            }
+            exit={
+              animationsEnabled
+                ? {
+                    opacity: 0,
+                    y: -12,
+                    transition: { duration: 0.15, ease: "easeOut" },
+                  }
+                : undefined
+            }
+            transition={
+              animationsEnabled
+                ? { duration: 0.2, delay: index * 0.05, ease: "easeOut" }
+                : undefined
+            }
+            onClick={onClick}
+            whileTap={animationsEnabled ? { scale: 0.96 } : undefined}
+            aria-label={macro.title}
+            className={`flex items-center justify-center rounded-2xl bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-primary)] md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)] md:hover:-translate-y-1 md:hover:shadow-[0_10px_20px_-5px_var(--accent3-transparent)] transition-[transform,border-color,color,box-shadow] duration-200 ease-out shadow-sm relative group ${isHorizontal ? "flex-row gap-2 ps-3.5 pe-4 w-[120px] min-w-min min-h-[48px] h-fit py-2" : "flex-col w-[72px] min-w-min px-2 min-h-[72px] h-fit py-2"}`}
+          >
+            <MacroButtonIcon icon={macro.icon} isHorizontal={isHorizontal} />
+            <span
+              className={`${isHorizontal ? "text-xs" : "text-[10px] px-1 leading-tight"} font-bold text-center opacity-80 md:group-hover:opacity-100 transition-opacity duration-150 ease-out`}
+            >
+              {macro.title}
+            </span>
+          </m.button>
+        }
+      />
+      <TooltipContent>{macro.title}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -117,6 +127,39 @@ interface CarouselMacroButtonProps {
   direction?: number;
 }
 
+function getCarouselMotionConfig(
+  animationsEnabled: boolean,
+  isHorizontal: boolean,
+  isCenter: boolean,
+  direction: number,
+) {
+  if (!animationsEnabled) {
+    return {
+      initial: undefined,
+      animate: undefined,
+      exit: undefined,
+      transition: undefined,
+      whileTap: undefined,
+    };
+  }
+
+  const axisOffset = isHorizontal ? { x: direction * 40 } : { y: direction * 40 };
+  const exitAxisOffset = isHorizontal ? { x: -direction * 40 } : { y: -direction * 40 };
+
+  return {
+    initial: { opacity: 0, scale: 0.85, ...axisOffset },
+    animate: { opacity: isCenter ? 1 : 0.4, scale: isCenter ? 1 : 0.85, x: 0, y: 0 },
+    exit: {
+      opacity: 0,
+      scale: 0.85,
+      ...exitAxisOffset,
+      transition: { duration: 0.15, ease: "easeOut" as const },
+    },
+    transition: { duration: 0.25, ease: "easeOut" as const },
+    whileTap: { scale: 0.96 },
+  };
+}
+
 export function CarouselMacroButton({
   macro,
   isCenter = false,
@@ -125,61 +168,57 @@ export function CarouselMacroButton({
   animationsEnabled,
   direction = 1,
 }: CarouselMacroButtonProps) {
+  const motionConfig = getCarouselMotionConfig(
+    animationsEnabled,
+    isHorizontal,
+    isCenter,
+    direction,
+  );
+
+  const borderClass = isCenter
+    ? "border-[var(--accent3)] shadow-[0_4px_15px_-5px_var(--accent3-transparent)] z-10 text-[var(--accent3)]"
+    : "border-[var(--border-color)] md:hover:border-[var(--accent3)] text-[var(--text-primary)]";
+
+  const layoutClass = isHorizontal
+    ? "flex-row gap-1 ps-1.5 pe-2 w-[100px] min-w-[90px] min-h-[44px] h-fit py-2"
+    : "flex-col w-[72px] min-w-min px-2 min-h-[72px] h-fit py-2";
+
+  const scaleClass = isCenter ? "scale-110" : "md:group-hover:scale-110";
+  const playClass = isCenter ? "opacity-100 scale-110" : "opacity-70 md:group-hover:scale-110";
+  const labelClass = isHorizontal ? "text-[10px]" : "text-[10px] px-1";
+  const labelOpacityClass = isCenter ? "opacity-100" : "opacity-60 md:group-hover:opacity-100";
+
   return (
-    <motion.button
-      layout
-      initial={
-        animationsEnabled
-          ? isHorizontal
-            ? { opacity: 0, scale: 0.85, x: direction * 40 }
-            : { opacity: 0, scale: 0.85, y: direction * 40 }
-          : undefined
-      }
-      animate={
-        animationsEnabled
-          ? {
-              opacity: isCenter ? 1 : 0.4,
-              scale: isCenter ? 1 : 0.85,
-              x: 0,
-              y: 0,
-            }
-          : undefined
-      }
-      exit={
-        animationsEnabled
-          ? isHorizontal
-            ? {
-                opacity: 0,
-                scale: 0.85,
-                x: -direction * 40,
-                transition: { duration: 0.15, ease: "easeOut" },
-              }
-            : {
-                opacity: 0,
-                scale: 0.85,
-                y: -direction * 40,
-                transition: { duration: 0.15, ease: "easeOut" },
-              }
-          : undefined
-      }
-      transition={animationsEnabled ? { duration: 0.25, ease: "easeOut" } : undefined}
-      whileTap={animationsEnabled ? { scale: 0.96 } : undefined}
-      onClick={onClick}
-      className={`flex items-center justify-center rounded-2xl bg-[var(--card-bg-solid)] border ${isCenter ? "border-[var(--accent3)] shadow-[0_4px_15px_-5px_var(--accent3-transparent)] z-10 text-[var(--accent3)]" : "border-[var(--border-color)] md:hover:border-[var(--accent3)] text-[var(--text-primary)]"} transition-[border-color,color,box-shadow] duration-200 ease-out relative group shrink-0 ${isHorizontal ? "flex-row gap-1 ps-1.5 pe-2 w-[100px] min-w-[90px] min-h-[44px] h-fit py-2" : "flex-col w-[72px] min-w-min px-2 min-h-[72px] h-fit py-2"}`}
-      title={macro.title}
-    >
-      <MacroButtonIcon
-        icon={macro.icon}
-        isHorizontal={isHorizontal}
-        activeScaleClass={isCenter ? "scale-110" : "md:group-hover:scale-110"}
-        playExtraClass={isCenter ? "opacity-100 scale-110" : "opacity-70 md:group-hover:scale-110"}
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <m.button
+            layout
+            initial={motionConfig.initial}
+            animate={motionConfig.animate}
+            exit={motionConfig.exit}
+            transition={motionConfig.transition}
+            whileTap={motionConfig.whileTap}
+            onClick={onClick}
+            aria-label={macro.title}
+            className={`flex items-center justify-center rounded-2xl bg-[var(--card-bg-solid)] border ${borderClass} transition-[border-color,color,box-shadow] duration-200 ease-out relative group shrink-0 ${layoutClass}`}
+          >
+            <MacroButtonIcon
+              icon={macro.icon}
+              isHorizontal={isHorizontal}
+              activeScaleClass={scaleClass}
+              playExtraClass={playClass}
+            />
+            <span
+              className={`${labelClass} leading-tight font-bold text-center transition-opacity duration-150 ease-out ${labelOpacityClass}`}
+            >
+              {macro.title}
+            </span>
+          </m.button>
+        }
       />
-      <span
-        className={`${isHorizontal ? "text-[10px]" : "text-[10px] px-1"} leading-tight font-bold text-center transition-opacity duration-150 ease-out ${isCenter ? "opacity-100" : "opacity-60 md:group-hover:opacity-100"}`}
-      >
-        {macro.title}
-      </span>
-    </motion.button>
+      <TooltipContent>{macro.title}</TooltipContent>
+    </Tooltip>
   );
 }
 

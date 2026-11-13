@@ -2,7 +2,7 @@
 
 import React from "react";
 import SortableSegmentCardComponent from "./sortable-segment-card";
-import { SortableSegmentCardProps } from "./sortable-segment-card/core/types";
+import type { SortableSegmentCardProps } from "./sortable-segment-card/core/types";
 
 export type { SortableSegmentCardProps };
 

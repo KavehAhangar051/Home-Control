@@ -1,29 +1,82 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { soundManager } from "@/lib/audio";
-import { AudioToggleButton } from "./AudioToggleButton";
-import { AudioSourceSelector } from "./AudioSourceSelector";
-import { AudioTrackInfo } from "./AudioTrackInfo";
 import { debugLog } from "@/lib/debug";
+import { AudioSourceSelector } from "./AudioSourceSelector";
+import { AudioToggleButton } from "./AudioToggleButton";
+import { AudioTrackInfo } from "./AudioTrackInfo";
+
+const subscribeAudioSnapshot = () => () => {};
+const getInitialIsMusicOn = () => soundManager.isAmbientPlaying;
+const getServerIsMusicOn = () => false;
+
+const getInitialMusicSource = (): "local" | "api" =>
+  localStorage.getItem("music_source") === "api" ? "api" : "local";
+
+const getServerMusicSource = (): "local" | "api" => "local";
+const getInitialTrackInfo = () => soundManager.currentTrack;
+const getServerTrackInfo = () => null;
+
+async function runAudioTask(
+  setIsLoading: (val: boolean) => void,
+  setPlaybackError: (err: string | null) => void,
+  logContext: string,
+  userErrorMessage: string,
+  task: () => Promise<void>,
+  onErrorCallback?: () => void,
+): Promise<void> {
+  setIsLoading(true);
+  setPlaybackError(null);
+
+  try {
+    await task();
+  } catch (error) {
+    debugLog.error("AudioUI", logContext, error);
+    setPlaybackError(userErrorMessage);
+    onErrorCallback?.();
+  } finally {
+    setIsLoading(false);
+  }
+}
 
 export default function AudioSection() {
-  const [isMusicOn, setIsMusicOn] = useState(false);
-  const [musicSource, setMusicSource] = useState<"local" | "api">("local");
-  const [trackInfo, setTrackInfo] = useState<any>(null);
+  const initialMusicOn = useSyncExternalStore(
+    subscribeAudioSnapshot,
+    getInitialIsMusicOn,
+    getServerIsMusicOn,
+  );
+
+  const initialMusicSource = useSyncExternalStore(
+    subscribeAudioSnapshot,
+    getInitialMusicSource,
+    getServerMusicSource,
+  );
+
+  const initialTrackInfo = useSyncExternalStore(
+    subscribeAudioSnapshot,
+    getInitialTrackInfo,
+    getServerTrackInfo,
+  );
+
+  const [musicOnOverride, setMusicOnOverride] = useState<boolean | null>(null);
+  const [musicSourceOverride, setMusicSourceOverride] = useState<"local" | "api" | null>(null);
+  const [trackInfoOverride, setTrackInfoOverride] = useState<any>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setIsMusicOn(soundManager.isAmbientPlaying);
-    setMusicSource((localStorage.getItem("music_source") as "local" | "api") || "local");
-    setTrackInfo(soundManager.currentTrack);
+  const isMusicOn = musicOnOverride ?? initialMusicOn;
+  const musicSource = musicSourceOverride ?? initialMusicSource;
+  const trackInfo = trackInfoOverride === undefined ? initialTrackInfo : trackInfoOverride;
 
+  useEffect(() => {
     const handleMusicStart = () => {
-      setIsMusicOn(soundManager.isAmbientPlaying);
+      setMusicOnOverride(soundManager.isAmbientPlaying);
       setPlaybackError(null);
     };
+
     const handleMusicError = (event: Event) => {
+      // SAFETY: ambientMusicError event is dispatched as CustomEvent<{ message?: string }>
       const detail = (event as CustomEvent<{ message?: string }>).detail;
-      setIsMusicOn(false);
+      setMusicOnOverride(false);
       setIsLoading(false);
       setPlaybackError(detail?.message || "پخش آهنگ ناموفق بود.");
     };
@@ -31,7 +84,7 @@ export default function AudioSection() {
     window.addEventListener("ambientMusicStarted", handleMusicStart);
     window.addEventListener("ambientMusicError", handleMusicError);
     soundManager.setOnTrackUpdate((track) => {
-      setTrackInfo(track);
+      setTrackInfoOverride(track);
       setIsLoading(false);
     });
 
@@ -43,70 +96,65 @@ export default function AudioSection() {
   }, []);
 
   const handleToggle = async () => {
-    setIsLoading(true);
-    setPlaybackError(null);
-    try {
-      const newState = await soundManager.toggleAmbient();
-      setIsMusicOn(newState);
-      if (newState) soundManager.playToggleOn();
-      else soundManager.playToggleOff();
-    } catch (error) {
-      debugLog.error("AudioUI", "Playback button action failed.", error);
-      setPlaybackError("پخش آهنگ ناموفق بود. کنسول مرورگر را برای جزئیات بررسی کن.");
-      setIsMusicOn(false);
-    } finally {
-      setIsLoading(false);
-    }
+    await runAudioTask(
+      setIsLoading,
+      setPlaybackError,
+      "Playback button action failed.",
+      "پخش آهنگ ناموفق بود. کنسول مرورگر را برای جزئیات بررسی کن.",
+      async () => {
+        const newState = await soundManager.toggleAmbient();
+        setMusicOnOverride(newState);
+
+        if (newState) soundManager.playToggleOn();
+        else soundManager.playToggleOff();
+      },
+      () => setMusicOnOverride(false),
+    );
   };
 
   const handleSourceChange = async (source: "local" | "api") => {
     if (source === musicSource) return;
-    setMusicSource(source);
+
+    setMusicSourceOverride(source);
     localStorage.setItem("music_source", source);
     soundManager.playClick();
     setPlaybackError(null);
 
     if (isMusicOn) {
-      setIsLoading(true);
-      try {
-        soundManager.stopAmbient();
-        await soundManager.loadAmbientTrack();
-        await soundManager.startAmbient();
-      } catch (error) {
-        debugLog.error("AudioUI", "Changing audio source failed.", error);
-        setPlaybackError("بارگذاری منبع آهنگ ناموفق بود.");
-      } finally {
-        setIsLoading(false);
-      }
+      await runAudioTask(
+        setIsLoading,
+        setPlaybackError,
+        "Changing audio source failed.",
+        "بارگذاری منبع آهنگ ناموفق بود.",
+        async () => {
+          soundManager.stopAmbient();
+          await soundManager.loadAmbientTrack();
+          await soundManager.startAmbient();
+        },
+      );
     }
   };
 
   const handleNext = async () => {
-    setIsLoading(true);
-    setPlaybackError(null);
     soundManager.playClick();
-    try {
-      await soundManager.nextTrack();
-    } catch (error) {
-      debugLog.error("AudioUI", "Could not play next track.", error);
-      setPlaybackError("آهنگ بعدی در دسترس نیست.");
-    } finally {
-      setIsLoading(false);
-    }
+    await runAudioTask(
+      setIsLoading,
+      setPlaybackError,
+      "Could not play next track.",
+      "آهنگ بعدی در دسترس نیست.",
+      () => soundManager.nextTrack(),
+    );
   };
 
   const handlePrev = async () => {
-    setIsLoading(true);
-    setPlaybackError(null);
     soundManager.playClick();
-    try {
-      await soundManager.prevTrack();
-    } catch (error) {
-      debugLog.error("AudioUI", "Could not play previous track.", error);
-      setPlaybackError("آهنگ قبلی در دسترس نیست.");
-    } finally {
-      setIsLoading(false);
-    }
+    await runAudioTask(
+      setIsLoading,
+      setPlaybackError,
+      "Could not play previous track.",
+      "آهنگ قبلی در دسترس نیست.",
+      () => soundManager.prevTrack(),
+    );
   };
 
   return (

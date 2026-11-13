@@ -17,6 +17,7 @@ function IconStack({ className, children, style, ...props }: IconStackProps) {
         className,
       )}
       style={
+        // SAFETY: React CSSProperties supports custom CSS variables with string index
         {
           "--icon-stack-content-x": "71%",
           "--icon-stack-content-y": "58%",

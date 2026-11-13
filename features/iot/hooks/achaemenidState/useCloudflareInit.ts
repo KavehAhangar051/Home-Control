@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { EspConfig } from "@/features/iot/services/esp32Config";
-import { FEATURE_FLAGS } from "@/lib/featureFlags";
-import { debugLog } from "@/lib/debug";
 import {
-  isCloudflareEnabled,
   fetchConfigFromCloudflare,
   getCloudflareWorkerUrl,
+  isCloudflareEnabled,
   setCloudflareWorkerUrl,
 } from "@/features/iot/services/cloudflareService";
+import type { EspConfig } from "@/features/iot/services/esp32Config";
+import { debugLog } from "@/lib/debug";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 
 interface UseCloudflareInitProps {
   mounted: boolean;
@@ -38,13 +38,17 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     if (FEATURE_FLAGS.configLocalCache && typeof window !== "undefined") {
       try {
         const cached = localStorage.getItem("cached_esp_config");
+
         if (cached) {
+          // SAFETY: cached_esp_config holds serialized EspConfig structure
           const cachedConfig = JSON.parse(cached) as EspConfig;
+
           if (cachedConfig && Array.isArray(cachedConfig.segments) && cachedConfig.layout) {
             handleApplyEspConfig(cachedConfig);
             setSyncStatus(false, 100, "اتصال به سرور برقرار نیست؛ تنظیمات کش‌شده بارگذاری شد.");
             setIsFullyReady(true);
             debugLog.warn("ConfigSync", "Recovered configuration from optional local cache.");
+
             return;
           }
         }
@@ -71,7 +75,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
 
   const initCloudflareSync = useCallback(async () => {
     let attemptCount = 0;
-    const maxAttempts = 5;
+    const maxAttempts = 2;
 
     if (typeof window !== "undefined" && !FEATURE_FLAGS.configLocalCache) {
       try {
@@ -87,22 +91,26 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
         "Cloudflare is disabled; no default configuration will be applied.",
       );
       handleBypassSync();
+
       return;
     }
 
     bypassedRef.current = false;
+
     while (!bypassedRef.current && attemptCount < maxAttempts) {
       attemptCount++;
       setSyncStatus(
         true,
-        Math.min(10 + attemptCount * 15, 95),
+        Math.min(25 + attemptCount * 35, 95),
         `در حال دریافت تنظیمات از سرور ابری (تلاش ${attemptCount} از ${maxAttempts})...`,
       );
 
       try {
-        const cfConfig = await fetchConfigFromCloudflare();
+        const cfConfig = await fetchConfigFromCloudflare({ timeoutMs: 6500 });
+
         if (cfConfig && Array.isArray(cfConfig.segments)) {
           if (bypassedRef.current) return;
+
           if (cfConfig.worker_url) handleWorkerUrlChange(cfConfig.worker_url);
 
           if (FEATURE_FLAGS.configLocalCache && typeof window !== "undefined") {
@@ -120,6 +128,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
             segments: cfConfig.segments.length,
             groups: cfConfig.layout?.groups_order?.length ?? 0,
           });
+
           return;
         }
 
@@ -127,20 +136,21 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
           attempt: attemptCount,
         });
       } catch (error) {
-        debugLog.error("ConfigSync", "Cloud configuration request failed.", {
+        debugLog.warn("ConfigSync", "Cloud configuration request failed.", {
           attempt: attemptCount,
-          error,
+          reason: error instanceof Error ? error.message : String(error),
         });
       }
 
       if (bypassedRef.current) return;
+
       if (attemptCount < maxAttempts) {
         setSyncStatus(
           true,
-          Math.min(10 + attemptCount * 15, 95),
+          Math.min(25 + attemptCount * 35, 95),
           "دریافت تنظیمات ناموفق بود؛ تلاش مجدد...",
         );
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 600));
       }
     }
 
@@ -148,7 +158,17 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
   }, [handleApplyEspConfig, handleBypassSync, handleWorkerUrlChange, setSyncStatus]);
 
   useEffect(() => {
-    void initCloudflareSync();
+    let cancelled = false;
+
+    void Promise.resolve().then(() => {
+      if (!cancelled) {
+        return initCloudflareSync();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [initCloudflareSync]);
 
   return {

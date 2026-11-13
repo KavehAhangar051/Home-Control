@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, useMemo, type ReactNode } from "react";
+import { createContext, type ReactNode, use, useMemo } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useAutomationForm } from "../hooks/useAutomationForm";
 
@@ -57,7 +57,7 @@ export interface AutomationContextValue {
   formHook: AutomationFormHookValue;
 }
 
-export const AutomationContext = createContext<AutomationContextValue | null>(null);
+const AutomationContext = createContext<AutomationContextValue | null>(null);
 
 interface AutomationProviderProps {
   children: ReactNode;

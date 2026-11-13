@@ -1,3 +1,4 @@
+import SidebarTooltip from "../SidebarTooltip";
 import RealTimeClock from "./RealTimeClock";
 
 interface VerticalClockProps {
@@ -15,24 +16,29 @@ export default function VerticalClock({
 }: VerticalClockProps) {
   if (isSidebarCollapsed) {
     return (
-      <div
-        className="w-full flex justify-center items-center p-2.5 bg-[var(--sidebar-control-bg)] md:hover:bg-[var(--sidebar-hover)] border border-[var(--sidebar-border)] rounded-md text-[var(--sidebar-muted)] md:hover:text-[var(--sidebar-text)] transition-colors group"
-        title={dateString}
-      >
-        <RealTimeClock time={time} className="w-4 h-4 shrink-0" />
-      </div>
+      <SidebarTooltip label={dateString} enabled>
+        <div
+          data-animate-icon-parent
+          className="group flex h-9 w-full items-center justify-center rounded-md border border-[var(--sidebar-border)] bg-[var(--sidebar-control-bg)] text-[var(--sidebar-muted)] transition-colors md:hover:bg-[var(--sidebar-hover)] md:hover:text-[var(--sidebar-text)]"
+        >
+          <RealTimeClock time={time} className="h-4 w-4 shrink-0" />
+        </div>
+      </SidebarTooltip>
     );
   }
 
   return (
-    <div className="w-full flex flex-col items-center justify-center p-3 gap-1 bg-[var(--sidebar-control-bg)] md:hover:bg-[var(--sidebar-hover)] border border-[var(--sidebar-border)] rounded-md transition-colors group">
-      <div className="flex items-center gap-2 text-[var(--sidebar-text)] mb-0.5">
-        <RealTimeClock time={time} className="w-4 h-4" />
-        <span className="font-mono font-bold text-base tabular-nums tracking-wider" dir="ltr">
+    <div
+      data-animate-icon-parent
+      className="group flex h-9 w-full items-center justify-between gap-2 rounded-md border border-[var(--sidebar-border)] bg-[var(--sidebar-control-bg)] px-2.5 transition-colors md:hover:bg-[var(--sidebar-hover)]"
+    >
+      <div className="flex items-center gap-1.5 text-[var(--sidebar-text)]">
+        <RealTimeClock time={time} className="h-4 w-4 shrink-0" />
+        <span className="font-mono text-xs font-bold tabular-nums tracking-wider" dir="ltr">
           {timeString}
         </span>
       </div>
-      <div className="text-[11px] font-medium tabular-nums text-[var(--sidebar-muted)] md:hover:text-[var(--sidebar-text)] transition-colors">
+      <div className="truncate text-[11px] font-medium tabular-nums text-[var(--sidebar-muted)] transition-colors md:group-hover:text-[var(--sidebar-text)]">
         {dateString}
       </div>
     </div>

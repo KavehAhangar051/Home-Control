@@ -1,5 +1,5 @@
-import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useMemo } from "react";
+import { useMediaQuery } from "../../../hooks/useMediaQuery";
 
 interface UseWorkspaceGridProps {
   groupsOrder: string[];

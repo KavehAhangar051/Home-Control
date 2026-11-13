@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import { AnimatePresence, m } from "motion/react";
+import { useState } from "react";
+import { Mic, Plus } from "@/components/ui/hugeicons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { Plus, Mic } from "@/components/ui/hugeicons";
-import { motion, AnimatePresence } from "motion/react";
-import { VoiceTranscriptOverlay } from "./VoiceTranscriptOverlay";
 import { VoiceCommandEditCard, VoiceCommandViewCard } from "./VoiceCommandCard";
+import { VoiceTranscriptOverlay } from "./VoiceTranscriptOverlay";
 
 export default function VoiceCommandsSection() {
   const voiceCommands = useIoTStore((s) => s.voiceCommands);
@@ -14,6 +15,7 @@ export default function VoiceCommandsSection() {
   const voiceTranscript = useIoTStore((s) => s.voiceTranscript);
   const [editingCommandId, setEditingCommandId] = useState<string | null>(null);
   const [newCommandPhrase, setNewCommandPhrase] = useState("");
+
   const [tempActions, setTempActions] = useState<
     Array<{ targetPin?: string; targetMacro?: string; actionOn?: boolean }>
   >([]);
@@ -24,6 +26,7 @@ export default function VoiceCommandsSection() {
       phrase: "دستور جدید",
       actions: [],
     };
+
     setVoiceCommands([...(voiceCommands || []), newCommand]);
     setEditingCommandId(newCommand.id);
     setNewCommandPhrase(newCommand.phrase);
@@ -31,14 +34,15 @@ export default function VoiceCommandsSection() {
   };
 
   const handleDeleteCommand = (id: string) => {
-    setVoiceCommands((voiceCommands || []).filter((m) => m.id !== id));
+    setVoiceCommands((voiceCommands || []).filter((cmd) => cmd.id !== id));
+
     if (editingCommandId === id) setEditingCommandId(null);
   };
 
   const handleSaveCommand = (id: string) => {
     setVoiceCommands(
-      (voiceCommands || []).map((m) =>
-        m.id === id ? { ...m, phrase: newCommandPhrase, actions: tempActions } : m,
+      (voiceCommands || []).map((cmd) =>
+        cmd.id === id ? { ...cmd, phrase: newCommandPhrase, actions: tempActions } : cmd,
       ),
     );
     setEditingCommandId(null);
@@ -51,15 +55,21 @@ export default function VoiceCommandsSection() {
           <Mic className="w-5 h-5 text-[var(--accent3)]" />
           مدیریت دستورات صوتی
         </h3>
-        <button
-          type="button"
-          onClick={handleAddCommand}
-          className="bg-[var(--accent3)] text-white p-2 rounded-xl hover:bg-[var(--accent3-dark)] transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] shadow-md"
-          title="افزودن دستور صوتی جدید"
-          aria-label="افزودن دستور صوتی جدید"
-        >
-          <Plus className="w-4 h-4" strokeWidth={2} />
-        </button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                onClick={handleAddCommand}
+                className="bg-[var(--accent3)] text-[var(--bg-main)] p-2 rounded-xl hover:bg-[var(--accent3-dark)] transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] shadow-md"
+                aria-label="افزودن دستور صوتی جدید"
+              >
+                <Plus className="w-4 h-4" strokeWidth={2} />
+              </button>
+            }
+          />
+          <TooltipContent>افزودن دستور صوتی جدید</TooltipContent>
+        </Tooltip>
       </div>
 
       <p className="text-sm text-[var(--text-secondary)] opacity-80 leading-relaxed">
@@ -72,7 +82,7 @@ export default function VoiceCommandsSection() {
       <div className="space-y-3 mt-4">
         <AnimatePresence initial={false}>
           {(!voiceCommands || voiceCommands.length === 0) && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -85,7 +95,7 @@ export default function VoiceCommandsSection() {
                 روی دکمه «+» در بالا بزنید و عبارتی مانند «چراغ پذیرایی روشن» را به عملیات دلخواه
                 متصل کنید.
               </p>
-            </motion.div>
+            </m.div>
           )}
 
           {(voiceCommands || []).map((cmd) =>

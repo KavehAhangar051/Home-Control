@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useIoTStore } from "./useIoTStore";
 
 export const useVoiceCommand = () => {
@@ -15,10 +15,14 @@ export const useVoiceCommand = () => {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // SAFETY: SpeechRecognition and webkitSpeechRecognition are optional browser speech API constructors
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as Window & { SpeechRecognition?: any }).SpeechRecognition ||
+      (window as Window & { webkitSpeechRecognition?: any }).webkitSpeechRecognition;
+
     if (!SpeechRecognition) {
       console.warn("Speech recognition is not supported in this browser.");
+
       return;
     }
 
@@ -29,9 +33,11 @@ export const useVoiceCommand = () => {
 
     recognition.onresult = (event: any) => {
       let fullTranscript = "";
+
       for (let i = 0; i < event.results.length; ++i) {
         fullTranscript += event.results[i][0].transcript;
       }
+
       if (fullTranscript) {
         setTranscript(fullTranscript);
         transcriptRef.current = fullTranscript;
@@ -45,9 +51,11 @@ export const useVoiceCommand = () => {
 
     recognition.onend = () => {
       setIsListening(false);
+
       if (transcriptRef.current && onCommandCompleteRef.current) {
         onCommandCompleteRef.current(transcriptRef.current);
       }
+
       transcriptRef.current = "";
       setTranscript("");
     };
@@ -58,9 +66,11 @@ export const useVoiceCommand = () => {
       recognition.onresult = null;
       recognition.onerror = null;
       recognition.onend = null;
+
       try {
         recognition.abort?.();
       } catch {}
+
       recognitionRef.current = null;
     };
   }, [setIsListening, setTranscript]);

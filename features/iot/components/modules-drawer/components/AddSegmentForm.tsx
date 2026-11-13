@@ -1,12 +1,12 @@
+import { AnimatePresence, m } from "motion/react";
 import React from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Plus, Settings2, ChevronDown } from "@/components/ui/hugeicons";
-import { Segment } from "../core/types";
+import { Card } from "@/components/ui/card";
+import { ChevronDown, Plus, Settings2 } from "@/components/ui/hugeicons";
+import type { Segment } from "../core/types";
 import { useAddSegmentForm } from "../hooks/useAddSegmentForm";
 import ButtonModeSelector from "./ButtonModeSelector";
-import PinSelector from "./PinSelector";
 import FormDetailsInput from "./FormDetailsInput";
-import { Card } from "@/components/ui/card";
+import PinSelector from "./PinSelector";
 
 interface AddSegmentFormProps {
   onAddSegment: (
@@ -67,7 +67,7 @@ export default function AddSegmentForm({
             aria-label="نوع سگمنت مانیتورینگ"
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="w-full h-10 px-3 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl focus:border-[var(--accent3)] outline-none transition-all cursor-pointer font-sans shadow-sm"
+            className="w-full h-10 px-3 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl focus:border-[var(--accent3)] outline-none transition-colors cursor-pointer font-sans shadow-sm"
           >
             <option value="gpio_toggle" className="bg-[var(--card-bg-solid)]">
               خاموش و روشن کردن یک پایه (GPIO Control)
@@ -109,10 +109,11 @@ export default function AddSegmentForm({
 
           <AnimatePresence>
             {showAdvanced && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
+              <m.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.16, ease: "easeOut" }}
                 className="overflow-hidden"
               >
                 <div className="pt-3 pb-1 space-y-4">
@@ -129,20 +130,20 @@ export default function AddSegmentForm({
                     </p>
                   )}
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
 
         {errorText && <p className="text-[10px] text-red-500 font-sans mt-2">{errorText}</p>}
-        <motion.button
+        <m.button
           type="submit"
           whileHover={animationsEnabled ? { scale: 1.02 } : undefined}
           whileTap={animationsEnabled ? { scale: 0.98 } : undefined}
-          className="w-full py-3 bg-[var(--accent3)] text-black font-sans font-black text-sm md:hover:bg-opacity-90 transition-all duration-300 cursor-pointer text-center rounded-xl shadow-md shadow-[var(--accent3-transparent)] mt-4"
+          className="w-full py-3 bg-[var(--accent3)] text-[var(--bg-main)] font-sans font-black text-sm hover:opacity-90 transition-opacity duration-300 cursor-pointer text-center rounded-xl shadow-md shadow-[var(--accent3-transparent)] mt-4"
         >
           ایجاد سگمنت
-        </motion.button>
+        </m.button>
       </Card>
     </form>
   );

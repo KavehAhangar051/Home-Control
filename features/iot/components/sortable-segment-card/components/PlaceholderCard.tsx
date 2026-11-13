@@ -1,15 +1,17 @@
-import React from "react";
-import { motion } from "motion/react";
-import { X, Plus, GripVertical } from "@/components/ui/hugeicons";
+import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
+import { m } from "motion/react";
 import { Card } from "@/components/ui/card";
-import { SegmentData } from "../core/types";
+import { DeleteButton } from "@/components/ui/delete-button";
+import { GripVertical, Plus } from "@/components/ui/hugeicons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { SegmentData } from "../core/types";
 
 interface PlaceholderCardProps {
   segment: SegmentData;
   onRemove: (id: string) => void;
   onSetupPlaceholder?: (id: string) => void;
-  attributes: any;
-  listeners: any;
+  attributes: DraggableAttributes | Record<string, string | number | boolean | undefined>;
+  listeners: DraggableSyntheticListeners;
   isCompact: boolean;
   isUltraCompact: boolean;
   animationsEnabled?: boolean;
@@ -26,72 +28,76 @@ export default function PlaceholderCard({
   animationsEnabled = true,
 }: PlaceholderCardProps) {
   return (
-    <motion.div
+    <m.div
       className="w-full h-full relative"
       layout={animationsEnabled ? "position" : false}
       transition={animationsEnabled ? { type: "spring", stiffness: 380, damping: 32 } : undefined}
-      initial={animationsEnabled ? { opacity: 0, y: 12, filter: "blur(4px)" } : false}
-      animate={animationsEnabled ? { opacity: 1, y: 0, filter: "blur(0px)" } : false}
+      initial={animationsEnabled ? { opacity: 0, y: 12 } : false}
+      animate={animationsEnabled ? { opacity: 1, y: 0 } : false}
       exit={
         animationsEnabled
           ? {
               opacity: 0,
               y: -12,
-              filter: "blur(4px)",
               transition: { duration: 0.15, ease: "easeOut" },
             }
           : undefined
       }
     >
-      <div className="absolute top-2 left-2 z-20 flex gap-1.5">
+      <div className="absolute top-2 left-2 z-20 flex items-center gap-1">
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <div
+                {...attributes}
+                {...listeners}
+                className="w-6 h-6 flex items-center justify-center bg-[var(--secondary)]/80 border border-[var(--border)] md:hover:bg-[var(--accent)] text-[var(--muted-foreground)] md:hover:text-[var(--foreground)] cursor-grab active:cursor-grabbing transition-colors rounded-lg"
+              >
+                <GripVertical className="w-3.5 h-3.5" />
+              </div>
+            }
+          />
+          <TooltipContent>کشیدن جایگاه</TooltipContent>
+        </Tooltip>
+
+        <DeleteButton
+          size="xs"
+          resetAfter={0}
+          onPointerDown={(e) => e.stopPropagation()}
+          onConfirm={() => onRemove(segment.id)}
+          label="حذف جایگاه خالی"
+        />
+      </div>
+
+      <Card className="w-full h-full !gap-0 !overflow-hidden !rounded-xl !border-dashed !border-[var(--border-color)] md:hover:!border-[var(--accent3)] !bg-[var(--card-bg)] !p-0 !ring-0 !shadow-none transition-colors duration-200 group/ph-card">
         <button
           type="button"
-          onClick={() => onRemove(segment.id)}
-          onPointerDown={(e) => e.stopPropagation()}
-          className="p-1.5 bg-[var(--secondary)] border border-[var(--border)] md:hover:bg-[var(--accent)] text-[var(--secondary-foreground)] transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer rounded-md shadow-sm"
-          title="حذف جایگاه خالی"
+          onClick={() => onSetupPlaceholder?.(segment.id)}
+          className={`relative w-full h-full border-0 bg-transparent flex flex-col items-center justify-center gap-2 cursor-pointer text-center rounded-xl overflow-hidden ${
+            isUltraCompact
+              ? "p-2.5 min-h-[78px]"
+              : isCompact
+                ? "p-3 min-h-[96px]"
+                : "p-3.5 sm:p-4 min-h-[108px]"
+          }`}
         >
-          <X className="w-3.5 h-3.5" strokeWidth={2} />
-        </button>
-        <div
-          {...attributes}
-          {...listeners}
-          className="p-1.5 bg-[var(--secondary)] border border-[var(--border)] md:hover:bg-[var(--accent)] text-[var(--secondary-foreground)] cursor-grab active:cursor-grabbing transition-colors rounded-md shadow-sm"
-          title="کشیدن جایگاه"
-        >
-          <GripVertical className="w-3.5 h-3.5" />
-        </div>
-      </div>
-      {/* Translate lives here — GPU composited, never causes paint */}
-      <div className="w-full h-full md:hover:-translate-y-1.5 transition-transform duration-350 rounded-xl group/ph-card">
-        <Card className="w-full h-full !gap-0 !overflow-hidden !rounded-xl !border-dashed !border-[var(--border)] !bg-[var(--card)] !p-0 !shadow-none">
-          <button
-            type="button"
-            onClick={() => onSetupPlaceholder && onSetupPlaceholder(segment.id)}
-            className={`relative w-full h-full border-0 bg-transparent flex flex-col items-center justify-center gap-2 cursor-pointer text-center rounded-xl overflow-hidden ${
-              isUltraCompact
-                ? "p-3 min-h-[90px]"
-                : isCompact
-                  ? "p-4 min-h-[128px]"
-                  : "p-6 min-h-[178px]"
-            }`}
-          >
-            <div
-              className="relative z-10 p-2 rounded-md bg-[var(--muted)] text-[var(--muted-foreground)]"
-              style={{ clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)" }}
-            >
-              <Plus className="w-4 h-4" />
-            </div>
-            {!isUltraCompact && (
-              <div className="relative z-10">
-                <span className="block font-sans font-bold text-xs md:text-sm theme-text-primary">
-                  {isCompact ? "تعیین سگمنت" : "جایگذاری سگمنت در اینجا"}
+          <div className="relative z-10 w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--accent3-transparent)] text-[var(--accent3)] border border-[var(--border-color)] md:group-hover/ph-card:bg-[var(--accent3)] md:group-hover/ph-card:text-[var(--accent3-foreground)] transition-colors">
+            <Plus className="w-4 h-4" strokeWidth={2.5} />
+          </div>
+          {!isUltraCompact && (
+            <div className="relative z-10 flex flex-col items-center gap-0.5">
+              <span className="block font-sans font-bold text-xs theme-text-primary">
+                {isCompact ? "افزودن قطعه" : "تخصیص قطعه هوشمند"}
+              </span>
+              {!isCompact && (
+                <span className="block text-[11px] text-[var(--text-muted)]">
+                  کلیک برای انتخاب پایه و نوع قطعه
                 </span>
-              </div>
-            )}
-          </button>
-        </Card>
-      </div>
-    </motion.div>
+              )}
+            </div>
+          )}
+        </button>
+      </Card>
+    </m.div>
   );
 }

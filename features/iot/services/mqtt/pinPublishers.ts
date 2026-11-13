@@ -1,11 +1,11 @@
 import { publishMqttCommand } from "./client";
 import {
-  MQTT_OPCODES,
-  PIN_COMMAND_BUFFER_SIZE,
+  BATCH_ACTION_SIZE,
+  BATCH_HEADER_SIZE,
   DEFAULT_TIMER_DISABLED,
   MAX_BATCH_ACTIONS,
-  BATCH_HEADER_SIZE,
-  BATCH_ACTION_SIZE,
+  MQTT_OPCODES,
+  PIN_COMMAND_BUFFER_SIZE,
   PIN_STATE_HIGH,
   PIN_STATE_LOW,
 } from "./protocol";
@@ -25,6 +25,7 @@ export const publishBatchPinCommand = (
   actions: Array<{ pin: string; state: boolean; timer?: number }>,
 ) => {
   const actionsLen = actions.length;
+
   if (actionsLen === 0) return;
 
   const count = Math.min(actionsLen, MAX_BATCH_ACTIONS);
@@ -34,6 +35,7 @@ export const publishBatchPinCommand = (
   buf[1] = count;
 
   let offset = BATCH_HEADER_SIZE;
+
   for (let i = 0; i < count; i++) {
     const action = actions[i];
     buf[offset] = (Number(action.pin) | 0) & 0xff;

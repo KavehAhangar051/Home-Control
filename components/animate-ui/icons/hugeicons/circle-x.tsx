@@ -1,0 +1,94 @@
+"use client";
+
+import {
+  getVariants,
+  type IconProps,
+  IconWrapper,
+  useAnimateIconContext,
+} from "@animate-ui/react/icons";
+import { m, type Variants } from "motion/react";
+import * as React from "react";
+
+type CircleXProps = IconProps<keyof typeof animations>;
+
+const animations = {
+  default: {
+    circle: {},
+    line1: {
+      initial: {
+        rotate: 0,
+        transition: { ease: "easeInOut", duration: 0.4 },
+      },
+      animate: {
+        rotate: 90,
+        transition: { ease: "easeInOut", duration: 0.4 },
+      },
+    },
+    line2: {
+      initial: {
+        rotate: 0,
+        transition: { ease: "easeInOut", duration: 0.4, delay: 0.1 },
+      },
+      animate: {
+        rotate: 90,
+        transition: { ease: "easeInOut", duration: 0.4, delay: 0.1 },
+      },
+    },
+  } satisfies Record<string, Variants>,
+} as const;
+
+function IconComponent({ size, ...props }: CircleXProps) {
+  const { controls } = useAnimateIconContext();
+  const variants = getVariants(animations);
+
+  return (
+    <m.svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      {...props}
+    >
+      <m.circle
+        cx={12}
+        cy={12}
+        r={10}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        variants={variants.circle}
+        initial="initial"
+        animate={controls}
+      />
+      <m.path
+        d="M9 15L15 9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        variants={variants.line1}
+        initial="initial"
+        animate={controls}
+      />
+      <m.path
+        d="M9 9L15 15"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        variants={variants.line2}
+        initial="initial"
+        animate={controls}
+      />
+    </m.svg>
+  );
+}
+
+function CircleX(props: CircleXProps) {
+  return <IconWrapper icon={IconComponent} {...props} />;
+}
+
+export {
+  CircleX,
+  CircleX as CircleXIcon,
+  type CircleXProps,
+  type CircleXProps as CircleXIconProps,
+};

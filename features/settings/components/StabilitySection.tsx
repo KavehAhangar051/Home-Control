@@ -5,9 +5,10 @@ import StabilitySectionComponent, {
   InlineStabilitySection,
   StabilitySectionContent,
 } from "./stability-section/StabilitySection";
-import { StabilitySectionProps } from "./stability-section/types";
+import type { StabilitySectionProps } from "./stability-section/types";
 
 export type { StabilitySectionProps };
+
 export { InlineStabilitySection, StabilitySectionContent };
 
 export default function StabilitySection(props: StabilitySectionProps) {

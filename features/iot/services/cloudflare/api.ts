@@ -1,11 +1,19 @@
-import { EspConfig } from "@/features/iot/services/esp32Config";
+import type { EspConfig } from "@/features/iot/services/esp32Config";
 import { getCloudflareWorkerUrl, isCloudflareEnabled } from "./config";
-import { serializeToCloudflare, deserializeFromCloudflare } from "./mappers";
+import { deserializeFromCloudflare, serializeToCloudflare } from "./mappers";
+
+const REQUEST_TIMEOUT_MS = 8000;
+
+function getRequestTimeoutSignal(timeoutMs = REQUEST_TIMEOUT_MS): AbortSignal | undefined {
+  return globalThis.AbortSignal?.timeout?.(timeoutMs);
+}
 
 /**
  * Fetch the latest config from Cloudflare Worker.
  */
-export async function fetchConfigFromCloudflare(): Promise<EspConfig | null> {
+export async function fetchConfigFromCloudflare(options?: {
+  timeoutMs?: number;
+}): Promise<EspConfig | null> {
   if (!isCloudflareEnabled()) return null;
 
   const baseUrl = getCloudflareWorkerUrl();
@@ -17,6 +25,7 @@ export async function fetchConfigFromCloudflare(): Promise<EspConfig | null> {
       headers: {
         Accept: "application/json",
       },
+      signal: getRequestTimeoutSignal(options?.timeoutMs),
     });
 
     if (!res.ok) {
@@ -30,9 +39,16 @@ export async function fetchConfigFromCloudflare(): Promise<EspConfig | null> {
 
     // Keep the active endpoint authoritative; older saved configs may still contain the legacy URL.
     config.worker_url = getCloudflareWorkerUrl();
+
     return config;
   } catch (error) {
-    console.error("Cloudflare fetchConfig error:", error);
+    const isTimeout =
+      error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+
+    if (!isTimeout) {
+      console.warn("Cloudflare fetchConfig failed:", error);
+    }
+
     throw error;
   }
 }
@@ -49,13 +65,18 @@ interface WorkerAckResponse {
   error?: string;
 }
 
+type WorkerPayload =
+  | ReturnType<typeof serializeToCloudflare>
+  | { value: boolean }
+  | { actions: Array<{ pin: string; state: boolean }> };
+
 /**
  * Deep helper to execute Cloudflare Worker JSON POST requests,
  * validating configuration, status, ACK responses, and error conditions.
  */
 async function postWorkerJson(
   endpoint: string,
-  payload: unknown,
+  payload: WorkerPayload,
   defaultSuccessMessage: string,
   errorContextLabel: string,
 ): Promise<AckResult> {
@@ -64,6 +85,7 @@ async function postWorkerJson(
   }
 
   const baseUrl = getCloudflareWorkerUrl();
+
   try {
     const res = await fetch(`${baseUrl}${endpoint}`, {
       method: "POST",
@@ -71,16 +93,37 @@ async function postWorkerJson(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      signal: getRequestTimeoutSignal(),
     });
 
+    if (!res.ok) {
+      let errorMessage = `خطا در ${errorContextLabel}.`;
+
+      try {
+        // SAFETY: error responses from Cloudflare Worker optionally contain JSON with an error field
+        const errorData = (await res.json()) as WorkerAckResponse;
+
+        if (errorData?.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        // Non-JSON error body; fall back to contextual error message.
+      }
+
+      return { success: false, message: errorMessage };
+    }
+
+    // SAFETY: fetch response JSON adheres to WorkerAckResponse schema from Cloudflare Worker
     const data = (await res.json()) as WorkerAckResponse;
-    if (res.ok && data?.ack) {
+
+    if (data?.ack) {
       return { success: true, message: data.message || defaultSuccessMessage };
     }
 
     return { success: false, message: data?.error || `خطا در ${errorContextLabel}.` };
   } catch (error) {
     console.error(`Cloudflare ${endpoint} error:`, error);
+
     return { success: false, message: `تغییرات ${errorContextLabel} بنا به دلایل فنی ذخیره نشد.` };
   }
 }
@@ -90,6 +133,7 @@ async function postWorkerJson(
  */
 export async function saveConfigToCloudflare(config: EspConfig): Promise<AckResult> {
   const payload = serializeToCloudflare(config);
+
   return postWorkerJson("/config", payload, "تنظیمات با موفقیت ذخیره شد.", "ذخیره تنظیمات");
 }
 
@@ -109,6 +153,7 @@ export async function updateBatchPinsOnCloudflare(
   if (!isCloudflareEnabled()) {
     return { success: false, message: "اتصال کلودفلر غیرفعال است." };
   }
+
   if (actions.length === 0) {
     return { success: true, message: "دستوری برای اجرا وجود ندارد." };
   }

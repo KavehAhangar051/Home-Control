@@ -1,7 +1,8 @@
-import * as React from "react";
+import type * as React from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonVariant = "default" | "secondary" | "outline" | "ghost" | "destructive" | "link";
+
 type ButtonSize = "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
 
 const variants: Record<ButtonVariant, string> = {
@@ -62,4 +63,5 @@ export function Button({
     />
   );
 }
+
 Button.displayName = "Button";

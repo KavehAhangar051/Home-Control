@@ -1,5 +1,5 @@
-import { SoundManager } from "./SoundManager";
 import { debugLog } from "@/lib/debug";
+import { SoundManager } from "./SoundManager";
 
 export const soundManager = new SoundManager();
 
@@ -10,13 +10,16 @@ if (typeof window !== "undefined") {
     "click",
     (event) => {
       const target = event.target;
+
       if (!(target instanceof Element)) return;
 
       const interactive = target.closest("button, [role='button'], a");
+
       if (!interactive) return;
 
       const isToggle =
         interactive.classList.contains("switch-toggle") || interactive.closest(".switch-toggle");
+
       if (!isToggle) soundManager.playClick();
     },
     { capture: true },

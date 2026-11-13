@@ -2,7 +2,7 @@
 
 import React from "react";
 import SortableGroupComponent from "./sortable-group";
-import { SortableGroupProps } from "./sortable-group/core/types";
+import type { SortableGroupProps } from "./sortable-group/core/types";
 
 export type { SortableGroupProps };
 

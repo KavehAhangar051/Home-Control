@@ -1,5 +1,5 @@
 import { publishMqttCommand } from "./client";
-import { MQTT_OPCODES, RULE_ACTION_SIZE, PIN_STATE_HIGH, PIN_STATE_LOW } from "./protocol";
+import { MQTT_OPCODES, PIN_STATE_HIGH, PIN_STATE_LOW, RULE_ACTION_SIZE } from "./protocol";
 
 const textEncoder = new TextEncoder();
 
@@ -53,8 +53,10 @@ export const publishUpdateRuleCommand = (
   const idBytes = textEncoder.encode(id);
   const highLen = highActions.length;
   const lowLen = lowActions.length;
+
   const bufSize =
     1 + idBytes.length + 1 + 1 + highLen * RULE_ACTION_SIZE + 1 + lowLen * RULE_ACTION_SIZE;
+
   const buf = new Uint8Array(bufSize);
   const view = new DataView(buf.buffer);
 
@@ -65,6 +67,7 @@ export const publishUpdateRuleCommand = (
   buf[offset++] = 0;
 
   buf[offset++] = highLen;
+
   for (let i = 0; i < highLen; i++) {
     const a = highActions[i];
     buf[offset++] = (Number(a.targetPin || -1) | 0) & 0xff;
@@ -77,6 +80,7 @@ export const publishUpdateRuleCommand = (
   }
 
   buf[offset++] = lowLen;
+
   for (let i = 0; i < lowLen; i++) {
     const a = lowActions[i];
     buf[offset++] = (Number(a.targetPin || -1) | 0) & 0xff;

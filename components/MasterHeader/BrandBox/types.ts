@@ -4,7 +4,6 @@ export interface BrandBoxProps {
   isDark?: boolean;
   setIsDark?: (val: boolean) => void;
   animationsEnabled?: boolean;
-  setIsModulesMenuOpen?: (val: boolean) => void;
   setIsMenuOpen?: (val: boolean) => void;
   groupsCols?: number;
   setGroupsCols?: (val: number) => void;

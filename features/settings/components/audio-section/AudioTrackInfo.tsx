@@ -1,4 +1,5 @@
 import { Download, Music, SkipBack, SkipForward } from "@/components/ui/hugeicons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AudioTrack {
   title: string;
@@ -6,6 +7,7 @@ interface AudioTrack {
   isLocal: boolean;
   url: string;
 }
+
 interface Props {
   trackInfo: AudioTrack | null;
   isLoading: boolean;
@@ -15,6 +17,7 @@ interface Props {
 
 export function AudioTrackInfo({ trackInfo, isLoading, onNext, onPrev }: Props) {
   if (!trackInfo) return null;
+
   return (
     <div className="p-4 bg-[var(--card-bg-solid)] border border-[var(--border-color)] rounded-xl flex items-center justify-between">
       <div className="flex items-center gap-3 max-w-[70%]">
@@ -22,18 +25,26 @@ export function AudioTrackInfo({ trackInfo, isLoading, onNext, onPrev }: Props) 
           <Music aria-hidden="true" className="w-4 h-4 text-[var(--accent3)]" />
         </div>
         <div className="text-right overflow-hidden">
-          <span
-            className="block text-xs font-bold text-[var(--text-primary)] truncate"
-            title={trackInfo.title}
-          >
-            {trackInfo.title}
-          </span>
-          <span
-            className="block text-[10px] text-[var(--text-muted)] mt-0.5 truncate"
-            title={trackInfo.creator}
-          >
-            {trackInfo.creator}
-          </span>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span className="block text-xs font-bold text-[var(--text-primary)] truncate">
+                  {trackInfo.title}
+                </span>
+              }
+            />
+            <TooltipContent>{trackInfo.title}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span className="block text-[10px] text-[var(--text-muted)] mt-0.5 truncate">
+                  {trackInfo.creator}
+                </span>
+              }
+            />
+            <TooltipContent>{trackInfo.creator}</TooltipContent>
+          </Tooltip>
         </div>
       </div>
       <div className="flex items-center gap-3">
@@ -60,16 +71,22 @@ export function AudioTrackInfo({ trackInfo, isLoading, onNext, onPrev }: Props) 
           </div>
         )}
         {!trackInfo.isLocal && (
-          <a
-            href={trackInfo.url}
-            target="_blank"
-            rel="noreferrer"
-            title="دانلود موزیک"
-            aria-label="دانلود موزیک"
-            className="p-1.5 rounded bg-[var(--bg-main)] text-[var(--text-secondary)] hover:text-[var(--accent3)] transition-colors"
-          >
-            <Download aria-hidden="true" className="w-3.5 h-3.5" />
-          </a>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <a
+                  href={trackInfo.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="دانلود موزیک"
+                  className="p-1.5 rounded bg-[var(--bg-main)] text-[var(--text-secondary)] hover:text-[var(--accent3)] transition-colors"
+                >
+                  <Download aria-hidden="true" className="w-3.5 h-3.5" />
+                </a>
+              }
+            />
+            <TooltipContent>دانلود موزیک</TooltipContent>
+          </Tooltip>
         )}
         <div className="flex gap-1" aria-hidden="true">
           {[1, 2, 3, 4].map((bar) => (

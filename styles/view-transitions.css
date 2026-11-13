@@ -1,0 +1,35 @@
+/**
+ * @file styles/view-transitions.css
+ * @description View Transition API rules for ThemeToggle circular reveal and CustomCursor isolation.
+ */
+
+/* Allow pointer events to pass through while view transitions are in flight */
+::view-transition {
+  pointer-events: none;
+}
+
+/* Custom Kinematic Cursor Isolation */
+::view-transition-group(custom-cursor) {
+  animation: none;
+  z-index: 99999;
+}
+
+::view-transition-old(custom-cursor) {
+  display: none;
+}
+
+::view-transition-new(custom-cursor) {
+  animation: none;
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    /* biome-ignore lint/complexity/noImportantStyles: Required for reduced-motion accessibility */
+    animation-duration: 0s !important;
+    /* biome-ignore lint/complexity/noImportantStyles: Required for reduced-motion accessibility */
+    animation-delay: 0s !important;
+  }
+}

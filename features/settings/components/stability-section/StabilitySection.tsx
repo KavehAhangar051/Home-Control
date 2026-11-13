@@ -1,13 +1,13 @@
 "use client";
 
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { Activity, ChevronLeft } from "@/components/ui/hugeicons";
-import { ACCORDION_CLIP } from "@/lib/presets";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import type { StabilitySectionProps } from "./types";
+import { ACCORDION_CLIP } from "@/lib/presets";
 import AnimationsToggle from "./AnimationsToggle";
-import LowDataToggle from "./LowDataToggle";
 import CloudflareIntegration from "./CloudflareIntegration";
+import LowDataToggle from "./LowDataToggle";
+import type { StabilitySectionProps } from "./types";
 
 export function StabilitySectionContent({
   animationsEnabled,
@@ -81,7 +81,7 @@ export default function StabilitySection({
 
   return (
     <div
-      className="border border-accent3-medium overflow-hidden transition-all duration-300"
+      className="border border-accent3-medium overflow-hidden transition-colors duration-300"
       style={{ clipPath: ACCORDION_CLIP }}
     >
       <button
@@ -106,11 +106,11 @@ export default function StabilitySection({
       </button>
       <AnimatePresence>
         {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
+          <m.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
             className="theme-card-bg-solid border-t border-accent3-medium/30 p-4 space-y-4 overflow-hidden"
           >
             <StabilitySectionContent
@@ -120,7 +120,7 @@ export default function StabilitySection({
               setAnimationsFps={setAnimationsFps}
               isDark={isDark}
             />
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

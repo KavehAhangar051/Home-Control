@@ -1,7 +1,7 @@
 import type { PointerEvent } from "react";
-import { useVoiceCommand } from "@/features/iot/hooks/useVoiceCommand";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { useVoiceCommand } from "@/features/iot/hooks/useVoiceCommand";
 import { executeVoiceCommand } from "./utils";
 
 export interface UseVoiceCommandHandlerOptions {
@@ -26,10 +26,12 @@ export function useVoiceCommandHandler(options: UseVoiceCommandHandlerOptions = 
   const handlePointerDown = (e: PointerEvent) => {
     e.preventDefault();
     e.currentTarget.setPointerCapture?.(e.pointerId);
+
     if (openSettingsOnStart) {
       setIsMenuOpen(true);
       setActiveSettingsTab("voice");
     }
+
     startListening((finalTranscript) => {
       executeVoiceCommand(finalTranscript, {
         voiceCommands,
@@ -44,9 +46,11 @@ export function useVoiceCommandHandler(options: UseVoiceCommandHandlerOptions = 
 
   const releaseAndStop = (e: PointerEvent) => {
     e.preventDefault();
+
     try {
       e.currentTarget.releasePointerCapture?.(e.pointerId);
     } catch {}
+
     stopListening();
   };
 

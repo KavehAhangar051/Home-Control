@@ -29,13 +29,13 @@ export default function VerticalVoiceButton({
       className={`w-full flex items-center justify-between p-3 rounded-md border transition-colors duration-200 group select-none ${
         isListening
           ? "bg-[var(--accent4-transparent)] border-[var(--accent4)] text-[var(--accent4)]"
-          : "border-[var(--sidebar-border)] bg-[var(--sidebar-control-bg)] md:hover:bg-[var(--sidebar-hover)] md:hover:border-[var(--sidebar-border)] text-[var(--sidebar-muted)] md:hover:text-[var(--sidebar-text)]"
+          : "border-[var(--sidebar-border)] bg-[var(--sidebar-control-bg)] md:hover:bg-[var(--accent3-transparent)] md:hover:border-[var(--accent3)] text-[var(--sidebar-muted)] md:hover:text-[var(--accent3)]"
       }`}
       aria-label={isListening ? "در حال شنیدن فرمان صوتی" : "فرمان صوتی (نگه دارید)"}
     >
       <div className="flex items-center gap-2.5">
         <div
-          className={`p-1.5 rounded-md transition-colors ${isListening ? "bg-[var(--accent4)] text-white" : "bg-[var(--sidebar-hover)] text-[var(--sidebar-text)]"}`}
+          className={`p-1.5 rounded-md transition-colors ${isListening ? "bg-[var(--accent4)] text-white" : "bg-[var(--sidebar-hover)] group-hover:bg-[var(--accent3-medium)] text-[var(--sidebar-text)] group-hover:text-[var(--accent3)]"}`}
         >
           <Mic
             aria-hidden="true"

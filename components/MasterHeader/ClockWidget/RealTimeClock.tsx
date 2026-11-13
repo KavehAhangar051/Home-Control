@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Clock } from "@/components/ui/hugeicons";
 
 export default function RealTimeClock({
@@ -7,6 +8,40 @@ export default function RealTimeClock({
   time: Date | null;
   className?: string;
 }) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [isParentHovered, setIsParentHovered] = useState(false);
+  const hasTime = time !== null;
+
+  useEffect(() => {
+    if (!hasTime) return;
+    const svgEl = svgRef.current;
+
+    if (!svgEl) return;
+
+    const hoverTarget =
+      svgEl.closest<HTMLElement>("[data-animate-icon-parent]") ?? svgEl.parentElement;
+
+    if (!hoverTarget) return;
+
+    const handlePointerEnter = (e: PointerEvent) => {
+      if (e.pointerType !== "touch") {
+        setIsParentHovered(true);
+      }
+    };
+
+    const handlePointerLeave = () => {
+      setIsParentHovered(false);
+    };
+
+    hoverTarget.addEventListener("pointerenter", handlePointerEnter, { passive: true });
+    hoverTarget.addEventListener("pointerleave", handlePointerLeave, { passive: true });
+
+    return () => {
+      hoverTarget.removeEventListener("pointerenter", handlePointerEnter);
+      hoverTarget.removeEventListener("pointerleave", handlePointerLeave);
+    };
+  }, [hasTime]);
+
   if (!time) {
     return <Clock className={className} />;
   }
@@ -15,11 +50,12 @@ export default function RealTimeClock({
   const minutes = time.getMinutes();
   const seconds = time.getSeconds();
 
-  const hourRotation = (hours % 12) * 30 + minutes * 0.5;
-  const minuteRotation = minutes * 6 + seconds * 0.1;
+  const hourRotation = (hours % 12) * 30 + minutes * 0.5 + (isParentHovered ? 30 : 0);
+  const minuteRotation = minutes * 6 + seconds * 0.1 + (isParentHovered ? 360 : 0);
 
   return (
     <svg
+      ref={svgRef}
       xmlns="http://www.w3.org/2000/svg"
       width="24"
       height="24"
@@ -41,7 +77,7 @@ export default function RealTimeClock({
         style={{
           transform: `rotate(${hourRotation}deg)`,
           transformOrigin: "12px 12px",
-          transition: "transform 0.2s linear",
+          transition: "transform 0.55s cubic-bezier(0.2, 0, 0, 1)",
         }}
       />
       <line
@@ -52,7 +88,7 @@ export default function RealTimeClock({
         style={{
           transform: `rotate(${minuteRotation}deg)`,
           transformOrigin: "12px 12px",
-          transition: "transform 0.2s linear",
+          transition: "transform 0.55s cubic-bezier(0.2, 0, 0, 1)",
         }}
       />
     </svg>

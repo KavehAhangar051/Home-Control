@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
   publishAddSegmentCommand,
@@ -9,12 +9,12 @@ import {
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 
 interface UseSegmentManagementProps {
-  setIsModulesMenuOpen: (open: boolean) => void;
+  setActiveWorkspaceView: (view: "home" | "modules" | "automations" | "settings") => void;
   updatePinOnServer: (pin: string, state: boolean) => Promise<void>;
 }
 
 export function useSegmentManagement({
-  setIsModulesMenuOpen,
+  setActiveWorkspaceView,
   updatePinOnServer,
 }: UseSegmentManagementProps) {
   const setSegments = useIoTStore((state) => state.setSegments);
@@ -36,14 +36,17 @@ export function useSegmentManagement({
       // Clean Architecture Domain Invariant: Guard against invalid hardware pins
       if (pin && type !== "placeholder") {
         const validation = validateEsp32Pin(pin, type);
+
         if (!validation.isValid) {
           useIoTStore.getState().showToast(validation.message, "error");
+
           return;
         }
       }
 
       const randomId = Math.random().toString(36).substring(2, 9);
       const finalGroup = group || "Test";
+
       const newSeg = {
         id: randomId,
         type,
@@ -57,34 +60,42 @@ export function useSegmentManagement({
 
       setGroupConfigs((prev) => {
         const current = prev[finalGroup] || { maxCols: 3 };
+
         if (groupIcon && !("icon" in current && current.icon)) {
           return { ...prev, [finalGroup]: { ...current, icon: groupIcon } };
         }
+
         if (!prev[finalGroup]) {
           return { ...prev, [finalGroup]: current };
         }
+
         return prev;
       });
 
       setGroupsOrder((prev) => (prev.includes(finalGroup) ? prev : [...prev, finalGroup]));
 
       const segments = useIoTStore.getState().segments;
-      let updated = [...segments];
+      const updated = [...segments];
+
       if (targetPlaceholderId) {
         const index = updated.findIndex((s) => s.id === targetPlaceholderId);
+
         if (index !== -1) {
           newSeg.group = updated[index].group || "Test";
           updated[index] = newSeg;
         } else {
           updated.push(newSeg);
         }
+
         setTargetPlaceholderId(null);
       } else {
         updated.push(newSeg);
       }
+
       setSegments(updated);
 
       const pinsState = useIoTStore.getState().pinsState;
+
       if (pinsState[pin] === undefined) {
         updatePinOnServer(pin, false);
       }
@@ -115,10 +126,15 @@ export function useSegmentManagement({
   const handleSetupPlaceholder = useCallback(
     (id: string) => {
       setTargetPlaceholderId(id);
-      setIsModulesMenuOpen(true);
+      useIoTStore.getState().setActiveModulesTab("add");
+      setActiveWorkspaceView("modules");
     },
-    [setIsModulesMenuOpen],
+    [setActiveWorkspaceView],
   );
+
+  const clearTargetPlaceholder = useCallback(() => {
+    setTargetPlaceholderId(null);
+  }, []);
 
   const handleGroupColsChange = useCallback(
     (group: string, maxCols: number) => {
@@ -146,6 +162,7 @@ export function useSegmentManagement({
 
   return {
     targetPlaceholderId,
+    clearTargetPlaceholder,
     handleAddSegment,
     handleAddPlaceholder,
     handleSetupPlaceholder,

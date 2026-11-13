@@ -1,10 +1,12 @@
-import React from "react";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, Clock, Thermometer, Layers } from "@/components/ui/hugeicons";
-import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { Card } from "@/components/ui/card";
+import { DeleteButton } from "@/components/ui/delete-button";
+import { Clock, Edit2, Layers, Thermometer } from "@/components/ui/hugeicons";
+import { Toggle } from "@/components/ui/toggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useOptionalAutomationContext } from "../../context/AutomationContext";
-import { DAYS_MAP } from "../AutomationForm/AutomationFields";
+import { DAYS_MAP } from "../AutomationForm/constants";
 
 interface AutomationListProps {
   handleEdit?: (auto: any) => void;
@@ -25,7 +27,7 @@ export default function AutomationList({
   const handleToggle = propHandleToggle ?? context?.actions.handleToggle ?? (() => {});
 
   return (
-    <div className="space-y-4 mt-6 border-t border-[var(--border-color)] pt-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between px-1">
         <h3 className="font-bold text-[var(--text-primary)]">مدیریت اتوماسیون‌ها</h3>
         <span className="text-xs tabular-nums text-[var(--text-secondary)]">
@@ -40,7 +42,8 @@ export default function AutomationList({
             هنوز اتوماسیونی ثبت نشده است
           </p>
           <p className="text-xs text-[var(--text-secondary)] max-w-xs leading-relaxed">
-            از فرم کناری یک زمان‌بندی، تایمر یا شرط دمایی تعریف کنید تا تجهیزات خودکار عمل کنند.
+            از بخش «افزودن اتوماسیون جدید» یک زمان‌بندی، تایمر یا شرط دمایی تعریف کنید تا تجهیزات
+            خودکار عمل کنند.
           </p>
         </Card>
       ) : (
@@ -77,17 +80,14 @@ export default function AutomationList({
                     >
                       {auto.enabled ? "فعال" : "غیرفعال"}
                     </span>
-                    <Button
-                      variant="ghost"
-                      type="button"
-                      role="switch"
-                      aria-checked={auto.enabled}
+                    <Toggle
+                      pressed={auto.enabled}
+                      onPressedChange={(pressed) => handleToggle(auto.id, pressed)}
                       aria-label={`وضعیت اتوماسیون ${auto.title}`}
-                      onClick={() => handleToggle(auto.id, !auto.enabled)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)] motion-reduce:transition-none ${auto.enabled ? "justify-end border-emerald-700 bg-emerald-600" : "justify-start border-[var(--border-color)] bg-[var(--card-hover-bg)]"}`}
+                      className={`relative inline-flex h-6 w-11 min-w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)] motion-reduce:transition-none ${auto.enabled ? "justify-end border-emerald-700 bg-emerald-600 hover:bg-emerald-600 aria-pressed:bg-emerald-600 data-[state=on]:bg-emerald-600" : "justify-start border-[var(--border-color)] bg-[var(--card-hover-bg)] hover:bg-[var(--card-hover-bg)]"}`}
                     >
                       <span className="pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm ring-1 ring-black/10" />
-                    </Button>
+                    </Toggle>
                   </div>
                 </div>
 
@@ -151,26 +151,28 @@ export default function AutomationList({
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      type="button"
-                      onClick={() => handleEdit(auto)}
-                      aria-label={`ویرایش اتوماسیون ${auto.title}`}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-primary)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)]"
-                      title="ویرایش"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      type="button"
-                      onClick={() => handleDelete(auto.id)}
-                      aria-label={`حذف اتوماسیون ${auto.title}`}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--destructive)] transition-colors hover:bg-[var(--destructive)]/10 hover:text-[var(--destructive)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)]"
-                      title="حذف"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            type="button"
+                            onClick={() => handleEdit(auto)}
+                            aria-label={`ویرایش اتوماسیون ${auto.title}`}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-primary)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)]"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        }
+                      />
+                      <TooltipContent>ویرایش</TooltipContent>
+                    </Tooltip>
+                    <DeleteButton
+                      size="sm"
+                      resetAfter={0}
+                      onConfirm={() => handleDelete(auto.id)}
+                      label={`حذف اتوماسیون ${auto.title}`}
+                    />
                   </div>
                 </div>
               </Card>

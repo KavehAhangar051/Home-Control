@@ -1,43 +1,84 @@
-import React, { useState, useEffect } from "react";
-import { soundManager } from "@/lib/audio";
-import { reconnectMqtt, getMqttSettings } from "@/features/iot/services/mqttService";
-import { RefreshCw, Save } from "@/components/ui/hugeicons";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import { RefreshCw, Save } from "@/components/ui/hugeicons";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
   fetchConfigFromCloudflare,
   saveConfigToCloudflare,
 } from "@/features/iot/services/cloudflare/api";
-import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { getMqttSettings, reconnectMqtt } from "@/features/iot/services/mqttService";
+import { soundManager } from "@/lib/audio";
 import { MqttFormFields } from "./MqttFormFields";
 import { MqttQosSelector } from "./MqttQosSelector";
 
+type MqttLocalOverrides = {
+  brokerWsUrl?: string;
+  brokerHost?: string;
+  brokerPort?: number;
+  baseTopic?: string;
+  qos?: 0 | 1 | 2;
+};
+
+const subscribeMqttDefaults = () => () => {};
+const getServerMqttSettingsSnapshot = () => "";
+
+function getClientMqttSettingsSnapshot(): string {
+  const settings = getMqttSettings();
+
+  return JSON.stringify({
+    brokerUrl: settings.brokerUrl,
+    baseTopic: settings.baseTopic,
+    qos: settings.qos,
+  });
+}
+
 export default function MqttSection() {
-  const [brokerWsUrl, setBrokerWsUrl] = useState("");
-  const [brokerHost, setBrokerHost] = useState("");
-  const [brokerPort, setBrokerPort] = useState(1883);
-  const [baseTopic, setBaseTopic] = useState("");
-  const [qos, setQos] = useState<0 | 1 | 2>(1);
+  const settingsJson = useSyncExternalStore(
+    subscribeMqttDefaults,
+    getClientMqttSettingsSnapshot,
+    getServerMqttSettingsSnapshot,
+  );
+
+  // SAFETY: settingsJson is produced by getClientMqttSettingsSnapshot
+  const initialSettings = settingsJson
+    ? (JSON.parse(settingsJson) as { brokerUrl: string; baseTopic: string; qos: 0 | 1 | 2 })
+    : null;
+
+  const [overrides, setOverrides] = useState<MqttLocalOverrides>({});
   const [isSaved, setIsSaved] = useState(false);
   const setMqttConfig = useIoTStore((state) => state.setMqttConfig);
   const showToast = useIoTStore((state) => state.showToast);
 
+  const brokerWsUrl = overrides.brokerWsUrl ?? initialSettings?.brokerUrl ?? "";
+  const brokerHost = overrides.brokerHost ?? (initialSettings ? "broker.emqx.io" : "");
+  const brokerPort = overrides.brokerPort ?? 1883;
+  const baseTopic = overrides.baseTopic ?? initialSettings?.baseTopic ?? "";
+  const qos = overrides.qos ?? initialSettings?.qos ?? 1;
+
+  const setBrokerWsUrl = (val: string) => setOverrides((prev) => ({ ...prev, brokerWsUrl: val }));
+  const setBrokerHost = (val: string) => setOverrides((prev) => ({ ...prev, brokerHost: val }));
+  const setBrokerPort = (val: number) => setOverrides((prev) => ({ ...prev, brokerPort: val }));
+  const setBaseTopic = (val: string) => setOverrides((prev) => ({ ...prev, baseTopic: val }));
+  const setQos = (val: 0 | 1 | 2) => setOverrides((prev) => ({ ...prev, qos: val }));
+
   useEffect(() => {
-    const settings = getMqttSettings();
-    setBrokerWsUrl(settings.brokerUrl);
-    setBrokerHost("broker.emqx.io");
-    setBrokerPort(1883);
-    setBaseTopic(settings.baseTopic);
-    setQos(settings.qos);
+    let isCancelled = false;
 
     fetchConfigFromCloudflare().then((config) => {
-      if (config && config.mqtt) {
-        setBrokerWsUrl(config.mqtt.broker_ws_url);
-        setBrokerHost(config.mqtt.broker_host);
-        setBrokerPort(config.mqtt.broker_port);
-        setBaseTopic(config.mqtt.base_topic);
-        setQos(config.mqtt.qos);
-      }
+      if (isCancelled || !config?.mqtt) return;
+
+      setOverrides({
+        brokerWsUrl: config.mqtt.broker_ws_url,
+        brokerHost: config.mqtt.broker_host,
+        brokerPort: config.mqtt.broker_port,
+        baseTopic: config.mqtt.base_topic,
+        qos: config.mqtt.qos,
+      });
     });
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const handleSaveAndReconnect = async () => {
@@ -54,16 +95,21 @@ export default function MqttSection() {
       base_topic: baseTopic,
       qos: qos,
     };
+
     setMqttConfig(newMqttConfig);
 
     try {
       const config = await fetchConfigFromCloudflare();
+
       if (!config) {
         showToast("تنظیمات سرور دریافت نشد؛ اتصال کلودفلر را بررسی کنید.", "error");
+
         return;
       }
+
       config.mqtt = newMqttConfig;
       const res = await saveConfigToCloudflare(config);
+
       if (res.success) {
         showToast(res.message, "success");
         setIsSaved(true);
@@ -109,7 +155,7 @@ export default function MqttSection() {
         className={`w-full h-auto min-h-12 rounded-xl px-4 py-3.5 text-sm font-bold transition-colors focus-visible:ring-[var(--accent3)] ${
           isSaved
             ? "border-[var(--accent4)] bg-[var(--accent4-transparent)] text-[var(--accent4)] hover:border-[var(--accent4)] hover:bg-[var(--accent4-transparent)] hover:text-[var(--accent4)]"
-            : "border-transparent bg-[var(--accent3)] text-white shadow-sm hover:bg-[var(--accent3-dark)] hover:text-white"
+            : "border-transparent bg-[var(--accent3)] text-[var(--bg-main)] shadow-sm hover:bg-[var(--accent3-dark)] hover:text-[var(--bg-main)]"
         }`}
       >
         {isSaved ? (

@@ -1,7 +1,7 @@
 import { defaultDeviceSyncGateway } from "@/features/iot/services/deviceGatewayAdapter";
-import type { SinglePinSyncOptions, BatchPinSyncOptions } from "@/features/iot/services/ports";
+import type { BatchPinSyncOptions, SinglePinSyncOptions } from "@/features/iot/services/ports";
 
-export type { SinglePinSyncOptions, BatchPinSyncOptions };
+export type { BatchPinSyncOptions, SinglePinSyncOptions };
 
 /**
  * Deep sync function for a single pin across available transports:
@@ -16,11 +16,13 @@ export async function syncSinglePin(
   isPushMode?: boolean,
   showToast?: (message: string, type: "success" | "error") => void,
 ): Promise<void> {
+  const isBool = optionsOrPreventMqtt === true || optionsOrPreventMqtt === false;
+
   const options: SinglePinSyncOptions =
-    typeof optionsOrPreventMqtt === "object" && optionsOrPreventMqtt !== null
+    !isBool && optionsOrPreventMqtt
       ? optionsOrPreventMqtt
       : {
-          preventMqtt: Boolean(optionsOrPreventMqtt),
+          preventMqtt: optionsOrPreventMqtt === true,
           autoOff,
           isPushMode,
           showToast,

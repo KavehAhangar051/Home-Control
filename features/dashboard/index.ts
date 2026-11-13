@@ -1,10 +1,12 @@
 export { default as DashboardContainer } from "./components/layout/DashboardContainer";
-export { DashboardContext, DashboardProvider, useDashboard } from "./context/DashboardContext";
+
+export { DashboardProvider, useDashboard } from "./context/DashboardContext";
+
 export {
-  SETTINGS_TABS,
-  WORKSPACE_VIEW_META,
   resolveSettingsTabId,
+  SETTINGS_TABS,
   type SettingsTabId,
   type SettingsTabMeta,
+  WORKSPACE_VIEW_META,
   type WorkspaceViewMeta,
 } from "./navigation";

@@ -1,5 +1,5 @@
-import { StateCreator } from "zustand";
-import { IoTStoreState, SyncSlice } from "../types";
+import type { StateCreator } from "zustand";
+import type { IoTStoreState, SyncSlice } from "../types";
 
 export const createSyncSlice: StateCreator<IoTStoreState, [], [], SyncSlice> = (set) => ({
   isInitialSyncLoading: false,

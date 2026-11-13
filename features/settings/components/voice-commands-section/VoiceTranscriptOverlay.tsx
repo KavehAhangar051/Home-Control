@@ -1,5 +1,4 @@
-import React from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 
 interface Props {
   isListening: boolean;
@@ -10,10 +9,11 @@ export function VoiceTranscriptOverlay({ isListening, voiceTranscript }: Props) 
   return (
     <AnimatePresence>
       {isListening && (
-        <motion.div
-          initial={{ opacity: 0, height: 0, scale: 0.95 }}
-          animate={{ opacity: 1, height: "auto", scale: 1 }}
-          exit={{ opacity: 0, height: 0, scale: 0.95 }}
+        <m.div
+          initial={{ opacity: 0, y: -6, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.96 }}
+          transition={{ duration: 0.16, ease: "easeOut" }}
           className="overflow-hidden mt-4"
         >
           <div className="bg-[var(--accent4-transparent)] border border-[var(--accent4)] rounded-2xl p-4 flex flex-col items-center justify-center gap-3 relative shadow-lg shadow-[var(--accent4)]/10">
@@ -29,7 +29,7 @@ export function VoiceTranscriptOverlay({ isListening, voiceTranscript }: Props) 
               </p>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

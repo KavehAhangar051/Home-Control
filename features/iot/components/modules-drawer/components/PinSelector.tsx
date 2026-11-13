@@ -22,7 +22,7 @@ export default function PinSelector({ customPin, setCustomPin }: PinSelectorProp
         placeholder="مثال: 14"
         value={customPin}
         onChange={(e) => setCustomPin(e.target.value.replace(/[^0-9]/g, ""))}
-        className="w-full h-10 px-3 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl focus:border-[var(--accent3)] outline-none transition-all font-sans text-right placeholder:text-[var(--text-muted)] shadow-sm"
+        className="w-full h-10 px-3 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl focus:border-[var(--accent3)] outline-none transition-colors font-sans text-right placeholder:text-[var(--text-muted)] shadow-sm"
         dir="ltr"
       />
     </div>

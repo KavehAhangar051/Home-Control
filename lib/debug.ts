@@ -1,31 +1,27 @@
 import { FEATURE_FLAGS } from "./featureFlags";
 
-type LogDetails = Record<string, unknown> | unknown;
-
 function write(
   level: "debug" | "info" | "warn" | "error",
   scope: string,
   message: string,
-  details?: LogDetails,
+  cause?: unknown,
 ) {
   if (level === "debug" && !FEATURE_FLAGS.debugLogging) return;
 
   const prefix = `[HomeControl:${scope}]`;
+  // SAFETY: console[level] is guaranteed to be a callable console logging method
   const logger = console[level] as (...args: unknown[]) => void;
-  if (details === undefined) {
+
+  if (cause === undefined) {
     logger(prefix, message);
   } else {
-    logger(prefix, message, details);
+    logger(prefix, message, cause);
   }
 }
 
 export const debugLog = {
-  debug: (scope: string, message: string, details?: LogDetails) =>
-    write("debug", scope, message, details),
-  info: (scope: string, message: string, details?: LogDetails) =>
-    write("info", scope, message, details),
-  warn: (scope: string, message: string, details?: LogDetails) =>
-    write("warn", scope, message, details),
-  error: (scope: string, message: string, details?: LogDetails) =>
-    write("error", scope, message, details),
+  debug: (scope: string, message: string, cause?: unknown) => write("debug", scope, message, cause),
+  info: (scope: string, message: string, cause?: unknown) => write("info", scope, message, cause),
+  warn: (scope: string, message: string, cause?: unknown) => write("warn", scope, message, cause),
+  error: (scope: string, message: string, cause?: unknown) => write("error", scope, message, cause),
 };

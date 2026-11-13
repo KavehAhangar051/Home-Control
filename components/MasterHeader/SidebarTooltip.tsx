@@ -1,7 +1,7 @@
 "use client";
 
 import { isValidElement, type ReactElement, type ReactNode } from "react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SidebarTooltipProps {
   label: string;
@@ -14,14 +14,15 @@ export default function SidebarTooltip({ label, enabled, children }: SidebarTool
     return children;
   }
 
+  // SAFETY: isValidElement(children) guard verified children is a ReactElement
+  const triggerElement = children as ReactElement;
+
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger render={children as ReactElement} />
-        <TooltipContent side="left" sideOffset={8}>
-          {label}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger render={triggerElement} />
+      <TooltipContent side="left" sideOffset={8}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
   );
 }

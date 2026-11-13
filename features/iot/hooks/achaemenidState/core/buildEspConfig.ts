@@ -1,5 +1,5 @@
-import { EspConfig } from "@/features/iot/services/esp32Config";
 import { getCloudflareWorkerUrl } from "@/features/iot/services/cloudflareService";
+import type { EspConfig } from "@/features/iot/services/esp32Config";
 
 export function buildEspConfig(params: any): EspConfig {
   return {

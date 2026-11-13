@@ -1,4 +1,4 @@
-import { EspConfig } from "@/features/iot/services/esp32Config";
+import type { EspConfig } from "@/features/iot/services/esp32Config";
 import { getCloudflareWorkerUrl } from "./config";
 
 /**
@@ -18,7 +18,7 @@ export function serializeToCloudflare(config: any): any {
       theme_mode: config.preferences?.theme_mode || "dark",
       accent_color_3: config.preferences?.accent_color_3 || "#D4AF37",
       accent_color_4: config.preferences?.accent_color_4 || "#10B981",
-      font_family: config.preferences?.font_family || "vazir",
+      font_family: config.preferences?.font_family || "dana",
       animations_enabled: config.preferences?.animations_enabled ?? true,
       animations_fps: config.preferences?.animations_fps ?? 60,
       header_animation: config.preferences?.header_animation || "fade",
@@ -73,7 +73,7 @@ export function deserializeFromCloudflare(cfData: any): EspConfig {
       theme_mode: cfData.preferences?.theme_mode || "dark",
       accent_color_3: cfData.preferences?.accent_color_3 || "#D4AF37",
       accent_color_4: cfData.preferences?.accent_color_4 || "#10B981",
-      font_family: cfData.preferences?.font_family || "vazir",
+      font_family: cfData.preferences?.font_family || "dana",
       animations_enabled: cfData.preferences?.animations_enabled ?? true,
       animations_fps: cfData.preferences?.animations_fps ?? 60,
       header_animation: cfData.preferences?.header_animation || "fade",
@@ -105,11 +105,13 @@ export function deserializeFromCloudflare(cfData: any): EspConfig {
       // Migrate old schema to new multiple-actions schema
       if (auto.targetPin !== undefined && !auto.actions) {
         const { targetPin, actionOn, ...rest } = auto;
+
         return {
           ...rest,
           actions: [{ targetPin, actionOn }],
         };
       }
+
       return auto;
     }),
     macros: cfData.macros || [],

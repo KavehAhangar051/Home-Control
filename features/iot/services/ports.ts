@@ -4,7 +4,7 @@
  * external delivery, hardware protocols (MQTT / WebSocket), and cloud APIs.
  */
 
-import { EspConfig } from "@/features/iot/services/config/types";
+import type { EspConfig } from "@/features/iot/services/config/types";
 
 export interface PinAction {
   pin: string;

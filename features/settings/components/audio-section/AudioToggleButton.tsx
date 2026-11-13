@@ -1,6 +1,5 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
 import { Activity, VolumeX } from "@/components/ui/hugeicons";
+import { Toggle } from "@/components/ui/toggle";
 
 interface Props {
   isMusicOn: boolean;
@@ -15,14 +14,15 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
         پخش پیوسته موزیک پس‌زمینه برای افزایش تمرکز و آرامش حین استفاده از داشبورد هوشمند.
       </p>
 
-      <Button
-        variant="ghost"
-        onClick={onToggle}
-        type="button"
+      <Toggle
+        variant="outline"
+        pressed={isMusicOn}
+        onPressedChange={() => onToggle()}
         disabled={isLoading}
+        aria-label="موزیک پس‌زمینه"
         className={`switch-toggle w-full h-auto min-h-[5.5rem] flex-row-reverse justify-between gap-3 whitespace-normal rounded-2xl border p-4 text-right transition-colors duration-200 hover:bg-[var(--card-hover-bg)] hover:text-[var(--text-primary)] focus-visible:ring-[var(--accent3)] group ${
           isMusicOn
-            ? "bg-[var(--accent3-transparent)] border-[var(--accent3)] shadow-[var(--accent3-transparent)]"
+            ? "bg-[var(--accent3-transparent)] aria-pressed:bg-[var(--accent3-transparent)] data-[state=on]:bg-[var(--accent3-transparent)] border-[var(--accent3)] shadow-[var(--accent3-transparent)]"
             : "bg-[var(--card-bg-solid)] border-[var(--border-color)] hover:border-[var(--text-muted)]"
         } ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
       >
@@ -34,8 +34,10 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
           }`}
         >
           <div
-            className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${
-              isMusicOn ? "translate-x-0" : "-translate-x-4"
+            className={`w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ${
+              isMusicOn
+                ? "bg-[var(--bg-main)] translate-x-0"
+                : "bg-[var(--text-secondary)] -translate-x-4"
             }`}
           />
         </div>
@@ -61,12 +63,12 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
           }`}
         >
           {isMusicOn ? (
-            <Activity className="w-5 h-5 animate-pulse" />
+            <Activity className="size-5 animate-pulse" />
           ) : (
-            <VolumeX className="w-5 h-5" />
+            <VolumeX className="size-5" />
           )}
         </div>
-      </Button>
+      </Toggle>
     </div>
   );
 }

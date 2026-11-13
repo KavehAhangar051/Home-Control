@@ -1,5 +1,5 @@
-import { StateCreator } from "zustand";
-import { IoTStoreState, SystemSlice } from "../types";
+import type { StateCreator } from "zustand";
+import type { IoTStoreState, SystemSlice } from "../types";
 
 export const createSystemSlice: StateCreator<IoTStoreState, [], [], SystemSlice> = (set) => ({
   automations: [],
@@ -10,14 +10,16 @@ export const createSystemSlice: StateCreator<IoTStoreState, [], [], SystemSlice>
 
   setAutomations: (automations) => {
     set((state) => {
-      const next = typeof automations === "function" ? automations(state.automations) : automations;
+      const next = automations instanceof Function ? automations(state.automations) : automations;
+
       return { automations: next };
     });
   },
 
   setMacros: (macros) => {
     set((state) => {
-      const next = typeof macros === "function" ? macros(state.macros) : macros;
+      const next = macros instanceof Function ? macros(state.macros) : macros;
+
       return { macros: next };
     });
   },
@@ -25,14 +27,16 @@ export const createSystemSlice: StateCreator<IoTStoreState, [], [], SystemSlice>
   setVoiceCommands: (voiceCommands) => {
     set((state) => {
       const next =
-        typeof voiceCommands === "function" ? voiceCommands(state.voiceCommands) : voiceCommands;
+        voiceCommands instanceof Function ? voiceCommands(state.voiceCommands) : voiceCommands;
+
       return { voiceCommands: next };
     });
   },
 
   setWifiNetworks: (networks) => {
     set((state) => {
-      const next = typeof networks === "function" ? networks(state.wifiNetworks) : networks;
+      const next = networks instanceof Function ? networks(state.wifiNetworks) : networks;
+
       return { wifiNetworks: next };
     });
   },

@@ -1,6 +1,6 @@
 import { Plus } from "@/components/ui/hugeicons";
-import { ConditionActionItem, type ConditionAction } from "./ConditionActionItem";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { type ConditionAction, ConditionActionItem } from "./ConditionActionItem";
 
 interface Props {
   type: "high" | "low";
@@ -13,9 +13,11 @@ export function ConditionActionsList({ type, actions, onUpdate }: Props) {
   const isHigh = type === "high";
   const colorClasses = isHigh ? "text-[var(--accent4)]" : "text-[var(--accent3)]";
   const bgClass = isHigh ? "bg-[var(--accent4)]" : "bg-[var(--accent3)]";
+
   const borderClass = isHigh
     ? "border-[var(--accent4-transparent)]"
     : "border-[var(--accent3-transparent)]";
+
   const containerBg = isHigh
     ? "bg-[var(--accent4-transparent)]"
     : "bg-[var(--accent3-transparent)]";
@@ -23,22 +25,27 @@ export function ConditionActionsList({ type, actions, onUpdate }: Props) {
   const addAction = () => {
     if (actions.length >= 4) {
       showToast("حداکثر ۴ عملیات برای هر وضعیت مجاز است", "error");
+
       return;
     }
+
     const availableHolds = [0, 3, 5, 10].filter(
       (hold) => !actions.some((action) => action.reqHold === hold),
     );
+
     if (availableHolds.length === 0) return;
     onUpdate([
       ...actions,
       { reqHold: availableHolds[0], targetPin: "", actionOn: true, actionType: 0, delay: 0 },
     ]);
   };
+
   const removeAction = (index: number) => {
     const next = [...actions];
     next.splice(index, 1);
     onUpdate(next);
   };
+
   const updateAction = (index: number, updates: Partial<ConditionAction>) => {
     const next = [...actions];
     next[index] = { ...next[index], ...updates };
@@ -56,7 +63,7 @@ export function ConditionActionsList({ type, actions, onUpdate }: Props) {
           type="button"
           onClick={addAction}
           disabled={actions.length >= 4}
-          className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors disabled:opacity-50 ${isHigh ? "border-[var(--accent4)] text-[var(--accent4)] hover:bg-[var(--accent4)] hover:text-white" : "border-[var(--accent3)] text-[var(--accent3)] hover:bg-[var(--accent3)] hover:text-white"}`}
+          className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors disabled:opacity-50 ${isHigh ? "border-[var(--accent4)] text-[var(--accent4)] hover:bg-[var(--accent4)] hover:text-white" : "border-[var(--accent3)] text-[var(--accent3)] hover:bg-[var(--accent3)] hover:text-[var(--bg-main)]"}`}
         >
           <Plus aria-hidden="true" className="w-3 h-3" /> افزودن
         </button>

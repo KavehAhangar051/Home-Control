@@ -6,7 +6,7 @@ export function getBaseStyles(isDark: boolean): string {
       cursor: auto;
     }
     a, button, select, input, [role="button"], .cursor-pointer, [draggable="true"] {
-      cursor: pointer !important;
+      cursor: pointer;
     }
 
     /* Dropdown, Input, & Form Beautifications */

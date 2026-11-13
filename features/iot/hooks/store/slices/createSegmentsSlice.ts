@@ -1,5 +1,5 @@
-import { StateCreator } from "zustand";
-import { IoTStoreState, SegmentsSlice } from "../types";
+import type { StateCreator } from "zustand";
+import type { IoTStoreState, SegmentsSlice } from "../types";
 
 export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSlice> = (set) => ({
   segments: [],
@@ -7,14 +7,16 @@ export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSl
 
   setSegments: (segments) => {
     set((state) => {
-      const next = typeof segments === "function" ? segments(state.segments) : segments;
+      const next = segments instanceof Function ? segments(state.segments) : segments;
+
       return { segments: next };
     });
   },
 
   setPinsState: (pins) => {
     set((state) => {
-      const nextPins = typeof pins === "function" ? pins(state.pinsState) : pins;
+      const nextPins = pins instanceof Function ? pins(state.pinsState) : pins;
+
       return { pinsState: nextPins };
     });
   },
@@ -22,6 +24,7 @@ export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSl
   updateSegmentMode: (id, mode) => {
     set((state) => {
       const updated = state.segments.map((seg) => (seg.id === id ? { ...seg, mode } : seg));
+
       return { segments: updated };
     });
   },
@@ -29,6 +32,7 @@ export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSl
   updateSegmentRule: (id, rule) => {
     set((state) => {
       const updated = state.segments.map((seg) => (seg.id === id ? { ...seg, rule } : seg));
+
       return { segments: updated };
     });
   },

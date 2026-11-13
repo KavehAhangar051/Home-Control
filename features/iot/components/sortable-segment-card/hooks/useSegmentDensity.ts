@@ -16,6 +16,7 @@ export function useSegmentDensity({
   const effectiveGroupCols = Math.min(groupMaxCols, groupItemsCount);
 
   let rowOccupiedCols = effectiveGroupCols;
+
   if (effectiveGroupCols > 1 && groupItemsCount > 0) {
     const totalRows = Math.ceil(groupItemsCount / effectiveGroupCols);
     const currentRow = Math.floor(index / effectiveGroupCols);

@@ -1,4 +1,4 @@
-import { DragStartEvent, DragOverEvent, DragEndEvent } from "@dnd-kit/core";
+import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
 
 export interface IoTWorkspaceProps {
   sensors: any;

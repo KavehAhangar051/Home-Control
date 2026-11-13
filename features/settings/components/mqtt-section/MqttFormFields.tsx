@@ -36,7 +36,7 @@ export function MqttFormFields({
           dir="ltr"
           value={brokerWsUrl}
           onChange={(e) => setBrokerWsUrl(e.target.value)}
-          className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-all"
+          className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
           placeholder="wss://broker.emqx.io:8084/mqtt"
         />
       </div>
@@ -55,7 +55,7 @@ export function MqttFormFields({
             dir="ltr"
             value={brokerHost}
             onChange={(e) => setBrokerHost(e.target.value)}
-            className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-all"
+            className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
             placeholder="broker.emqx.io"
           />
         </div>
@@ -72,7 +72,7 @@ export function MqttFormFields({
             dir="ltr"
             value={brokerPort}
             onChange={(e) => setBrokerPort(parseInt(e.target.value) || 1883)}
-            className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-all"
+            className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
             placeholder="1883"
           />
         </div>
@@ -91,7 +91,7 @@ export function MqttFormFields({
           dir="ltr"
           value={baseTopic}
           onChange={(e) => setBaseTopic(e.target.value)}
-          className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-all"
+          className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
           placeholder="KamyarIoT/Achaemenid"
         />
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface UseAutoOffTimerProps {
   isPinOn: boolean;
@@ -15,30 +15,36 @@ export function useAutoOffTimer({
   pin,
   onSetPinState,
 }: UseAutoOffTimerProps) {
-  const [countdown, setCountdown] = useState<number | null>(null);
+  const isTimerActive = Boolean(isPinOn && autoOff && autoOff > 0);
+  const triggerKey = isTimerActive ? `${pin}:${autoOff}:on` : `${pin}:off`;
 
-  useEffect(() => {
-    if (isPinOn && autoOff && autoOff > 0) {
-      setCountdown(autoOff);
-    } else {
-      setCountdown(null);
-    }
-  }, [isPinOn, autoOff]);
+  const [timerState, setTimerState] = useState<{ key: string; remaining: number | null }>({
+    key: "",
+    remaining: null,
+  });
+
+  const countdown =
+    timerState.key === triggerKey ? timerState.remaining : isTimerActive ? (autoOff ?? null) : null;
 
   useEffect(() => {
     if (countdown === null) return;
-    if (countdown <= 0) {
-      if (mode === "switch" || mode === "push") {
-        onSetPinState?.(pin, false, true);
-      }
-      setCountdown(null);
-      return;
-    }
+
     const timerId = setTimeout(() => {
-      setCountdown((prev) => (prev !== null ? prev - 1 : null));
+      if (countdown <= 1) {
+        if (mode === "switch" || mode === "push") {
+          onSetPinState?.(pin, false, true);
+        }
+
+        setTimerState({ key: triggerKey, remaining: null });
+
+        return;
+      }
+
+      setTimerState({ key: triggerKey, remaining: countdown - 1 });
     }, 1000);
+
     return () => clearTimeout(timerId);
-  }, [countdown, pin, onSetPinState, mode]);
+  }, [countdown, triggerKey, pin, onSetPinState, mode]);
 
   return { countdown };
 }

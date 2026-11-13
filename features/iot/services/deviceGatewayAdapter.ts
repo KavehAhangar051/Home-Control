@@ -4,32 +4,32 @@
  * Translates application requests into concrete external services (MQTT / Cloudflare).
  */
 
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
-  IDeviceCommandPort,
-  IConfigStoragePort,
-  IDeviceSyncPort,
-  SinglePinSyncOptions,
-  BatchPinSyncOptions,
-  PinAction,
-  AckResponse,
-} from "./ports";
+  fetchConfigFromCloudflare,
+  isCloudflareEnabled,
+  saveConfigToCloudflare,
+  updateBatchPinsOnCloudflare,
+  updatePinOnCloudflare,
+} from "./cloudflareService";
+import type { EspConfig } from "./config/types";
+import { getLocalWs } from "./localWs/client";
 import {
-  publishPinCommand as mqttPublishPin,
-  publishBatchPinCommand as mqttPublishBatch,
   publishAddSegmentCommand as mqttAddSegment,
   publishDeleteSegmentCommand as mqttDeleteSegment,
+  publishBatchPinCommand as mqttPublishBatch,
+  publishPinCommand as mqttPublishPin,
   publishPresence as mqttPublishPresence,
 } from "./mqttService";
-import {
-  isCloudflareEnabled,
-  fetchConfigFromCloudflare,
-  saveConfigToCloudflare,
-  updatePinOnCloudflare,
-  updateBatchPinsOnCloudflare,
-} from "./cloudflareService";
-import { getLocalWs } from "./localWs/client";
-import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { EspConfig } from "./config/types";
+import type {
+  AckResponse,
+  BatchPinSyncOptions,
+  IConfigStoragePort,
+  IDeviceCommandPort,
+  IDeviceSyncPort,
+  PinAction,
+  SinglePinSyncOptions,
+} from "./ports";
 
 export class DeviceCommandAdapter implements IDeviceCommandPort {
   publishPinCommand(pinId: string, value: boolean, timer?: number): void {
@@ -106,6 +106,7 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
       try {
         const result = await updatePinOnCloudflare(pin, state);
         const toast = options?.showToast || useIoTStore.getState().showToast;
+
         if (toast && result.message) {
           toast(result.message, result.success ? "success" : "error");
         }
@@ -120,6 +121,7 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
     options?: BatchPinSyncOptions,
   ): Promise<void> {
     const actionsLen = actions.length;
+
     if (actionsLen === 0) return;
 
     const availableSegments = options?.segments ?? useIoTStore.getState().segments;
@@ -129,6 +131,7 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
     const cfActions: { pin: string; state: boolean }[] = [];
 
     const segmentMap = new Map<string, { auto_off?: number; mode?: string }>();
+
     for (let i = 0; i < availableSegments.length; i++) {
       segmentMap.set(availableSegments[i].pin, availableSegments[i]);
     }
@@ -156,6 +159,7 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
       try {
         const result = await updateBatchPinsOnCloudflare(cfActions);
         const toast = options?.showToast || useIoTStore.getState().showToast;
+
         if (toast && result.message) {
           toast(result.message, result.success ? "success" : "error");
         }
@@ -181,6 +185,7 @@ export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
       payload: { pin, state, options },
       timestamp: Date.now(),
     });
+
     if (options?.showToast) {
       options.showToast(`[Simulation] Pin ${pin} synced to ${state}`, "success");
     }
@@ -193,7 +198,9 @@ export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
     for (const a of actions) {
       this.pinsState.set(a.targetPin, a.actionOn);
     }
+
     this.dispatchLog.push({ type: "batch", payload: { actions, options }, timestamp: Date.now() });
+
     if (options?.showToast) {
       options.showToast(`[Simulation] ${actions.length} pins batch synced`, "success");
     }

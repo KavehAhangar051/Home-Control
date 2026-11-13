@@ -1,12 +1,12 @@
+import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
+import { m } from "motion/react";
 import React from "react";
-import { motion } from "motion/react";
 import { Card } from "@/components/ui/card";
-import { SortableSegmentCardProps } from "../core/types";
-import CardHeader from "./CardHeader";
-import CardBody from "./CardBody";
-import CardFooter from "./CardFooter";
-import useSegmentButtonProps from "../hooks/useSegmentButtonProps";
+import type { SortableSegmentCardProps } from "../core/types";
 import { useAutoOffTimer } from "../hooks/useAutoOffTimer";
+import useSegmentButtonProps from "../hooks/useSegmentButtonProps";
+import CardBody from "./CardBody";
+import CardHeader from "./CardHeader";
 
 interface ActiveCardProps
   extends Omit<SortableSegmentCardProps, "onSetupPlaceholder" | "isLoadingIoT"> {
@@ -14,21 +14,21 @@ interface ActiveCardProps
   isUltraCompact: boolean;
   isMobileTwoCol?: boolean;
   densityFactor?: number;
-  attributes: any;
-  listeners: any;
-  isSettingsOpen?: boolean;
-  setIsSettingsOpen?: (val: boolean) => void;
+  attributes: DraggableAttributes | Record<string, string | number | boolean | undefined>;
+  listeners: DraggableSyntheticListeners;
 }
 
 const CARD_MOTION_TRANSITION = { type: "spring", stiffness: 380, damping: 32 } as const;
-const CARD_MOTION_INITIAL = { opacity: 0, y: 12, filter: "blur(4px)" } as const;
-const CARD_MOTION_ANIMATE = { opacity: 1, y: 0, filter: "blur(0px)" } as const;
+const CARD_MOTION_INITIAL = { opacity: 0, y: 12 } as const;
+const CARD_MOTION_ANIMATE = { opacity: 1, y: 0 } as const;
+
 const CARD_MOTION_EXIT = {
   opacity: 0,
   y: -12,
-  filter: "blur(4px)",
   transition: { duration: 0.15, ease: "easeOut" },
 } as const;
+
+// SAFETY: React CSSProperties supports string-prefixed custom properties
 const CARD_SPACING_STYLE: React.CSSProperties = { "--card-spacing": "0px" } as React.CSSProperties;
 
 function ActiveCard({
@@ -39,8 +39,6 @@ function ActiveCard({
   onSetPinState,
   onUpdateSegmentMode,
   onUpdateSegmentAutoOff,
-  onUpdateSegmentRule,
-  parentGroupsCols,
   groupMaxCols,
   animationsEnabled = true,
   isCompact,
@@ -49,10 +47,9 @@ function ActiveCard({
   densityFactor,
   attributes,
   listeners,
-  isSettingsOpen,
-  setIsSettingsOpen,
 }: ActiveCardProps) {
   const mode = segment.mode || "switch";
+
   const buttonProps = useSegmentButtonProps({
     mode,
     pin: segment.pin,
@@ -68,8 +65,16 @@ function ActiveCard({
     onSetPinState,
   });
 
+  const isInput = segment.type === "input";
+
+  const activeSurfaceClass = isPinOn
+    ? isInput
+      ? "border-emerald-500 bg-[var(--card-bg)] shadow-xs"
+      : "border-[var(--accent3)] bg-[var(--card-bg)] shadow-xs"
+    : "border-[var(--border-color)] bg-[var(--card-bg)] shadow-2xs";
+
   return (
-    <motion.div
+    <m.div
       layout={animationsEnabled ? "position" : false}
       transition={animationsEnabled ? CARD_MOTION_TRANSITION : undefined}
       initial={animationsEnabled ? CARD_MOTION_INITIAL : false}
@@ -78,9 +83,7 @@ function ActiveCard({
       className="relative h-full"
     >
       <Card
-        className={`group relative flex h-full flex-col justify-between border border-[var(--border)] shadow-sm ${
-          isUltraCompact ? "min-h-[90px]" : "min-h-[140px]"
-        }`}
+        className={`group relative flex h-full flex-col justify-between !overflow-visible !gap-0 !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
         style={CARD_SPACING_STYLE}
       >
         <CardHeader
@@ -95,8 +98,6 @@ function ActiveCard({
           listeners={listeners}
           countdown={countdown}
           onUpdateSegmentAutoOff={onUpdateSegmentAutoOff}
-          isSettingsOpen={isSettingsOpen}
-          setIsSettingsOpen={setIsSettingsOpen}
           groupMaxCols={groupMaxCols}
         />
 
@@ -110,11 +111,10 @@ function ActiveCard({
           mode={mode}
           buttonProps={buttonProps}
           animationsEnabled={animationsEnabled}
+          countdown={countdown}
         />
-
-        {!isUltraCompact && !isCompact && <CardFooter segment={segment} isPinOn={isPinOn} />}
       </Card>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -128,7 +128,6 @@ export default React.memo(ActiveCard, (prev, next) => {
     prev.densityFactor === next.densityFactor &&
     prev.parentGroupsCols === next.parentGroupsCols &&
     prev.groupMaxCols === next.groupMaxCols &&
-    prev.animationsEnabled === next.animationsEnabled &&
-    prev.isSettingsOpen === next.isSettingsOpen
+    prev.animationsEnabled === next.animationsEnabled
   );
 });

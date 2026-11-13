@@ -1,5 +1,5 @@
-import { StateCreator } from "zustand";
-import { IoTStoreState, GroupsSlice } from "../types";
+import type { StateCreator } from "zustand";
+import type { GroupsSlice, IoTStoreState } from "../types";
 
 export const createGroupsSlice: StateCreator<IoTStoreState, [], [], GroupsSlice> = (set) => ({
   groupsOrder: [],
@@ -8,7 +8,8 @@ export const createGroupsSlice: StateCreator<IoTStoreState, [], [], GroupsSlice>
 
   setGroupsOrder: (groupsOrder) => {
     set((state) => {
-      const next = typeof groupsOrder === "function" ? groupsOrder(state.groupsOrder) : groupsOrder;
+      const next = groupsOrder instanceof Function ? groupsOrder(state.groupsOrder) : groupsOrder;
+
       return { groupsOrder: next };
     });
   },
@@ -16,7 +17,8 @@ export const createGroupsSlice: StateCreator<IoTStoreState, [], [], GroupsSlice>
   setGroupConfigs: (groupConfigs) => {
     set((state) => {
       const next =
-        typeof groupConfigs === "function" ? groupConfigs(state.groupConfigs) : groupConfigs;
+        groupConfigs instanceof Function ? groupConfigs(state.groupConfigs) : groupConfigs;
+
       return { groupConfigs: next };
     });
   },

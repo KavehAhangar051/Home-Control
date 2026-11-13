@@ -1,6 +1,8 @@
-import React from "react";
-import { Edit2, Trash2, Mic } from "@/components/ui/hugeicons";
-import { motion } from "motion/react";
+import { m } from "motion/react";
+import type React from "react";
+import { DeleteButton } from "@/components/ui/delete-button";
+import { Edit2, Mic } from "@/components/ui/hugeicons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { VoiceCommandEditor } from "./VoiceCommandEditor";
 
 interface Props {
@@ -20,20 +22,19 @@ interface Props {
 
 function VoiceCommandCardFrame({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+    <m.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{
         opacity: 0,
         y: -12,
-        filter: "blur(4px)",
         transition: { duration: 0.15, ease: "easeOut" },
       }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className="bg-[var(--card-bg-solid)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm flex flex-col gap-3"
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -59,24 +60,27 @@ export function VoiceCommandViewCard({ cmd, onEditStart, onDelete }: VoiceComman
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={onEditStart}
-            className="p-2 bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--accent3)] hover:border-[var(--accent3)] rounded-xl transition-[border-color,color,scale] duration-150 ease-out active:scale-[0.96]"
-            title="ویرایش"
-            aria-label={`ویرایش دستور ${cmd.phrase}`}
-          >
-            <Edit2 className="w-4 h-4" strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="p-2 bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--accent4)] hover:border-[var(--accent4)] rounded-xl transition-[border-color,color,scale] duration-150 ease-out active:scale-[0.96]"
-            title="حذف"
-            aria-label={`حذف دستور ${cmd.phrase}`}
-          >
-            <Trash2 className="w-4 h-4" strokeWidth={2} />
-          </button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={onEditStart}
+                  className="p-2 bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--accent3)] hover:border-[var(--accent3)] rounded-xl transition-[border-color,color,scale] duration-150 ease-out active:scale-[0.96]"
+                  aria-label={`ویرایش دستور ${cmd.phrase}`}
+                >
+                  <Edit2 className="w-4 h-4" strokeWidth={2} />
+                </button>
+              }
+            />
+            <TooltipContent>ویرایش</TooltipContent>
+          </Tooltip>
+          <DeleteButton
+            size="sm"
+            resetAfter={0}
+            onConfirm={onDelete}
+            label={`حذف دستور ${cmd.phrase}`}
+          />
         </div>
       </div>
     </VoiceCommandCardFrame>

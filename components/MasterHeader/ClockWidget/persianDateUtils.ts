@@ -15,24 +15,27 @@ const ZOROASTRIAN_MONTHS = [
 
 const toPersianDigits = (num: number | string) => {
   const id = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+
   return num.toString().replace(/[0-9]/g, (w) => id[+w]);
 };
 
-export const getPersianDateString = (time: Date) => {
-  const formatter = new Intl.DateTimeFormat("en-US-u-ca-persian", {
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  });
+const PERSIAN_DATE_FORMATTER = new Intl.DateTimeFormat("en-US-u-ca-persian", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+});
 
-  const parts = formatter.formatToParts(time);
+export const getPersianDateString = (time: Date) => {
+  const parts = PERSIAN_DATE_FORMATTER.formatToParts(time);
   let jYear = 1400;
   let jMonth = 1;
   let jDay = 1;
 
   parts.forEach((p) => {
     if (p.type === "year") jYear = parseInt(p.value, 10);
+
     if (p.type === "month") jMonth = parseInt(p.value, 10);
+
     if (p.type === "day") jDay = parseInt(p.value, 10);
   });
 

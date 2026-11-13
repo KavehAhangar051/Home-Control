@@ -1,45 +1,67 @@
 "use client";
 
 import React, { useState } from "react";
-import { Globe, CloudLightning, Server } from "@/components/ui/hugeicons";
+import { CloudLightning, Globe, Server } from "@/components/ui/hugeicons";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { saveConfigToCloudflare } from "@/features/iot/services/cloudflare/api";
 import {
   getCloudflareWorkerUrl,
-  setCloudflareWorkerUrl,
   isCloudflareEnabled,
+  setCloudflareWorkerUrl,
 } from "@/features/iot/services/cloudflareService";
-import { saveConfigToCloudflare } from "@/features/iot/services/cloudflare/api";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
 
 interface CloudflareIntegrationProps {
   isDark?: boolean;
 }
 
+async function submitCloudflareConfig(
+  currentConfig: EspConfig,
+  showToast: (msg: string, type: "success" | "error") => void,
+  setIsSavingUrl: (val: boolean) => void,
+): Promise<void> {
+  try {
+    const result = await saveConfigToCloudflare(currentConfig);
+    showToast(
+      result.success ? "آدرس ورکر جدید با موفقیت ذخیره شد." : "خطا در ذخیره آدرس ورکر جدید.",
+      result.success ? "success" : "error",
+    );
+  } finally {
+    setIsSavingUrl(false);
+  }
+}
+
 export default function CloudflareIntegration({
   isDark: _isDark = true,
 }: CloudflareIntegrationProps) {
   const [cfUrl, setCfUrl] = useState(() => getCloudflareWorkerUrl());
+
   const {
     segments,
     groupsOrder,
     groupConfigs,
     groupsCols,
+    selectedFont,
     showToast,
     manualSaveMode,
     setManualSaveMode,
   } = useIoTStore();
+
   const [isSavingUrl, setIsSavingUrl] = useState(false);
 
   const handleSaveUrl = async () => {
     if (!cfUrl || cfUrl.includes("YOUR_SUBDOMAIN") || cfUrl.length < 10) {
       showToast("لطفاً یک آدرس معتبر وارد کنید.", "error");
+
       return;
     }
 
     setIsSavingUrl(true);
     setCloudflareWorkerUrl(cfUrl);
+
     if (!isCloudflareEnabled()) {
       setIsSavingUrl(false);
+
       return;
     }
 
@@ -56,7 +78,7 @@ export default function CloudflareIntegration({
         theme_mode: "dark",
         accent_color_3: "#D4AF37",
         accent_color_4: "#10B981",
-        font_family: "vazir",
+        font_family: selectedFont,
         animations_enabled: true,
         header_animation: "fade",
         header_title: "سامانه کنترل هوشمند IoT",
@@ -73,12 +95,7 @@ export default function CloudflareIntegration({
       worker_url: cfUrl,
     };
 
-    const result = await saveConfigToCloudflare(currentConfig);
-    setIsSavingUrl(false);
-    showToast(
-      result.success ? "آدرس ورکر جدید با موفقیت ذخیره شد." : "خطا در ذخیره آدرس ورکر جدید.",
-      result.success ? "success" : "error",
-    );
+    await submitCloudflareConfig(currentConfig, showToast, setIsSavingUrl);
   };
 
   const isCfConnected = isCloudflareEnabled();
@@ -97,7 +114,7 @@ export default function CloudflareIntegration({
           type="button"
           onClick={handleSaveUrl}
           disabled={isSavingUrl}
-          className="px-4 py-2.5 bg-accent3/20 text-accent3 hover:bg-accent3 hover:text-black border border-accent3/30 rounded-xl text-xs font-bold transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] disabled:opacity-50"
+          className="px-4 py-2.5 bg-accent3/20 text-accent3 hover:bg-[var(--accent3)] hover:text-[var(--bg-main)] border border-accent3/30 rounded-xl text-xs font-bold transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] disabled:opacity-50"
         >
           {isSavingUrl ? "در حال ذخیره..." : "ذخیره آدرس"}
         </button>
@@ -115,11 +132,11 @@ export default function CloudflareIntegration({
             value={cfUrl}
             onChange={(e) => setCfUrl(e.target.value)}
             placeholder="https://home-control-db.kamyarahangar157.workers.dev"
-            className="block w-full py-2.5 pr-10 pl-3 border border-accent3-medium/30 rounded-xl bg-black/40 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-accent3 font-mono transition-colors"
+            className="block w-full py-2.5 pr-10 pl-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-main)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-accent3 font-mono transition-colors"
           />
         </div>
       </div>
-      <div className="p-3 mt-4 rounded-xl border border-slate-800 bg-black/30 flex items-center justify-between">
+      <div className="p-3 mt-4 rounded-xl border border-[var(--border-color)] bg-[var(--card-hover-bg)] flex items-center justify-between">
         <label htmlFor="manual-save-mode" className="flex items-center cursor-pointer gap-3 w-full">
           <span className="relative">
             <input
@@ -131,23 +148,25 @@ export default function CloudflareIntegration({
             />
             <span
               aria-hidden="true"
-              className={`block w-10 h-6 rounded-full transition-colors ${manualSaveMode ? "bg-accent3" : "bg-slate-800"}`}
+              className={`block w-10 h-6 rounded-full transition-colors ${manualSaveMode ? "bg-[var(--accent3)]" : "bg-[var(--border-color)]"}`}
             />
             <span
               aria-hidden="true"
-              className={`dot absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${manualSaveMode ? "transform translate-x-4" : ""}`}
+              className={`dot absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${manualSaveMode ? "bg-[var(--bg-main)] transform translate-x-4" : "bg-[var(--text-secondary)]"}`}
             />
           </span>
           <span className="flex flex-col flex-1 text-right">
-            <span className="text-xs font-bold text-white">ذخیره دستی تغییرات چیدمان</span>
-            <span className="text-[11px] text-slate-400 mt-0.5">
+            <span className="text-xs font-bold text-[var(--text-primary)]">
+              ذخیره دستی تغییرات چیدمان
+            </span>
+            <span className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
               تغییرات چیدمان فقط زمانی که دکمه «ذخیره‌سازی تغییرات» را بزنید به سرور ارسال می‌شوند.
             </span>
           </span>
         </label>
       </div>
       <div
-        className={`p-3 rounded-xl border flex items-center justify-between text-right text-xs ${isCfConnected ? "bg-emerald-950/20 border-emerald-500/40 text-emerald-400" : "bg-slate-950/40 border-slate-800 text-slate-400"}`}
+        className={`p-3 rounded-xl border flex items-center justify-between text-right text-xs ${isCfConnected ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400" : "bg-[var(--card-hover-bg)] border-[var(--border-color)] text-[var(--text-tertiary)]"}`}
       >
         <div className="flex items-center gap-2 justify-end w-full">
           <span className="font-medium">
@@ -156,9 +175,12 @@ export default function CloudflareIntegration({
               : "ذخیره‌سازی در حافظه محلی مرورگر (آدرس ورکر تنظیم نشده است)"}
           </span>
           {isCfConnected ? (
-            <CloudLightning aria-hidden="true" className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CloudLightning
+              aria-hidden="true"
+              className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0"
+            />
           ) : (
-            <Server aria-hidden="true" className="w-4 h-4 text-slate-400 shrink-0" />
+            <Server aria-hidden="true" className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
           )}
         </div>
       </div>

@@ -1,11 +1,11 @@
-import React from "react";
 import { DragOverlay } from "@dnd-kit/core";
+import React from "react";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import SortableGroup from "../../SortableGroup";
 import SortableSegmentCard from "../../SortableSegmentCard";
-import { IoTWorkspaceProps } from "../core/types";
 import { getEffectiveGroupsCols } from "../core/gridUtils";
-import { useMediaQuery } from "../../../hooks/useMediaQuery";
-import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import type { IoTWorkspaceProps } from "../core/types";
 
 type WorkspaceDragOverlayProps = Pick<
   IoTWorkspaceProps,
@@ -45,10 +45,13 @@ export default function WorkspaceDragOverlay({
       {activeSegmentId
         ? (() => {
             const seg = segments.find((s) => s.id === activeSegmentId);
+
             if (!seg) return null;
+
             const groupSegments = segments.filter(
               (s) => (s.group || "Test") === (seg.group || "Test"),
             );
+
             const index = groupSegments.findIndex((s) => s.id === activeSegmentId);
             const originalGroupCols = groupConfigs[seg.group || "Test"]?.maxCols || 3;
 

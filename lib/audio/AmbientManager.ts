@@ -1,8 +1,8 @@
-import type { Track, ArchiveTrackItem } from "./types";
+import { debugLog } from "@/lib/debug";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import { audioContextManager } from "./context";
 import { fetchArchivePlaylist, fetchTrackUrl } from "./playlist";
-import { FEATURE_FLAGS } from "@/lib/featureFlags";
-import { debugLog } from "@/lib/debug";
+import type { ArchiveTrackItem, Track } from "./types";
 
 const AUDIO_CACHE_NAME = "home-control-audio-v1";
 
@@ -17,6 +17,7 @@ export class AmbientManager {
 
   public setOnTrackUpdate(cb: (track: Track) => void) {
     this.onTrackUpdateCallback = cb;
+
     if (this.currentTrack) cb(this.currentTrack);
   }
 
@@ -24,13 +25,16 @@ export class AmbientManager {
     if (this.playlist.length > 0) return true;
 
     const docs = await fetchArchivePlaylist();
+
     if (docs.length === 0) {
       debugLog.warn("Audio", "Online playlist request returned no tracks.");
+
       return false;
     }
 
     this.playlist = docs;
     this.currentTrackIndex = Math.floor(Math.random() * this.playlist.length);
+
     return true;
   }
 
@@ -38,15 +42,21 @@ export class AmbientManager {
     if (typeof window === "undefined") return;
 
     const source = localStorage.getItem("music_source") || "local";
+
     if (!direction && source === "api") {
       try {
         const saved = localStorage.getItem("music_cached_track");
+
         if (saved) {
+          // SAFETY: music_cached_track JSON payload matches saved track shape { source?: string; track?: Track }
           const selection = JSON.parse(saved) as { source?: string; track?: Track };
+
           if (selection.source === source && selection.track?.url) {
             this.currentTrack = selection.track;
+
             if (this.isAmbientPlaying) await this.playCurrentTrack();
             this.onTrackUpdateCallback?.(this.currentTrack);
+
             return;
           }
         }
@@ -60,6 +70,7 @@ export class AmbientManager {
       this.currentTrack = { title: "Dele Divaneh", creator: "Home-Control", url, isLocal: true };
     } else {
       const hasPlaylist = await this.fetchPlaylistIfNeeded();
+
       if (!hasPlaylist) {
         const url = new URL("06 Dele Divaneh.mp3", document.baseURI).toString();
         this.currentTrack = { title: "Dele Divaneh", creator: "Fallback", url, isLocal: true };
@@ -72,10 +83,12 @@ export class AmbientManager {
         }
 
         let found = false;
+
         for (let attempts = 0; attempts < Math.min(5, this.playlist.length); attempts++) {
           try {
             const track = this.playlist[this.currentTrackIndex];
             const url = await fetchTrackUrl(track.identifier);
+
             if (url) {
               this.currentTrack = {
                 title: track.title || "Unknown track",
@@ -92,6 +105,7 @@ export class AmbientManager {
               error,
             });
           }
+
           this.currentTrackIndex = (this.currentTrackIndex + 1) % this.playlist.length;
         }
 
@@ -115,6 +129,7 @@ export class AmbientManager {
     }
 
     if (this.isAmbientPlaying) await this.playCurrentTrack();
+
     if (this.currentTrack) this.onTrackUpdateCallback?.(this.currentTrack);
   }
 
@@ -122,6 +137,7 @@ export class AmbientManager {
     if (typeof window === "undefined") return url;
 
     const requestUrl = new URL(url, window.location.href).toString();
+
     if (!FEATURE_FLAGS.audioLocalCache || !("caches" in window)) return requestUrl;
 
     try {
@@ -135,6 +151,7 @@ export class AmbientManager {
           url: requestUrl,
         });
         response = await fetch(requestUrl);
+
         if (!response.ok) {
           throw new Error(`Audio request failed: ${response.status} ${response.statusText}`);
         }
@@ -149,9 +166,15 @@ export class AmbientManager {
         }
       }
 
+      if (!response.ok) {
+        throw new Error(`Audio request failed: ${response.status} ${response.statusText}`);
+      }
+
       const blob = await response.blob();
+
       if (this.activeObjectUrl) URL.revokeObjectURL(this.activeObjectUrl);
       this.activeObjectUrl = URL.createObjectURL(blob);
+
       return this.activeObjectUrl;
     } catch (error) {
       debugLog.error(
@@ -159,12 +182,14 @@ export class AmbientManager {
         "Local audio cache failed; falling back to direct playback URL.",
         error,
       );
+
       return requestUrl;
     }
   }
 
   private async playCurrentTrack() {
     if (!this.currentTrack || typeof window === "undefined") return;
+
     if (!this.ambientAudio) {
       this.ambientAudio = new Audio();
       this.ambientAudio.preload = "none";
@@ -197,6 +222,7 @@ export class AmbientManager {
 
   public async start(enabled: boolean) {
     if (!enabled || typeof window === "undefined") return;
+
     if (this.isAmbientPlaying) return;
 
     try {

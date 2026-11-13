@@ -1,6 +1,12 @@
-import React from "react";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Edit2, Plus } from "@/components/ui/hugeicons";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  type AutomationFormHookValue,
+  useOptionalAutomationContext,
+} from "../../context/AutomationContext";
 import ActionBuilder from "./ActionBuilder";
 import {
   ScheduleFields,
@@ -8,17 +14,13 @@ import {
   WeatherConditionFields,
   WeatherIntervalFields,
 } from "./AutomationFields";
-import { Card } from "@/components/ui/card";
-import {
-  useOptionalAutomationContext,
-  type AutomationFormHookValue,
-} from "../../context/AutomationContext";
 
 interface AutomationFormProps {
   formHook?: AutomationFormHookValue;
 }
 
 export default function AutomationForm({ formHook: propFormHook }: AutomationFormProps) {
+  const titleId = useId();
   const context = useOptionalAutomationContext();
   const resolvedHook = propFormHook ?? context?.formHook;
 
@@ -73,10 +75,14 @@ export default function AutomationForm({ formHook: propFormHook }: AutomationFor
 
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
-          <div className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+          <label
+            htmlFor={titleId}
+            className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
+          >
             عنوان (دلخواه):
-          </div>
+          </label>
           <input
+            id={titleId}
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -85,44 +91,38 @@ export default function AutomationForm({ formHook: propFormHook }: AutomationFor
           />
         </div>
 
-        <div className="col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-1 bg-[var(--card-bg)] p-1 rounded-xl border border-[var(--border-color)]">
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => setAutoType("schedule")}
-            className={`w-full min-w-0 px-2 py-2 text-xs font-bold rounded-lg transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)] ${
-              autoType === "schedule"
-                ? "bg-[var(--accent3)] text-black shadow-sm"
-                : "bg-transparent text-[var(--text-secondary)] md:hover:bg-[var(--card-hover-bg)] md:hover:text-[var(--text-primary)]"
-            }`}
+        <ToggleGroup
+          variant="outline"
+          spacing={1}
+          value={[autoType]}
+          onValueChange={(vals) => {
+            const val = vals[0];
+
+            if (val === "schedule" || val === "timer" || val === "weather") {
+              setAutoType(val);
+            }
+          }}
+          className="col-span-2 grid w-full grid-cols-1 sm:grid-cols-3 bg-[var(--card-bg)] p-1 rounded-xl border border-[var(--border-color)]"
+        >
+          <ToggleGroupItem
+            value="schedule"
+            className="w-full min-w-0 h-9 px-2 text-xs font-bold border-0 aria-pressed:bg-[var(--accent3)] aria-pressed:text-[var(--bg-main)]"
           >
             زمان‌بندی دوره‌ای
-          </Button>
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => setAutoType("timer")}
-            className={`w-full min-w-0 px-2 py-2 text-xs font-bold rounded-lg transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)] ${
-              autoType === "timer"
-                ? "bg-[var(--accent3)] text-black shadow-sm"
-                : "bg-transparent text-[var(--text-secondary)] md:hover:bg-[var(--card-hover-bg)] md:hover:text-[var(--text-primary)]"
-            }`}
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="timer"
+            className="w-full min-w-0 h-9 px-2 text-xs font-bold border-0 aria-pressed:bg-[var(--accent3)] aria-pressed:text-[var(--bg-main)]"
           >
             تایمر یک‌بار مصرف
-          </Button>
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => setAutoType("weather")}
-            className={`w-full min-w-0 px-2 py-2 text-xs font-bold rounded-lg transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)] ${
-              autoType === "weather"
-                ? "bg-[var(--accent3)] text-black shadow-sm"
-                : "bg-transparent text-[var(--text-secondary)] md:hover:bg-[var(--card-hover-bg)] md:hover:text-[var(--text-primary)]"
-            }`}
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="weather"
+            className="w-full min-w-0 h-9 px-2 text-xs font-bold border-0 aria-pressed:bg-[var(--accent3)] aria-pressed:text-[var(--bg-main)]"
           >
             مبتنی بر دما
-          </Button>
-        </div>
+          </ToggleGroupItem>
+        </ToggleGroup>
 
         {autoType === "schedule" && (
           <ScheduleFields
@@ -188,7 +188,7 @@ export default function AutomationForm({ formHook: propFormHook }: AutomationFor
           variant="ghost"
           type="button"
           onClick={handleSave}
-          className="flex-1 min-h-11 py-2.5 px-4 bg-[var(--accent3)] text-black font-bold rounded-xl text-sm transition-colors shadow-sm hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)] active:scale-[0.98]"
+          className="flex-1 min-h-11 py-2.5 px-4 bg-[var(--accent3)] text-[var(--bg-main)] font-bold rounded-xl text-sm transition-colors shadow-sm hover:bg-[var(--accent3-dark)] hover:text-[var(--bg-main)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)] active:scale-[0.98]"
         >
           {editingId ? "ذخیره تغییرات" : "افزودن به لیست"}
         </Button>

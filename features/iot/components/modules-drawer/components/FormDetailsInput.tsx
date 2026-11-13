@@ -41,7 +41,7 @@ export default function FormDetailsInput({
           placeholder="مثال: رله پمپ آب حیاط"
           value={customTitle}
           onChange={(e) => setCustomTitle(e.target.value)}
-          className="w-full h-10 px-4 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl focus:border-[var(--accent3)] outline-none transition-all font-sans text-right placeholder:text-[var(--text-muted)]"
+          className="w-full h-10 px-4 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl focus:border-[var(--accent3)] outline-none transition-colors font-sans text-right placeholder:text-[var(--text-muted)]"
         />
       </div>
 
@@ -55,6 +55,7 @@ export default function FormDetailsInput({
             <label className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="radio"
+                name="segment-group-mode"
                 checked={isNewGroup}
                 onChange={() => setIsNewGroup(true)}
                 className="accent-[var(--accent3)] w-3 h-3"
@@ -64,6 +65,7 @@ export default function FormDetailsInput({
             <label className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="radio"
+                name="segment-group-mode"
                 checked={!isNewGroup}
                 onChange={() => setIsNewGroup(false)}
                 className="accent-[var(--accent3)] w-3 h-3"
@@ -78,7 +80,7 @@ export default function FormDetailsInput({
             aria-label="گروه سگمنت"
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
-            className="w-full h-10 px-3 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl focus:border-[var(--accent3)] outline-none transition-all font-sans shadow-sm"
+            className="w-full h-10 px-3 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl focus:border-[var(--accent3)] outline-none transition-colors font-sans shadow-sm"
             dir="rtl"
           >
             {existingGroups.map((group) => (
@@ -95,7 +97,7 @@ export default function FormDetailsInput({
               placeholder="مثال: Test"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              className="w-full h-10 px-4 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl focus:border-[var(--accent3)] outline-none transition-all font-sans text-right placeholder:text-[var(--text-muted)] shadow-sm"
+              className="w-full h-10 px-4 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl focus:border-[var(--accent3)] outline-none transition-colors font-sans text-right placeholder:text-[var(--text-muted)] shadow-sm"
             />
 
             <IconPicker
