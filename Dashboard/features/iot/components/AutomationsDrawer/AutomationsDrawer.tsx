@@ -5,6 +5,7 @@ import React from "react";
 import { Alert } from "@/components/reui/alert";
 import { Button } from "@/components/ui/button";
 import { Clock, Info, X } from "@/components/ui/hugeicons";
+import { SPRING_PANEL, TRANSITION_ENTER_STANDARD, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 import AutomationForm from "./components/AutomationForm";
 import AutomationList from "./components/AutomationList";
 import { AutomationProvider } from "./context/AutomationContext";
@@ -20,7 +21,7 @@ export default function AutomationsDrawer({
   isOpen,
   onClose,
   isDark,
-  animationsEnabled: _animationsEnabled,
+  animationsEnabled = true,
 }: AutomationsDrawerProps) {
   const backdropBackground = isDark ? "rgba(9, 9, 11, 0.68)" : "rgba(24, 24, 27, 0.18)";
 
@@ -31,9 +32,12 @@ export default function AutomationsDrawer({
           type="button"
           key="automations-backdrop"
           aria-label="بستن مدیریت اتوماسیون‌ها"
-          initial={{ opacity: 0 }}
+          initial={animationsEnabled ? { opacity: 0 } : false}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          exit={
+            animationsEnabled ? { opacity: 0, transition: TRANSITION_EXIT_STANDARD } : undefined
+          }
+          transition={animationsEnabled ? TRANSITION_ENTER_STANDARD : { duration: 0 }}
           onClick={onClose}
           onKeyDown={(e) => {
             if (e.key === "Escape") onClose();
@@ -45,10 +49,14 @@ export default function AutomationsDrawer({
       {isOpen && (
         <m.div
           key="automations-panel"
-          initial={{ x: "100%" }}
-          animate={{ x: 0 }}
-          exit={{ x: "100%" }}
-          transition={{ type: "spring", damping: 24, stiffness: 200 }}
+          initial={animationsEnabled ? { x: "100%", opacity: 0.85 } : false}
+          animate={{ x: 0, opacity: 1 }}
+          exit={
+            animationsEnabled
+              ? { x: "100%", opacity: 0.85, transition: TRANSITION_EXIT_STANDARD }
+              : undefined
+          }
+          transition={animationsEnabled ? SPRING_PANEL : { duration: 0 }}
           className="fixed top-0 right-0 h-full w-full max-w-md bg-[var(--background)] border-l border-[var(--border)] rounded-l-xl shadow-2xl z-50 flex flex-col overflow-hidden"
           dir="rtl"
         >

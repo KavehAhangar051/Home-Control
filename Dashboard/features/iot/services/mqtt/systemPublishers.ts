@@ -1,11 +1,8 @@
 import { publishMqttCommand } from "./client";
-import { MQTT_OPCODES, PIN_STATE_HIGH, PIN_STATE_LOW } from "./protocol";
+import { PRESENCE_OFFLINE_FRAME, PRESENCE_ONLINE_FRAME } from "./protocol";
 
 export const publishPresence = (isVisible: boolean) => {
-  const presenceBuf = new Uint8Array([
-    MQTT_OPCODES.PRESENCE,
-    isVisible ? PIN_STATE_HIGH : PIN_STATE_LOW,
-  ]);
+  const presenceBuf = isVisible ? PRESENCE_ONLINE_FRAME : PRESENCE_OFFLINE_FRAME;
 
   publishMqttCommand(presenceBuf, `Published presence: ${isVisible}`);
 };

@@ -10,6 +10,7 @@ import type {
   VoiceCommand,
 } from "@/features/iot/hooks/store/types";
 import { VoiceCommandEditor } from "./VoiceCommandEditor";
+import { TRANSITION_ENTER_STANDARD, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 
 interface Props {
   cmd: VoiceCommand;
@@ -34,9 +35,9 @@ function VoiceCommandCardFrame({ children }: { children: React.ReactNode }) {
       exit={{
         opacity: 0,
         y: -12,
-        transition: { duration: 0.15, ease: "easeOut" },
+        transition: TRANSITION_EXIT_STANDARD,
       }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={TRANSITION_ENTER_STANDARD}
       className="bg-[var(--card-bg-solid)] border border-[var(--border-color)] p-4 rounded-2xl shadow-sm flex flex-col gap-3"
     >
       {children}

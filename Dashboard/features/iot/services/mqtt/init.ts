@@ -1,5 +1,6 @@
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { getMqttClient, getMqttSettings, setMqttClient, stateCallbacks } from "./client";
+import { PRESENCE_OFFLINE_FRAME, PRESENCE_ONLINE_FRAME, SYNC_REQUEST_FRAME } from "./protocol";
 
 let initPromise: Promise<void> | null = null;
 
@@ -30,10 +31,19 @@ const flushStateUpdates = () => {
   processingStateUpdates = temp;
   pendingStateUpdates.clear();
 
-  // Batch update zustand store
+  // Batch update zustand store (short-circuit if all incoming states match existing state)
   useIoTStore.getState().setPinsState((prev) => {
-    const next = { ...prev };
+    let hasChange = false;
+    for (const [pinId, state] of processingStateUpdates) {
+      if (prev[pinId] !== state) {
+        hasChange = true;
+        break;
+      }
+    }
 
+    if (!hasChange) return prev;
+
+    const next = { ...prev };
     for (const [pinId, state] of processingStateUpdates) {
       next[pinId] = state;
     }
@@ -95,14 +105,13 @@ export const initMqtt = (): Promise<void> => {
 
         queueMicrotask(() => {
           const isPageVisible = useIoTStore.getState().isPageVisible;
-          const presenceBuf = new Uint8Array([0x04, isPageVisible ? 0x01 : 0x00]);
+          const presenceBuf = isPageVisible ? PRESENCE_ONLINE_FRAME : PRESENCE_OFFLINE_FRAME;
           // SAFETY: mqtt.js publish accepts Uint8Array or Buffer as binary payload
           client?.publish(commandTopic, presenceBuf as Buffer, { qos });
 
           // Request full state from ESP32 RAM (Global SSOT)
-          const syncBuf = new Uint8Array([0x09]);
           // SAFETY: mqtt.js publish accepts Uint8Array or Buffer as binary payload
-          client?.publish(commandTopic, syncBuf as Buffer, { qos });
+          client?.publish(commandTopic, SYNC_REQUEST_FRAME as Buffer, { qos });
         });
       });
 
@@ -156,7 +165,9 @@ export const initMqtt = (): Promise<void> => {
                 } else if (data.command === "ping") {
                   queueMicrotask(() => {
                     const isPageVisible = useIoTStore.getState().isPageVisible;
-                    const presenceBuf = new Uint8Array([0x04, isPageVisible ? 0x01 : 0x00]);
+                    const presenceBuf = isPageVisible
+                      ? PRESENCE_ONLINE_FRAME
+                      : PRESENCE_OFFLINE_FRAME;
                     // SAFETY: mqtt.js publish accepts Uint8Array or Buffer as binary payload
                     client?.publish(commandTopic, presenceBuf as Buffer, { qos });
                   });

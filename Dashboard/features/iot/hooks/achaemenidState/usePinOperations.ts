@@ -28,7 +28,7 @@ async function executeSinglePinUpdate(
   setIsLoadingIoT(true);
 
   try {
-    setPinsState((prev) => ({ ...prev, [pin]: pinState }));
+    setPinsState((prev) => (prev[pin] === pinState ? prev : { ...prev, [pin]: pinState }));
     const segment = useIoTStore.getState().segments.find((s) => s.pin === pin);
     const effectiveTimer = timer !== undefined ? timer : segment?.auto_off;
 
@@ -57,7 +57,8 @@ async function executeBatchPinUpdate(
     const stateUpdates: Record<string, boolean> = {};
     const pinsState = useIoTStore.getState().pinsState;
 
-    for (const action of actions) {
+    for (let i = 0; i < actions.length; i++) {
+      const action = actions[i];
       if (action.actionOn !== pinsState[action.targetPin]) {
         soundPlayed = true;
       }
@@ -85,7 +86,7 @@ export function usePinOperations({ refetchIot: _refetchIot }: UsePinOperationsPr
     initMqtt();
 
     const unsubscribe = onMqttStateChange((pin, state) => {
-      setPinsState((prev) => ({ ...prev, [pin]: state }));
+      setPinsState((prev) => (prev[pin] === state ? prev : { ...prev, [pin]: state }));
     });
 
     return () => unsubscribe();

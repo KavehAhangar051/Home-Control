@@ -3,6 +3,7 @@ import type React from "react";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus } from "@/components/ui/hugeicons";
+import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import LayoutSelector from "./LayoutSelector";
 
 interface GroupSettingsMenuProps {
@@ -42,8 +43,8 @@ export default function GroupSettingsMenu({
       onPointerDown={(e) => e.stopPropagation()}
       initial={{ opacity: 0, scale: 0.96, y: -4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96, y: -4 }}
-      transition={{ duration: 0.16, ease: "easeOut" }}
+      exit={{ opacity: 0, scale: 0.96, y: -4, transition: TRANSITION_EXIT_QUICK }}
+      transition={TRANSITION_ENTER_QUICK}
     >
       <div className="relative w-56 sm:w-64 bg-[var(--card-bg-solid)] backdrop-blur-xl border border-[var(--border-color)] rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right">
         <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">

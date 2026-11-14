@@ -6,6 +6,7 @@ import { Play } from "@/components/ui/hugeicons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Macro } from "@/features/iot/hooks/store/types";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
+import { DURATION, EASE_IN, EASE_OUT, EXIT_DURATION, getStaggerDelay } from "@/lib/ease";
 
 interface MacroSidebarButtonProps {
   macro: Macro;
@@ -91,13 +92,17 @@ export function SimpleMacroButton({
                 ? {
                     opacity: 0,
                     y: -12,
-                    transition: { duration: 0.15, ease: "easeOut" },
+                    transition: { duration: EXIT_DURATION.standard, ease: EASE_IN },
                   }
                 : undefined
             }
             transition={
               animationsEnabled
-                ? { duration: 0.2, delay: index * 0.05, ease: "easeOut" }
+                ? {
+                    duration: DURATION.standard,
+                    delay: getStaggerDelay(index),
+                    ease: EASE_OUT,
+                  }
                 : undefined
             }
             onClick={onClick}
@@ -154,9 +159,9 @@ function getCarouselMotionConfig(
       opacity: 0,
       scale: 0.85,
       ...exitAxisOffset,
-      transition: { duration: 0.15, ease: "easeOut" as const },
+      transition: { duration: EXIT_DURATION.standard, ease: EASE_IN },
     },
-    transition: { duration: 0.25, ease: "easeOut" as const },
+    transition: { duration: DURATION.standard, ease: EASE_OUT },
     whileTap: { scale: 0.96 },
   };
 }

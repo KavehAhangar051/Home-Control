@@ -3,19 +3,43 @@ import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { publishUpdateRuleCommand } from "@/features/iot/services/mqttService";
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 
+function validateRuleActionList(actions?: Array<{ targetPin: string }>): string | null {
+  if (!actions) return null;
+
+  for (let i = 0; i < actions.length; i++) {
+    const targetPin = actions[i].targetPin;
+    if (targetPin) {
+      const validation = validateEsp32Pin(targetPin, "output");
+      if (!validation.isValid) {
+        return validation.message;
+      }
+    }
+  }
+
+  return null;
+}
+
 export function useSegmentUpdates() {
   const setSegments = useIoTStore((state) => state.setSegments);
 
   const handleUpdateSegmentMode = useCallback(
     (id: string, mode: "switch" | "push") => {
-      setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, mode } : s)));
+      setSegments((prev) => {
+        const target = prev.find((s) => s.id === id);
+        if (!target || target.mode === mode) return prev;
+        return prev.map((s) => (s.id === id ? { ...s, mode } : s));
+      });
     },
     [setSegments],
   );
 
   const handleUpdateSegmentAutoOff = useCallback(
     (id: string, auto_off: number) => {
-      setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, auto_off } : s)));
+      setSegments((prev) => {
+        const target = prev.find((s) => s.id === id);
+        if (!target || target.auto_off === auto_off) return prev;
+        return prev.map((s) => (s.id === id ? { ...s, auto_off } : s));
+      });
     },
     [setSegments],
   );
@@ -40,18 +64,12 @@ export function useSegmentUpdates() {
         }>;
       },
     ) => {
-      const allActions = [...(rule.highActions || []), ...(rule.lowActions || [])];
+      const errorMessage =
+        validateRuleActionList(rule.highActions) ?? validateRuleActionList(rule.lowActions);
 
-      for (const action of allActions) {
-        if (action.targetPin) {
-          const validation = validateEsp32Pin(action.targetPin, "output");
-
-          if (!validation.isValid) {
-            useIoTStore.getState().showToast(`خطا در پایه: ${validation.message}`, "error");
-
-            return;
-          }
-        }
+      if (errorMessage !== null) {
+        useIoTStore.getState().showToast(`خطا در پایه: ${errorMessage}`, "error");
+        return;
       }
 
       setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, rule } : s)));

@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { GripVertical, Plus } from "@/components/ui/hugeicons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { SPRING_LAYOUT, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 import type { SegmentData } from "../core/types";
 
 interface PlaceholderCardProps {
@@ -31,15 +32,16 @@ export default function PlaceholderCard({
     <m.div
       className="w-full h-full relative"
       layout={animationsEnabled ? "position" : false}
-      transition={animationsEnabled ? { type: "spring", stiffness: 380, damping: 32 } : undefined}
-      initial={animationsEnabled ? { opacity: 0, y: 12 } : false}
-      animate={animationsEnabled ? { opacity: 1, y: 0 } : false}
+      transition={animationsEnabled ? SPRING_LAYOUT : undefined}
+      initial={animationsEnabled ? { opacity: 0, y: 12, scale: 0.97 } : false}
+      animate={animationsEnabled ? { opacity: 1, y: 0, scale: 1 } : false}
       exit={
         animationsEnabled
           ? {
               opacity: 0,
-              y: -12,
-              transition: { duration: 0.15, ease: "easeOut" },
+              y: -10,
+              scale: 0.97,
+              transition: TRANSITION_EXIT_STANDARD,
             }
           : undefined
       }

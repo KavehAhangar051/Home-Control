@@ -2,6 +2,7 @@ import { m } from "motion/react";
 import type React from "react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import type { WifiNetwork } from "@/features/iot/hooks/store/types";
+import { TRANSITION_ENTER_STANDARD, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 import { WifiNetworkEditor } from "./WifiNetworkEditor";
 
 interface Props {
@@ -25,9 +26,9 @@ function WifiNetworkCardFrame({ children }: { children: React.ReactNode }) {
       exit={{
         opacity: 0,
         y: -12,
-        transition: { duration: 0.15, ease: "easeOut" },
+        transition: TRANSITION_EXIT_STANDARD,
       }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={TRANSITION_ENTER_STANDARD}
       className="p-4 bg-[var(--card-bg-solid)] border border-[var(--border-color)] rounded-2xl shadow-sm relative overflow-hidden"
     >
       {children}

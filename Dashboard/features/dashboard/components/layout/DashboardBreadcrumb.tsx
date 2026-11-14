@@ -1,5 +1,6 @@
 "use client";
 
+import GroupFilterSelector from "@/components/MasterHeader/GroupFilterSelector";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -24,6 +25,10 @@ export default function DashboardBreadcrumb() {
   const activeModulesTab = useIoTStore((s) => s.activeModulesTab);
   const activeAutomationsTab = useIoTStore((s) => s.activeAutomationsTab);
   const rawSettingsTab = useIoTStore((s) => s.activeSettingsTab);
+  const groupsOrder = useIoTStore((s) => s.groupsOrder);
+  const selectedGroupFilter = useIoTStore((s) => s.selectedGroupFilter);
+  const setSelectedGroupFilter = useIoTStore((s) => s.setSelectedGroupFilter);
+  const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const activeMeta = WORKSPACE_VIEW_META[activeView];
   const ActiveIcon = activeMeta.navIcon;
 
@@ -39,9 +44,9 @@ export default function DashboardBreadcrumb() {
   return (
     <header
       dir="rtl"
-      className="flex h-14 w-full shrink-0 items-center justify-between gap-3 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] px-3 sm:px-4 md:px-8"
+      className="relative flex h-14 w-full shrink-0 items-center justify-between gap-3 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] px-3 sm:px-4 md:px-8"
     >
-      <Breadcrumb dir="rtl" className="min-w-0">
+      <Breadcrumb dir="rtl" className="relative z-10 min-w-0 shrink-0">
         <BreadcrumbList className="gap-1.5 text-sm text-[var(--sidebar-muted)] sm:gap-2">
           <BreadcrumbItem>
             <BreadcrumbLink
@@ -75,6 +80,18 @@ export default function DashboardBreadcrumb() {
           )}
         </BreadcrumbList>
       </Breadcrumb>
+
+      {activeView === "home" && (
+        <div className="pointer-events-none hidden md:flex absolute inset-0 items-center justify-center px-4">
+          <GroupFilterSelector
+            groupsOrder={groupsOrder}
+            selectedGroupFilter={selectedGroupFilter}
+            setSelectedGroupFilter={setSelectedGroupFilter}
+            animationsEnabled={animationsEnabled}
+            isCompact
+          />
+        </div>
+      )}
     </header>
   );
 }

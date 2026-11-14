@@ -161,7 +161,7 @@ export function useThemeToggle({
     });
 
     vt.finished.finally(() => {
-      delete root.dataset.beuiVt;
+      root.removeAttribute("data-beui-vt");
     });
   };
 

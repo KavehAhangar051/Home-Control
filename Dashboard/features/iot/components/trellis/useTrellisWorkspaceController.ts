@@ -74,7 +74,10 @@ function syncGroupPresetViews(
   segments: Segment[],
 ) {
   const groupSet = new Set(groupsOrder);
-  const segmentSet = new Set(segments.map((item) => item.id));
+  const segmentSet = new Set<string>();
+  for (let i = 0; i < segments.length; i++) {
+    segmentSet.add(segments[i].id);
+  }
 
   for (const groupName of groupsOrder) {
     const viewId = groupViewId(groupName);
@@ -112,9 +115,11 @@ function syncSegmentPresetViews(
   existingIds: Set<string>,
   segments: Segment[],
 ) {
-  const segmentById = new Map(segments.map((item) => [item.id, item]));
+  const segmentIds = new Set<string>();
 
-  for (const seg of segments) {
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    segmentIds.add(seg.id);
     const viewId = segmentViewId(seg.id);
 
     if (!existingIds.has(viewId)) {
@@ -131,7 +136,7 @@ function syncSegmentPresetViews(
   for (const view of ws.views({ type: "segment" })) {
     const segId = String(view.params.segmentId || "");
 
-    if (!segmentById.has(segId)) {
+    if (!segmentIds.has(segId)) {
       void ws.close(view.id, { force: true });
     }
   }
@@ -259,15 +264,24 @@ export function useTrellisWorkspaceController({
     ws.setDocument(freshDoc, { animate: true });
   }, [preset, groupsOrder, segments]);
 
+  const segmentById = React.useMemo(() => {
+    const map = new Map<string, Segment>();
+    for (let i = 0; i < segments.length; i++) {
+      const item = segments[i];
+      map.set(item.id, item);
+    }
+    return map;
+  }, [segments]);
+
   const segmentTitleLookup = React.useCallback(
     (segmentId: string) => {
-      const found = segments.find((item) => item.id === segmentId);
+      const found = segmentById.get(segmentId);
 
       if (!found) return "قطعه";
 
       return found.type === "placeholder" ? `جایگاه خالی (${found.group || "Test"})` : found.title;
     },
-    [segments],
+    [segmentById],
   );
 
   return {

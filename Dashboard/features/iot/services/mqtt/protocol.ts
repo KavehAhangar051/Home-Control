@@ -29,3 +29,8 @@ export const RULE_ACTION_SIZE = 11;
 /** Binary state encodings */
 export const PIN_STATE_HIGH = 0x01;
 export const PIN_STATE_LOW = 0x00;
+
+/** Pre-allocated immutable binary frames to avoid per-ping TypedArray allocations */
+export const PRESENCE_ONLINE_FRAME = new Uint8Array([MQTT_OPCODES.PRESENCE, PIN_STATE_HIGH]);
+export const PRESENCE_OFFLINE_FRAME = new Uint8Array([MQTT_OPCODES.PRESENCE, PIN_STATE_LOW]);
+export const SYNC_REQUEST_FRAME = new Uint8Array([0x09]);

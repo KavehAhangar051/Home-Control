@@ -4,16 +4,16 @@
  */
 
 import type { Variants } from "motion/react";
-import { EASE_OUT, SPRING_SWAP } from "@/lib/ease";
+import { EASE_IN, EASE_IN_OUT, EXIT_DURATION, SPRING_SWAP } from "@/lib/ease";
 import type { ActionSwapButtonSize, ActionSwapButtonVariant } from "./action-swap-types";
 
 /** Animations with a single-element variant set (cascade animates per letter). */
 export type CoreAnimation = "blur" | "roll";
 
-const BLUR_TRANSITION = { duration: 0.2, ease: "easeInOut" } as const;
+const BLUR_TRANSITION = { duration: 0.2, ease: EASE_IN_OUT } as const;
 const ICON_BLUR_TRANSITION = { type: "spring", duration: 0.3, bounce: 0 } as const;
 const ROLL_TRANSITION = SPRING_SWAP;
-const ROLL_EXIT_TRANSITION = { duration: 0.14, ease: EASE_OUT } as const;
+const ROLL_EXIT_TRANSITION = { duration: EXIT_DURATION.quick, ease: EASE_IN } as const;
 const SWAP_BLUR = "blur(8px)";
 const ICON_SWAP_BLUR = "blur(4px)";
 const ROLL_BLUR = "blur(3px)";
@@ -31,7 +31,7 @@ export const CASCADE_LETTER_VARIANTS: Variants = {
     opacity: 0,
     y: "-105%",
     filter: ROLL_BLUR,
-    transition: { duration: 0.16, ease: EASE_OUT, delay: delay * 0.5 },
+    transition: { duration: EXIT_DURATION.quick, ease: EASE_IN, delay: delay * 0.5 },
   }),
 };
 

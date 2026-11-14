@@ -3,6 +3,7 @@
 import { m } from "motion/react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
 import { CloudUpload, WifiOff } from "@/components/ui/hugeicons";
+import { DURATION, EASE_OUT, SPRING_PRESS } from "@/lib/ease";
 
 interface LowDataModeBannerProps {
   lowDataMode: boolean;
@@ -33,8 +34,11 @@ export default function LowDataModeBanner({
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 max-md:mt-6 md:mt-0">
       {lowDataMode && (
         <m.div
-          initial={animationsEnabled ? { opacity: 0, y: -8 } : {}}
-          animate={animationsEnabled ? { opacity: 1, y: 0 } : {}}
+          initial={animationsEnabled ? { opacity: 0, y: -8, scale: 0.98 } : {}}
+          animate={animationsEnabled ? { opacity: 1, y: 0, scale: 1 } : {}}
+          transition={
+            animationsEnabled ? { duration: DURATION.standard, ease: EASE_OUT } : undefined
+          }
           className="w-full"
         >
           <Alert dir="rtl" variant="warning" className={alertLayout}>
@@ -50,7 +54,8 @@ export default function LowDataModeBanner({
                 type="button"
                 onClick={refetchIot}
                 whileHover={animationsEnabled ? { scale: 1.02 } : undefined}
-                whileTap={animationsEnabled ? { scale: 0.98 } : undefined}
+                whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
+                transition={animationsEnabled ? SPRING_PRESS : undefined}
                 className={actionButtonClass}
               >
                 به‌روزرسانی کنونی
@@ -62,8 +67,11 @@ export default function LowDataModeBanner({
 
       {manualSaveMode && unsavedChangesCount > 0 && (
         <m.div
-          initial={animationsEnabled ? { opacity: 0, y: -8 } : {}}
-          animate={animationsEnabled ? { opacity: 1, y: 0 } : {}}
+          initial={animationsEnabled ? { opacity: 0, y: -8, scale: 0.98 } : {}}
+          animate={animationsEnabled ? { opacity: 1, y: 0, scale: 1 } : {}}
+          transition={
+            animationsEnabled ? { duration: DURATION.standard, ease: EASE_OUT } : undefined
+          }
           className="w-full"
         >
           <Alert dir="rtl" variant="warning" className={alertLayout}>
@@ -80,7 +88,8 @@ export default function LowDataModeBanner({
                 onClick={triggerCloudflarePush}
                 disabled={!triggerCloudflarePush}
                 whileHover={animationsEnabled ? { scale: 1.02 } : undefined}
-                whileTap={animationsEnabled ? { scale: 0.98 } : undefined}
+                whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
+                transition={animationsEnabled ? SPRING_PRESS : undefined}
                 className={actionButtonClass}
               >
                 ذخیره‌سازی تغییرات

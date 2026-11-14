@@ -52,8 +52,12 @@ export default function DashboardMain() {
 
       <footer
         dir="rtl"
-        className="flex h-14 w-full shrink-0 items-center justify-end border-t border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] px-4 md:px-8"
+        className="relative z-30 flex h-14 w-full shrink-0 items-center justify-end border-t border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] px-4 md:px-8"
       >
+        <div
+          id="dashboard-footer-center"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center px-14"
+        />
         <ThemeToggle />
       </footer>
 
