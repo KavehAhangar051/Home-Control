@@ -3,6 +3,7 @@
 #include <PinManager.h>
 #include <ArduinoJson.h>
 #include <Optimization/CompilerTraits.h>
+#include <AchaemenidConfigProtocol.h>
 
 
 namespace uniuno {
@@ -44,9 +45,22 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
         String text = message.data();
         if (text.startsWith("ESP_CFG_V2")) {
             Serial.println("[WebSocket] Received Config payload");
-            // global rawConfigPayload logic can be handled via event or callback
-            // For now, we'll keep the dependency inversion by using a global or event
-        } else if (text.indexOf("\"state_sync\"") >= 0) {
+            AchaemenidConfigProtocol configParser;
+            ParseResult parsed;
+            if (configParser.parse(text.c_str(), parsed) &&
+                (parsed.segmentsProvided || parsed.wifiProvided || parsed.apProvided || parsed.mqtt.valid)) {
+                ConfigLoadedEvent event;
+                event.parsed = parsed;
+                event.hasParsedConfig = true;
+                event.pinCount = parsed.count;
+                event.mqtt = parsed.mqtt;
+                event.wifiCount = parsed.wifiCount;
+                for (int i = 0; i < parsed.wifiCount; ++i) event.wifi[i] = parsed.wifi[i];
+                _dispatcher->dispatch(event);
+            } else {
+                Serial.println("[WebSocket] Rejected invalid configuration payload.");
+            }
+        } else if (text.indexOf("\"state_sync\"") >= 0) {"\"state_sync\"") >= 0) {
             Serial.println("[WebSocket] Received state_sync payload from Cloudflare");
             StaticJsonDocument<1024> doc; 
             DeserializationError error = deserializeJson(doc, text);

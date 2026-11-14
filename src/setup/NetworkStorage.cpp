@@ -5,17 +5,20 @@
 
 Preferences prefs;
 
-void saveNetworkConfig(const ConfigLoadedEvent& config) {
+bool saveNetworkConfig(const ConfigLoadedEvent& config) {
+    bool wifiChanged = false;
     bool started = prefs.begin("AchaemenidNet", false); // false = read/write
     if (!started) {
         ERROR("[NetworkStorage] Failed to open Preferences");
-        return;
+        return false;
     }
 
     // Preserve existing WiFi credentials when this event carries no WiFi update.
     // This is important for the boot-time ConfigLoadedEvent restored from NVS.
-    if (config.wifiCount > 0) {
+    if (config.hasParsedConfig && config.parsed.wifiProvided) {
         int wifiCount = config.wifiCount > 5 ? 5 : config.wifiCount;
+        int currentCount = prefs.getInt("wifiCount", 0);
+        if (currentCount != wifiCount) wifiChanged = true;
         prefs.putInt("wifiCount", wifiCount);
         for (int i = 0; i < wifiCount; i++) {
             uniuno::StaticString<8> ssidKey("ssid");
@@ -26,10 +29,12 @@ void saveNetworkConfig(const ConfigLoadedEvent& config) {
             String currentSsid = prefs.getString(ssidKey.c_str(), "");
             String currentPass = prefs.getString(passKey.c_str(), "");
             if (currentSsid != config.wifi[i].ssid) {
+                wifiChanged = true;
                 prefs.putString(ssidKey.c_str(), config.wifi[i].ssid);
                 INFOF("[NetworkStorage] Updated WiFi SSID slot %d.", i + 1);
             }
             if (currentPass != config.wifi[i].password) {
+                wifiChanged = true;
                 prefs.putString(passKey.c_str(), config.wifi[i].password);
                 INFO("[NetworkStorage] Updated WiFi password.");
             }
@@ -39,8 +44,20 @@ void saveNetworkConfig(const ConfigLoadedEvent& config) {
             uniuno::StaticString<8> passKey("pass");
             ssidKey += static_cast<char>('0' + i);
             passKey += static_cast<char>('0' + i);
+            if (prefs.isKey(ssidKey.c_str()) || prefs.isKey(passKey.c_str())) wifiChanged = true;
             prefs.remove(ssidKey.c_str());
             prefs.remove(passKey.c_str());
+        }
+    }
+
+    if (config.hasParsedConfig && config.parsed.apProvided) {
+        prefs.putBool("apConfigured", config.parsed.apValid);
+        if (config.parsed.apValid) {
+            prefs.putString("apSsid", config.parsed.apSsid);
+            prefs.putString("apPass", config.parsed.apPassword);
+        } else {
+            prefs.remove("apSsid");
+            prefs.remove("apPass");
         }
     }
 
@@ -73,6 +90,7 @@ void saveNetworkConfig(const ConfigLoadedEvent& config) {
 
     prefs.end();
     INFO("Network configuration saved to NVS (Preferences)");
+    return wifiChanged;
 }
 
 void loadNetworkConfig(String ssid[5], String pass[5], int& count, MqttConfig& mqttConfig) {

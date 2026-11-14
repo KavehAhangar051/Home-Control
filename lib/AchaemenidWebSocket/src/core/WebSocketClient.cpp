@@ -48,7 +48,6 @@ AchaemenidWebSocketClient::~AchaemenidWebSocketClient() {
 }
 
 void AchaemenidWebSocketClient::sendText(const String& payload) {
-    if (isConnecting_) return;
     if (client_ && LIKELY(client_->available())) {
         client_->send(payload);
     }
@@ -192,12 +191,13 @@ void AchaemenidWebSocketClient::onEventsCallback(websockets::WebsocketsEvent eve
         portEXIT_CRITICAL(&firstConnMux_);
 
         if (isFirst) {
-            Serial.println("[WebSocket] Connection Opened (First). Requesting states...");
+            Serial.println("[WebSocket] Connection Opened (First). Requesting configuration and states...");
             sendText("{\"type\":\"get_all_states\"}");
         } else {
-            Serial.println("[WebSocket] Connection Reopened. Syncing local state...");
+            Serial.println("[WebSocket] Connection Reopened. Requesting configuration and syncing local state...");
             sendText(stateProvider_ ? stateProvider_() : "{}");
         }
+        requestConfig();
     } else if (event == websockets::WebsocketsEvent::ConnectionClosed) {
         Serial.println("[WebSocket] Connection Closed");
     }

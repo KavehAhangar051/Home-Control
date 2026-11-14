@@ -107,8 +107,10 @@ struct ConfigLoadedEvent {
     MqttConfig mqtt; /**< MQTT configuration parsed from server */
     WifiNetworkConfig wifi[5]; /**< WiFi configuration parsed from server */
     int wifiCount;
+    ParseResult parsed;
+    bool hasParsedConfig;
     
-    ConfigLoadedEvent() : pinCount(0), wifiCount(0) {}
+    ConfigLoadedEvent() : pinCount(0), wifiCount(0), hasParsedConfig(false) {}
 };
 
 /**

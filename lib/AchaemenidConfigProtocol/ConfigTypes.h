@@ -67,7 +67,7 @@ struct MqttConfig {
 
 struct WifiNetworkConfig {
     char password[64];
-    char ssid[32];
+    char ssid[33];
     
     bool valid : 1;
 
@@ -84,10 +84,18 @@ struct ParseResult {
     
     int wifiCount;
     int count;
-    
+    char apSsid[33];
+    char apPassword[64];
+    bool apValid;
+    bool apProvided;
+    bool wifiProvided;
+    bool segmentsProvided;
     bool success : 1;
 
-    ParseResult() : wifiCount(0), count(0), success(false) {}
+    ParseResult() : wifiCount(0), count(0), apValid(false), apProvided(false), wifiProvided(false), segmentsProvided(false), success(false) {
+        apSsid[0] = '\0';
+        apPassword[0] = '\0';
+    }
 };
 
 #endif // CONFIG_TYPES_H
