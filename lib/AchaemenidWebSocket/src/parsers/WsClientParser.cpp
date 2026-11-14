@@ -50,7 +50,7 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
             if (configParser.parse(text.c_str(), parsed) &&
                 (parsed.segmentsProvided || parsed.wifiProvided || parsed.apProvided || parsed.mqtt.valid)) {
                 ConfigLoadedEvent event;
-                event.parsed = parsed;
+                event.parsed = &parsed;
                 event.hasParsedConfig = true;
                 event.pinCount = parsed.count;
                 event.mqtt = parsed.mqtt;
@@ -60,7 +60,7 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
             } else {
                 Serial.println("[WebSocket] Rejected invalid configuration payload.");
             }
-        } else if (text.indexOf("\"state_sync\"") >= 0) {"\"state_sync\"") >= 0) {
+        } else if (text.indexOf("\"state_sync\"") >= 0) {
             Serial.println("[WebSocket] Received state_sync payload from Cloudflare");
             StaticJsonDocument<1024> doc; 
             DeserializationError error = deserializeJson(doc, text);

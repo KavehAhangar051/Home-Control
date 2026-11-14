@@ -15,7 +15,7 @@ bool saveNetworkConfig(const ConfigLoadedEvent& config) {
 
     // Preserve existing WiFi credentials when this event carries no WiFi update.
     // This is important for the boot-time ConfigLoadedEvent restored from NVS.
-    if (config.hasParsedConfig && config.parsed.wifiProvided) {
+    if (config.hasParsedConfig && config.parsed != nullptr && config.parsed->wifiProvided) {
         int wifiCount = config.wifiCount > 5 ? 5 : config.wifiCount;
         int currentCount = prefs.getInt("wifiCount", 0);
         if (currentCount != wifiCount) wifiChanged = true;
@@ -50,11 +50,11 @@ bool saveNetworkConfig(const ConfigLoadedEvent& config) {
         }
     }
 
-    if (config.hasParsedConfig && config.parsed.apProvided) {
-        prefs.putBool("apConfigured", config.parsed.apValid);
+    if (config.hasParsedConfig && config.parsed != nullptr && config.parsed->apProvided) {
+        prefs.putBool("apConfigured", config.parsed->apValid);
         if (config.parsed.apValid) {
-            prefs.putString("apSsid", config.parsed.apSsid);
-            prefs.putString("apPass", config.parsed.apPassword);
+            prefs.putString("apSsid", config.parsed->apSsid);
+            prefs.putString("apPass", config.parsed->apPassword);
         } else {
             prefs.remove("apSsid");
             prefs.remove("apPass");

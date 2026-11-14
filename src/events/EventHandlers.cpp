@@ -119,16 +119,16 @@ auto onPinChanged = [](PinStateChangedEvent* evt) {
 auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
     if (evt == nullptr) return;
 
-    if (evt->hasParsedConfig) {
-        if (evt->parsed.segmentsProvided) {
-            ParseResult previousConfig;
+    if (evt->hasParsedConfig && evt->parsed != nullptr) {
+        if (evt->parsed->segmentsProvided) {
+            static ParseResult previousConfig;
             if (segmentStorage != nullptr && segmentStorage->loadSegmentConfig(previousConfig)) {
                 for (int i = 0; i < MAX_SEGMENTS; ++i) {
                     if (previousConfig.segments[i].valid) pinManager.removeSegment(previousConfig.segments[i].id);
                 }
             }
-            evt->pinCount = ConfigApplier::apply(evt->parsed, &pinManager);
-            if (segmentStorage != nullptr) segmentStorage->saveSegmentConfig(evt->parsed);
+            evt->pinCount = ConfigApplier::apply(*evt->parsed, &pinManager);
+            if (segmentStorage != nullptr) segmentStorage->saveSegmentConfig(*evt->parsed);
         }
         configLoaded = true;
     }
