@@ -101,10 +101,53 @@ export interface VoiceCommandExecutionContext {
   showToast: (message: string, type: "success" | "error") => void;
 }
 
+function extractSegmentIntent(cleanTranscript: string): {
+  targetState: boolean | null;
+  segmentName: string;
+} {
+  const stripped = cleanTranscript.replace(/\s+(?:کن|کنید|بشه|شود)$/u, "").trim();
+
+  if (stripped.endsWith(" روشن")) {
+    return {
+      targetState: true,
+      segmentName: stripped
+        .slice(0, -" روشن".length)
+        .replace(/\s+(?:را|رو)$/u, "")
+        .trim(),
+    };
+  }
+
+  if (stripped.endsWith(" خاموش")) {
+    return {
+      targetState: false,
+      segmentName: stripped
+        .slice(0, -" خاموش".length)
+        .replace(/\s+(?:را|رو)$/u, "")
+        .trim(),
+    };
+  }
+
+  if (/^روشن(?:\s+کردن)?\s+/u.test(stripped)) {
+    return {
+      targetState: true,
+      segmentName: stripped.replace(/^روشن(?:\s+کردن)?\s+/u, "").trim(),
+    };
+  }
+
+  if (/^خاموش(?:\s+کردن)?\s+/u.test(stripped)) {
+    return {
+      targetState: false,
+      segmentName: stripped.replace(/^خاموش(?:\s+کردن)?\s+/u, "").trim(),
+    };
+  }
+
+  return { targetState: null, segmentName: "" };
+}
+
 /**
  * Deep voice command resolution engine:
  * Encapsulates phonetic normalization, Levenshtein distance similarity,
- * macro action unfolding, suffix matching (" روشن" / " خاموش"), and status notifications.
+ * macro action unfolding, suffix/prefix matching ("روشن" / "خاموش"), and status notifications.
  */
 export function executeVoiceCommand(
   finalTranscript: string,
@@ -126,8 +169,6 @@ export function executeVoiceCommand(
   let highestSim = 0;
 
   const VOICE_SIMILARITY_THRESHOLD = 0.8;
-  const SUFFIX_TURN_ON = " روشن";
-  const SUFFIX_TURN_OFF = " خاموش";
 
   for (const command of context.voiceCommands ?? []) {
     const similarity = getSimilarity(normalizePhonetics(command.phrase), normalizedTranscript);
@@ -139,19 +180,29 @@ export function executeVoiceCommand(
   }
 
   if (bestMatchCmd?.actions?.length) {
-    const batchActions: Array<{ targetPin: string; actionOn: boolean }> = [];
+    const dedupedActions = new Map<string, boolean>();
 
-    bestMatchCmd.actions.forEach((action) => {
-      if (action.targetPin) {
-        batchActions.push({ targetPin: action.targetPin, actionOn: action.actionOn ?? true });
+    for (const action of bestMatchCmd.actions) {
+      if (action.targetPin?.trim()) {
+        dedupedActions.set(action.targetPin.trim(), action.actionOn ?? true);
       } else if (action.targetMacro) {
         const macro = context.macros?.find((item) => item.id === action.targetMacro);
 
-        if (macro) batchActions.push(...macro.actions);
+        if (macro) {
+          for (const macroAction of macro.actions) {
+            if (macroAction.targetPin?.trim()) {
+              dedupedActions.set(macroAction.targetPin.trim(), macroAction.actionOn);
+            }
+          }
+        }
       }
-    });
+    }
 
-    if (batchActions.length > 0) {
+    if (dedupedActions.size > 0) {
+      const batchActions = Array.from(dedupedActions, ([targetPin, actionOn]) => ({
+        targetPin,
+        actionOn,
+      }));
       context.handleBatchPinState(batchActions);
       context.showToast(`فرمان صوتی اجرا شد: ${cleanTranscript}`, "success");
 
@@ -159,24 +210,16 @@ export function executeVoiceCommand(
     }
   }
 
-  // 2. Try matching segment suffix commands (" روشن" or " خاموش")
-  let targetState: boolean | null = null;
-  let segmentName = "";
+  // 2. Try matching segment suffix/prefix commands ("روشن" or "خاموش")
+  const { targetState, segmentName } = extractSegmentIntent(cleanTranscript);
 
-  if (cleanTranscript.endsWith(SUFFIX_TURN_ON)) {
-    targetState = true;
-    segmentName = cleanTranscript.slice(0, -SUFFIX_TURN_ON.length).trim();
-  } else if (cleanTranscript.endsWith(SUFFIX_TURN_OFF)) {
-    targetState = false;
-    segmentName = cleanTranscript.slice(0, -SUFFIX_TURN_OFF.length).trim();
-  }
-
-  if (targetState !== null) {
+  if (targetState !== null && segmentName) {
     const normalizedSegmentName = normalizePhonetics(segmentName);
     let bestSegment: NonNullable<VoiceCommandExecutionContext["segments"]>[number] | null = null;
     let highestSegmentSimilarity = 0;
 
     for (const segment of context.segments ?? []) {
+      if (!segment.pin) continue;
       const similarity = getSimilarity(normalizePhonetics(segment.title), normalizedSegmentName);
 
       if (similarity > highestSegmentSimilarity && similarity >= VOICE_SIMILARITY_THRESHOLD) {

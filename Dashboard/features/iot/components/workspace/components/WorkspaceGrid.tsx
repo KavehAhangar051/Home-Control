@@ -2,6 +2,7 @@ import { rectSortingStrategy, SortableContext } from "@dnd-kit/sortable";
 import React from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import type { SortableSegmentCardProps } from "../../sortable-segment-card/core/types";
 import SortableGroup from "../../SortableGroup";
 import SortableSegmentCard from "../../SortableSegmentCard";
 import { getEffectiveGroupsCols } from "../core/gridUtils";
@@ -14,7 +15,28 @@ const GROUP_STYLE_LUT = {
   3: { flexBasis: "calc(33.3333% - 1.3333rem - 0.1px)" },
 };
 
-const ConnectedSegmentCard = React.memo((props: any) => {
+type SharedSegmentHandlers = Omit<
+  SortableSegmentCardProps,
+  | "segment"
+  | "index"
+  | "groupItemsCount"
+  | "parentGroupsCols"
+  | "groupMaxCols"
+  | "animationsEnabled"
+  | "isMobilePortrait"
+>;
+
+interface ConnectedSegmentCardProps extends SharedSegmentHandlers {
+  segmentId: string;
+  index: number;
+  groupItemsCount: number;
+  parentGroupsCols: number;
+  groupMaxCols: number;
+  animationsEnabled?: boolean;
+  isMobilePortrait?: boolean;
+}
+
+const ConnectedSegmentCard = React.memo((props: ConnectedSegmentCardProps) => {
   const segment = useIoTStore(
     React.useCallback(
       (s) => s.segments.find((seg) => seg.id === props.segmentId),
@@ -27,7 +49,21 @@ const ConnectedSegmentCard = React.memo((props: any) => {
   return <SortableSegmentCard segment={segment} {...props} />;
 });
 
-const ConnectedGroup = React.memo((props: any) => {
+interface ConnectedGroupProps {
+  groupName: string;
+  groupIndex: number;
+  groupConfigs: Record<string, { maxCols: number; icon?: string }>;
+  handleGroupColsChange: (groupName: string, cols: number) => void;
+  handleAddPlaceholder: (groupId: string) => void;
+  handleRemoveGroup: (groupId: string) => void;
+  animationsEnabled?: boolean;
+  filteredGroupsOrderLength: number;
+  groupsCols: number;
+  isMobilePortrait: boolean;
+  segmentProps: SharedSegmentHandlers;
+}
+
+const ConnectedGroup = React.memo((props: ConnectedGroupProps) => {
   const {
     groupName,
     groupIndex,

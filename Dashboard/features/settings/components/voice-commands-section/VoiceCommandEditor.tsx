@@ -1,16 +1,17 @@
 import { Check, X } from "@/components/ui/hugeicons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { AutomationAction, Macro, Segment } from "@/features/iot/hooks/store/types";
 import { VoiceCommandActionsEditor } from "./VoiceCommandActionsEditor";
 
 interface Props {
   newCommandPhrase: string;
   setNewCommandPhrase: (val: string) => void;
-  tempActions: Array<any>;
-  setTempActions: (val: Array<any>) => void;
+  tempActions: AutomationAction[];
+  setTempActions: (val: AutomationAction[]) => void;
   onSave: () => void;
   onCancel: () => void;
-  segments: any[];
-  macros: any[];
+  segments: Segment[];
+  macros: Macro[];
 }
 
 export function VoiceCommandEditor({

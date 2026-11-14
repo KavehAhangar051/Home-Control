@@ -1,6 +1,35 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useIoTStore } from "./useIoTStore";
 
+interface SpeechRecognitionResultEvent {
+  results: {
+    length: number;
+    [index: number]: {
+      [alternativeIndex: number]: {
+        transcript: string;
+      };
+    };
+  };
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+}
+
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionResultEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort?: () => void;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
+
 export const useVoiceCommand = () => {
   const isListening = useIoTStore((s) => s.isListening);
   const setIsListening = useIoTStore((s) => s.setIsListening);
@@ -9,7 +38,8 @@ export const useVoiceCommand = () => {
   const showToast = useIoTStore((s) => s.showToast);
 
   const transcriptRef = useRef("");
-  const recognitionRef = useRef<any>(null);
+  const hasErrorRef = useRef(false);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const onCommandCompleteRef = useRef<((text: string) => void) | null>(null);
 
   useEffect(() => {
@@ -17,8 +47,9 @@ export const useVoiceCommand = () => {
 
     // SAFETY: SpeechRecognition and webkitSpeechRecognition are optional browser speech API constructors
     const SpeechRecognition =
-      (window as Window & { SpeechRecognition?: any }).SpeechRecognition ||
-      (window as Window & { webkitSpeechRecognition?: any }).webkitSpeechRecognition;
+      (window as Window & { SpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition ||
+      (window as Window & { webkitSpeechRecognition?: SpeechRecognitionConstructor })
+        .webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       console.warn("Speech recognition is not supported in this browser.");
@@ -31,7 +62,7 @@ export const useVoiceCommand = () => {
     recognition.interimResults = true;
     recognition.lang = "fa-IR"; // Support Persian
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionResultEvent) => {
       let fullTranscript = "";
 
       for (let i = 0; i < event.results.length; ++i) {
@@ -44,18 +75,22 @@ export const useVoiceCommand = () => {
       }
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error("Speech recognition error", event.error);
+      hasErrorRef.current = true;
+      transcriptRef.current = "";
+      setTranscript("");
       setIsListening(false);
     };
 
     recognition.onend = () => {
       setIsListening(false);
 
-      if (transcriptRef.current && onCommandCompleteRef.current) {
+      if (!hasErrorRef.current && transcriptRef.current && onCommandCompleteRef.current) {
         onCommandCompleteRef.current(transcriptRef.current);
       }
 
+      hasErrorRef.current = false;
       transcriptRef.current = "";
       setTranscript("");
     };
@@ -79,9 +114,16 @@ export const useVoiceCommand = () => {
     (onComplete?: (text: string) => void) => {
       setTranscript("");
       transcriptRef.current = "";
+      hasErrorRef.current = false;
       onCommandCompleteRef.current = onComplete ?? null;
 
       if (recognitionRef.current) {
+        if (useIoTStore.getState().isListening) {
+          try {
+            recognitionRef.current.abort?.();
+          } catch {}
+        }
+
         try {
           recognitionRef.current.start();
           setIsListening(true);

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { CloudLightning, Globe, Server } from "@/components/ui/hugeicons";
+import { buildEspConfig } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { saveConfigToCloudflare } from "@/features/iot/services/cloudflare/api";
 import {
@@ -22,6 +23,11 @@ async function submitCloudflareConfig(
 ): Promise<void> {
   try {
     const result = await saveConfigToCloudflare(currentConfig);
+
+    if (result.success) {
+      useIoTStore.getState().resetUnsavedChanges();
+    }
+
     showToast(
       result.success ? "آدرس ورکر جدید با موفقیت ذخیره شد." : "خطا در ذخیره آدرس ورکر جدید.",
       result.success ? "success" : "error",
@@ -35,17 +41,9 @@ export default function CloudflareIntegration({
   isDark: _isDark = true,
 }: CloudflareIntegrationProps) {
   const [cfUrl, setCfUrl] = useState(() => getCloudflareWorkerUrl());
-
-  const {
-    segments,
-    groupsOrder,
-    groupConfigs,
-    groupsCols,
-    selectedFont,
-    showToast,
-    manualSaveMode,
-    setManualSaveMode,
-  } = useIoTStore();
+  const showToast = useIoTStore((s) => s.showToast);
+  const manualSaveMode = useIoTStore((s) => s.manualSaveMode);
+  const setManualSaveMode = useIoTStore((s) => s.setManualSaveMode);
 
   const [isSavingUrl, setIsSavingUrl] = useState(false);
 
@@ -65,35 +63,8 @@ export default function CloudflareIntegration({
       return;
     }
 
-    const currentConfig: EspConfig = {
-      version: "1.2.0",
-      device: {
-        name: "سامانه مرکزی IoT",
-        chip: "ESP32-S3-WROOM-1",
-        firmware: "v3.4.1-Smart-OS",
-        reboot_count: 0,
-        last_boot: new Date().toISOString(),
-      },
-      preferences: {
-        theme_mode: "dark",
-        accent_color_3: "#D4AF37",
-        accent_color_4: "#10B981",
-        font_family: selectedFont,
-        animations_enabled: true,
-        header_animation: "fade",
-        header_title: "سامانه کنترل هوشمند IoT",
-        matrix_density: 40,
-        matrix_size: 4,
-        matrix_hover_size: 3,
-        matrix_color: "#D4AF37",
-        matrix_moving: true,
-        matrix_mouse_effect: true,
-        manual_save_mode: manualSaveMode,
-      },
-      layout: { groups_order: groupsOrder, groups_cols: groupsCols, group_configs: groupConfigs },
-      segments,
-      worker_url: cfUrl,
-    };
+    const currentConfig = buildEspConfig(useIoTStore.getState());
+    currentConfig.worker_url = getCloudflareWorkerUrl();
 
     await submitCloudflareConfig(currentConfig, showToast, setIsSavingUrl);
   };

@@ -54,11 +54,14 @@ Do not commit `.env.local`, real credentials, private broker details, or API key
 | `npm run dev` | Start the development server |
 | `npm run build` | Run the production build/static export |
 | `npm run lint` | Run Biome lint checks |
+| `npm run typecheck` | Run TypeScript compiler checks (`tsc --noEmit`) |
+| `npm run test` | Run deterministic domain and boundary contract tests |
+| `npm run check` | Run lint, typecheck, and deterministic tests together |
 | `npm run format` | Format source directories in place |
 | `npm run clean` | Remove local build/cache outputs |
 | `npm run start` | Run the Next.js server; not intended to preview the static `out/` export |
 
-Run `npm run lint` and `npm run build` before submitting changes when possible.
+Run `npm run check` and `npm run build` before submitting changes when possible.
 
 ## GitHub Pages
 

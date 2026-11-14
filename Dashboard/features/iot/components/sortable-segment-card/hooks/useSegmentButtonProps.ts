@@ -31,14 +31,6 @@ export default function useSegmentButtonProps({
         e.stopPropagation();
         onSetPinState?.(pin, false);
       },
-      onTouchStart: (e: React.TouchEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        onSetPinState?.(pin, true);
-      },
-      onTouchEnd: (e: React.TouchEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        onSetPinState?.(pin, false);
-      },
     };
   }
 

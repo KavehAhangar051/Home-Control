@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { publishUpdateRuleCommand } from "@/features/iot/services/mqttService";
+import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 
 export function useSegmentUpdates() {
   const setSegments = useIoTStore((state) => state.setSegments);
@@ -39,6 +40,20 @@ export function useSegmentUpdates() {
         }>;
       },
     ) => {
+      const allActions = [...(rule.highActions || []), ...(rule.lowActions || [])];
+
+      for (const action of allActions) {
+        if (action.targetPin) {
+          const validation = validateEsp32Pin(action.targetPin, "output");
+
+          if (!validation.isValid) {
+            useIoTStore.getState().showToast(`خطا در پایه: ${validation.message}`, "error");
+
+            return;
+          }
+        }
+      }
+
       setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, rule } : s)));
       publishUpdateRuleCommand(id, rule.highActions || [], rule.lowActions || []);
     },

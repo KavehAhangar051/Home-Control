@@ -1,7 +1,34 @@
+import type { IoTStoreState } from "@/features/iot/hooks/store/types";
 import { getCloudflareWorkerUrl } from "@/features/iot/services/cloudflareService";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
 
-export function buildEspConfig(params: any): EspConfig {
+export type EspConfigBuildSource = Pick<
+  IoTStoreState,
+  | "isDark"
+  | "accent3"
+  | "accent4"
+  | "selectedFont"
+  | "animationsEnabled"
+  | "animationsFps"
+  | "headerTitle"
+  | "manualSaveMode"
+  | "groupsOrder"
+  | "groupsCols"
+  | "groupConfigs"
+  | "segments"
+  | "automations"
+  | "macros"
+  | "voiceCommands"
+  | "wifiNetworks"
+  | "mqttConfig"
+> & {
+  headerAnimationType?: "fade" | "chase";
+  headerPosition?: "top" | "left";
+  dashboardBgColor?: string;
+  dashboardBgOpacity?: number;
+};
+
+export function buildEspConfig(params: EspConfigBuildSource): EspConfig {
   return {
     version: "1.2.0",
     device: {
@@ -9,7 +36,7 @@ export function buildEspConfig(params: any): EspConfig {
       chip: "ESP32-S3-WROOM-1",
       firmware: "v3.4.1-Smart-OS",
       reboot_count: 0,
-      last_boot: new Date().toISOString(),
+      last_boot: "1970-01-01T00:00:00.000Z",
     },
     preferences: {
       theme_mode: params.isDark ? "dark" : "light",
@@ -18,9 +45,9 @@ export function buildEspConfig(params: any): EspConfig {
       font_family: params.selectedFont,
       animations_enabled: params.animationsEnabled,
       animations_fps: params.animationsFps,
-      header_animation: params.headerAnimationType,
+      header_animation: params.headerAnimationType || "fade",
       header_title: params.headerTitle,
-      header_position: params.headerPosition,
+      header_position: params.headerPosition || "top",
       dashboard_bg_color: params.dashboardBgColor,
       dashboard_bg_opacity: params.dashboardBgOpacity,
       manual_save_mode: params.manualSaveMode,

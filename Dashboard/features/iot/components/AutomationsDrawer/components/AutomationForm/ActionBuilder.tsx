@@ -2,11 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Layers, Play, Plus, Square } from "@/components/ui/hugeicons";
+import type { AutomationAction } from "@/features/iot/hooks/store/types";
 import { useAutomationActions } from "../../hooks/useAutomationActions";
 
 interface ActionBuilderProps {
-  actions: any[];
-  setActions: (actions: any[]) => void;
+  actions: AutomationAction[];
+  setActions: (actions: AutomationAction[]) => void;
 }
 
 export default function ActionBuilder({ actions, setActions }: ActionBuilderProps) {

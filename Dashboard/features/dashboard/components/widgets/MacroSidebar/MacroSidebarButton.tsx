@@ -4,10 +4,11 @@ import { m } from "motion/react";
 import React from "react";
 import { Play } from "@/components/ui/hugeicons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { Macro } from "@/features/iot/hooks/store/types";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
 
 interface MacroSidebarButtonProps {
-  macro: any;
+  macro: Macro;
   isCenter?: boolean;
   onClick: () => void;
   isHorizontal: boolean;
@@ -52,7 +53,7 @@ function MacroButtonIcon({
 }
 
 interface SimpleMacroButtonProps {
-  macro: any;
+  macro: Macro;
   onClick: () => void;
   isHorizontal?: boolean;
   animationsEnabled: boolean;
@@ -119,7 +120,7 @@ export function SimpleMacroButton({
 }
 
 interface CarouselMacroButtonProps {
-  macro: any;
+  macro: Macro;
   isCenter?: boolean;
   onClick: () => void;
   isHorizontal?: boolean;

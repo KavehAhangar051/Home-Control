@@ -1,28 +1,54 @@
 import type { StateCreator } from "zustand";
+import {
+  applyDashboardFontToDocument,
+  persistDashboardFont,
+  resolveDashboardFontId,
+} from "@/lib/fonts";
 import type { ConfigSlice, IoTStoreState } from "../types";
 
 export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice> = (set, get) => ({
   applyEspConfig: (config) => {
     if (!config) return;
 
-    set({
-      segments: config.segments,
-      groupsOrder: config.layout.groups_order,
-      groupConfigs: config.layout.group_configs,
-      groupsCols: config.layout.groups_cols || 1,
+    const resolvedFont = config.preferences?.font_family
+      ? resolveDashboardFontId(config.preferences.font_family)
+      : get().selectedFont;
+
+    if (config.preferences?.font_family) {
+      persistDashboardFont(resolvedFont);
+      applyDashboardFontToDocument(resolvedFont);
+    }
+
+    set((state) => ({
+      segments: config.segments || [],
+      groupsOrder: config.layout?.groups_order || [],
+      groupConfigs: config.layout?.group_configs || {},
+      groupsCols: config.layout?.groups_cols || 1,
       automations: config.automations || [],
       macros: config.macros || [],
       voiceCommands: config.voiceCommands || [],
       wifiNetworks: config.wifi?.networks || [],
-    });
-
-    if (config.preferences?.accent_color_3) {
-      set({ accent3: config.preferences.accent_color_3 });
-    }
-
-    if (config.preferences?.accent_color_4) {
-      set({ accent4: config.preferences.accent_color_4 });
-    }
+      isDark: config.preferences?.theme_mode
+        ? config.preferences.theme_mode !== "light"
+        : state.isDark,
+      selectedFont: resolvedFont,
+      animationsEnabled:
+        config.preferences?.animations_enabled !== undefined
+          ? config.preferences.animations_enabled
+          : state.animationsEnabled,
+      animationsFps:
+        config.preferences?.animations_fps !== undefined
+          ? config.preferences.animations_fps
+          : state.animationsFps,
+      headerTitle: config.preferences?.header_title || state.headerTitle,
+      manualSaveMode:
+        config.preferences?.manual_save_mode !== undefined
+          ? config.preferences.manual_save_mode
+          : state.manualSaveMode,
+      accent3: config.preferences?.accent_color_3 || state.accent3,
+      accent4: config.preferences?.accent_color_4 || state.accent4,
+      unsavedChangesCount: 0,
+    }));
 
     if (config.mqtt && typeof window !== "undefined") {
       const currentMqtt = get().mqttConfig;
@@ -51,7 +77,11 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
 
       // Backward compatibility for old rule schema
       if (s.rule && "targetPin" in s.rule) {
-        const oldRule: any = s.rule;
+        const oldRule = s.rule as {
+          targetPin?: string;
+          triggerState?: boolean;
+          actionState?: boolean;
+        };
         const triggerState = oldRule.triggerState ?? true;
 
         s.rule = {
@@ -81,7 +111,18 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
               : [],
         };
       } else if (s.rule && "targetPinHigh" in s.rule) {
-        const oldRule: any = s.rule;
+        const oldRule = s.rule as {
+          targetPinHigh?: string;
+          reqHoldHigh?: number;
+          actionOnHigh?: boolean;
+          actionTypeHigh?: number;
+          delayHigh?: number;
+          targetPinLow?: string;
+          reqHoldLow?: number;
+          actionOnLow?: boolean;
+          actionTypeLow?: number;
+          delayLow?: number;
+        };
         s.rule = {
           highActions: oldRule.targetPinHigh
             ? [

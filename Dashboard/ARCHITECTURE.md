@@ -178,20 +178,22 @@ Available scripts in `package.json`:
 - `npm run lint` — run Biome linting over `app`, `components`, `features`, and `lib`.
 - `npm run format` — format those source directories in place; review the resulting diff before committing.
 - `npm run typecheck` — run TypeScript compiler check (`tsc --noEmit`).
-- `npm run check` — run lint and TypeScript checks together.
+- `npm run test` — run deterministic domain, edge-case, and boundary integration tests (`tests/*.test.mjs`).
+- `npm run check` — run lint, TypeScript typecheck, and deterministic contract tests together.
 - `npm run clean` — remove local Next.js/export/build-metadata outputs.
 
-Before submitting a change, run the relevant lint/build checks when possible and report checks that could not be run. Avoid formatting unrelated files or committing generated output.
+Before submitting a change, run `npm run check` and production build checks when possible and report checks that could not be run. Avoid formatting unrelated files or committing generated output.
 
-## 12. Safe change procedure for coding agents
+## 12. Safe change procedure for coding agents (AI-First Engineering)
 
 1. Read this guide and the relevant protocol/design documentation before editing.
 2. Inspect the actual source, package scripts, and current GitHub Actions workflow; do not rely on outdated assumptions.
-3. Make the smallest cohesive change within the owning feature.
+3. Make the smallest cohesive change within the owning feature, keeping module boundaries explicit and contracts strongly typed (no `any` across domain, service, hook, or component boundaries).
 4. Preserve TypeScript types, existing public exports, persisted configuration formats, and ESP32 message compatibility.
-5. Check responsive layouts, loading/error states, keyboard access, and transport failure behavior for UI changes.
-6. Run lint and production build checks where available.
-7. Review the diff for unrelated formatting, secrets, logs, generated files, or temporary scripts.
-8. Update this document when architecture, scripts, deployment behavior, or protocol ownership changes.
+5. Add or update deterministic tests (`tests/*.test.mjs`) for touched domain logic, edge cases, and port/adapter boundary contracts.
+6. Check responsive layouts, loading/error states, keyboard access, and transport failure behavior for UI changes.
+7. Run `npm run check` (`lint` + `typecheck` + `test`) and production build checks where available.
+8. Review the diff for unrelated formatting, secrets, logs, generated files, or temporary scripts.
+9. Update this document when architecture, scripts, deployment behavior, or protocol ownership changes.
 
 When uncertain, prefer inspecting existing patterns and protocol documents over inventing new conventions.

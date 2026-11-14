@@ -1,8 +1,9 @@
+import type { AutomationAction } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
 export function useAutomationActions(
-  actions: Array<{ targetPin?: string; targetMacro?: string; actionOn?: boolean }>,
-  setActions: (actions: any) => void,
+  actions: AutomationAction[],
+  setActions: (actions: AutomationAction[]) => void,
 ) {
   const segments = useIoTStore((state) => state.segments);
   const macros = useIoTStore((state) => state.macros);
@@ -15,14 +16,14 @@ export function useAutomationActions(
     }
   };
 
-  const updateAction = (index: number, updates: any) => {
+  const updateAction = (index: number, updates: Partial<AutomationAction>) => {
     const newActions = [...actions];
     newActions[index] = { ...newActions[index], ...updates };
     setActions(newActions);
   };
 
   const removeAction = (index: number) => {
-    setActions(actions.filter((_: any, i: number) => i !== index));
+    setActions(actions.filter((_, i) => i !== index));
   };
 
   return {
