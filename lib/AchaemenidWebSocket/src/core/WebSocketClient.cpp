@@ -69,6 +69,8 @@ void AchaemenidWebSocketClient::begin(const String& serverUrl) {
     config_.serverUrl = serverUrl.c_str();
     isRunning_ = true;
     lastPingTime_ = 0;
+    lastConnectAttemptTime_ = 0;
+    hasConnectAttempted_ = false;
 }
 
 void AchaemenidWebSocketClient::stop() {
@@ -118,24 +120,42 @@ void AchaemenidWebSocketClient::doConnect() {
 IRAM_ATTR void AchaemenidWebSocketClient::loop() {
     if (UNLIKELY(!isRunning_ || WiFi.status() != WL_CONNECTED || isConnecting_)) return;
 
+    const unsigned long now = millis();
+
     if (client_ && LIKELY(client_->available())) {
         client_->poll();
-        const unsigned long now = millis();
         if (UNLIKELY(now - lastPingTime_ >= WS_PING_INTERVAL_MS)) {
             client_->ping();
             lastPingTime_ = now;
         }
-    } else {
-        isConnecting_ = true;
-        xTaskCreatePinnedToCore(
-            AchaemenidWebSocketClient::connectTask,
-            "wsConnect",
-            WS_CONNECT_TASK_STACK,
-            this,
-            WS_CONNECT_TASK_PRIO,
-            &connectTaskHandle_,
-            WS_CONNECT_TASK_CORE
-        );
+        return;
+    }
+
+    // Do not spawn a new connection task on every Arduino loop iteration.
+    // The timestamp check is wrap-safe for millis() rollover.
+    if (hasConnectAttempted_ &&
+        (now - lastConnectAttemptTime_ < WS_RETRY_DELAY_MS)) {
+        return;
+    }
+
+    lastConnectAttemptTime_ = now;
+    hasConnectAttempted_ = true;
+    isConnecting_ = true;
+
+    const BaseType_t taskResult = xTaskCreatePinnedToCore(
+        AchaemenidWebSocketClient::connectTask,
+        "wsConnect",
+        WS_CONNECT_TASK_STACK,
+        this,
+        WS_CONNECT_TASK_PRIO,
+        &connectTaskHandle_,
+        WS_CONNECT_TASK_CORE
+    );
+
+    if (UNLIKELY(taskResult != pdPASS)) {
+        isConnecting_ = false;
+        connectTaskHandle_ = nullptr;
+        Serial.println("[WebSocket] Failed to create connection task; retry delayed.");
     }
 }
 
