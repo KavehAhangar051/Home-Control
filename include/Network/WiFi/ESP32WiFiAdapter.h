@@ -51,9 +51,8 @@ public:
       return WL_CONNECT_FAILED;
     }
 
-    // Keep each async poll bounded; WiFiMulti selects among saved APs.
-    (void)connectTimeoutMs;
-    return wifiMulti.run();
+    // WiFiMulti selects among saved APs using the connector's bounded timeout.
+    return wifiMulti.run(connectTimeoutMs);
   }
 
   FORCE_INLINE bool disconnect(bool wifioff = false) override {
