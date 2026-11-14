@@ -54,10 +54,16 @@ void setup() {
     // Always add the hardcoded fallback as the last resort
     ::network->add_access_point(WIFI_SSID, WIFI_PASSWORD);
     
-    // Also restore MQTT if valid
+    // Configure MQTT independently of Cloudflare so command subscription is
+    // ready as soon as WiFi connects, even when the cloud WebSocket is offline.
     if (savedMqtt.valid) {
         mqttClient.begin(String(savedMqtt.host), savedMqtt.port, String(savedMqtt.baseTopic), savedMqtt.qos, "", "");
+        mqttClient.subscribe(String(savedMqtt.baseTopic) + "/Command");
         INFOF("[System] Restored MQTT settings from NVS (Host: %s)", savedMqtt.host);
+    } else {
+        mqttClient.begin("broker.emqx.io", 1883, "KamyarIoT/Achaemenid", 1, "", "");
+        mqttClient.subscribe("KamyarIoT/Achaemenid/Command");
+        WARNING("[System] No MQTT settings in NVS. Configured fallback broker independently of Cloudflare.");
     }
 
     INFO("[System] Setup completed. Starting Async Boot Sequence...");
