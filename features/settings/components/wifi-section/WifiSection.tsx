@@ -9,6 +9,10 @@ import { WifiNetworkEditCard, WifiNetworkViewCard } from "./WifiNetworkCard";
 export default function WifiSection() {
   const wifiNetworks = useIoTStore((s) => s.wifiNetworks);
   const setWifiNetworks = useIoTStore((s) => s.setWifiNetworks);
+  const wifiApConfig = useIoTStore((s) => s.wifiApConfig);
+  const setWifiApConfig = useIoTStore((s) => s.setWifiApConfig);
+  const apSsid = wifiApConfig?.ssid ?? "";
+  const apPassword = wifiApConfig?.password ?? "";
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempSsid, setTempSsid] = useState("");
@@ -74,6 +78,32 @@ export default function WifiSection() {
         در این بخش می‌توانید اطلاعات شبکه‌های وای‌فای (SSID و رمز عبور) را برای تراشه ESP32 تعریف کنید.
         تراشه به هنگام راه‌اندازی به ترتیب به این شبکه‌ها متصل خواهد شد.
       </p>
+
+      <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg-solid)] p-4 space-y-3">
+        <div>
+          <h4 className="text-sm font-bold text-[var(--text-primary)]">اکسس‌پوینت راه‌اندازی ESP32</h4>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
+            این نام و رمز هنگام فعال شدن حالت Provisioning استفاده می‌شوند. اگر هر دو فیلد خالی باشند، مقادیر پیش‌فرض مبتنی بر MAC دستگاه استفاده می‌شوند.
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="esp-ap-ssid" className="text-xs font-semibold text-[var(--text-primary)]">نام شبکه (SSID)</label>
+          <input id="esp-ap-ssid" type="text" dir="auto" maxLength={32} value={apSsid}
+            onChange={(event) => setWifiApConfig({ ...(wifiApConfig ?? { ssid: "", password: "" }), ssid: event.target.value })}
+            placeholder="Achaemenid-XXXXXX"
+            className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent3)]" />
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="esp-ap-password" className="text-xs font-semibold text-[var(--text-primary)]">رمز عبور اکسس‌پوینت</label>
+          <input id="esp-ap-password" type="password" dir="ltr" maxLength={63} value={apPassword}
+            onChange={(event) => setWifiApConfig({ ...(wifiApConfig ?? { ssid: "", password: "" }), password: event.target.value })}
+            placeholder="حداقل ۸ کاراکتر"
+            className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent3)]" />
+        </div>
+        {(apSsid.trim() || apPassword) && (!apSsid.trim() || apPassword.length < 8 || apSsid.length > 32) && (
+          <p className="text-xs text-red-500" role="alert">رمز AP سفارشی باید حداقل ۸ کاراکتر باشد.</p>
+        )}
+      </div>
 
       <div className="space-y-4">
         <AnimatePresence initial={false}>
