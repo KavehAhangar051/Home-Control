@@ -12,29 +12,35 @@ void saveNetworkConfig(const ConfigLoadedEvent& config) {
         return;
     }
 
-    // Save WiFi
-    prefs.putInt("wifiCount", config.wifiCount);
-    for (int i = 0; i < config.wifiCount; i++) {
-        uniuno::StaticString<8> ssidKey("ssid");
-        uniuno::StaticString<8> passKey("pass");
-        ssidKey += static_cast<char>('0' + i);
-        passKey += static_cast<char>('0' + i);
+    // Preserve existing WiFi credentials when this event carries no WiFi update.
+    // This is important for the boot-time ConfigLoadedEvent restored from NVS.
+    if (config.wifiCount > 0) {
+        int wifiCount = config.wifiCount > 5 ? 5 : config.wifiCount;
+        prefs.putInt("wifiCount", wifiCount);
+        for (int i = 0; i < wifiCount; i++) {
+            uniuno::StaticString<8> ssidKey("ssid");
+            uniuno::StaticString<8> passKey("pass");
+            ssidKey += static_cast<char>('0' + i);
+            passKey += static_cast<char>('0' + i);
 
-        // Smart write: only write if changed to save flash wear
-        String currentSsid = prefs.getString(ssidKey.c_str(), "");
-        String currentPass = prefs.getString(passKey.c_str(), "");
-
-        if (currentSsid != config.wifi[i].ssid) {
-            prefs.putString(ssidKey.c_str(), config.wifi[i].ssid);
-            INFOF("[NetworkStorage] [DEBUG] WiFi SSID changed from '%s' to '%s'. Updated in NVS.", currentSsid.c_str(), config.wifi[i].ssid);
-        } else {
-            INFOF("[NetworkStorage] [DEBUG] WiFi SSID '%s' unchanged. Skipped flash write.", config.wifi[i].ssid);
+            String currentSsid = prefs.getString(ssidKey.c_str(), "");
+            String currentPass = prefs.getString(passKey.c_str(), "");
+            if (currentSsid != config.wifi[i].ssid) {
+                prefs.putString(ssidKey.c_str(), config.wifi[i].ssid);
+                INFOF("[NetworkStorage] Updated WiFi SSID slot %d.", i + 1);
+            }
+            if (currentPass != config.wifi[i].password) {
+                prefs.putString(passKey.c_str(), config.wifi[i].password);
+                INFO("[NetworkStorage] Updated WiFi password.");
+            }
         }
-        if (currentPass != config.wifi[i].password) {
-            prefs.putString(passKey.c_str(), config.wifi[i].password);
-            INFO("[NetworkStorage] [DEBUG] WiFi Password changed. Updated in NVS.");
-        } else {
-            INFO("[NetworkStorage] [DEBUG] WiFi Password unchanged. Skipped flash write.");
+        for (int i = wifiCount; i < 5; ++i) {
+            uniuno::StaticString<8> ssidKey("ssid");
+            uniuno::StaticString<8> passKey("pass");
+            ssidKey += static_cast<char>('0' + i);
+            passKey += static_cast<char>('0' + i);
+            prefs.remove(ssidKey.c_str());
+            prefs.remove(passKey.c_str());
         }
     }
 
@@ -69,7 +75,7 @@ void saveNetworkConfig(const ConfigLoadedEvent& config) {
     INFO("Network configuration saved to NVS (Preferences)");
 }
 
-void loadNetworkConfig(String ssid[3], String pass[3], int& count, MqttConfig& mqttConfig) {
+void loadNetworkConfig(String ssid[5], String pass[5], int& count, MqttConfig& mqttConfig) {
     bool started = prefs.begin("AchaemenidNet", true); // true = read-only
     if (!started) {
         WARNING("[NetworkStorage] Preferences empty or failed to open");
@@ -79,7 +85,7 @@ void loadNetworkConfig(String ssid[3], String pass[3], int& count, MqttConfig& m
     }
 
     count = prefs.getInt("wifiCount", 0);
-    if (count > 3) count = 3;
+    if (count > 5) count = 5;
 
     for (int i = 0; i < count; i++) {
         uniuno::StaticString<8> ssidKey("ssid");
@@ -89,7 +95,7 @@ void loadNetworkConfig(String ssid[3], String pass[3], int& count, MqttConfig& m
 
         ssid[i] = prefs.getString(ssidKey.c_str(), "");
         pass[i] = prefs.getString(passKey.c_str(), "");
-        INFOF("[NetworkStorage] [DEBUG] Stored Network %d - SSID: '%s', Pass: '%s'", i, ssid[i].c_str(), pass[i].c_str());
+        INFOF("[NetworkStorage] Stored WiFi network %d - SSID: '%s'", i + 1, ssid[i].c_str());
     }
 
     bool mqValid = prefs.getBool("mqValid", false);

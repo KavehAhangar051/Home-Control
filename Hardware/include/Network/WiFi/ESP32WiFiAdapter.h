@@ -51,16 +51,9 @@ public:
       return WL_CONNECT_FAILED;
     }
 
-    // WiFiMulti.run() will scan and connect to the strongest AP concurrently
-    uint32_t start_time = millis();
-    while (millis() - start_time < connectTimeoutMs) {
-      if (wifiMulti.run() == WL_CONNECTED) {
-        return WL_CONNECTED;
-      }
-      delay(10);
-    }
-
-    return WL_CONNECT_FAILED;
+    // Keep each async poll bounded; WiFiMulti selects among saved APs.
+    (void)connectTimeoutMs;
+    return wifiMulti.run();
   }
 
   FORCE_INLINE bool disconnect(bool wifioff = false) override {
@@ -68,7 +61,7 @@ public:
   }
 
 private:
-  SmallVector<WiFiCredential, 3> credentials;
+  SmallVector<WiFiCredential, 5> credentials;
   WiFiMulti wifiMulti;
 };
 
