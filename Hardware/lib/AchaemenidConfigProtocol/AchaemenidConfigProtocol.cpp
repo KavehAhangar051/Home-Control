@@ -4,6 +4,24 @@
 
 namespace uniuno {
 
+static void decodeValue(const char* input, char* output, size_t outputSize) {
+    size_t out = 0;
+    for (size_t i = 0; input[i] && out + 1 < outputSize; ++i) {
+        if (input[i] == '%' && input[i + 1] && input[i + 2]) {
+            char hex[3] = {input[i + 1], input[i + 2], '\0'};
+            char* end = nullptr;
+            long value = strtol(hex, &end, 16);
+            if (end && *end == '\0') {
+                output[out++] = static_cast<char>(value);
+                i += 2;
+                continue;
+            }
+        }
+        output[out++] = input[i];
+    }
+    output[out] = '\0';
+}
+
 class KeyValueParser {
     const char* start;
     const char* end;
@@ -83,7 +101,10 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
 
         KeyValueParser kvp(p, eol);
 
-        if (strncmp(p, "S ", 2) == 0) {
+        if (strncmp(p, "C ", 2) == 0) {
+            char markerBuf[4] = {0};
+            outResult.segmentsProvided = kvp.getValue("n", markerBuf, sizeof(markerBuf));
+        } else if (strncmp(p, "S ", 2) == 0) {
             segIndex++;
             if (segIndex >= MAX_SEGMENTS) {
                 Serial.printf("[ACP] Max segments (%d) reached.\n", MAX_SEGMENTS);
@@ -151,15 +172,15 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
             }
         } else if (strncmp(p, "M ", 2) == 0) {
             // تجزیه تنظیمات MQTT
-            char hostBuf[64] = {0};
-            char topicBuf[64] = {0};
+            char hostBuf[192] = {0};
+            char topicBuf[192] = {0};
             
             bool hasHost = kvp.getValue("h", hostBuf, sizeof(hostBuf));
             bool hasTopic = kvp.getValue("t", topicBuf, sizeof(topicBuf));
             
             if (hasHost && hasTopic) {
-                strncpy(outResult.mqtt.host, hostBuf, sizeof(outResult.mqtt.host) - 1);
-                strncpy(outResult.mqtt.baseTopic, topicBuf, sizeof(outResult.mqtt.baseTopic) - 1);
+                decodeValue(hostBuf, outResult.mqtt.host, sizeof(outResult.mqtt.host));
+                decodeValue(topicBuf, outResult.mqtt.baseTopic, sizeof(outResult.mqtt.baseTopic));
                 outResult.mqtt.port = kvp.getInt("p", 1883);
                 outResult.mqtt.qos = kvp.getInt("q", 1);
                 outResult.mqtt.valid = true;
@@ -168,19 +189,34 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
             }
         } else if (strncmp(p, "W ", 2) == 0) {
             // تجزیه تنظیمات وای‌فای
-            char ssidBuf[32] = {0};
-            char passBuf[64] = {0};
+            char ssidBuf[100] = {0};
+            char passBuf[190] = {0};
             
+            char markerBuf[4] = {0};
+            if (kvp.getValue("n", markerBuf, sizeof(markerBuf))) outResult.wifiProvided = true;
             bool hasSsid = kvp.getValue("s", ssidBuf, sizeof(ssidBuf));
             bool hasPass = kvp.getValue("p", passBuf, sizeof(passBuf));
             
+            if (hasSsid && hasPass) outResult.wifiProvided = true;
             if (hasSsid && hasPass && outResult.wifiCount < 5) {
                 int c = outResult.wifiCount;
-                strncpy(outResult.wifi[c].ssid, ssidBuf, sizeof(outResult.wifi[c].ssid) - 1);
-                strncpy(outResult.wifi[c].password, passBuf, sizeof(outResult.wifi[c].password) - 1);
+                decodeValue(ssidBuf, outResult.wifi[c].ssid, sizeof(outResult.wifi[c].ssid));
+                decodeValue(passBuf, outResult.wifi[c].password, sizeof(outResult.wifi[c].password));
                 outResult.wifi[c].valid = true;
                 outResult.wifiCount++;
                 Serial.printf("[ACP] WiFi Config Parsed: ssid=%s\n", outResult.wifi[c].ssid);
+            }
+        } else if (strncmp(p, "A ", 2) == 0) {
+            char ssidBuf[100] = {0};
+            char passBuf[190] = {0};
+            if (kvp.getValue("s", ssidBuf, sizeof(ssidBuf)) &&
+                kvp.getValue("p", passBuf, sizeof(passBuf))) {
+                outResult.apProvided = true;
+                decodeValue(ssidBuf, outResult.apSsid, sizeof(outResult.apSsid));
+                decodeValue(passBuf, outResult.apPassword, sizeof(outResult.apPassword));
+                outResult.apValid = outResult.apSsid[0] != '\0' &&
+                    strlen(outResult.apPassword) >= 8 &&
+                    strlen(outResult.apPassword) <= 63;
             }
         }
 

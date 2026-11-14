@@ -6,6 +6,8 @@
 #include <core/WebSocketServer.h>
 #include <core/WebSocketClient.h>
 #include <AchaemenidMQTT.h>
+#include <ConfigApplier.h>
+#include <Arduino.h>
 
 /**
  * @brief Listener: Handles requested pin state changes (e.g. from MQTT).
@@ -116,27 +118,43 @@ auto onPinChanged = [](PinStateChangedEvent* evt) {
  */
 auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
     if (evt == nullptr) return;
+
+    if (evt->hasParsedConfig) {
+        if (evt->parsed.segmentsProvided) {
+            ParseResult previousConfig;
+            if (segmentStorage != nullptr && segmentStorage->loadSegmentConfig(previousConfig)) {
+                for (int i = 0; i < MAX_SEGMENTS; ++i) {
+                    if (previousConfig.segments[i].valid) pinManager.removeSegment(previousConfig.segments[i].id);
+                }
+            }
+            evt->pinCount = ConfigApplier::apply(evt->parsed, &pinManager);
+            if (segmentStorage != nullptr) segmentStorage->saveSegmentConfig(evt->parsed);
+        }
+        configLoaded = true;
+    }
+
     INFOF("[Event] Config loaded with %d pins.", evt->pinCount);
-    
-    // Save the new network configuration locally to NVS
-    saveNetworkConfig(*evt);
-    
+    const bool wifiChanged = saveNetworkConfig(*evt);
+
     if (evt->mqtt.valid) {
         INFOF("[MQTT] Configuring dynamically: host=%s, port=%d, qos=%d", evt->mqtt.host, evt->mqtt.port, evt->mqtt.qos);
         mqttClient.begin(String(evt->mqtt.host), evt->mqtt.port, String(evt->mqtt.baseTopic), evt->mqtt.qos, "", "");
         mqttClient.subscribe(String(evt->mqtt.baseTopic) + "/Command");
         mqttClient.connect();
+    } else if (mqttClient.getBaseTopic().length() > 0) {
+        mqttClient.subscribe(mqttClient.getBaseTopic() + "/Command");
+        mqttClient.connect();
     } else {
-        if (mqttClient.getBaseTopic().length() > 0) {
-            INFO("[MQTT] Using MQTT settings already restored by main.cpp");
-            mqttClient.subscribe(mqttClient.getBaseTopic() + "/Command");
-            mqttClient.connect();
-        } else {
-            WARNING("[MQTT] No valid MQTT config received from server or NVS. Using fallback.");
-            mqttClient.begin("broker.emqx.io", 1883, "KamyarIoT/Achaemenid", 1, "", "");
-            mqttClient.subscribe("KamyarIoT/Achaemenid/Command");
-            mqttClient.connect();
-        }
+        WARNING("[MQTT] No valid MQTT config received from server or NVS. Using fallback.");
+        mqttClient.begin("broker.emqx.io", 1883, "KamyarIoT/Achaemenid", 1, "", "");
+        mqttClient.subscribe("KamyarIoT/Achaemenid/Command");
+        mqttClient.connect();
+    }
+
+    if (wifiChanged && evt->hasParsedConfig) {
+        WARNING("[Network] WiFi credentials changed. Restarting to apply saved networks.");
+        delay(250);
+        ESP.restart();
     }
 };
 
@@ -182,7 +200,7 @@ void setupEventBus() {
     eventBus.on<SegmentAddRequestEvent>(onSegmentAdd);
     eventBus.on<SegmentRemoveRequestEvent>(onSegmentRemove);
     eventBus.on<PinStateChangedEvent>(onPinChanged);
-    eventBus.once<ConfigLoadedEvent>(onConfigLoaded);
+    eventBus.on<ConfigLoadedEvent>(onConfigLoaded);
     eventBus.on<StateSyncRequestEvent>(onStateSyncRequest);
     eventBus.on<NetworkStatusEvent>(onNetworkStatus);
     eventBus.on<CloudSyncRequestEvent>(onCloudSyncRequest);

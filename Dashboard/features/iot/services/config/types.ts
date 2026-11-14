@@ -121,11 +121,12 @@ export interface EspConfig {
     qos: 0 | 1 | 2;
   };
   wifi?: {
-    networks: Array<{
+    networks?: Array<{
       id: string;
       ssid: string;
       password?: string;
     }>;
+    access_point?: { ssid: string; password: string };
   };
   worker_url?: string;
 }

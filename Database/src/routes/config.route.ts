@@ -42,9 +42,10 @@ function buildRuleLines(seg: PinConfig): string {
 export async function buildEspConfigText(env: Env, value: string | null): Promise<string> {
 	const parsed = JSON.parse(value ?? "{}");
 	const data = parsed?.payload ?? parsed ?? {};
-	const segments: PinConfig[] = data.segments_definition ?? data.segments ?? [];
+	const segmentDefinitions = data.segments_definition ?? data.segments;
+	const segments: PinConfig[] = Array.isArray(segmentDefinitions) ? segmentDefinitions : [];
 
-	if (segments.length === 0) return "ESP_CFG_V2\n";
+	
 
 	// خواندن موازی وضعیت همه پین‌ها
 	const pinStates = await Promise.all(
@@ -59,20 +60,29 @@ export async function buildEspConfigText(env: Env, value: string | null): Promis
 	);
 
 	let text = "ESP_CFG_V2\n";
+	if (Array.isArray(segmentDefinitions)) text += "C n=1\n";
 	
+	const encodeValue = (value: string): string => encodeURIComponent(value);
+
 	if (data.mqtt) {
 		const m = data.mqtt;
 		if (m.broker_host && m.base_topic) {
-			text += `M h=${m.broker_host} p=${m.broker_port || 1883} t=${m.base_topic} q=${m.qos ?? 1}\n`;
+			text += `M h=${encodeValue(m.broker_host)} p=${m.broker_port || 1883} t=${encodeValue(m.base_topic)} q=${m.qos ?? 1}\n`;
 		}
 	}
 
 	if (data.wifi && Array.isArray(data.wifi.networks)) {
+		text += "W n=1\n";
 		for (const net of data.wifi.networks) {
-			if (net.ssid && net.password) {
-				text += `W s=${net.ssid} p=${net.password}\n`;
+			if (net?.ssid) {
+				text += `W s=${encodeValue(net.ssid)} p=${encodeValue(net.password ?? "")}\n`;
 			}
 		}
+	}
+
+	const accessPoint = data.wifi?.access_point;
+	if (accessPoint && typeof accessPoint.ssid === "string" && typeof accessPoint.password === "string") {
+		text += `A s=${encodeValue(accessPoint.ssid)} p=${encodeValue(accessPoint.password)}\n`;
 	}
 
 	for (let i = 0; i < segments.length; i++) {

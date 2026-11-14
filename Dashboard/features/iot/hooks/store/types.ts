@@ -70,6 +70,11 @@ export interface WifiNetwork {
   password?: string;
 }
 
+export interface WifiAccessPointConfig {
+  ssid: string;
+  password: string;
+}
+
 export interface MqttConfig {
   broker_ws_url: string;
   broker_host: string;
@@ -119,6 +124,8 @@ export interface SystemSlice {
   macros: Macro[];
   voiceCommands: VoiceCommand[];
   wifiNetworks: WifiNetwork[];
+  wifiNetworksConfigured: boolean;
+  wifiApConfig: WifiAccessPointConfig | null;
   mqttConfig: MqttConfig | null;
   setAutomations: (automations: Automation[] | ((prev: Automation[]) => Automation[])) => void;
   setMacros: (macros: Macro[] | ((prev: Macro[]) => Macro[])) => void;
@@ -126,6 +133,7 @@ export interface SystemSlice {
     voiceCommands: VoiceCommand[] | ((prev: VoiceCommand[]) => VoiceCommand[]),
   ) => void;
   setWifiNetworks: (networks: WifiNetwork[] | ((prev: WifiNetwork[]) => WifiNetwork[])) => void;
+  setWifiApConfig: (config: WifiAccessPointConfig) => void;
   setMqttConfig: (config: MqttConfig | null) => void;
 }
 

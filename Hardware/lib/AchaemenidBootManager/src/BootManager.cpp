@@ -61,6 +61,14 @@ void BootManager::startProvisioningPortal() {
     String suffix = mac.substring(mac.length() > 6 ? mac.length() - 6 : 0);
     String apSsid = "Achaemenid-" + suffix;
     String apPassword = "Setup-" + suffix;
+    Preferences apPrefs;
+    if (apPrefs.begin("AchaemenidNet", true)) {
+        if (apPrefs.getBool("apConfigured", false)) {
+            apSsid = apPrefs.getString("apSsid", apSsid);
+            apPassword = apPrefs.getString("apPass", apPassword);
+        }
+        apPrefs.end();
+    }
 
     if (!WiFi.softAP(apSsid.c_str(), apPassword.c_str())) {
         ERROR("[Provisioning] Could not start setup access point.");
@@ -142,8 +150,7 @@ void BootManager::startProvisioningPortal() {
     provisioningServerStarted_ = true;
     state_ = BootState::PROVISIONING;
 
-    INFOF("[Provisioning] Connect to '%s' using password '%s', then open http://192.168.4.1",
-          apSsid.c_str(), apPassword.c_str());
+    INFOF("[Provisioning] Access point '%s' started. Open http://192.168.4.1", apSsid.c_str());
 }
 
 void BootManager::loop() {

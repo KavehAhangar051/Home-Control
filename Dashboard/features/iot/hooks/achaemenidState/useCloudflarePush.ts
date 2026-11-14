@@ -25,6 +25,8 @@ export function useCloudflarePush(isFullyReady: boolean) {
   const macros = useIoTStore((s) => s.macros);
   const voiceCommands = useIoTStore((s) => s.voiceCommands);
   const wifiNetworks = useIoTStore((s) => s.wifiNetworks);
+  const wifiNetworksConfigured = useIoTStore((s) => s.wifiNetworksConfigured);
+  const wifiApConfig = useIoTStore((s) => s.wifiApConfig);
   const mqttConfig = useIoTStore((s) => s.mqttConfig);
 
   const lastSyncedSignatureRef = useRef<string | null>(null);
@@ -48,6 +50,8 @@ export function useCloudflarePush(isFullyReady: boolean) {
         macros,
         voiceCommands,
         wifiNetworks,
+        wifiNetworksConfigured,
+        wifiApConfig,
         mqttConfig,
       }),
     [
@@ -67,6 +71,8 @@ export function useCloudflarePush(isFullyReady: boolean) {
       macros,
       voiceCommands,
       wifiNetworks,
+      wifiNetworksConfigured,
+      wifiApConfig,
       mqttConfig,
     ],
   );

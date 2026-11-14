@@ -6,6 +6,8 @@ export const createSystemSlice: StateCreator<IoTStoreState, [], [], SystemSlice>
   macros: [],
   voiceCommands: [],
   wifiNetworks: [],
+  wifiNetworksConfigured: false,
+  wifiApConfig: null,
   mqttConfig: null,
 
   setAutomations: (automations) => {
@@ -37,9 +39,10 @@ export const createSystemSlice: StateCreator<IoTStoreState, [], [], SystemSlice>
     set((state) => {
       const next = networks instanceof Function ? networks(state.wifiNetworks) : networks;
 
-      return { wifiNetworks: next };
+      return { wifiNetworks: next, wifiNetworksConfigured: true };
     });
   },
 
+  setWifiApConfig: (config) => set({ wifiApConfig: config }),
   setMqttConfig: (config) => set({ mqttConfig: config }),
 });
