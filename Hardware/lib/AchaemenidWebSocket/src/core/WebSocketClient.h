@@ -39,6 +39,8 @@ private:
     portMUX_TYPE firstConnMux_ = portMUX_INITIALIZER_UNLOCKED;
 
     unsigned long lastPingTime_ = 0;
+    unsigned long lastConnectAttemptTime_ = 0;
+    bool hasConnectAttempted_ = false;
     volatile bool isConnecting_ = false;
     TaskHandle_t connectTaskHandle_ = nullptr;
     IEventDispatcher* dispatcher_;
