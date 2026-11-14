@@ -12,6 +12,7 @@ interface SegmentActionsProps {
   isPinOn: boolean;
   isUltraCompact: boolean;
   isCompact: boolean;
+  inHeaderBar?: boolean;
   onRemove: (id: string) => void;
   onUpdateSegmentMode?: (id: string, mode: "switch" | "push") => void;
   onUpdateSegmentAutoOff?: (id: string, autoOff: number) => void;
@@ -38,6 +39,7 @@ export default function SegmentActions({
   segment,
   isPinOn,
   isUltraCompact,
+  inHeaderBar = false,
   onRemove,
   onUpdateSegmentMode,
   onUpdateSegmentAutoOff,
@@ -50,6 +52,9 @@ export default function SegmentActions({
   menuRef,
   autoOffMenuProps,
 }: SegmentActionsProps) {
+  const buttonSizeClass =
+    inHeaderBar || isUltraCompact ? "h-6 w-6 min-w-6 p-0 px-0" : "h-7 w-7 min-w-7 p-0 px-0";
+
   return (
     <div className="relative flex items-center gap-1 shrink-0">
       <Tooltip>
@@ -65,9 +70,7 @@ export default function SegmentActions({
               onClick={(e) => e.stopPropagation()}
               aria-label={`تنظیمات قطعه ${segment.title}`}
               aria-expanded={isSettingsOpen}
-              className={`rounded-lg transition-colors cursor-pointer ${
-                isUltraCompact ? "h-6 w-6 min-w-6 p-0 px-0" : "h-7 w-7 min-w-7 p-0 px-0"
-              } ${
+              className={`${inHeaderBar ? "rounded-md" : "rounded-lg"} transition-colors cursor-pointer ${buttonSizeClass} ${
                 isSettingsOpen
                   ? "border-[var(--accent3)] text-[var(--accent3)] bg-[var(--accent3-transparent)] aria-pressed:bg-[var(--accent3-transparent)]"
                   : "border-transparent bg-transparent text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--secondary)] md:hover:border-[var(--border-color)]"

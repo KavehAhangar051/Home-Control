@@ -58,7 +58,7 @@ export default function FormDetailsInput({
                 name="segment-group-mode"
                 checked={isNewGroup}
                 onChange={() => setIsNewGroup(true)}
-                className="accent-[var(--accent3)] w-3 h-3"
+                className="appearance-none relative h-3.5 w-3.5 rounded-[4px] border border-[var(--border-color)] bg-[var(--bg-main)] checked:border-[var(--accent3)] checked:bg-[var(--accent3)] after:content-[''] after:absolute after:inset-[3px] after:rounded-[2px] after:bg-[var(--accent3-foreground)] after:opacity-0 checked:after:opacity-100 transition-colors cursor-pointer"
               />
               <span className="text-[10px] theme-text-secondary">گروه جدید</span>
             </label>
@@ -68,7 +68,7 @@ export default function FormDetailsInput({
                 name="segment-group-mode"
                 checked={!isNewGroup}
                 onChange={() => setIsNewGroup(false)}
-                className="accent-[var(--accent3)] w-3 h-3"
+                className="appearance-none relative h-3.5 w-3.5 rounded-[4px] border border-[var(--border-color)] bg-[var(--bg-main)] checked:border-[var(--accent3)] checked:bg-[var(--accent3)] after:content-[''] after:absolute after:inset-[3px] after:rounded-[2px] after:bg-[var(--accent3-foreground)] after:opacity-0 checked:after:opacity-100 transition-colors cursor-pointer"
               />
               <span className="text-[10px] theme-text-secondary">انتخاب از موجود</span>
             </label>

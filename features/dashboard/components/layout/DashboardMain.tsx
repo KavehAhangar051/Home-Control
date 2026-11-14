@@ -9,7 +9,7 @@ import DashboardBreadcrumb from "./DashboardBreadcrumb";
 import DashboardWorkspace from "./DashboardWorkspace";
 
 export default function DashboardMain() {
-  const { refetchIot, triggerCloudflarePush } = useDashboard();
+  const { isFullyReady, refetchIot, triggerCloudflarePush } = useDashboard();
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const activeWorkspaceView = useIoTStore((s) => s.activeWorkspaceView);
 
@@ -17,10 +17,16 @@ export default function DashboardMain() {
   const lowDataMode = useIoTStore((s) => s.lowDataMode);
   const manualSaveMode = useIoTStore((s) => s.manualSaveMode);
   const unsavedChangesCount = useIoTStore((s) => s.unsavedChangesCount);
+  const activeAutomationsTab = useIoTStore((s) => s.activeAutomationsTab);
   const workspaceDisplayMode = useIoTStore((s) => s.workspaceDisplayMode);
 
-  const isTrellisCanvasActive =
-    activeWorkspaceView === "home" && workspaceDisplayMode === "trellis" && segments.length > 0;
+  const hasOrLoadingContent = !isFullyReady || segments.length > 0;
+
+  const isTrellisActive =
+    activeWorkspaceView === "home" && workspaceDisplayMode === "trellis" && hasOrLoadingContent;
+  const isSeamlessCanvasActive =
+    (activeWorkspaceView === "home" && workspaceDisplayMode === "canvas" && hasOrLoadingContent) ||
+    (activeWorkspaceView === "automations" && activeAutomationsTab === "workflows");
 
   return (
     <>
@@ -29,9 +35,11 @@ export default function DashboardMain() {
       <div
         id="dashboard-workspace-scroll"
         className={`custom-scrollbar flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col w-full ${
-          isTrellisCanvasActive
-            ? "overflow-hidden gap-3 p-2 md:p-4"
-            : "overflow-y-auto gap-8 p-3 md:p-6 md:pb-8 md:px-8"
+          isSeamlessCanvasActive
+            ? "overflow-hidden gap-0 p-0"
+            : isTrellisActive
+              ? "overflow-hidden gap-3 p-2 md:p-4"
+              : "overflow-y-auto gap-8 p-3 md:p-6 md:pb-8 md:px-8"
         }`}
       >
         {activeWorkspaceView === "home" &&

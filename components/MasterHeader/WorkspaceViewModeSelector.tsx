@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid, PanelsTopLeft } from "lucide-react";
+import { LayoutGrid, PanelsTopLeft, Workflow } from "lucide-react";
 import { m } from "motion/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { WorkspaceDisplayMode } from "@/features/iot/hooks/store/types";
@@ -31,17 +31,36 @@ const VIEW_MODE_OPTIONS: readonly ViewModeOption[] = [
     description: "پنجره‌های شناور، تب‌دار و مقیاس‌پذیر بدون محدودیت ستون",
     icon: PanelsTopLeft,
   },
+  {
+    id: "canvas",
+    label: "شیت بوم",
+    shortLabel: "شیت بوم",
+    description: "بوم یکپارچه با قابلیت جابه‌جایی آزاد، تغییر اندازه و بزرگ‌نمایی لمسی",
+    icon: Workflow,
+  },
 ];
 
-export default function WorkspaceViewModeSelector() {
+interface WorkspaceViewModeSelectorProps {
+  compact?: boolean;
+}
+
+export default function WorkspaceViewModeSelector({
+  compact = false,
+}: WorkspaceViewModeSelectorProps) {
   const displayMode = useIoTStore((s) => s.workspaceDisplayMode);
   const setDisplayMode = useIoTStore((s) => s.setWorkspaceDisplayMode);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const pillLayoutId = compact
+    ? "workspace-display-mode-pill-compact"
+    : "workspace-display-mode-pill";
 
   return (
     <fieldset
       aria-label="فرم نمایش گروه‌ها و قطعات"
-      className="m-0 inline-flex h-10 min-w-0 shrink-0 items-center gap-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] p-1 shadow-2xs"
+      className={cn(
+        "m-0 inline-flex min-w-0 shrink-0 items-center gap-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] p-1 shadow-2xs",
+        compact ? "h-9" : "h-10 flex-wrap sm:flex-nowrap",
+      )}
     >
       {VIEW_MODE_OPTIONS.map((option) => {
         const Icon = option.icon;
@@ -57,7 +76,8 @@ export default function WorkspaceViewModeSelector() {
                   aria-label={option.label}
                   onClick={() => setDisplayMode(option.id)}
                   className={cn(
-                    "relative inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)]",
+                    "relative inline-flex cursor-pointer items-center gap-1.5 rounded-lg text-xs font-semibold transition-colors select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)]",
+                    compact ? "h-7 px-2 sm:px-2.5" : "h-8 px-2.5 sm:px-3",
                     isActive
                       ? "text-[var(--accent3-foreground)]"
                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
@@ -65,13 +85,25 @@ export default function WorkspaceViewModeSelector() {
                 >
                   {isActive && (
                     <m.span
-                      layoutId="workspace-display-mode-pill"
+                      layoutId={pillLayoutId}
                       transition={animationsEnabled ? SPRING_SWAP : { duration: 0 }}
                       className="absolute inset-0 rounded-lg bg-[var(--accent3)] shadow-2xs"
                     />
                   )}
                   <Icon className="relative z-10 size-3.5 shrink-0" aria-hidden="true" />
-                  <span className="relative z-10 whitespace-nowrap">{option.label}</span>
+                  <span className="relative z-10 whitespace-nowrap">
+                    {compact ? (
+                      <>
+                        <span className="hidden sm:inline">{option.shortLabel}</span>
+                        <span className="sm:hidden">{option.shortLabel}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="hidden sm:inline">{option.label}</span>
+                        <span className="sm:hidden">{option.shortLabel}</span>
+                      </>
+                    )}
+                  </span>
                 </button>
               }
             />

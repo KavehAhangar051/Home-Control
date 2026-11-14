@@ -85,9 +85,9 @@ export default function AutomationList({
                       pressed={auto.enabled}
                       onPressedChange={(pressed) => handleToggle(auto.id, pressed)}
                       aria-label={`وضعیت اتوماسیون ${auto.title}`}
-                      className={`relative inline-flex h-6 w-11 min-w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)] motion-reduce:transition-none ${auto.enabled ? "justify-end border-emerald-700 bg-emerald-600 hover:bg-emerald-600 aria-pressed:bg-emerald-600 data-[state=on]:bg-emerald-600" : "justify-start border-[var(--border-color)] bg-[var(--card-hover-bg)] hover:bg-[var(--card-hover-bg)]"}`}
+                      className={`relative inline-flex h-6 w-11 min-w-11 shrink-0 items-center rounded-[8px] border p-0.5 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent3)] motion-reduce:transition-none ${auto.enabled ? "justify-end border-emerald-700 bg-emerald-600 hover:bg-emerald-600 aria-pressed:bg-emerald-600 data-[state=on]:bg-emerald-600" : "justify-start border-[var(--border-color)] bg-[var(--card-hover-bg)] hover:bg-[var(--card-hover-bg)]"}`}
                     >
-                      <span className="pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm ring-1 ring-black/10" />
+                      <span className="pointer-events-none block h-4 w-4 rounded-[5px] bg-white shadow-sm ring-1 ring-black/10" />
                     </Toggle>
                   </div>
                 </div>

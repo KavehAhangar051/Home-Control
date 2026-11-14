@@ -28,7 +28,9 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
       macros: config.macros || [],
       voiceCommands: config.voiceCommands || [],
       wifiNetworks: config.wifi?.networks ?? state.wifiNetworks,
-      wifiNetworksConfigured: Array.isArray(config.wifi?.networks) ? true : state.wifiNetworksConfigured,
+      wifiNetworksConfigured: Array.isArray(config.wifi?.networks)
+        ? true
+        : state.wifiNetworksConfigured,
       wifiApConfig: config.wifi?.access_point ?? state.wifiApConfig,
       isDark: config.preferences?.theme_mode
         ? config.preferences.theme_mode !== "light"

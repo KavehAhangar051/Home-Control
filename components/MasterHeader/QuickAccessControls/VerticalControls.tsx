@@ -155,7 +155,9 @@ export default function VerticalControls({
     if (view === "modules") {
       setActiveModulesTab(subId === "list" ? "list" : "add");
     } else if (view === "automations") {
-      setActiveAutomationsTab(subId === "manage" ? "manage" : "create");
+      setActiveAutomationsTab(
+        subId === "manage" ? "manage" : subId === "workflows" ? "workflows" : "create",
+      );
     } else if (view === "settings") {
       setActiveSettingsTab(subId);
     }

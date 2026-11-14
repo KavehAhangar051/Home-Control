@@ -33,7 +33,7 @@ function getLowDataTitleClass(lowDataMode: boolean, isDark: boolean): string {
 
 function getSwitchTrackClass(lowDataMode: boolean, isDark: boolean): string {
   if (lowDataMode) {
-    return "bg-[var(--accent4)] shadow-[0_0_8px_var(--accent4-transparent)]";
+    return "bg-[var(--accent4)] border border-transparent shadow-[0_0_8px_var(--accent4-transparent)]";
   }
 
   return isDark ? "bg-black/30 border border-slate-800/40" : "bg-slate-200 border border-slate-300";
@@ -97,10 +97,10 @@ export default function LowDataToggle({
 
         {/* Modern Premium Toggle Switch */}
         <div
-          className={`relative inline-flex h-6 w-11 rounded-full p-0.5 items-center transition-[background-color,transform,filter,box-shadow] duration-300 shrink-0 cursor-pointer focus:outline-none select-none hover:scale-110 active:scale-95 hover:brightness-110 ${switchTrackClass}`}
+          className={`relative inline-flex h-6 w-11 rounded-[8px] p-0.5 items-center transition-[background-color,transform,filter,box-shadow] duration-300 shrink-0 cursor-pointer focus:outline-none select-none hover:scale-110 active:scale-95 hover:brightness-110 ${switchTrackClass}`}
         >
           <span
-            className={`pointer-events-none inline-block h-5 w-5 rounded-full shadow-md transform ${
+            className={`pointer-events-none inline-block h-[18px] w-[18px] rounded-[5px] shadow-md transform ${
               animationsEnabled
                 ? "transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
                 : ""

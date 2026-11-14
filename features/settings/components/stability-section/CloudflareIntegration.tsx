@@ -119,11 +119,11 @@ export default function CloudflareIntegration({
             />
             <span
               aria-hidden="true"
-              className={`block w-10 h-6 rounded-full transition-colors ${manualSaveMode ? "bg-[var(--accent3)]" : "bg-[var(--border-color)]"}`}
+              className={`block w-10 h-6 rounded-[8px] transition-colors ${manualSaveMode ? "bg-[var(--accent3)]" : "bg-[var(--border-color)]"}`}
             />
             <span
               aria-hidden="true"
-              className={`dot absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${manualSaveMode ? "bg-[var(--bg-main)] transform translate-x-4" : "bg-[var(--text-secondary)]"}`}
+              className={`dot absolute top-1 left-1 w-4 h-4 rounded-[5px] transition-transform ${manualSaveMode ? "bg-[var(--bg-main)] transform translate-x-4" : "bg-[var(--text-secondary)]"}`}
             />
           </span>
           <span className="flex flex-col flex-1 text-right">

@@ -53,7 +53,7 @@ export default function AnimationsToggle({
   const titleClass = getTitleTextClass(animationsEnabled, isDark);
 
   const trackBgClass = animationsEnabled
-    ? "bg-[var(--accent4)]"
+    ? "bg-[var(--accent4)] border border-transparent"
     : isDark
       ? "bg-black/30 border border-slate-800/40"
       : "bg-slate-200 border border-slate-300";
@@ -87,10 +87,10 @@ export default function AnimationsToggle({
         </span>
         <span
           aria-hidden="true"
-          className={`relative inline-flex h-6 w-11 rounded-full p-0.5 items-center transition-colors duration-200 shrink-0 select-none ${trackBgClass}`}
+          className={`relative inline-flex h-6 w-11 rounded-[8px] p-0.5 items-center transition-colors duration-200 shrink-0 select-none ${trackBgClass}`}
         >
           <span
-            className={`pointer-events-none inline-block h-5 w-5 rounded-full shadow-md transform ${animationsEnabled ? "bg-white transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-5" : "bg-[var(--text-secondary)] translate-x-0"}`}
+            className={`pointer-events-none inline-block h-[18px] w-[18px] rounded-[5px] shadow-md transform ${animationsEnabled ? "bg-white transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] -translate-x-5" : "bg-[var(--text-secondary)] translate-x-0"}`}
           />
         </span>
       </Toggle>

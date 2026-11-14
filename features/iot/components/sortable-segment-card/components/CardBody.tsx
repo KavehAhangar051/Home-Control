@@ -11,6 +11,7 @@ interface CardBodyProps {
   isPinOn: boolean;
   isCompact: boolean;
   isUltraCompact: boolean;
+  hasExternalHeader?: boolean;
   isMobileTwoCol?: boolean;
   densityFactor?: number;
   mode: "switch" | "push";
@@ -19,10 +20,14 @@ interface CardBodyProps {
   countdown?: number | null;
 }
 
-function getInputDensityClasses(isUltraCompact: boolean, isCompact: boolean) {
+function getInputDensityClasses(
+  isUltraCompact: boolean,
+  isCompact: boolean,
+  hasExternalHeader: boolean,
+) {
   if (isUltraCompact) {
     return {
-      container: "min-h-[78px] p-2.5 gap-2",
+      container: hasExternalHeader ? "min-h-0 px-2.5 py-2 gap-1.5" : "min-h-[78px] p-2.5 gap-2",
       badge: "w-8 h-8",
       icon: "w-4 h-4",
       title: "text-xs",
@@ -31,7 +36,7 @@ function getInputDensityClasses(isUltraCompact: boolean, isCompact: boolean) {
 
   if (isCompact) {
     return {
-      container: "min-h-[96px] p-3 gap-2.5",
+      container: hasExternalHeader ? "min-h-0 px-3 py-2.5 gap-2" : "min-h-[96px] p-3 gap-2.5",
       badge: "w-9 h-9",
       icon: "w-4.5 h-4.5",
       title: "text-xs sm:text-sm",
@@ -39,7 +44,9 @@ function getInputDensityClasses(isUltraCompact: boolean, isCompact: boolean) {
   }
 
   return {
-    container: "min-h-[108px] p-3.5 sm:p-4 gap-3",
+    container: hasExternalHeader
+      ? "min-h-0 px-3.5 py-3 gap-2.5"
+      : "min-h-[108px] p-3.5 sm:p-4 gap-3",
     badge: "w-10 h-10 sm:w-11 sm:h-11",
     icon: "w-5 h-5",
     title: "text-sm sm:text-[15px]",
@@ -51,27 +58,31 @@ export function InputSegmentBody({
   isPinOn,
   isCompact = false,
   isUltraCompact = false,
+  hasExternalHeader = false,
 }: {
   segment: SegmentData;
   isPinOn: boolean;
   isCompact?: boolean;
   isUltraCompact?: boolean;
+  hasExternalHeader?: boolean;
 }) {
   const SegmentIcon = getSegmentIcon(segment.icon);
-  const density = getInputDensityClasses(isUltraCompact, isCompact);
+  const density = getInputDensityClasses(isUltraCompact, isCompact, hasExternalHeader);
 
   const badgeTone = isPinOn
     ? "bg-emerald-600 text-white shadow-xs"
     : "bg-[var(--secondary)] text-[var(--text-secondary)] border border-[var(--border-color)]";
 
   const showEmojiIcon = Boolean(segment.icon) && !hasIcon(segment.icon);
+  const radiusClass = hasExternalHeader ? "rounded-none rounded-b-[15px]" : "rounded-xl";
+  const topRowInsetClass = hasExternalHeader ? "" : "pl-14";
 
   return (
     <div
       data-animate-icon-parent
-      className={`flex flex-col justify-between w-full h-full rounded-xl text-right select-none ${density.container}`}
+      className={`flex flex-col justify-between w-full h-full text-right select-none ${radiusClass} ${density.container}`}
     >
-      <div className="flex items-center gap-2.5 sm:gap-3 w-full pl-14 min-w-0">
+      <div className={`flex items-center gap-2.5 sm:gap-3 w-full min-w-0 ${topRowInsetClass}`}>
         <div
           aria-hidden="true"
           className={`flex items-center justify-center rounded-xl transition-colors shrink-0 ${density.badge} ${badgeTone}`}
@@ -94,7 +105,11 @@ export function InputSegmentBody({
         </div>
       </div>
 
-      <div className="flex items-center justify-between w-full gap-2 pt-2">
+      <div
+        className={`flex items-center justify-between w-full gap-2 ${
+          hasExternalHeader || isCompact || isUltraCompact ? "pt-1" : "pt-2"
+        }`}
+      >
         <div className="flex items-center gap-1.5 min-w-0">
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
@@ -121,6 +136,7 @@ export default function CardBody({
   isPinOn,
   isCompact,
   isUltraCompact,
+  hasExternalHeader = false,
   mode,
   buttonProps,
   animationsEnabled = true,
@@ -134,6 +150,7 @@ export default function CardBody({
           isPinOn={isPinOn}
           isCompact={isCompact}
           isUltraCompact={isUltraCompact}
+          hasExternalHeader={hasExternalHeader}
         />
       ) : (
         <PinToggle
@@ -144,6 +161,7 @@ export default function CardBody({
           animationsEnabled={animationsEnabled}
           isCompact={isCompact}
           isUltraCompact={isUltraCompact}
+          hasExternalHeader={hasExternalHeader}
           countdown={countdown}
         />
       )}

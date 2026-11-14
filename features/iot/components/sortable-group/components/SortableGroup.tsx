@@ -14,7 +14,7 @@ type CustomGridTracksStyle = React.CSSProperties & { "--group-grid-tracks": numb
 function GroupGrid({ style, children }: { style: React.CSSProperties; children: React.ReactNode }) {
   return (
     <div
-      className="grid w-full min-w-0 grid-cols-1 gap-3 p-3 text-right relative z-10 sm:grid-cols-[repeat(var(--group-grid-tracks,1),minmax(0,1fr))] sm:gap-3.5 sm:p-4"
+      className="grid auto-rows-fr w-full min-w-0 grid-cols-1 gap-3 p-3 text-right relative z-10 sm:grid-cols-[repeat(var(--group-grid-tracks,1),minmax(0,1fr))] sm:gap-4 sm:p-4"
       style={style}
     >
       <AnimatePresence initial={false} mode="popLayout">
@@ -70,9 +70,9 @@ export default function SortableGroup({
     <div
       ref={setNodeRef}
       style={style}
-      className="relative group/group-card w-full mb-6 touch-none flex flex-col"
+      className="relative group/group-card w-full touch-none flex flex-col"
     >
-      <Card className="w-full relative group/body flex-grow !gap-0 !overflow-visible !rounded-2xl !border !border-[var(--border-color)] !bg-[var(--card-bg)] !py-0 !shadow-xs !ring-0 transition-colors duration-200">
+      <Card className="w-full relative group/body flex-grow !gap-0 !overflow-visible !rounded-3xl sm:!rounded-[28px] !border !border-[var(--border-color)] !bg-[var(--card-bg)] !py-0 !shadow-xs !ring-0 transition-colors duration-200">
         <GroupHeader
           id={id}
           segmentCount={segmentCount}
