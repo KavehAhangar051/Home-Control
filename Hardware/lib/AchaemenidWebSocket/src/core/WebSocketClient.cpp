@@ -71,6 +71,7 @@ void AchaemenidWebSocketClient::begin(const String& serverUrl) {
     lastPingTime_ = 0;
     lastConnectAttemptTime_ = 0;
     hasConnectAttempted_ = false;
+    consecutiveFailures_ = 0;
 }
 
 void AchaemenidWebSocketClient::stop() {
@@ -109,11 +110,20 @@ void AchaemenidWebSocketClient::doConnect() {
 
     const bool connected = client_->connect("apii.agkalaa.ir", 443, "/ws");
 
+    lastConnectAttemptTime_ = millis();
+    hasConnectAttempted_ = true;
+
     if (LIKELY(connected)) {
+        consecutiveFailures_ = 0;
         Serial.println("[WebSocket] [Task] Connected successfully!");
-        lastPingTime_ = millis();
+        lastPingTime_ = lastConnectAttemptTime_;
     } else {
-        Serial.println("[WebSocket] [Task] Connection failed. Will retry in loop().");
+        if (consecutiveFailures_ < 255) ++consecutiveFailures_;
+        const unsigned long retryDelay = consecutiveFailures_ >= WS_MAX_FAST_RETRIES
+            ? WS_RETRY_DELAY_AFTER_MAX_FAILURES_MS
+            : WS_RETRY_DELAY_MS;
+        Serial.printf("[WebSocket] [Task] Connection failed (%u consecutive failures). Next retry in %lu ms.\n",
+                      static_cast<unsigned int>(consecutiveFailures_), retryDelay);
     }
 }
 
@@ -133,13 +143,14 @@ IRAM_ATTR void AchaemenidWebSocketClient::loop() {
 
     // Do not spawn a new connection task on every Arduino loop iteration.
     // The timestamp check is wrap-safe for millis() rollover.
+    const unsigned long retryDelay = consecutiveFailures_ >= WS_MAX_FAST_RETRIES
+        ? WS_RETRY_DELAY_AFTER_MAX_FAILURES_MS
+        : WS_RETRY_DELAY_MS;
     if (hasConnectAttempted_ &&
-        (now - lastConnectAttemptTime_ < WS_RETRY_DELAY_MS)) {
+        (now - lastConnectAttemptTime_ < retryDelay)) {
         return;
     }
 
-    lastConnectAttemptTime_ = now;
-    hasConnectAttempted_ = true;
     isConnecting_ = true;
 
     const BaseType_t taskResult = xTaskCreatePinnedToCore(
@@ -153,9 +164,16 @@ IRAM_ATTR void AchaemenidWebSocketClient::loop() {
     );
 
     if (UNLIKELY(taskResult != pdPASS)) {
+        lastConnectAttemptTime_ = millis();
+        hasConnectAttempted_ = true;
+        if (consecutiveFailures_ < 255) ++consecutiveFailures_;
         isConnecting_ = false;
         connectTaskHandle_ = nullptr;
-        Serial.println("[WebSocket] Failed to create connection task; retry delayed.");
+        const unsigned long nextRetryDelay = consecutiveFailures_ >= WS_MAX_FAST_RETRIES
+            ? WS_RETRY_DELAY_AFTER_MAX_FAILURES_MS
+            : WS_RETRY_DELAY_MS;
+        Serial.printf("[WebSocket] Failed to create connection task (%u consecutive failures). Next retry in %lu ms.\n",
+                      static_cast<unsigned int>(consecutiveFailures_), nextRetryDelay);
     }
 }
 

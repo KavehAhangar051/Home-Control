@@ -13,6 +13,8 @@ using StateProvider = FastFunction<String(), 16>;
 // Send a ping every 45s to keep the connection alive.
 static constexpr unsigned long WS_PING_INTERVAL_MS     = 45000UL;
 static constexpr unsigned long WS_RETRY_DELAY_MS       = 5000UL;
+static constexpr uint8_t WS_MAX_FAST_RETRIES             = 5;
+static constexpr unsigned long WS_RETRY_DELAY_AFTER_MAX_FAILURES_MS = 60000UL;
 static constexpr unsigned long WS_NO_NETWORK_DELAY_MS  = 1000UL;
 
 // FreeRTOS task parameters
