@@ -10,7 +10,7 @@
 #include <core/WebSocketServer.h>
 #include <WiFi.h>
 #include <RuleEngine.h>
-#include <Network/WiFi/ESP32WiFiAdapter.h>
+#include "ESP32WiFiAdapter.h"
 #include <AchaemenidNetwork.h>
 
 void setupErrorHandler() {
