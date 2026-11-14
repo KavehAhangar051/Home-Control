@@ -1,4 +1,5 @@
 import { AnimatePresence, m } from "motion/react";
+import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 
 interface Props {
   isListening: boolean;
@@ -12,8 +13,8 @@ export function VoiceTranscriptOverlay({ isListening, voiceTranscript }: Props) 
         <m.div
           initial={{ opacity: 0, y: -6, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -6, scale: 0.96 }}
-          transition={{ duration: 0.16, ease: "easeOut" }}
+          exit={{ opacity: 0, y: -6, scale: 0.96, transition: TRANSITION_EXIT_QUICK }}
+          transition={TRANSITION_ENTER_QUICK}
           className="overflow-hidden mt-4"
         >
           <div className="bg-[var(--accent4-transparent)] border border-[var(--accent4)] rounded-2xl p-4 flex flex-col items-center justify-center gap-3 relative shadow-lg shadow-[var(--accent4)]/10">

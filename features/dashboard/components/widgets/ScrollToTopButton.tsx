@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ArrowUp } from "@/components/ui/hugeicons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { DURATION, EASE_IN, EASE_OUT, EXIT_DURATION } from "@/lib/ease";
 
 export default function ScrollToTopButton() {
   const [isVisible, setIsVisible] = useState(false);
@@ -66,10 +67,11 @@ export default function ScrollToTopButton() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{
                   opacity: 0,
+                  scale: 0.92,
                   y: 12,
-                  transition: { duration: 0.15, ease: "easeOut" },
+                  transition: { duration: EXIT_DURATION.standard, ease: EASE_IN },
                 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
+                transition={{ duration: DURATION.standard, ease: EASE_OUT }}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={scrollToTop}

@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import React from "react";
-import GroupFilterSelector from "@/components/MasterHeader/GroupFilterSelector";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import IoTWorkspace from "@/features/iot/components/IoTWorkspace";
 import { WorkspaceSkeleton } from "@/features/iot/components/workspace";
@@ -40,8 +39,8 @@ interface HomeWorkspaceMainContentProps {
   groupsCols: number;
   groupsOrder: string[];
   selectedGroupFilter: string | null;
-  setSelectedGroupFilter: (groupId: string | null) => void;
   animationsEnabled: boolean;
+  hasMacros: boolean;
 }
 
 function HomeWorkspaceMainContent({
@@ -51,8 +50,8 @@ function HomeWorkspaceMainContent({
   groupsCols,
   groupsOrder,
   selectedGroupFilter,
-  setSelectedGroupFilter,
   animationsEnabled,
+  hasMacros,
 }: HomeWorkspaceMainContentProps) {
   const {
     sensors,
@@ -79,9 +78,6 @@ function HomeWorkspaceMainContent({
   if (!isFullyReady) {
     return (
       <div className="w-full flex flex-col gap-4">
-        <div className="-mt-6 sm:-mt-10 mb-2 w-full flex justify-center">
-          <div className="w-32 h-10 bg-[var(--card-bg)] rounded-2xl animate-pulse border border-[var(--border-color)]" />
-        </div>
         <WorkspaceSkeleton groupsCols={groupsCols} />
       </div>
     );
@@ -105,26 +101,13 @@ function HomeWorkspaceMainContent({
     <div
       className={`w-full flex flex-col ${isTrellisMode ? "flex-1 min-h-0 h-full gap-2" : "gap-4"}`}
     >
-      <div
-        className={`${
-          isTrellisMode ? "shrink-0" : "-mt-6 sm:-mt-10 mb-2"
-        } w-full flex justify-center`}
-      >
+      {hasMacros && (
         <div className="block md:hidden w-full">
           <React.Suspense fallback={<div className="h-16 w-full" />}>
             <MacroSidebar />
           </React.Suspense>
         </div>
-        <div className="hidden md:flex w-full justify-center">
-          <GroupFilterSelector
-            groupsOrder={groupsOrder}
-            selectedGroupFilter={selectedGroupFilter}
-            setSelectedGroupFilter={setSelectedGroupFilter}
-            animationsEnabled={animationsEnabled}
-            isCompact={isTrellisMode}
-          />
-        </div>
-      </div>
+      )}
 
       <div className={isTrellisMode ? "flex-1 min-h-0 w-full flex flex-col" : "w-full"}>
         <IoTWorkspace
@@ -162,6 +145,7 @@ export default function DashboardWorkspace() {
   const activeWorkspaceView = useIoTStore((s) => s.activeWorkspaceView);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const segmentsLength = useIoTStore((s) => s.segments.length);
+  const macrosLength = useIoTStore((s) => s.macros.length);
   const selectedGroupFilter = useIoTStore((s) => s.selectedGroupFilter);
   const setSelectedGroupFilter = useIoTStore((s) => s.setSelectedGroupFilter);
   const groupsOrder = useIoTStore((s) => s.groupsOrder);
@@ -186,6 +170,7 @@ export default function DashboardWorkspace() {
   }
 
   const isTrellisMode = workspaceDisplayMode === "trellis" && isFullyReady && segmentsLength > 0;
+  const hasMacros = macrosLength > 0;
 
   return (
     <div
@@ -194,11 +179,15 @@ export default function DashboardWorkspace() {
       onTouchMove={isTrellisMode ? undefined : onTouchMove}
       onTouchEnd={isTrellisMode ? undefined : onTouchEnd}
     >
-      <div className={isTrellisMode ? "hidden lg:block" : "hidden lg:block pt-[115px]"}>
-        <React.Suspense fallback={<div className="w-20 lg:w-24 shrink-0 bg-transparent h-full" />}>
-          <MacroSidebar />
-        </React.Suspense>
-      </div>
+      {hasMacros && (
+        <div className="hidden lg:block">
+          <React.Suspense
+            fallback={<div className="w-20 lg:w-24 shrink-0 bg-transparent h-full" />}
+          >
+            <MacroSidebar />
+          </React.Suspense>
+        </div>
+      )}
       <main
         className={`flex-1 flex flex-col items-center text-center mx-auto w-full relative ${
           isTrellisMode ? "min-h-0 h-full justify-start gap-2" : "justify-center space-y-8 py-4"
@@ -211,8 +200,8 @@ export default function DashboardWorkspace() {
           groupsCols={groupsCols}
           groupsOrder={groupsOrder}
           selectedGroupFilter={selectedGroupFilter}
-          setSelectedGroupFilter={setSelectedGroupFilter}
           animationsEnabled={animationsEnabled}
+          hasMacros={hasMacros}
         />
       </main>
     </div>

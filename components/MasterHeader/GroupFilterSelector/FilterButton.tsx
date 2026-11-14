@@ -1,5 +1,6 @@
 import { m } from "motion/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DURATION, EASE_IN, EASE_OUT, EXIT_DURATION } from "@/lib/ease";
 
 interface FilterButtonProps {
   group: string | null;
@@ -56,11 +57,13 @@ export default function FilterButton({
                     opacity: 0,
                     scale: 0.85,
                     x: -direction * 40,
-                    transition: { duration: 0.15, ease: "easeOut" },
+                    transition: { duration: EXIT_DURATION.standard, ease: EASE_IN },
                   }
                 : undefined
             }
-            transition={animationsEnabled ? { duration: 0.25, ease: "easeOut" } : undefined}
+            transition={
+              animationsEnabled ? { duration: DURATION.standard, ease: EASE_OUT } : undefined
+            }
             whileTap={animationsEnabled ? { scale: 0.96 } : undefined}
             onClick={onClick}
             className={`flex items-center justify-center bg-[var(--card-bg-solid)] border ${isCompact ? "rounded-md h-5 min-w-[70px] max-w-[120px] gap-1 px-2" : "rounded-2xl h-12 w-[140px] gap-2 px-4"} ${isCenter ? (isCompact ? "border-[var(--accent3)] shadow-[0_2px_8px_-3px_var(--accent3-transparent)] z-10" : "border-[var(--accent3)] shadow-[0_4px_15px_-5px_var(--accent3-transparent)] z-10") : "hidden md:flex border-[var(--border-color)] md:hover:border-[var(--accent3)]"} text-[var(--text-primary)] ${isCenter ? "text-[var(--accent3)]" : "text-[var(--text-muted)]"} transition-[border-color,color,box-shadow,background-color] duration-150 ease-out relative group flex-row whitespace-nowrap overflow-hidden shrink-0`}

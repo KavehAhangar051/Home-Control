@@ -3,6 +3,7 @@
 import { useWorkspace, useWorkspaceSelector } from "@danfessler/trellis-react";
 import { ArrowRight, Eye, Layers, LayoutGrid, RotateCcw, ZoomOut } from "lucide-react";
 import React from "react";
+import { createPortal } from "react-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { TrellisLayoutPreset } from "./trellisLayout";
 
@@ -21,11 +22,20 @@ export default function TrellisChromeBar({
   const framed = useWorkspaceSelector((s) => s.framed);
   const hiddenPanels = useWorkspaceSelector((s) => s.hidden);
   const [showHiddenMenu, setShowHiddenMenu] = React.useState(false);
+  const [footerSlot, setFooterSlot] = React.useState<HTMLElement | null>(null);
 
-  return (
+  React.useEffect(() => {
+    setFooterSlot(document.getElementById("dashboard-footer-center"));
+  }, []);
+
+  const barContent = (
     <div
       dir="rtl"
-      className="pointer-events-none absolute inset-x-0 bottom-3 z-50 flex items-center justify-center px-3"
+      className={
+        footerSlot
+          ? "pointer-events-auto flex items-center justify-center"
+          : "pointer-events-none absolute inset-x-0 bottom-3 z-50 flex items-center justify-center px-3"
+      }
     >
       <div className="pointer-events-auto relative flex flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg-solid)]/95 px-2.5 py-1.5 text-xs shadow-lg backdrop-blur-xl">
         <fieldset
@@ -155,4 +165,6 @@ export default function TrellisChromeBar({
       </div>
     </div>
   );
+
+  return footerSlot ? createPortal(barContent, footerSlot) : barContent;
 }

@@ -3,6 +3,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
+import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import type { SegmentData } from "../core/types";
 import type { SegmentMenuPosition } from "../hooks/useCardHeaderLayout";
 import SegmentControls from "./SegmentControls";
@@ -66,8 +67,8 @@ export default function SegmentSettingsMenu({
       onPointerDown={(e) => e.stopPropagation()}
       initial={{ opacity: 0, scale: 0.96, y: initialOffsetY }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96, y: initialOffsetY }}
-      transition={{ duration: 0.16, ease: "easeOut" }}
+      exit={{ opacity: 0, scale: 0.96, y: initialOffsetY, transition: TRANSITION_EXIT_QUICK }}
+      transition={TRANSITION_ENTER_QUICK}
     >
       <div className="relative w-[256px] sm:w-[280px] bg-[var(--card-bg-solid)] backdrop-blur-xl border border-[var(--border-color)] rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right">
         {/* Segment Identity & Pin Metadata */}

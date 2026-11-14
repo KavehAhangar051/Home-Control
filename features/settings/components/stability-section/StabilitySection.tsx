@@ -3,6 +3,7 @@
 import { AnimatePresence, m } from "motion/react";
 import { Activity, ChevronLeft } from "@/components/ui/hugeicons";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import { ACCORDION_CLIP } from "@/lib/presets";
 import AnimationsToggle from "./AnimationsToggle";
 import CloudflareIntegration from "./CloudflareIntegration";
@@ -109,8 +110,8 @@ export default function StabilitySection({
           <m.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
+            exit={{ opacity: 0, y: -6, transition: TRANSITION_EXIT_QUICK }}
+            transition={TRANSITION_ENTER_QUICK}
             className="theme-card-bg-solid border-t border-accent3-medium/30 p-4 space-y-4 overflow-hidden"
           >
             <StabilitySectionContent

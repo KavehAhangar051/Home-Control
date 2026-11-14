@@ -4,6 +4,7 @@ import { RangeSlider } from "@/components/motion/range-slider";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DURATION, EASE_IN_OUT, TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import type { SegmentData } from "../core/types";
 
 interface SegmentControlsProps {
@@ -107,7 +108,14 @@ export default function SegmentControls({
                     aria-hidden="true"
                     animate={autoOffValue > 0 ? { rotate: [0, -10, 10, -10, 10, 0] } : {}}
                     transition={
-                      autoOffValue > 0 ? { repeat: Infinity, duration: 2, repeatDelay: 1 } : {}
+                      autoOffValue > 0
+                        ? {
+                            repeat: Infinity,
+                            duration: DURATION.ambient,
+                            ease: EASE_IN_OUT,
+                            repeatDelay: 1,
+                          }
+                        : {}
                     }
                     className="size-3.5 shrink-0 transition-transform group-hover/timer-btn:rotate-12"
                     xmlns="http://www.w3.org/2000/svg"
@@ -146,8 +154,8 @@ export default function SegmentControls({
             ref={autoOffMenuRef}
             initial={{ opacity: 0, y: -4, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.96 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
+            exit={{ opacity: 0, y: -4, scale: 0.96, transition: TRANSITION_EXIT_QUICK }}
+            transition={TRANSITION_ENTER_QUICK}
             className="absolute top-[calc(100%+8px)] left-0 w-56 bg-[var(--card-bg-solid)] backdrop-blur-xl border border-[var(--border-color)] rounded-xl shadow-xl p-3 z-[120] cursor-default text-right"
           >
             <div className="flex justify-between items-center mb-2.5">

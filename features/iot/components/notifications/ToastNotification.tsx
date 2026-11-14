@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, X, XCircle } from "@/components/ui/hugeicons";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { soundManager } from "@/lib/audio";
+import {
+  DURATION,
+  EASE_IN_OUT,
+  ERROR_SHAKE_KEYFRAMES,
+  SPRING_BOUNCE,
+  TRANSITION_ENTER_STANDARD,
+  TRANSITION_EXIT_STANDARD,
+} from "@/lib/ease";
 
 /**
  * Displays ESP32 acknowledgement feedback using the shared ReUI Alert styling.
@@ -34,14 +42,26 @@ export default function ToastNotification() {
     <AnimatePresence>
       {toast && (
         <m.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 12, scale: 0.96 }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            x: toast.type === "error" ? [...ERROR_SHAKE_KEYFRAMES] : 0,
+          }}
           exit={{
             opacity: 0,
-            y: -12,
-            transition: { duration: 0.15, ease: "easeOut" },
+            y: -10,
+            scale: 0.96,
+            transition: TRANSITION_EXIT_STANDARD,
           }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
+          transition={{
+            ...TRANSITION_ENTER_STANDARD,
+            x:
+              toast.type === "error"
+                ? { duration: DURATION.slow, ease: EASE_IN_OUT }
+                : TRANSITION_ENTER_STANDARD,
+          }}
           className="pointer-events-auto fixed bottom-6 left-6 z-[200] w-[calc(100vw-3rem)] max-w-sm"
         >
           <Alert
@@ -62,10 +82,10 @@ export default function ToastNotification() {
             <AnimatePresence initial={false} mode="popLayout">
               <m.span
                 key={toast.type}
-                initial={{ opacity: 0, scale: 0.25 }}
+                initial={{ opacity: 0, scale: 0.4 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.25 }}
-                transition={{ type: "spring", duration: 0.3, bounce: 0 }}
+                exit={{ opacity: 0, scale: 0.5, transition: TRANSITION_EXIT_STANDARD }}
+                transition={{ ...SPRING_BOUNCE, delay: 0.05 }}
                 className="!col-start-1 !row-start-1 !mt-0.5 inline-flex"
               >
                 {toast.type === "success" ? (

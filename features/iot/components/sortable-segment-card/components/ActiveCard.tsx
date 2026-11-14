@@ -2,6 +2,7 @@ import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/
 import { m } from "motion/react";
 import React from "react";
 import { Card } from "@/components/ui/card";
+import { SPRING_LAYOUT, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 import type { SortableSegmentCardProps } from "../core/types";
 import { useAutoOffTimer } from "../hooks/useAutoOffTimer";
 import useSegmentButtonProps from "../hooks/useSegmentButtonProps";
@@ -18,14 +19,15 @@ interface ActiveCardProps
   listeners: DraggableSyntheticListeners;
 }
 
-const CARD_MOTION_TRANSITION = { type: "spring", stiffness: 380, damping: 32 } as const;
-const CARD_MOTION_INITIAL = { opacity: 0, y: 12 } as const;
-const CARD_MOTION_ANIMATE = { opacity: 1, y: 0 } as const;
+const CARD_MOTION_TRANSITION = SPRING_LAYOUT;
+const CARD_MOTION_INITIAL = { opacity: 0, y: 12, scale: 0.97 } as const;
+const CARD_MOTION_ANIMATE = { opacity: 1, y: 0, scale: 1 } as const;
 
 const CARD_MOTION_EXIT = {
   opacity: 0,
-  y: -12,
-  transition: { duration: 0.15, ease: "easeOut" },
+  y: -10,
+  scale: 0.97,
+  transition: TRANSITION_EXIT_STANDARD,
 } as const;
 
 // SAFETY: React CSSProperties supports string-prefixed custom properties

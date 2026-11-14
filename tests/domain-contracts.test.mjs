@@ -12,6 +12,18 @@ import {
 } from "../features/iot/services/cloudflare/mappers.ts";
 import { InMemoryDeviceSyncAdapter } from "../features/iot/services/deviceGatewayAdapter.ts";
 import { validateEsp32Pin } from "../features/iot/utils/pinValidation.ts";
+import {
+  DURATION,
+  EASE_IN,
+  EASE_OUT,
+  ERROR_SHAKE_KEYFRAMES,
+  getExitDuration,
+  getStaggerDelay,
+  TRANSITION_ENTER_QUICK,
+  TRANSITION_ENTER_STANDARD,
+  TRANSITION_EXIT_QUICK,
+  TRANSITION_EXIT_STANDARD,
+} from "../lib/ease.ts";
 
 describe("ESP32 Hardware Pin Validation Contracts", () => {
   it("accepts valid general-purpose output pins", () => {
@@ -20,10 +32,16 @@ describe("ESP32 Hardware Pin Validation Contracts", () => {
     assert.equal(res.isWarning, undefined);
   });
 
-  it("rejects out-of-range or non-integer pins", () => {
-    assert.equal(validateEsp32Pin("-1", "relay").isValid, false);
-    assert.equal(validateEsp32Pin("40", "relay").isValid, false);
-    assert.equal(validateEsp32Pin("abc", "relay").isValid, false);
+  it("rejects out-of-range, empty, or non-integer pins and preserves monomorphic shape", () => {
+    const expectedKeys = ["isValid", "message", "isWarning"];
+    for (const invalid of ["-1", "40", "abc", "", " ", "02"]) {
+      const res = validateEsp32Pin(invalid, "relay");
+      assert.equal(res.isValid, false);
+      assert.deepEqual(Object.keys(res), expectedKeys);
+    }
+    assert.deepEqual(Object.keys(validateEsp32Pin("2", "relay")), expectedKeys);
+    assert.deepEqual(Object.keys(validateEsp32Pin("8", "relay")), expectedKeys);
+    assert.deepEqual(Object.keys(validateEsp32Pin("34", "input")), expectedKeys);
   });
 
   it("rejects internal SPI flash pins (GPIO 6..11)", () => {
@@ -222,3 +240,30 @@ describe("IDeviceSyncPort In-Memory Boundary Contract", () => {
     assert.equal(adapter.dispatchLog.length, 0);
   });
 });
+
+describe("Motion Design System Contracts (lib/ease)", () => {
+  it("enforces exits faster than entrances (65-75% exitRatio rule) with directional curves", () => {
+    assert.equal(DURATION.exitRatio, 0.7);
+    assert.ok(TRANSITION_EXIT_QUICK.duration < TRANSITION_ENTER_QUICK.duration);
+    assert.ok(TRANSITION_EXIT_STANDARD.duration < TRANSITION_ENTER_STANDARD.duration);
+    assert.equal(TRANSITION_EXIT_STANDARD.duration, getExitDuration(DURATION.standard));
+    assert.deepEqual(TRANSITION_ENTER_STANDARD.ease, EASE_OUT);
+    assert.deepEqual(TRANSITION_EXIT_STANDARD.ease, EASE_IN);
+  });
+
+  it("caps multi-element stagger budget strictly below 500ms", () => {
+    assert.equal(getStaggerDelay(0), 0);
+    assert.equal(getStaggerDelay(-3), 0);
+    assert.ok(getStaggerDelay(2) > 0);
+    assert.ok(getStaggerDelay(50) <= 0.4);
+    assert.ok(getStaggerDelay(100, 0.1, 0.9) <= 0.45);
+  });
+
+  it("provides zero-sum error shake oscillation keyframes", () => {
+    assert.equal(ERROR_SHAKE_KEYFRAMES[0], 0);
+    assert.equal(ERROR_SHAKE_KEYFRAMES[ERROR_SHAKE_KEYFRAMES.length - 1], 0);
+    const sum = ERROR_SHAKE_KEYFRAMES.reduce((acc, v) => acc + v, 0);
+    assert.equal(sum, 0);
+  });
+});
+

@@ -2,6 +2,14 @@ import { AnimatePresence, m } from "motion/react";
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { ChevronDown, Plus, Settings2 } from "@/components/ui/hugeicons";
+import {
+  DURATION,
+  EASE_IN_OUT,
+  ERROR_SHAKE_KEYFRAMES,
+  SPRING_PRESS,
+  TRANSITION_ENTER_QUICK,
+  TRANSITION_EXIT_QUICK,
+} from "@/lib/ease";
 import type { Segment } from "../core/types";
 import { useAddSegmentForm } from "../hooks/useAddSegmentForm";
 import ButtonModeSelector from "./ButtonModeSelector";
@@ -110,10 +118,14 @@ export default function AddSegmentForm({
           <AnimatePresence>
             {showAdvanced && (
               <m.div
-                initial={{ opacity: 0, y: -6 }}
+                initial={animationsEnabled ? { opacity: 0, y: -6 } : false}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.16, ease: "easeOut" }}
+                exit={
+                  animationsEnabled
+                    ? { opacity: 0, y: -6, transition: TRANSITION_EXIT_QUICK }
+                    : undefined
+                }
+                transition={animationsEnabled ? TRANSITION_ENTER_QUICK : { duration: 0 }}
                 className="overflow-hidden"
               >
                 <div className="pt-3 pb-1 space-y-4">
@@ -135,11 +147,36 @@ export default function AddSegmentForm({
           </AnimatePresence>
         </div>
 
-        {errorText && <p className="text-[10px] text-red-500 font-sans mt-2">{errorText}</p>}
+        <AnimatePresence mode="wait">
+          {errorText && (
+            <m.p
+              key={errorText}
+              initial={animationsEnabled ? { opacity: 0, y: -4 } : false}
+              animate={{
+                opacity: 1,
+                y: 0,
+                x: animationsEnabled ? [...ERROR_SHAKE_KEYFRAMES] : 0,
+              }}
+              exit={
+                animationsEnabled
+                  ? { opacity: 0, y: -4, transition: TRANSITION_EXIT_QUICK }
+                  : undefined
+              }
+              transition={{
+                ...TRANSITION_ENTER_QUICK,
+                x: { duration: DURATION.slow, ease: EASE_IN_OUT },
+              }}
+              className="text-[10px] text-red-500 font-sans mt-2"
+            >
+              {errorText}
+            </m.p>
+          )}
+        </AnimatePresence>
         <m.button
           type="submit"
           whileHover={animationsEnabled ? { scale: 1.02 } : undefined}
           whileTap={animationsEnabled ? { scale: 0.98 } : undefined}
+          transition={SPRING_PRESS}
           className="w-full py-3 bg-[var(--accent3)] text-[var(--bg-main)] font-sans font-black text-sm hover:opacity-90 transition-opacity duration-300 cursor-pointer text-center rounded-xl shadow-md shadow-[var(--accent3-transparent)] mt-4"
         >
           ایجاد سگمنت

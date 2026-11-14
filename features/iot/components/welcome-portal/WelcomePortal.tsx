@@ -7,6 +7,7 @@ import { Scrollspy } from "@/components/reui/scrollspy";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Lightbulb, Network, Workflow } from "@/components/ui/hugeicons";
+import { DURATION, EASE_OUT } from "@/lib/ease";
 
 const overviewSections = [
   {
@@ -41,7 +42,7 @@ const chunkVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.35, ease: "easeOut" as const },
+    transition: { duration: DURATION.slow, ease: EASE_OUT },
   },
 };
 

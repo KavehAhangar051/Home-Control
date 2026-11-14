@@ -232,7 +232,3 @@ html.theme-switching *::after {
 .trellis-rtl-host .trellis .trellis-menu-item {
   text-align: right;
 }
-
-.trellis-rtl-host .trellis [data-trellis-part="content"] {
-  padding-bottom: 56px;
-}
