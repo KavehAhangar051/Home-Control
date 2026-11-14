@@ -5,7 +5,7 @@ interface UseAutoOffTimerProps {
   autoOff: number | undefined;
   mode: "switch" | "push";
   pin: string;
-  onSetPinState?: (pin: string, state: boolean, force?: boolean) => void;
+  onSetPinState?: (pin: string, state: boolean, preventMqtt?: boolean) => void;
 }
 
 export function useAutoOffTimer({

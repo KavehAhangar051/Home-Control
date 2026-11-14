@@ -9,7 +9,8 @@
     "lint": "biome lint --max-diagnostics=1000 app components features lib",
     "format": "biome format --write app components features lib",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run typecheck",
+    "test": "node --import ./tests/ts-loader.mjs --test tests/*.test.mjs",
+    "check": "npm run lint && npm run typecheck && npm run test",
     "clean": "node -e \"['.next', 'out', 'tsconfig.tsbuildinfo'].forEach(p => require('fs').rmSync(p, { recursive: true, force: true }))\""
   },
   "dependencies": {

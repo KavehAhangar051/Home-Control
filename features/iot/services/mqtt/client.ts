@@ -20,12 +20,33 @@ import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
 export const getMqttSettings = () => {
   const mqttConfig = useIoTStore.getState().mqttConfig;
-  const qosVal = mqttConfig?.qos;
+
+  let storedBrokerUrl: string | null = null;
+  let storedBaseTopic: string | null = null;
+  let storedQos: number | null = null;
+
+  if (typeof window !== "undefined") {
+    try {
+      storedBrokerUrl = localStorage.getItem("mqtt_broker_url");
+      storedBaseTopic = localStorage.getItem("mqtt_base_topic");
+      const rawQos = localStorage.getItem("mqtt_qos");
+      if (rawQos !== null) {
+        const parsed = Number.parseInt(rawQos, 10);
+        if (parsed === 0 || parsed === 1 || parsed === 2) {
+          storedQos = parsed;
+        }
+      }
+    } catch {
+      // Ignore storage read failures
+    }
+  }
+
+  const qosVal = mqttConfig?.qos ?? storedQos;
   const qos: 0 | 1 | 2 = qosVal === 0 || qosVal === 1 || qosVal === 2 ? qosVal : 1;
 
   return {
-    brokerUrl: mqttConfig?.broker_ws_url || "wss://broker.emqx.io:8084/mqtt",
-    baseTopic: mqttConfig?.base_topic || "KamyarIoT/Achaemenid",
+    brokerUrl: mqttConfig?.broker_ws_url || storedBrokerUrl || "wss://broker.emqx.io:8084/mqtt",
+    baseTopic: mqttConfig?.base_topic || storedBaseTopic || "KamyarIoT/Achaemenid",
     qos,
   };
 };

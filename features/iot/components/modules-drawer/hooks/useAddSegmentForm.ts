@@ -3,7 +3,22 @@ import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 import type { Segment } from "../core/types";
 
-export function useAddSegmentForm(segments: Segment[], onAddSegment: any, onClose: () => void) {
+export type OnAddSegmentFn = (
+  type: string,
+  pin: string,
+  title?: string,
+  group?: string,
+  mode?: "switch" | "push",
+  auto_off?: number,
+  icon?: string,
+  groupIcon?: string,
+) => void;
+
+export function useAddSegmentForm(
+  segments: Segment[],
+  onAddSegment: OnAddSegmentFn,
+  onClose: () => void,
+) {
   const showToast = useIoTStore((s) => s.showToast);
   const groupsOrder = useIoTStore((s) => s.groupsOrder);
   const [selectedType, setSelectedType] = useState("gpio_toggle");

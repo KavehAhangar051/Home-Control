@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { Automation } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
 export function useAutomationForm() {
@@ -75,7 +76,7 @@ export function useAutomationForm() {
     setEditingId(null);
   };
 
-  const handleEdit = (auto: any) => {
+  const handleEdit = (auto: Automation) => {
     setEditingId(auto.id);
     setTitle(auto.title);
     setTime(auto.time || "");

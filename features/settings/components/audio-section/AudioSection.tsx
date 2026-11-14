@@ -59,7 +59,9 @@ export default function AudioSection() {
 
   const [musicOnOverride, setMusicOnOverride] = useState<boolean | null>(null);
   const [musicSourceOverride, setMusicSourceOverride] = useState<"local" | "api" | null>(null);
-  const [trackInfoOverride, setTrackInfoOverride] = useState<any>(undefined);
+  const [trackInfoOverride, setTrackInfoOverride] = useState<
+    ReturnType<typeof getInitialTrackInfo> | undefined
+  >(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
 

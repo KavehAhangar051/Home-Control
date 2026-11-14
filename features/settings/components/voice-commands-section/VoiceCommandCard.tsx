@@ -3,21 +3,27 @@ import type React from "react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Edit2, Mic } from "@/components/ui/hugeicons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type {
+  AutomationAction,
+  Macro,
+  Segment,
+  VoiceCommand,
+} from "@/features/iot/hooks/store/types";
 import { VoiceCommandEditor } from "./VoiceCommandEditor";
 
 interface Props {
-  cmd: any;
+  cmd: VoiceCommand;
   isEditing: boolean;
   onEditStart: () => void;
   onDelete: () => void;
   newCommandPhrase: string;
   setNewCommandPhrase: (val: string) => void;
-  tempActions: Array<any>;
-  setTempActions: (val: Array<any>) => void;
+  tempActions: AutomationAction[];
+  setTempActions: (val: AutomationAction[]) => void;
   onSave: () => void;
   onCancel: () => void;
-  segments: any[];
-  macros: any[];
+  segments: Segment[];
+  macros: Macro[];
 }
 
 function VoiceCommandCardFrame({ children }: { children: React.ReactNode }) {
@@ -39,7 +45,7 @@ function VoiceCommandCardFrame({ children }: { children: React.ReactNode }) {
 }
 
 interface VoiceCommandViewCardProps {
-  cmd: any;
+  cmd: VoiceCommand;
   onEditStart: () => void;
   onDelete: () => void;
 }
@@ -90,12 +96,12 @@ export function VoiceCommandViewCard({ cmd, onEditStart, onDelete }: VoiceComman
 interface VoiceCommandEditCardProps {
   newCommandPhrase: string;
   setNewCommandPhrase: (val: string) => void;
-  tempActions: Array<any>;
-  setTempActions: (val: Array<any>) => void;
+  tempActions: AutomationAction[];
+  setTempActions: (val: AutomationAction[]) => void;
   onSave: () => void;
   onCancel: () => void;
-  segments: any[];
-  macros: any[];
+  segments: Segment[];
+  macros: Macro[];
 }
 
 export function VoiceCommandEditCard({

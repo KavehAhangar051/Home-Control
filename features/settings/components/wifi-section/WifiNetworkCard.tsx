@@ -1,10 +1,11 @@
 import { m } from "motion/react";
 import type React from "react";
 import { DeleteButton } from "@/components/ui/delete-button";
+import type { WifiNetwork } from "@/features/iot/hooks/store/types";
 import { WifiNetworkEditor } from "./WifiNetworkEditor";
 
 interface Props {
-  net: any;
+  net: WifiNetwork;
   isEditing: boolean;
   tempSsid: string;
   setTempSsid: (val: string) => void;
@@ -35,7 +36,7 @@ function WifiNetworkCardFrame({ children }: { children: React.ReactNode }) {
 }
 
 interface WifiNetworkViewCardProps {
-  net: any;
+  net: WifiNetwork;
   onEditStart: () => void;
   onDelete: () => void;
 }

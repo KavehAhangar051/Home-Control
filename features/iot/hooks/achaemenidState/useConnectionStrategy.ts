@@ -53,7 +53,10 @@ function connectLocalWebSocket(
           setPinsState(data.states);
           console.log("[LocalWS] Received full state sync:", data.states);
         } else if (data.pin !== undefined && data.state !== undefined) {
-          dispatchLocalState(data.pin.toString(), data.state === 1 || data.state === true);
+          const pinKey = data.pin.toString();
+          const pinBool = data.state === 1 || data.state === true;
+          setPinsState((prev) => ({ ...prev, [pinKey]: pinBool }));
+          dispatchLocalState(pinKey, pinBool);
         }
       } catch (e) {
         console.error("[LocalWS] Message parsing error:", e);
@@ -94,10 +97,9 @@ function connectLocalWebSocket(
       ws.onerror = null;
       ws.close();
       ws = null;
+      setLocalWs(null);
+      setIsLocal(false);
     }
-
-    setLocalWs(null);
-    setIsLocal(false);
   };
 }
 

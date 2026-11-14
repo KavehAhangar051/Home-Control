@@ -88,7 +88,16 @@ export default function ConditionsSection() {
               showToast("شرط‌ها با موفقیت ثبت و به دستگاه ارسال شدند.", "success");
             };
 
-            const updateLocalRule = (type: "high" | "low", newActions: any[]) => {
+            const updateLocalRule = (
+              type: "high" | "low",
+              newActions: Array<{
+                reqHold: number;
+                targetPin: string;
+                actionOn: boolean;
+                actionType?: number;
+                delay?: number;
+              }>,
+            ) => {
               setLocalRules((prev) => ({
                 ...prev,
                 [segment.id]: {

@@ -1,12 +1,11 @@
 import { DeleteButton } from "@/components/ui/delete-button";
+import type { AutomationAction, Macro, Segment } from "@/features/iot/hooks/store/types";
 
 interface Props {
-  tempActions: Array<{ targetPin?: string; targetMacro?: string; actionOn?: boolean }>;
-  setTempActions: (
-    actions: Array<{ targetPin?: string; targetMacro?: string; actionOn?: boolean }>,
-  ) => void;
-  segments: any[];
-  macros: any[];
+  tempActions: AutomationAction[];
+  setTempActions: (actions: AutomationAction[]) => void;
+  segments: Segment[];
+  macros: Macro[];
 }
 
 export function VoiceCommandActionsEditor({

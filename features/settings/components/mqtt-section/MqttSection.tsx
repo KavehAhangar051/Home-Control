@@ -1,11 +1,10 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Save } from "@/components/ui/hugeicons";
+import { buildEspConfig } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import {
-  fetchConfigFromCloudflare,
-  saveConfigToCloudflare,
-} from "@/features/iot/services/cloudflare/api";
+import { saveConfigToCloudflare } from "@/features/iot/services/cloudflare/api";
+import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
 import { getMqttSettings, reconnectMqtt } from "@/features/iot/services/mqttService";
 import { soundManager } from "@/lib/audio";
 import { MqttFormFields } from "./MqttFormFields";
@@ -44,16 +43,21 @@ export default function MqttSection() {
     ? (JSON.parse(settingsJson) as { brokerUrl: string; baseTopic: string; qos: 0 | 1 | 2 })
     : null;
 
-  const [overrides, setOverrides] = useState<MqttLocalOverrides>({});
-  const [isSaved, setIsSaved] = useState(false);
+  const mqttConfig = useIoTStore((state) => state.mqttConfig);
   const setMqttConfig = useIoTStore((state) => state.setMqttConfig);
   const showToast = useIoTStore((state) => state.showToast);
 
-  const brokerWsUrl = overrides.brokerWsUrl ?? initialSettings?.brokerUrl ?? "";
-  const brokerHost = overrides.brokerHost ?? (initialSettings ? "broker.emqx.io" : "");
-  const brokerPort = overrides.brokerPort ?? 1883;
-  const baseTopic = overrides.baseTopic ?? initialSettings?.baseTopic ?? "";
-  const qos = overrides.qos ?? initialSettings?.qos ?? 1;
+  const [overrides, setOverrides] = useState<MqttLocalOverrides>({});
+  const [isSaved, setIsSaved] = useState(false);
+
+  const brokerWsUrl =
+    overrides.brokerWsUrl ?? mqttConfig?.broker_ws_url ?? initialSettings?.brokerUrl ?? "";
+  const brokerHost =
+    overrides.brokerHost ?? mqttConfig?.broker_host ?? (initialSettings ? "broker.emqx.io" : "");
+  const brokerPort = overrides.brokerPort ?? mqttConfig?.broker_port ?? 1883;
+  const baseTopic =
+    overrides.baseTopic ?? mqttConfig?.base_topic ?? initialSettings?.baseTopic ?? "";
+  const qos = overrides.qos ?? mqttConfig?.qos ?? initialSettings?.qos ?? 1;
 
   const setBrokerWsUrl = (val: string) => setOverrides((prev) => ({ ...prev, brokerWsUrl: val }));
   const setBrokerHost = (val: string) => setOverrides((prev) => ({ ...prev, brokerHost: val }));
@@ -61,32 +65,16 @@ export default function MqttSection() {
   const setBaseTopic = (val: string) => setOverrides((prev) => ({ ...prev, baseTopic: val }));
   const setQos = (val: 0 | 1 | 2) => setOverrides((prev) => ({ ...prev, qos: val }));
 
-  useEffect(() => {
-    let isCancelled = false;
-
-    fetchConfigFromCloudflare().then((config) => {
-      if (isCancelled || !config?.mqtt) return;
-
-      setOverrides({
-        brokerWsUrl: config.mqtt.broker_ws_url,
-        brokerHost: config.mqtt.broker_host,
-        brokerPort: config.mqtt.broker_port,
-        baseTopic: config.mqtt.base_topic,
-        qos: config.mqtt.qos,
-      });
-    });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
-
   const handleSaveAndReconnect = async () => {
     soundManager.playClick();
 
-    localStorage.setItem("mqtt_broker_url", brokerWsUrl);
-    localStorage.setItem("mqtt_base_topic", baseTopic);
-    localStorage.setItem("mqtt_qos", qos.toString());
+    try {
+      localStorage.setItem("mqtt_broker_url", brokerWsUrl);
+      localStorage.setItem("mqtt_base_topic", baseTopic);
+      localStorage.setItem("mqtt_qos", qos.toString());
+    } catch {
+      // Ignore storage write errors in restricted contexts
+    }
 
     const newMqttConfig = {
       broker_ws_url: brokerWsUrl,
@@ -97,20 +85,25 @@ export default function MqttSection() {
     };
 
     setMqttConfig(newMqttConfig);
+    reconnectMqtt();
+
+    if (!isCloudflareEnabled()) {
+      showToast("تنظیمات MQTT ذخیره و اتصال مجدد برقرار شد.", "success");
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
+
+      return;
+    }
 
     try {
-      const config = await fetchConfigFromCloudflare();
-
-      if (!config) {
-        showToast("تنظیمات سرور دریافت نشد؛ اتصال کلودفلر را بررسی کنید.", "error");
-
-        return;
-      }
-
-      config.mqtt = newMqttConfig;
-      const res = await saveConfigToCloudflare(config);
+      const currentConfig = buildEspConfig({
+        ...useIoTStore.getState(),
+        mqttConfig: newMqttConfig,
+      });
+      const res = await saveConfigToCloudflare(currentConfig);
 
       if (res.success) {
+        useIoTStore.getState().resetUnsavedChanges();
         showToast(res.message, "success");
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
@@ -121,8 +114,6 @@ export default function MqttSection() {
       console.error("Failed to save MQTT settings to cloud", e);
       showToast("خطا در ارتباط با سرور کلودفلر", "error");
     }
-
-    reconnectMqtt();
   };
 
   return (

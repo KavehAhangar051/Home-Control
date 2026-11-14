@@ -114,10 +114,9 @@ export function usePinOperations({ refetchIot: _refetchIot }: UsePinOperationsPr
       if (nextState) soundManager.playToggleOn();
       else soundManager.playToggleOff();
 
-      setPinsState((prev) => ({ ...prev, [pin]: nextState }));
       await updatePinOnServer(pin, nextState, false);
     },
-    [setPinsState, updatePinOnServer],
+    [updatePinOnServer],
   );
 
   const handleSetPinState = useCallback(
@@ -129,10 +128,9 @@ export function usePinOperations({ refetchIot: _refetchIot }: UsePinOperationsPr
         else soundManager.playToggleOff();
       }
 
-      setPinsState((prev) => ({ ...prev, [pin]: state }));
       await updatePinOnServer(pin, state, preventMqtt);
     },
-    [setPinsState, updatePinOnServer],
+    [updatePinOnServer],
   );
 
   const handleBatchPinState = useCallback(

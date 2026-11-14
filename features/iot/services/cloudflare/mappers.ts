@@ -1,10 +1,24 @@
 import type { EspConfig } from "@/features/iot/services/esp32Config";
 import { getCloudflareWorkerUrl } from "./config";
 
+type LegacyAutomationRecord = NonNullable<EspConfig["automations"]>[number] & {
+  targetPin?: string;
+  actionOn?: boolean;
+};
+
+export interface CloudflareSerializedConfig extends Omit<EspConfig, "segments"> {
+  segments_definition: EspConfig["segments"];
+}
+
+export type CloudflareRawPayload = Partial<Omit<EspConfig, "automations">> & {
+  segments_definition?: EspConfig["segments"];
+  automations?: LegacyAutomationRecord[];
+};
+
 /**
  * Maps our dashboard-stored state schema to the agreed Cloudflare config format.
  */
-export function serializeToCloudflare(config: any): any {
+export function serializeToCloudflare(config: Partial<EspConfig>): CloudflareSerializedConfig {
   return {
     version: config.version || "1.2.0",
     device: config.device || {
@@ -12,7 +26,7 @@ export function serializeToCloudflare(config: any): any {
       chip: "ESP32-S3-WROOM-1",
       firmware: "v3.4.1-Smart-OS",
       reboot_count: 0,
-      last_boot: new Date().toISOString(),
+      last_boot: "1970-01-01T00:00:00.000Z",
     },
     preferences: {
       theme_mode: config.preferences?.theme_mode || "dark",
@@ -59,7 +73,7 @@ export function serializeToCloudflare(config: any): any {
 /**
  * Maps the Cloudflare config structure back to our native dashboard format.
  */
-export function deserializeFromCloudflare(cfData: any): EspConfig {
+export function deserializeFromCloudflare(cfData: CloudflareRawPayload): EspConfig {
   return {
     version: cfData.version || "1.2.0",
     device: cfData.device || {
@@ -67,7 +81,7 @@ export function deserializeFromCloudflare(cfData: any): EspConfig {
       chip: "ESP32-S3-WROOM-1",
       firmware: "v3.4.1-Smart-OS",
       reboot_count: 0,
-      last_boot: new Date().toISOString(),
+      last_boot: "1970-01-01T00:00:00.000Z",
     },
     preferences: {
       theme_mode: cfData.preferences?.theme_mode || "dark",
@@ -101,7 +115,7 @@ export function deserializeFromCloudflare(cfData: any): EspConfig {
     },
     // Load from 'segments_definition' and fall back to 'segments'
     segments: cfData.segments_definition || cfData.segments || [],
-    automations: (cfData.automations || []).map((auto: any) => {
+    automations: (cfData.automations || []).map((auto) => {
       // Migrate old schema to new multiple-actions schema
       if (auto.targetPin !== undefined && !auto.actions) {
         const { targetPin, actionOn, ...rest } = auto;

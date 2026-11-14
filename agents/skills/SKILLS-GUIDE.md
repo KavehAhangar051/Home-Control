@@ -19,7 +19,7 @@
 | ز) استتیک و کیفیت بصری | soft-skill (high-end visual)، taste-skill، taste-skill-v1، stitch-skill، minimalist-skill، brutalist-skill، redesign-skill، output-skill، gpt-tasteskill |
 | ح) تولید تصویر و اثر | imagegen-frontend-mobile، imagegen-frontend-web، image-to-code-skill، brandkit، claude-design، design-mobile-apps |
 | ط) مهارت‌های توسعه‌ی workflow | brainstorming، writing-plans، writing-skills، break، variant، using-superpowers، dispatching-parallel-agents، finishing-a-development-branch، using-git-worktrees |
-| ی) خاص-پلتفرم | sentry، embedded-systems، security-audit، learnings، find-skills، skill آشنایی |
+| ی) خاص-پلتفرم | sentry، embedded-systems، security-audit، agent-architecture-audit، ai-first-engineering، learnings، find-skills، skill آشنایی |
 | ک) رشد محصول/بازاریابی (زیرپوشه seo) | حدود ۴۰+ مهارت مارکتینگ و بخش رشد |
 | ل) سه‌بعدی و انیمیشن | threejs-* |
 | م) اپ موبایل | appllama-* |
@@ -562,6 +562,16 @@
 **چیست:** ممیزی سلامت پروژه و کیفیت مستندات.
 
 **کی استفاده:** ارزیابی کلی وضعیت یک پروژه (کد + مستندات).
+
+### agent-architecture-audit
+**چیست:** ممیزی ۱۲ لایه‌ای معماری ایجنت، حلقه‌های پنهان (repair/retry/sync)، آلودگی حافظه و persistence، انضباط اجرای ابزارها/فرامین و فساد لایه رندرینگ یا ترنسپورت همراه با گزارش ساختاریافته `ecc.agent-architecture-audit.report.v1` و فیکس‌های code-first.
+
+**کی استفاده:** هنگام بررسی رگرسیون در لایه‌های wrapper، تداخل حافظه/کش، فراخوانی‌های پنهان یا قبل از انتشار سیستم‌های مبتنی بر ایجنت و فرامین هوشمند.
+
+### ai-first-engineering
+**چیست:** مدل عملیاتی مهندسی برای تیم‌ها و کدبیس‌های AI-First — تعریف مرزهای صریح، قراردادهای پایدار و تایپ‌شده (حذف `any` در مرزهای دامنه/سرویس/هوک/کامپوننت)، تست‌های قطعی (deterministic) و گیت‌های بازبینی مبتنی بر رفتار، امنیت و یکپارچگی معماری.
+
+**کی استفاده:** هنگام استانداردسازی کدبیس برای توسعه با ایجنت‌های کدنویسی، ارتقای تست‌های رگرسیون و قراردادهای مرزی، و تنظیم گیت‌های کیفیت و CI.
 
 ---
 

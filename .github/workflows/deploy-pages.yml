@@ -36,8 +36,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
 
-      - name: Lint application
-        run: npm run lint
+      - name: Verify quality gates (lint, typecheck, and contract tests)
+        run: npm run check
 
       - name: Build static site
         run: npm run build

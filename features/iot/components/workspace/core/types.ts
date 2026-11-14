@@ -1,7 +1,13 @@
-import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
+import type {
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  SensorDescriptor,
+  SensorOptions,
+} from "@dnd-kit/core";
 
 export interface IoTWorkspaceProps {
-  sensors: any;
+  sensors: SensorDescriptor<SensorOptions>[];
   groupsOrder: string[];
   groupsCols: number;
   groupConfigs: Record<string, { maxCols: number; icon?: string }>;
