@@ -174,7 +174,7 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
             bool hasSsid = kvp.getValue("s", ssidBuf, sizeof(ssidBuf));
             bool hasPass = kvp.getValue("p", passBuf, sizeof(passBuf));
             
-            if (hasSsid && hasPass && outResult.wifiCount < 3) {
+            if (hasSsid && hasPass && outResult.wifiCount < 5) {
                 int c = outResult.wifiCount;
                 strncpy(outResult.wifi[c].ssid, ssidBuf, sizeof(outResult.wifi[c].ssid) - 1);
                 strncpy(outResult.wifi[c].password, passBuf, sizeof(outResult.wifi[c].password) - 1);

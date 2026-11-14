@@ -105,7 +105,7 @@ struct ConfigLoadedEvent {
     static constexpr const char* Name = "config.loaded";
     int pinCount;  /**< Number of pins configured */
     MqttConfig mqtt; /**< MQTT configuration parsed from server */
-    WifiNetworkConfig wifi[3]; /**< WiFi configuration parsed from server */
+    WifiNetworkConfig wifi[5]; /**< WiFi configuration parsed from server */
     int wifiCount;
     
     ConfigLoadedEvent() : pinCount(0), wifiCount(0) {}

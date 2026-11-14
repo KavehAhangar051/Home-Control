@@ -38,8 +38,8 @@ void setup() {
     setupRuleEngine();
 
     // Load Network Configuration from NVS
-    String savedSSID[3];
-    String savedPass[3];
+    String savedSSID[5];
+    String savedPass[5];
     int savedCount = 0;
     MqttConfig savedMqtt;
     loadNetworkConfig(savedSSID, savedPass, savedCount, savedMqtt);
@@ -51,9 +51,7 @@ void setup() {
         }
     }
     
-    // Always add the hardcoded fallback as the last resort
-    ::network->add_access_point(WIFI_SSID, WIFI_PASSWORD);
-    
+
     // Configure MQTT independently of Cloudflare so command subscription is
     // ready as soon as WiFi connects, even when the cloud WebSocket is offline.
     if (savedMqtt.valid) {
@@ -88,6 +86,9 @@ void setup() {
 void loop() {
     // 1. Poll the global async executor (handles WiFi, NTP, Config)
     executor.poll();
+
+    // Service WiFi recovery and the local provisioning portal.
+    if (bootManager) bootManager->loop();
 
     // 2. Process incoming MQTT messages safely in the main loop
     mqttClient.processQueue();

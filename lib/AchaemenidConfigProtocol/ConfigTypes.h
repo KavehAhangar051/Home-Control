@@ -80,7 +80,7 @@ struct WifiNetworkConfig {
 struct ParseResult {
     SegmentConfig segments[MAX_SEGMENTS];
     MqttConfig mqtt;
-    WifiNetworkConfig wifi[3];
+    WifiNetworkConfig wifi[5];
     
     int wifiCount;
     int count;
