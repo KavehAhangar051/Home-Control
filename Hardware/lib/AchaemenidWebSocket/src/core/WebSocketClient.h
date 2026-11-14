@@ -13,7 +13,7 @@ class WsClientParser;
 
 class AchaemenidWebSocketClient {
 public:
-    AchaemenidWebSocketClient(IEventDispatcher* dispatcher, std::function<String()> stateProvider);
+    AchaemenidWebSocketClient(IEventDispatcher* dispatcher, StateProvider stateProvider);
     ~AchaemenidWebSocketClient();
 
     void begin(const String& serverUrl);
@@ -33,16 +33,18 @@ private:
 
     websockets::WebsocketsClient* client_ = nullptr;
     WebSocketConfig config_;
-    
+
     volatile bool isRunning_;
     volatile bool firstConnection_;
     portMUX_TYPE firstConnMux_ = portMUX_INITIALIZER_UNLOCKED;
 
     unsigned long lastPingTime_ = 0;
+    unsigned long lastConnectAttemptTime_ = 0;
+    bool hasConnectAttempted_ = false;
     volatile bool isConnecting_ = false;
     TaskHandle_t connectTaskHandle_ = nullptr;
     IEventDispatcher* dispatcher_;
-    std::function<String()> stateProvider_;
+    StateProvider stateProvider_;
     WsClientParser* parser_;
 };
 

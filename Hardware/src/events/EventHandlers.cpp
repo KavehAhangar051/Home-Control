@@ -22,11 +22,11 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
     if (pinManager.setPinState(evt->pin, evt->state)) {
         INFOF("[Event] Pin %d state changed to %s via Request", evt->pin, evt->state ? "ON" : "OFF");
         
-        // Dispatch confirmed state change (sync=false because triggered externally)
-        PinStateChangedEvent changedEvt{evt->pin, evt->state, false};
+        // Only suppress Cloudflare sync for commands that originated from Cloudflare.
+        // MQTT and local WebSocket changes must be reported to the durable state owner.
+        const bool syncCloudflare = (evt->origin != PinStateChangeOrigin::Cloudflare);
+        PinStateChangedEvent changedEvt{evt->pin, evt->state, syncCloudflare};
         eventBus.dispatch(changedEvt);
-
-        // Sync to Cloudflare not needed here (Dashboard handles it directly)
         
         // Handle Auto-Off if requested
         if (evt->state && evt->auto_off > 0) {

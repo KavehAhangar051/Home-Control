@@ -1,11 +1,13 @@
 #include "WebSocketServer.h"
+#include "WebSocketConfig.h"
 #include "../parsers/WsServerParser.h"
+#include <utility>
 namespace uniuno {
 
-AchaemenidWebSocketServer::AchaemenidWebSocketServer(IEventDispatcher* dispatcher, std::function<String()> stateProvider)
-    : dispatcher_(dispatcher), stateProvider_(stateProvider) 
+AchaemenidWebSocketServer::AchaemenidWebSocketServer(IEventDispatcher* dispatcher, StateProvider stateProvider)
+    : dispatcher_(dispatcher)
 {
-    parser_ = new WsServerParser(dispatcher_, stateProvider_);
+    parser_ = new WsServerParser(dispatcher_, std::move(stateProvider));
 }
 
 AchaemenidWebSocketServer::~AchaemenidWebSocketServer() {

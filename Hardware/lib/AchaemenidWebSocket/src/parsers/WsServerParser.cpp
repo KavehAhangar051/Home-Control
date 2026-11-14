@@ -2,18 +2,19 @@
 #include <AppEvents.h>
 #include <PinManager.h>
 #include <Arduino.h>
+#include <utility>
 
 
 namespace uniuno {
 
-WsServerParser::WsServerParser(IEventDispatcher* dispatcher, std::function<String()> stateProvider)
-    : _dispatcher(dispatcher), _stateProvider(stateProvider) {}
+WsServerParser::WsServerParser(IEventDispatcher* dispatcher, StateProvider stateProvider)
+    : _dispatcher(dispatcher), _stateProvider(std::move(stateProvider)) {}
 
 void WsServerParser::parseMessage(const String& data, websockets::WebsocketsClient& client) {
     if (data.indexOf("\"command\":\"get_state\"") >= 0) {
         String stateJson = _stateProvider ? _stateProvider() : "{}";
         client.send(stateJson);
-    } 
+    }
     else if (data.indexOf("\"command\":\"set_state\"") >= 0) {
         // Simple non-blocking JSON parsing (Dashboard sends flat JSON)
         int pinIdx = data.indexOf("\"pin\":");

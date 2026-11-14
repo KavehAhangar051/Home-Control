@@ -1,5 +1,7 @@
 #include "../PinManager.h"
 #include <Utilities/logging.h>
+#include <Optimization/StaticString.h>
+#include <cstdio>
 
 PinManager::PinManager() : _registry(), _timerManager(_registry), _stateManager(_registry) {
 }
@@ -37,16 +39,29 @@ void PinManager::printStatus() const {
 }
 
 String PinManager::exportStateJson() const {
-    String json = "{\"type\":\"state_sync\",\"states\":{";
+    // At most 16 configured pins; include both input and output levels for reconnect reconciliation.
+    uniuno::StaticString<256> json("{\"type\":\"state_sync\",\"states\":{");
     bool first = true;
+
     for (int i = 0; i < MAX_PINS; i++) {
         const PinEntry* entry = _registry.getEntryByIndexConst(i);
-        if (entry->active && entry->type != SegmentType::Input && entry->hasGpio) {
+        if (entry->active) {
             if (!first) json += ",";
-            json += "\"" + String(entry->pinNumber) + "\":" + (entry->gpio.getState() ? "true" : "false");
+            char pinText[4];
+            snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
+            json += "\"";
+            json += pinText;
+            json += "\":";
+
+            // Reconcile both output and input GPIO levels after a WebSocket reconnect.
+            const bool state = (entry->type == SegmentType::Input)
+                ? (digitalRead(entry->pinNumber) == HIGH)
+                : (entry->hasGpio && entry->gpio.getState());
+            json += state ? "true" : "false";
             first = false;
         }
     }
+
     json += "}}";
-    return json;
+    return String(json.c_str());
 }
