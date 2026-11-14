@@ -8,6 +8,7 @@ interface CardFooterProps {
   animationsEnabled?: boolean;
   isCompact?: boolean;
   isUltraCompact?: boolean;
+  hasExternalHeader?: boolean;
 }
 
 function getStatusText(
@@ -57,13 +58,16 @@ function SwitchModeTrack({
   isSmallTrack: boolean;
   animationsEnabled: boolean;
 }) {
-  const trackSize = isSmallTrack ? "h-5 w-9" : "h-6 w-11";
+  const trackSize = isSmallTrack ? "h-5 w-9 rounded-[7px]" : "h-6 w-11 rounded-[8px]";
 
   const trackTone = isPinOn
-    ? "bg-[var(--accent3)]"
+    ? "bg-[var(--accent3)] border border-transparent"
     : "bg-[var(--input)] border border-[var(--border-color)]";
 
-  const thumbSize = isSmallTrack ? "h-4 w-4" : "h-5 w-5";
+  const thumbSize = isSmallTrack
+    ? "h-[14px] w-[14px] rounded-[4px]"
+    : "h-[18px] w-[18px] rounded-[5px]";
+
   const thumbTone = isPinOn ? "bg-[var(--accent3-foreground)]" : "bg-white dark:bg-neutral-200";
 
   const thumbOffset = isPinOn
@@ -79,10 +83,10 @@ function SwitchModeTrack({
   return (
     <span
       aria-hidden="true"
-      className={`relative inline-flex shrink-0 items-center justify-start rounded-full p-0.5 transition-colors ${trackSize} ${trackTone}`}
+      className={`relative inline-flex shrink-0 items-center justify-start p-0.5 transition-colors ${trackSize} ${trackTone}`}
     >
       <span
-        className={`pointer-events-none inline-block rounded-full shadow-xs transform ${thumbSize} ${thumbTone} ${motionClass} ${thumbOffset}`}
+        className={`pointer-events-none inline-block shadow-xs transform ${thumbSize} ${thumbTone} ${motionClass} ${thumbOffset}`}
       />
     </span>
   );
@@ -100,6 +104,7 @@ export default function CardFooter({
   animationsEnabled = true,
   isCompact = false,
   isUltraCompact = false,
+  hasExternalHeader = false,
 }: CardFooterProps) {
   const autoOffValue = segment.auto_off || 0;
   const isSmallTrack = isCompact || isUltraCompact;
@@ -110,7 +115,11 @@ export default function CardFooter({
     !isUltraCompact && autoOffValue > 0 && (countdown === null || countdown === undefined);
 
   return (
-    <div className="flex w-full items-center justify-between gap-2 pt-2">
+    <div
+      className={`flex w-full items-center justify-between gap-2 ${
+        hasExternalHeader || isSmallTrack ? "pt-1" : "pt-2"
+      }`}
+    >
       {/* RTL Right: Minimal Live Status + Pin Metadata */}
       <div className="flex items-center gap-1.5 min-w-0 text-right">
         <span className={`w-2 h-2 rounded-full shrink-0 transition-colors ${dotClass}`} />

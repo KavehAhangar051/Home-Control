@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { HousePlug } from "@/components/ui/hugeicons";
-import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import type { BrandBoxProps } from "./types";
 
 const MARQUEE_PIXELS_PER_SECOND = 34;
@@ -10,8 +9,6 @@ const MARQUEE_MIN_DURATION_SECONDS = 6;
 const OVERFLOW_TOLERANCE_PX = 2;
 
 export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "variant">) {
-  const { isFullyReady } = useDashboard();
-
   const containerRef = useRef<HTMLHeadingElement>(null);
   const measureRef = useRef<HTMLSpanElement>(null);
 
@@ -24,7 +21,9 @@ export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "v
   });
 
   useEffect(() => {
-    if (!isFullyReady) return;
+    const headerTitleLength = headerTitle.length;
+
+    if (headerTitleLength < 0) return;
 
     const container = containerRef.current;
     const measureEl = measureRef.current;
@@ -60,8 +59,8 @@ export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "v
 
     let cancelled = false;
 
-    if (typeof document !== "undefined" && document.fonts?.ready) {
-      void document.fonts.ready.then(() => {
+    if (globalThis.document?.fonts?.ready) {
+      void globalThis.document.fonts.ready.then(() => {
         if (!cancelled) updateMetrics();
       });
     }
@@ -70,7 +69,7 @@ export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "v
       cancelled = true;
       resizeObserver.disconnect();
     };
-  }, [isFullyReady]);
+  }, [headerTitle]);
 
   return (
     <div data-animate-icon-parent className="flex min-w-0 flex-1 items-center gap-3">
@@ -86,37 +85,26 @@ export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "v
             : ""
         }`}
       >
-        {isFullyReady ? (
-          <>
-            <span
-              ref={measureRef}
-              aria-hidden="true"
-              className="pointer-events-none invisible absolute top-0 right-0 whitespace-nowrap md:!inline-block"
-            >
+        <span
+          ref={measureRef}
+          aria-hidden="true"
+          className="pointer-events-none invisible absolute top-0 right-0 whitespace-nowrap md:!inline-block"
+        >
+          {headerTitle}
+        </span>
+
+        {marqueeState.isOverflowing ? (
+          <div
+            className="header-title-marquee-track items-center"
+            style={{ animationDuration: `${marqueeState.durationSeconds}s` }}
+          >
+            <span className="shrink-0 whitespace-nowrap pl-10 md:!inline-block">{headerTitle}</span>
+            <span aria-hidden="true" className="shrink-0 whitespace-nowrap pl-10 md:!inline-block">
               {headerTitle}
             </span>
-
-            {marqueeState.isOverflowing ? (
-              <div
-                className="header-title-marquee-track items-center"
-                style={{ animationDuration: `${marqueeState.durationSeconds}s` }}
-              >
-                <span className="shrink-0 whitespace-nowrap pl-10 md:!inline-block">
-                  {headerTitle}
-                </span>
-                <span
-                  aria-hidden="true"
-                  className="shrink-0 whitespace-nowrap pl-10 md:!inline-block"
-                >
-                  {headerTitle}
-                </span>
-              </div>
-            ) : (
-              <span className="whitespace-nowrap md:!inline">{headerTitle}</span>
-            )}
-          </>
+          </div>
         ) : (
-          <div className="h-4 w-28 animate-pulse rounded bg-[var(--text-muted)] opacity-20" />
+          <span className="whitespace-nowrap md:!inline">{headerTitle}</span>
         )}
       </h1>
     </div>

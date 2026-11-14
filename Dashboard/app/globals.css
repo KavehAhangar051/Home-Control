@@ -200,12 +200,63 @@
   animation-play-state: paused;
 }
 
+@keyframes dash {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+@keyframes node-perimeter-spark {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes port-wakeup-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.75;
+  }
+  70% {
+    transform: scale(1.75);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.75);
+    opacity: 0;
+  }
+}
+
+.animate-node-spark {
+  animation: node-perimeter-spark 2.4s linear infinite;
+}
+
+.animate-node-spark-fast {
+  animation: node-perimeter-spark 1.15s linear infinite;
+}
+
+.animate-port-wakeup {
+  animation: port-wakeup-ring 1.1s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .title-animated {
     animation: none;
   }
 
   .header-title-marquee-track {
+    animation: none;
+  }
+
+  .animate-node-spark,
+  .animate-node-spark-fast,
+  .animate-port-wakeup {
     animation: none;
   }
 }

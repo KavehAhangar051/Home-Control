@@ -16,18 +16,26 @@ export default function useSegmentButtonProps({
   if (mode === "push") {
     return {
       onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+        if (e.button === 2) return;
+
         e.stopPropagation();
         onSetPinState?.(pin, true);
       },
       onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
+        if (e.button === 2) return;
+
         e.stopPropagation();
         onSetPinState?.(pin, false);
       },
       onPointerLeave: (e: React.PointerEvent<HTMLButtonElement>) => {
+        if (e.button === 2) return;
+
         e.stopPropagation();
         onSetPinState?.(pin, false);
       },
       onPointerCancel: (e: React.PointerEvent<HTMLButtonElement>) => {
+        if (e.button === 2) return;
+
         e.stopPropagation();
         onSetPinState?.(pin, false);
       },
@@ -40,6 +48,8 @@ export default function useSegmentButtonProps({
       onTogglePin(pin);
     },
     onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (e.button === 2) return;
+
       e.stopPropagation();
     },
   };

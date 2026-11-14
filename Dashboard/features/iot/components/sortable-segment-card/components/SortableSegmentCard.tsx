@@ -52,8 +52,8 @@ function DraggingSegmentSkeleton({
       className={`touch-none relative h-full ${SEGMENT_SPAN_CLASS} ${isSettingsOpen ? "!basis-full !max-w-full" : ""}`}
     >
       <div
-        className={`w-full border-2 border-dashed border-[var(--accent3-medium)]/35 bg-[var(--card-bg)]/20 backdrop-blur-md rounded-2xl transition-colors duration-300 ${
-          isUltraCompact ? "min-h-[90px]" : "min-h-[140px]"
+        className={`w-full h-full border-2 border-dashed border-[var(--accent3-medium)]/35 bg-[var(--card-bg)]/20 backdrop-blur-md rounded-2xl transition-colors duration-300 ${
+          isUltraCompact ? "min-h-[78px]" : "min-h-[108px]"
         } flex items-center justify-center`}
       >
         <div className="w-5 h-5 rounded-full border-2 border-[var(--accent3-medium)]/20 border-t-[var(--accent3)] animate-spin opacity-40" />

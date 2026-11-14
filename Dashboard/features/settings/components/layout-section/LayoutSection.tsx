@@ -24,7 +24,7 @@ export default function LayoutSection({ headerTitle, setHeaderTitle }: LayoutSec
               فرم نمایش سگمنت‌ها و گروه‌ها
             </span>
             <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
-              انتخاب بین چیدمان ستونی کلاسیک یا پنجره‌های شناور و تب‌دار آزاد
+              انتخاب بین چیدمان ستونی کلاسیک، پنجره‌های آزاد، یا شیت بوم بی‌نهایت (مشابه n8n)
             </p>
           </div>
 

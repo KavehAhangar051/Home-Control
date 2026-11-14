@@ -11,14 +11,19 @@ interface PinToggleProps {
   animationsEnabled?: boolean;
   isCompact?: boolean;
   isUltraCompact?: boolean;
+  hasExternalHeader?: boolean;
   mode?: "switch" | "push";
   countdown?: number | null;
 }
 
-function getPinToggleDensity(isUltraCompact: boolean, isCompact: boolean) {
+function getPinToggleDensity(
+  isUltraCompact: boolean,
+  isCompact: boolean,
+  hasExternalHeader: boolean,
+) {
   if (isUltraCompact) {
     return {
-      container: "min-h-[78px] p-2.5 gap-2",
+      container: hasExternalHeader ? "min-h-0 px-2.5 py-2 gap-1.5" : "min-h-[78px] p-2.5 gap-2",
       badge: "w-8 h-8",
       icon: "w-4 h-4",
       title: "text-xs",
@@ -27,7 +32,7 @@ function getPinToggleDensity(isUltraCompact: boolean, isCompact: boolean) {
 
   if (isCompact) {
     return {
-      container: "min-h-[96px] p-3 gap-2.5",
+      container: hasExternalHeader ? "min-h-0 px-3 py-2.5 gap-2" : "min-h-[96px] p-3 gap-2.5",
       badge: "w-9 h-9",
       icon: "w-4.5 h-4.5",
       title: "text-xs sm:text-sm",
@@ -35,7 +40,9 @@ function getPinToggleDensity(isUltraCompact: boolean, isCompact: boolean) {
   }
 
   return {
-    container: "min-h-[108px] p-3.5 sm:p-4 gap-3",
+    container: hasExternalHeader
+      ? "min-h-0 px-3.5 py-3 gap-2.5"
+      : "min-h-[108px] p-3.5 sm:p-4 gap-3",
     badge: "w-10 h-10 sm:w-11 sm:h-11",
     icon: "w-5 h-5",
     title: "text-sm sm:text-[15px]",
@@ -62,11 +69,12 @@ export default function PinToggle({
   animationsEnabled = true,
   isCompact = false,
   isUltraCompact = false,
+  hasExternalHeader = false,
   mode = "switch",
   countdown,
 }: PinToggleProps) {
   const SegmentIcon = getSegmentIcon(segment.icon);
-  const density = getPinToggleDensity(isUltraCompact, isCompact);
+  const density = getPinToggleDensity(isUltraCompact, isCompact, hasExternalHeader);
   const ariaLabel = getPinToggleAriaLabel(segment.title, isPinOn, mode);
 
   const surfaceTone = isPinOn
@@ -78,16 +86,18 @@ export default function PinToggle({
     : "bg-[var(--secondary)] text-[var(--text-secondary)] border border-[var(--border-color)]";
 
   const showEmojiIcon = Boolean(segment.icon) && !hasIcon(segment.icon);
+  const radiusClass = hasExternalHeader ? "rounded-none rounded-b-[15px]" : "rounded-xl";
+  const topRowInsetClass = hasExternalHeader ? "" : "pl-14";
 
   return (
     <Toggle
       pressed={isPinOn}
       {...buttonProps}
       aria-label={ariaLabel}
-      className={`switch-toggle group/tile relative flex flex-col items-stretch justify-between w-full h-full rounded-xl text-right whitespace-normal font-sans transition-[background-color,border-color,color,box-shadow,scale] duration-150 ease-out active:scale-[0.98] cursor-pointer select-none ${density.container} ${surfaceTone}`}
+      className={`switch-toggle group/tile relative flex flex-col items-stretch justify-between w-full h-full text-right whitespace-normal font-sans transition-[background-color,border-color,color,box-shadow,scale] duration-150 ease-out active:scale-[0.98] cursor-pointer select-none ${radiusClass} ${density.container} ${surfaceTone}`}
     >
-      {/* Top Row: Device Icon Badge & Title (leaves left padding for floating corner actions) */}
-      <div className="flex items-center gap-2.5 sm:gap-3 w-full pl-14 min-w-0">
+      {/* Top Row: Device Icon Badge & Title */}
+      <div className={`flex items-center gap-2.5 sm:gap-3 w-full min-w-0 ${topRowInsetClass}`}>
         <div
           aria-hidden="true"
           className={`flex items-center justify-center rounded-xl transition-colors shrink-0 ${density.badge} ${badgeTone}`}
@@ -119,6 +129,7 @@ export default function PinToggle({
         animationsEnabled={animationsEnabled}
         isCompact={isCompact}
         isUltraCompact={isUltraCompact}
+        hasExternalHeader={hasExternalHeader}
       />
     </Toggle>
   );

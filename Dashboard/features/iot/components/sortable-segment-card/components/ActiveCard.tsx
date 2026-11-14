@@ -85,7 +85,7 @@ function ActiveCard({
       className="relative h-full"
     >
       <Card
-        className={`group relative flex h-full flex-col justify-between !overflow-visible !gap-0 !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
+        className={`group relative flex h-full flex-col justify-between !overflow-visible !gap-0 !rounded-xl !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
         style={CARD_SPACING_STYLE}
       >
         <CardHeader

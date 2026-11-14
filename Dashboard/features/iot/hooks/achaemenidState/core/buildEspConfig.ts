@@ -33,7 +33,12 @@ export type EspConfigBuildSource = Pick<
 export function buildEspConfig(params: EspConfigBuildSource): EspConfig {
   const apConfig = params.wifiApConfig;
   const apIsCleared = apConfig && !apConfig.ssid.trim() && !apConfig.password;
-  const apIsValid = apConfig && apConfig.ssid.trim().length > 0 && apConfig.ssid.length <= 32 && apConfig.password.length >= 8 && apConfig.password.length <= 63;
+  const apIsValid =
+    apConfig &&
+    apConfig.ssid.trim().length > 0 &&
+    apConfig.ssid.length <= 32 &&
+    apConfig.password.length >= 8 &&
+    apConfig.password.length <= 63;
   const accessPoint = apIsCleared || apIsValid ? apConfig : undefined;
 
   return {
@@ -68,12 +73,13 @@ export function buildEspConfig(params: EspConfigBuildSource): EspConfig {
     automations: params.automations,
     macros: params.macros,
     voiceCommands: params.voiceCommands,
-    wifi: params.wifiNetworksConfigured || accessPoint
-      ? {
-          networks: params.wifiNetworksConfigured ? params.wifiNetworks : undefined,
-          access_point: accessPoint || undefined,
-        }
-      : undefined,
+    wifi:
+      params.wifiNetworksConfigured || accessPoint
+        ? {
+            networks: params.wifiNetworksConfigured ? params.wifiNetworks : undefined,
+            access_point: accessPoint || undefined,
+          }
+        : undefined,
     mqtt: params.mqttConfig || undefined,
     worker_url: getCloudflareWorkerUrl(),
   };

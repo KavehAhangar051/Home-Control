@@ -64,7 +64,7 @@ export const MODULES_TABS: readonly ModulesTabMeta[] = [
   { id: "list", title: "مدیریت و لیست قطعات", compactTitle: "لیست قطعات" },
 ] as const;
 
-export type AutomationsTabId = "create" | "manage";
+export type AutomationsTabId = "create" | "manage" | "workflows";
 
 export interface AutomationsTabMeta {
   id: AutomationsTabId;
@@ -75,6 +75,7 @@ export interface AutomationsTabMeta {
 export const AUTOMATIONS_TABS: readonly AutomationsTabMeta[] = [
   { id: "create", title: "افزودن اتوماسیون جدید", compactTitle: "اتوماسیون جدید" },
   { id: "manage", title: "مدیریت اتوماسیون‌ها", compactTitle: "مدیریت اتوماسیون‌ها" },
+  { id: "workflows", title: "گردش‌های کاری", compactTitle: "گردش‌های کاری" },
 ] as const;
 
 export type SettingsTabId =

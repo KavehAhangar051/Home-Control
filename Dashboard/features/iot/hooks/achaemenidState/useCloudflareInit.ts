@@ -35,7 +35,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     bypassedRef.current = true;
 
     // Optional offline recovery is explicitly disabled during development.
-    if (FEATURE_FLAGS.configLocalCache && typeof window !== "undefined") {
+    if (FEATURE_FLAGS.configLocalCache && globalThis.window !== undefined) {
       try {
         const cached = localStorage.getItem("cached_esp_config");
 
@@ -77,7 +77,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     let attemptCount = 0;
     const maxAttempts = 2;
 
-    if (typeof window !== "undefined" && !FEATURE_FLAGS.configLocalCache) {
+    if (globalThis.window !== undefined && !FEATURE_FLAGS.configLocalCache) {
       try {
         localStorage.removeItem("cached_esp_config");
       } catch (error) {
@@ -95,6 +95,13 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
       return;
     }
 
+    if (globalThis.navigator?.onLine === false) {
+      debugLog.warn("ConfigSync", "Browser offline detected; bypassing remote configuration wait.");
+      handleBypassSync();
+
+      return;
+    }
+
     bypassedRef.current = false;
 
     while (!bypassedRef.current && attemptCount < maxAttempts) {
@@ -106,14 +113,15 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
       );
 
       try {
-        const cfConfig = await fetchConfigFromCloudflare({ timeoutMs: 6500 });
+        const timeoutMs = attemptCount === 1 ? 3000 : 1800;
+        const cfConfig = await fetchConfigFromCloudflare({ timeoutMs });
 
         if (cfConfig && Array.isArray(cfConfig.segments)) {
           if (bypassedRef.current) return;
 
           if (cfConfig.worker_url) handleWorkerUrlChange(cfConfig.worker_url);
 
-          if (FEATURE_FLAGS.configLocalCache && typeof window !== "undefined") {
+          if (FEATURE_FLAGS.configLocalCache && globalThis.window !== undefined) {
             try {
               localStorage.setItem("cached_esp_config", JSON.stringify(cfConfig));
             } catch (error) {
@@ -150,7 +158,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
           Math.min(25 + attemptCount * 35, 95),
           "دریافت تنظیمات ناموفق بود؛ تلاش مجدد...",
         );
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        await new Promise((resolve) => setTimeout(resolve, 250));
       }
     }
 
