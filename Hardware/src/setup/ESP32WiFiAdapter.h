@@ -52,7 +52,7 @@ public:
     }
 
     // WiFiMulti selects among saved APs using the connector's bounded timeout.
-    return wifiMulti.run(connectTimeoutMs);
+    return static_cast<wl_status_t>(wifiMulti.run(connectTimeoutMs));
   }
 
   FORCE_INLINE bool disconnect(bool wifioff = false) override {

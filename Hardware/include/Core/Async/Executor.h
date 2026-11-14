@@ -28,8 +28,8 @@ public:
   }
 
   /**
-   * @brief Schedule a future for execution with an input and an error callback.
-   * @return true if successfully scheduled, false if the executor is full.
+   * @brief Schedule a future with input and an error callback.
+   * @return true if successfully scheduled, false if executor is full.
    */
   template <typename I, typename O, typename E = Error, class F,
             typename std::enable_if<
@@ -38,7 +38,7 @@ public:
                              E>::value>::type * = nullptr>
   bool execute(Future<I, O, E> future, I input, F &&on_error) {
     if (UNLIKELY(this->free_count == 0)) return false;
-    
+
     auto* slot = this->free_futures[--this->free_count];
     *slot = [future = std::move(future), input = std::move(input), on_error = std::forward<F>(on_error)]() mutable {
       auto result = future.poll(input);
@@ -47,14 +47,45 @@ public:
       }
       return result.get_state();
     };
-    
+
     this->active_futures[this->active_count++] = slot;
     return true;
   }
 
   /**
-   * @brief Schedule a future for execution without input and an error callback.
-   * @return true if successfully scheduled, false if the executor is full.
+   * @brief Schedule a void-input future with error and success callbacks.
+   * @param on_error   Called with Error if future rejects.
+   * @param on_success Called (no args) when future resolves. Useful for chained side-effects.
+   * @return true if successfully scheduled, false if executor is full.
+   */
+  template <typename O, typename E = Error, class FErr, class FOk,
+            typename std::enable_if<
+                function_traits<FErr>::arity == 1 &&
+                std::is_same<typename function_traits<FErr>::template arg<0>::type, E>::value &&
+                function_traits<FOk>::arity == 0>::type * = nullptr>
+  bool execute(Future<void, O, E> future, FErr &&on_error, FOk &&on_success) {
+    if (UNLIKELY(this->free_count == 0)) return false;
+
+    auto* slot = this->free_futures[--this->free_count];
+    *slot = [future     = std::move(future),
+             on_error   = std::forward<FErr>(on_error),
+             on_success = std::forward<FOk>(on_success)]() mutable {
+      auto result = future.poll();
+      if (UNLIKELY(result.is_rejected())) {
+        on_error(*result.get_error());
+      } else if (result.is_resolved()) {
+        on_success();
+      }
+      return result.get_state();
+    };
+
+    this->active_futures[this->active_count++] = slot;
+    return true;
+  }
+
+  /**
+   * @brief Schedule a void-input future with only an error callback.
+   * @return true if successfully scheduled, false if executor is full.
    */
   template <typename O, typename E = Error, class F,
             typename std::enable_if<
@@ -63,7 +94,7 @@ public:
                              E>::value>::type * = nullptr>
   bool execute(Future<void, O, E> future, F &&on_error) {
     if (UNLIKELY(this->free_count == 0)) return false;
-    
+
     auto* slot = this->free_futures[--this->free_count];
     *slot = [future = std::move(future), on_error = std::forward<F>(on_error)]() mutable {
       auto result = future.poll();
@@ -72,7 +103,7 @@ public:
       }
       return result.get_state();
     };
-    
+
     this->active_futures[this->active_count++] = slot;
     return true;
   }
