@@ -1,21 +1,18 @@
 "use client";
 
 import type React from "react";
-import { forwardRef } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
 export interface CursorSvgProps {
   innerRef: React.RefObject<HTMLDivElement | null>;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 /**
  * Visual SVG representation of the custom pointer with 3D tilt, rotation, and spring scaling.
  * Adapts automatically between dark mode (white pointer) and light mode (black pointer).
  */
-export const CursorSvg = forwardRef<HTMLDivElement, CursorSvgProps>(function CursorSvg(
-  { innerRef },
-  ref,
-) {
+export function CursorSvg({ innerRef, ref }: CursorSvgProps) {
   const isDark = useIoTStore((s) => s.isDark);
 
   return (
@@ -78,4 +75,4 @@ export const CursorSvg = forwardRef<HTMLDivElement, CursorSvgProps>(function Cur
       </div>
     </div>
   );
-});
+}

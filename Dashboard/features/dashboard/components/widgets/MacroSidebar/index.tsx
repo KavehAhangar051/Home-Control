@@ -79,12 +79,12 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
                   type="button"
                   onClick={goPrev}
                   aria-label="قبلی"
-                  className="p-1 rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-[var(--bg-main)] transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0"
+                  className="p-1 rounded-full text-text-secondary md:hover:bg-accent3 md:hover:text-accent3-foreground transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0 focus-ring"
                 >
                   {isHorizontal ? (
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="size-5" />
                   ) : (
-                    <ChevronUp className="w-5 h-5" />
+                    <ChevronUp className="size-5" />
                   )}
                 </button>
               }
@@ -147,12 +147,12 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
                   type="button"
                   onClick={goNext}
                   aria-label="بعدی"
-                  className="p-1 rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-[var(--bg-main)] transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0"
+                  className="p-1 rounded-full text-text-secondary md:hover:bg-accent3 md:hover:text-accent3-foreground transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0 focus-ring"
                 >
                   {isHorizontal ? (
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="size-5" />
                   ) : (
-                    <ChevronDown className="w-5 h-5" />
+                    <ChevronDown className="size-5" />
                   )}
                 </button>
               }

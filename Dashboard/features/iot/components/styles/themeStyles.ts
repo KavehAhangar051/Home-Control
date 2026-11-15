@@ -174,6 +174,7 @@ export function getThemeStyles({
       --border: ${palette.border};
       --input: ${palette.border};
       --ring: ${isDark ? "#a1a1aa" : "#737373"};
+      --ring-offset: ${palette.bg};
       --radius: 0.5rem;
       --success: var(--color-emerald-500);
       --success-foreground: ${isDark ? "var(--color-zinc-50)" : "var(--color-emerald-950)"};

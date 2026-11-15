@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 export default function AppError({
   error,
@@ -17,29 +18,25 @@ export default function AppError({
     <main
       dir="rtl"
       role="alert"
-      className="flex min-h-screen w-full flex-col items-center justify-center bg-[#0b0c10] px-4 text-center text-[#e5e7eb] font-sans"
+      className="flex min-h-screen w-full flex-col items-center justify-center bg-background px-4 text-center text-foreground font-sans"
     >
-      <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-zinc-800 bg-[#12141b] p-6 shadow-lg">
-        <h1 className="text-lg font-bold text-zinc-100">خطایی در داشبورد رخ داد</h1>
-        <p className="text-xs leading-6 text-zinc-400">
+      <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-lg">
+        <h1 className="text-lg font-bold text-foreground">خطایی در داشبورد رخ داد</h1>
+        <p className="text-xs leading-6 text-muted-foreground">
           مشکلی در اجرای صفحه پیش آمد. برای بازیابی وضعیت، دوباره تلاش کنید.
         </p>
         {error.message && (
-          <p className="w-full rounded-lg border border-zinc-800 bg-[#0b0c10] px-3 py-2 font-mono text-[11px] text-zinc-400 break-words">
+          <p className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-[11px] text-muted-foreground break-words">
             {error.message}
           </p>
         )}
         <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-          <button
-            type="button"
-            onClick={reset}
-            className="inline-flex h-9 cursor-pointer items-center justify-center rounded-xl bg-zinc-100 px-4 text-xs font-bold text-zinc-900 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
-          >
+          <Button type="button" variant="default" size="sm" onClick={reset} className="rounded-xl">
             تلاش مجدد
-          </button>
+          </Button>
           <a
             href="/"
-            className="inline-flex h-9 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 px-4 text-xs font-semibold text-zinc-200 transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+            className={buttonVariants({ variant: "outline", size: "sm", className: "rounded-xl" })}
           >
             بارگذاری مجدد صفحه
           </a>

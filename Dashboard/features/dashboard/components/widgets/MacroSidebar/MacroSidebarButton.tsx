@@ -37,7 +37,7 @@ function MacroButtonIcon({
       >
         {hasIcon(icon)
           ? React.createElement(getSegmentIcon(icon), {
-              className: isHorizontal ? "w-5 h-5" : "w-6 h-6",
+              className: isHorizontal ? "size-5" : "size-6",
               strokeWidth: 2.5,
             })
           : icon}
@@ -48,7 +48,7 @@ function MacroButtonIcon({
   return (
     <Play
       strokeWidth={2.5}
-      className={`${isHorizontal ? "w-5 h-5" : "w-6 h-6 mb-1"} translate-x-px ${playExtraClass} transition-[transform,opacity] duration-150 ease-out`}
+      className={`${isHorizontal ? "size-5" : "size-6 mb-1"} translate-x-px ${playExtraClass} transition-[transform,opacity] duration-150 ease-out`}
     />
   );
 }
@@ -108,7 +108,7 @@ export function SimpleMacroButton({
             onClick={onClick}
             whileTap={animationsEnabled ? { scale: 0.96 } : undefined}
             aria-label={macro.title}
-            className={`flex items-center justify-center rounded-2xl bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-primary)] md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)] md:hover:-translate-y-1 md:hover:shadow-[0_10px_20px_-5px_var(--accent3-transparent)] transition-[transform,border-color,color,box-shadow] duration-200 ease-out shadow-sm relative group ${isHorizontal ? "flex-row gap-2 ps-3.5 pe-4 w-[120px] min-w-min min-h-[48px] h-fit py-2" : "flex-col w-[72px] min-w-min px-2 min-h-[72px] h-fit py-2"}`}
+            className={`flex items-center justify-center rounded-2xl bg-card-bg-solid border border-border-color text-text-primary md:hover:border-accent3 md:hover:text-accent3 md:hover:-translate-y-1 md:hover:shadow-[0_10px_20px_-5px_var(--accent3-transparent)] transition-[transform,border-color,color,box-shadow] duration-200 ease-out shadow-sm relative group focus-ring ${isHorizontal ? "flex-row gap-2 ps-3.5 pe-4 w-[120px] min-w-min min-h-[48px] h-fit py-2" : "flex-col w-[72px] min-w-min px-2 min-h-[72px] h-fit py-2"}`}
           >
             <MacroButtonIcon icon={macro.icon} isHorizontal={isHorizontal} />
             <span
@@ -182,8 +182,8 @@ export function CarouselMacroButton({
   );
 
   const borderClass = isCenter
-    ? "border-[var(--accent3)] shadow-[0_4px_15px_-5px_var(--accent3-transparent)] z-10 text-[var(--accent3)]"
-    : "border-[var(--border-color)] md:hover:border-[var(--accent3)] text-[var(--text-primary)]";
+    ? "border-accent3 shadow-[0_4px_15px_-5px_var(--accent3-transparent)] z-10 text-accent3"
+    : "border-border-color md:hover:border-accent3 text-text-primary";
 
   const layoutClass = isHorizontal
     ? "flex-row gap-1 ps-1.5 pe-2 w-[100px] min-w-[90px] min-h-[44px] h-fit py-2"
@@ -207,7 +207,7 @@ export function CarouselMacroButton({
             whileTap={motionConfig.whileTap}
             onClick={onClick}
             aria-label={macro.title}
-            className={`flex items-center justify-center rounded-2xl bg-[var(--card-bg-solid)] border ${borderClass} transition-[border-color,color,box-shadow] duration-200 ease-out relative group shrink-0 ${layoutClass}`}
+            className={`flex items-center justify-center rounded-2xl bg-card-bg-solid border ${borderClass} transition-[border-color,color,box-shadow] duration-200 ease-out relative group shrink-0 focus-ring ${layoutClass}`}
           >
             <MacroButtonIcon
               icon={macro.icon}
