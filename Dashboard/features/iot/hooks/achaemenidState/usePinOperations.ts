@@ -22,8 +22,13 @@ export function rollbackSinglePinState(
   if (prev[pin] !== attemptedState) return prev;
 
   if (prevState === undefined) {
-    const next = { ...prev };
-    delete next[pin];
+    const next: Record<string, boolean> = {};
+
+    for (const key in prev) {
+      if (Object.hasOwn(prev, key) && key !== pin) {
+        next[key] = prev[key];
+      }
+    }
 
     return next;
   }
@@ -36,22 +41,34 @@ export function rollbackBatchPinState(
   previousSnapshots: ReadonlyMap<string, boolean | undefined>,
   attemptedUpdates: Readonly<Record<string, boolean>>,
 ): Record<string, boolean> {
-  const next = { ...prev };
   let changed = false;
 
-  for (const [pinKey, prevVal] of previousSnapshots) {
-    if (next[pinKey] === attemptedUpdates[pinKey]) {
+  for (const [pinKey] of previousSnapshots) {
+    if (prev[pinKey] === attemptedUpdates[pinKey]) {
       changed = true;
-
-      if (prevVal === undefined) {
-        delete next[pinKey];
-      } else {
-        next[pinKey] = prevVal;
-      }
+      break;
     }
   }
 
-  return changed ? next : prev;
+  if (!changed) return prev;
+
+  const next: Record<string, boolean> = {};
+
+  for (const key in prev) {
+    if (!Object.hasOwn(prev, key)) continue;
+
+    if (previousSnapshots.has(key) && prev[key] === attemptedUpdates[key]) {
+      const prevVal = previousSnapshots.get(key);
+
+      if (prevVal !== undefined) {
+        next[key] = prevVal;
+      }
+    } else {
+      next[key] = prev[key];
+    }
+  }
+
+  return next;
 }
 
 export async function executeSinglePinUpdate(

@@ -23,6 +23,17 @@ export type ParsedMqttStateMessage =
 
 const textDecoder = new TextDecoder();
 
+// Pre-computed pin string table for 0..255 to avoid per-packet .toString() allocations on binary 0x06 frames
+const PIN_ID_STRINGS: readonly string[] = (() => {
+  const table: string[] = [];
+
+  for (let i = 0; i < 256; i++) {
+    table.push(String(i));
+  }
+
+  return table;
+})();
+
 export function toBooleanPinState(value: RawPinStateValue): boolean {
   return value === true || value === 1 || value === "1" || value === "true";
 }
@@ -82,7 +93,12 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
       const pinNum = payload[1];
       const state = payload[2] === 0x01;
 
-      return { kind: "pin_update", pinId: pinNum.toString(), state, source: "binary" };
+      return {
+        kind: "pin_update",
+        pinId: PIN_ID_STRINGS[pinNum] ?? String(pinNum),
+        state,
+        source: "binary",
+      };
     }
 
     if (cmdType === 123) {
@@ -90,9 +106,12 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
 
       if (data.type === "state_sync" && data.states && !Array.isArray(data.states)) {
         const normalizedStates: Record<string, boolean> = {};
+        const rawStates = data.states;
 
-        for (const [key, val] of Object.entries(data.states)) {
-          normalizedStates[key] = toBooleanPinState(val);
+        for (const key in rawStates) {
+          if (Object.hasOwn(rawStates, key)) {
+            normalizedStates[key] = toBooleanPinState(rawStates[key]);
+          }
         }
 
         return { kind: "state_sync", states: normalizedStates };
@@ -103,9 +122,15 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
       }
 
       if (data.id !== undefined && data.value !== undefined) {
+        const rawId = data.id;
+        const pinId =
+          typeof rawId === "number" && rawId >= 0 && rawId < 256
+            ? PIN_ID_STRINGS[rawId]
+            : String(rawId);
+
         return {
           kind: "pin_update",
-          pinId: data.id.toString(),
+          pinId,
           state: toBooleanPinState(data.value),
           source: "json",
         };

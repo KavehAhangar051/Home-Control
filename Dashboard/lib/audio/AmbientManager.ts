@@ -8,6 +8,43 @@ import type { ArchiveTrackItem, Track } from "./types";
 const AUDIO_CACHE_NAME = "home-control-audio-v1";
 const AUDIO_DOWNLOAD_TIMEOUT_MS = 15_000;
 
+const BUNDLED_TRACK_FILE = "06 Dele Divaneh.mp3";
+const BUNDLED_TRACK_TITLE = "Dele Divaneh";
+const MAX_ONLINE_RESOLVE_ATTEMPTS = 5;
+
+function createBundledFallbackTrack(creator: string): Track {
+  const url = new URL(BUNDLED_TRACK_FILE, document.baseURI).toString();
+
+  return { title: BUNDLED_TRACK_TITLE, creator, url, isLocal: true };
+}
+
+function tryRestoreCachedTrack(expectedSource: string): Track | null {
+  try {
+    const saved = localStorage.getItem("music_cached_track");
+
+    if (!saved) return null;
+
+    // SAFETY: music_cached_track JSON payload matches saved track shape { source?: string; track?: Track }
+    const selection = JSON.parse(saved) as { source?: string; track?: Track };
+
+    if (selection.source === expectedSource && selection.track?.url) {
+      return selection.track;
+    }
+  } catch (error) {
+    debugLog.warn("Audio", "Could not restore the saved music selection.", error);
+  }
+
+  return null;
+}
+
+function persistSelectedTrack(source: string, track: Track): void {
+  try {
+    localStorage.setItem("music_cached_track", JSON.stringify({ source, track }));
+  } catch (error) {
+    debugLog.warn("Audio", "Could not persist the current music selection.", error);
+  }
+}
+
 export class AmbientManager {
   public ambientAudio: HTMLAudioElement | null = null;
   public isAmbientPlaying = false;
@@ -40,94 +77,85 @@ export class AmbientManager {
     return true;
   }
 
+  private advancePlaylistIndex(direction?: "next" | "prev"): void {
+    if (this.playlist.length === 0) return;
+
+    if (direction === "next") {
+      this.currentTrackIndex = (this.currentTrackIndex + 1) % this.playlist.length;
+    } else if (direction === "prev") {
+      this.currentTrackIndex =
+        (this.currentTrackIndex - 1 + this.playlist.length) % this.playlist.length;
+    }
+  }
+
+  private async resolveOnlineTrackFromPlaylist(): Promise<Track | null> {
+    const maxAttempts = Math.min(MAX_ONLINE_RESOLVE_ATTEMPTS, this.playlist.length);
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const track = this.playlist[this.currentTrackIndex];
+        const url = await fetchTrackUrl(track.identifier);
+
+        if (url) {
+          return {
+            title: track.title || "Unknown track",
+            creator: track.creator || "Unknown artist",
+            url,
+            isLocal: false,
+          };
+        }
+      } catch (error) {
+        debugLog.warn("Audio", "Could not resolve an online track.", {
+          attempt: attempt + 1,
+          error,
+        });
+      }
+
+      this.currentTrackIndex = (this.currentTrackIndex + 1) % this.playlist.length;
+    }
+
+    return null;
+  }
+
   public async loadAmbientTrack(direction?: "next" | "prev") {
     if (typeof window === "undefined") return;
 
     const source = localStorage.getItem("music_source") || "local";
 
     if (!direction && source === "api") {
-      try {
-        const saved = localStorage.getItem("music_cached_track");
+      const restored = tryRestoreCachedTrack(source);
 
-        if (saved) {
-          // SAFETY: music_cached_track JSON payload matches saved track shape { source?: string; track?: Track }
-          const selection = JSON.parse(saved) as { source?: string; track?: Track };
+      if (restored) {
+        this.currentTrack = restored;
+        if (this.isAmbientPlaying) await this.playCurrentTrack();
+        this.onTrackUpdateCallback?.(this.currentTrack);
 
-          if (selection.source === source && selection.track?.url) {
-            this.currentTrack = selection.track;
-
-            if (this.isAmbientPlaying) await this.playCurrentTrack();
-            this.onTrackUpdateCallback?.(this.currentTrack);
-
-            return;
-          }
-        }
-      } catch (error) {
-        debugLog.warn("Audio", "Could not restore the saved music selection.", error);
+        return;
       }
     }
 
     if (source === "local") {
-      const url = new URL("06 Dele Divaneh.mp3", document.baseURI).toString();
-      this.currentTrack = { title: "Dele Divaneh", creator: "Home-Control", url, isLocal: true };
+      this.currentTrack = createBundledFallbackTrack("Home-Control");
     } else {
       const hasPlaylist = await this.fetchPlaylistIfNeeded();
 
       if (!hasPlaylist) {
-        const url = new URL("06 Dele Divaneh.mp3", document.baseURI).toString();
-        this.currentTrack = { title: "Dele Divaneh", creator: "Fallback", url, isLocal: true };
+        this.currentTrack = createBundledFallbackTrack("Fallback");
       } else {
-        if (direction === "next") {
-          this.currentTrackIndex = (this.currentTrackIndex + 1) % this.playlist.length;
-        } else if (direction === "prev") {
-          this.currentTrackIndex =
-            (this.currentTrackIndex - 1 + this.playlist.length) % this.playlist.length;
-        }
+        this.advancePlaylistIndex(direction);
+        const resolvedTrack = await this.resolveOnlineTrackFromPlaylist();
 
-        let found = false;
-
-        for (let attempts = 0; attempts < Math.min(5, this.playlist.length); attempts++) {
-          try {
-            const track = this.playlist[this.currentTrackIndex];
-            const url = await fetchTrackUrl(track.identifier);
-
-            if (url) {
-              this.currentTrack = {
-                title: track.title || "Unknown track",
-                creator: track.creator || "Unknown artist",
-                url,
-                isLocal: false,
-              };
-              found = true;
-              break;
-            }
-          } catch (error) {
-            debugLog.warn("Audio", "Could not resolve an online track.", {
-              attempt: attempts + 1,
-              error,
-            });
-          }
-
-          this.currentTrackIndex = (this.currentTrackIndex + 1) % this.playlist.length;
-        }
-
-        if (!found) {
-          const url = new URL("06 Dele Divaneh.mp3", document.baseURI).toString();
-          this.currentTrack = { title: "Dele Divaneh", creator: "Fallback", url, isLocal: true };
+        if (resolvedTrack) {
+          this.currentTrack = resolvedTrack;
+        } else {
+          this.currentTrack = createBundledFallbackTrack("Fallback");
           debugLog.warn("Audio", "Online tracks unavailable; selected bundled fallback track.");
         }
       }
     }
 
     if (this.currentTrack) {
-      try {
-        localStorage.setItem(
-          "music_cached_track",
-          JSON.stringify({ source, track: this.currentTrack }),
-        );
-      } catch (error) {
-        debugLog.warn("Audio", "Could not persist the current music selection.", error);
-      }
+      persistSelectedTrack(source, this.currentTrack);
     }
 
     if (this.isAmbientPlaying) await this.playCurrentTrack();

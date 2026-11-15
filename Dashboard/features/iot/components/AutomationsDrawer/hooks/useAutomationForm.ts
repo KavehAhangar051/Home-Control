@@ -2,6 +2,117 @@ import { useState } from "react";
 import type { Automation } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
+interface AutomationFormDraftInput {
+  editingId: string | null;
+  title: string;
+  autoType: "schedule" | "timer" | "weather";
+  time: string;
+  days: number[];
+  repeatCount: number | "";
+  delayHours: number | "";
+  delayMinutes: number | "";
+  city: string;
+  temperatureThreshold: number | "";
+  temperatureCondition: "greater" | "less";
+  intervalMinutes: number | "";
+  hasWeatherCondition: boolean;
+  actions: Array<{
+    targetPin?: string;
+    targetMacro?: string;
+    actionOn?: boolean;
+  }>;
+}
+
+type ValidationResult = { ok: true; automation: Automation } | { ok: false; errorMessage: string };
+
+function computeTimerSchedule(
+  delayHours: number,
+  delayMinutes: number,
+): { time: string; days: number[]; repeatCount: number } {
+  const targetDate = new Date();
+  targetDate.setHours(targetDate.getHours() + delayHours);
+  targetDate.setMinutes(targetDate.getMinutes() + delayMinutes);
+
+  const formattedHours = targetDate.getHours().toString().padStart(2, "0");
+  const formattedMinutes = targetDate.getMinutes().toString().padStart(2, "0");
+
+  return {
+    time: `${formattedHours}:${formattedMinutes}`,
+    days: [targetDate.getDay()],
+    repeatCount: 1,
+  };
+}
+
+export function buildValidatedAutomationDraft(input: AutomationFormDraftInput): ValidationResult {
+  let finalTime = input.time;
+  let finalDays = [...input.days];
+  let finalRepeatCount =
+    input.repeatCount !== "" && input.repeatCount > 0 ? input.repeatCount : undefined;
+  let finalConditionType: "time" | "weather" = "time";
+  const finalTempThresh =
+    input.temperatureThreshold !== "" ? input.temperatureThreshold : undefined;
+  const finalIntervalMinutes =
+    input.intervalMinutes !== "" && input.intervalMinutes > 0 ? input.intervalMinutes : undefined;
+
+  if (input.autoType === "timer") {
+    const dHours = Number(input.delayHours) || 0;
+    const dMins = Number(input.delayMinutes) || 0;
+
+    if (dHours === 0 && dMins === 0) {
+      return { ok: false, errorMessage: "لطفاً زمان تاخیر را مشخص کنید." };
+    }
+
+    const timerSchedule = computeTimerSchedule(dHours, dMins);
+    finalTime = timerSchedule.time;
+    finalDays = timerSchedule.days;
+    finalRepeatCount = timerSchedule.repeatCount;
+  } else if (input.autoType === "weather") {
+    if (!input.city || finalTempThresh === undefined || !finalIntervalMinutes) {
+      return { ok: false, errorMessage: "لطفاً شهر، شرط دما و دوره بررسی را مشخص کنید." };
+    }
+
+    finalConditionType = "weather";
+    finalTime = "";
+    finalDays = [];
+  } else if (!input.time || input.days.length === 0) {
+    return { ok: false, errorMessage: "لطفاً زمان و روزهای هفته را مشخص کنید." };
+  }
+
+  if ((input.autoType === "timer" || input.autoType === "schedule") && input.hasWeatherCondition) {
+    if (!input.city || finalTempThresh === undefined) {
+      return { ok: false, errorMessage: "لطفاً شهر و شرط دما را مشخص کنید." };
+    }
+
+    finalConditionType = "weather";
+  }
+
+  if (!input.title) {
+    return { ok: false, errorMessage: "لطفاً عنوان را وارد کنید." };
+  }
+
+  if (input.actions.length === 0) {
+    return { ok: false, errorMessage: "حداقل یک عملیات مشخص کنید." };
+  }
+
+  return {
+    ok: true,
+    automation: {
+      id: input.editingId || `auto_${Date.now()}`,
+      title: input.title,
+      time: finalTime,
+      days: finalDays,
+      repeatCount: finalRepeatCount,
+      intervalMinutes: finalIntervalMinutes,
+      conditionType: finalConditionType,
+      city: input.city,
+      temperatureThreshold: finalTempThresh,
+      temperatureCondition: input.temperatureCondition,
+      actions: input.actions,
+      enabled: true,
+    },
+  };
+}
+
 export function useAutomationForm() {
   const automations = useIoTStore((state) => state.automations);
   const setAutomations = useIoTStore((state) => state.setAutomations);
@@ -9,7 +120,6 @@ export function useAutomationForm() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Form State
   const [title, setTitle] = useState("");
   const [time, setTime] = useState("");
   const [days, setDays] = useState<number[]>([]);
@@ -27,7 +137,6 @@ export function useAutomationForm() {
   const [hasWeatherCondition, setHasWeatherCondition] = useState<boolean>(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
-  // Actions state
   const [actions, setActions] = useState<
     Array<{
       targetPin?: string;
@@ -108,94 +217,30 @@ export function useAutomationForm() {
   };
 
   const handleSave = () => {
-    let finalTime = time;
-    let finalDays = [...days];
-
-    let finalRepeatCount = repeatCount !== "" && repeatCount > 0 ? repeatCount : undefined;
-
-    let finalConditionType: "time" | "weather" = "time";
-    const finalCity = city;
-
-    const finalTempThresh = temperatureThreshold !== "" ? temperatureThreshold : undefined;
-
-    const finalTempCond = temperatureCondition;
-
-    const finalIntervalMinutes =
-      intervalMinutes !== "" && intervalMinutes > 0 ? intervalMinutes : undefined;
-
-    if (autoType === "timer") {
-      const dHours = Number(delayHours) || 0;
-      const dMins = Number(delayMinutes) || 0;
-
-      if (dHours === 0 && dMins === 0) {
-        showToast("لطفاً زمان تاخیر را مشخص کنید.", "error");
-
-        return;
-      }
-
-      const now = new Date();
-      now.setHours(now.getHours() + dHours);
-      now.setMinutes(now.getMinutes() + dMins);
-
-      finalTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-      finalDays = [now.getDay()];
-      finalRepeatCount = 1;
-    } else if (autoType === "weather") {
-      if (!city || finalTempThresh === undefined || !finalIntervalMinutes) {
-        showToast("لطفاً شهر، شرط دما و دوره بررسی را مشخص کنید.", "error");
-
-        return;
-      }
-
-      finalConditionType = "weather";
-      finalTime = "";
-      finalDays = [];
-    } else {
-      if (!time || days.length === 0) {
-        showToast("لطفاً زمان و روزهای هفته را مشخص کنید.", "error");
-
-        return;
-      }
-    }
-
-    if ((autoType === "timer" || autoType === "schedule") && hasWeatherCondition) {
-      if (!city || finalTempThresh === undefined) {
-        showToast("لطفاً شهر و شرط دما را مشخص کنید.", "error");
-
-        return;
-      }
-
-      finalConditionType = "weather";
-    } else if (autoType !== "weather") {
-      finalConditionType = "time";
-    }
-
-    if (!title) {
-      showToast("لطفاً عنوان را وارد کنید.", "error");
-
-      return;
-    }
-
-    if (actions.length === 0) {
-      showToast("حداقل یک عملیات مشخص کنید.", "error");
-
-      return;
-    }
-
-    const newAuto = {
-      id: editingId || `auto_${Date.now()}`,
+    const validation = buildValidatedAutomationDraft({
+      editingId,
       title,
-      time: finalTime,
-      days: finalDays,
-      repeatCount: finalRepeatCount,
-      intervalMinutes: finalIntervalMinutes,
-      conditionType: finalConditionType,
-      city: finalCity,
-      temperatureThreshold: finalTempThresh,
-      temperatureCondition: finalTempCond,
+      autoType,
+      time,
+      days,
+      repeatCount,
+      delayHours,
+      delayMinutes,
+      city,
+      temperatureThreshold,
+      temperatureCondition,
+      intervalMinutes,
+      hasWeatherCondition,
       actions,
-      enabled: true,
-    };
+    });
+
+    if (!validation.ok) {
+      showToast(validation.errorMessage, "error");
+
+      return;
+    }
+
+    const newAuto = validation.automation;
 
     if (editingId) {
       setAutomations(

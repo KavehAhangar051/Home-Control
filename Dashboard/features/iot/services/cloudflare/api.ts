@@ -53,6 +53,40 @@ function isRetryableCloudflareError(error: unknown): boolean {
   return true;
 }
 
+async function fetchCloudflareConfigOnce(
+  url: string,
+  executeFetch: FetchFn,
+  timeoutMs: number,
+): Promise<EspConfig> {
+  const timeout = createTimeoutSignal(timeoutMs);
+
+  try {
+    const res = await executeFetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+      signal: timeout.signal,
+    });
+
+    if (!res.ok) {
+      throw new HttpStatusError(
+        res.status,
+        `Failed to fetch Cloudflare config from ${url}: ${res.status} ${res.statusText}`,
+      );
+    }
+
+    const data = await res.json();
+    const parsed = deserializeFromCloudflare(data);
+    // Keep active endpoint authoritative; older saved configs may contain legacy URL.
+    parsed.worker_url = getCloudflareWorkerUrl();
+
+    return parsed;
+  } finally {
+    timeout.cleanup();
+  }
+}
+
 /**
  * Fetch the latest config from Cloudflare Worker with timeout, circuit breaker, and idempotent retry+jitter.
  */
@@ -73,44 +107,13 @@ export async function fetchConfigFromCloudflare(
   try {
     const config = await breaker.execute(
       () =>
-        retryWithBackoff(
-          async () => {
-            const timeout = createTimeoutSignal(timeoutMs);
-
-            try {
-              const res = await executeFetch(url, {
-                method: "GET",
-                headers: {
-                  Accept: "application/json",
-                },
-                signal: timeout.signal,
-              });
-
-              if (!res.ok) {
-                throw new HttpStatusError(
-                  res.status,
-                  `Failed to fetch Cloudflare config from ${url}: ${res.status} ${res.statusText}`,
-                );
-              }
-
-              const data = await res.json();
-              const parsed = deserializeFromCloudflare(data);
-              // Keep active endpoint authoritative; older saved configs may contain legacy URL.
-              parsed.worker_url = getCloudflareWorkerUrl();
-
-              return parsed;
-            } finally {
-              timeout.cleanup();
-            }
-          },
-          {
-            maxAttempts: retryAttempts,
-            baseDelayMs: 250,
-            maxDelayMs: 2000,
-            isRetryable: isRetryableCloudflareError,
-            onRetry: () => recordIntegrationRetry("cloudflare"),
-          },
-        ),
+        retryWithBackoff(() => fetchCloudflareConfigOnce(url, executeFetch, timeoutMs), {
+          maxAttempts: retryAttempts,
+          baseDelayMs: 250,
+          maxDelayMs: 2000,
+          isRetryable: isRetryableCloudflareError,
+          onRetry: () => recordIntegrationRetry("cloudflare"),
+        }),
       { shouldCountFailure: isRetryableCloudflareError },
     );
 
@@ -152,6 +155,64 @@ type WorkerPayload =
   | { value: boolean }
   | { actions: Array<{ pin: string; state: boolean }> };
 
+async function parseWorkerErrorMessage(res: Response, fallbackMessage: string): Promise<string> {
+  try {
+    // SAFETY: error responses from Cloudflare Worker optionally contain JSON with an error field
+    const errorData = (await res.json()) as WorkerAckResponse;
+
+    if (errorData?.error) {
+      return errorData.error;
+    }
+  } catch {
+    // Non-JSON error body; fall back to contextual error message.
+  }
+
+  return fallbackMessage;
+}
+
+async function sendWorkerPostOnce(
+  url: string,
+  payload: WorkerPayload,
+  defaultSuccessMessage: string,
+  errorContextLabel: string,
+  executeFetch: FetchFn,
+  timeoutMs: number,
+): Promise<AckResult> {
+  const timeout = createTimeoutSignal(timeoutMs);
+
+  try {
+    const res = await executeFetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: timeout.signal,
+    });
+
+    if (!res.ok) {
+      const errorMessage = await parseWorkerErrorMessage(res, `خطا در ${errorContextLabel}.`);
+
+      if (res.status >= 500) {
+        throw new HttpStatusError(res.status, errorMessage);
+      }
+
+      return { success: false, message: errorMessage };
+    }
+
+    // SAFETY: fetch response JSON adheres to WorkerAckResponse schema from Cloudflare Worker
+    const data = (await res.json()) as WorkerAckResponse;
+
+    if (data?.ack) {
+      return { success: true, message: data.message || defaultSuccessMessage };
+    }
+
+    return { success: false, message: data?.error || `خطا در ${errorContextLabel}.` };
+  } finally {
+    timeout.cleanup();
+  }
+}
+
 /**
  * Deep helper to execute Cloudflare Worker JSON POST requests with explicit timeout,
  * circuit breaker fast-fail protection, RED metrics, ACK parsing, and error conditions.
@@ -175,52 +236,15 @@ async function postWorkerJson(
 
   try {
     const ackResult = await breaker.execute(
-      async (): Promise<AckResult> => {
-        const timeout = createTimeoutSignal(timeoutMs);
-
-        try {
-          const res = await executeFetch(`${baseUrl}${endpoint}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-            signal: timeout.signal,
-          });
-
-          if (!res.ok) {
-            let errorMessage = `خطا در ${errorContextLabel}.`;
-
-            try {
-              // SAFETY: error responses from Cloudflare Worker optionally contain JSON with an error field
-              const errorData = (await res.json()) as WorkerAckResponse;
-
-              if (errorData?.error) {
-                errorMessage = errorData.error;
-              }
-            } catch {
-              // Non-JSON error body; fall back to contextual error message.
-            }
-
-            if (res.status >= 500) {
-              throw new HttpStatusError(res.status, errorMessage);
-            }
-
-            return { success: false, message: errorMessage };
-          }
-
-          // SAFETY: fetch response JSON adheres to WorkerAckResponse schema from Cloudflare Worker
-          const data = (await res.json()) as WorkerAckResponse;
-
-          if (data?.ack) {
-            return { success: true, message: data.message || defaultSuccessMessage };
-          }
-
-          return { success: false, message: data?.error || `خطا در ${errorContextLabel}.` };
-        } finally {
-          timeout.cleanup();
-        }
-      },
+      () =>
+        sendWorkerPostOnce(
+          `${baseUrl}${endpoint}`,
+          payload,
+          defaultSuccessMessage,
+          errorContextLabel,
+          executeFetch,
+          timeoutMs,
+        ),
       { shouldCountFailure: isRetryableCloudflareError },
     );
 

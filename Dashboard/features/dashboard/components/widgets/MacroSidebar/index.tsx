@@ -12,6 +12,9 @@ interface MacroSidebarProps {
   className?: string;
 }
 
+const BIDI_CHARS_REGEX = /[\u200c\u200f\u202a-\u202e]/g;
+const MULTI_SPACE_REGEX = /\s+/g;
+
 export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
   const { handleBatchPinState } = useDashboard();
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
@@ -21,10 +24,8 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
     () =>
       macros.filter(
         (macro) =>
-          macro.title
-            .replace(/[\u200c\u200f\u202a-\u202e]/g, "")
-            .replace(/\s+/g, " ")
-            .trim() !== "تمام سگمنت ها روشن",
+          macro.title.replace(BIDI_CHARS_REGEX, "").replace(MULTI_SPACE_REGEX, " ").trim() !==
+          "تمام سگمنت ها روشن",
       ),
     [macros],
   );

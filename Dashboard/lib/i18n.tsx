@@ -18,12 +18,32 @@ type LocaleContextValue = {
 };
 
 const NO_MESSAGES: LocaleMessages = {};
+const PLACEHOLDER_REGEX = /\{(\w+)\}/g;
+const MAX_NUMBER_FORMAT_CACHE = 16;
+const numberFormatterCache = new Map<string, Intl.NumberFormat>();
 
 const LocaleContext = createContext<LocaleContextValue>({ messages: NO_MESSAGES });
 
 /** Without a locale, digits stay plain so server and client render the same text. */
 function formatNumber(value: number, locale?: string) {
-  return locale ? new Intl.NumberFormat(locale).format(value) : String(value);
+  if (!locale) return String(value);
+
+  let formatter = numberFormatterCache.get(locale);
+
+  if (!formatter) {
+    if (numberFormatterCache.size >= MAX_NUMBER_FORMAT_CACHE) {
+      const oldestKey = numberFormatterCache.keys().next().value;
+
+      if (oldestKey !== undefined) {
+        numberFormatterCache.delete(oldestKey);
+      }
+    }
+
+    formatter = new Intl.NumberFormat(locale);
+    numberFormatterCache.set(locale, formatter);
+  }
+
+  return formatter.format(value);
 }
 
 export interface LocaleProviderProps {
@@ -79,9 +99,9 @@ export function useMessages<T extends Messages>(
     (key: keyof T & string, values?: Record<string, string | number>) => {
       const template = stableLabels?.[key] ?? provided?.[key] ?? defaults[key];
 
-      if (!values) return template;
+      if (!values || !template.includes("{")) return template;
 
-      return template.replace(/\{(\w+)\}/g, (match, name: string) => {
+      return template.replace(PLACEHOLDER_REGEX, (match, name: string) => {
         const value = values[name];
 
         if (value === undefined) return match;
