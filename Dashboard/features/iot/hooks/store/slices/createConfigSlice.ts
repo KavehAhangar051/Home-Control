@@ -1,4 +1,5 @@
 import type { StateCreator } from "zustand";
+import { normalizeSegmentRecord } from "@/features/iot/services/cloudflare/mappers";
 import {
   applyDashboardFontToDocument,
   persistDashboardFont,
@@ -19,8 +20,20 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
       applyDashboardFontToDocument(resolvedFont);
     }
 
+    const normalizedSegments = (config.segments || []).map(normalizeSegmentRecord);
+
+    const importedPins: Record<string, boolean> = {};
+
+    for (let i = 0; i < normalizedSegments.length; i++) {
+      const seg = normalizedSegments[i];
+
+      if (seg.pin && seg.state !== undefined) {
+        importedPins[seg.pin] = seg.state;
+      }
+    }
+
     set((state) => ({
-      segments: config.segments || [],
+      segments: normalizedSegments,
       groupsOrder: config.layout?.groups_order || [],
       groupConfigs: config.layout?.group_configs || {},
       groupsCols: config.layout?.groups_cols || 1,
@@ -52,6 +65,10 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
       accent3: config.preferences?.accent_color_3 || state.accent3,
       accent4: config.preferences?.accent_color_4 || state.accent4,
       unsavedChangesCount: 0,
+      pinsState:
+        Object.keys(importedPins).length > 0
+          ? { ...state.pinsState, ...importedPins }
+          : state.pinsState,
     }));
 
     if (config.mqtt && typeof window !== "undefined") {
@@ -71,100 +88,6 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
           })
           .catch((e) => console.error("Failed to load mqttService for reconnect:", e));
       }
-    }
-
-    const importedPins: Record<string, boolean> = {};
-    config.segments.forEach((s) => {
-      if (s.pin && s.state !== undefined) {
-        importedPins[s.pin] = s.state;
-      }
-
-      // Backward compatibility for old rule schema
-      if (s.rule && "targetPin" in s.rule) {
-        const oldRule = s.rule as {
-          targetPin?: string;
-          triggerState?: boolean;
-          actionState?: boolean;
-        };
-        const triggerState = oldRule.triggerState ?? true;
-
-        s.rule = {
-          highActions:
-            triggerState && oldRule.targetPin
-              ? [
-                  {
-                    reqHold: 0,
-                    targetPin: oldRule.targetPin,
-                    actionOn: oldRule.actionState ?? true,
-                    actionType: 0,
-                    delay: 0,
-                  },
-                ]
-              : [],
-          lowActions:
-            !triggerState && oldRule.targetPin
-              ? [
-                  {
-                    reqHold: 0,
-                    targetPin: oldRule.targetPin,
-                    actionOn: oldRule.actionState ?? false,
-                    actionType: 0,
-                    delay: 0,
-                  },
-                ]
-              : [],
-        };
-      } else if (s.rule && "targetPinHigh" in s.rule) {
-        const oldRule = s.rule as {
-          targetPinHigh?: string;
-          reqHoldHigh?: number;
-          actionOnHigh?: boolean;
-          actionTypeHigh?: number;
-          delayHigh?: number;
-          targetPinLow?: string;
-          reqHoldLow?: number;
-          actionOnLow?: boolean;
-          actionTypeLow?: number;
-          delayLow?: number;
-        };
-        s.rule = {
-          highActions: oldRule.targetPinHigh
-            ? [
-                {
-                  reqHold: oldRule.reqHoldHigh || 0,
-                  targetPin: oldRule.targetPinHigh,
-                  actionOn: oldRule.actionOnHigh ?? true,
-                  actionType: oldRule.actionTypeHigh || 0,
-                  delay: oldRule.delayHigh || 0,
-                },
-              ]
-            : [],
-          lowActions: oldRule.targetPinLow
-            ? [
-                {
-                  reqHold: oldRule.reqHoldLow || 0,
-                  targetPin: oldRule.targetPinLow,
-                  actionOn: oldRule.actionOnLow ?? false,
-                  actionType: oldRule.actionTypeLow || 0,
-                  delay: oldRule.delayLow || 0,
-                },
-              ]
-            : [],
-        };
-      } else if (s.rule) {
-        // Ensure arrays exist
-        if (!s.rule.highActions) s.rule.highActions = [];
-
-        if (!s.rule.lowActions) s.rule.lowActions = [];
-      }
-    });
-
-    if (Object.keys(importedPins).length > 0) {
-      set((state) => {
-        const next = { ...state.pinsState, ...importedPins };
-
-        return { pinsState: next };
-      });
     }
   },
 });

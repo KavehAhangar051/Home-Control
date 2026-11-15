@@ -31,7 +31,11 @@ export class AlphaVideo {
     this.canvas = canvas;
     this.ready = false;
     this.visible = true;
-    const gl = canvas.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: false });
+    const gl = canvas.getContext("webgl", {
+      premultipliedAlpha: true,
+      alpha: true,
+      antialias: false,
+    });
     this.gl = gl;
     if (!gl) return;
 
@@ -61,31 +65,46 @@ export class AlphaVideo {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     const v = document.createElement("video");
-    Object.assign(v, { muted: true, loop, playsInline: true, autoplay, preload: "auto", crossOrigin: "anonymous" });
+    Object.assign(v, {
+      muted: true,
+      loop,
+      playsInline: true,
+      autoplay,
+      preload: "auto",
+      crossOrigin: "anonymous",
+    });
     v.setAttribute("muted", "");
     v.setAttribute("playsinline", "");
     v.src = src;
     this.video = v;
     this.lastTime = -1;
-    v.addEventListener("loadeddata", () => {
-      this.ready = true;
-      this.onready && this.onready();
-    }, { once: true });
+    v.addEventListener(
+      "loadeddata",
+      () => {
+        this.ready = true;
+        this.onready && this.onready();
+      },
+      { once: true },
+    );
     if (autoplay) v.play().catch(() => {});
 
     this.resize();
     new ResizeObserver(() => this.resize()).observe(canvas);
     // a looping hero off screen still decodes every frame; pause it
-    new IntersectionObserver(([e]) => {
-      this.visible = e.isIntersecting;
-      if (!autoplay) return;
-      this.visible ? this.play() : this.pause();
-    }, { rootMargin: "100px" }).observe(canvas);
+    new IntersectionObserver(
+      ([e]) => {
+        this.visible = e.isIntersecting;
+        if (!autoplay) return;
+        this.visible ? this.play() : this.pause();
+      },
+      { rootMargin: "100px" },
+    ).observe(canvas);
   }
 
   resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.round(this.canvas.clientWidth * dpr), h = Math.round(this.canvas.clientHeight * dpr);
+    const w = Math.round(this.canvas.clientWidth * dpr),
+      h = Math.round(this.canvas.clientHeight * dpr);
     if (w && h && (this.canvas.width !== w || this.canvas.height !== h)) {
       this.canvas.width = w;
       this.canvas.height = h;
@@ -93,8 +112,12 @@ export class AlphaVideo {
     }
   }
 
-  play() { this.video && this.video.paused && this.video.play().catch(() => {}); }
-  pause() { this.video && !this.video.paused && this.video.pause(); }
+  play() {
+    this.video && this.video.paused && this.video.play().catch(() => {});
+  }
+  pause() {
+    this.video && !this.video.paused && this.video.pause();
+  }
 
   // scrubbing: seconds into the clip; draw() picks the new frame up once it has decoded
   seek(t) {

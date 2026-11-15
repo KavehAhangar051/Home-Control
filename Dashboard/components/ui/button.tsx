@@ -27,7 +27,7 @@ const sizes: Record<ButtonSize, string> = {
   "icon-lg": "size-10",
 };
 
-const tapScale = "active:not-disabled:scale-[0.96]";
+const tapScale = "active:not-disabled:scale-[0.97]";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -53,7 +53,7 @@ export function Button({
       data-size={size}
       type={type}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[scale,background-color,color,border-color,box-shadow,opacity] duration-150 ease-out outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+        "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[scale,transform,background-color,color,border-color,box-shadow,opacity] duration-150 ease-[var(--ease-out)] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
         !isStatic && variant !== "link" && tapScale,
         variants[variant],
         sizes[size],

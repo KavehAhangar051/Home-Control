@@ -3,11 +3,36 @@ import { getMqttClient, getMqttSettings, setMqttClient, stateCallbacks } from ".
 import { PRESENCE_OFFLINE_FRAME, PRESENCE_ONLINE_FRAME, SYNC_REQUEST_FRAME } from "./protocol";
 
 let initPromise: Promise<void> | null = null;
+let connectionGeneration = 0;
 
 // Queue for batched state updates with double-buffered map to avoid per-frame allocations
 let pendingStateUpdates = new Map<string, boolean>();
 let processingStateUpdates = new Map<string, boolean>();
 let updateRafId: number | null = null;
+
+type RawPinStateValue = boolean | number | string | null | undefined;
+
+interface MqttStateSyncPayload {
+  type?: string;
+  command?: string;
+  id?: string | number;
+  value?: RawPinStateValue;
+  states?: Record<string, RawPinStateValue>;
+}
+
+function toBooleanPinState(value: RawPinStateValue): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
+function clearPendingStateQueue(): void {
+  if (updateRafId !== null && typeof window !== "undefined") {
+    cancelAnimationFrame(updateRafId);
+    updateRafId = null;
+  }
+
+  pendingStateUpdates.clear();
+  processingStateUpdates.clear();
+}
 
 // ESP32 online/offline detection از طریق LWT
 const markEspStatus = (isOnline: boolean) => {
@@ -34,6 +59,7 @@ const flushStateUpdates = () => {
   // Batch update zustand store (short-circuit if all incoming states match existing state)
   useIoTStore.getState().setPinsState((prev) => {
     let hasChange = false;
+
     for (const [pinId, state] of processingStateUpdates) {
       if (prev[pinId] !== state) {
         hasChange = true;
@@ -44,6 +70,7 @@ const flushStateUpdates = () => {
     if (!hasChange) return prev;
 
     const next = { ...prev };
+
     for (const [pinId, state] of processingStateUpdates) {
       next[pinId] = state;
     }
@@ -81,8 +108,13 @@ export const initMqtt = (): Promise<void> => {
     return initPromise;
   }
 
+  const generation = connectionGeneration;
+
   initPromise = (async () => {
     const { default: mqtt } = await import("mqtt");
+
+    if (generation !== connectionGeneration) return;
+
     let client = getMqttClient();
 
     if (!client) {
@@ -93,17 +125,21 @@ export const initMqtt = (): Promise<void> => {
       const qos = settings.qos;
 
       client = mqtt.connect(settings.brokerUrl, {
-        clientId: "dashboard_" + Math.random().toString(16).substring(2, 10),
+        clientId: `dashboard_${Math.random().toString(16).substring(2, 10)}`,
         reconnectPeriod: 5000,
       });
       setMqttClient(client);
 
       client.on("connect", () => {
+        if (generation !== connectionGeneration) return;
+
         console.log(`[MQTT] Connected to ${settings.brokerUrl}!`);
         client?.subscribe(stateTopic);
         client?.subscribe(statusTopic);
 
         queueMicrotask(() => {
+          if (generation !== connectionGeneration) return;
+
           const isPageVisible = useIoTStore.getState().isPageVisible;
           const presenceBuf = isPageVisible ? PRESENCE_ONLINE_FRAME : PRESENCE_OFFLINE_FRAME;
           // SAFETY: mqtt.js publish accepts Uint8Array or Buffer as binary payload
@@ -116,6 +152,8 @@ export const initMqtt = (): Promise<void> => {
       });
 
       client.on("message", (topic, payload) => {
+        if (generation !== connectionGeneration) return;
+
         if (topic === statusTopic) {
           if (payload.length === 0) return;
           const strPayload = payload.toString().trim();
@@ -156,26 +194,38 @@ export const initMqtt = (): Promise<void> => {
                 );
                 queueStateUpdate(pinNum.toString(), state);
               } else if (payload[0] === 123) {
-                const data = JSON.parse(payload.toString());
+                // SAFETY: MQTT state topic JSON messages follow MqttStateSyncPayload wire schema
+                const data = JSON.parse(payload.toString()) as MqttStateSyncPayload;
 
-                if (data.type === "state_sync" && data.states) {
-                  // Full state sync from ESP32
-                  console.log(`[MQTT] Received full state sync from ESP32:`, data.states);
-                  useIoTStore.getState().setPinsState(data.states);
+                if (data.type === "state_sync" && data.states && !Array.isArray(data.states)) {
+                  // Full state sync from ESP32 (normalized to strict booleans)
+                  const normalizedStates: Record<string, boolean> = {};
+
+                  for (const [key, val] of Object.entries(data.states)) {
+                    normalizedStates[key] = toBooleanPinState(val);
+                  }
+
+                  console.log(`[MQTT] Received full state sync from ESP32:`, normalizedStates);
+                  useIoTStore.getState().setPinsState(normalizedStates);
                 } else if (data.command === "ping") {
                   queueMicrotask(() => {
+                    if (generation !== connectionGeneration) return;
+
                     const isPageVisible = useIoTStore.getState().isPageVisible;
+
                     const presenceBuf = isPageVisible
                       ? PRESENCE_ONLINE_FRAME
                       : PRESENCE_OFFLINE_FRAME;
+
                     // SAFETY: mqtt.js publish accepts Uint8Array or Buffer as binary payload
                     client?.publish(commandTopic, presenceBuf as Buffer, { qos });
                   });
                 } else if (data.id !== undefined && data.value !== undefined) {
+                  const boolVal = toBooleanPinState(data.value);
                   console.log(
-                    `[MQTT] Received JSON state update from ESP32: pin=${data.id} state=${data.value}`,
+                    `[MQTT] Received JSON state update from ESP32: pin=${data.id} state=${boolVal}`,
                   );
-                  queueStateUpdate(data.id.toString(), data.value);
+                  queueStateUpdate(data.id.toString(), boolVal);
                 }
               }
             }
@@ -186,6 +236,8 @@ export const initMqtt = (): Promise<void> => {
       });
 
       client.on("error", (err) => {
+        if (generation !== connectionGeneration) return;
+
         console.error("[MQTT] Connection error:", err);
       });
     }
@@ -197,6 +249,10 @@ export const initMqtt = (): Promise<void> => {
 };
 
 export const reconnectMqtt = () => {
+  connectionGeneration += 1;
+  initPromise = null;
+  clearPendingStateQueue();
+
   const client = getMqttClient();
 
   if (client) {

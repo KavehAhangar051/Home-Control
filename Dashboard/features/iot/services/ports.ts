@@ -21,8 +21,8 @@ export interface AckResponse {
  * Output Port: Device hardware command messaging
  */
 export interface IDeviceCommandPort {
-  publishPinCommand(pinId: string, value: boolean, timer?: number): void;
-  publishBatchPinCommand(actions: PinAction[]): void;
+  publishPinCommand(pinId: string, value: boolean, timer?: number): boolean;
+  publishBatchPinCommand(actions: PinAction[]): boolean;
   publishAddSegment(id: string, type: string, pin: number, value: boolean): void;
   publishDeleteSegment(id: string): void;
   publishPresence(isVisible: boolean): void;
@@ -58,9 +58,13 @@ export interface BatchPinSyncOptions {
  * Cloudflare persistence orchestration.
  */
 export interface IDeviceSyncPort {
-  syncSinglePin(pin: string, state: boolean, options?: SinglePinSyncOptions): Promise<void>;
+  syncSinglePin(
+    pin: string,
+    state: boolean,
+    options?: SinglePinSyncOptions,
+  ): Promise<boolean>;
   syncBatchPins(
     actions: Array<{ targetPin: string; actionOn: boolean }>,
     options?: BatchPinSyncOptions,
-  ): Promise<void>;
+  ): Promise<boolean>;
 }

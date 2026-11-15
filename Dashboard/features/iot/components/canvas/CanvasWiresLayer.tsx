@@ -35,7 +35,9 @@ export default React.memo(function CanvasWiresLayer({
           sourceRect,
           targetRect,
         );
+
         const isHighlighted = selectedNodeId === conn.sourceId || selectedNodeId === conn.targetId;
+
         const strokeColor = conn.isActive
           ? conn.isInput
             ? "#10b981"

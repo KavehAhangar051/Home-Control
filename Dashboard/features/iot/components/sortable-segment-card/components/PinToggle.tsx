@@ -62,7 +62,7 @@ function getPinToggleAriaLabel(title: string, isPinOn: boolean, mode: "switch" |
  * Turns the entire segment tile into an easy-to-press touch button for wall panels,
  * tablets, and mobile phones while presenting minimal device identity and live status.
  */
-export default function PinToggle({
+function PinToggle({
   segment,
   isPinOn,
   buttonProps,
@@ -134,3 +134,5 @@ export default function PinToggle({
     </Toggle>
   );
 }
+
+export default React.memo(PinToggle);

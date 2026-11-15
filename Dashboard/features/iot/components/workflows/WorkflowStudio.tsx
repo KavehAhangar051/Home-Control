@@ -1,16 +1,18 @@
 "use client";
 
 import { Grid, Lock, Maximize, Minus, Plus, Unlock } from "lucide-react";
+import { AnimatePresence, m } from "motion/react";
 import React from "react";
 import { createPortal } from "react-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
+import { useWorkflowStudio } from "./useWorkflowStudio";
 import WorkflowEmptyState from "./WorkflowEmptyState";
 import WorkflowHeaderBar from "./WorkflowHeaderBar";
 import WorkflowNodeCard from "./WorkflowNodeCard";
 import WorkflowPalettePanel, { WORKFLOW_PALETTE_MIME } from "./WorkflowPalettePanel";
 import WorkflowWiresSvg from "./WorkflowWiresSvg";
-import { useWorkflowStudio } from "./useWorkflowStudio";
 import type { WorkflowPaletteDragPayload } from "./workflowTypes";
 
 interface WorkflowStudioProps {
@@ -198,6 +200,7 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
         onClose={() => studio.setIsPaletteOpen(false)}
         segments={segments}
         groupsOrder={groupsOrder}
+        animationsEnabled={animationsEnabled}
         onAddNode={(payload) => studio.handleAddNode(payload)}
       />
 
@@ -215,44 +218,64 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
           touchAction: "none",
         }}
         className={`relative min-h-0 w-full flex-1 overflow-hidden select-none ${
-          studio.isPanning ? "cursor-grabbing" : "cursor-grab"
+          studio.isPanning ? "cursor-grabbing" : "cursor-default"
         }`}
       >
         {/* Mobile & Tablet Connecting Banner */}
-        {studio.connectingFromId && (
-          <div
-            dir="rtl"
-            onPointerDown={(e) => e.stopPropagation()}
-            className="absolute top-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-[var(--accent3)]/45 bg-[var(--card-bg-solid)]/95 px-3 py-1.5 text-[11px] font-bold text-[var(--accent3)] shadow-lg backdrop-blur-md lg:hidden"
-          >
-            <span className="whitespace-nowrap">روی پورت ورودی گره مقصد بزنید</span>
-            <button
-              type="button"
-              onClick={() => studio.setConnectingFromId(null)}
-              className="cursor-pointer rounded-md bg-[var(--accent3)] px-2 py-0.5 text-[10px] text-[var(--accent3-foreground)]"
+        <AnimatePresence>
+          {studio.connectingFromId && (
+            <m.div
+              key="connecting-banner"
+              dir="rtl"
+              initial={animationsEnabled ? { opacity: 0, scale: 0.95, y: -6 } : false}
+              animate={{ opacity: 1, scale: 1, y: 0, transition: TRANSITION_ENTER_QUICK }}
+              exit={
+                animationsEnabled
+                  ? { opacity: 0, scale: 0.96, y: -4, transition: TRANSITION_EXIT_QUICK }
+                  : undefined
+              }
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute top-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-[var(--accent3)]/45 bg-[var(--card-bg-solid)]/95 px-3 py-1.5 text-[11px] font-bold text-[var(--accent3)] shadow-lg backdrop-blur-md lg:hidden"
             >
-              لغو
-            </button>
-          </div>
-        )}
+              <span className="whitespace-nowrap">پورت ورودی گره مقصد را انتخاب کنید</span>
+              <button
+                type="button"
+                onClick={() => studio.setConnectingFromId(null)}
+                className="cursor-pointer rounded-md bg-[var(--accent3)] px-2 py-0.5 text-[10px] text-[var(--accent3-foreground)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97]"
+              >
+                لغو
+              </button>
+            </m.div>
+          )}
+        </AnimatePresence>
 
         {/* Subtle Empty Canvas Guide when workflow has 0 nodes */}
-        {wf.nodes.length === 0 && (
-          <div
-            dir="rtl"
-            className="pointer-events-none absolute inset-0 flex items-center justify-center p-6"
-          >
-            <div className="max-w-sm rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--card-bg-solid)]/80 px-5 py-4 text-center backdrop-blur-sm">
-              <p className="text-xs font-bold text-[var(--text-primary)]">
-                بوم خالی آماده طراحی است
-              </p>
-              <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">
-                از پنل سمت چپ بوم، سگمنت‌ها، گروه خالی یا آماده، بوابه‌های AND / OR / NOT و تایمر را
-                اضافه کرده و پورت‌ها را به هم وصل کنید.
-              </p>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {wf.nodes.length === 0 && (
+            <m.div
+              key="empty-canvas-guide"
+              dir="rtl"
+              initial={animationsEnabled ? { opacity: 0, scale: 0.96 } : false}
+              animate={{ opacity: 1, scale: 1, transition: TRANSITION_ENTER_QUICK }}
+              exit={
+                animationsEnabled
+                  ? { opacity: 0, scale: 0.96, transition: TRANSITION_EXIT_QUICK }
+                  : undefined
+              }
+              className="pointer-events-none absolute inset-0 flex items-center justify-center p-6"
+            >
+              <div className="max-w-sm rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--card-bg-solid)]/80 px-5 py-4 text-center backdrop-blur-sm">
+                <p className="text-xs font-bold text-[var(--text-primary)]">
+                  بوم مدار آماده سیم‌کشی است
+                </p>
+                <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">
+                  از کتابخانه سمت چپ، گیت‌های منطقی (AND / OR / NOT)، محرک‌ها یا قطعات را به داخل بوم
+                  بکشید. برای جابه‌جایی صفحه، روی بوم کلیک راست کرده و بکشید.
+                </p>
+              </div>
+            </m.div>
+          )}
+        </AnimatePresence>
 
         {/* Transformed Infinite Plane */}
         <div
@@ -283,21 +306,15 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
                 incomingCount={incomingCountByNode.get(node.id) ?? 0}
                 timerCountdown={studio.timerCountdowns.get(node.id) ?? null}
                 isSelected={studio.selectedNodeId === node.id}
-                isDragging={studio.draggingState?.nodeId === node.id}
-                dragTiltDeg={
-                  studio.draggingState?.nodeId === node.id ? studio.draggingState.tiltDeg : 0
-                }
+                isDragging={studio.draggingNodeId === node.id}
+                dragTiltDeg={studio.draggingNodeId === node.id ? studio.dragTiltDeg : 0}
                 isLocked={studio.isLocked}
-                isConnectingSource={
-                  studio.connectingFromId === node.id ||
-                  studio.connectingDraft?.sourceId === node.id
-                }
+                animationsEnabled={animationsEnabled}
+                isConnectingSource={studio.connectingFromId === node.id}
+                isMagneticTarget={studio.connectingDraft?.magneticTargetId === node.id}
                 isConnectTargetHighlight={
                   Boolean(studio.connectingFromId) && studio.connectingFromId !== node.id
                 }
-                isMagneticTarget={studio.connectingDraft?.magneticTargetId === node.id}
-                isRecentlyConnected={studio.recentlyConnectedNodeId === node.id}
-                animationsEnabled={animationsEnabled}
                 onSelect={studio.bringNodeToFront}
                 onStartDrag={studio.startNodeDrag}
                 onStartResize={studio.startNodeResize}

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import React from "react";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import IoTWorkspace from "@/features/iot/components/IoTWorkspace";
 import { WorkspaceSkeleton } from "@/features/iot/components/workspace";
@@ -42,7 +43,7 @@ interface HomeWorkspaceMainContentProps {
   hasMacros: boolean;
 }
 
-function HomeWorkspaceMainContent({
+const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
   isFullyReady,
   isTrellisMode,
   workspaceDisplayMode,
@@ -110,34 +111,39 @@ function HomeWorkspaceMainContent({
       )}
 
       <div className={isTrellisMode ? "flex-1 min-h-0 w-full flex flex-col" : "w-full"}>
-        <IoTWorkspace
-          sensors={sensors}
-          groupsOrder={groupsOrder}
-          groupsCols={groupsCols}
-          groupConfigs={groupConfigs}
-          isLoadingIoT={isLoadingIoT}
-          activeSegmentId={activeSegmentId}
-          activeGroupId={activeGroupId}
-          animationsEnabled={animationsEnabled}
-          selectedGroupFilter={selectedGroupFilter}
-          handleDragStart={handleDragStart}
-          handleDragOver={handleDragOver}
-          handleDragEnd={handleDragEnd}
-          handleGroupColsChange={handleGroupColsChange}
-          handleAddPlaceholder={handleAddPlaceholder}
-          handleRemoveGroup={handleRemoveGroup}
-          handleRemoveSegment={handleRemoveSegment}
-          handleTogglePin={handleTogglePin}
-          handleSetPinState={handleSetPinState}
-          handleUpdateSegmentMode={handleUpdateSegmentMode}
-          handleUpdateSegmentAutoOff={handleUpdateSegmentAutoOff}
-          handleUpdateSegmentRule={handleUpdateSegmentRule}
-          handleSetupPlaceholder={handleSetupPlaceholder}
-        />
+        <ErrorBoundary
+          fallbackTitle="خطا در رندر فضای کاری دستگاه‌ها"
+          resetKeys={[workspaceDisplayMode, selectedGroupFilter]}
+        >
+          <IoTWorkspace
+            sensors={sensors}
+            groupsOrder={groupsOrder}
+            groupsCols={groupsCols}
+            groupConfigs={groupConfigs}
+            isLoadingIoT={isLoadingIoT}
+            activeSegmentId={activeSegmentId}
+            activeGroupId={activeGroupId}
+            animationsEnabled={animationsEnabled}
+            selectedGroupFilter={selectedGroupFilter}
+            handleDragStart={handleDragStart}
+            handleDragOver={handleDragOver}
+            handleDragEnd={handleDragEnd}
+            handleGroupColsChange={handleGroupColsChange}
+            handleAddPlaceholder={handleAddPlaceholder}
+            handleRemoveGroup={handleRemoveGroup}
+            handleRemoveSegment={handleRemoveSegment}
+            handleTogglePin={handleTogglePin}
+            handleSetPinState={handleSetPinState}
+            handleUpdateSegmentMode={handleUpdateSegmentMode}
+            handleUpdateSegmentAutoOff={handleUpdateSegmentAutoOff}
+            handleUpdateSegmentRule={handleUpdateSegmentRule}
+            handleSetupPlaceholder={handleSetupPlaceholder}
+          />
+        </ErrorBoundary>
       </div>
     </div>
   );
-}
+});
 
 export default function DashboardWorkspace() {
   const { isFullyReady } = useDashboard();
@@ -166,12 +172,17 @@ export default function DashboardWorkspace() {
   }, [activeWorkspaceView, workspaceDisplayMode]);
 
   if (activeWorkspaceView !== "home") {
-    return <WorkspaceSection view={activeWorkspaceView} />;
+    return (
+      <ErrorBoundary fallbackTitle="خطا در بارگذاری این بخش" resetKeys={[activeWorkspaceView]}>
+        <WorkspaceSection view={activeWorkspaceView} />
+      </ErrorBoundary>
+    );
   }
 
   const isTrellisMode =
     (workspaceDisplayMode === "trellis" || workspaceDisplayMode === "canvas") &&
     (!isFullyReady || segmentsLength > 0);
+
   const hasMacros = macrosLength > 0;
 
   return (
@@ -195,6 +206,7 @@ export default function DashboardWorkspace() {
           isTrellisMode ? "min-h-0 h-full justify-start gap-0" : "justify-center space-y-8 py-4"
         }`}
       >
+        <h1 className="sr-only">نمای خانه و کنترل تجهیزات هوشمند</h1>
         <HomeWorkspaceMainContent
           isFullyReady={isFullyReady}
           isTrellisMode={isTrellisMode}

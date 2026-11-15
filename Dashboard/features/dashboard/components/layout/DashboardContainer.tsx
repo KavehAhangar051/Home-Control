@@ -49,6 +49,13 @@ export default function DashboardContainer() {
               selectedFont={selectedFont}
             />
 
+            <a
+              href="#dashboard-workspace-scroll"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:right-3 focus:z-[250] focus:rounded-xl focus:border focus:border-[var(--accent3)] focus:bg-[var(--card-bg-solid)] focus:px-4 focus:py-2 focus:text-xs focus:font-bold focus:text-[var(--text-primary)] focus:shadow-lg focus:outline-none"
+            >
+              پرش به محتوای اصلی
+            </a>
+
             <div className="relative z-10 flex flex-row items-stretch w-full h-screen overflow-hidden">
               <DashboardHeader />
               <div className="flex-1 min-w-0 flex flex-col justify-between w-full h-screen overflow-hidden mx-auto">

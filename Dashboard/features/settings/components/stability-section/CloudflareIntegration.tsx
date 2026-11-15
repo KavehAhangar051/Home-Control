@@ -1,40 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { CloudLightning, Globe, Server } from "@/components/ui/hugeicons";
-import { buildEspConfig } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
+import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { saveConfigToCloudflare } from "@/features/iot/services/cloudflare/api";
 import {
   getCloudflareWorkerUrl,
   isCloudflareEnabled,
   setCloudflareWorkerUrl,
 } from "@/features/iot/services/cloudflareService";
-import type { EspConfig } from "@/features/iot/services/esp32Config";
 
 interface CloudflareIntegrationProps {
   isDark?: boolean;
-}
-
-async function submitCloudflareConfig(
-  currentConfig: EspConfig,
-  showToast: (msg: string, type: "success" | "error") => void,
-  setIsSavingUrl: (val: boolean) => void,
-): Promise<void> {
-  try {
-    const result = await saveConfigToCloudflare(currentConfig);
-
-    if (result.success) {
-      useIoTStore.getState().resetUnsavedChanges();
-    }
-
-    showToast(
-      result.success ? "آدرس ورکر جدید با موفقیت ذخیره شد." : "خطا در ذخیره آدرس ورکر جدید.",
-      result.success ? "success" : "error",
-    );
-  } finally {
-    setIsSavingUrl(false);
-  }
 }
 
 export default function CloudflareIntegration({
@@ -63,10 +40,14 @@ export default function CloudflareIntegration({
       return;
     }
 
-    const currentConfig = buildEspConfig(useIoTStore.getState());
-    currentConfig.worker_url = getCloudflareWorkerUrl();
-
-    await submitCloudflareConfig(currentConfig, showToast, setIsSavingUrl);
+    try {
+      await persistStoreConfigToCloudflare({
+        successToast: "آدرس ورکر جدید با موفقیت ذخیره شد.",
+        errorToast: "خطا در ذخیره آدرس ورکر جدید.",
+      });
+    } finally {
+      setIsSavingUrl(false);
+    }
   };
 
   const isCfConnected = isCloudflareEnabled();

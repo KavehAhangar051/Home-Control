@@ -3,7 +3,7 @@
 import { rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence } from "motion/react";
-import type React from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getSegmentGridLayout } from "../../workspace/core/gridUtils";
 import type { SortableGroupProps } from "../core/types";
@@ -28,7 +28,7 @@ function GroupGrid({ style, children }: { style: React.CSSProperties; children: 
  * Displays a Smart Home zone/room group container with a unified header toolbar
  * and responsive sortable grid of device segments.
  */
-export default function SortableGroup({
+function SortableGroup({
   id,
   items,
   segmentCount,
@@ -62,9 +62,10 @@ export default function SortableGroup({
 
   const { gridTracks } = getSegmentGridLayout(items.length, maxCols);
 
-  const contentStyle: CustomGridTracksStyle = {
-    "--group-grid-tracks": gridTracks,
-  };
+  const contentStyle = React.useMemo<CustomGridTracksStyle>(
+    () => ({ "--group-grid-tracks": gridTracks }),
+    [gridTracks],
+  );
 
   return (
     <div
@@ -99,3 +100,5 @@ export default function SortableGroup({
     </div>
   );
 }
+
+export default React.memo(SortableGroup);

@@ -53,7 +53,7 @@ export function Scrollspy({
 
       prevIdTracker.current = sectionId;
     },
-    [anchorElementsRef, dataAttribute, history, onUpdate],
+    [dataAttribute, history, onUpdate],
   );
 
   const handleScroll = useCallback(() => {
@@ -116,7 +116,7 @@ export function Scrollspy({
     const sectionId = activeAnchor?.getAttribute(`data-${dataAttribute}-anchor`) || null;
 
     setActiveSection(sectionId);
-  }, [anchorElementsRef, targetRef, dataAttribute, offset, setActiveSection]);
+  }, [targetRef, dataAttribute, offset, setActiveSection]);
 
   const scrollTo = useCallback(
     (anchorElement: HTMLElement) => (event?: Event) => {

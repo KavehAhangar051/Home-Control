@@ -14,11 +14,7 @@ const getServerSnapshot = () => false;
 export function useCloudflareQuery() {
   const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
 
-  // refetchIot برای سازگاری با کد موجود نگه داشته شده
-  const refetchIot = async () => {};
-
   return {
     mounted,
-    refetchIot,
   };
 }

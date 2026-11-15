@@ -4,6 +4,7 @@ import React from "react";
 import type { IoTWorkspaceProps } from "@/features/iot/components/workspace/core/types";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
 import CanvasChromeBar from "./CanvasChromeBar";
 import CanvasGroupNode from "./CanvasGroupNode";
 import CanvasSegmentNode from "./CanvasSegmentNode";
@@ -47,8 +48,9 @@ export default function CanvasWorkspace({
     nodes,
     viewport,
     selectedNodeId,
-    draggingState,
     isPanning,
+    draggingNodeId,
+    dragTiltDeg,
     visibleGroups,
     visibleSegments,
     wireConnections,
@@ -78,7 +80,7 @@ export default function CanvasWorkspace({
     }
 
     for (const seg of visibleSegments) {
-      const key = seg.group || "Test";
+      const key = resolveSegmentGroup(seg.group);
       const bucket = map.get(key);
 
       if (bucket) {
@@ -107,7 +109,7 @@ export default function CanvasWorkspace({
         touchAction: "none",
       }}
       className={`relative h-full min-h-[480px] w-full flex-1 overflow-hidden border-0 bg-[var(--bg-main)] select-none ${
-        isPanning ? "cursor-grabbing" : "cursor-grab"
+        isPanning ? "cursor-grabbing" : "cursor-default"
       }`}
     >
       {/* Infinite Transformed World Plane */}
@@ -141,8 +143,8 @@ export default function CanvasWorkspace({
                   rect={rect}
                   subMode={settings.subMode}
                   isSelected={selectedNodeId === nodeId}
-                  isDragging={draggingState?.nodeId === nodeId}
-                  dragTiltDeg={draggingState?.nodeId === nodeId ? draggingState.tiltDeg : 0}
+                  isDragging={draggingNodeId === nodeId}
+                  dragTiltDeg={draggingNodeId === nodeId ? dragTiltDeg : 0}
                   isLocked={settings.isLocked}
                   animationsEnabled={animationsEnabled}
                   onSelect={bringNodeToFront}
@@ -175,8 +177,8 @@ export default function CanvasWorkspace({
                   segment={segment}
                   rect={rect}
                   isSelected={selectedNodeId === nodeId}
-                  isDragging={draggingState?.nodeId === nodeId}
-                  dragTiltDeg={draggingState?.nodeId === nodeId ? draggingState.tiltDeg : 0}
+                  isDragging={draggingNodeId === nodeId}
+                  dragTiltDeg={draggingNodeId === nodeId ? dragTiltDeg : 0}
                   isLocked={settings.isLocked}
                   showPort={settings.subMode === "graph"}
                   animationsEnabled={animationsEnabled}

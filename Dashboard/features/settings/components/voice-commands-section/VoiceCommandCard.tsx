@@ -9,8 +9,8 @@ import type {
   Segment,
   VoiceCommand,
 } from "@/features/iot/hooks/store/types";
-import { VoiceCommandEditor } from "./VoiceCommandEditor";
 import { TRANSITION_ENTER_STANDARD, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
+import { VoiceCommandEditor } from "./VoiceCommandEditor";
 
 interface Props {
   cmd: VoiceCommand;

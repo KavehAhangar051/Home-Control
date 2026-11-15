@@ -165,7 +165,7 @@ export function buildDefaultCanvasNodes(
   groupsOrder: string[],
   segments: Segment[],
   isMobileViewport = false,
-): Record<string, CanvasNodeRect> {
+) {
   const nodes: Record<string, CanvasNodeRect> = {};
   const segmentsByGroup = new Map<string, Segment[]>();
 
@@ -347,19 +347,21 @@ export function computeFitCanvasViewport(
   };
 }
 
+export interface BezierWireGeometry {
+  path: string;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+}
+
 /**
  * Builds an n8n-style cubic Bezier SVG path connecting a group hub port to a segment node port.
  */
 export function buildBezierWireGeometry(
   sourceRect: CanvasNodeRect,
   targetRect: CanvasNodeRect,
-): {
-  path: string;
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-} {
+): BezierWireGeometry {
   const sourceCenterX = sourceRect.x + sourceRect.width / 2;
   const targetCenterX = targetRect.x + targetRect.width / 2;
   const isTargetLeft = targetCenterX <= sourceCenterX;

@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
       "motion",
       "@dnd-kit/core",
       "@dnd-kit/sortable",
+      "@dnd-kit/utilities",
+      "@tanstack/react-query",
       "zustand",
     ],
   },

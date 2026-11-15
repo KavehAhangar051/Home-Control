@@ -1,5 +1,3 @@
-import React from "react";
-
 interface Props {
   brokerWsUrl: string;
   setBrokerWsUrl: (val: string) => void;
@@ -71,7 +69,7 @@ export function MqttFormFields({
             type="number"
             dir="ltr"
             value={brokerPort}
-            onChange={(e) => setBrokerPort(parseInt(e.target.value) || 1883)}
+            onChange={(e) => setBrokerPort(parseInt(e.target.value, 10) || 1883)}
             className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
             placeholder="1883"
           />

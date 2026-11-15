@@ -67,15 +67,17 @@ export default function CardHeader({
       <Tooltip>
         <TooltipTrigger
           render={
-            <div
+            <button
+              type="button"
               {...attributes}
               {...listeners}
-              className={`flex items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--secondary)] md:hover:border-[var(--border-color)] cursor-grab active:cursor-grabbing transition-colors shrink-0 ${
+              aria-label={`جابه‌جایی کارت ${segment.title}`}
+              className={`flex items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--secondary)] md:hover:border-[var(--border-color)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] cursor-grab active:cursor-grabbing transition-colors shrink-0 ${
                 isUltraCompact ? "w-6 h-6" : "w-7 h-7"
               }`}
             >
               <GripVertical className="w-3.5 h-3.5" strokeWidth={2} />
-            </div>
+            </button>
           }
         />
         <TooltipContent>کشیدن برای جابه‌جایی</TooltipContent>

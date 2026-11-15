@@ -131,7 +131,7 @@ export function InputSegmentBody({
   );
 }
 
-export default function CardBody({
+function CardBody({
   segment,
   isPinOn,
   isCompact,
@@ -168,3 +168,5 @@ export default function CardBody({
     </div>
   );
 }
+
+export default React.memo(CardBody);

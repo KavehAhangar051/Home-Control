@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatePresence, m } from "motion/react";
-import React from "react";
 import { Alert } from "@/components/reui/alert";
 import { Button } from "@/components/ui/button";
 import { Clock, Info, X } from "@/components/ui/hugeicons";

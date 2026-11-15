@@ -4,8 +4,8 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { Clock, Edit2, Layers, Thermometer } from "@/components/ui/hugeicons";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import type { Automation } from "@/features/iot/hooks/store/types";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useOptionalAutomationContext } from "../../context/AutomationContext";
 import { DAYS_MAP } from "../AutomationForm/constants";
 

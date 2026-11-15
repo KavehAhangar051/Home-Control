@@ -5,9 +5,39 @@ import {
   getSimilarity,
   normalizePhonetics,
 } from "../components/MasterHeader/VoiceCommandButton/utils.ts";
+import {
+  buildBezierWireGeometry,
+  buildDefaultCanvasNodes,
+  CANVAS_GRID_STEP,
+  canvasGroupNodeId,
+  canvasSegmentNodeId,
+  clampCanvasNodeSize,
+  clampCanvasZoom,
+  computeFitCanvasViewport,
+  getCanvasGridStyle,
+  getPresetDimensions,
+  snapNodeRectToGrid,
+} from "../features/iot/components/canvas/canvasGeometry.ts";
+import { reconcileCanvasNodes } from "../features/iot/components/canvas/canvasStorage.ts";
+import {
+  computeDragTiltDeg,
+  findMagneticInputPort,
+} from "../features/iot/components/canvas/nodeMotion.ts";
+import { resolveSegmentSchematicKind } from "../features/iot/components/workflows/WorkflowSchematicSymbol.tsx";
+import {
+  canConnectWorkflowPorts,
+  clampWorkflowNodeSize,
+  createEmptyWorkflow,
+  createWorkflowNode,
+  evaluateWorkflowGraph,
+  getWorkflowGridStyle,
+  snapWorkflowNodeToGrid,
+} from "../features/iot/components/workflows/workflowEngine.ts";
 import { buildEspConfig } from "../features/iot/hooks/achaemenidState/core/buildEspConfig.ts";
 import {
   deserializeFromCloudflare,
+  normalizeSegmentRule,
+  resolveSegmentGroup,
   serializeToCloudflare,
 } from "../features/iot/services/cloudflare/mappers.ts";
 import { InMemoryDeviceSyncAdapter } from "../features/iot/services/deviceGatewayAdapter.ts";
@@ -24,32 +54,6 @@ import {
   TRANSITION_EXIT_QUICK,
   TRANSITION_EXIT_STANDARD,
 } from "../lib/ease.ts";
-import {
-  buildBezierWireGeometry,
-  buildDefaultCanvasNodes,
-  CANVAS_GRID_STEP,
-  canvasGroupNodeId,
-  canvasSegmentNodeId,
-  clampCanvasNodeSize,
-  clampCanvasZoom,
-  computeFitCanvasViewport,
-  getCanvasGridStyle,
-  getPresetDimensions,
-  snapNodeRectToGrid,
-} from "../features/iot/components/canvas/canvasGeometry.ts";
-import {
-  canConnectWorkflowPorts,
-  clampWorkflowNodeSize,
-  createEmptyWorkflow,
-  createWorkflowNode,
-  evaluateWorkflowGraph,
-  getWorkflowGridStyle,
-  snapWorkflowNodeToGrid,
-} from "../features/iot/components/workflows/workflowEngine.ts";
-import {
-  computeDragTiltDeg,
-  findMagneticInputPort,
-} from "../features/iot/components/canvas/nodeMotion.ts";
 
 describe("ESP32 Hardware Pin Validation Contracts", () => {
   it("accepts valid general-purpose output pins", () => {
@@ -111,10 +115,7 @@ describe("Persian Voice Command Engine Contracts", () => {
       voiceCommands: [
         {
           phrase: "حالت شب",
-          actions: [
-            { targetPin: "4", actionOn: true },
-            { targetMacro: "macro-sleep" },
-          ],
+          actions: [{ targetPin: "4", actionOn: true }, { targetMacro: "macro-sleep" }],
         },
       ],
       macros: [
@@ -172,6 +173,98 @@ describe("Persian Voice Command Engine Contracts", () => {
     ]);
     assert.equal(toasts.length, 2);
   });
+
+  it("blocks input-only/invalid pins and input/placeholder segments from voice actuation", () => {
+    const singleCalls = [];
+    const batchCalls = [];
+    const toasts = [];
+
+    const context = {
+      voiceCommands: [
+        {
+          phrase: "تست پین نامعتبر",
+          actions: [
+            { targetPin: "34", actionOn: true },
+            { targetPin: "6", actionOn: true },
+            { targetPin: "12", actionOn: true },
+          ],
+        },
+        {
+          phrase: "فرمان خالی",
+          actions: [{ targetPin: "34", actionOn: true }],
+        },
+      ],
+      macros: [],
+      segments: [
+        { pin: "34", title: "سنسور حرکت", type: "input" },
+        { pin: "12", title: "روشنایی", type: "relay" },
+        { pin: "13", title: "جایگاه خالی", type: "placeholder" },
+      ],
+      handleSetPinState: (pin, state) => {
+        singleCalls.push({ pin, state });
+      },
+      handleBatchPinState: (actions) => {
+        batchCalls.push(actions);
+      },
+      showToast: (msg, type) => {
+        toasts.push({ msg, type });
+      },
+    };
+
+    const partial = executeVoiceCommand("تست پین نامعتبر", context);
+    assert.equal(partial.matched, true);
+    assert.equal(partial.kind, "custom");
+    assert.equal(partial.dispatchedCount, 1);
+    assert.deepEqual(partial.skippedPins, ["34", "6"]);
+    assert.deepEqual(batchCalls, [[{ targetPin: "12", actionOn: true }]]);
+
+    const emptyCmd = executeVoiceCommand("فرمان خالی", context);
+    assert.equal(emptyCmd.matched, true);
+    assert.equal(emptyCmd.kind, "custom");
+    assert.equal(emptyCmd.dispatchedCount, 0);
+    assert.equal(toasts[toasts.length - 1].type, "error");
+
+    const sensorRes = executeVoiceCommand("سنسور حرکت را روشن کن", context);
+    assert.equal(sensorRes.matched, false);
+    assert.equal(sensorRes.dispatchedCount, 0);
+
+    const placeholderRes = executeVoiceCommand("جایگاه خالی را روشن کن", context);
+    assert.equal(placeholderRes.matched, false);
+    assert.equal(singleCalls.length, 0);
+  });
+
+  it("withholds false success toast when async pin dispatch resolves to false", async () => {
+    const toasts = [];
+
+    executeVoiceCommand("چراغ تست را روشن کن", {
+      voiceCommands: [],
+      macros: [],
+      segments: [{ pin: "18", title: "چراغ تست", type: "relay" }],
+      handleSetPinState: async () => false,
+      handleBatchPinState: async () => false,
+      showToast: (msg, type) => {
+        toasts.push({ msg, type });
+      },
+    });
+
+    await Promise.resolve();
+    assert.equal(toasts.length, 0);
+
+    executeVoiceCommand("چراغ تست را خاموش کن", {
+      voiceCommands: [],
+      macros: [],
+      segments: [{ pin: "18", title: "چراغ تست", type: "relay" }],
+      handleSetPinState: async () => true,
+      handleBatchPinState: async () => true,
+      showToast: (msg, type) => {
+        toasts.push({ msg, type });
+      },
+    });
+
+    await Promise.resolve();
+    assert.equal(toasts.length, 1);
+    assert.equal(toasts[0].type, "success");
+  });
 });
 
 describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
@@ -191,7 +284,9 @@ describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
       segments: [{ id: "seg-1", pin: "5", title: "نور مخفی", type: "relay", group: "LivingRoom" }],
       automations: [],
       macros: [{ id: "m1", title: "ورود", actions: [{ targetPin: "5", actionOn: true }] }],
-      voiceCommands: [{ id: "vc1", phrase: "نور مخفی", actions: [{ targetPin: "5", actionOn: true }] }],
+      voiceCommands: [
+        { id: "vc1", phrase: "نور مخفی", actions: [{ targetPin: "5", actionOn: true }] },
+      ],
       wifiNetworks: [{ ssid: "HomeNet", password: "secret" }],
       wifiNetworksConfigured: true,
       wifiApConfig: null,
@@ -235,6 +330,57 @@ describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
     assert.equal(deserialized.automations?.length, 1);
     assert.deepEqual(deserialized.automations?.[0].actions, [{ targetPin: "23", actionOn: true }]);
   });
+
+  it("normalizes segment groups and legacy single-target/dual-target segment rules at the boundary", () => {
+    assert.equal(resolveSegmentGroup(""), "Test");
+    assert.equal(resolveSegmentGroup("   "), "Test");
+    assert.equal(resolveSegmentGroup(undefined), "Test");
+    assert.equal(resolveSegmentGroup(null), "Test");
+    assert.equal(resolveSegmentGroup("آشپزخانه"), "آشپزخانه");
+
+    assert.deepEqual(
+      normalizeSegmentRule({
+        targetPinHigh: "12",
+        reqHoldHigh: 2,
+        actionOnHigh: false,
+        targetPinLow: "14",
+        actionOnLow: true,
+      }),
+      {
+        highActions: [
+          { reqHold: 2, targetPin: "12", actionOn: false, actionType: 0, delay: 0 },
+        ],
+        lowActions: [
+          { reqHold: 0, targetPin: "14", actionOn: true, actionType: 0, delay: 0 },
+        ],
+      },
+    );
+
+    const deserialized = deserializeFromCloudflare({
+      segments_definition: [
+        {
+          id: "s-legacy",
+          pin: "34",
+          title: "سنسور در",
+          type: "input",
+          group: "",
+          rule: {
+            triggerState: true,
+            targetPin: "5",
+            actionState: true,
+          },
+        },
+      ],
+    });
+
+    assert.equal(deserialized.segments[0].group, "Test");
+    assert.deepEqual(deserialized.segments[0].rule, {
+      highActions: [
+        { reqHold: 0, targetPin: "5", actionOn: true, actionType: 0, delay: 0 },
+      ],
+      lowActions: [],
+    });
+  });
 });
 
 describe("IDeviceSyncPort In-Memory Boundary Contract", () => {
@@ -242,13 +388,14 @@ describe("IDeviceSyncPort In-Memory Boundary Contract", () => {
     const adapter = new InMemoryDeviceSyncAdapter();
     const notifications = [];
 
-    await adapter.syncSinglePin("14", true, {
+    const singleOk = await adapter.syncSinglePin("14", true, {
       showToast: (msg, type) => notifications.push({ msg, type }),
     });
+    assert.equal(singleOk, true);
     assert.equal(adapter.pinsState.get("14"), true);
     assert.equal(adapter.dispatchLog.length, 1);
 
-    await adapter.syncBatchPins(
+    const batchOk = await adapter.syncBatchPins(
       [
         { targetPin: "14", actionOn: false },
         { targetPin: "27", actionOn: true },
@@ -258,6 +405,7 @@ describe("IDeviceSyncPort In-Memory Boundary Contract", () => {
       },
     );
 
+    assert.equal(batchOk, true);
     assert.equal(adapter.pinsState.get("14"), false);
     assert.equal(adapter.pinsState.get("27"), true);
     assert.equal(adapter.dispatchLog.length, 2);
@@ -431,6 +579,51 @@ describe("n8n Canvas Sheet Geometry Contracts", () => {
     assert.equal(style40.backgroundPosition, "-6.4px -6.4px");
     assert.deepEqual(getWorkflowGridStyle(32, 24, 0.92), style92);
   });
+
+  it("prunes deleted group and segment nodes during reconciliation without wiping cold mount storage", () => {
+    const defaults = buildDefaultCanvasNodes(
+      "graph",
+      ["پذیرایی"],
+      [{ id: "s1", pin: "2", title: "لوستر", type: "relay", group: "پذیرایی" }],
+      false,
+    );
+
+    const coldMount = reconcileCanvasNodes({
+      subMode: "graph",
+      defaults: {},
+      storedNodes: {
+        "group:پذیرایی": { x: 64, y: 64, width: 256, height: 144, zIndex: 999 },
+      },
+      prevNodes: {},
+      snapToGrid: true,
+      baseTopZIndex: 30,
+      hasEntities: false,
+    });
+    assert.deepEqual(coldMount.nodes, {});
+    assert.equal(coldMount.shouldPersist, false);
+
+    const pruned = reconcileCanvasNodes({
+      subMode: "graph",
+      defaults,
+      storedNodes: {
+        "group:پذیرایی": { x: 64, y: 64, width: 256, height: 144, zIndex: 35 },
+        "segment:s-deleted": { x: 400, y: 400, width: 224, height: 144, zIndex: 999 },
+      },
+      prevNodes: {
+        "segment:s1": { x: 320, y: 64, width: 224, height: 144, zIndex: 36 },
+        "segment:s-deleted": { x: 400, y: 400, width: 224, height: 144, zIndex: 999 },
+      },
+      snapToGrid: true,
+      baseTopZIndex: 30,
+      hasEntities: true,
+    });
+
+    assert.equal(pruned.shouldPersist, true);
+    assert.equal(Object.hasOwn(pruned.nodes, "segment:s-deleted"), false);
+    assert.equal(pruned.nodes["group:پذیرایی"].x, 64);
+    assert.equal(pruned.nodes["segment:s1"].x, 320);
+    assert.equal(pruned.nextTopZIndex, 37);
+  });
 });
 
 describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
@@ -556,7 +749,7 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
     const step1 = evaluateWorkflowGraph({
       workflow: wf,
       segments: sampleSegments,
-      pinsState: { "34": true, "2": false, "4": false },
+      pinsState: { 34: true, 2: false, 4: false },
       manualPulseNodeIds: new Set([manualNode.id]),
       timerOutputs: new Map(),
     });
@@ -569,7 +762,7 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
     const step2 = evaluateWorkflowGraph({
       workflow: wf,
       segments: sampleSegments,
-      pinsState: { "34": true, "2": false, "4": false },
+      pinsState: { 34: true, 2: false, 4: false },
       manualPulseNodeIds: new Set([manualNode.id]),
       timerOutputs: new Map([[timerNode.id, true]]),
     });
@@ -695,5 +888,14 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
       snapRadius: 42,
     });
     assert.equal(farMatch, null);
+  });
+
+  it("maps segment hardware types and icons to American-standard ANSI schematic symbols", () => {
+    assert.equal(resolveSegmentSchematicKind("input", "Lightbulb"), "segment_sensor");
+    assert.equal(resolveSegmentSchematicKind("relay", "LampCeiling"), "segment_lamp");
+    assert.equal(resolveSegmentSchematicKind("relay", "Fan"), "segment_fan");
+    assert.equal(resolveSegmentSchematicKind("relay", "Flame"), "segment_heater");
+    assert.equal(resolveSegmentSchematicKind("relay", "Lock"), "segment_lock");
+    assert.equal(resolveSegmentSchematicKind("relay", "Power"), "segment_relay");
   });
 });

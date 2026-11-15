@@ -11,23 +11,8 @@ export type { BatchPinSyncOptions, SinglePinSyncOptions };
 export async function syncSinglePin(
   pin: string,
   state: boolean,
-  optionsOrPreventMqtt?: boolean | SinglePinSyncOptions,
-  autoOff?: number,
-  isPushMode?: boolean,
-  showToast?: (message: string, type: "success" | "error") => void,
-): Promise<void> {
-  const isBool = optionsOrPreventMqtt === true || optionsOrPreventMqtt === false;
-
-  const options: SinglePinSyncOptions =
-    !isBool && optionsOrPreventMqtt
-      ? optionsOrPreventMqtt
-      : {
-          preventMqtt: optionsOrPreventMqtt === true,
-          autoOff,
-          isPushMode,
-          showToast,
-        };
-
+  options?: SinglePinSyncOptions,
+): Promise<boolean> {
   return defaultDeviceSyncGateway.syncSinglePin(pin, state, options);
 }
 
@@ -38,13 +23,7 @@ export async function syncSinglePin(
  */
 export async function syncBatchPins(
   actions: Array<{ targetPin: string; actionOn: boolean }>,
-  segments?: Array<{ pin: string; auto_off?: number; mode?: string }>,
-  isCfEnabled?: boolean,
-  showToast?: (message: string, type: "success" | "error") => void,
-): Promise<void> {
-  return defaultDeviceSyncGateway.syncBatchPins(actions, {
-    segments,
-    isCfEnabled,
-    showToast,
-  });
+  options?: BatchPinSyncOptions,
+): Promise<boolean> {
+  return defaultDeviceSyncGateway.syncBatchPins(actions, options);
 }

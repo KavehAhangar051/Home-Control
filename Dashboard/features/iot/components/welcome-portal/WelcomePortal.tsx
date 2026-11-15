@@ -106,17 +106,17 @@ export default function WelcomePortal() {
                 <section
                   key={item.id}
                   id={item.id}
-                  aria-labelledby={item.id + "-title"}
+                  aria-labelledby={`${item.id}-title`}
                   className="relative flex min-h-72 items-center p-5 sm:p-6"
                 >
                   <div className="flex w-full flex-col items-center gap-4 text-center sm:flex-row sm:gap-6 sm:text-right">
-                    <IconStack className={"h-28 w-24 shrink-0 " + item.color} aria-hidden="true">
+                    <IconStack className={`h-28 w-24 shrink-0 ${item.color}`} aria-hidden="true">
                       <item.Icon className="size-6" strokeWidth={2} />
                     </IconStack>
 
                     <div className="min-w-0 space-y-2">
                       <h3
-                        id={item.id + "-title"}
+                        id={`${item.id}-title`}
                         className="text-base font-semibold text-foreground"
                       >
                         {item.label}

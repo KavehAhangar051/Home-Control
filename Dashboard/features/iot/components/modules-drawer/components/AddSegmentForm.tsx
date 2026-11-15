@@ -1,5 +1,4 @@
 import { AnimatePresence, m } from "motion/react";
-import React from "react";
 import { Card } from "@/components/ui/card";
 import { ChevronDown, Plus, Settings2 } from "@/components/ui/hugeicons";
 import {

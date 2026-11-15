@@ -13,6 +13,7 @@ export default function VoiceCommandsSection() {
   const macros = useIoTStore((s) => s.macros);
   const isListening = useIoTStore((s) => s.isListening);
   const voiceTranscript = useIoTStore((s) => s.voiceTranscript);
+  const showToast = useIoTStore((s) => s.showToast);
   const [editingCommandId, setEditingCommandId] = useState<string | null>(null);
   const [newCommandPhrase, setNewCommandPhrase] = useState("");
 
@@ -40,9 +41,19 @@ export default function VoiceCommandsSection() {
   };
 
   const handleSaveCommand = (id: string) => {
+    const trimmedPhrase = newCommandPhrase.trim();
+
+    if (!trimmedPhrase) {
+      showToast("عبارت دستور صوتی نمی‌تواند خالی باشد.", "error");
+
+      return;
+    }
+
     setVoiceCommands(
       (voiceCommands || []).map((cmd) =>
-        cmd.id === id ? { ...cmd, phrase: newCommandPhrase, actions: tempActions } : cmd,
+        cmd.id === id
+          ? { ...cmd, phrase: trimmedPhrase, actions: tempActions.map((a) => ({ ...a })) }
+          : cmd,
       ),
     );
     setEditingCommandId(null);
@@ -118,7 +129,7 @@ export default function VoiceCommandsSection() {
                 onEditStart={() => {
                   setEditingCommandId(cmd.id);
                   setNewCommandPhrase(cmd.phrase);
-                  setTempActions(cmd.actions);
+                  setTempActions(cmd.actions.map((a) => ({ ...a })));
                 }}
                 onDelete={() => handleDeleteCommand(cmd.id)}
               />

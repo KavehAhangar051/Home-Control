@@ -1,11 +1,12 @@
-import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
+import { defineRule } from "@oxlint/plugins";
 
 import {
   containsUnknownType,
   functionParameterBindingName,
   functionParameterTypeAnnotation,
 } from "../shared/function-parameters.ts";
+
 type ParameterOwner =
   | ESTree.ArrowFunctionExpression
   | ESTree.Function

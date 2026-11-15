@@ -39,7 +39,7 @@ export default function WorkflowHeaderBar({
   React.useEffect(() => {
     setDraftName(activeWorkflow.name);
     setIsEditingName(false);
-  }, [activeWorkflow.id, activeWorkflow.name]);
+  }, [activeWorkflow.name]);
 
   const commitRename = () => {
     const trimmed = draftName.trim();
@@ -137,7 +137,7 @@ export default function WorkflowHeaderBar({
       {/* Center Status Hint while Connecting Ports */}
       {isConnecting && (
         <div className="hidden items-center gap-2 rounded-lg border border-[var(--accent3)]/40 bg-[var(--accent3-transparent)] px-2.5 py-1 text-[11px] font-bold text-[var(--accent3)] lg:flex">
-          <span>روی پورت ورودی گره مقصد کلیک کنید</span>
+          <span>پورت ورودی گره مقصد را انتخاب کنید</span>
           <button
             type="button"
             onClick={onCancelConnect}
@@ -157,7 +157,7 @@ export default function WorkflowHeaderBar({
           className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500 active:scale-[0.98]"
         >
           <Play className="h-3.5 w-3.5" aria-hidden="true" />
-          <span className="hidden sm:inline">اجرای تست</span>
+          <span className="hidden sm:inline">تست مدار</span>
         </button>
 
         {/* Active / Draft Toggle Switch (Gently rounded square style) */}
@@ -196,7 +196,7 @@ export default function WorkflowHeaderBar({
           }`}
         >
           <PanelLeft className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>گره‌ها</span>
+          <span>کتابخانه گره‌ها</span>
         </button>
       </div>
     </div>

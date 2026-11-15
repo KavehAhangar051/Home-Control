@@ -1,6 +1,7 @@
 "use client";
 
-import { GitBranch, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import { WorkflowSchematicSymbol } from "./WorkflowSchematicSymbols";
 
 interface WorkflowEmptyStateProps {
   onStartDesigning: () => void;
@@ -17,17 +18,20 @@ export default function WorkflowEmptyState({ onStartDesigning }: WorkflowEmptySt
       }}
     >
       <div className="relative z-10 flex max-w-md flex-col items-center gap-5 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg-solid)]/95 p-8 shadow-sm backdrop-blur-md">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--accent3-medium)] bg-[var(--accent3-transparent)] text-[var(--accent3)]">
-          <GitBranch className="h-7 w-7" aria-hidden="true" />
+        <div
+          dir="ltr"
+          className="flex h-14 w-20 items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--accent3)]"
+        >
+          <WorkflowSchematicSymbol kind="logic_and" className="h-9 w-16" />
         </div>
 
         <div className="space-y-2">
           <h2 className="text-lg font-bold text-balance text-[var(--text-primary)] sm:text-xl">
-            هنوز گردش کاری طراحی نشده است
+            طراحی مدار و گردش کار اتوماسیون
           </h2>
           <p className="text-xs leading-6 text-[var(--text-secondary)] sm:text-sm">
-            یک بوم خالی باز کنید، سگمنت‌ها و گروه‌های خود را از پنل سمت چپ بوم اضافه کنید و با
-            بوابه‌های منطقی (AND / OR / NOT) و تایمرها به هم متصل نمایید.
+            گیت‌های منطقی با استاندارد شماتیک (AND / OR / NOT)، تایمرها، بلوک‌های گروهی و قطعات
+            سخت‌افزاری را روی بوم بچینید و پورت‌ها را به هم سیم‌کشی کنید.
           </p>
         </div>
 
@@ -37,7 +41,7 @@ export default function WorkflowEmptyState({ onStartDesigning }: WorkflowEmptySt
           className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent3)] px-6 text-sm font-bold text-[var(--accent3-foreground)] shadow-sm transition-[background-color,transform,opacity] duration-150 hover:opacity-95 active:scale-[0.98]"
         >
           <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>شروع طراحی یک گردش کار</span>
+          <span>ایجاد اولین مدار گردش کار</span>
         </button>
       </div>
     </div>

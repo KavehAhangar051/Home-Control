@@ -1,11 +1,3 @@
-"use client";
+export { default } from "./sortable-group";
 
-import React from "react";
-import SortableGroupComponent from "./sortable-group";
-import type { SortableGroupProps } from "./sortable-group/core/types";
-
-export type { SortableGroupProps };
-
-export default function SortableGroup(props: SortableGroupProps) {
-  return <SortableGroupComponent {...props} />;
-}
+export type { SortableGroupProps } from "./sortable-group/core/types";

@@ -75,6 +75,7 @@ function syncGroupPresetViews(
 ) {
   const groupSet = new Set(groupsOrder);
   const segmentSet = new Set<string>();
+
   for (let i = 0; i < segments.length; i++) {
     segmentSet.add(segments[i].id);
   }
@@ -266,10 +267,12 @@ export function useTrellisWorkspaceController({
 
   const segmentById = React.useMemo(() => {
     const map = new Map<string, Segment>();
+
     for (let i = 0; i < segments.length; i++) {
       const item = segments[i];
       map.set(item.id, item);
     }
+
     return map;
   }, [segments]);
 

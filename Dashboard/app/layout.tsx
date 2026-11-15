@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   IBM_Plex_Sans_Arabic,
   Noto_Sans_Arabic,
@@ -90,10 +90,40 @@ const FONT_VARIABLES = [
   readexPro.variable,
 ].join(" ");
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0b0c10" },
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+  ],
+};
+
 export const metadata: Metadata = {
   title: "سامانه هوشمند اینترنت اشیاء | Smart IoT Dashboard",
   description:
     "داشبورد مدرن و هوشمند کنترل و پایش دستگاه‌های اینترنت اشیاء مبتنی بر میکروکنترلر ESP32",
+  applicationName: "Home Control Dashboard",
+  keywords: ["ESP32", "IoT", "MQTT", "Smart Home", "اینترنت اشیاء", "خانه هوشمند"],
+  openGraph: {
+    type: "website",
+    locale: "fa_IR",
+    title: "سامانه هوشمند اینترنت اشیاء | Smart IoT Dashboard",
+    description:
+      "داشبورد مدرن و هوشمند کنترل و پایش دستگاه‌های اینترنت اشیاء مبتنی بر میکروکنترلر ESP32",
+    siteName: "Home Control Dashboard",
+  },
+  twitter: {
+    card: "summary",
+    title: "سامانه هوشمند اینترنت اشیاء | Smart IoT Dashboard",
+    description:
+      "داشبورد مدرن و هوشمند کنترل و پایش دستگاه‌های اینترنت اشیاء مبتنی بر میکروکنترلر ESP32",
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

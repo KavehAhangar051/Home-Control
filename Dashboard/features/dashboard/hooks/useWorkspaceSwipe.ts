@@ -38,7 +38,7 @@ export function useWorkspaceSwipe(
 
       if (isLeftSwipe || isRightSwipe) {
         const allGroups = [null, ...groupsOrder];
-        const currIndex = allGroups.findIndex((g) => g === selectedGroupFilter);
+        const currIndex = allGroups.indexOf(selectedGroupFilter);
         const safeCurrIndex = currIndex === -1 ? 0 : currIndex;
 
         if (isRightSwipe) {
