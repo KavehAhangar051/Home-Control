@@ -33,13 +33,9 @@ export default function WorkflowHeaderBar({
   onRunTest,
   onCancelConnect,
 }: WorkflowHeaderBarProps) {
-  const [isEditingName, setIsEditingName] = React.useState(false);
+  const [editingWorkflowId, setEditingWorkflowId] = React.useState<string | null>(null);
   const [draftName, setDraftName] = React.useState(activeWorkflow.name);
-
-  React.useEffect(() => {
-    setDraftName(activeWorkflow.name);
-    setIsEditingName(false);
-  }, [activeWorkflow.name]);
+  const isEditingName = editingWorkflowId === activeWorkflow.id;
 
   const commitRename = () => {
     const trimmed = draftName.trim();
@@ -48,7 +44,7 @@ export default function WorkflowHeaderBar({
       onRenameWorkflow(activeWorkflow.id, trimmed);
     }
 
-    setIsEditingName(false);
+    setEditingWorkflowId(null);
   };
 
   return (
@@ -70,7 +66,7 @@ export default function WorkflowHeaderBar({
 
                 if (e.key === "Escape") {
                   setDraftName(activeWorkflow.name);
-                  setIsEditingName(false);
+                  setEditingWorkflowId(null);
                 }
               }}
               aria-label="نام گردش کار"
@@ -104,7 +100,7 @@ export default function WorkflowHeaderBar({
               type="button"
               onClick={() => {
                 setDraftName(activeWorkflow.name);
-                setIsEditingName(true);
+                setEditingWorkflowId(activeWorkflow.id);
               }}
               aria-label="تغییر نام گردش کار"
               className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition-colors hover:border-[var(--border-color)] hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"

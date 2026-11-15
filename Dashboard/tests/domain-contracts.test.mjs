@@ -23,7 +23,7 @@ import {
   computeDragTiltDeg,
   findMagneticInputPort,
 } from "../features/iot/components/canvas/nodeMotion.ts";
-import { resolveSegmentSchematicKind } from "../features/iot/components/workflows/WorkflowSchematicSymbol.tsx";
+import { resolveSegmentSchematicKind } from "../features/iot/components/workflows/workflowSchematicUtils.ts";
 import {
   canConnectWorkflowPorts,
   clampWorkflowNodeSize,

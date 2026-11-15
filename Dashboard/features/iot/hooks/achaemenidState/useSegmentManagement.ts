@@ -14,6 +14,10 @@ interface UseSegmentManagementProps {
   updatePinOnServer: (pin: string, state: boolean) => Promise<boolean>;
 }
 
+function createSegmentId(): string {
+  return Math.random().toString(36).substring(2, 9);
+}
+
 export function useSegmentManagement({
   setActiveWorkspaceView,
   updatePinOnServer,
@@ -22,6 +26,27 @@ export function useSegmentManagement({
   const setGroupsOrder = useIoTStore((state) => state.setGroupsOrder);
   const setGroupConfigs = useIoTStore((state) => state.setGroupConfigs);
   const [targetPlaceholderId, setTargetPlaceholderId] = useState<string | null>(null);
+
+  const ensureGroupRegistered = useCallback(
+    (finalGroup: string, groupIcon?: string) => {
+      setGroupConfigs((prev) => {
+        const current = prev[finalGroup] || { maxCols: 3 };
+
+        if (groupIcon && !("icon" in current && current.icon)) {
+          return { ...prev, [finalGroup]: { ...current, icon: groupIcon } };
+        }
+
+        if (!prev[finalGroup]) {
+          return { ...prev, [finalGroup]: current };
+        }
+
+        return prev;
+      });
+
+      setGroupsOrder((prev) => (prev.includes(finalGroup) ? prev : [...prev, finalGroup]));
+    },
+    [setGroupConfigs, setGroupsOrder],
+  );
 
   const handleAddSegment = useCallback(
     (
@@ -45,11 +70,9 @@ export function useSegmentManagement({
         }
       }
 
-      const randomId = Math.random().toString(36).substring(2, 9);
       const finalGroup = resolveSegmentGroup(group);
-
       const newSeg = {
-        id: randomId,
+        id: createSegmentId(),
         type,
         pin,
         title: title || `کنترل پایه دیجیتال (GPIO ${pin})`,
@@ -59,24 +82,9 @@ export function useSegmentManagement({
         icon,
       };
 
-      setGroupConfigs((prev) => {
-        const current = prev[finalGroup] || { maxCols: 3 };
+      ensureGroupRegistered(finalGroup, groupIcon);
 
-        if (groupIcon && !("icon" in current && current.icon)) {
-          return { ...prev, [finalGroup]: { ...current, icon: groupIcon } };
-        }
-
-        if (!prev[finalGroup]) {
-          return { ...prev, [finalGroup]: current };
-        }
-
-        return prev;
-      });
-
-      setGroupsOrder((prev) => (prev.includes(finalGroup) ? prev : [...prev, finalGroup]));
-
-      const segments = useIoTStore.getState().segments;
-      const updated = [...segments];
+      const updated = [...useIoTStore.getState().segments];
 
       if (targetPlaceholderId) {
         const index = updated.findIndex((s) => s.id === targetPlaceholderId);
@@ -105,17 +113,16 @@ export function useSegmentManagement({
         publishAddSegmentCommand(newSeg.id, newSeg.type, Number(newSeg.pin) | 0, false);
       }
     },
-    [targetPlaceholderId, setGroupConfigs, setGroupsOrder, setSegments, updatePinOnServer],
+    [targetPlaceholderId, ensureGroupRegistered, setSegments, updatePinOnServer],
   );
 
   const handleAddPlaceholder = useCallback(
     (groupId: string) => {
-      const randomId = Math.random().toString(36).substring(2, 9);
       const segments = useIoTStore.getState().segments;
       setSegments([
         ...segments,
         {
-          id: randomId,
+          id: createSegmentId(),
           type: "placeholder",
           pin: "",
           title: "جایگاه خالی",

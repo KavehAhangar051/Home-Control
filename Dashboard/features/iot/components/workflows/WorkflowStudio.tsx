@@ -1,17 +1,18 @@
 "use client";
 
-import { Grid, Lock, Maximize, Minus, Plus, Unlock } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import React from "react";
 import { createPortal } from "react-dom";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
+import { usePortalTarget } from "@/lib/hooks/use-portal-target";
 import { useWorkflowStudio } from "./useWorkflowStudio";
 import WorkflowEmptyState from "./WorkflowEmptyState";
+import WorkflowFooterControls from "./WorkflowFooterControls";
 import WorkflowHeaderBar from "./WorkflowHeaderBar";
 import WorkflowNodeCard from "./WorkflowNodeCard";
-import WorkflowPalettePanel, { WORKFLOW_PALETTE_MIME } from "./WorkflowPalettePanel";
+import WorkflowPalettePanel from "./WorkflowPalettePanel";
+import { WORKFLOW_PALETTE_MIME } from "./workflowPaletteData";
 import WorkflowWiresSvg from "./WorkflowWiresSvg";
 import type { WorkflowPaletteDragPayload } from "./workflowTypes";
 
@@ -27,13 +28,11 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const showToast = useIoTStore((s) => s.showToast);
 
-  const [footerSlot, setFooterSlot] = React.useState<HTMLElement | null>(null);
-
-  React.useEffect(() => {
-    setFooterSlot(document.getElementById("dashboard-footer-center"));
-  }, []);
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const footerSlot = usePortalTarget("dashboard-footer-center");
 
   const studio = useWorkflowStudio({
+    containerRef,
     segments,
     pinsState,
     onSetPinState,
@@ -61,14 +60,14 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
   const handleCanvasDrop = (e: React.DragEvent<HTMLDivElement>) => {
     const raw = e.dataTransfer.getData(WORKFLOW_PALETTE_MIME);
 
-    if (!raw || !studio.containerRef.current) return;
+    if (!raw || !containerRef.current) return;
 
     e.preventDefault();
 
     try {
       // SAFETY: Drag payload is serialized from WorkflowPaletteDragPayload
       const payload = JSON.parse(raw) as WorkflowPaletteDragPayload;
-      const rect = studio.containerRef.current.getBoundingClientRect();
+      const rect = containerRef.current.getBoundingClientRect();
       const worldX = Math.round((e.clientX - rect.left - wf.viewport.x) / wf.viewport.zoom - 110);
       const worldY = Math.round((e.clientY - rect.top - wf.viewport.y) / wf.viewport.zoom - 60);
       studio.handleAddNode(payload, worldX, worldY);
@@ -78,103 +77,16 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
   };
 
   const footerControls = (
-    <div
-      dir="rtl"
-      onPointerDown={(e) => e.stopPropagation()}
-      className={
-        footerSlot
-          ? "pointer-events-auto flex max-w-full items-center justify-center"
-          : "pointer-events-none absolute inset-x-0 bottom-2.5 z-40 flex items-center justify-center px-2"
-      }
-    >
-      <div className="pointer-events-auto flex max-w-full items-center gap-1 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg-solid)]/95 px-2 py-1 text-xs shadow-lg backdrop-blur-xl">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                onClick={() => studio.handleZoomBy(-0.15)}
-                aria-label="کوچک‌نمایی"
-                className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
-              >
-                <Minus className="h-3.5 w-3.5" aria-hidden="true" />
-              </button>
-            }
-          />
-          <TooltipContent>کوچک‌نمایی</TooltipContent>
-        </Tooltip>
-
-        <button
-          type="button"
-          onClick={studio.handleFitView}
-          aria-label="بازنشانی بزرگ‌نمایی"
-          className="inline-flex h-7 min-w-[44px] cursor-pointer items-center justify-center rounded-lg px-1.5 text-[11px] font-bold tabular-nums text-[var(--text-primary)] transition-colors hover:bg-[var(--secondary)]"
-        >
-          {Math.round(wf.viewport.zoom * 100)}%
-        </button>
-
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                onClick={() => studio.handleZoomBy(0.15)}
-                aria-label="بزرگ‌نمایی"
-                className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
-              >
-                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-              </button>
-            }
-          />
-          <TooltipContent>بزرگ‌نمایی</TooltipContent>
-        </Tooltip>
-
-        <button
-          type="button"
-          onClick={studio.handleFitView}
-          aria-label="نمای کلی گره‌ها"
-          className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--secondary)] px-2 text-[11px] font-semibold text-[var(--text-primary)] transition-colors hover:border-[var(--accent3)]"
-        >
-          <Maximize className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span className="hidden md:inline">نمای کلی</span>
-        </button>
-
-        <div className="flex items-center gap-0.5 border-r border-[var(--border-color)] pr-1">
-          <button
-            type="button"
-            aria-pressed={studio.snapToGrid}
-            onClick={() => studio.setSnapToGrid(!studio.snapToGrid)}
-            aria-label="چسبندگی به شبکه"
-            className={`inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors ${
-              studio.snapToGrid
-                ? "bg-[var(--accent3-transparent)] text-[var(--accent3)]"
-                : "text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            <Grid className="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
-
-          <button
-            type="button"
-            aria-pressed={studio.isLocked}
-            onClick={() => studio.setIsLocked(!studio.isLocked)}
-            aria-label={studio.isLocked ? "باز کردن قفل بوم" : "قفل کردن بوم"}
-            className={`inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg px-2 text-[11px] font-semibold transition-colors ${
-              studio.isLocked
-                ? "bg-amber-500/15 text-amber-500"
-                : "text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            {studio.isLocked ? (
-              <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            ) : (
-              <Unlock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            )}
-            <span className="hidden lg:inline">{studio.isLocked ? "قفل" : "آزاد"}</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <WorkflowFooterControls
+      inPortal={Boolean(footerSlot)}
+      zoom={wf.viewport.zoom}
+      snapToGrid={studio.snapToGrid}
+      isLocked={studio.isLocked}
+      onZoomBy={studio.handleZoomBy}
+      onFitView={studio.handleFitView}
+      onToggleSnap={() => studio.setSnapToGrid(!studio.snapToGrid)}
+      onToggleLock={() => studio.setIsLocked(!studio.isLocked)}
+    />
   );
 
   return (
@@ -204,9 +116,9 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
         onAddNode={(payload) => studio.handleAddNode(payload)}
       />
 
-      {/* Empty Canvas Area */}
+      {/* Canvas Area */}
       <section
-        ref={studio.containerRef}
+        ref={containerRef}
         dir="ltr"
         aria-label="بوم طراحی گردش کار"
         onPointerDown={studio.handleCanvasPointerDown}

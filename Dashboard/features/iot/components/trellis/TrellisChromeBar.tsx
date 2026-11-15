@@ -5,6 +5,7 @@ import { ArrowRight, Eye, Layers, LayoutGrid, RotateCcw, ZoomOut } from "lucide-
 import React from "react";
 import { createPortal } from "react-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { usePortalTarget } from "@/lib/hooks/use-portal-target";
 import type { TrellisLayoutPreset } from "./trellisLayout";
 
 interface TrellisChromeBarProps {
@@ -22,11 +23,7 @@ export default function TrellisChromeBar({
   const framed = useWorkspaceSelector((s) => s.framed);
   const hiddenPanels = useWorkspaceSelector((s) => s.hidden);
   const [showHiddenMenu, setShowHiddenMenu] = React.useState(false);
-  const [footerSlot, setFooterSlot] = React.useState<HTMLElement | null>(null);
-
-  React.useEffect(() => {
-    setFooterSlot(document.getElementById("dashboard-footer-center"));
-  }, []);
+  const footerSlot = usePortalTarget("dashboard-footer-center");
 
   const barContent = (
     <div

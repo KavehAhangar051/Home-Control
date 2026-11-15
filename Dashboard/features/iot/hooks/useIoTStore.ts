@@ -7,6 +7,7 @@ import { createSegmentsSlice } from "./store/slices/createSegmentsSlice";
 import { createSyncSlice } from "./store/slices/createSyncSlice";
 import { createSystemSlice } from "./store/slices/createSystemSlice";
 import { createUiSlice } from "./store/slices/createUiSlice";
+import { registerIoTStoreBridge } from "@/features/iot/services/storeBridge";
 import type { IoTStoreState } from "./store/types";
 
 export const useIoTStore = create<IoTStoreState>((...a) => ({
@@ -19,3 +20,5 @@ export const useIoTStore = create<IoTStoreState>((...a) => ({
   ...createMenuSlice(...a),
   ...createAestheticSlice(...a),
 }));
+
+registerIoTStoreBridge(() => useIoTStore.getState());

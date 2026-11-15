@@ -1,10 +1,11 @@
 "use client";
 
 import { FolderPlus, Minus, Plus, RefreshCw, X } from "lucide-react";
+import React from "react";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
 import { getSegmentIcon } from "@/features/iot/utils/icons";
-import { WorkflowCanvasGateDiagram } from "./WorkflowSchematicSymbols";
+import { WorkflowCanvasGateDiagram } from "./WorkflowCanvasGateDiagram";
 import type {
   WorkflowActionMode,
   WorkflowGroupEvalMode,
@@ -45,7 +46,6 @@ export function SegmentNodeBody({
     );
   }
 
-  const SegIcon = getSegmentIcon(linkedSegment.icon);
   const actionMode = node.actionMode ?? "turn_on";
 
   return (
@@ -59,7 +59,10 @@ export function SegmentNodeBody({
                 : "border-[var(--border-color)] bg-[var(--secondary)] text-[var(--text-secondary)]"
             }`}
           >
-            <SegIcon className="h-4 w-4" aria-hidden="true" />
+            {React.createElement(getSegmentIcon(linkedSegment.icon), {
+              className: "h-4 w-4",
+              "aria-hidden": true,
+            })}
           </span>
 
           <div className="min-w-0">
@@ -186,7 +189,6 @@ export function GroupNodeBody({
           </div>
         ) : (
           memberSegments.map((seg) => {
-            const SegIcon = getSegmentIcon(seg.icon);
             const isOn = Boolean(seg.pin && pinsState[seg.pin]);
 
             return (
@@ -195,10 +197,10 @@ export function GroupNodeBody({
                 className="flex items-center justify-between gap-1.5 rounded-md border border-[var(--border-color)]/60 bg-[var(--card-bg-solid)] px-2 py-1"
               >
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <SegIcon
-                    className={`h-3.5 w-3.5 shrink-0 ${isOn ? "text-[var(--accent3)]" : "text-[var(--text-muted)]"}`}
-                    aria-hidden="true"
-                  />
+                  {React.createElement(getSegmentIcon(seg.icon), {
+                    className: `h-3.5 w-3.5 shrink-0 ${isOn ? "text-[var(--accent3)]" : "text-[var(--text-muted)]"}`,
+                    "aria-hidden": true,
+                  })}
                   <span className="truncate text-[11px] font-semibold text-[var(--text-primary)]">
                     {seg.title}
                   </span>

@@ -1,5 +1,6 @@
 import type { Segment, SegmentRule } from "@/features/iot/hooks/store/types";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
+import { CANONICAL_CONFIG_VERSION, createDefaultDeviceInfo } from "../config/defaults";
 import { getCloudflareWorkerUrl } from "./config";
 
 const DEFAULT_SEGMENT_GROUP = "Test";
@@ -35,14 +36,6 @@ export interface CloudflareSerializedConfig extends Omit<EspConfig, "segments"> 
 export type CloudflareRawPayload = Partial<Omit<EspConfig, "automations">> & {
   segments_definition?: EspConfig["segments"];
   automations?: LegacyAutomationRecord[];
-};
-
-const DEFAULT_DEVICE_INFO: EspConfig["device"] = {
-  name: "سامانه مرکزی IoT",
-  chip: "ESP32-S3-WROOM-1",
-  firmware: "v3.4.1-Smart-OS",
-  reboot_count: 0,
-  last_boot: "1970-01-01T00:00:00.000Z",
 };
 
 /**
@@ -206,8 +199,8 @@ function normalizeAutomationRecord(
  */
 export function serializeToCloudflare(config: Partial<EspConfig>): CloudflareSerializedConfig {
   return {
-    version: config.version || "1.2.0",
-    device: config.device || { ...DEFAULT_DEVICE_INFO },
+    version: config.version || CANONICAL_CONFIG_VERSION,
+    device: config.device || createDefaultDeviceInfo(),
     preferences: buildNormalizedPreferences(config.preferences),
     layout: buildNormalizedLayout(config.layout),
     segments_definition: (config.segments || []).map(normalizeSegmentRecord),
@@ -228,8 +221,8 @@ export function deserializeFromCloudflare(cfData: CloudflareRawPayload): EspConf
   const rawSegments = cfData.segments_definition || cfData.segments || [];
 
   return {
-    version: cfData.version || "1.2.0",
-    device: cfData.device || { ...DEFAULT_DEVICE_INFO },
+    version: cfData.version || CANONICAL_CONFIG_VERSION,
+    device: cfData.device || createDefaultDeviceInfo(),
     preferences: buildNormalizedPreferences(cfData.preferences),
     layout: buildNormalizedLayout(cfData.layout),
     segments: rawSegments.map(normalizeSegmentRecord),

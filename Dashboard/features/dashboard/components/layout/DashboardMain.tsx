@@ -8,6 +8,49 @@ import MobileVoiceCommandButton from "../widgets/MobileVoiceCommandButton";
 import DashboardBreadcrumb from "./DashboardBreadcrumb";
 import DashboardWorkspace from "./DashboardWorkspace";
 
+function resolveScrollContainerClass(params: {
+  activeWorkspaceView: string;
+  workspaceDisplayMode: string;
+  activeAutomationsTab: string;
+  hasOrLoadingContent: boolean;
+}): string {
+  const { activeWorkspaceView, workspaceDisplayMode, activeAutomationsTab, hasOrLoadingContent } =
+    params;
+
+  const isHomeCanvas =
+    activeWorkspaceView === "home" && workspaceDisplayMode === "canvas" && hasOrLoadingContent;
+
+  const isWorkflowCanvas =
+    activeWorkspaceView === "automations" && activeAutomationsTab === "workflows";
+
+  if (isHomeCanvas || isWorkflowCanvas) {
+    return "overflow-hidden gap-0 p-0";
+  }
+
+  const isTrellisActive =
+    activeWorkspaceView === "home" && workspaceDisplayMode === "trellis" && hasOrLoadingContent;
+
+  if (isTrellisActive) {
+    return "overflow-hidden gap-3 p-2 md:p-4";
+  }
+
+  return "overflow-y-auto gap-8 p-3 md:p-6 md:pb-8 md:px-8";
+}
+
+function shouldDisplayHomeBanner(params: {
+  activeWorkspaceView: string;
+  hasSegments: boolean;
+  lowDataMode: boolean;
+  manualSaveMode: boolean;
+  unsavedChangesCount: number;
+}): boolean {
+  if (params.activeWorkspaceView !== "home" || !params.hasSegments) {
+    return false;
+  }
+
+  return params.lowDataMode || (params.manualSaveMode && params.unsavedChangesCount > 0);
+}
+
 export default function DashboardMain() {
   const { isFullyReady, refetchIot, triggerCloudflarePush } = useDashboard();
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
@@ -22,12 +65,20 @@ export default function DashboardMain() {
 
   const hasOrLoadingContent = !isFullyReady || hasSegments;
 
-  const isTrellisActive =
-    activeWorkspaceView === "home" && workspaceDisplayMode === "trellis" && hasOrLoadingContent;
+  const scrollModeClass = resolveScrollContainerClass({
+    activeWorkspaceView,
+    workspaceDisplayMode,
+    activeAutomationsTab,
+    hasOrLoadingContent,
+  });
 
-  const isSeamlessCanvasActive =
-    (activeWorkspaceView === "home" && workspaceDisplayMode === "canvas" && hasOrLoadingContent) ||
-    (activeWorkspaceView === "automations" && activeAutomationsTab === "workflows");
+  const showBanner = shouldDisplayHomeBanner({
+    activeWorkspaceView,
+    hasSegments,
+    lowDataMode,
+    manualSaveMode,
+    unsavedChangesCount,
+  });
 
   return (
     <>
@@ -36,26 +87,18 @@ export default function DashboardMain() {
       <div
         id="dashboard-workspace-scroll"
         tabIndex={-1}
-        className={`custom-scrollbar flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col w-full focus:outline-none ${
-          isSeamlessCanvasActive
-            ? "overflow-hidden gap-0 p-0"
-            : isTrellisActive
-              ? "overflow-hidden gap-3 p-2 md:p-4"
-              : "overflow-y-auto gap-8 p-3 md:p-6 md:pb-8 md:px-8"
-        }`}
+        className={`custom-scrollbar flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col w-full focus:outline-none ${scrollModeClass}`}
       >
-        {activeWorkspaceView === "home" &&
-          hasSegments &&
-          (lowDataMode || (manualSaveMode && unsavedChangesCount > 0)) && (
-            <LowDataModeBanner
-              lowDataMode={lowDataMode}
-              animationsEnabled={animationsEnabled}
-              refetchIot={refetchIot}
-              manualSaveMode={manualSaveMode}
-              unsavedChangesCount={unsavedChangesCount}
-              triggerCloudflarePush={triggerCloudflarePush}
-            />
-          )}
+        {showBanner && (
+          <LowDataModeBanner
+            lowDataMode={lowDataMode}
+            animationsEnabled={animationsEnabled}
+            refetchIot={refetchIot}
+            manualSaveMode={manualSaveMode}
+            unsavedChangesCount={unsavedChangesCount}
+            triggerCloudflarePush={triggerCloudflarePush}
+          />
+        )}
 
         <DashboardWorkspace />
       </div>

@@ -1,10 +1,12 @@
 import { debugLog } from "@/lib/debug";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
+import { createTimeoutSignal } from "@/lib/resilience";
 import { audioContextManager } from "./context";
 import { fetchArchivePlaylist, fetchTrackUrl } from "./playlist";
 import type { ArchiveTrackItem, Track } from "./types";
 
 const AUDIO_CACHE_NAME = "home-control-audio-v1";
+const AUDIO_DOWNLOAD_TIMEOUT_MS = 15_000;
 
 export class AmbientManager {
   public ambientAudio: HTMLAudioElement | null = null;
@@ -150,7 +152,13 @@ export class AmbientManager {
         debugLog.info("Audio", "Downloading audio after explicit user playback request.", {
           url: requestUrl,
         });
-        response = await fetch(requestUrl);
+        const timeout = createTimeoutSignal(AUDIO_DOWNLOAD_TIMEOUT_MS);
+
+        try {
+          response = await fetch(requestUrl, { signal: timeout.signal });
+        } finally {
+          timeout.cleanup();
+        }
 
         if (!response.ok) {
           throw new Error(`Audio request failed: ${response.status} ${response.statusText}`);
