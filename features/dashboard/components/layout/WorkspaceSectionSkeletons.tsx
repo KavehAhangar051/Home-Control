@@ -12,19 +12,19 @@ export function FormPanelSkeleton() {
     <div
       dir="rtl"
       aria-busy="true"
-      className="space-y-5 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-4 sm:p-6"
+      className="space-y-5 rounded-xl border border-border-color bg-card-bg p-4 sm:p-6"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {FORM_ROW_SLOTS.map((slot) => (
           <div key={slot} className="space-y-2">
-            <div className="h-3.5 w-24 rounded bg-[var(--text-muted)]/20 animate-pulse" />
-            <div className="h-10 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)]/70 animate-pulse" />
+            <div className="h-3.5 w-24 rounded bg-text-muted/20 animate-pulse" />
+            <div className="h-10 w-full rounded-lg border border-border-color bg-bg-main/70 animate-pulse" />
           </div>
         ))}
       </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-[var(--border-color)] pt-4">
-        <div className="h-9 w-28 rounded-lg bg-[var(--text-muted)]/20 animate-pulse" />
+      <div className="flex items-center justify-end gap-2 border-t border-border-color pt-4">
+        <div className="h-9 w-28 rounded-lg bg-text-muted/20 animate-pulse" />
       </div>
     </div>
   );
@@ -37,26 +37,26 @@ export function ListPanelSkeleton() {
   return (
     <div dir="rtl" aria-busy="true" className="space-y-3">
       <div className="flex items-center justify-between gap-2 pb-1">
-        <div className="h-9 w-48 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)]/70 animate-pulse" />
-        <div className="h-7 w-20 rounded-md bg-[var(--text-muted)]/15 animate-pulse" />
+        <div className="h-9 w-48 rounded-lg border border-border-color bg-bg-main/70 animate-pulse" />
+        <div className="h-7 w-20 rounded-md bg-text-muted/15 animate-pulse" />
       </div>
 
       {LIST_ITEM_SLOTS.map((slot) => (
         <div
           key={slot}
-          className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg-solid)] p-3.5"
+          className="flex items-center justify-between gap-3 rounded-xl border border-border-color bg-card-bg-solid p-3.5"
         >
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 shrink-0 rounded-xl bg-[var(--text-muted)]/20 animate-pulse" />
+            <div className="size-9 shrink-0 rounded-xl bg-text-muted/20 animate-pulse" />
             <div className="space-y-1.5">
-              <div className="h-3.5 w-28 rounded bg-[var(--text-muted)]/20 animate-pulse" />
-              <div className="h-3 w-40 rounded bg-[var(--text-muted)]/15 animate-pulse" />
+              <div className="h-3.5 w-28 rounded bg-text-muted/20 animate-pulse" />
+              <div className="h-3 w-40 rounded bg-text-muted/15 animate-pulse" />
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="h-6 w-11 rounded-md bg-[var(--text-muted)]/20 animate-pulse" />
-            <div className="h-7 w-7 rounded-lg bg-[var(--text-muted)]/15 animate-pulse" />
+            <div className="h-6 w-11 rounded-md bg-text-muted/20 animate-pulse" />
+            <div className="size-7 rounded-lg bg-text-muted/15 animate-pulse" />
           </div>
         </div>
       ))}
@@ -74,15 +74,15 @@ export function WorkspaceSectionSkeleton() {
       aria-busy="true"
       className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 text-right sm:px-6 sm:py-10 lg:py-12"
     >
-      <header className="flex flex-col gap-3 border-b border-[var(--border-color)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-3 border-b border-border-color pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="h-10 w-10 shrink-0 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] animate-pulse" />
+          <div className="size-10 shrink-0 rounded-lg border border-border-color bg-card-bg animate-pulse" />
           <div className="space-y-2">
-            <div className="h-6 w-40 rounded bg-[var(--text-muted)]/20 animate-pulse" />
-            <div className="h-4 w-64 rounded bg-[var(--text-muted)]/15 animate-pulse" />
+            <div className="h-6 w-40 rounded bg-text-muted/20 animate-pulse" />
+            <div className="h-4 w-64 rounded bg-text-muted/15 animate-pulse" />
           </div>
         </div>
-        <div className="h-4 w-24 rounded bg-[var(--text-muted)]/15 animate-pulse" />
+        <div className="h-4 w-24 rounded bg-text-muted/15 animate-pulse" />
       </header>
 
       <FormPanelSkeleton />
@@ -101,17 +101,17 @@ export function WorkflowStudioSkeleton() {
       dir="rtl"
       aria-busy="true"
       aria-label="در حال بارگذاری استودیوی گردش کار"
-      className="relative flex h-full min-h-[480px] w-full flex-1 flex-col overflow-hidden bg-[var(--bg-main)]"
+      className="relative flex h-full min-h-[480px] w-full flex-1 flex-col overflow-hidden bg-bg-main"
     >
       {/* Top Workflow Header Bar Skeleton */}
-      <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-[var(--border-color)] bg-[var(--card-bg-solid)] px-3">
+      <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border-color bg-card-bg-solid px-3">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-24 rounded-lg bg-[var(--text-muted)]/20 animate-pulse" />
-          <div className="h-8 w-32 rounded-lg bg-[var(--text-muted)]/15 animate-pulse" />
+          <div className="h-8 w-24 rounded-lg bg-text-muted/20 animate-pulse" />
+          <div className="h-8 w-32 rounded-lg bg-text-muted/15 animate-pulse" />
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-8 w-20 rounded-lg bg-[var(--text-muted)]/15 animate-pulse" />
-          <div className="h-8 w-20 rounded-lg bg-[var(--text-muted)]/20 animate-pulse" />
+          <div className="h-8 w-20 rounded-lg bg-text-muted/15 animate-pulse" />
+          <div className="h-8 w-20 rounded-lg bg-text-muted/20 animate-pulse" />
         </div>
       </div>
 
@@ -124,27 +124,27 @@ export function WorkflowStudioSkeleton() {
           {WORKFLOW_NODE_SLOTS.map((slot) => (
             <div
               key={slot}
-              className="relative w-60 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg-solid)] shadow-sm"
+              className="relative w-60 rounded-2xl border border-border-color bg-card-bg-solid shadow-sm"
             >
-              <div className="flex h-8 items-center justify-between rounded-t-2xl border-b border-[var(--border-color)]/70 bg-[var(--secondary)]/70 px-3">
-                <div className="h-3.5 w-24 rounded bg-[var(--text-muted)]/20 animate-pulse" />
-                <div className="h-3.5 w-10 rounded bg-[var(--text-muted)]/15 animate-pulse" />
+              <div className="flex h-8 items-center justify-between rounded-t-2xl border-b border-border-color/70 bg-secondary/70 px-3">
+                <div className="h-3.5 w-24 rounded bg-text-muted/20 animate-pulse" />
+                <div className="h-3.5 w-10 rounded bg-text-muted/15 animate-pulse" />
               </div>
               <div className="space-y-2.5 p-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-lg bg-[var(--text-muted)]/20 animate-pulse" />
+                  <div className="size-8 rounded-lg bg-text-muted/20 animate-pulse" />
                   <div className="space-y-1">
-                    <div className="h-3.5 w-24 rounded bg-[var(--text-muted)]/20 animate-pulse" />
-                    <div className="h-2.5 w-16 rounded bg-[var(--text-muted)]/15 animate-pulse" />
+                    <div className="h-3.5 w-24 rounded bg-text-muted/20 animate-pulse" />
+                    <div className="h-2.5 w-16 rounded bg-text-muted/15 animate-pulse" />
                   </div>
                 </div>
-                <div className="h-7 w-full rounded-lg bg-[var(--text-muted)]/15 animate-pulse" />
+                <div className="h-7 w-full rounded-lg bg-text-muted/15 animate-pulse" />
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mx-auto h-9 w-48 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg-solid)]/90 animate-pulse" />
+        <div className="mx-auto h-9 w-48 rounded-2xl border border-border-color bg-card-bg-solid/90 animate-pulse" />
       </div>
     </section>
   );

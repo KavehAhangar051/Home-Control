@@ -1,6 +1,7 @@
 "use client";
 
 import React, { type ErrorInfo, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -79,25 +80,27 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         dir="rtl"
         role="alert"
         aria-live="assertive"
-        className="mx-auto my-6 flex w-full max-w-lg flex-col items-center justify-center gap-3 rounded-2xl border border-red-500/30 bg-[var(--card-bg)] p-6 text-center shadow-sm"
+        className="mx-auto my-6 flex w-full max-w-lg flex-col items-center justify-center gap-3 rounded-2xl border border-destructive/30 bg-card-bg p-6 text-center shadow-sm"
       >
         <div className="space-y-1.5">
-          <h2 className="text-base font-bold text-[var(--text-primary)]">{title}</h2>
-          <p className="text-xs leading-6 text-[var(--text-secondary)]">{description}</p>
+          <h2 className="text-base font-bold text-text-primary">{title}</h2>
+          <p className="text-xs leading-6 text-text-secondary">{description}</p>
           {this.state.errorMessage && (
-            <p className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] px-3 py-1.5 font-mono text-[11px] text-[var(--text-muted)] break-words">
+            <p className="rounded-lg border border-border-color bg-bg-main px-3 py-1.5 font-mono text-[11px] text-text-muted break-words">
               {this.state.errorMessage}
             </p>
           )}
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="accent"
+          size="sm"
           onClick={this.handleReset}
-          className="inline-flex h-9 cursor-pointer items-center justify-center rounded-xl bg-[var(--accent3)] px-4 text-xs font-bold text-[var(--accent3-foreground)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-main)]"
+          className="rounded-xl px-4 font-bold"
         >
           تلاش مجدد
-        </button>
+        </Button>
       </div>
     );
   }

@@ -28,15 +28,15 @@ export default function MobileVoiceCommandButton() {
             onContextMenu={(e) => e.preventDefault()}
             style={{ touchAction: "none" }}
             aria-label="فرمان صوتی (نگه دارید)"
-            className={`sm:hidden fixed bottom-6 left-6 z-50 p-4 rounded-full shadow-lg flex justify-center items-center select-none transition-[background-color,border-color,color,box-shadow] duration-150 ease-out ${
+            className={`sm:hidden fixed bottom-6 left-6 z-50 p-4 rounded-full shadow-lg flex justify-center items-center select-none transition-[background-color,border-color,color,box-shadow] duration-150 ease-out focus-ring ${
               isListening
-                ? "bg-[var(--accent4)] shadow-[0_0_20px_var(--accent4-transparent)] text-white"
-                : "bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] shadow-[0_4px_15px_-5px_var(--border-color)]"
+                ? "bg-accent4 shadow-[0_0_20px_var(--accent4-transparent)] text-white"
+                : "bg-card-bg-solid border border-border-color text-text-secondary shadow-[0_4px_15px_-5px_var(--border-color)]"
             }`}
           >
             <Mic
               strokeWidth={2}
-              className={`w-6 h-6 ${isListening && animationsEnabled ? "animate-pulse" : ""}`}
+              className={`size-6 ${isListening && animationsEnabled ? "animate-pulse" : ""}`}
             />
           </m.button>
         }

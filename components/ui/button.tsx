@@ -1,12 +1,29 @@
 import type * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, disabled } from "@/lib/utils";
 
-type ButtonVariant = "default" | "secondary" | "outline" | "ghost" | "destructive" | "link";
+export type ButtonVariant =
+  | "default"
+  | "accent"
+  | "secondary"
+  | "outline"
+  | "ghost"
+  | "destructive"
+  | "link";
 
-type ButtonSize = "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
+export type ButtonSize =
+  | "default"
+  | "xs"
+  | "sm"
+  | "lg"
+  | "icon"
+  | "icon-xs"
+  | "icon-sm"
+  | "icon-lg";
 
 const variants: Record<ButtonVariant, string> = {
   default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+  accent:
+    "bg-accent3 text-accent3-foreground shadow-xs hover:bg-accent3-dark focus-visible:ring-accent3/40",
   secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
   outline:
     "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
@@ -28,6 +45,29 @@ const sizes: Record<ButtonSize, string> = {
 };
 
 const tapScale = "active:not-disabled:scale-[0.97]";
+
+export interface ButtonVariantsOptions {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  static?: boolean;
+  className?: string;
+}
+
+export function buttonVariants({
+  variant = "default",
+  size = "default",
+  static: isStatic = false,
+  className,
+}: ButtonVariantsOptions = {}): string {
+  return cn(
+    "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[scale,transform,background-color,color,border-color,box-shadow,opacity] duration-150 ease-[var(--ease-out)] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+    disabled,
+    !isStatic && variant !== "link" && tapScale,
+    variants[variant],
+    sizes[size],
+    className,
+  );
+}
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -52,13 +92,7 @@ export function Button({
       data-variant={variant}
       data-size={size}
       type={type}
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[scale,transform,background-color,color,border-color,box-shadow,opacity] duration-150 ease-[var(--ease-out)] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
-        !isStatic && variant !== "link" && tapScale,
-        variants[variant],
-        sizes[size],
-        className,
-      )}
+      className={buttonVariants({ variant, size, static: isStatic, className })}
       {...props}
     />
   );

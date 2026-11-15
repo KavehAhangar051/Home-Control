@@ -116,7 +116,7 @@ export default function MqttSection() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <p className="text-[10px] text-[var(--text-tertiary)] leading-relaxed text-right">
+        <p className="text-[10px] leading-relaxed text-right text-text-tertiary">
           تنظیمات ارتباطی داشبورد با ماژول‌های ESP را مدیریت کنید. پس از ذخیره، اتصال مجدداً برقرار
           می‌شود.
         </p>
@@ -138,22 +138,22 @@ export default function MqttSection() {
 
       <Button
         type="button"
-        variant={isSaved ? "outline" : "default"}
+        variant={isSaved ? "outline" : "accent"}
         onClick={handleSaveAndReconnect}
-        className={`w-full h-auto min-h-12 rounded-xl px-4 py-3.5 text-sm font-bold transition-colors focus-visible:ring-[var(--accent3)] ${
+        className={`w-full h-auto min-h-12 rounded-xl px-4 py-3.5 text-sm font-bold ${
           isSaved
-            ? "border-[var(--accent4)] bg-[var(--accent4-transparent)] text-[var(--accent4)] hover:border-[var(--accent4)] hover:bg-[var(--accent4-transparent)] hover:text-[var(--accent4)]"
-            : "border-transparent bg-[var(--accent3)] text-[var(--bg-main)] shadow-sm hover:bg-[var(--accent3-dark)] hover:text-[var(--bg-main)]"
+            ? "border-accent4 bg-accent4-soft text-accent4 hover:border-accent4 hover:bg-accent4-soft hover:text-accent4"
+            : ""
         }`}
       >
         {isSaved ? (
           <>
-            <Save className="w-4 h-4" />
+            <Save className="size-4" />
             ذخیره شد
           </>
         ) : (
           <>
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="size-4" />
             ذخیره و اتصال مجدد
           </>
         )}

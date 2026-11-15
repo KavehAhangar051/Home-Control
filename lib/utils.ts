@@ -173,3 +173,10 @@ export function cn(...inputs: Array<string | false | null | undefined>): string 
 
   return result.filter(Boolean).join(" ");
 }
+
+/** Shared accessible keyboard focus ring classes backed by semantic design tokens. */
+export const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset";
+
+/** Shared disabled interaction utility classes. */
+export const disabled = "disabled:pointer-events-none disabled:opacity-50";

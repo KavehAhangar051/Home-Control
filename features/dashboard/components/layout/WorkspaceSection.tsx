@@ -132,23 +132,19 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
       className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 text-right sm:px-6 sm:py-10 lg:py-12"
       dir="rtl"
     >
-      <header className="flex flex-col gap-3 border-b border-[var(--border-color)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-3 border-b border-border-color pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] text-[var(--accent3)]">
-            <Icon className="h-5 w-5" aria-hidden="true" />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border-color bg-card-bg text-accent3">
+            <Icon className="size-5" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl font-bold leading-7 text-balance text-[var(--text-primary)] sm:text-2xl">
+            <h1 className="text-xl font-bold leading-7 text-balance text-text-primary sm:text-2xl">
               {meta.title}
             </h1>
-            <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-              {meta.description}
-            </p>
+            <p className="mt-1 text-sm leading-6 text-text-secondary">{meta.description}</p>
           </div>
         </div>
-        <span className="text-xs font-medium text-[var(--text-secondary)]">
-          {activeSubsectionTitle}
-        </span>
+        <span className="text-xs font-medium text-text-secondary">{activeSubsectionTitle}</span>
       </header>
 
       {view === "modules" && <ModulesWorkspace />}
