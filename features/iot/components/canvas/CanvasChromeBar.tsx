@@ -11,9 +11,9 @@ import {
   RotateCcw,
   Unlock,
 } from "lucide-react";
-import React from "react";
 import { createPortal } from "react-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { usePortalTarget } from "@/lib/hooks/use-portal-target";
 import type { CanvasSubMode } from "./canvasTypes";
 import type { CanvasWorkspaceScope } from "./useCanvasController";
 
@@ -46,11 +46,7 @@ export default function CanvasChromeBar({
   onToggleLock,
   onResetLayout,
 }: CanvasChromeBarProps) {
-  const [footerSlot, setFooterSlot] = React.useState<HTMLElement | null>(null);
-
-  React.useEffect(() => {
-    setFooterSlot(document.getElementById("dashboard-footer-center"));
-  }, []);
+  const footerSlot = usePortalTarget("dashboard-footer-center");
 
   const barContent = (
     <div

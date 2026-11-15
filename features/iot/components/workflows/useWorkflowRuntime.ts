@@ -9,8 +9,37 @@ export interface UseWorkflowRuntimeOptions {
   activeWorkflow: WorkflowDefinition | null;
   segments: Segment[];
   pinsState: Record<string, boolean>;
-  onSetPinState: (pin: string, state: boolean, preventMqtt?: boolean) => void;
+  dispatchPinState: (pin: string, state: boolean, preventMqtt?: boolean) => void;
   showToast?: (msg: string, type: "success" | "error") => void;
+}
+
+interface ScopedState<T> {
+  workflowId: string | null;
+  value: T;
+}
+
+const EMPTY_PULSE_IDS = new Set<string>();
+const EMPTY_TIMER_OUTPUTS = new Map<string, boolean>();
+const EMPTY_TIMER_COUNTDOWNS = new Map<string, number>();
+
+function pruneStaleTimerLatches(latchedIds: Set<string>, triggeredTimerIds: string[]): void {
+  const currentlyTriggeredSet = new Set(triggeredTimerIds);
+
+  for (const latchedId of Array.from(latchedIds)) {
+    if (!currentlyTriggeredSet.has(latchedId)) {
+      latchedIds.delete(latchedId);
+    }
+  }
+}
+
+function buildWorkflowNodeMap(nodes: WorkflowNode[]): Map<string, WorkflowNode> {
+  const nodeById = new Map<string, WorkflowNode>();
+
+  for (const node of nodes) {
+    nodeById.set(node.id, node);
+  }
+
+  return nodeById;
 }
 
 /**
@@ -22,26 +51,55 @@ export function useWorkflowRuntime({
   activeWorkflow,
   segments,
   pinsState,
-  onSetPinState,
+  dispatchPinState,
   showToast,
 }: UseWorkflowRuntimeOptions) {
-  const [manualPulseIds, setManualPulseIds] = React.useState<Set<string>>(() => new Set());
-  const [timerOutputs, setTimerOutputs] = React.useState<Map<string, boolean>>(() => new Map());
+  const activeWorkflowId = activeWorkflow?.id ?? null;
 
-  const [timerCountdowns, setTimerCountdowns] = React.useState<Map<string, number>>(
-    () => new Map(),
-  );
+  const [manualPulseState, setManualPulseState] = React.useState<ScopedState<Set<string>>>(() => ({
+    workflowId: null,
+    value: new Set(),
+  }));
+
+  const [timerOutputsState, setTimerOutputsState] = React.useState<
+    ScopedState<Map<string, boolean>>
+  >(() => ({
+    workflowId: null,
+    value: new Map(),
+  }));
+
+  const [timerCountdownsState, setTimerCountdownsState] = React.useState<
+    ScopedState<Map<string, number>>
+  >(() => ({
+    workflowId: null,
+    value: new Map(),
+  }));
 
   const [scheduleNow, setScheduleNow] = React.useState<Date>(() => new Date());
+
+  const manualPulseIds =
+    manualPulseState.workflowId === activeWorkflowId ? manualPulseState.value : EMPTY_PULSE_IDS;
+
+  const timerOutputs =
+    timerOutputsState.workflowId === activeWorkflowId
+      ? timerOutputsState.value
+      : EMPTY_TIMER_OUTPUTS;
+
+  const timerCountdowns =
+    timerCountdownsState.workflowId === activeWorkflowId
+      ? timerCountdownsState.value
+      : EMPTY_TIMER_COUNTDOWNS;
 
   const activeTimersRef = React.useRef<Map<string, number>>(new Map());
   const activeTimeoutsRef = React.useRef<Set<number>>(new Set());
   const latchedTimerInputsRef = React.useRef<Set<string>>(new Set());
   const activeToggleNodesRef = React.useRef<Set<string>>(new Set());
   const lastDispatchedSignatureRef = React.useRef("");
-  const activeWorkflowId = activeWorkflow?.id ?? null;
   const activeWorkflowIdRef = React.useRef<string | null>(activeWorkflowId);
-  activeWorkflowIdRef.current = activeWorkflowId;
+
+  React.useEffect(() => {
+    activeWorkflowIdRef.current = activeWorkflowId;
+  }, [activeWorkflowId]);
 
   const clearRuntimeResources = React.useCallback(() => {
     for (const timerId of activeTimersRef.current.values()) {
@@ -60,16 +118,10 @@ export function useWorkflowRuntime({
     lastDispatchedSignatureRef.current = "";
   }, []);
 
-  // Reset and isolate runtime state whenever the active workflow changes or unmounts
+  // Clean up timer intervals/timeouts whenever the active workflow changes or unmounts
   React.useEffect(() => {
+    void activeWorkflowId;
     clearRuntimeResources();
-    setManualPulseIds(new Set());
-    setTimerOutputs(new Map());
-    setTimerCountdowns(new Map());
-
-    if (activeWorkflowId !== undefined) {
-      setScheduleNow(new Date());
-    }
 
     return () => {
       clearRuntimeResources();
@@ -122,6 +174,44 @@ export function useWorkflowRuntime({
     activeTimeoutsRef.current.add(timeoutId);
   }, []);
 
+  const schedulePulseClear = React.useCallback(
+    (ownerWorkflowId: string | null, nodeIds: Iterable<string>) => {
+      const idsToClear = Array.from(nodeIds);
+      scheduleTimeout(() => {
+        if (activeWorkflowIdRef.current !== ownerWorkflowId) return;
+
+        setManualPulseState((prev) => {
+          const base = prev.workflowId === ownerWorkflowId ? prev.value : new Set<string>();
+          const next = new Set(base);
+
+          for (const id of idsToClear) {
+            next.delete(id);
+          }
+
+          return { workflowId: ownerWorkflowId, value: next };
+        });
+      }, 1500);
+    },
+    [scheduleTimeout],
+  );
+
+  const updateScopedMap = React.useCallback(
+    <V>(
+      setter: React.Dispatch<React.SetStateAction<ScopedState<Map<string, V>>>>,
+      ownerWorkflowId: string | null,
+      mutate: (next: Map<string, V>) => void,
+    ) => {
+      setter((prev) => {
+        const base = prev.workflowId === ownerWorkflowId ? prev.value : new Map<string, V>();
+        const next = new Map(base);
+        mutate(next);
+
+        return { workflowId: ownerWorkflowId, value: next };
+      });
+    },
+    [],
+  );
+
   const startTimerNode = React.useCallback(
     (node: WorkflowNode) => {
       if (activeTimersRef.current.has(node.id) || globalThis.window === undefined) return;
@@ -131,20 +221,14 @@ export function useWorkflowRuntime({
       const mode = node.timerMode ?? "delay";
 
       if (mode === "hold") {
-        setTimerOutputs((prev) => {
-          const next = new Map(prev);
+        updateScopedMap(setTimerOutputsState, ownerWorkflowId, (next) => {
           next.set(node.id, true);
-
-          return next;
         });
       }
 
       let remaining = duration;
-      setTimerCountdowns((prev) => {
-        const next = new Map(prev);
+      updateScopedMap(setTimerCountdownsState, ownerWorkflowId, (next) => {
         next.set(node.id, remaining);
-
-        return next;
       });
 
       const intervalId = globalThis.window.setInterval(() => {
@@ -158,11 +242,8 @@ export function useWorkflowRuntime({
         remaining -= 1;
 
         if (remaining > 0) {
-          setTimerCountdowns((prev) => {
-            const next = new Map(prev);
+          updateScopedMap(setTimerCountdownsState, ownerWorkflowId, (next) => {
             next.set(node.id, remaining);
-
-            return next;
           });
 
           return;
@@ -170,29 +251,20 @@ export function useWorkflowRuntime({
 
         globalThis.window.clearInterval(intervalId);
         activeTimersRef.current.delete(node.id);
-        setTimerCountdowns((prev) => {
-          const next = new Map(prev);
+        updateScopedMap(setTimerCountdownsState, ownerWorkflowId, (next) => {
           next.delete(node.id);
-
-          return next;
         });
 
-        setTimerOutputs((prev) => {
-          const next = new Map(prev);
+        updateScopedMap(setTimerOutputsState, ownerWorkflowId, (next) => {
           next.set(node.id, mode === "delay");
-
-          return next;
         });
 
         if (mode === "delay") {
           scheduleTimeout(() => {
             if (activeWorkflowIdRef.current !== ownerWorkflowId) return;
 
-            setTimerOutputs((prev) => {
-              const next = new Map(prev);
+            updateScopedMap(setTimerOutputsState, ownerWorkflowId, (next) => {
               next.delete(node.id);
-
-              return next;
             });
           }, 1200);
         }
@@ -200,7 +272,7 @@ export function useWorkflowRuntime({
 
       activeTimersRef.current.set(node.id, intervalId);
     },
-    [scheduleTimeout],
+    [scheduleTimeout, updateScopedMap],
   );
 
   // Reactive execution when active workflow is enabled or manual pulse fires
@@ -217,23 +289,19 @@ export function useWorkflowRuntime({
       return;
     }
 
-    // Rising-edge timer latch: prevent continuous input (e.g. active schedule minute) from re-triggering delay loops
-    const currentlyTriggeredSet = new Set(evaluation.triggeredTimerIds);
+    // Rising-edge timer latch: prevent continuous input from re-triggering delay loops
+    pruneStaleTimerLatches(latchedTimerInputsRef.current, evaluation.triggeredTimerIds);
 
-    for (const latchedId of Array.from(latchedTimerInputsRef.current)) {
-      if (!currentlyTriggeredSet.has(latchedId)) {
-        latchedTimerInputsRef.current.delete(latchedId);
-      }
-    }
+    const nodeById = buildWorkflowNodeMap(activeWorkflow.nodes);
 
     for (const timerNodeId of evaluation.triggeredTimerIds) {
       if (latchedTimerInputsRef.current.has(timerNodeId)) continue;
 
-      const node = activeWorkflow.nodes.find((n) => n.id === timerNodeId);
+      const node = nodeById.get(timerNodeId);
 
       if (node) {
         latchedTimerInputsRef.current.add(timerNodeId);
-        startTimerNode(node);
+        scheduleTimeout(() => startTimerNode(node), 0);
       }
     }
 
@@ -252,7 +320,7 @@ export function useWorkflowRuntime({
         nextActiveToggles.add(act.nodeId);
 
         if (!activeToggleNodesRef.current.has(act.nodeId)) {
-          onSetPinState(act.targetPin, act.actionOn);
+          dispatchPinState(act.targetPin, act.actionOn);
         }
       } else {
         signatureParts.push(`${act.targetPin}:${act.actionOn ? "1" : "0"}`);
@@ -275,16 +343,17 @@ export function useWorkflowRuntime({
 
     for (const act of evaluation.pendingActions) {
       if (act.actionMode !== "toggle" && Boolean(pinsState[act.targetPin]) !== act.actionOn) {
-        onSetPinState(act.targetPin, act.actionOn);
+        dispatchPinState(act.targetPin, act.actionOn);
       }
     }
   }, [
     activeWorkflow,
+    dispatchPinState,
     evaluation.pendingActions,
     evaluation.triggeredTimerIds,
     manualPulseIds.size,
-    onSetPinState,
     pinsState,
+    scheduleTimeout,
     startTimerNode,
   ]);
 
@@ -292,25 +361,17 @@ export function useWorkflowRuntime({
     (nodeId: string) => {
       const ownerWorkflowId = activeWorkflowIdRef.current;
 
-      setManualPulseIds((prev) => {
-        const next = new Set(prev);
+      setManualPulseState((prev) => {
+        const base = prev.workflowId === ownerWorkflowId ? prev.value : new Set<string>();
+        const next = new Set(base);
         next.add(nodeId);
 
-        return next;
+        return { workflowId: ownerWorkflowId, value: next };
       });
 
-      scheduleTimeout(() => {
-        if (activeWorkflowIdRef.current !== ownerWorkflowId) return;
-
-        setManualPulseIds((prev) => {
-          const next = new Set(prev);
-          next.delete(nodeId);
-
-          return next;
-        });
-      }, 1500);
+      schedulePulseClear(ownerWorkflowId, [nodeId]);
     },
-    [scheduleTimeout],
+    [schedulePulseClear],
   );
 
   const handleRunTest = React.useCallback(() => {
@@ -321,6 +382,7 @@ export function useWorkflowRuntime({
     setScheduleNow(now);
 
     const triggerIds = new Set<string>();
+    const nodeById = buildWorkflowNodeMap(activeWorkflow.nodes);
 
     for (const node of activeWorkflow.nodes) {
       if (node.kind === "trigger_manual" || node.kind === "trigger_schedule") {
@@ -329,20 +391,8 @@ export function useWorkflowRuntime({
     }
 
     if (triggerIds.size > 0) {
-      setManualPulseIds(triggerIds);
-      scheduleTimeout(() => {
-        if (activeWorkflowIdRef.current !== ownerWorkflowId) return;
-
-        setManualPulseIds((prev) => {
-          const next = new Set(prev);
-
-          for (const id of triggerIds) {
-            next.delete(id);
-          }
-
-          return next;
-        });
-      }, 1500);
+      setManualPulseState({ workflowId: ownerWorkflowId, value: triggerIds });
+      schedulePulseClear(ownerWorkflowId, triggerIds);
       showToast?.("گردش کار ارزیابی و اجرا شد.", "success");
 
       return;
@@ -358,23 +408,23 @@ export function useWorkflowRuntime({
     });
 
     for (const timerId of summary.triggeredTimerIds) {
-      const node = activeWorkflow.nodes.find((n) => n.id === timerId);
+      const node = nodeById.get(timerId);
 
       if (node) startTimerNode(node);
     }
 
     for (const act of summary.pendingActions) {
       if (Boolean(pinsState[act.targetPin]) !== act.actionOn) {
-        onSetPinState(act.targetPin, act.actionOn);
+        dispatchPinState(act.targetPin, act.actionOn);
       }
     }
 
     showToast?.("گردش کار ارزیابی و اجرا شد.", "success");
   }, [
     activeWorkflow,
-    onSetPinState,
+    dispatchPinState,
     pinsState,
-    scheduleTimeout,
+    schedulePulseClear,
     segments,
     showToast,
     startTimerNode,

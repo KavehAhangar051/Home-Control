@@ -2,6 +2,7 @@ import type { PointerEvent } from "react";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useVoiceCommand } from "@/features/iot/hooks/useVoiceCommand";
+import { debugLog } from "@/lib/debug";
 import { executeVoiceCommand } from "./utils";
 
 export interface UseVoiceCommandHandlerOptions {
@@ -47,7 +48,9 @@ export function useVoiceCommandHandler(options: UseVoiceCommandHandlerOptions = 
 
     try {
       e.currentTarget.releasePointerCapture?.(e.pointerId);
-    } catch {}
+    } catch (error) {
+      debugLog.warn("VoiceCommand", "Pointer capture was already released.", error);
+    }
 
     stopListening();
   };

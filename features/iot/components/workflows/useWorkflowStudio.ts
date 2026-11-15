@@ -3,6 +3,7 @@
 import React from "react";
 import { useSheetViewportGestures } from "@/features/iot/components/canvas/useSheetViewportGestures";
 import type { Segment } from "@/features/iot/hooks/store/types";
+import { useMediaQuery } from "@/features/iot/hooks/useMediaQuery";
 import { type ConnectingWireDraft, useWorkflowInteractions } from "./useWorkflowInteractions";
 import { useWorkflowRuntime } from "./useWorkflowRuntime";
 import {
@@ -26,7 +27,50 @@ import type {
 
 export type { ConnectingWireDraft };
 
+const DEFAULT_VIEWPORT: WorkflowViewport = { x: 48, y: 48, zoom: 1 };
+
+function normalizeWorkflowNodesList(
+  nodes: WorkflowNode[],
+  shouldSnap: boolean,
+): { nodes: WorkflowNode[]; changed: boolean } {
+  let changed = false;
+  const normalizedNodes: WorkflowNode[] = [];
+
+  for (const n of nodes) {
+    const snapped = shouldSnap ? snapWorkflowNodeToGrid(n) : n;
+    const nextLabel = normalizeWorkflowNodeLabel(snapped);
+
+    if (
+      snapped.x !== n.x ||
+      snapped.y !== n.y ||
+      snapped.width !== n.width ||
+      snapped.height !== n.height ||
+      nextLabel !== n.label
+    ) {
+      changed = true;
+    }
+
+    normalizedNodes.push(nextLabel !== snapped.label ? { ...snapped, label: nextLabel } : snapped);
+  }
+
+  return { nodes: normalizedNodes, changed };
+}
+
+function normalizeStoredStudioState(state: WorkflowStudioState): WorkflowStudioState {
+  let anyChanged = false;
+  const workflows = state.workflows.map((wf) => {
+    const { nodes, changed } = normalizeWorkflowNodesList(wf.nodes, true);
+    if (!changed) return wf;
+    anyChanged = true;
+
+    return { ...wf, nodes };
+  });
+
+  return anyChanged ? { ...state, workflows } : state;
+}
+
 interface UseWorkflowStudioOptions {
+  containerRef: React.RefObject<HTMLDivElement | null>;
   segments: Segment[];
   pinsState: Record<string, boolean>;
   onSetPinState: (pin: string, state: boolean, preventMqtt?: boolean) => void;
@@ -34,25 +78,33 @@ interface UseWorkflowStudioOptions {
 }
 
 export function useWorkflowStudio({
+  containerRef,
   segments,
   pinsState,
   onSetPinState,
   showToast,
 }: UseWorkflowStudioOptions) {
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const [studioState, setStudioState] = React.useState<WorkflowStudioState>(() =>
-    readStoredWorkflowState(),
+    normalizeStoredStudioState(readStoredWorkflowState()),
   );
 
-  const studioRef = React.useRef(studioState);
-  studioRef.current = studioState;
+  const [paletteOverride, setPaletteOverride] = React.useState<boolean | null>(null);
+  const isPaletteOpen = paletteOverride ?? isDesktop;
 
-  const [isPaletteOpen, setIsPaletteOpen] = React.useState(() =>
-    globalThis.window !== undefined ? globalThis.window.innerWidth >= 768 : true,
+  const setIsPaletteOpen = React.useCallback(
+    (value: React.SetStateAction<boolean>) => {
+      setPaletteOverride((prev) => {
+        const current = prev ?? isDesktop;
+
+        return typeof value === "function" ? value(current) : value;
+      });
+    },
+    [isDesktop],
   );
 
-  const [snapToGrid, setSnapToGrid] = React.useState(true);
+  const [snapToGrid, setSnapToGridState] = React.useState(true);
   const [isLocked, setIsLocked] = React.useState(false);
   const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = React.useState<string | null>(null);
@@ -69,18 +121,6 @@ export function useWorkflowStudio({
     writeStoredWorkflowState(studioState);
   }, [studioState]);
 
-  const persistState = React.useCallback(
-    (updater: (prev: WorkflowStudioState) => WorkflowStudioState) => {
-      setStudioState((prev) => {
-        const next = updater(prev);
-        studioRef.current = next;
-
-        return next;
-      });
-    },
-    [],
-  );
-
   const activeWorkflow = React.useMemo<WorkflowDefinition | null>(() => {
     if (studioState.workflows.length === 0) return null;
 
@@ -92,17 +132,16 @@ export function useWorkflowStudio({
   }, [studioState.workflows, studioState.activeWorkflowId]);
 
   const activeWorkflowRef = React.useRef(activeWorkflow);
-  activeWorkflowRef.current = activeWorkflow;
+  const viewportRef = React.useRef<WorkflowViewport>(activeWorkflow?.viewport ?? DEFAULT_VIEWPORT);
 
-  const viewportRef = React.useRef<WorkflowViewport>(
-    activeWorkflow?.viewport ?? { x: 48, y: 48, zoom: 1 },
-  );
-
-  viewportRef.current = activeWorkflow?.viewport ?? { x: 48, y: 48, zoom: 1 };
+  React.useEffect(() => {
+    activeWorkflowRef.current = activeWorkflow;
+    viewportRef.current = activeWorkflow?.viewport ?? DEFAULT_VIEWPORT;
+  }, [activeWorkflow]);
 
   const updateActiveWorkflow = React.useCallback(
     (updater: (wf: WorkflowDefinition) => WorkflowDefinition) => {
-      persistState((prev) => {
+      setStudioState((prev) => {
         const targetId = prev.activeWorkflowId ?? prev.workflows[0]?.id;
 
         if (!targetId) return prev;
@@ -126,57 +165,33 @@ export function useWorkflowStudio({
         };
       });
     },
-    [persistState],
+    [],
   );
 
   const setViewport = React.useCallback(
     (updater: WorkflowViewport | ((prev: WorkflowViewport) => WorkflowViewport)) => {
-      updateActiveWorkflow((wf) => {
-        const nextVp = updater instanceof Function ? updater(wf.viewport) : updater;
-        viewportRef.current = nextVp;
-
-        return {
-          ...wf,
-          viewport: nextVp,
-        };
-      });
+      updateActiveWorkflow((wf) => ({
+        ...wf,
+        viewport: updater instanceof Function ? updater(wf.viewport) : updater,
+      }));
     },
     [updateActiveWorkflow],
   );
 
-  // Align any legacy/off-grid workflow nodes onto the 16px lattice and normalize legacy gate labels
-  React.useEffect(() => {
-    if (!activeWorkflow) return;
+  const setSnapToGrid = React.useCallback(
+    (nextSnap: boolean) => {
+      setSnapToGridState(nextSnap);
 
-    let hasChanges = false;
-    const normalizedNodes: WorkflowNode[] = [];
+      if (!nextSnap) return;
 
-    for (const n of activeWorkflow.nodes) {
-      const snapped = snapToGrid ? snapWorkflowNodeToGrid(n) : n;
-      const nextLabel = normalizeWorkflowNodeLabel(snapped);
+      updateActiveWorkflow((wf) => {
+        const { nodes, changed } = normalizeWorkflowNodesList(wf.nodes, true);
 
-      if (
-        snapped.x !== n.x ||
-        snapped.y !== n.y ||
-        snapped.width !== n.width ||
-        snapped.height !== n.height ||
-        nextLabel !== n.label
-      ) {
-        hasChanges = true;
-      }
-
-      normalizedNodes.push(
-        nextLabel !== snapped.label ? { ...snapped, label: nextLabel } : snapped,
-      );
-    }
-
-    if (!hasChanges) return;
-
-    updateActiveWorkflow((wf) => ({
-      ...wf,
-      nodes: normalizedNodes,
-    }));
-  }, [snapToGrid, activeWorkflow, updateActiveWorkflow]);
+        return changed ? { ...wf, nodes } : wf;
+      });
+    },
+    [updateActiveWorkflow],
+  );
 
   const handleUpdateNode = React.useCallback(
     (nodeId: string, patch: Partial<WorkflowNode>) => {
@@ -239,21 +254,21 @@ export function useWorkflowStudio({
       activeWorkflow,
       segments,
       pinsState,
-      onSetPinState,
+      dispatchPinState: onSetPinState,
       showToast,
     });
 
   const handleStartDesigningFirstWorkflow = React.useCallback(() => {
     const first = createEmptyWorkflow("گردش کار ۱");
-    persistState(() => ({
+    setStudioState({
       workflows: [first],
       activeWorkflowId: first.id,
-    }));
-    setIsPaletteOpen(true);
-  }, [persistState]);
+    });
+    setPaletteOverride(true);
+  }, []);
 
   const handleCreateWorkflow = React.useCallback(() => {
-    persistState((prev) => {
+    setStudioState((prev) => {
       const next = createEmptyWorkflow(`گردش کار ${prev.workflows.length + 1}`);
 
       return {
@@ -263,42 +278,39 @@ export function useWorkflowStudio({
     });
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
-  }, [persistState]);
+  }, []);
 
   const handleSelectWorkflow = React.useCallback(
     (id: string) => {
       setSelectedNodeId(null);
       setSelectedEdgeId(null);
       setConnectingFromId(null);
-      persistState((prev) => ({
+      setStudioState((prev) => ({
         ...prev,
         activeWorkflowId: id,
       }));
     },
-    [persistState, setConnectingFromId],
+    [setConnectingFromId],
   );
 
-  const handleRenameWorkflow = React.useCallback(
-    (id: string, name: string) => {
-      persistState((prev) => {
-        const nextList: WorkflowDefinition[] = [];
+  const handleRenameWorkflow = React.useCallback((id: string, name: string) => {
+    setStudioState((prev) => {
+      const nextList: WorkflowDefinition[] = [];
 
-        for (const wf of prev.workflows) {
-          nextList.push(wf.id === id ? { ...wf, name, updatedAt: Date.now() } : wf);
-        }
+      for (const wf of prev.workflows) {
+        nextList.push(wf.id === id ? { ...wf, name, updatedAt: Date.now() } : wf);
+      }
 
-        return { ...prev, workflows: nextList };
-      });
-    },
-    [persistState],
-  );
+      return { ...prev, workflows: nextList };
+    });
+  }, []);
 
   const handleDeleteWorkflow = React.useCallback(
     (id: string) => {
       setSelectedNodeId(null);
       setSelectedEdgeId(null);
       setConnectingFromId(null);
-      persistState((prev) => {
+      setStudioState((prev) => {
         const remaining: WorkflowDefinition[] = [];
 
         for (const wf of prev.workflows) {
@@ -311,23 +323,20 @@ export function useWorkflowStudio({
         };
       });
     },
-    [persistState, setConnectingFromId],
+    [setConnectingFromId],
   );
 
-  const handleToggleEnabled = React.useCallback(
-    (id: string, enabled: boolean) => {
-      persistState((prev) => {
-        const nextList: WorkflowDefinition[] = [];
+  const handleToggleEnabled = React.useCallback((id: string, enabled: boolean) => {
+    setStudioState((prev) => {
+      const nextList: WorkflowDefinition[] = [];
 
-        for (const wf of prev.workflows) {
-          nextList.push(wf.id === id ? { ...wf, enabled, updatedAt: Date.now() } : wf);
-        }
+      for (const wf of prev.workflows) {
+        nextList.push(wf.id === id ? { ...wf, enabled, updatedAt: Date.now() } : wf);
+      }
 
-        return { ...prev, workflows: nextList };
-      });
-    },
-    [persistState],
-  );
+      return { ...prev, workflows: nextList };
+    });
+  }, []);
 
   const handleAddNode = React.useCallback(
     (payload: WorkflowPaletteDragPayload, dropWorldX?: number, dropWorldY?: number) => {
@@ -359,11 +368,11 @@ export function useWorkflowStudio({
       }));
       setSelectedNodeId(newNode.id);
 
-      if (globalThis.window !== undefined && globalThis.window.innerWidth < 768) {
-        setIsPaletteOpen(false);
+      if (!isDesktop) {
+        setPaletteOverride(false);
       }
     },
-    [activeWorkflow, containerSize, segments, snapToGrid, updateActiveWorkflow],
+    [activeWorkflow, containerSize, isDesktop, segments, snapToGrid, updateActiveWorkflow],
   );
 
   const handleDeleteNode = React.useCallback(
@@ -416,7 +425,7 @@ export function useWorkflowStudio({
     const w = el ? el.clientWidth : containerSize.width;
     const h = el ? el.clientHeight : containerSize.height;
     setViewport(computeFitWorkflowViewport(activeWorkflow.nodes, w, h));
-  }, [activeWorkflow, containerSize.height, containerSize.width, setViewport]);
+  }, [activeWorkflow, containerRef, containerSize.height, containerSize.width, setViewport]);
 
   const backgroundGridStyle = React.useMemo(() => {
     const vp = activeWorkflow?.viewport ?? { x: 0, y: 0, zoom: 1 };
@@ -425,7 +434,6 @@ export function useWorkflowStudio({
   }, [activeWorkflow?.viewport]);
 
   return {
-    containerRef,
     workflows: studioState.workflows,
     activeWorkflow,
     isPaletteOpen,

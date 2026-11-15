@@ -6,6 +6,7 @@ import {
   isCloudflareEnabled,
   saveConfigToCloudflare,
 } from "@/features/iot/services/cloudflareService";
+import { CANONICAL_CONFIG_VERSION, createDefaultDeviceInfo } from "@/features/iot/services/config/defaults";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
 
 export type EspConfigBuildSource = Pick<
@@ -50,14 +51,8 @@ export function buildEspConfig(params: EspConfigBuildSource): EspConfig {
   const accessPoint = apIsCleared || apIsValid ? apConfig : undefined;
 
   return {
-    version: "1.2.0",
-    device: {
-      name: "سامانه مرکزی IoT",
-      chip: "ESP32-S3-WROOM-1",
-      firmware: "v3.4.1-Smart-OS",
-      reboot_count: 0,
-      last_boot: "1970-01-01T00:00:00.000Z",
-    },
+    version: CANONICAL_CONFIG_VERSION,
+    device: createDefaultDeviceInfo(),
     preferences: {
       theme_mode: params.isDark ? "dark" : "light",
       accent_color_3: params.accent3,
@@ -97,39 +92,63 @@ export interface PersistStoreConfigOptions {
   overrides?: Partial<EspConfigBuildSource>;
   successToast?: string;
   errorToast?: string;
+  saveFn?: (config: EspConfig) => Promise<AckResult>;
+  isEnabledFn?: () => boolean;
 }
 
+let persistGeneration = 0;
+let configSaveQueue: Promise<void> = Promise.resolve();
+
 /**
- * Deep persistence operation: builds the canonical EspConfig from current store state,
- * saves it to Cloudflare, resets unsaved change counters on success, and dispatches toast feedback.
+ * Serialized, monotonic configuration persistence operation (DDIA lost-update guard):
+ * Builds the canonical EspConfig from the freshest store snapshot at execution time,
+ * serializes overlapping HTTP writes so out-of-order responses never overwrite newer KV state,
+ * and only clears `unsavedChangesCount` when no newer save request superseded the write.
  */
 export async function persistStoreConfigToCloudflare(
   options?: PersistStoreConfigOptions,
 ): Promise<{ result: AckResult; signature: string }> {
-  const latestState = useIoTStore.getState();
+  const myGeneration = ++persistGeneration;
+  const checkEnabled = options?.isEnabledFn ?? isCloudflareEnabled;
+  const executeSave = options?.saveFn ?? saveConfigToCloudflare;
 
-  const snapshotToSave = buildEspConfig({
-    ...latestState,
-    ...options?.overrides,
-  });
+  const runPersist = async (): Promise<{ result: AckResult; signature: string }> => {
+    const latestState = useIoTStore.getState();
 
-  const signature = JSON.stringify(snapshotToSave);
+    const snapshotToSave = buildEspConfig({
+      ...latestState,
+      ...options?.overrides,
+    });
 
-  if (!isCloudflareEnabled()) {
-    return {
-      result: { success: false, message: "اتصال کلودفلر غیرفعال است." },
-      signature,
-    };
-  }
+    const signature = JSON.stringify(snapshotToSave);
 
-  const result = await saveConfigToCloudflare(snapshotToSave);
+    if (!checkEnabled()) {
+      return {
+        result: { success: false, message: "اتصال کلودفلر غیرفعال است." },
+        signature,
+      };
+    }
 
-  if (result.success) {
-    latestState.resetUnsavedChanges();
-    latestState.showToast(options?.successToast || result.message, "success");
-  } else {
-    latestState.showToast(options?.errorToast || result.message, "error");
-  }
+    const result = await executeSave(snapshotToSave);
 
-  return { result, signature };
+    if (result.success) {
+      if (myGeneration === persistGeneration) {
+        useIoTStore.getState().resetUnsavedChanges();
+      }
+
+      useIoTStore.getState().showToast(options?.successToast || result.message, "success");
+    } else if (myGeneration === persistGeneration) {
+      useIoTStore.getState().showToast(options?.errorToast || result.message, "error");
+    }
+
+    return { result, signature };
+  };
+
+  const queuedPromise = configSaveQueue.then(runPersist, runPersist);
+  configSaveQueue = queuedPromise.then(
+    () => undefined,
+    () => undefined,
+  );
+
+  return queuedPromise;
 }

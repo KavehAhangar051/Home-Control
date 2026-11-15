@@ -58,11 +58,7 @@ export interface BatchPinSyncOptions {
  * Cloudflare persistence orchestration.
  */
 export interface IDeviceSyncPort {
-  syncSinglePin(
-    pin: string,
-    state: boolean,
-    options?: SinglePinSyncOptions,
-  ): Promise<boolean>;
+  syncSinglePin(pin: string, state: boolean, options?: SinglePinSyncOptions): Promise<boolean>;
   syncBatchPins(
     actions: Array<{ targetPin: string; actionOn: boolean }>,
     options?: BatchPinSyncOptions,

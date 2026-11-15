@@ -45,9 +45,11 @@ export default function CloudflareIntegration({
         successToast: "آدرس ورکر جدید با موفقیت ذخیره شد.",
         errorToast: "خطا در ذخیره آدرس ورکر جدید.",
       });
-    } finally {
-      setIsSavingUrl(false);
+    } catch (error) {
+      console.error("Failed to persist Cloudflare worker URL", error);
     }
+
+    setIsSavingUrl(false);
   };
 
   const isCfConnected = isCloudflareEnabled();

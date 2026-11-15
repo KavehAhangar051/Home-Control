@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { debugLog } from "@/lib/debug";
 import { useIoTStore } from "./useIoTStore";
 
 interface SpeechRecognitionResultEvent {
@@ -46,6 +47,37 @@ function getSpeechRecognitionErrorMessage(errorCode: string): string {
   }
 }
 
+function resolveSpeechRecognitionConstructor(): SpeechRecognitionConstructor | undefined {
+  if (typeof window === "undefined") return undefined;
+
+  // SAFETY: SpeechRecognition and webkitSpeechRecognition are optional browser speech API constructors
+  return (
+    (window as Window & { SpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition ||
+    (window as Window & { webkitSpeechRecognition?: SpeechRecognitionConstructor })
+      .webkitSpeechRecognition
+  );
+}
+
+function extractTranscriptText(event: SpeechRecognitionResultEvent): string {
+  const parts: string[] = [];
+
+  for (let i = 0; i < event.results.length; ++i) {
+    const segment = event.results[i][0]?.transcript?.trim();
+
+    if (segment) parts.push(segment);
+  }
+
+  return parts.join(" ");
+}
+
+function safelyAbortRecognition(recognition: SpeechRecognitionInstance, phase: string): void {
+  try {
+    recognition.abort?.();
+  } catch (error) {
+    debugLog.warn("VoiceCommand", `SpeechRecognition abort skipped during ${phase}.`, error);
+  }
+}
+
 export const useVoiceCommand = () => {
   const isListening = useIoTStore((s) => s.isListening);
   const setIsListening = useIoTStore((s) => s.setIsListening);
@@ -61,16 +93,12 @@ export const useVoiceCommand = () => {
   const onCommandCompleteRef = useRef<((text: string) => void) | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // SAFETY: SpeechRecognition and webkitSpeechRecognition are optional browser speech API constructors
-    const SpeechRecognition =
-      (window as Window & { SpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition ||
-      (window as Window & { webkitSpeechRecognition?: SpeechRecognitionConstructor })
-        .webkitSpeechRecognition;
+    const SpeechRecognition = resolveSpeechRecognitionConstructor();
 
     if (!SpeechRecognition) {
-      console.warn("Speech recognition is not supported in this browser.");
+      if (typeof window !== "undefined") {
+        console.warn("Speech recognition is not supported in this browser.");
+      }
 
       return;
     }
@@ -78,20 +106,12 @@ export const useVoiceCommand = () => {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "fa-IR"; // Support Persian
+    recognition.lang = "fa-IR";
 
     recognition.onresult = (event: SpeechRecognitionResultEvent) => {
       if (activeSessionIdRef.current !== sessionIdRef.current) return;
 
-      const parts: string[] = [];
-
-      for (let i = 0; i < event.results.length; ++i) {
-        const segment = event.results[i][0]?.transcript?.trim();
-
-        if (segment) parts.push(segment);
-      }
-
-      const fullTranscript = parts.join(" ");
+      const fullTranscript = extractTranscriptText(event);
 
       if (fullTranscript) {
         setTranscript(fullTranscript);
@@ -140,11 +160,7 @@ export const useVoiceCommand = () => {
       recognition.onresult = null;
       recognition.onerror = null;
       recognition.onend = null;
-
-      try {
-        recognition.abort?.();
-      } catch {}
-
+      safelyAbortRecognition(recognition, "unmount");
       recognitionRef.current = null;
     };
   }, [setIsListening, setTranscript, showToast]);
@@ -167,9 +183,7 @@ export const useVoiceCommand = () => {
       onCommandCompleteRef.current = onComplete ?? null;
 
       if (useIoTStore.getState().isListening) {
-        try {
-          recognitionRef.current.abort?.();
-        } catch {}
+        safelyAbortRecognition(recognitionRef.current, "restart");
       }
 
       try {

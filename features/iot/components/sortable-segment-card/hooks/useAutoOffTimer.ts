@@ -28,13 +28,15 @@ export function useAutoOffTimer({
 
   useEffect(() => {
     if (!isTimerActive) {
-      setTimerState((prev) =>
-        prev.key === `${pin}:off` && prev.remaining === null
-          ? prev
-          : { key: `${pin}:off`, remaining: null },
-      );
+      const resetId = setTimeout(() => {
+        setTimerState((prev) =>
+          prev.key === `${pin}:off` && prev.remaining === null
+            ? prev
+            : { key: `${pin}:off`, remaining: null },
+        );
+      }, 0);
 
-      return;
+      return () => clearTimeout(resetId);
     }
 
     if (countdown === null) return;

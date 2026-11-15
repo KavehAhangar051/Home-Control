@@ -60,7 +60,6 @@ export function useCanvasController({
   );
 
   const settingsRef = React.useRef<StoredCanvasSettings>(settings);
-  settingsRef.current = settings;
 
   const activeSubMode: CanvasSubMode =
     workspaceScope === "workflows"
@@ -74,14 +73,18 @@ export function useCanvasController({
   );
 
   const nodesRef = React.useRef<Record<string, CanvasNodeRect>>(nodes);
-  nodesRef.current = nodes;
 
   const [viewport, setViewportState] = React.useState<CanvasViewport>(
     () => readStoredCanvasViewport(activeSubMode) ?? { x: 32, y: 24, zoom: 0.92 },
   );
 
   const viewportRef = React.useRef<CanvasViewport>(viewport);
-  viewportRef.current = viewport;
+
+  React.useEffect(() => {
+    settingsRef.current = settings;
+    nodesRef.current = nodes;
+    viewportRef.current = viewport;
+  }, [settings, nodes, viewport]);
 
   const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
   const [draggingNodeId, setDraggingNodeId] = React.useState<string | null>(null);

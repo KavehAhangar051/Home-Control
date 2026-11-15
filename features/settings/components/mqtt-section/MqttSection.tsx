@@ -20,6 +20,12 @@ type MqttLocalOverrides = {
 const subscribeMqttDefaults = () => () => {};
 const getServerMqttSettingsSnapshot = () => "";
 
+interface ParsedMqttDefaults {
+  brokerUrl: string;
+  baseTopic: string;
+  qos: 0 | 1 | 2;
+}
+
 function getClientMqttSettingsSnapshot(): string {
   const settings = getMqttSettings();
 
@@ -30,6 +36,22 @@ function getClientMqttSettingsSnapshot(): string {
   });
 }
 
+function resolveMqttDraftValues(
+  overrides: MqttLocalOverrides,
+  mqttConfig: ReturnType<typeof useIoTStore.getState>["mqttConfig"],
+  initialSettings: ParsedMqttDefaults | null,
+) {
+  return {
+    brokerWsUrl:
+      overrides.brokerWsUrl ?? mqttConfig?.broker_ws_url ?? initialSettings?.brokerUrl ?? "",
+    brokerHost:
+      overrides.brokerHost ?? mqttConfig?.broker_host ?? (initialSettings ? "broker.emqx.io" : ""),
+    brokerPort: overrides.brokerPort ?? mqttConfig?.broker_port ?? 1883,
+    baseTopic: overrides.baseTopic ?? mqttConfig?.base_topic ?? initialSettings?.baseTopic ?? "",
+    qos: overrides.qos ?? mqttConfig?.qos ?? initialSettings?.qos ?? 1,
+  };
+}
+
 export default function MqttSection() {
   const settingsJson = useSyncExternalStore(
     subscribeMqttDefaults,
@@ -38,9 +60,7 @@ export default function MqttSection() {
   );
 
   // SAFETY: settingsJson is produced by getClientMqttSettingsSnapshot
-  const initialSettings = settingsJson
-    ? (JSON.parse(settingsJson) as { brokerUrl: string; baseTopic: string; qos: 0 | 1 | 2 })
-    : null;
+  const initialSettings = settingsJson ? (JSON.parse(settingsJson) as ParsedMqttDefaults) : null;
 
   const mqttConfig = useIoTStore((state) => state.mqttConfig);
   const setMqttConfig = useIoTStore((state) => state.setMqttConfig);
@@ -49,18 +69,11 @@ export default function MqttSection() {
   const [overrides, setOverrides] = useState<MqttLocalOverrides>({});
   const [isSaved, setIsSaved] = useState(false);
 
-  const brokerWsUrl =
-    overrides.brokerWsUrl ?? mqttConfig?.broker_ws_url ?? initialSettings?.brokerUrl ?? "";
-
-  const brokerHost =
-    overrides.brokerHost ?? mqttConfig?.broker_host ?? (initialSettings ? "broker.emqx.io" : "");
-
-  const brokerPort = overrides.brokerPort ?? mqttConfig?.broker_port ?? 1883;
-
-  const baseTopic =
-    overrides.baseTopic ?? mqttConfig?.base_topic ?? initialSettings?.baseTopic ?? "";
-
-  const qos = overrides.qos ?? mqttConfig?.qos ?? initialSettings?.qos ?? 1;
+  const { brokerWsUrl, brokerHost, brokerPort, baseTopic, qos } = resolveMqttDraftValues(
+    overrides,
+    mqttConfig,
+    initialSettings,
+  );
 
   const setBrokerWsUrl = (val: string) => setOverrides((prev) => ({ ...prev, brokerWsUrl: val }));
   const setBrokerHost = (val: string) => setOverrides((prev) => ({ ...prev, brokerHost: val }));

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 
 export default function AppError({
   error,
@@ -34,12 +36,12 @@ export default function AppError({
           <Button type="button" variant="default" size="sm" onClick={reset} className="rounded-xl">
             تلاش مجدد
           </Button>
-          <a
+          <Link
             href="/"
             className={buttonVariants({ variant: "outline", size: "sm", className: "rounded-xl" })}
           >
-            بارگذاری مجدد صفحه
-          </a>
+            بازگشت به داشبورد
+          </Link>
         </div>
       </div>
     </main>

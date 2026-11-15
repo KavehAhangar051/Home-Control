@@ -29,10 +29,12 @@ export function useSheetViewportGestures({
   const [isPanning, setIsPanning] = React.useState(false);
 
   const onBackgroundClickRef = React.useRef(onBackgroundClick);
-  onBackgroundClickRef.current = onBackgroundClick;
-
   const onPanEndRef = React.useRef(onPanEnd);
-  onPanEndRef.current = onPanEnd;
+
+  React.useEffect(() => {
+    onBackgroundClickRef.current = onBackgroundClick;
+    onPanEndRef.current = onPanEnd;
+  }, [onBackgroundClick, onPanEnd]);
 
   React.useEffect(() => {
     const el = containerRef.current;

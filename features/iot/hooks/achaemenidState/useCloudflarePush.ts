@@ -95,10 +95,7 @@ export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
       return;
     }
 
-    if (
-      lastSyncedSignatureRef.current === null ||
-      lastRemoteEpochRef.current !== remoteSyncEpoch
-    ) {
+    if (lastSyncedSignatureRef.current === null || lastRemoteEpochRef.current !== remoteSyncEpoch) {
       lastRemoteEpochRef.current = remoteSyncEpoch;
       lastSyncedSignatureRef.current = configSignature;
 
