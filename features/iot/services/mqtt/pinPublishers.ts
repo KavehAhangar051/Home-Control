@@ -10,11 +10,7 @@ import {
   PIN_STATE_LOW,
 } from "./protocol";
 
-export const buildPinCommandFrame = (
-  pinId: string,
-  value: boolean,
-  timer?: number,
-): Uint8Array => {
+export const buildPinCommandFrame = (pinId: string, value: boolean, timer?: number): Uint8Array => {
   const buf = new Uint8Array(PIN_COMMAND_BUFFER_SIZE);
   const view = new DataView(buf.buffer);
   buf[0] = MQTT_OPCODES.TOGGLE_PIN;

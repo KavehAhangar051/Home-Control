@@ -7,11 +7,8 @@ import {
   buildDefaultCanvasNodes,
   canvasGroupNodeId,
   canvasSegmentNodeId,
-  clampCanvasNodeSize,
   computeFitCanvasViewport,
   getCanvasGridStyle,
-  getPresetDimensions,
-  snapCanvasCoordinate,
 } from "./canvasGeometry";
 import {
   type CanvasWorkspaceScope,
@@ -27,16 +24,45 @@ import {
 } from "./canvasStorage";
 import type {
   CanvasNodeRect,
-  CanvasResizeDirection,
-  CanvasSizePreset,
   CanvasSubMode,
   CanvasViewport,
   CanvasWireConnection,
 } from "./canvasTypes";
-import { computeDragTiltDeg } from "./nodeMotion";
+import { useCanvasNodeInteractions } from "./useCanvasNodeInteractions";
 import { useSheetViewportGestures } from "./useSheetViewportGestures";
 
 export type { CanvasWorkspaceScope } from "./canvasStorage";
+
+const DEFAULT_HOME_VIEWPORT: CanvasViewport = { x: 32, y: 24, zoom: 0.92 };
+const MOBILE_BREAKPOINT = 768;
+const FIT_MOBILE_BREAKPOINT = 640;
+const FIT_MOBILE_PADDING = 24;
+const FIT_DESKTOP_PADDING = 52;
+const INITIAL_TOP_Z_INDEX = 30;
+
+function resolveActiveSubMode(
+  workspaceScope: CanvasWorkspaceScope,
+  storedSubMode: CanvasSubMode | undefined,
+): CanvasSubMode {
+  if (workspaceScope === "workflows") return "graph";
+
+  return storedSubMode === "segments" ? "segments" : "groups";
+}
+
+function isMobileWindowViewport(): boolean {
+  return globalThis.window !== undefined && globalThis.window.innerWidth < MOBILE_BREAKPOINT;
+}
+
+function resolveContainerDimensions(
+  element: HTMLDivElement | null,
+  fallbackSize: { width: number; height: number },
+): { width: number; height: number; fitPadding: number } {
+  const width = element ? element.clientWidth : fallbackSize.width;
+  const height = element ? element.clientHeight : fallbackSize.height;
+  const fitPadding = width < FIT_MOBILE_BREAKPOINT ? FIT_MOBILE_PADDING : FIT_DESKTOP_PADDING;
+
+  return { width, height, fitPadding };
+}
 
 interface UseCanvasControllerProps {
   workspaceScope?: CanvasWorkspaceScope;
@@ -60,13 +86,7 @@ export function useCanvasController({
   );
 
   const settingsRef = React.useRef<StoredCanvasSettings>(settings);
-
-  const activeSubMode: CanvasSubMode =
-    workspaceScope === "workflows"
-      ? "graph"
-      : settings.subMode === "segments"
-        ? "segments"
-        : "groups";
+  const activeSubMode = resolveActiveSubMode(workspaceScope, settings.subMode);
 
   const [nodes, setNodes] = React.useState<Record<string, CanvasNodeRect>>(
     () => readStoredCanvasNodes(activeSubMode) ?? {},
@@ -75,7 +95,7 @@ export function useCanvasController({
   const nodesRef = React.useRef<Record<string, CanvasNodeRect>>(nodes);
 
   const [viewport, setViewportState] = React.useState<CanvasViewport>(
-    () => readStoredCanvasViewport(activeSubMode) ?? { x: 32, y: 24, zoom: 0.92 },
+    () => readStoredCanvasViewport(activeSubMode) ?? DEFAULT_HOME_VIEWPORT,
   );
 
   const viewportRef = React.useRef<CanvasViewport>(viewport);
@@ -87,10 +107,8 @@ export function useCanvasController({
   }, [settings, nodes, viewport]);
 
   const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
-  const [draggingNodeId, setDraggingNodeId] = React.useState<string | null>(null);
-  const [dragTiltDeg, setDragTiltDeg] = React.useState(0);
   const hasInitialFitRef = React.useRef<boolean>(Boolean(readStoredCanvasViewport(activeSubMode)));
-  const topZIndexRef = React.useRef(30);
+  const topZIndexRef = React.useRef(INITIAL_TOP_Z_INDEX);
 
   const setViewport = React.useCallback(
     (updater: CanvasViewport | ((prev: CanvasViewport) => CanvasViewport)) => {
@@ -123,12 +141,7 @@ export function useCanvasController({
       const next: StoredCanvasSettings = {
         ...prev,
         ...patch,
-        subMode:
-          workspaceScope === "workflows"
-            ? "graph"
-            : (patch.subMode ?? prev.subMode) === "segments"
-              ? "segments"
-              : "groups",
+        subMode: resolveActiveSubMode(workspaceScope, patch.subMode ?? prev.subMode),
       };
 
       settingsRef.current = next;
@@ -141,8 +154,12 @@ export function useCanvasController({
   // Reconcile stored nodes with current groupsOrder & segments without losing saved positions
   React.useEffect(() => {
     const stored = readStoredCanvasNodes(activeSubMode) ?? {};
-    const isMobile = globalThis.window !== undefined && globalThis.window.innerWidth < 768;
-    const defaults = buildDefaultCanvasNodes(activeSubMode, groupsOrder, segments, isMobile);
+    const defaults = buildDefaultCanvasNodes(
+      activeSubMode,
+      groupsOrder,
+      segments,
+      isMobileWindowViewport(),
+    );
 
     const result = reconcileCanvasNodes({
       subMode: activeSubMode,
@@ -232,16 +249,17 @@ export function useCanvasController({
   }, [activeSubMode, visibleSegments, pinsState]);
 
   const handleFitView = React.useCallback(() => {
-    const el = containerRef.current;
-    const w = el ? el.clientWidth : containerSize.width;
-    const h = el ? el.clientHeight : containerSize.height;
+    const { width, height, fitPadding } = resolveContainerDimensions(
+      containerRef.current,
+      containerSize,
+    );
 
     const nextViewport = computeFitCanvasViewport(
       nodesRef.current,
       visibleNodeIds,
-      w,
-      h,
-      w < 640 ? 24 : 52,
+      width,
+      height,
+      fitPadding,
     );
 
     setViewport(nextViewport);
@@ -261,257 +279,25 @@ export function useCanvasController({
     }
   }, [nodes, visibleNodeIds, handleFitView]);
 
-  const bringNodeToFront = React.useCallback(
-    (nodeId: string) => {
-      setSelectedNodeId(nodeId);
-      const prev = nodesRef.current;
-      const current = prev[nodeId];
-
-      if (!current) return;
-
-      const nextZ = ++topZIndexRef.current;
-
-      if (current.zIndex === nextZ) return;
-
-      const updated = {
-        ...prev,
-        [nodeId]: { ...current, zIndex: nextZ },
-      };
-
-      nodesRef.current = updated;
-      setNodes(updated);
-      replaceStoredCanvasNodes(activeSubMode, updated);
-    },
-    [activeSubMode],
-  );
-
-  /**
-   * Starts dragging a Group or Segment node across the sheet and persists its final coordinates.
-   */
-  const startNodeDrag = React.useCallback(
-    (nodeId: string, e: React.PointerEvent<HTMLElement>) => {
-      if (e.button !== 0 || settings.isLocked) return;
-
-      e.stopPropagation();
-      bringNodeToFront(nodeId);
-
-      const startRect = nodesRef.current[nodeId];
-
-      if (!startRect) return;
-
-      const startClientX = e.clientX;
-      const startClientY = e.clientY;
-      let lastClientX = e.clientX;
-      const zoom = viewportRef.current.zoom;
-      setDraggingNodeId(nodeId);
-      setDragTiltDeg(0);
-      const isGroupInGraph = activeSubMode === "graph" && nodeId.startsWith("group:");
-      const groupName = isGroupInGraph ? nodeId.slice("group:".length) : null;
-
-      const childInitialRects: Array<{ id: string; rect: CanvasNodeRect }> = [];
-
-      if (groupName && settings.cascadeGroupDrag) {
-        for (const seg of segments) {
-          if (resolveSegmentGroup(seg.group) === groupName) {
-            const childId = canvasSegmentNodeId(seg.id);
-            const r = nodesRef.current[childId];
-
-            if (r) {
-              childInitialRects.push({ id: childId, rect: r });
-            }
-          }
-        }
-      }
-
-      const handlePointerMove = (moveEvent: PointerEvent) => {
-        const dx = (moveEvent.clientX - startClientX) / zoom;
-        const dy = (moveEvent.clientY - startClientY) / zoom;
-        const nextX = snapCanvasCoordinate(startRect.x + dx, settings.snapToGrid);
-        const nextY = snapCanvasCoordinate(startRect.y + dy, settings.snapToGrid);
-        const appliedDx = nextX - startRect.x;
-        const appliedDy = nextY - startRect.y;
-
-        setDragTiltDeg(computeDragTiltDeg(moveEvent.clientX - lastClientX));
-        lastClientX = moveEvent.clientX;
-
-        const prev = nodesRef.current;
-        const current = prev[nodeId] ?? startRect;
-
-        const updated = {
-          ...prev,
-          [nodeId]: {
-            ...current,
-            x: nextX,
-            y: nextY,
-          },
-        };
-
-        for (const child of childInitialRects) {
-          const cCurr = prev[child.id] ?? child.rect;
-          updated[child.id] = {
-            ...cCurr,
-            x: snapCanvasCoordinate(child.rect.x + appliedDx, settings.snapToGrid),
-            y: snapCanvasCoordinate(child.rect.y + appliedDy, settings.snapToGrid),
-          };
-        }
-
-        nodesRef.current = updated;
-        setNodes(updated);
-      };
-
-      const handlePointerUp = () => {
-        setDraggingNodeId(null);
-        setDragTiltDeg(0);
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", handlePointerUp);
-        window.removeEventListener("pointercancel", handlePointerUp);
-        replaceStoredCanvasNodes(activeSubMode, nodesRef.current);
-      };
-
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", handlePointerUp);
-      window.addEventListener("pointercancel", handlePointerUp);
-    },
-    [
-      settings.isLocked,
-      settings.cascadeGroupDrag,
-      settings.snapToGrid,
-      activeSubMode,
-      bringNodeToFront,
-      segments,
-    ],
-  );
-
-  /**
-   * Starts resizing a Group or Segment node and persists its updated size & coordinates.
-   */
-  const startNodeResize = React.useCallback(
-    (
-      nodeId: string,
-      kind: "group" | "segment",
-      direction: CanvasResizeDirection,
-      e: React.PointerEvent<HTMLElement>,
-    ) => {
-      if (e.button !== 0 || settings.isLocked) return;
-
-      e.stopPropagation();
-      e.preventDefault();
-      bringNodeToFront(nodeId);
-
-      const startRect = nodesRef.current[nodeId];
-
-      if (!startRect) return;
-
-      const startClientX = e.clientX;
-      const startClientY = e.clientY;
-      const zoom = viewportRef.current.zoom;
-
-      const snappedRightEdge = snapCanvasCoordinate(
-        startRect.x + startRect.width,
-        settings.snapToGrid,
-      );
-
-      const snappedBottomEdge = snapCanvasCoordinate(
-        startRect.y + startRect.height,
-        settings.snapToGrid,
-      );
-
-      const handlePointerMove = (moveEvent: PointerEvent) => {
-        const dx = (moveEvent.clientX - startClientX) / zoom;
-        const dy = (moveEvent.clientY - startClientY) / zoom;
-
-        let rawWidth = startRect.width;
-        let rawHeight = startRect.height;
-        let rawX = startRect.x;
-        let rawY = startRect.y;
-
-        if (direction.includes("e")) {
-          rawWidth = startRect.width + dx;
-        }
-
-        if (direction.includes("w")) {
-          rawWidth = startRect.width - dx;
-        }
-
-        if (direction.includes("s")) {
-          rawHeight = startRect.height + dy;
-        }
-
-        if (direction.includes("n")) {
-          rawHeight = startRect.height - dy;
-        }
-
-        const clamped = clampCanvasNodeSize(
-          kind,
-          activeSubMode,
-          rawWidth,
-          rawHeight,
-          settings.snapToGrid,
-        );
-
-        if (direction.includes("w")) {
-          rawX = snappedRightEdge - clamped.width;
-        }
-
-        if (direction.includes("n")) {
-          rawY = snappedBottomEdge - clamped.height;
-        }
-
-        const prev = nodesRef.current;
-        const current = prev[nodeId] ?? startRect;
-
-        const updated = {
-          ...prev,
-          [nodeId]: {
-            ...current,
-            x: snapCanvasCoordinate(rawX, settings.snapToGrid),
-            y: snapCanvasCoordinate(rawY, settings.snapToGrid),
-            width: clamped.width,
-            height: clamped.height,
-          },
-        };
-
-        nodesRef.current = updated;
-        setNodes(updated);
-      };
-
-      const handlePointerUp = () => {
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", handlePointerUp);
-        window.removeEventListener("pointercancel", handlePointerUp);
-        replaceStoredCanvasNodes(activeSubMode, nodesRef.current);
-      };
-
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", handlePointerUp);
-      window.addEventListener("pointercancel", handlePointerUp);
-    },
-    [settings.isLocked, settings.snapToGrid, activeSubMode, bringNodeToFront],
-  );
-
-  const applyNodeSizePreset = React.useCallback(
-    (nodeId: string, kind: "group" | "segment", preset: CanvasSizePreset, segCount = 2) => {
-      const dims = getPresetDimensions(kind, activeSubMode, preset, segCount);
-      const prev = nodesRef.current;
-      const curr = prev[nodeId];
-
-      if (!curr) return;
-
-      const next = {
-        ...prev,
-        [nodeId]: {
-          ...curr,
-          width: dims.width,
-          height: dims.height,
-        },
-      };
-
-      nodesRef.current = next;
-      setNodes(next);
-      replaceStoredCanvasNodes(activeSubMode, next);
-    },
-    [activeSubMode],
-  );
+  const {
+    draggingNodeId,
+    dragTiltDeg,
+    bringNodeToFront,
+    startNodeDrag,
+    startNodeResize,
+    applyNodeSizePreset,
+  } = useCanvasNodeInteractions({
+    activeSubMode,
+    isLocked: settings.isLocked,
+    snapToGrid: settings.snapToGrid,
+    cascadeGroupDrag: settings.cascadeGroupDrag,
+    segments,
+    nodesRef,
+    viewportRef,
+    topZIndexRef,
+    setNodes,
+    setSelectedNodeId,
+  });
 
   const handlePanToWorldPoint = React.useCallback(
     (worldX: number, worldY: number) => {
@@ -527,16 +313,21 @@ export function useCanvasController({
   const handleResetLayout = React.useCallback(() => {
     clearStoredCanvasMode(activeSubMode);
 
-    const isMobile = globalThis.window !== undefined && globalThis.window.innerWidth < 768;
-    const fresh = buildDefaultCanvasNodes(activeSubMode, groupsOrder, segments, isMobile);
+    const fresh = buildDefaultCanvasNodes(
+      activeSubMode,
+      groupsOrder,
+      segments,
+      isMobileWindowViewport(),
+    );
     nodesRef.current = fresh;
     setNodes(fresh);
     replaceStoredCanvasNodes(activeSubMode, fresh);
 
-    const el = containerRef.current;
-    const w = el ? el.clientWidth : containerSize.width;
-    const h = el ? el.clientHeight : containerSize.height;
-    setViewport(computeFitCanvasViewport(fresh, visibleNodeIds, w, h, w < 640 ? 24 : 52));
+    const { width, height, fitPadding } = resolveContainerDimensions(
+      containerRef.current,
+      containerSize,
+    );
+    setViewport(computeFitCanvasViewport(fresh, visibleNodeIds, width, height, fitPadding));
   }, [activeSubMode, groupsOrder, segments, containerSize, visibleNodeIds, setViewport]);
 
   const handleChangeSubMode = React.useCallback(

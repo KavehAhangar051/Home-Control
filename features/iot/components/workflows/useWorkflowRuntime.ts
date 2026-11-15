@@ -3,7 +3,7 @@
 import React from "react";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { evaluateWorkflowGraph } from "./workflowEngine";
-import type { WorkflowDefinition, WorkflowNode } from "./workflowTypes";
+import type { WorkflowActionDispatch, WorkflowDefinition, WorkflowNode } from "./workflowTypes";
 
 export interface UseWorkflowRuntimeOptions {
   activeWorkflow: WorkflowDefinition | null;
@@ -22,10 +22,24 @@ const EMPTY_PULSE_IDS = new Set<string>();
 const EMPTY_TIMER_OUTPUTS = new Map<string, boolean>();
 const EMPTY_TIMER_COUNTDOWNS = new Map<string, number>();
 
+const SCHEDULE_TICK_INTERVAL_MS = 30_000;
+const MANUAL_PULSE_DURATION_MS = 1_500;
+const DELAY_OUTPUT_PULSE_MS = 1_200;
+const TIMER_TICK_INTERVAL_MS = 1_000;
+const DEFAULT_TIMER_SECONDS = 5;
+
 function pruneStaleTimerLatches(latchedIds: Set<string>, triggeredTimerIds: string[]): void {
+  if (latchedIds.size === 0) return;
+
+  if (triggeredTimerIds.length === 0) {
+    latchedIds.clear();
+
+    return;
+  }
+
   const currentlyTriggeredSet = new Set(triggeredTimerIds);
 
-  for (const latchedId of Array.from(latchedIds)) {
+  for (const latchedId of latchedIds) {
     if (!currentlyTriggeredSet.has(latchedId)) {
       latchedIds.delete(latchedId);
     }
@@ -35,11 +49,108 @@ function pruneStaleTimerLatches(latchedIds: Set<string>, triggeredTimerIds: stri
 function buildWorkflowNodeMap(nodes: WorkflowNode[]): Map<string, WorkflowNode> {
   const nodeById = new Map<string, WorkflowNode>();
 
-  for (const node of nodes) {
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
     nodeById.set(node.id, node);
   }
 
   return nodeById;
+}
+
+function collectTriggerNodeIds(nodes: WorkflowNode[]): Set<string> {
+  const triggerIds = new Set<string>();
+
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+
+    if (node.kind === "trigger_manual" || node.kind === "trigger_schedule") {
+      triggerIds.add(node.id);
+    }
+  }
+
+  return triggerIds;
+}
+
+function scheduleUnlatchedTimers(
+  triggeredTimerIds: string[],
+  nodes: WorkflowNode[],
+  latchedTimerInputs: Set<string>,
+  scheduleTimeout: (fn: () => void, delayMs: number) => void,
+  startTimerNode: (node: WorkflowNode) => void,
+): void {
+  if (triggeredTimerIds.length === 0) return;
+
+  const nodeById = buildWorkflowNodeMap(nodes);
+
+  for (let i = 0; i < triggeredTimerIds.length; i++) {
+    const timerNodeId = triggeredTimerIds[i];
+
+    if (latchedTimerInputs.has(timerNodeId)) continue;
+
+    const node = nodeById.get(timerNodeId);
+
+    if (node) {
+      latchedTimerInputs.add(timerNodeId);
+      scheduleTimeout(() => startTimerNode(node), 0);
+    }
+  }
+}
+
+function dispatchPendingWorkflowActions(
+  pendingActions: WorkflowActionDispatch[],
+  activeToggleNodesRef: React.RefObject<Set<string>>,
+  lastDispatchedSignatureRef: React.RefObject<string>,
+  pinsState: Record<string, boolean>,
+  dispatchPinState: (pin: string, state: boolean, preventMqtt?: boolean) => void,
+): void {
+  if (pendingActions.length === 0) {
+    lastDispatchedSignatureRef.current = "";
+    activeToggleNodesRef.current.clear();
+
+    return;
+  }
+
+  const nextActiveToggles = new Set<string>();
+  const signatureParts: string[] = [];
+
+  for (let i = 0; i < pendingActions.length; i++) {
+    const action = pendingActions[i];
+
+    if (action.actionMode === "toggle") {
+      nextActiveToggles.add(action.nodeId);
+
+      if (!activeToggleNodesRef.current.has(action.nodeId)) {
+        dispatchPinState(action.targetPin, action.actionOn);
+      }
+    } else {
+      signatureParts.push(`${action.targetPin}:${action.actionOn ? "1" : "0"}`);
+    }
+  }
+
+  activeToggleNodesRef.current = nextActiveToggles;
+
+  if (signatureParts.length === 0) {
+    lastDispatchedSignatureRef.current = "";
+
+    return;
+  }
+
+  const signature = signatureParts.join("|");
+
+  if (signature === lastDispatchedSignatureRef.current) return;
+
+  lastDispatchedSignatureRef.current = signature;
+
+  for (let i = 0; i < pendingActions.length; i++) {
+    const action = pendingActions[i];
+
+    if (
+      action.actionMode !== "toggle" &&
+      Boolean(pinsState[action.targetPin]) !== action.actionOn
+    ) {
+      dispatchPinState(action.targetPin, action.actionOn);
+    }
+  }
 }
 
 /**
@@ -118,7 +229,6 @@ export function useWorkflowRuntime({
     lastDispatchedSignatureRef.current = "";
   }, []);
 
-  // Clean up timer intervals/timeouts whenever the active workflow changes or unmounts
   React.useEffect(() => {
     void activeWorkflowId;
     clearRuntimeResources();
@@ -128,7 +238,6 @@ export function useWorkflowRuntime({
     };
   }, [activeWorkflowId, clearRuntimeResources]);
 
-  // Periodically tick when active workflow has an enabled schedule trigger
   React.useEffect(() => {
     if (!activeWorkflow?.enabled || globalThis.window === undefined) return;
 
@@ -138,7 +247,7 @@ export function useWorkflowRuntime({
 
     const intervalId = globalThis.window.setInterval(() => {
       setScheduleNow(new Date());
-    }, 30000);
+    }, SCHEDULE_TICK_INTERVAL_MS);
 
     return () => globalThis.window.clearInterval(intervalId);
   }, [activeWorkflow?.enabled, activeWorkflow?.nodes]);
@@ -190,7 +299,7 @@ export function useWorkflowRuntime({
 
           return { workflowId: ownerWorkflowId, value: next };
         });
-      }, 1500);
+      }, MANUAL_PULSE_DURATION_MS);
     },
     [scheduleTimeout],
   );
@@ -217,7 +326,7 @@ export function useWorkflowRuntime({
       if (activeTimersRef.current.has(node.id) || globalThis.window === undefined) return;
 
       const ownerWorkflowId = activeWorkflowIdRef.current;
-      const duration = Math.max(1, node.timerSeconds ?? 5);
+      const duration = Math.max(1, node.timerSeconds ?? DEFAULT_TIMER_SECONDS);
       const mode = node.timerMode ?? "delay";
 
       if (mode === "hold") {
@@ -266,16 +375,15 @@ export function useWorkflowRuntime({
             updateScopedMap(setTimerOutputsState, ownerWorkflowId, (next) => {
               next.delete(node.id);
             });
-          }, 1200);
+          }, DELAY_OUTPUT_PULSE_MS);
         }
-      }, 1000);
+      }, TIMER_TICK_INTERVAL_MS);
 
       activeTimersRef.current.set(node.id, intervalId);
     },
     [scheduleTimeout, updateScopedMap],
   );
 
-  // Reactive execution when active workflow is enabled or manual pulse fires
   React.useEffect(() => {
     if (!activeWorkflow) return;
 
@@ -292,60 +400,21 @@ export function useWorkflowRuntime({
     // Rising-edge timer latch: prevent continuous input from re-triggering delay loops
     pruneStaleTimerLatches(latchedTimerInputsRef.current, evaluation.triggeredTimerIds);
 
-    const nodeById = buildWorkflowNodeMap(activeWorkflow.nodes);
+    scheduleUnlatchedTimers(
+      evaluation.triggeredTimerIds,
+      activeWorkflow.nodes,
+      latchedTimerInputsRef.current,
+      scheduleTimeout,
+      startTimerNode,
+    );
 
-    for (const timerNodeId of evaluation.triggeredTimerIds) {
-      if (latchedTimerInputsRef.current.has(timerNodeId)) continue;
-
-      const node = nodeById.get(timerNodeId);
-
-      if (node) {
-        latchedTimerInputsRef.current.add(timerNodeId);
-        scheduleTimeout(() => startTimerNode(node), 0);
-      }
-    }
-
-    if (evaluation.pendingActions.length === 0) {
-      lastDispatchedSignatureRef.current = "";
-      activeToggleNodesRef.current.clear();
-
-      return;
-    }
-
-    const nextActiveToggles = new Set<string>();
-    const signatureParts: string[] = [];
-
-    for (const act of evaluation.pendingActions) {
-      if (act.actionMode === "toggle") {
-        nextActiveToggles.add(act.nodeId);
-
-        if (!activeToggleNodesRef.current.has(act.nodeId)) {
-          dispatchPinState(act.targetPin, act.actionOn);
-        }
-      } else {
-        signatureParts.push(`${act.targetPin}:${act.actionOn ? "1" : "0"}`);
-      }
-    }
-
-    activeToggleNodesRef.current = nextActiveToggles;
-
-    if (signatureParts.length === 0) {
-      lastDispatchedSignatureRef.current = "";
-
-      return;
-    }
-
-    const signature = signatureParts.join("|");
-
-    if (signature === lastDispatchedSignatureRef.current) return;
-
-    lastDispatchedSignatureRef.current = signature;
-
-    for (const act of evaluation.pendingActions) {
-      if (act.actionMode !== "toggle" && Boolean(pinsState[act.targetPin]) !== act.actionOn) {
-        dispatchPinState(act.targetPin, act.actionOn);
-      }
-    }
+    dispatchPendingWorkflowActions(
+      evaluation.pendingActions,
+      activeToggleNodesRef,
+      lastDispatchedSignatureRef,
+      pinsState,
+      dispatchPinState,
+    );
   }, [
     activeWorkflow,
     dispatchPinState,
@@ -381,14 +450,7 @@ export function useWorkflowRuntime({
     const now = new Date();
     setScheduleNow(now);
 
-    const triggerIds = new Set<string>();
-    const nodeById = buildWorkflowNodeMap(activeWorkflow.nodes);
-
-    for (const node of activeWorkflow.nodes) {
-      if (node.kind === "trigger_manual" || node.kind === "trigger_schedule") {
-        triggerIds.add(node.id);
-      }
-    }
+    const triggerIds = collectTriggerNodeIds(activeWorkflow.nodes);
 
     if (triggerIds.size > 0) {
       setManualPulseState({ workflowId: ownerWorkflowId, value: triggerIds });
@@ -407,10 +469,14 @@ export function useWorkflowRuntime({
       nowDate: now,
     });
 
-    for (const timerId of summary.triggeredTimerIds) {
-      const node = nodeById.get(timerId);
+    if (summary.triggeredTimerIds.length > 0) {
+      const nodeById = buildWorkflowNodeMap(activeWorkflow.nodes);
 
-      if (node) startTimerNode(node);
+      for (const timerId of summary.triggeredTimerIds) {
+        const node = nodeById.get(timerId);
+
+        if (node) startTimerNode(node);
+      }
     }
 
     for (const act of summary.pendingActions) {

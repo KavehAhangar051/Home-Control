@@ -6,7 +6,10 @@ import {
   isCloudflareEnabled,
   saveConfigToCloudflare,
 } from "@/features/iot/services/cloudflareService";
-import { CANONICAL_CONFIG_VERSION, createDefaultDeviceInfo } from "@/features/iot/services/config/defaults";
+import {
+  CANONICAL_CONFIG_VERSION,
+  createDefaultDeviceInfo,
+} from "@/features/iot/services/config/defaults";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
 
 export type EspConfigBuildSource = Pick<

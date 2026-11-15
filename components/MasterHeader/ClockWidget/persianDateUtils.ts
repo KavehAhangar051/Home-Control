@@ -13,10 +13,19 @@ const ZOROASTRIAN_MONTHS = [
   "اسفند",
 ];
 
-const toPersianDigits = (num: number | string) => {
-  const id = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+const PERSIAN_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"] as const;
 
-  return num.toString().replace(/[0-9]/g, (w) => id[+w]);
+const toPersianDigits = (num: number | string): string => {
+  const str = String(num);
+  const len = str.length;
+  let out = "";
+
+  for (let i = 0; i < len; i++) {
+    const d = str.charCodeAt(i) - 48;
+    out += d >= 0 && d <= 9 ? PERSIAN_DIGITS[d] : str[i];
+  }
+
+  return out;
 };
 
 const PERSIAN_DATE_FORMATTER = new Intl.DateTimeFormat("en-US-u-ca-persian", {
@@ -25,19 +34,25 @@ const PERSIAN_DATE_FORMATTER = new Intl.DateTimeFormat("en-US-u-ca-persian", {
   day: "numeric",
 });
 
+const PERSIAN_TIME_FORMATTER = new Intl.DateTimeFormat("fa-IR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
 export const getPersianDateString = (time: Date) => {
   const parts = PERSIAN_DATE_FORMATTER.formatToParts(time);
   let jYear = 1400;
   let jMonth = 1;
   let jDay = 1;
 
-  parts.forEach((p) => {
-    if (p.type === "year") jYear = parseInt(p.value, 10);
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
 
-    if (p.type === "month") jMonth = parseInt(p.value, 10);
-
-    if (p.type === "day") jDay = parseInt(p.value, 10);
-  });
+    if (p.type === "year") jYear = Number.parseInt(p.value, 10);
+    else if (p.type === "month") jMonth = Number.parseInt(p.value, 10);
+    else if (p.type === "day") jDay = Number.parseInt(p.value, 10);
+  }
 
   const shahanshahiYear = jYear + 1180;
   const monthName = ZOROASTRIAN_MONTHS[jMonth - 1] || "نامشخص";
@@ -46,9 +61,5 @@ export const getPersianDateString = (time: Date) => {
 };
 
 export const getTimeString = (time: Date) => {
-  return time.toLocaleTimeString("fa-IR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  return PERSIAN_TIME_FORMATTER.format(time);
 };

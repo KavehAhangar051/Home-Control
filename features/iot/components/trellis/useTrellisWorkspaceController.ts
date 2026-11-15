@@ -111,6 +111,22 @@ function syncGroupPresetViews(
   }
 }
 
+function formatTrellisSegmentTitle(segment: Segment): string {
+  return segment.type === "placeholder"
+    ? `جایگاه خالی (${segment.group || "Test"})`
+    : segment.title;
+}
+
+function buildTrellisPresetDocument(
+  preset: TrellisLayoutPreset,
+  groupsOrder: string[],
+  segments: Segment[],
+) {
+  return preset === "segments"
+    ? buildSegmentFractalDocument(groupsOrder, segments)
+    : buildGroupDockDocument(groupsOrder);
+}
+
 function syncSegmentPresetViews(
   ws: WorkspaceHandle,
   existingIds: Set<string>,
@@ -127,7 +143,7 @@ function syncSegmentPresetViews(
       ws.open("segment", {
         id: viewId,
         params: { segmentId: seg.id },
-        title: seg.type === "placeholder" ? `جایگاه خالی (${seg.group || "Test"})` : seg.title,
+        title: formatTrellisSegmentTitle(seg),
         placement: "stage",
         focus: false,
       });
@@ -140,6 +156,47 @@ function syncSegmentPresetViews(
     if (!segmentIds.has(segId)) {
       void ws.close(view.id, { force: true });
     }
+  }
+}
+
+function frameWorkspaceByGroupFilter(
+  ws: WorkspaceHandle,
+  preset: TrellisLayoutPreset,
+  segments: Segment[],
+  selectedGroupFilter: string | null,
+) {
+  if (!selectedGroupFilter) {
+    if (ws.navigation.framed) {
+      ws.navigation.overview();
+    }
+
+    return;
+  }
+
+  if (preset === "groups") {
+    const groupView = ws.view(groupViewId(selectedGroupFilter));
+
+    if (groupView) {
+      ws.navigation.frame(groupView.panelId);
+    }
+
+    return;
+  }
+
+  const targetPanelIds: string[] = [];
+
+  for (const seg of segments) {
+    if ((seg.group || "Test") === selectedGroupFilter) {
+      const segView = ws.view(segmentViewId(seg.id));
+
+      if (segView) {
+        targetPanelIds.push(segView.panelId);
+      }
+    }
+  }
+
+  if (targetPanelIds.length > 0) {
+    ws.navigation.frame(targetPanelIds);
   }
 }
 
@@ -182,13 +239,10 @@ export function useTrellisWorkspaceController({
     }
   }, []);
 
-  const defaultLayout = React.useMemo(() => {
-    if (preset === "segments") {
-      return buildSegmentFractalDocument(groupsOrder, segments);
-    }
-
-    return buildGroupDockDocument(groupsOrder);
-  }, [preset, groupsOrder, segments]);
+  const defaultLayout = React.useMemo(
+    () => buildTrellisPresetDocument(preset, groupsOrder, segments),
+    [preset, groupsOrder, segments],
+  );
 
   React.useEffect(() => {
     const ws = wsRef.current;
@@ -211,39 +265,7 @@ export function useTrellisWorkspaceController({
 
     if (!ws || !workspaceMounted) return;
 
-    if (!selectedGroupFilter) {
-      if (ws.navigation.framed) {
-        ws.navigation.overview();
-      }
-
-      return;
-    }
-
-    if (preset === "groups") {
-      const groupView = ws.view(groupViewId(selectedGroupFilter));
-
-      if (groupView) {
-        ws.navigation.frame(groupView.panelId);
-      }
-
-      return;
-    }
-
-    const targetPanelIds: string[] = [];
-
-    for (const seg of segments) {
-      if ((seg.group || "Test") === selectedGroupFilter) {
-        const segView = ws.view(segmentViewId(seg.id));
-
-        if (segView) {
-          targetPanelIds.push(segView.panelId);
-        }
-      }
-    }
-
-    if (targetPanelIds.length > 0) {
-      ws.navigation.frame(targetPanelIds);
-    }
+    frameWorkspaceByGroupFilter(ws, preset, segments, selectedGroupFilter);
   }, [selectedGroupFilter, preset, segments, workspaceMounted]);
 
   const handleResetLayout = React.useCallback(() => {
@@ -257,11 +279,7 @@ export function useTrellisWorkspaceController({
       // Ignore storage remove failures
     }
 
-    const freshDoc =
-      preset === "segments"
-        ? buildSegmentFractalDocument(groupsOrder, segments)
-        : buildGroupDockDocument(groupsOrder);
-
+    const freshDoc = buildTrellisPresetDocument(preset, groupsOrder, segments);
     ws.setDocument(freshDoc, { animate: true });
   }, [preset, groupsOrder, segments]);
 
@@ -280,9 +298,7 @@ export function useTrellisWorkspaceController({
     (segmentId: string) => {
       const found = segmentById.get(segmentId);
 
-      if (!found) return "قطعه";
-
-      return found.type === "placeholder" ? `جایگاه خالی (${found.group || "Test"})` : found.title;
+      return found ? formatTrellisSegmentTitle(found) : "قطعه";
     },
     [segmentById],
   );

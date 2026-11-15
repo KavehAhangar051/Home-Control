@@ -156,17 +156,10 @@ export function getPresetDimensions(
   return { width: 432, height: Math.min(688, 96 + rows * 128) };
 }
 
-/**
- * Builds deterministic initial node positions and dimensions on the infinite sheet
- * for all three sub-modes ("graph" n8n mode, "groups" container mode, "segments" free mode).
- */
-export function buildDefaultCanvasNodes(
-  subMode: CanvasSubMode,
+function groupSegmentsByGroupName(
   groupsOrder: string[],
   segments: Segment[],
-  isMobileViewport = false,
-) {
-  const nodes: Record<string, CanvasNodeRect> = {};
+): Map<string, Segment[]> {
   const segmentsByGroup = new Map<string, Segment[]>();
 
   for (const groupName of groupsOrder) {
@@ -184,90 +177,108 @@ export function buildDefaultCanvasNodes(
     }
   }
 
+  return segmentsByGroup;
+}
+
+function buildDefaultGraphNodes(
+  segmentsByGroup: Map<string, Segment[]>,
+  isMobileViewport: boolean,
+): Record<string, CanvasNodeRect> {
+  const nodes: Record<string, CanvasNodeRect> = {};
   let zCursor = 1;
+  let currentY = 64;
+  const groupX = isMobileViewport ? 352 : 688;
+  const groupWidth = isMobileViewport ? 240 : 272;
+  const groupHeight = 160;
+  const segWidth = isMobileViewport ? 176 : 224;
+  const segHeight = 128;
+  const segGapX = 32;
+  const segGapY = 16;
+  const segCols = isMobileViewport ? 1 : 2;
 
-  if (subMode === "graph") {
-    let currentY = 64;
-    const groupX = isMobileViewport ? 352 : 688;
-    const groupWidth = isMobileViewport ? 240 : 272;
-    const groupHeight = 160;
-    const segWidth = isMobileViewport ? 176 : 224;
-    const segHeight = 128;
-    const segGapX = 32;
-    const segGapY = 16;
-    const segCols = isMobileViewport ? 1 : 2;
+  for (const [groupName, groupSegments] of segmentsByGroup.entries()) {
+    const gId = canvasGroupNodeId(groupName);
+    const rows = Math.max(1, Math.ceil(groupSegments.length / segCols));
+    const clusterHeight = Math.max(groupHeight, rows * segHeight + (rows - 1) * segGapY);
 
-    for (const [groupName, groupSegments] of segmentsByGroup.entries()) {
-      const gId = canvasGroupNodeId(groupName);
-      const rows = Math.max(1, Math.ceil(groupSegments.length / segCols));
-      const clusterHeight = Math.max(groupHeight, rows * segHeight + (rows - 1) * segGapY);
+    const groupY = snapCanvasCoordinate(
+      currentY + Math.max(0, Math.round((clusterHeight - groupHeight) / 2)),
+      true,
+    );
 
-      const groupY = snapCanvasCoordinate(
-        currentY + Math.max(0, Math.round((clusterHeight - groupHeight) / 2)),
-        true,
-      );
+    nodes[gId] = {
+      x: snapCanvasCoordinate(groupX, true),
+      y: groupY,
+      width: groupWidth,
+      height: groupHeight,
+      zIndex: zCursor++,
+    };
 
-      nodes[gId] = {
-        x: snapCanvasCoordinate(groupX, true),
-        y: groupY,
-        width: groupWidth,
-        height: groupHeight,
+    for (let i = 0; i < groupSegments.length; i++) {
+      const seg = groupSegments[i];
+      const col = i % segCols;
+      const row = Math.floor(i / segCols);
+      const segX = groupX - 80 - (col + 1) * segWidth - col * segGapX;
+      const segY = currentY + row * (segHeight + segGapY);
+
+      nodes[canvasSegmentNodeId(seg.id)] = {
+        x: snapCanvasCoordinate(segX, true),
+        y: snapCanvasCoordinate(segY, true),
+        width: segWidth,
+        height: segHeight,
         zIndex: zCursor++,
       };
-
-      for (let i = 0; i < groupSegments.length; i++) {
-        const seg = groupSegments[i];
-        const col = i % segCols;
-        const row = Math.floor(i / segCols);
-        const segX = groupX - 80 - (col + 1) * segWidth - col * segGapX;
-        const segY = currentY + row * (segHeight + segGapY);
-
-        nodes[canvasSegmentNodeId(seg.id)] = {
-          x: snapCanvasCoordinate(segX, true),
-          y: snapCanvasCoordinate(segY, true),
-          width: segWidth,
-          height: segHeight,
-          zIndex: zCursor++,
-        };
-      }
-
-      currentY += clusterHeight + 64;
     }
 
-    return nodes;
+    currentY += clusterHeight + 64;
   }
 
-  if (subMode === "groups") {
-    const cols = isMobileViewport ? 1 : Math.min(2, Math.max(1, groupsOrder.length));
-    const colWidth = isMobileViewport ? 320 : 448;
-    const gapX = 32;
-    const gapY = 32;
-    const colHeights = Array.from({ length: cols }, () => 48);
-    let idx = 0;
+  return nodes;
+}
 
-    for (const [groupName, groupSegments] of segmentsByGroup.entries()) {
-      const col = idx % cols;
-      const internalCols = isMobileViewport ? 1 : 2;
-      const rows = Math.max(1, Math.ceil(groupSegments.length / internalCols));
-      const height = Math.min(640, Math.max(192, 80 + rows * 128));
-      const x = 48 + col * (colWidth + gapX);
-      const y = colHeights[col];
+function buildDefaultGroupContainerNodes(
+  segmentsByGroup: Map<string, Segment[]>,
+  groupsOrder: string[],
+  isMobileViewport: boolean,
+): Record<string, CanvasNodeRect> {
+  const nodes: Record<string, CanvasNodeRect> = {};
+  let zCursor = 1;
+  const cols = isMobileViewport ? 1 : Math.min(2, Math.max(1, groupsOrder.length));
+  const colWidth = isMobileViewport ? 320 : 448;
+  const gapX = 32;
+  const gapY = 32;
+  const colHeights = Array.from({ length: cols }, () => 48);
+  let idx = 0;
 
-      nodes[canvasGroupNodeId(groupName)] = {
-        x: snapCanvasCoordinate(x, true),
-        y: snapCanvasCoordinate(y, true),
-        width: colWidth,
-        height: snapCanvasCoordinate(height, true),
-        zIndex: zCursor++,
-      };
+  for (const [groupName, groupSegments] of segmentsByGroup.entries()) {
+    const col = idx % cols;
+    const internalCols = isMobileViewport ? 1 : 2;
+    const rows = Math.max(1, Math.ceil(groupSegments.length / internalCols));
+    const height = Math.min(640, Math.max(192, 80 + rows * 128));
+    const x = 48 + col * (colWidth + gapX);
+    const y = colHeights[col];
 
-      colHeights[col] = y + height + gapY;
-      idx++;
-    }
+    nodes[canvasGroupNodeId(groupName)] = {
+      x: snapCanvasCoordinate(x, true),
+      y: snapCanvasCoordinate(y, true),
+      width: colWidth,
+      height: snapCanvasCoordinate(height, true),
+      zIndex: zCursor++,
+    };
 
-    return nodes;
+    colHeights[col] = y + height + gapY;
+    idx++;
   }
 
+  return nodes;
+}
+
+function buildDefaultFreeSegmentNodes(
+  segments: Segment[],
+  isMobileViewport: boolean,
+): Record<string, CanvasNodeRect> {
+  const nodes: Record<string, CanvasNodeRect> = {};
+  let zCursor = 1;
   const cols = isMobileViewport
     ? 2
     : Math.min(4, Math.max(2, Math.ceil(Math.sqrt(segments.length))));
@@ -291,6 +302,29 @@ export function buildDefaultCanvasNodes(
   }
 
   return nodes;
+}
+
+/**
+ * Builds deterministic initial node positions and dimensions on the infinite sheet
+ * for all three sub-modes ("graph" n8n mode, "groups" container mode, "segments" free mode).
+ */
+export function buildDefaultCanvasNodes(
+  subMode: CanvasSubMode,
+  groupsOrder: string[],
+  segments: Segment[],
+  isMobileViewport = false,
+): Record<string, CanvasNodeRect> {
+  if (subMode === "segments") {
+    return buildDefaultFreeSegmentNodes(segments, isMobileViewport);
+  }
+
+  const segmentsByGroup = groupSegmentsByGroupName(groupsOrder, segments);
+
+  if (subMode === "graph") {
+    return buildDefaultGraphNodes(segmentsByGroup, isMobileViewport);
+  }
+
+  return buildDefaultGroupContainerNodes(segmentsByGroup, groupsOrder, isMobileViewport);
 }
 
 /**

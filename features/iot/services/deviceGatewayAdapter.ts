@@ -164,6 +164,44 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
     }
   }
 
+  private resolveIsPushMode(pin: string, options?: SinglePinSyncOptions): boolean {
+    if (options?.isPushMode !== undefined) {
+      return options.isPushMode;
+    }
+
+    return this.deps.getSegments().find((s) => s.pin === pin)?.mode === "push";
+  }
+
+  private partitionBatchActions(
+    actions: Array<{ targetPin: string; actionOn: boolean }>,
+    availableSegments: Array<{ pin: string; auto_off?: number; mode?: string }>,
+    cfEnabled: boolean,
+  ): {
+    mqttActions: PinAction[];
+    cfActions: Array<{ pin: string; state: boolean }>;
+  } {
+    const segmentMap = new Map<string, { auto_off?: number; mode?: string }>();
+
+    for (let i = 0; i < availableSegments.length; i++) {
+      segmentMap.set(availableSegments[i].pin, availableSegments[i]);
+    }
+
+    const mqttActions: PinAction[] = [];
+    const cfActions: Array<{ pin: string; state: boolean }> = [];
+
+    for (let i = 0; i < actions.length; i++) {
+      const action = actions[i];
+      const segment = segmentMap.get(action.targetPin);
+      mqttActions.push({ pin: action.targetPin, state: action.actionOn, timer: segment?.auto_off });
+
+      if (cfEnabled && segment?.mode !== "push") {
+        cfActions.push({ pin: action.targetPin, state: action.actionOn });
+      }
+    }
+
+    return { mqttActions, cfActions };
+  }
+
   async syncSinglePin(
     pin: string,
     state: boolean,
@@ -176,23 +214,18 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
       timer: options?.autoOff,
     };
 
-    const hardwareSent =
-      this.deps.getIsLocal() && this.deps.getLocalWs()?.readyState === WS_OPEN_READY_STATE
-        ? this.dispatchHardwareCommand(wsPayload, () => false)
-        : !options?.preventMqtt &&
-          this.deps.publishPinCommand(pin, state, options?.autoOff);
+    const hardwareSent = this.dispatchHardwareCommand(
+      wsPayload,
+      () => !options?.preventMqtt && this.deps.publishPinCommand(pin, state, options?.autoOff),
+    );
 
-    const resolvedPushMode =
-      options?.isPushMode !== undefined
-        ? options.isPushMode
-        : this.deps.getSegments().find((s) => s.pin === pin)?.mode === "push";
-
+    const isPushMode = this.resolveIsPushMode(pin, options);
     const toast = options?.showToast || this.deps.getShowToast();
     let cfSucceeded = false;
     let cfAttempted = false;
     let cfShowedToast = false;
 
-    if (this.deps.isCloudflareEnabled() && !resolvedPushMode) {
+    if (this.deps.isCloudflareEnabled() && !isPushMode) {
       cfAttempted = true;
       const cfOutcome = await this.persistToCloudflareWithToast(
         toast,
@@ -226,24 +259,11 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
 
     const availableSegments = options?.segments ?? this.deps.getSegments();
     const cfEnabled = options?.isCfEnabled ?? this.deps.isCloudflareEnabled();
-    const segmentMap = new Map<string, { auto_off?: number; mode?: string }>();
-
-    for (let i = 0; i < availableSegments.length; i++) {
-      segmentMap.set(availableSegments[i].pin, availableSegments[i]);
-    }
-
-    const mqttActions: PinAction[] = [];
-    const cfActions: Array<{ pin: string; state: boolean }> = [];
-
-    for (let i = 0; i < actions.length; i++) {
-      const action = actions[i];
-      const segment = segmentMap.get(action.targetPin);
-      mqttActions.push({ pin: action.targetPin, state: action.actionOn, timer: segment?.auto_off });
-
-      if (cfEnabled && segment?.mode !== "push") {
-        cfActions.push({ pin: action.targetPin, state: action.actionOn });
-      }
-    }
+    const { mqttActions, cfActions } = this.partitionBatchActions(
+      actions,
+      availableSegments,
+      cfEnabled,
+    );
 
     const hardwareSent = this.dispatchHardwareCommand(
       { command: "batch_state", actions: mqttActions },

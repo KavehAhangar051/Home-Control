@@ -37,7 +37,7 @@ export function computeDragTiltDeg(deltaClientX: number, maxDeg = 2.6): number {
   const scaled = deltaClientX * 0.14;
   const clamped = Math.max(-maxDeg, Math.min(maxDeg, scaled));
 
-  return Number(clamped.toFixed(2));
+  return Math.round(clamped * 100) / 100;
 }
 
 /**
@@ -53,23 +53,41 @@ export function findMagneticInputPort({
   snapRadius = 42,
 }: FindMagneticPortOptions): MagneticPortMatch | null {
   let bestMatch: MagneticPortMatch | null = null;
+  let maxDistSq = snapRadius * snapRadius;
 
-  for (const candidate of nodes) {
-    if (!canConnectWorkflowPorts(edges, nodes, sourceId, candidate.id)) {
+  for (let i = 0; i < nodes.length; i++) {
+    const candidate = nodes[i];
+
+    if (
+      candidate.id === sourceId ||
+      candidate.kind === "trigger_manual" ||
+      candidate.kind === "trigger_schedule"
+    ) {
       continue;
     }
 
     const anchor = getPortAnchor(candidate, "in");
-    const distance = Math.hypot(pointerWorldX - anchor.x, pointerWorldY - anchor.y);
+    const dx = pointerWorldX - anchor.x;
+    const dy = pointerWorldY - anchor.y;
+    const distSq = dx * dx + dy * dy;
 
-    if (distance <= snapRadius && (!bestMatch || distance < bestMatch.distance)) {
-      bestMatch = {
-        targetId: candidate.id,
-        anchorX: anchor.x,
-        anchorY: anchor.y,
-        distance,
-      };
+    // Fast spatial rejection before running graph cycle/duplicate edge BFS
+    if (distSq > maxDistSq || (bestMatch !== null && distSq >= maxDistSq)) {
+      continue;
     }
+
+    if (!canConnectWorkflowPorts(edges, nodes, sourceId, candidate.id)) {
+      continue;
+    }
+
+    const distance = Math.sqrt(distSq);
+    maxDistSq = distSq;
+    bestMatch = {
+      targetId: candidate.id,
+      anchorX: anchor.x,
+      anchorY: anchor.y,
+      distance,
+    };
   }
 
   return bestMatch;

@@ -5,6 +5,7 @@ import {
   getSimilarity,
   normalizePhonetics,
 } from "../components/MasterHeader/VoiceCommandButton/utils.ts";
+import { buildValidatedAutomationDraft } from "../features/iot/components/AutomationsDrawer/hooks/useAutomationForm.ts";
 import {
   buildBezierWireGeometry,
   buildDefaultCanvasNodes,
@@ -23,6 +24,7 @@ import {
   computeDragTiltDeg,
   findMagneticInputPort,
 } from "../features/iot/components/canvas/nodeMotion.ts";
+import { computeResizedNodeRect } from "../features/iot/components/canvas/useCanvasNodeInteractions.ts";
 import { resolveSegmentSchematicKind } from "../features/iot/components/workflows/workflowSchematicUtils.ts";
 import {
   canConnectWorkflowPorts,
@@ -898,4 +900,99 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
     assert.equal(resolveSegmentSchematicKind("relay", "Lock"), "segment_lock");
     assert.equal(resolveSegmentSchematicKind("relay", "Power"), "segment_relay");
   });
+
+  it("evaluates schedule triggers accurately with indexOf/slice parsing and rejects malformed times", () => {
+    const wf = createEmptyWorkflow("تست زمان‌بندی");
+    const schedNode = createWorkflowNode({
+      payload: { kind: "trigger_schedule" },
+      x: 0,
+      y: 0,
+      zIndex: 1,
+      segments: sampleSegments,
+    });
+    schedNode.scheduleTime = "08:30";
+    schedNode.scheduleDays = [1, 3];
+    wf.nodes = [schedNode];
+
+    // Monday (day 1) at 08:30 -> true
+    const matchRes = evaluateWorkflowGraph({
+      workflow: wf,
+      segments: sampleSegments,
+      pinsState: {},
+      nowDate: new Date(2026, 10, 16, 8, 30, 0),
+    });
+    assert.equal(matchRes.nodeOutputs.get(schedNode.id), true);
+
+    // Malformed times ("08:30:00", ":30", "08:") -> false
+    for (const invalidTime of ["08:30:00", ":30", "08:", "invalid"]) {
+      schedNode.scheduleTime = invalidTime;
+      const badRes = evaluateWorkflowGraph({
+        workflow: wf,
+        segments: sampleSegments,
+        pinsState: {},
+        nowDate: new Date(2026, 10, 16, 8, 30, 0),
+      });
+      assert.equal(badRes.nodeOutputs.get(schedNode.id), false);
+    }
+  });
+
+  it("computes resized canvas node rectangles and validates automation form drafts deterministically", () => {
+    const startRect = { x: 64, y: 64, width: 224, height: 144, zIndex: 5 };
+    const resizedWest = computeResizedNodeRect({
+      startRect,
+      snappedRightEdge: 64 + 224,
+      snappedBottomEdge: 64 + 144,
+      kind: "segment",
+      activeSubMode: "segments",
+      direction: "sw",
+      dx: -32,
+      dy: 32,
+      snapToGrid: true,
+    });
+    assert.equal(resizedWest.x, 32);
+    assert.equal(resizedWest.width, 256);
+    assert.equal(resizedWest.height, 176);
+
+    const invalidSchedule = buildValidatedAutomationDraft({
+      editingId: null,
+      title: "روشنایی شب",
+      autoType: "schedule",
+      time: "",
+      days: [],
+      repeatCount: "",
+      delayHours: "",
+      delayMinutes: "",
+      city: "",
+      temperatureThreshold: "",
+      temperatureCondition: "greater",
+      intervalMinutes: "",
+      hasWeatherCondition: false,
+      actions: [{ targetPin: "2", actionOn: true }],
+    });
+    assert.equal(invalidSchedule.ok, false);
+
+    const validSchedule = buildValidatedAutomationDraft({
+      editingId: "auto_1",
+      title: "روشنایی شب",
+      autoType: "schedule",
+      time: "21:00",
+      days: [6, 0],
+      repeatCount: 3,
+      delayHours: "",
+      delayMinutes: "",
+      city: "",
+      temperatureThreshold: "",
+      temperatureCondition: "greater",
+      intervalMinutes: "",
+      hasWeatherCondition: false,
+      actions: [{ targetPin: "2", actionOn: true }],
+    });
+    assert.equal(validSchedule.ok, true);
+    if (validSchedule.ok) {
+      assert.equal(validSchedule.automation.id, "auto_1");
+      assert.equal(validSchedule.automation.conditionType, "time");
+      assert.equal(validSchedule.automation.repeatCount, 3);
+    }
+  });
 });
+
