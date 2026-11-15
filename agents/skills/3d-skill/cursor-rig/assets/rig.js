@@ -23,17 +23,25 @@ const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 export async function loadRig(base) {
   const rig = await (await fetch(base + "rig.json")).json();
   const imgs = new Array(rig.rows.length).fill(null);
-  const load = (i) => new Promise((done) => {
-    const im = new Image();
-    im.decoding = "async";
-    im.onload = () => { imgs[i] = im; done(); };
-    im.onerror = done;
-    im.src = base + rig.rows[i].src;
-  });
+  const load = (i) =>
+    new Promise((done) => {
+      const im = new Image();
+      im.decoding = "async";
+      im.onload = () => {
+        imgs[i] = im;
+        done();
+      };
+      im.onerror = done;
+      im.src = base + rig.rows[i].src;
+    });
   // the level row first so the head can turn left and right at once, then fan out up and down
-  const order = rig.pitch.map((_, i) => i).sort((a, b) => Math.abs(rig.pitch[a]) - Math.abs(rig.pitch[b]));
+  const order = rig.pitch
+    .map((_, i) => i)
+    .sort((a, b) => Math.abs(rig.pitch[a]) - Math.abs(rig.pitch[b]));
   await load(order[0]);
-  (async () => { for (const i of order.slice(1)) await load(i); })();
+  (async () => {
+    for (const i of order.slice(1)) await load(i);
+  })();
   return { rig, imgs };
 }
 
@@ -44,15 +52,18 @@ export class HeadRig {
     this.ctx = this.canvas.getContext("2d");
     this.rig = data.rig;
     this.imgs = data.imgs;
-    this.range = range;                      // 0..1: how far the head may turn
+    this.range = range; // 0..1: how far the head may turn
     [this.fw, this.fh] = this.rig.frame;
     const [pw, ph] = this.rig.plate;
     const A = art || { w: pw, h: ph, plateX: 0, plateY: 0 };
     const [bx, by, bw, bh] = this.rig.box;
     Object.assign(this.canvas.style, {
-      position: "absolute", pointerEvents: "none",
-      left: ((A.plateX + bx) / A.w) * 100 + "%", top: ((A.plateY + by) / A.h) * 100 + "%",
-      width: (bw / A.w) * 100 + "%", height: (bh / A.h) * 100 + "%",
+      position: "absolute",
+      pointerEvents: "none",
+      left: ((A.plateX + bx) / A.w) * 100 + "%",
+      top: ((A.plateY + by) / A.h) * 100 + "%",
+      width: (bw / A.w) * 100 + "%",
+      height: (bh / A.h) * 100 + "%",
     });
 
     // where the gaze starts from: the eyes if the rig has them, else the box's upper middle
@@ -64,7 +75,7 @@ export class HeadRig {
 
     this.yaw = this.pitch = this.vYaw = this.vPitch = this.tYaw = this.tPitch = 0;
     this.cur = null;
-    this.lids = null;                        // null | "both" | "wink"
+    this.lids = null; // null | "both" | "wink"
     this.lidsUntil = 0;
     this.nextBlink = performance.now() + rand(1800, 4200);
     this.visible = true;
@@ -72,7 +83,12 @@ export class HeadRig {
 
     this.resize();
     new ResizeObserver(() => this.resize()).observe(this.canvas);
-    new IntersectionObserver(([en]) => { this.visible = en.isIntersecting; }, { rootMargin: "120px" }).observe(el);
+    new IntersectionObserver(
+      ([en]) => {
+        this.visible = en.isIntersecting;
+      },
+      { rootMargin: "120px" },
+    ).observe(el);
   }
 
   resize() {
@@ -96,7 +112,10 @@ export class HeadRig {
     this.tPitch = Math.tanh((py - e.y) / Math.max(innerHeight * 0.3, e.w * 0.9)) * this.range;
   }
 
-  lookToward(yaw, pitch) { this.tYaw = clamp(yaw, -1, 1); this.tPitch = clamp(pitch, -1, 1); }
+  lookToward(yaw, pitch) {
+    this.tYaw = clamp(yaw, -1, 1);
+    this.tPitch = clamp(pitch, -1, 1);
+  }
 
   blink(kind = "both", ms = 130) {
     if (!this.hasEyes) return;
@@ -110,14 +129,16 @@ export class HeadRig {
     let best = 0;
     for (let i = 1; i < P.length; i++) if (Math.abs(P[i] - p) < Math.abs(P[best] - p)) best = i;
     if (this.imgs[best]) return best;
-    let alt = -1;   // the nearest row that has finished loading
-    for (let i = 0; i < P.length; i++) if (this.imgs[i] && (alt < 0 || Math.abs(P[i] - p) < Math.abs(P[alt] - p))) alt = i;
+    let alt = -1; // the nearest row that has finished loading
+    for (let i = 0; i < P.length; i++)
+      if (this.imgs[i] && (alt < 0 || Math.abs(P[i] - p) < Math.abs(P[alt] - p))) alt = i;
     return alt;
   }
 
   update(dt, now) {
     // a slightly under-damped spring: the small settle at the end of a turn reads as alive
-    const k = 70, c = 2 * (REDUCED ? 1 : 0.78) * Math.sqrt(k);
+    const k = 70,
+      c = 2 * (REDUCED ? 1 : 0.78) * Math.sqrt(k);
     this.vYaw += ((this.tYaw - this.yaw) * k - this.vYaw * c) * dt;
     this.vPitch += ((this.tPitch - this.pitch) * k - this.vPitch * c) * dt;
     this.yaw += this.vYaw * dt;
@@ -125,9 +146,12 @@ export class HeadRig {
 
     if (this.hasEyes && !REDUCED && now > this.nextBlink && !this.lids) {
       this.blink("both", rand(110, 150));
-      this.nextBlink = now + (Math.random() < 0.18 ? 260 : rand(2400, 5600));   // sometimes a double blink
+      this.nextBlink = now + (Math.random() < 0.18 ? 260 : rand(2400, 5600)); // sometimes a double blink
     }
-    if (this.lids && now > this.lidsUntil) { this.lids = null; this.dirty = true; }
+    if (this.lids && now > this.lidsUntil) {
+      this.lids = null;
+      this.dirty = true;
+    }
 
     const half = this.rig.center;
     const col = clamp(Math.round(half + clamp(this.yaw, -1, 1) * half), 0, this.rig.cols - 1);
@@ -135,7 +159,10 @@ export class HeadRig {
     if (row < 0) return;
     const key = row * 1000 + col;
     // hard cuts between neighbouring poses: a cross-fade doubles the eyes
-    if (!this.cur || this.cur.key !== key) { this.cur = { key, row, col }; this.dirty = true; }
+    if (!this.cur || this.cur.key !== key) {
+      this.cur = { key, row, col };
+      this.dirty = true;
+    }
     if (this.dirty) this.draw();
   }
 
@@ -144,7 +171,17 @@ export class HeadRig {
     const { ctx, canvas, cur } = this;
     if (!cur || !canvas.width) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(this.imgs[cur.row], cur.col * this.fw, 0, this.fw, this.fh, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(
+      this.imgs[cur.row],
+      cur.col * this.fw,
+      0,
+      this.fw,
+      this.fh,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
     if (this.lids) this.drawLids(this.rig.rows[cur.row].cells[cur.col]);
   }
 
@@ -155,13 +192,18 @@ export class HeadRig {
     const s = canvas.width / this.fw;
     cell.eyes.forEach(([x, y, r], i) => {
       if (this.lids === "wink" && i === 0) return;
-      x *= s; y *= s; r *= s;
-      const R = r * 1.75, skin = cell.skin[i];
+      x *= s;
+      y *= s;
+      r *= s;
+      const R = r * 1.75,
+        skin = cell.skin[i];
       const g = ctx.createRadialGradient(x, y, R * 0.45, x, y, R);
       g.addColorStop(0, skin);
       g.addColorStop(1, skin + "00");
       ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y, R, 0, Math.PI * 2);
+      ctx.fill();
       ctx.strokeStyle = "rgba(42, 26, 20, .92)";
       ctx.lineWidth = Math.max(1.2, r * 0.42);
       ctx.lineCap = "round";
@@ -178,9 +220,23 @@ export class HeadRig {
 export function animate(rigs, { onIdle } = {}) {
   const ptr = { x: innerWidth / 2, y: innerHeight * 0.3, t: -1e9, inside: true };
   const idle = rigs.map(() => ({ next: 0 }));
-  addEventListener("pointermove", (e) => { Object.assign(ptr, { x: e.clientX, y: e.clientY, t: performance.now(), inside: true }); }, { passive: true });
-  addEventListener("pointerdown", (e) => { Object.assign(ptr, { x: e.clientX, y: e.clientY, t: performance.now() }); }, { passive: true });
-  document.documentElement.addEventListener("pointerleave", () => { ptr.inside = false; });
+  addEventListener(
+    "pointermove",
+    (e) => {
+      Object.assign(ptr, { x: e.clientX, y: e.clientY, t: performance.now(), inside: true });
+    },
+    { passive: true },
+  );
+  addEventListener(
+    "pointerdown",
+    (e) => {
+      Object.assign(ptr, { x: e.clientX, y: e.clientY, t: performance.now() });
+    },
+    { passive: true },
+  );
+  document.documentElement.addEventListener("pointerleave", () => {
+    ptr.inside = false;
+  });
 
   let last = performance.now();
   const tick = (now) => {

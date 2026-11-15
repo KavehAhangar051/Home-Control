@@ -23,6 +23,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
   const setGroupConfigs = useIoTStore((state) => state.setGroupConfigs);
   const setSyncStatus = useIoTStore((state) => state.setSyncStatus);
   const [isFullyReady, setIsFullyReady] = useState(false);
+  const [remoteSyncEpoch, setRemoteSyncEpoch] = useState(0);
   const [workerUrl, setWorkerUrlState] = useState(() => getCloudflareWorkerUrl());
   const bypassedRef = useRef(false);
 
@@ -45,6 +46,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
 
           if (cachedConfig && Array.isArray(cachedConfig.segments) && cachedConfig.layout) {
             handleApplyEspConfig(cachedConfig);
+            setRemoteSyncEpoch((prev) => prev + 1);
             setSyncStatus(false, 100, "اتصال به سرور برقرار نیست؛ تنظیمات کش‌شده بارگذاری شد.");
             setIsFullyReady(true);
             debugLog.warn("ConfigSync", "Recovered configuration from optional local cache.");
@@ -61,6 +63,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     setSegments([]);
     setGroupsOrder([]);
     setGroupConfigs({});
+    setRemoteSyncEpoch((prev) => prev + 1);
     setSyncStatus(
       false,
       0,
@@ -130,6 +133,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
           }
 
           handleApplyEspConfig(cfConfig);
+          setRemoteSyncEpoch((prev) => prev + 1);
           setSyncStatus(false, 100, "همگام‌سازی تنظیمات انجام شد.");
           setIsFullyReady(true);
           debugLog.info("ConfigSync", "Cloud configuration applied.", {
@@ -182,6 +186,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
   return {
     isFullyReady,
     setIsFullyReady,
+    remoteSyncEpoch,
     handleBypassSync,
     workerUrl,
     setWorkerUrl: handleWorkerUrlChange,

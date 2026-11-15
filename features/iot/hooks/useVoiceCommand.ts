@@ -30,6 +30,22 @@ interface SpeechRecognitionInstance {
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
 
+function getSpeechRecognitionErrorMessage(errorCode: string): string {
+  switch (errorCode) {
+    case "not-allowed":
+    case "service-not-allowed":
+      return "دسترسی به میکروفون مسدود است. لطفاً مجوز میکروفون را فعال کنید.";
+    case "audio-capture":
+      return "میکروفونی روی دستگاه یافت نشد.";
+    case "no-speech":
+      return "صدایی دریافت نشد. لطفاً دوباره امتحان کنید.";
+    case "network":
+      return "خطا در ارتباط سرویس تشخیص گفتار.";
+    default:
+      return "خطا در تشخیص فرمان صوتی.";
+  }
+}
+
 export const useVoiceCommand = () => {
   const isListening = useIoTStore((s) => s.isListening);
   const setIsListening = useIoTStore((s) => s.setIsListening);
@@ -39,6 +55,8 @@ export const useVoiceCommand = () => {
 
   const transcriptRef = useRef("");
   const hasErrorRef = useRef(false);
+  const sessionIdRef = useRef(0);
+  const activeSessionIdRef = useRef(0);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const onCommandCompleteRef = useRef<((text: string) => void) | null>(null);
 
@@ -63,11 +81,17 @@ export const useVoiceCommand = () => {
     recognition.lang = "fa-IR"; // Support Persian
 
     recognition.onresult = (event: SpeechRecognitionResultEvent) => {
-      let fullTranscript = "";
+      if (activeSessionIdRef.current !== sessionIdRef.current) return;
+
+      const parts: string[] = [];
 
       for (let i = 0; i < event.results.length; ++i) {
-        fullTranscript += event.results[i][0].transcript;
+        const segment = event.results[i][0]?.transcript?.trim();
+
+        if (segment) parts.push(segment);
       }
+
+      const fullTranscript = parts.join(" ");
 
       if (fullTranscript) {
         setTranscript(fullTranscript);
@@ -76,28 +100,43 @@ export const useVoiceCommand = () => {
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      if (activeSessionIdRef.current !== sessionIdRef.current) return;
+
       console.error("Speech recognition error", event.error);
       hasErrorRef.current = true;
       transcriptRef.current = "";
+      onCommandCompleteRef.current = null;
       setTranscript("");
       setIsListening(false);
+
+      if (event.error !== "aborted") {
+        showToast(getSpeechRecognitionErrorMessage(event.error), "error");
+      }
     };
 
     recognition.onend = () => {
+      if (activeSessionIdRef.current !== sessionIdRef.current) return;
+
       setIsListening(false);
 
-      if (!hasErrorRef.current && transcriptRef.current && onCommandCompleteRef.current) {
-        onCommandCompleteRef.current(transcriptRef.current);
-      }
+      const finalCallback = onCommandCompleteRef.current;
+      const finalTranscript = transcriptRef.current;
+      const hadError = hasErrorRef.current;
 
+      onCommandCompleteRef.current = null;
       hasErrorRef.current = false;
       transcriptRef.current = "";
       setTranscript("");
+
+      if (!hadError && finalTranscript && finalCallback) {
+        finalCallback(finalTranscript);
+      }
     };
 
     recognitionRef.current = recognition;
 
     return () => {
+      sessionIdRef.current += 1;
       recognition.onresult = null;
       recognition.onerror = null;
       recognition.onend = null;
@@ -108,30 +147,39 @@ export const useVoiceCommand = () => {
 
       recognitionRef.current = null;
     };
-  }, [setIsListening, setTranscript]);
+  }, [setIsListening, setTranscript, showToast]);
 
   const startListening = useCallback(
     (onComplete?: (text: string) => void) => {
+      if (!recognitionRef.current) {
+        showToast("مرورگر شما از قابلیت تشخیص صدا پشتیبانی نمی‌کند.", "error");
+
+        return;
+      }
+
+      const nextSessionId = sessionIdRef.current + 1;
+      sessionIdRef.current = nextSessionId;
+      activeSessionIdRef.current = nextSessionId;
+
       setTranscript("");
       transcriptRef.current = "";
       hasErrorRef.current = false;
       onCommandCompleteRef.current = onComplete ?? null;
 
-      if (recognitionRef.current) {
-        if (useIoTStore.getState().isListening) {
-          try {
-            recognitionRef.current.abort?.();
-          } catch {}
-        }
-
+      if (useIoTStore.getState().isListening) {
         try {
-          recognitionRef.current.start();
-          setIsListening(true);
-        } catch (e) {
-          console.error(e);
-        }
-      } else {
-        showToast("مرورگر شما از قابلیت تشخیص صدا پشتیبانی نمی‌کند.", "error");
+          recognitionRef.current.abort?.();
+        } catch {}
+      }
+
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error(e);
+        onCommandCompleteRef.current = null;
+        setIsListening(false);
+        showToast("شروع ضبط صدا ناموفق بود. لطفاً دوباره تلاش کنید.", "error");
       }
     },
     [setIsListening, setTranscript, showToast],

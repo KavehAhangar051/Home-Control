@@ -13,17 +13,18 @@ export default function DashboardMain() {
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const activeWorkspaceView = useIoTStore((s) => s.activeWorkspaceView);
 
-  const segments = useIoTStore((s) => s.segments);
+  const hasSegments = useIoTStore((s) => s.segments.length > 0);
   const lowDataMode = useIoTStore((s) => s.lowDataMode);
   const manualSaveMode = useIoTStore((s) => s.manualSaveMode);
   const unsavedChangesCount = useIoTStore((s) => s.unsavedChangesCount);
   const activeAutomationsTab = useIoTStore((s) => s.activeAutomationsTab);
   const workspaceDisplayMode = useIoTStore((s) => s.workspaceDisplayMode);
 
-  const hasOrLoadingContent = !isFullyReady || segments.length > 0;
+  const hasOrLoadingContent = !isFullyReady || hasSegments;
 
   const isTrellisActive =
     activeWorkspaceView === "home" && workspaceDisplayMode === "trellis" && hasOrLoadingContent;
+
   const isSeamlessCanvasActive =
     (activeWorkspaceView === "home" && workspaceDisplayMode === "canvas" && hasOrLoadingContent) ||
     (activeWorkspaceView === "automations" && activeAutomationsTab === "workflows");
@@ -34,7 +35,8 @@ export default function DashboardMain() {
 
       <div
         id="dashboard-workspace-scroll"
-        className={`custom-scrollbar flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col w-full ${
+        tabIndex={-1}
+        className={`custom-scrollbar flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col w-full focus:outline-none ${
           isSeamlessCanvasActive
             ? "overflow-hidden gap-0 p-0"
             : isTrellisActive
@@ -43,7 +45,7 @@ export default function DashboardMain() {
         }`}
       >
         {activeWorkspaceView === "home" &&
-          segments.length > 0 &&
+          hasSegments &&
           (lowDataMode || (manualSaveMode && unsavedChangesCount > 0)) && (
             <LowDataModeBanner
               lowDataMode={lowDataMode}

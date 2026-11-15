@@ -33,12 +33,14 @@ export interface WorkflowNode {
   timerMode?: WorkflowTimerMode;
   scheduleTime?: string;
   scheduleDays?: number[];
+  inputCount?: number;
 }
 
 export interface WorkflowEdge {
   id: string;
   sourceId: string;
   targetId: string;
+  targetPortIndex?: number;
 }
 
 export interface WorkflowViewport {

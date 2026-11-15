@@ -15,16 +15,16 @@ import type { TrellisSegmentHandlers } from "@/features/iot/components/trellis/T
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { SPRING_MOUSE, SPRING_PANEL } from "@/lib/ease";
-import NodePerimeterSpark from "./NodePerimeterSpark";
 import type { CanvasNodeRect, CanvasResizeDirection } from "./canvasTypes";
+import NodePerimeterSpark from "./NodePerimeterSpark";
 
 interface CanvasSegmentNodeProps extends TrellisSegmentHandlers {
   nodeId: string;
   segment: Segment;
   rect: CanvasNodeRect;
   isSelected: boolean;
-  isDragging: boolean;
-  dragTiltDeg: number;
+  isDragging?: boolean;
+  dragTiltDeg?: number;
   isLocked: boolean;
   showPort: boolean;
   animationsEnabled: boolean;
@@ -46,8 +46,8 @@ export default React.memo(function CanvasSegmentNode({
   segment,
   rect,
   isSelected,
-  isDragging,
-  dragTiltDeg,
+  isDragging = false,
+  dragTiltDeg = 0,
   isLocked,
   showPort,
   animationsEnabled,
@@ -143,13 +143,15 @@ export default React.memo(function CanvasSegmentNode({
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
         className="relative h-full w-full"
       >
-        <NodePerimeterSpark
-          active={isPinOn}
-          animationsEnabled={animationsEnabled}
-          radius={16}
-          color={isInput ? "#10b981" : "var(--accent3)"}
-          speed="flow"
-        />
+        {showPort && (
+          <NodePerimeterSpark
+            active={isPinOn}
+            animationsEnabled={animationsEnabled}
+            radius={16}
+            color={isInput ? "#10b981" : "var(--accent3)"}
+            speed="flow"
+          />
+        )}
 
         {/* n8n connection port indicator */}
         {showPort && (

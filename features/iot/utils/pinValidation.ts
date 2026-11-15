@@ -10,13 +10,16 @@ const FLAG_INPUT_ONLY = 2;
 // Bit-packed lookup table for GPIO 0..39 capabilities
 const PIN_FLAGS = (() => {
   const table = new Uint8Array(40);
+
   for (let p = 6; p <= 11; p++) {
     table[p] = FLAG_FLASH_RESERVED;
   }
+
   table[34] = FLAG_INPUT_ONLY;
   table[35] = FLAG_INPUT_ONLY;
   table[36] = FLAG_INPUT_ONLY;
   table[39] = FLAG_INPUT_ONLY;
+
   return table;
 })();
 
@@ -54,17 +57,22 @@ const RESULT_INPUT_ONLY_WARNING: PinValidationResult = {
 
 function parsePinIndex(pinStr: string): number {
   const len = pinStr.length;
+
   if (len === 1) {
     const d0 = pinStr.charCodeAt(0) - 48;
+
     return d0 >= 0 && d0 <= 9 ? d0 : -1;
   }
+
   if (len === 2) {
     const d0 = pinStr.charCodeAt(0) - 48;
     const d1 = pinStr.charCodeAt(1) - 48;
+
     if (d0 >= 1 && d0 <= 3 && d1 >= 0 && d1 <= 9) {
       return d0 * 10 + d1;
     }
   }
+
   return -1;
 }
 

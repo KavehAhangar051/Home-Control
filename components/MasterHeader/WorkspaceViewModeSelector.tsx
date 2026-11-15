@@ -50,6 +50,7 @@ export default function WorkspaceViewModeSelector({
   const displayMode = useIoTStore((s) => s.workspaceDisplayMode);
   const setDisplayMode = useIoTStore((s) => s.setWorkspaceDisplayMode);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+
   const pillLayoutId = compact
     ? "workspace-display-mode-pill-compact"
     : "workspace-display-mode-pill";

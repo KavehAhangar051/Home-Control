@@ -1,5 +1,11 @@
 import type { IoTStoreState } from "@/features/iot/hooks/store/types";
-import { getCloudflareWorkerUrl } from "@/features/iot/services/cloudflareService";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import {
+  type AckResult,
+  getCloudflareWorkerUrl,
+  isCloudflareEnabled,
+  saveConfigToCloudflare,
+} from "@/features/iot/services/cloudflareService";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
 
 export type EspConfigBuildSource = Pick<
@@ -33,12 +39,14 @@ export type EspConfigBuildSource = Pick<
 export function buildEspConfig(params: EspConfigBuildSource): EspConfig {
   const apConfig = params.wifiApConfig;
   const apIsCleared = apConfig && !apConfig.ssid.trim() && !apConfig.password;
+
   const apIsValid =
     apConfig &&
     apConfig.ssid.trim().length > 0 &&
     apConfig.ssid.length <= 32 &&
     apConfig.password.length >= 8 &&
     apConfig.password.length <= 63;
+
   const accessPoint = apIsCleared || apIsValid ? apConfig : undefined;
 
   return {
@@ -83,4 +91,45 @@ export function buildEspConfig(params: EspConfigBuildSource): EspConfig {
     mqtt: params.mqttConfig || undefined,
     worker_url: getCloudflareWorkerUrl(),
   };
+}
+
+export interface PersistStoreConfigOptions {
+  overrides?: Partial<EspConfigBuildSource>;
+  successToast?: string;
+  errorToast?: string;
+}
+
+/**
+ * Deep persistence operation: builds the canonical EspConfig from current store state,
+ * saves it to Cloudflare, resets unsaved change counters on success, and dispatches toast feedback.
+ */
+export async function persistStoreConfigToCloudflare(
+  options?: PersistStoreConfigOptions,
+): Promise<{ result: AckResult; signature: string }> {
+  const latestState = useIoTStore.getState();
+
+  const snapshotToSave = buildEspConfig({
+    ...latestState,
+    ...options?.overrides,
+  });
+
+  const signature = JSON.stringify(snapshotToSave);
+
+  if (!isCloudflareEnabled()) {
+    return {
+      result: { success: false, message: "اتصال کلودفلر غیرفعال است." },
+      signature,
+    };
+  }
+
+  const result = await saveConfigToCloudflare(snapshotToSave);
+
+  if (result.success) {
+    latestState.resetUnsavedChanges();
+    latestState.showToast(options?.successToast || result.message, "success");
+  } else {
+    latestState.showToast(options?.errorToast || result.message, "error");
+  }
+
+  return { result, signature };
 }

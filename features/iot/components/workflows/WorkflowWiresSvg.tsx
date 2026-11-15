@@ -5,7 +5,7 @@ import { m } from "motion/react";
 import React from "react";
 import { SPRING_BOUNCE } from "@/lib/ease";
 import type { ConnectingWireDraft } from "./useWorkflowStudio";
-import { buildWorkflowBezierPath, getPortAnchor } from "./workflowEngine";
+import { buildWorkflowBezierPath, getNodeInputCount, getPortAnchor } from "./workflowEngine";
 import type { WorkflowEdge, WorkflowNode } from "./workflowTypes";
 
 interface WorkflowWiresSvgProps {
@@ -43,6 +43,19 @@ export default React.memo(function WorkflowWiresSvg({
     return map;
   }, [nodes]);
 
+  const incomingIndexByEdgeId = React.useMemo(() => {
+    const countsByTarget = new Map<string, number>();
+    const indexMap = new Map<string, number>();
+
+    for (const edge of edges) {
+      const idx = countsByTarget.get(edge.targetId) ?? 0;
+      indexMap.set(edge.id, edge.targetPortIndex ?? idx);
+      countsByTarget.set(edge.targetId, idx + 1);
+    }
+
+    return indexMap;
+  }, [edges]);
+
   const draftSource = connectingDraft ? nodeMap.get(connectingDraft.sourceId) : undefined;
   const draftAnchor = draftSource ? getPortAnchor(draftSource, "out") : null;
 
@@ -70,8 +83,10 @@ export default React.memo(function WorkflowWiresSvg({
 
         if (!source || !target) return null;
 
+        const totalInPorts = getNodeInputCount(target);
+        const resolvedPortIdx = incomingIndexByEdgeId.get(edge.id) ?? 0;
         const start = getPortAnchor(source, "out");
-        const end = getPortAnchor(target, "in");
+        const end = getPortAnchor(target, "in", resolvedPortIdx, totalInPorts);
         const { path, midX, midY } = buildWorkflowBezierPath(start.x, start.y, end.x, end.y);
         const isActive = activeEdgeIds.has(edge.id);
         const isSelected = selectedEdgeId === edge.id;
@@ -187,10 +202,10 @@ export default React.memo(function WorkflowWiresSvg({
                 initial={false}
                 animate={animationsEnabled && isSelected ? { scale: 1.05 } : { scale: 1 }}
                 transition={SPRING_BOUNCE}
-                className={`flex h-8 w-8 items-center justify-center transition-all duration-150 ${
+                className={`flex h-8 w-8 items-center justify-center transition-[transform,opacity] duration-150 ease-[var(--ease-out)] ${
                   isSelected
                     ? "pointer-events-auto scale-100 opacity-100"
-                    : "pointer-events-none scale-75 opacity-0 group-hover/edge:pointer-events-auto group-hover/edge:scale-100 group-hover/edge:opacity-100"
+                    : "pointer-events-none scale-95 opacity-0 group-hover/edge:pointer-events-auto group-hover/edge:scale-100 group-hover/edge:opacity-100"
                 }`}
               >
                 <button
@@ -202,7 +217,7 @@ export default React.memo(function WorkflowWiresSvg({
                     e.stopPropagation();
                     onDeleteEdge(edge.id);
                   }}
-                  className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-red-500/60 bg-[var(--card-bg-solid)] text-red-500 shadow-lg transition-transform hover:scale-110 hover:bg-red-500 hover:text-white active:scale-95"
+                  className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-red-500/60 bg-[var(--card-bg-solid)] text-red-500 shadow-lg transition-[transform,background-color,color] duration-150 ease-[var(--ease-out)] hover:scale-110 hover:bg-red-500 hover:text-white active:scale-[0.97]"
                 >
                   {isSelected ? (
                     <X className="h-3.5 w-3.5" aria-hidden="true" />

@@ -49,15 +49,19 @@ function mapPhoneticCode(code: number): string | null {
  */
 export function normalizePhonetics(text: string): string {
   const len = text.length;
+
   if (len === 0) return "";
 
   let start = 0;
+
   while (start < len && isWhitespaceOrZwnj(text.charCodeAt(start))) {
     start++;
   }
+
   if (start === len) return "";
 
   let end = len - 1;
+
   while (end > start && isWhitespaceOrZwnj(text.charCodeAt(end))) {
     end--;
   }
@@ -71,6 +75,7 @@ export function normalizePhonetics(text: string): string {
 
     if (isWhitespaceOrZwnj(code)) {
       const nextIdx = i + 1;
+
       const isMultiOrNonAsciiSpace =
         code !== CODE_SPACE || (nextIdx <= end && isWhitespaceOrZwnj(text.charCodeAt(nextIdx)));
 
@@ -78,23 +83,29 @@ export function normalizePhonetics(text: string): string {
         if (i > chunkStart) {
           out += text.slice(chunkStart, i);
         }
+
         out += " ";
         i = nextIdx;
+
         while (i <= end && isWhitespaceOrZwnj(text.charCodeAt(i))) {
           i++;
         }
+
         chunkStart = i;
         continue;
       }
+
       i++;
       continue;
     }
 
     const mapped = mapPhoneticCode(code);
+
     if (mapped !== null) {
       if (i > chunkStart) {
         out += text.slice(chunkStart, i);
       }
+
       out += mapped;
       chunkStart = i + 1;
     }
@@ -119,6 +130,7 @@ export function getSimilarity(a: string, b: string): number {
   const bLen = b.length;
 
   if (aLen === 0) return bLen === 0 ? 1 : 0;
+
   if (bLen === 0) return 0;
 
   let strA = a;
@@ -137,6 +149,7 @@ export function getSimilarity(a: string, b: string): number {
 
   // Trim common prefix
   let start = 0;
+
   while (start < lenA && strA.charCodeAt(start) === strB.charCodeAt(start)) {
     start++;
   }
@@ -159,6 +172,7 @@ export function getSimilarity(a: string, b: string): number {
   }
 
   const row = levenshteinScratchRow;
+
   for (let j = 0; j <= trimA; j++) {
     row[j] = j;
   }
@@ -176,6 +190,7 @@ export function getSimilarity(a: string, b: string): number {
       const sub = prevDiag + cost;
 
       let min = del < ins ? del : ins;
+
       if (sub < min) min = sub;
 
       row[j] = min;
@@ -186,22 +201,76 @@ export function getSimilarity(a: string, b: string): number {
   return (maxLen - row[trimA]) / maxLen;
 }
 
+import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
+
 export interface VoiceCommandExecutionContext {
   voiceCommands?: Array<{
     phrase: string;
     actions?: Array<{ targetPin?: string; actionOn?: boolean; targetMacro?: string }>;
   }>;
   macros?: Array<{ id: string; actions: Array<{ targetPin: string; actionOn: boolean }> }>;
-  segments?: Array<{ pin: string; title: string }>;
-  handleSetPinState: (pin: string, state: boolean) => void;
-  handleBatchPinState: (actions: Array<{ targetPin: string; actionOn: boolean }>) => void;
+  segments?: Array<{ pin: string; title: string; type?: string }>;
+  handleSetPinState: (
+    pin: string,
+    state: boolean,
+  ) => boolean | undefined | Promise<boolean | undefined>;
+  handleBatchPinState: (
+    actions: Array<{ targetPin: string; actionOn: boolean }>,
+  ) => boolean | undefined | Promise<boolean | undefined>;
   showToast: (message: string, type: "success" | "error") => void;
 }
 
-function extractSegmentIntent(cleanTranscript: string): {
+export interface VoiceCommandExecutionResult {
+  matched: boolean;
+  kind: "custom" | "segment" | "none";
+  dispatchedCount: number;
+  skippedPins: string[];
+}
+
+interface ExtractedSegmentIntent {
   targetState: boolean | null;
   segmentName: string;
-} {
+}
+
+function isControllableOutputPin(
+  pin: string,
+  segmentsByPin: Map<string, NonNullable<VoiceCommandExecutionContext["segments"]>[number]>,
+): boolean {
+  const seg = segmentsByPin.get(pin);
+
+  if (seg && (seg.type === "input" || seg.type === "placeholder")) {
+    return false;
+  }
+
+  return validateEsp32Pin(pin, "output").isValid;
+}
+
+function finalizeDispatchToast(
+  dispatchResult: boolean | undefined | Promise<boolean | undefined>,
+  successMessage: string,
+  showToast: (message: string, type: "success" | "error") => void,
+): void {
+  if (dispatchResult === false) return;
+
+  if (dispatchResult instanceof Promise) {
+    void dispatchResult.then(
+      (resolved) => {
+        if (resolved !== false) {
+          showToast(successMessage, "success");
+        }
+      },
+      () => {
+        // Transport layer emits explicit error feedback on rejection.
+      },
+    );
+
+    return;
+  }
+
+  showToast(successMessage, "success");
+}
+
+function extractSegmentIntent(cleanTranscript: string): ExtractedSegmentIntent {
   const stripped = cleanTranscript.replace(POLITE_VERB_SUFFIX_REGEX, "").trim();
 
   if (stripped.endsWith(" روشن")) {
@@ -238,17 +307,34 @@ function extractSegmentIntent(cleanTranscript: string): {
 /**
  * Deep voice command resolution engine:
  * Encapsulates phonetic normalization, Levenshtein distance similarity,
- * macro action unfolding, suffix/prefix matching ("روشن" / "خاموش"), and status notifications.
+ * macro action unfolding, hardware pin validation, suffix/prefix matching ("روشن" / "خاموش"),
+ * and dispatch-verified status notifications.
  */
 export function executeVoiceCommand(
   finalTranscript: string,
   context: VoiceCommandExecutionContext,
-): void {
+): VoiceCommandExecutionResult {
   const cleanTranscript = finalTranscript.trim().replace(TRAILING_PUNCT_REGEX, "").trim();
 
-  if (!cleanTranscript) return;
+  if (!cleanTranscript) {
+    return { matched: false, kind: "none", dispatchedCount: 0, skippedPins: [] };
+  }
 
   const normalizedTranscript = normalizePhonetics(cleanTranscript);
+  const segments = context.segments ?? [];
+
+  const segmentsByPin = new Map<
+    string,
+    NonNullable<VoiceCommandExecutionContext["segments"]>[number]
+  >();
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+
+    if (seg.pin) {
+      segmentsByPin.set(seg.pin.trim(), seg);
+    }
+  }
 
   // 1. Try matching configured custom voice commands
   let bestMatchCmd: NonNullable<VoiceCommandExecutionContext["voiceCommands"]>[number] | null =
@@ -260,7 +346,11 @@ export function executeVoiceCommand(
   if (voiceCommands) {
     for (let i = 0; i < voiceCommands.length; i++) {
       const command = voiceCommands[i];
-      const similarity = getSimilarity(normalizePhonetics(command.phrase), normalizedTranscript);
+      const normalizedPhrase = normalizePhonetics(command.phrase);
+
+      if (!normalizedPhrase) continue;
+
+      const similarity = getSimilarity(normalizedPhrase, normalizedTranscript);
 
       if (similarity > highestSim && similarity >= VOICE_SIMILARITY_THRESHOLD) {
         highestSim = similarity;
@@ -269,20 +359,29 @@ export function executeVoiceCommand(
     }
   }
 
-  if (bestMatchCmd?.actions?.length) {
+  if (bestMatchCmd) {
     const dedupedActions = new Map<string, boolean>();
+    const skippedPins: string[] = [];
+
     let macroMap: Map<string, NonNullable<VoiceCommandExecutionContext["macros"]>[number]> | null =
       null;
 
-    for (let i = 0; i < bestMatchCmd.actions.length; i++) {
-      const action = bestMatchCmd.actions[i];
+    const actions = bestMatchCmd.actions ?? [];
+
+    for (let i = 0; i < actions.length; i++) {
+      const action = actions[i];
       const directPin = action.targetPin?.trim();
 
       if (directPin) {
-        dedupedActions.set(directPin, action.actionOn ?? true);
+        if (isControllableOutputPin(directPin, segmentsByPin)) {
+          dedupedActions.set(directPin, action.actionOn ?? true);
+        } else {
+          skippedPins.push(directPin);
+        }
       } else if (action.targetMacro && context.macros?.length) {
         if (!macroMap) {
           macroMap = new Map();
+
           for (let m = 0; m < context.macros.length; m++) {
             const item = context.macros[m];
             macroMap.set(item.id, item);
@@ -290,12 +389,18 @@ export function executeVoiceCommand(
         }
 
         const macro = macroMap.get(action.targetMacro);
+
         if (macro) {
           for (let j = 0; j < macro.actions.length; j++) {
             const macroAction = macro.actions[j];
             const macroPin = macroAction.targetPin?.trim();
+
             if (macroPin) {
-              dedupedActions.set(macroPin, macroAction.actionOn);
+              if (isControllableOutputPin(macroPin, segmentsByPin)) {
+                dedupedActions.set(macroPin, macroAction.actionOn);
+              } else {
+                skippedPins.push(macroPin);
+              }
             }
           }
         }
@@ -307,42 +412,81 @@ export function executeVoiceCommand(
         targetPin,
         actionOn,
       }));
-      context.handleBatchPinState(batchActions);
-      context.showToast(`فرمان صوتی اجرا شد: ${cleanTranscript}`, "success");
 
-      return;
+      const dispatchResult = context.handleBatchPinState(batchActions);
+      finalizeDispatchToast(
+        dispatchResult,
+        `فرمان صوتی اجرا شد: ${cleanTranscript}`,
+        context.showToast,
+      );
+
+      return {
+        matched: true,
+        kind: "custom",
+        dispatchedCount: batchActions.length,
+        skippedPins,
+      };
     }
+
+    context.showToast(
+      `فرمان صوتی «${cleanTranscript}» عملیات خروجی معتبری برای اجرا ندارد.`,
+      "error",
+    );
+
+    return { matched: true, kind: "custom", dispatchedCount: 0, skippedPins };
   }
 
-  // 2. Try matching segment suffix/prefix commands ("روشن" or "خاموش")
+  // 2. Try matching controllable output segment suffix/prefix commands ("روشن" or "خاموش")
   const { targetState, segmentName } = extractSegmentIntent(cleanTranscript);
 
   if (targetState !== null && segmentName) {
     const normalizedSegmentName = normalizePhonetics(segmentName);
     let bestSegment: NonNullable<VoiceCommandExecutionContext["segments"]>[number] | null = null;
     let highestSegmentSimilarity = 0;
-    const segments = context.segments;
 
-    if (segments) {
-      for (let i = 0; i < segments.length; i++) {
-        const segment = segments[i];
-        if (!segment.pin) continue;
-        const similarity = getSimilarity(normalizePhonetics(segment.title), normalizedSegmentName);
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
 
-        if (similarity > highestSegmentSimilarity && similarity >= VOICE_SIMILARITY_THRESHOLD) {
-          highestSegmentSimilarity = similarity;
-          bestSegment = segment;
-        }
+      if (!segment.pin || segment.type === "input" || segment.type === "placeholder") continue;
+
+      const similarity = getSimilarity(normalizePhonetics(segment.title), normalizedSegmentName);
+
+      if (similarity > highestSegmentSimilarity && similarity >= VOICE_SIMILARITY_THRESHOLD) {
+        highestSegmentSimilarity = similarity;
+        bestSegment = segment;
       }
     }
 
     if (bestSegment) {
-      context.handleSetPinState(bestSegment.pin, targetState);
-      context.showToast(`فرمان صوتی اجرا شد: ${cleanTranscript}`, "success");
-    } else {
-      context.showToast(`سگمنتی با نام مشابه «${segmentName}» یافت نشد.`, "error");
+      const pinCheck = validateEsp32Pin(bestSegment.pin, "output");
+
+      if (!pinCheck.isValid) {
+        context.showToast(pinCheck.message, "error");
+
+        return {
+          matched: true,
+          kind: "segment",
+          dispatchedCount: 0,
+          skippedPins: [bestSegment.pin],
+        };
+      }
+
+      const dispatchResult = context.handleSetPinState(bestSegment.pin, targetState);
+      finalizeDispatchToast(
+        dispatchResult,
+        `فرمان صوتی اجرا شد: ${cleanTranscript}`,
+        context.showToast,
+      );
+
+      return { matched: true, kind: "segment", dispatchedCount: 1, skippedPins: [] };
     }
-  } else {
-    context.showToast(`فرمان نامعتبر: ${cleanTranscript}`, "error");
+
+    context.showToast(`سگمنتی با نام مشابه «${segmentName}» یافت نشد.`, "error");
+
+    return { matched: false, kind: "none", dispatchedCount: 0, skippedPins: [] };
   }
+
+  context.showToast(`فرمان نامعتبر: ${cleanTranscript}`, "error");
+
+  return { matched: false, kind: "none", dispatchedCount: 0, skippedPins: [] };
 }

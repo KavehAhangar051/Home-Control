@@ -51,6 +51,9 @@
   --shadow-border-hover:
     0px 0px 0px 1px oklch(0 0 0 / 0.08), 0px 1px 2px -1px oklch(0 0 0 / 0.08),
     0px 2px 4px 0px oklch(0 0 0 / 0.06);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .dark {
@@ -264,7 +267,7 @@
 html.theme-switching *:not(#header-theme-toggle):not(#header-theme-toggle *),
 html.theme-switching *::before,
 html.theme-switching *::after {
-  transition: none !important;
+  transition: none;
 }
 
 .trellis-rtl-host .trellis {

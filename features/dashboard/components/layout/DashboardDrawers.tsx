@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import React from "react";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
 const AutomationsDrawer = dynamic(() => import("@/features/iot/components/AutomationsDrawer"), {
@@ -15,15 +16,21 @@ export default function DashboardDrawers() {
   const isDark = useIoTStore((s) => s.isDark);
 
   return (
-    <React.Suspense fallback={null}>
-      {isAutomationsMenuOpen && (
-        <AutomationsDrawer
-          isOpen={isAutomationsMenuOpen}
-          onClose={() => setIsAutomationsMenuOpen(false)}
-          isDark={isDark}
-          animationsEnabled={animationsEnabled}
-        />
-      )}
-    </React.Suspense>
+    <ErrorBoundary
+      fallbackTitle="خطا در پنل اتوماسیون"
+      resetKeys={[isAutomationsMenuOpen]}
+      onReset={() => setIsAutomationsMenuOpen(false)}
+    >
+      <React.Suspense fallback={null}>
+        {isAutomationsMenuOpen && (
+          <AutomationsDrawer
+            isOpen={isAutomationsMenuOpen}
+            onClose={() => setIsAutomationsMenuOpen(false)}
+            isDark={isDark}
+            animationsEnabled={animationsEnabled}
+          />
+        )}
+      </React.Suspense>
+    </ErrorBoundary>
   );
 }

@@ -10,13 +10,13 @@ import type { Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { getSegmentIcon, hasIcon, ICON_MAP } from "@/features/iot/utils/icons";
 import { SPRING_MOUSE, SPRING_PANEL } from "@/lib/ease";
-import NodePerimeterSpark from "./NodePerimeterSpark";
 import type {
   CanvasGroupHandlers,
   CanvasNodeRect,
   CanvasResizeDirection,
   CanvasSubMode,
 } from "./canvasTypes";
+import NodePerimeterSpark from "./NodePerimeterSpark";
 
 interface CanvasGroupNodeProps extends CanvasGroupHandlers {
   nodeId: string;
@@ -25,8 +25,8 @@ interface CanvasGroupNodeProps extends CanvasGroupHandlers {
   rect: CanvasNodeRect;
   subMode: CanvasSubMode;
   isSelected: boolean;
-  isDragging: boolean;
-  dragTiltDeg: number;
+  isDragging?: boolean;
+  dragTiltDeg?: number;
   isLocked: boolean;
   animationsEnabled: boolean;
   onSelect: (nodeId: string) => void;
@@ -46,8 +46,8 @@ export default React.memo(function CanvasGroupNode({
   rect,
   subMode,
   isSelected,
-  isDragging,
-  dragTiltDeg,
+  isDragging = false,
+  dragTiltDeg = 0,
   isLocked,
   animationsEnabled,
   onSelect,
@@ -124,13 +124,15 @@ export default React.memo(function CanvasGroupNode({
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
         className={`relative flex h-full w-full flex-col rounded-3xl border bg-[var(--card-bg-solid)] text-right transition-[border-color,box-shadow] duration-150 ${borderClass}`}
       >
-        <NodePerimeterSpark
-          active={activeCount > 0}
-          animationsEnabled={animationsEnabled}
-          radius={24}
-          color="var(--accent3)"
-          speed="flow"
-        />
+        {subMode === "graph" && (
+          <NodePerimeterSpark
+            active={activeCount > 0}
+            animationsEnabled={animationsEnabled}
+            radius={24}
+            color="var(--accent3)"
+            speed="flow"
+          />
+        )}
 
         {/* n8n output port in graph mode */}
         {subMode === "graph" && (

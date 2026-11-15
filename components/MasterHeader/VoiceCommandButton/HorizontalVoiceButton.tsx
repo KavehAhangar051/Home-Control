@@ -26,7 +26,7 @@ export default function HorizontalVoiceButton({
       onPointerCancel={handlePointerCancel}
       onContextMenu={(e) => e.preventDefault()}
       style={{ touchAction: "none" }}
-      className={`p-2 md:p-2.5 transition-all border rounded-xl flex justify-center items-center group select-none ${
+      className={`p-2 md:p-2.5 transition-[color,background-color,border-color,transform] duration-150 ease-[var(--ease-out)] border rounded-xl flex justify-center items-center group select-none ${
         isListening
           ? "bg-[var(--accent4-transparent)] border-[var(--accent4)] text-[var(--accent4)]"
           : "bg-[var(--card-bg-solid)] md:hover:bg-[var(--card-hover-bg)] border-[var(--border-color)] text-[var(--text-secondary)] md:hover:text-[var(--accent3)] md:hover:border-[var(--accent3)]"
@@ -35,7 +35,7 @@ export default function HorizontalVoiceButton({
     >
       <Mic
         aria-hidden="true"
-        className={`w-4 h-4 transition-transform duration-300 ${isListening && animationsEnabled ? "animate-pulse scale-110" : animationsEnabled ? "md:group-hover:scale-110" : ""}`}
+        className={`w-4 h-4 transition-transform duration-150 ease-[var(--ease-out)] ${isListening && animationsEnabled ? "animate-pulse scale-110" : animationsEnabled ? "md:group-hover:scale-110" : ""}`}
       />
     </m.button>
   );

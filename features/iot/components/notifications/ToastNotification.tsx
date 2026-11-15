@@ -66,6 +66,9 @@ export default function ToastNotification() {
         >
           <Alert
             dir="rtl"
+            role={toast.type === "error" ? "alert" : "status"}
+            aria-live={toast.type === "error" ? "assertive" : "polite"}
+            aria-atomic="true"
             variant={toast.type === "success" ? "success" : "destructive"}
             className="!grid !grid-cols-[auto_minmax(0,1fr)_auto] !items-start !gap-x-3 !gap-y-1 !px-4 !py-3.5 text-right shadow-lg"
           >

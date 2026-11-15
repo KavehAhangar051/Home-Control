@@ -1,9 +1,8 @@
 import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Save } from "@/components/ui/hugeicons";
-import { buildEspConfig } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
+import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { saveConfigToCloudflare } from "@/features/iot/services/cloudflare/api";
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
 import { getMqttSettings, reconnectMqtt } from "@/features/iot/services/mqttService";
 import { soundManager } from "@/lib/audio";
@@ -52,11 +51,15 @@ export default function MqttSection() {
 
   const brokerWsUrl =
     overrides.brokerWsUrl ?? mqttConfig?.broker_ws_url ?? initialSettings?.brokerUrl ?? "";
+
   const brokerHost =
     overrides.brokerHost ?? mqttConfig?.broker_host ?? (initialSettings ? "broker.emqx.io" : "");
+
   const brokerPort = overrides.brokerPort ?? mqttConfig?.broker_port ?? 1883;
+
   const baseTopic =
     overrides.baseTopic ?? mqttConfig?.base_topic ?? initialSettings?.baseTopic ?? "";
+
   const qos = overrides.qos ?? mqttConfig?.qos ?? initialSettings?.qos ?? 1;
 
   const setBrokerWsUrl = (val: string) => setOverrides((prev) => ({ ...prev, brokerWsUrl: val }));
@@ -96,19 +99,13 @@ export default function MqttSection() {
     }
 
     try {
-      const currentConfig = buildEspConfig({
-        ...useIoTStore.getState(),
-        mqttConfig: newMqttConfig,
+      const { result } = await persistStoreConfigToCloudflare({
+        overrides: { mqttConfig: newMqttConfig },
       });
-      const res = await saveConfigToCloudflare(currentConfig);
 
-      if (res.success) {
-        useIoTStore.getState().resetUnsavedChanges();
-        showToast(res.message, "success");
+      if (result.success) {
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
-      } else {
-        showToast(res.message, "error");
       }
     } catch (e) {
       console.error("Failed to save MQTT settings to cloud", e);

@@ -19,9 +19,6 @@ export function useVoiceCommandHandler(options: UseVoiceCommandHandlerOptions = 
   const setIsMenuOpen = useIoTStore((s) => s.setIsMenuOpen);
   const setActiveSettingsTab = useIoTStore((s) => s.setActiveSettingsTab);
   const showToast = useIoTStore((s) => s.showToast);
-  const segments = useIoTStore((s) => s.segments);
-  const macros = useIoTStore((s) => s.macros);
-  const voiceCommands = useIoTStore((s) => s.voiceCommands);
 
   const handlePointerDown = (e: PointerEvent) => {
     e.preventDefault();
@@ -33,6 +30,7 @@ export function useVoiceCommandHandler(options: UseVoiceCommandHandlerOptions = 
     }
 
     startListening((finalTranscript) => {
+      const { voiceCommands, macros, segments } = useIoTStore.getState();
       executeVoiceCommand(finalTranscript, {
         voiceCommands,
         macros,

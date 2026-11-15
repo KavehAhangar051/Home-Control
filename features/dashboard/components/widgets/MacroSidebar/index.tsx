@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence } from "motion/react";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "@/components/ui/hugeicons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
@@ -17,12 +17,16 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const macros = useIoTStore((s) => s.macros);
 
-  const visibleMacros = macros.filter(
-    (macro) =>
-      macro.title
-        .replace(/[\u200c\u200f\u202a-\u202e]/g, "")
-        .replace(/\s+/g, " ")
-        .trim() !== "تمام سگمنت ها روشن",
+  const visibleMacros = useMemo(
+    () =>
+      macros.filter(
+        (macro) =>
+          macro.title
+            .replace(/[\u200c\u200f\u202a-\u202e]/g, "")
+            .replace(/\s+/g, " ")
+            .trim() !== "تمام سگمنت ها روشن",
+      ),
+    [macros],
   );
 
   const selectedGroupFilter = useIoTStore((s) => s.selectedGroupFilter);
@@ -30,19 +34,22 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
   const [direction, setDirection] = useState(1);
   const [offset, setOffset] = useState(0);
 
+  const handleExecuteMacro = useCallback(
+    (macroId: string) => {
+      const macro = visibleMacros.find((m) => m.id === macroId);
+
+      if (!macro) return;
+
+      handleBatchPinState(macro.actions);
+    },
+    [visibleMacros, handleBatchPinState],
+  );
+
   if (selectedGroupFilter || visibleMacros.length === 0) {
     return null;
   }
 
   const safeActiveIndex = activeIndex % visibleMacros.length;
-
-  const handleExecuteMacro = (macroId: string) => {
-    const macro = visibleMacros.find((m) => m.id === macroId);
-
-    if (!macro) return;
-
-    handleBatchPinState(macro.actions);
-  };
 
   const isHorizontal = true;
 

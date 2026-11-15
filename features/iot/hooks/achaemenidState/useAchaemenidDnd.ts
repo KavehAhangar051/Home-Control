@@ -12,6 +12,7 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useCallback } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
 
 export function useAchaemenidDnd({
   handleRemoveGroup,
@@ -79,7 +80,7 @@ export function useAchaemenidDnd({
       if (!activeSeg) return;
 
       if (overSeg) {
-        if ((activeSeg.group || "Test") !== (overSeg.group || "Test")) {
+        if (resolveSegmentGroup(activeSeg.group) !== resolveSegmentGroup(overSeg.group)) {
           return;
         }
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
 import {
   publishAddSegmentCommand,
   publishDeleteSegmentCommand,
@@ -10,7 +11,7 @@ import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 
 interface UseSegmentManagementProps {
   setActiveWorkspaceView: (view: "home" | "modules" | "automations" | "settings") => void;
-  updatePinOnServer: (pin: string, state: boolean) => Promise<void>;
+  updatePinOnServer: (pin: string, state: boolean) => Promise<boolean>;
 }
 
 export function useSegmentManagement({
@@ -45,7 +46,7 @@ export function useSegmentManagement({
       }
 
       const randomId = Math.random().toString(36).substring(2, 9);
-      const finalGroup = group || "Test";
+      const finalGroup = resolveSegmentGroup(group);
 
       const newSeg = {
         id: randomId,
@@ -81,7 +82,7 @@ export function useSegmentManagement({
         const index = updated.findIndex((s) => s.id === targetPlaceholderId);
 
         if (index !== -1) {
-          newSeg.group = updated[index].group || "Test";
+          newSeg.group = resolveSegmentGroup(updated[index].group);
           updated[index] = newSeg;
         } else {
           updated.push(newSeg);
@@ -96,11 +97,13 @@ export function useSegmentManagement({
 
       const pinsState = useIoTStore.getState().pinsState;
 
-      if (pinsState[pin] === undefined) {
-        updatePinOnServer(pin, false);
+      if (pin && type !== "placeholder" && type !== "input" && pinsState[pin] === undefined) {
+        void updatePinOnServer(pin, false);
       }
 
-      publishAddSegmentCommand(newSeg.id, newSeg.type, Number(newSeg.pin) | 0, false);
+      if (type !== "placeholder") {
+        publishAddSegmentCommand(newSeg.id, newSeg.type, Number(newSeg.pin) | 0, false);
+      }
     },
     [targetPlaceholderId, setGroupConfigs, setGroupsOrder, setSegments, updatePinOnServer],
   );
@@ -155,7 +158,7 @@ export function useSegmentManagement({
   const handleRemoveGroup = useCallback(
     (groupId: string) => {
       setGroupsOrder((prev) => prev.filter((g) => g !== groupId));
-      setSegments((prev) => prev.filter((s) => (s.group || "Test") !== groupId));
+      setSegments((prev) => prev.filter((s) => resolveSegmentGroup(s.group) !== groupId));
     },
     [setGroupsOrder, setSegments],
   );

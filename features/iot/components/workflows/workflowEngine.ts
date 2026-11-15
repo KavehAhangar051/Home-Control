@@ -5,6 +5,7 @@ import {
   snapCanvasCoordinate,
 } from "@/features/iot/components/canvas/canvasGeometry";
 import type { Segment } from "@/features/iot/hooks/store/types";
+import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
 import type {
   WorkflowActionDispatch,
   WorkflowDefinition,
@@ -54,39 +55,76 @@ function getDefaultNodeDimensions(kind: WorkflowNodeKind): WorkflowDimensions {
     case "logic_and":
     case "logic_or":
     case "logic_not":
-      return { width: 208, height: 128 };
+      return { width: 224, height: 144 };
   }
+}
+
+export function getNodeMinInputCount(kind: WorkflowNodeKind): number {
+  if (kind === "trigger_manual" || kind === "trigger_schedule") return 0;
+
+  if (kind === "logic_and" || kind === "logic_or") return 2;
+
+  return 1;
+}
+
+export function getNodeInputCount(node: Pick<WorkflowNode, "kind" | "inputCount">): number {
+  if (node.kind === "trigger_manual" || node.kind === "trigger_schedule") return 0;
+
+  const minInputs = getNodeMinInputCount(node.kind);
+  const raw = node.inputCount ?? minInputs;
+
+  return Math.max(minInputs, Math.min(8, Math.round(raw)));
 }
 
 function getDefaultNodeLabel(payload: WorkflowPaletteDragPayload, segments: Segment[]): string {
   if (payload.kind === "segment" && payload.segmentId) {
     const matched = segments.find((s) => s.id === payload.segmentId);
 
-    return matched?.title || "سگمنت";
+    return matched?.title || "قطعه";
   }
 
   if (payload.kind === "group") {
-    if (payload.isCustomGroup) return "گروه سفارشی جدید";
+    if (payload.isCustomGroup) return "گروه سفارشی";
 
-    return payload.groupName || "گروه سگمنت‌ها";
+    return payload.groupName ? `گروه ${payload.groupName}` : "بلوک گروه";
   }
 
   switch (payload.kind) {
     case "trigger_manual":
-      return "شروع دستی";
+      return "شستی دستی";
     case "trigger_schedule":
       return "زمان‌بندی";
     case "logic_and":
-      return "بوابه AND (و)";
+      return "AND";
     case "logic_or":
-      return "بوابه OR (یا)";
+      return "OR";
     case "logic_not":
-      return "بوابه NOT (نقیض)";
+      return "NOT";
     case "timer":
-      return "تایمر / تاخیر";
+      return "تایمر";
     default:
-      return "گره گردش کار";
+      return "گره";
   }
+}
+
+export function normalizeWorkflowNodeLabel(node: WorkflowNode): string {
+  if (node.kind === "logic_and") return "AND";
+
+  if (node.kind === "logic_or") return "OR";
+
+  if (node.kind === "logic_not") return "NOT";
+
+  if (node.kind === "trigger_manual" && node.label === "شستی فرمان دستی") return "شستی دستی";
+
+  if (node.kind === "trigger_schedule" && node.label === "نوسان‌ساز زمان‌بندی") return "زمان‌بندی";
+
+  if (node.kind === "timer" && node.label === "تایمر و تاخیر") return "تایمر";
+
+  if (node.kind === "group" && node.isCustomGroup && node.label === "زیرمدار گروه سفارشی") {
+    return "گروه سفارشی";
+  }
+
+  return node.label;
 }
 
 export interface CreateWorkflowNodeInput {
@@ -113,12 +151,13 @@ export function createWorkflowNode({
   const snappedX = snapCanvasCoordinate(x, snapToGrid);
   const snappedY = snapCanvasCoordinate(y, snapToGrid);
   const label = getDefaultNodeLabel(payload, segments);
+  const defaultInputCount = getNodeMinInputCount(payload.kind);
 
   const memberSegmentIds: string[] = [];
 
   if (payload.kind === "group" && !payload.isCustomGroup && payload.groupName) {
     for (const seg of segments) {
-      if (seg.type !== "placeholder" && (seg.group || "Test") === payload.groupName) {
+      if (seg.type !== "placeholder" && resolveSegmentGroup(seg.group) === payload.groupName) {
         memberSegmentIds.push(seg.id);
       }
     }
@@ -133,6 +172,7 @@ export function createWorkflowNode({
     height: dims.height,
     zIndex,
     label,
+    inputCount: defaultInputCount > 0 ? defaultInputCount : undefined,
     segmentId: payload.segmentId,
     actionMode: payload.kind === "segment" || payload.kind === "group" ? "turn_on" : undefined,
     groupName: payload.groupName,
@@ -394,7 +434,7 @@ export function evaluateWorkflowGraph({
         const mode = node.actionMode ?? "turn_on";
 
         if (hasIncoming && anyIncomingTrue && mode !== "condition_only") {
-          const desired = mode === "turn_off" ? false : true;
+          const desired = mode !== "turn_off";
 
           for (const seg of memberSegs) {
             if (seg.pin && seg.type !== "input") {
@@ -453,7 +493,36 @@ interface PortPoint {
   y: number;
 }
 
-export function getPortAnchor(node: WorkflowNode, port: "in" | "out"): PortPoint {
+export function getInputPortOffsetY(
+  nodeHeight: number,
+  portIndex: number,
+  totalPorts: number,
+): number {
+  if (totalPorts <= 1) {
+    return Math.round(nodeHeight / 2);
+  }
+
+  const topPad = 42;
+  const bottomPad = 22;
+  const span = Math.max(24, nodeHeight - topPad - bottomPad);
+  const clampedIdx = Math.max(0, Math.min(totalPorts - 1, portIndex));
+
+  return Math.round(topPad + (span * clampedIdx) / (totalPorts - 1));
+}
+
+export function getPortAnchor(
+  node: WorkflowNode,
+  port: "in" | "out",
+  portIndex?: number,
+  totalPorts?: number,
+): PortPoint {
+  if (port === "in" && portIndex !== undefined && totalPorts !== undefined && totalPorts > 1) {
+    return {
+      x: node.x,
+      y: node.y + getInputPortOffsetY(node.height, portIndex, totalPorts),
+    };
+  }
+
   return {
     x: port === "in" ? node.x : node.x + node.width,
     y: Math.round(node.y + node.height / 2),
@@ -554,7 +623,10 @@ export function readStoredWorkflowState(): WorkflowStudioState {
             id: wf.id,
             name: wf.name,
             enabled: Boolean(wf.enabled),
-            nodes: wf.nodes,
+            nodes: wf.nodes.map((n) => ({
+              ...n,
+              label: normalizeWorkflowNodeLabel(n),
+            })),
             edges: wf.edges,
             viewport: wf.viewport ?? { x: 48, y: 48, zoom: 1 },
             updatedAt: Number.isFinite(wf.updatedAt) ? wf.updatedAt : Date.now(),

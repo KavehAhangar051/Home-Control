@@ -32,12 +32,12 @@ import type {
 } from "./ports";
 
 export class DeviceCommandAdapter implements IDeviceCommandPort {
-  publishPinCommand(pinId: string, value: boolean, timer?: number): void {
-    mqttPublishPin(pinId, value, timer);
+  publishPinCommand(pinId: string, value: boolean, timer?: number): boolean {
+    return mqttPublishPin(pinId, value, timer);
   }
 
-  publishBatchPinCommand(actions: PinAction[]): void {
-    mqttPublishBatch(actions);
+  publishBatchPinCommand(actions: PinAction[]): boolean {
+    return mqttPublishBatch(actions);
   }
 
   publishAddSegment(id: string, type: string, pin: number, value: boolean): void {
@@ -80,9 +80,18 @@ export class CloudflareStorageAdapter implements IConfigStoragePort {
  * Coordinates local WebSocket, MQTT binary transmission, and Cloudflare Durable Object persistence.
  */
 export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
-  async syncSinglePin(pin: string, state: boolean, options?: SinglePinSyncOptions): Promise<void> {
+  async syncSinglePin(
+    pin: string,
+    state: boolean,
+    options?: SinglePinSyncOptions,
+  ): Promise<boolean> {
     const isLocal = useIoTStore.getState().isLocal;
     const ws = getLocalWs();
+    let wsSent = false;
+    let mqttSent = false;
+    let cfSucceeded = false;
+    let cfAttempted = false;
+    let cfShowedToast = false;
 
     if (isLocal && ws?.readyState === WebSocket.OPEN) {
       ws.send(
@@ -93,8 +102,9 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
           timer: options?.autoOff,
         }),
       );
+      wsSent = true;
     } else if (!options?.preventMqtt) {
-      mqttPublishPin(pin, state, options?.autoOff);
+      mqttSent = mqttPublishPin(pin, state, options?.autoOff);
     }
 
     const resolvedPushMode =
@@ -102,27 +112,44 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
         ? options.isPushMode
         : useIoTStore.getState().segments.find((s) => s.pin === pin)?.mode === "push";
 
+    const toast = options?.showToast || useIoTStore.getState().showToast;
+
     if (isCloudflareEnabled() && !resolvedPushMode) {
+      cfAttempted = true;
+
       try {
         const result = await updatePinOnCloudflare(pin, state);
-        const toast = options?.showToast || useIoTStore.getState().showToast;
+        cfSucceeded = result.success;
 
         if (toast && result.message) {
           toast(result.message, result.success ? "success" : "error");
+          cfShowedToast = true;
         }
       } catch (e) {
         console.error(`Failed to sync pin ${pin} value to Cloudflare:`, e);
       }
     }
+
+    if (options?.preventMqtt) {
+      return !cfAttempted || cfSucceeded;
+    }
+
+    const delivered = wsSent || mqttSent || cfSucceeded;
+
+    if (!delivered && toast && !cfShowedToast) {
+      toast("ارتباط با دستگاه (MQTT/سرور) برقرار نیست؛ دستور ارسال نشد.", "error");
+    }
+
+    return delivered;
   }
 
   async syncBatchPins(
     actions: Array<{ targetPin: string; actionOn: boolean }>,
     options?: BatchPinSyncOptions,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const actionsLen = actions.length;
 
-    if (actionsLen === 0) return;
+    if (actionsLen === 0) return false;
 
     const availableSegments = options?.segments ?? useIoTStore.getState().segments;
     const cfEnabled = options?.isCfEnabled ?? isCloudflareEnabled();
@@ -148,25 +175,41 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
 
     const isLocal = useIoTStore.getState().isLocal;
     const ws = getLocalWs();
+    let wsSent = false;
+    let mqttSent = false;
+    let cfSucceeded = false;
+    let cfShowedToast = false;
 
     if (isLocal && ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ command: "batch_state", actions: mqttActions }));
+      wsSent = true;
     } else {
-      mqttPublishBatch(mqttActions);
+      mqttSent = mqttPublishBatch(mqttActions);
     }
+
+    const toast = options?.showToast || useIoTStore.getState().showToast;
 
     if (cfActions.length > 0) {
       try {
         const result = await updateBatchPinsOnCloudflare(cfActions);
-        const toast = options?.showToast || useIoTStore.getState().showToast;
+        cfSucceeded = result.success;
 
         if (toast && result.message) {
           toast(result.message, result.success ? "success" : "error");
+          cfShowedToast = true;
         }
       } catch (e) {
         console.error("Failed to batch sync pins to Cloudflare:", e);
       }
     }
+
+    const delivered = wsSent || mqttSent || cfSucceeded;
+
+    if (!delivered && toast && !cfShowedToast) {
+      toast("ارتباط با دستگاه (MQTT/سرور) برقرار نیست؛ دستور گروهی ارسال نشد.", "error");
+    }
+
+    return delivered;
   }
 }
 
@@ -178,7 +221,11 @@ export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
   public pinsState = new Map<string, boolean>();
   public dispatchLog: Array<{ type: "single" | "batch"; payload: unknown; timestamp: number }> = [];
 
-  async syncSinglePin(pin: string, state: boolean, options?: SinglePinSyncOptions): Promise<void> {
+  async syncSinglePin(
+    pin: string,
+    state: boolean,
+    options?: SinglePinSyncOptions,
+  ): Promise<boolean> {
     this.pinsState.set(pin, state);
     this.dispatchLog.push({
       type: "single",
@@ -189,12 +236,14 @@ export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
     if (options?.showToast) {
       options.showToast(`[Simulation] Pin ${pin} synced to ${state}`, "success");
     }
+
+    return true;
   }
 
   async syncBatchPins(
     actions: Array<{ targetPin: string; actionOn: boolean }>,
     options?: BatchPinSyncOptions,
-  ): Promise<void> {
+  ): Promise<boolean> {
     for (const a of actions) {
       this.pinsState.set(a.targetPin, a.actionOn);
     }
@@ -204,6 +253,8 @@ export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
     if (options?.showToast) {
       options.showToast(`[Simulation] ${actions.length} pins batch synced`, "success");
     }
+
+    return true;
   }
 
   reset(): void {

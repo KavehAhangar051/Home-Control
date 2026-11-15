@@ -225,7 +225,7 @@ export function WeatherConditionFields({
                   type="button"
                   onClick={handleGetLocation}
                   disabled={isGettingLocation}
-                  className={`p-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center min-w-[44px] ${
+                  className={`p-2.5 rounded-xl text-xs font-bold transition-[color,background-color,border-color,transform] duration-150 ease-[var(--ease-out)] border flex items-center justify-center min-w-[44px] ${
                     isGettingLocation
                       ? "bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)] cursor-not-allowed"
                       : "bg-[var(--card-hover-bg)] border-[var(--border-color)] text-[var(--text-secondary)] md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)]"

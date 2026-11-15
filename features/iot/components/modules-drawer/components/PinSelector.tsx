@@ -1,5 +1,3 @@
-import React from "react";
-
 interface PinSelectorProps {
   customPin: string;
   setCustomPin: (val: string) => void;

@@ -10,7 +10,7 @@ import {
   PIN_STATE_LOW,
 } from "./protocol";
 
-export const publishPinCommand = (pinId: string, value: boolean, timer?: number) => {
+export const publishPinCommand = (pinId: string, value: boolean, timer?: number): boolean => {
   const buf = new Uint8Array(PIN_COMMAND_BUFFER_SIZE);
   const view = new DataView(buf.buffer);
   buf[0] = MQTT_OPCODES.TOGGLE_PIN;
@@ -18,15 +18,18 @@ export const publishPinCommand = (pinId: string, value: boolean, timer?: number)
   buf[2] = value ? PIN_STATE_HIGH : PIN_STATE_LOW;
   view.setInt32(3, timer !== undefined ? timer : DEFAULT_TIMER_DISABLED, true);
 
-  publishMqttCommand(buf, `Published toggle command: pin=${buf[1]} state=${value} timer=${timer}`);
+  return publishMqttCommand(
+    buf,
+    `Published toggle command: pin=${buf[1]} state=${value} timer=${timer}`,
+  );
 };
 
 export const publishBatchPinCommand = (
   actions: Array<{ pin: string; state: boolean; timer?: number }>,
-) => {
+): boolean => {
   const actionsLen = actions.length;
 
-  if (actionsLen === 0) return;
+  if (actionsLen === 0) return false;
 
   const count = Math.min(actionsLen, MAX_BATCH_ACTIONS);
   const buf = new Uint8Array(BATCH_HEADER_SIZE + count * BATCH_ACTION_SIZE);
@@ -48,5 +51,5 @@ export const publishBatchPinCommand = (
     offset += BATCH_ACTION_SIZE;
   }
 
-  publishMqttCommand(buf, `Published batch toggle command with ${count} actions`);
+  return publishMqttCommand(buf, `Published batch toggle command with ${count} actions`);
 };

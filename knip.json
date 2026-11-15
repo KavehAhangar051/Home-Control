@@ -12,8 +12,6 @@
     "type": true
   },
   "ignoreIssues": {
-    "features/iot/services/localWs/client.ts": [
-      "exports"
-    ]
+    "features/iot/services/localWs/client.ts": ["exports"]
   }
 }

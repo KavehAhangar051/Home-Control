@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { SegmentData } from "../core/types";
 
 interface CardFooterProps {
@@ -96,7 +97,7 @@ function SwitchModeTrack({
  * Renders the bottom status and tactile switch/push indicator row inside the
  * full-card Smart Home button tile.
  */
-export default function CardFooter({
+function CardFooter({
   segment,
   isPinOn,
   mode,
@@ -155,3 +156,5 @@ export default function CardFooter({
     </div>
   );
 }
+
+export default memo(CardFooter);

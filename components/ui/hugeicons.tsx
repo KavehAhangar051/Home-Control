@@ -1,5 +1,6 @@
 "use client";
 
+import type { IconProps } from "@animate-ui/react/icons";
 import React, { forwardRef } from "react";
 import { Activity01 } from "@/components/animate-ui/icons/hugeicons/activity-01";
 import { Add01 } from "@/components/animate-ui/icons/hugeicons/add-01";
@@ -59,26 +60,31 @@ export interface HugeIconProps extends React.SVGProps<SVGSVGElement> {
   animate?: boolean | string;
 }
 
-export type HugeIconComponent = React.ForwardRefExoticComponent<
+export type HugeIconComponent = React.NamedExoticComponent<
   HugeIconProps & React.RefAttributes<SVGSVGElement>
 >;
+
+let cachedHoverMql: MediaQueryList | null = null;
+let cachedReducedMotionMql: MediaQueryList | null = null;
 
 function shouldEnableParentHoverListeners(): boolean {
   if (typeof window === "undefined") return false;
 
-  if (window.matchMedia("(hover: none)").matches) return false;
+  cachedHoverMql ??= window.matchMedia("(hover: none)");
+  cachedReducedMotionMql ??= window.matchMedia("(prefers-reduced-motion: reduce)");
 
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
-
-  return true;
+  return !cachedHoverMql.matches && !cachedReducedMotionMql.matches;
 }
 
 /**
  * Creates an animated Hugeicons component backed by Animate UI and Motion.
  * Automatically animates when hovering either the icon or its parent container.
  */
-export function createHugeIcon(IconComponent: any, displayName?: string): HugeIconComponent {
-  const Component = forwardRef<SVGSVGElement, HugeIconProps>(
+export function createHugeIcon(
+  IconComponent: React.ComponentType<IconProps<never>>,
+  displayName?: string,
+): HugeIconComponent {
+  const BaseComponent = forwardRef<SVGSVGElement, HugeIconProps>(
     (
       { size = 24, strokeWidth = 2, className = "", animateOnHover = true, animate, ...props },
       forwardedRef,
@@ -133,26 +139,26 @@ export function createHugeIcon(IconComponent: any, displayName?: string): HugeIc
 
       if (!IconComponent) return null;
 
-      return (
-        // SAFETY: Dynamic icon component adapts React callback ref across heterogeneous SVG wrappers
-        <IconComponent
-          ref={setRefs as (node: SVGSVGElement | null) => void}
-          size={size}
-          strokeWidth={strokeWidth}
-          className={className}
-          animateOnHover={animateOnHover}
-          animate={animate ?? (animateOnHover ? isParentHovered : undefined)}
-          {...props}
-        />
-      );
+      // SAFETY: Animate UI IconProps narrows motion SVG props while HugeIconProps exposes standard SVGProps
+      const resolvedProps = {
+        ...props,
+        ref: setRefs,
+        size: typeof size === "string" ? Number(size) || 24 : size,
+        strokeWidth,
+        className,
+        animateOnHover,
+        animate: animate ?? (animateOnHover ? isParentHovered : undefined),
+      } as unknown as IconProps<never>;
+
+      return <IconComponent {...resolvedProps} />;
     },
   );
 
   if (displayName) {
-    Component.displayName = displayName;
+    BaseComponent.displayName = displayName;
   }
 
-  return Component;
+  return React.memo(BaseComponent);
 }
 
 // Navigation & Layout Icons

@@ -1,16 +1,5 @@
-"use client";
-
-import dynamic from "next/dynamic";
-import DashboardBootSkeleton from "@/components/DashboardBootSkeleton";
-
-const DashboardShell = dynamic(
-  () => import("@/features/dashboard/components/layout/DashboardShell"),
-  {
-    ssr: false,
-    loading: () => <DashboardBootSkeleton />,
-  },
-);
+import DashboardClientEntry from "@/features/dashboard/components/layout/DashboardClientEntry";
 
 export default function Home() {
-  return <DashboardShell />;
+  return <DashboardClientEntry />;
 }

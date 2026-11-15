@@ -8,8 +8,10 @@ function validateRuleActionList(actions?: Array<{ targetPin: string }>): string 
 
   for (let i = 0; i < actions.length; i++) {
     const targetPin = actions[i].targetPin;
+
     if (targetPin) {
       const validation = validateEsp32Pin(targetPin, "output");
+
       if (!validation.isValid) {
         return validation.message;
       }
@@ -26,7 +28,9 @@ export function useSegmentUpdates() {
     (id: string, mode: "switch" | "push") => {
       setSegments((prev) => {
         const target = prev.find((s) => s.id === id);
+
         if (!target || target.mode === mode) return prev;
+
         return prev.map((s) => (s.id === id ? { ...s, mode } : s));
       });
     },
@@ -37,7 +41,9 @@ export function useSegmentUpdates() {
     (id: string, auto_off: number) => {
       setSegments((prev) => {
         const target = prev.find((s) => s.id === id);
+
         if (!target || target.auto_off === auto_off) return prev;
+
         return prev.map((s) => (s.id === id ? { ...s, auto_off } : s));
       });
     },
@@ -69,6 +75,7 @@ export function useSegmentUpdates() {
 
       if (errorMessage !== null) {
         useIoTStore.getState().showToast(`خطا در پایه: ${errorMessage}`, "error");
+
         return;
       }
 
