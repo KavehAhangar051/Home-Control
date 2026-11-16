@@ -1,0 +1,263 @@
+"use client";
+
+import { m } from "motion/react";
+import React from "react";
+import { Play } from "@/components/ui/hugeicons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { Macro } from "@/features/iot/hooks/store/types";
+import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
+import { DURATION, EASE_IN, EASE_OUT, EXIT_DURATION, getStaggerDelay } from "@/lib/ease";
+
+interface MacroSidebarButtonProps {
+  macro: Macro;
+  isCenter?: boolean;
+  onClick: () => void;
+  isHorizontal: boolean;
+  animationsEnabled: boolean;
+  direction?: number;
+  isSimpleList?: boolean;
+  index?: number;
+}
+
+function MacroButtonIcon({
+  icon,
+  isHorizontal,
+  activeScaleClass = "md:group-hover:scale-110",
+  playExtraClass = "opacity-70 md:group-hover:scale-110",
+}: {
+  icon?: string;
+  isHorizontal: boolean;
+  activeScaleClass?: string;
+  playExtraClass?: string;
+}) {
+  if (icon) {
+    return (
+      <span
+        className={`${isHorizontal ? "text-xl" : "text-2xl mb-1"} ${activeScaleClass} transition-transform duration-150 ease-out`}
+      >
+        {hasIcon(icon)
+          ? React.createElement(getSegmentIcon(icon), {
+              className: isHorizontal ? "size-5" : "size-6",
+              strokeWidth: 2.5,
+            })
+          : icon}
+      </span>
+    );
+  }
+
+  return (
+    <Play
+      strokeWidth={2.5}
+      className={`${isHorizontal ? "size-5" : "size-6 mb-1"} translate-x-px ${playExtraClass} transition-[transform,opacity] duration-150 ease-out`}
+    />
+  );
+}
+
+interface SimpleMacroButtonProps {
+  macro: Macro;
+  onClick: () => void;
+  isHorizontal?: boolean;
+  animationsEnabled: boolean;
+  index?: number;
+}
+
+export function SimpleMacroButton({
+  macro,
+  onClick,
+  isHorizontal = true,
+  animationsEnabled,
+  index = 0,
+}: SimpleMacroButtonProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <m.button
+            initial={
+              animationsEnabled
+                ? isHorizontal
+                  ? { opacity: 0, y: -12 }
+                  : { opacity: 0, x: -12 }
+                : undefined
+            }
+            animate={
+              animationsEnabled
+                ? isHorizontal
+                  ? { opacity: 1, y: 0 }
+                  : { opacity: 1, x: 0 }
+                : undefined
+            }
+            exit={
+              animationsEnabled
+                ? {
+                    opacity: 0,
+                    y: -12,
+                    transition: { duration: EXIT_DURATION.standard, ease: EASE_IN },
+                  }
+                : undefined
+            }
+            transition={
+              animationsEnabled
+                ? {
+                    duration: DURATION.standard,
+                    delay: getStaggerDelay(index),
+                    ease: EASE_OUT,
+                  }
+                : undefined
+            }
+            onClick={onClick}
+            whileTap={animationsEnabled ? { scale: 0.96 } : undefined}
+            aria-label={macro.title}
+            className={`flex items-center justify-center rounded-2xl bg-card-bg-solid border border-border-color text-text-primary md:hover:border-accent3 md:hover:text-accent3 md:hover:-translate-y-1 md:hover:shadow-[0_10px_20px_-5px_var(--accent3-transparent)] transition-[transform,border-color,color,box-shadow] duration-200 ease-out shadow-sm relative group focus-ring ${isHorizontal ? "flex-row gap-2 ps-3.5 pe-4 w-[120px] min-w-min min-h-[48px] h-fit py-2" : "flex-col w-[72px] min-w-min px-2 min-h-[72px] h-fit py-2"}`}
+          >
+            <MacroButtonIcon icon={macro.icon} isHorizontal={isHorizontal} />
+            <span
+              className={`${isHorizontal ? "text-xs" : "text-[10px] px-1 leading-tight"} font-bold text-center opacity-80 md:group-hover:opacity-100 transition-opacity duration-150 ease-out`}
+            >
+              {macro.title}
+            </span>
+          </m.button>
+        }
+      />
+      <TooltipContent>{macro.title}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+interface CarouselMacroButtonProps {
+  macro: Macro;
+  isCenter?: boolean;
+  onClick: () => void;
+  isHorizontal?: boolean;
+  animationsEnabled: boolean;
+  direction?: number;
+}
+
+function getCarouselMotionConfig(
+  animationsEnabled: boolean,
+  isHorizontal: boolean,
+  isCenter: boolean,
+  direction: number,
+) {
+  if (!animationsEnabled) {
+    return {
+      initial: undefined,
+      animate: undefined,
+      exit: undefined,
+      transition: undefined,
+      whileTap: undefined,
+    };
+  }
+
+  const axisOffset = isHorizontal ? { x: direction * 40 } : { y: direction * 40 };
+  const exitAxisOffset = isHorizontal ? { x: -direction * 40 } : { y: -direction * 40 };
+
+  return {
+    initial: { opacity: 0, scale: 0.85, ...axisOffset },
+    animate: { opacity: isCenter ? 1 : 0.4, scale: isCenter ? 1 : 0.85, x: 0, y: 0 },
+    exit: {
+      opacity: 0,
+      scale: 0.85,
+      ...exitAxisOffset,
+      transition: { duration: EXIT_DURATION.standard, ease: EASE_IN },
+    },
+    transition: { duration: DURATION.standard, ease: EASE_OUT },
+    whileTap: { scale: 0.96 },
+  };
+}
+
+export function CarouselMacroButton({
+  macro,
+  isCenter = false,
+  onClick,
+  isHorizontal = true,
+  animationsEnabled,
+  direction = 1,
+}: CarouselMacroButtonProps) {
+  const motionConfig = getCarouselMotionConfig(
+    animationsEnabled,
+    isHorizontal,
+    isCenter,
+    direction,
+  );
+
+  const borderClass = isCenter
+    ? "border-accent3 shadow-[0_4px_15px_-5px_var(--accent3-transparent)] z-10 text-accent3"
+    : "border-border-color md:hover:border-accent3 text-text-primary";
+
+  const layoutClass = isHorizontal
+    ? "flex-row gap-1 ps-1.5 pe-2 w-[100px] min-w-[90px] min-h-[44px] h-fit py-2"
+    : "flex-col w-[72px] min-w-min px-2 min-h-[72px] h-fit py-2";
+
+  const scaleClass = isCenter ? "scale-110" : "md:group-hover:scale-110";
+  const playClass = isCenter ? "opacity-100 scale-110" : "opacity-70 md:group-hover:scale-110";
+  const labelClass = isHorizontal ? "text-[10px]" : "text-[10px] px-1";
+  const labelOpacityClass = isCenter ? "opacity-100" : "opacity-60 md:group-hover:opacity-100";
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <m.button
+            layout
+            initial={motionConfig.initial}
+            animate={motionConfig.animate}
+            exit={motionConfig.exit}
+            transition={motionConfig.transition}
+            whileTap={motionConfig.whileTap}
+            onClick={onClick}
+            aria-label={macro.title}
+            className={`flex items-center justify-center rounded-2xl bg-card-bg-solid border ${borderClass} transition-[border-color,color,box-shadow] duration-200 ease-out relative group shrink-0 focus-ring ${layoutClass}`}
+          >
+            <MacroButtonIcon
+              icon={macro.icon}
+              isHorizontal={isHorizontal}
+              activeScaleClass={scaleClass}
+              playExtraClass={playClass}
+            />
+            <span
+              className={`${labelClass} leading-tight font-bold text-center transition-opacity duration-150 ease-out ${labelOpacityClass}`}
+            >
+              {macro.title}
+            </span>
+          </m.button>
+        }
+      />
+      <TooltipContent>{macro.title}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+export default function MacroSidebarButton({
+  macro,
+  isCenter = false,
+  onClick,
+  isHorizontal,
+  animationsEnabled,
+  direction = 1,
+  isSimpleList = false,
+  index = 0,
+}: MacroSidebarButtonProps) {
+  if (isSimpleList) {
+    return (
+      <SimpleMacroButton
+        macro={macro}
+        onClick={onClick}
+        isHorizontal={isHorizontal}
+        animationsEnabled={animationsEnabled}
+        index={index}
+      />
+    );
+  }
+
+  return (
+    <CarouselMacroButton
+      macro={macro}
+      isCenter={isCenter}
+      onClick={onClick}
+      isHorizontal={isHorizontal}
+      animationsEnabled={animationsEnabled}
+      direction={direction}
+    />
+  );
+}

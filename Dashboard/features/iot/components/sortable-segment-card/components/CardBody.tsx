@@ -1,0 +1,175 @@
+import React, { type ComponentPropsWithoutRef } from "react";
+import type { Toggle } from "@/components/ui/toggle";
+import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
+import type { SegmentData } from "../core/types";
+import PinToggle from "./PinToggle";
+
+type PinToggleButtonProps = Omit<ComponentPropsWithoutRef<typeof Toggle>, "pressed" | "className">;
+
+interface CardBodyProps {
+  segment: SegmentData;
+  isPinOn: boolean;
+  isCompact: boolean;
+  isUltraCompact: boolean;
+  hasExternalHeader?: boolean;
+  isMobileTwoCol?: boolean;
+  densityFactor?: number;
+  mode: "switch" | "push";
+  buttonProps: PinToggleButtonProps;
+  animationsEnabled?: boolean;
+  countdown?: number | null;
+}
+
+function getInputDensityClasses(
+  isUltraCompact: boolean,
+  isCompact: boolean,
+  hasExternalHeader: boolean,
+) {
+  if (isUltraCompact) {
+    return {
+      container: hasExternalHeader ? "min-h-0 px-2.5 py-2 gap-1.5" : "min-h-[78px] p-2.5 gap-2",
+      badge: "w-8 h-8",
+      icon: "w-4 h-4",
+      title: "text-xs",
+    };
+  }
+
+  if (isCompact) {
+    return {
+      container: hasExternalHeader ? "min-h-0 px-3 py-2.5 gap-2" : "min-h-[96px] p-3 gap-2.5",
+      badge: "w-9 h-9",
+      icon: "w-4.5 h-4.5",
+      title: "text-xs sm:text-sm",
+    };
+  }
+
+  return {
+    container: hasExternalHeader
+      ? "min-h-0 px-3.5 py-3 gap-2.5"
+      : "min-h-[108px] p-3.5 sm:p-4 gap-3",
+    badge: "w-10 h-10 sm:w-11 sm:h-11",
+    icon: "w-5 h-5",
+    title: "text-sm sm:text-[15px]",
+  };
+}
+
+export function InputSegmentBody({
+  segment,
+  isPinOn,
+  isCompact = false,
+  isUltraCompact = false,
+  hasExternalHeader = false,
+}: {
+  segment: SegmentData;
+  isPinOn: boolean;
+  isCompact?: boolean;
+  isUltraCompact?: boolean;
+  hasExternalHeader?: boolean;
+}) {
+  const SegmentIcon = getSegmentIcon(segment.icon);
+  const density = getInputDensityClasses(isUltraCompact, isCompact, hasExternalHeader);
+
+  const badgeTone = isPinOn
+    ? "bg-[#4cc38a] text-[#0f0f10]"
+    : "bg-[var(--secondary)] text-[var(--text-secondary)] border border-[var(--border-color)]";
+
+  const showEmojiIcon = Boolean(segment.icon) && !hasIcon(segment.icon);
+  const radiusClass = hasExternalHeader ? "rounded-none rounded-b-[15px]" : "rounded-xl";
+  const topRowInsetClass = hasExternalHeader ? "" : "pl-14";
+
+  return (
+    <div
+      data-animate-icon-parent
+      className={`flex flex-col justify-between w-full h-full text-right select-none ${radiusClass} ${density.container}`}
+    >
+      <div className={`flex items-center gap-2.5 sm:gap-3 w-full min-w-0 ${topRowInsetClass}`}>
+        <div
+          aria-hidden="true"
+          className={`flex items-center justify-center rounded-lg transition-colors duration-150 shrink-0 ${density.badge} ${badgeTone}`}
+        >
+          {showEmojiIcon ? (
+            <span className="text-sm leading-none flex items-center justify-center w-5 h-5">
+              {segment.icon}
+            </span>
+          ) : (
+            React.createElement(SegmentIcon, { className: density.icon, strokeWidth: 1.5 })
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1 text-right">
+          <span
+            className={`block font-sans font-medium theme-text-primary truncate leading-snug ${density.title}`}
+          >
+            {segment.title}
+          </span>
+        </div>
+      </div>
+
+      <div
+        className={`flex items-center justify-between w-full gap-2 ${
+          hasExternalHeader || isCompact || isUltraCompact ? "pt-1" : "pt-2"
+        }`}
+      >
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${
+              isPinOn ? "bg-[#4cc38a] animate-pulse" : "bg-[var(--text-muted)] opacity-45"
+            }`}
+          />
+          <span className="text-xs font-sans font-medium tabular-nums truncate">
+            {isPinOn ? "ورودی فعال (۱)" : "ورودی غیرفعال (۰)"}
+          </span>
+        </div>
+
+        {!isUltraCompact && (
+          <span
+            className="rounded border border-[var(--border-color)] bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[11px] font-normal tabular-nums text-[var(--text-muted)] shrink-0"
+            dir="ltr"
+          >
+            GPIO {segment.pin}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CardBody({
+  segment,
+  isPinOn,
+  isCompact,
+  isUltraCompact,
+  hasExternalHeader = false,
+  mode,
+  buttonProps,
+  animationsEnabled = true,
+  countdown,
+}: CardBodyProps) {
+  return (
+    <div className="w-full h-full flex-1 flex items-stretch">
+      {segment.type === "input" ? (
+        <InputSegmentBody
+          segment={segment}
+          isPinOn={isPinOn}
+          isCompact={isCompact}
+          isUltraCompact={isUltraCompact}
+          hasExternalHeader={hasExternalHeader}
+        />
+      ) : (
+        <PinToggle
+          segment={segment}
+          isPinOn={isPinOn}
+          mode={mode}
+          buttonProps={buttonProps}
+          animationsEnabled={animationsEnabled}
+          isCompact={isCompact}
+          isUltraCompact={isUltraCompact}
+          hasExternalHeader={hasExternalHeader}
+          countdown={countdown}
+        />
+      )}
+    </div>
+  );
+}
+
+export default React.memo(CardBody);

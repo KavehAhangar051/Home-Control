@@ -1,0 +1,104 @@
+"use client";
+
+import { AnimatePresence, m } from "motion/react";
+import { Alert } from "@/components/reui/alert";
+import { Button } from "@/components/ui/button";
+import { Clock, Info, X } from "@/components/ui/hugeicons";
+import { SPRING_PANEL, TRANSITION_ENTER_STANDARD, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
+import AutomationForm from "./components/AutomationForm";
+import AutomationList from "./components/AutomationList";
+import { AutomationProvider } from "./context/AutomationContext";
+
+interface AutomationsDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  isDark: boolean;
+  animationsEnabled?: boolean;
+}
+
+export default function AutomationsDrawer({
+  isOpen,
+  onClose,
+  isDark,
+  animationsEnabled = true,
+}: AutomationsDrawerProps) {
+  const backdropBackground = isDark ? "rgba(9, 9, 11, 0.68)" : "rgba(24, 24, 27, 0.18)";
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <m.button
+          type="button"
+          key="automations-backdrop"
+          aria-label="بستن مدیریت اتوماسیون‌ها"
+          initial={animationsEnabled ? { opacity: 0 } : false}
+          animate={{ opacity: 1 }}
+          exit={
+            animationsEnabled ? { opacity: 0, transition: TRANSITION_EXIT_STANDARD } : undefined
+          }
+          transition={animationsEnabled ? TRANSITION_ENTER_STANDARD : { duration: 0 }}
+          onClick={onClose}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onClose();
+          }}
+          style={{ backdropFilter: "blur(16px)", background: backdropBackground }}
+          className="fixed inset-0 z-50 cursor-pointer border-0 p-0"
+        />
+      )}
+      {isOpen && (
+        <m.div
+          key="automations-panel"
+          initial={animationsEnabled ? { x: "100%", opacity: 0.85 } : false}
+          animate={{ x: 0, opacity: 1 }}
+          exit={
+            animationsEnabled
+              ? { x: "100%", opacity: 0.85, transition: TRANSITION_EXIT_STANDARD }
+              : undefined
+          }
+          transition={animationsEnabled ? SPRING_PANEL : { duration: 0 }}
+          className="fixed top-0 right-0 h-full w-full max-w-md bg-[var(--background)] border-l border-[var(--border)] rounded-l-xl shadow-2xl z-50 flex flex-col overflow-hidden"
+          dir="rtl"
+        >
+          {/* Header */}
+          <div className="p-6 pb-4 border-b border-[var(--border)] flex justify-between items-center bg-[var(--card)] shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-md bg-[var(--muted)] text-[var(--muted-foreground)]">
+                <Clock className="w-5 h-5" />
+              </div>
+              <h2 className="font-bold text-lg text-[var(--foreground)]">مدیریت اتوماسیون‌ها</h2>
+            </div>
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={onClose}
+              aria-label="بستن مدیریت اتوماسیون‌ها"
+              className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] rounded-md transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+
+          {/* Content Body */}
+          <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] p-6 space-y-6">
+            {/* Info Box */}
+            <Alert
+              variant="info"
+              className="!flex !items-start !gap-3 !rounded-xl !border-[var(--border)] !bg-[var(--muted)] !p-4 text-xs leading-relaxed text-[var(--muted-foreground)] shadow-none"
+            >
+              <Info className="w-4 h-4 shrink-0 mt-0.5" />
+              <p>
+                زمان‌بندی یا شرط دمایی مورد نظر را تعریف کنید تا دستورات در زمان مشخص‌شده به‌طور خودکار
+                به تجهیزات ارسال شوند.
+              </p>
+            </Alert>
+
+            <AutomationProvider>
+              <AutomationForm />
+              <AutomationList />
+            </AutomationProvider>
+          </div>
+        </m.div>
+      )}
+    </AnimatePresence>
+  );
+}

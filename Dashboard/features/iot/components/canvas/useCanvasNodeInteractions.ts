@@ -1,0 +1,346 @@
+"use client";
+
+import React from "react";
+import type { Segment } from "@/features/iot/hooks/store/types";
+import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
+import {
+  canvasSegmentNodeId,
+  clampCanvasNodeSize,
+  getPresetDimensions,
+  snapCanvasCoordinate,
+} from "./canvasGeometry";
+import { replaceStoredCanvasNodes } from "./canvasStorage";
+import type {
+  CanvasNodeRect,
+  CanvasResizeDirection,
+  CanvasSizePreset,
+  CanvasSubMode,
+  CanvasViewport,
+} from "./canvasTypes";
+import { computeDragTiltDeg } from "./nodeMotion";
+
+const GROUP_NODE_PREFIX = "group:";
+
+interface CascadeChildRect {
+  id: string;
+  rect: CanvasNodeRect;
+}
+
+function collectCascadeGroupChildren(
+  nodeId: string,
+  activeSubMode: CanvasSubMode,
+  cascadeGroupDrag: boolean,
+  segments: Segment[],
+  nodesMap: Record<string, CanvasNodeRect>,
+): CascadeChildRect[] {
+  if (activeSubMode !== "graph" || !cascadeGroupDrag || !nodeId.startsWith(GROUP_NODE_PREFIX)) {
+    return [];
+  }
+
+  const groupName = nodeId.slice(GROUP_NODE_PREFIX.length);
+  const children: CascadeChildRect[] = [];
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+
+    if (resolveSegmentGroup(seg.group) === groupName) {
+      const childId = canvasSegmentNodeId(seg.id);
+      const rect = nodesMap[childId];
+
+      if (rect) {
+        children.push({ id: childId, rect });
+      }
+    }
+  }
+
+  return children;
+}
+
+interface ComputeResizedNodeRectOptions {
+  startRect: CanvasNodeRect;
+  snappedRightEdge: number;
+  snappedBottomEdge: number;
+  kind: "group" | "segment";
+  activeSubMode: CanvasSubMode;
+  direction: CanvasResizeDirection;
+  dx: number;
+  dy: number;
+  snapToGrid: boolean;
+}
+
+export function computeResizedNodeRect({
+  startRect,
+  snappedRightEdge,
+  snappedBottomEdge,
+  kind,
+  activeSubMode,
+  direction,
+  dx,
+  dy,
+  snapToGrid,
+}: ComputeResizedNodeRectOptions): CanvasNodeRect {
+  let rawWidth = startRect.width;
+  let rawHeight = startRect.height;
+  let rawX = startRect.x;
+  let rawY = startRect.y;
+
+  if (direction.includes("e")) rawWidth = startRect.width + dx;
+  if (direction.includes("w")) rawWidth = startRect.width - dx;
+  if (direction.includes("s")) rawHeight = startRect.height + dy;
+  if (direction.includes("n")) rawHeight = startRect.height - dy;
+
+  const clamped = clampCanvasNodeSize(kind, activeSubMode, rawWidth, rawHeight, snapToGrid);
+
+  if (direction.includes("w")) rawX = snappedRightEdge - clamped.width;
+  if (direction.includes("n")) rawY = snappedBottomEdge - clamped.height;
+
+  return {
+    ...startRect,
+    x: snapCanvasCoordinate(rawX, snapToGrid),
+    y: snapCanvasCoordinate(rawY, snapToGrid),
+    width: clamped.width,
+    height: clamped.height,
+  };
+}
+
+export interface UseCanvasNodeInteractionsOptions {
+  activeSubMode: CanvasSubMode;
+  isLocked: boolean;
+  snapToGrid: boolean;
+  cascadeGroupDrag: boolean;
+  segments: Segment[];
+  nodesRef: React.RefObject<Record<string, CanvasNodeRect>>;
+  viewportRef: React.RefObject<CanvasViewport>;
+  topZIndexRef: React.RefObject<number>;
+  setNodes: React.Dispatch<React.SetStateAction<Record<string, CanvasNodeRect>>>;
+  setSelectedNodeId: React.Dispatch<React.SetStateAction<string | null>>;
+}
+
+export function useCanvasNodeInteractions({
+  activeSubMode,
+  isLocked,
+  snapToGrid,
+  cascadeGroupDrag,
+  segments,
+  nodesRef,
+  viewportRef,
+  topZIndexRef,
+  setNodes,
+  setSelectedNodeId,
+}: UseCanvasNodeInteractionsOptions) {
+  const [draggingNodeId, setDraggingNodeId] = React.useState<string | null>(null);
+  const [dragTiltDeg, setDragTiltDeg] = React.useState(0);
+
+  const bringNodeToFront = React.useCallback(
+    (nodeId: string) => {
+      setSelectedNodeId(nodeId);
+      const prev = nodesRef.current;
+      const current = prev[nodeId];
+
+      if (!current) return;
+
+      const nextZ = ++topZIndexRef.current;
+
+      if (current.zIndex === nextZ) return;
+
+      const updated = {
+        ...prev,
+        [nodeId]: { ...current, zIndex: nextZ },
+      };
+
+      nodesRef.current = updated;
+      setNodes(updated);
+      replaceStoredCanvasNodes(activeSubMode, updated);
+    },
+    [activeSubMode, nodesRef, setNodes, setSelectedNodeId, topZIndexRef],
+  );
+
+  const startNodeDrag = React.useCallback(
+    (nodeId: string, e: React.PointerEvent<HTMLElement>) => {
+      if (e.button !== 0 || isLocked) return;
+
+      e.stopPropagation();
+      bringNodeToFront(nodeId);
+
+      const startRect = nodesRef.current[nodeId];
+
+      if (!startRect) return;
+
+      const startClientX = e.clientX;
+      const startClientY = e.clientY;
+      let lastClientX = e.clientX;
+      const zoom = viewportRef.current.zoom;
+      setDraggingNodeId(nodeId);
+      setDragTiltDeg(0);
+
+      const childInitialRects = collectCascadeGroupChildren(
+        nodeId,
+        activeSubMode,
+        cascadeGroupDrag,
+        segments,
+        nodesRef.current,
+      );
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const dx = (moveEvent.clientX - startClientX) / zoom;
+        const dy = (moveEvent.clientY - startClientY) / zoom;
+        const nextX = snapCanvasCoordinate(startRect.x + dx, snapToGrid);
+        const nextY = snapCanvasCoordinate(startRect.y + dy, snapToGrid);
+        const appliedDx = nextX - startRect.x;
+        const appliedDy = nextY - startRect.y;
+
+        setDragTiltDeg(computeDragTiltDeg(moveEvent.clientX - lastClientX));
+        lastClientX = moveEvent.clientX;
+
+        const prev = nodesRef.current;
+        const current = prev[nodeId] ?? startRect;
+
+        const updated: Record<string, CanvasNodeRect> = {
+          ...prev,
+          [nodeId]: {
+            ...current,
+            x: nextX,
+            y: nextY,
+          },
+        };
+
+        for (let i = 0; i < childInitialRects.length; i++) {
+          const child = childInitialRects[i];
+          const childCurrent = prev[child.id] ?? child.rect;
+          updated[child.id] = {
+            ...childCurrent,
+            x: snapCanvasCoordinate(child.rect.x + appliedDx, snapToGrid),
+            y: snapCanvasCoordinate(child.rect.y + appliedDy, snapToGrid),
+          };
+        }
+
+        nodesRef.current = updated;
+        setNodes(updated);
+      };
+
+      const handlePointerUp = () => {
+        setDraggingNodeId(null);
+        setDragTiltDeg(0);
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
+        window.removeEventListener("pointercancel", handlePointerUp);
+        replaceStoredCanvasNodes(activeSubMode, nodesRef.current);
+      };
+
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+      window.addEventListener("pointercancel", handlePointerUp);
+    },
+    [
+      activeSubMode,
+      bringNodeToFront,
+      cascadeGroupDrag,
+      isLocked,
+      nodesRef,
+      segments,
+      setNodes,
+      snapToGrid,
+      viewportRef,
+    ],
+  );
+
+  const startNodeResize = React.useCallback(
+    (
+      nodeId: string,
+      kind: "group" | "segment",
+      direction: CanvasResizeDirection,
+      e: React.PointerEvent<HTMLElement>,
+    ) => {
+      if (e.button !== 0 || isLocked) return;
+
+      e.stopPropagation();
+      e.preventDefault();
+      bringNodeToFront(nodeId);
+
+      const startRect = nodesRef.current[nodeId];
+
+      if (!startRect) return;
+
+      const startClientX = e.clientX;
+      const startClientY = e.clientY;
+      const zoom = viewportRef.current.zoom;
+      const snappedRightEdge = snapCanvasCoordinate(startRect.x + startRect.width, snapToGrid);
+      const snappedBottomEdge = snapCanvasCoordinate(startRect.y + startRect.height, snapToGrid);
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const dx = (moveEvent.clientX - startClientX) / zoom;
+        const dy = (moveEvent.clientY - startClientY) / zoom;
+        const prev = nodesRef.current;
+        const current = prev[nodeId] ?? startRect;
+
+        const resized = computeResizedNodeRect({
+          startRect: current,
+          snappedRightEdge,
+          snappedBottomEdge,
+          kind,
+          activeSubMode,
+          direction,
+          dx,
+          dy,
+          snapToGrid,
+        });
+
+        const updated = {
+          ...prev,
+          [nodeId]: {
+            ...resized,
+            zIndex: current.zIndex,
+          },
+        };
+
+        nodesRef.current = updated;
+        setNodes(updated);
+      };
+
+      const handlePointerUp = () => {
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
+        window.removeEventListener("pointercancel", handlePointerUp);
+        replaceStoredCanvasNodes(activeSubMode, nodesRef.current);
+      };
+
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+      window.addEventListener("pointercancel", handlePointerUp);
+    },
+    [activeSubMode, bringNodeToFront, isLocked, nodesRef, setNodes, snapToGrid, viewportRef],
+  );
+
+  const applyNodeSizePreset = React.useCallback(
+    (nodeId: string, kind: "group" | "segment", preset: CanvasSizePreset, segCount = 2) => {
+      const dims = getPresetDimensions(kind, activeSubMode, preset, segCount);
+      const prev = nodesRef.current;
+      const curr = prev[nodeId];
+
+      if (!curr) return;
+
+      const next = {
+        ...prev,
+        [nodeId]: {
+          ...curr,
+          width: dims.width,
+          height: dims.height,
+        },
+      };
+
+      nodesRef.current = next;
+      setNodes(next);
+      replaceStoredCanvasNodes(activeSubMode, next);
+    },
+    [activeSubMode, nodesRef, setNodes],
+  );
+
+  return {
+    draggingNodeId,
+    dragTiltDeg,
+    bringNodeToFront,
+    startNodeDrag,
+    startNodeResize,
+    applyNodeSizePreset,
+  };
+}
