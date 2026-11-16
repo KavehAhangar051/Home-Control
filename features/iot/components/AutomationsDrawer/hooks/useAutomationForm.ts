@@ -234,7 +234,7 @@ export function useAutomationForm() {
       actions,
     });
 
-    if (!validation.ok) {
+    if ("errorMessage" in validation) {
       showToast(validation.errorMessage, "error");
 
       return;

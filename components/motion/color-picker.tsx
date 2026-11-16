@@ -549,10 +549,17 @@ export function ColorPickerArea({ label, className, style, ...props }: ColorPick
   const morphing = morph && !reduce;
   const rgb = `rgb(${rgba.r} ${rgba.g} ${rgba.b})`;
 
+  const {
+    onDrag: _onDrag,
+    onDragStart: _onDragStart,
+    onDragEnd: _onDragEnd,
+    onAnimationStart: _onAnimationStart,
+    ...motionProps
+  } = props;
+
   return (
     <m.div
-      // SAFETY: React HTML motion.div props spread into component
-      {...(props as React.ComponentProps<typeof m.div>)}
+      {...motionProps}
       {...handlers}
       ref={railRef}
       layoutId={morphing ? `${id}-chip` : undefined}
@@ -1069,10 +1076,17 @@ export function ColorPickerEyeDropper({
 
   if (!EyeDropper) return null;
 
+  const {
+    onDrag: _onDrag,
+    onDragStart: _onDragStart,
+    onDragEnd: _onDragEnd,
+    onAnimationStart: _onAnimationStart,
+    ...motionProps
+  } = props;
+
   return (
     <m.button
-      // SAFETY: React HTML motion.button props spread into component
-      {...(props as React.ComponentProps<typeof m.button>)}
+      {...motionProps}
       type="button"
       disabled={disabled}
       aria-label={ariaLabel ?? t("eyeDropper")}
@@ -1151,10 +1165,17 @@ export function ColorPickerPreset({
   const normalized = parsed ? formatHex(parsed) : value;
   const selected = normalized === hex;
 
+  const {
+    onDrag: _onDrag,
+    onDragStart: _onDragStart,
+    onDragEnd: _onDragEnd,
+    onAnimationStart: _onAnimationStart,
+    ...motionProps
+  } = props;
+
   return (
     <m.button
-      // SAFETY: React HTML motion.button props spread into component
-      {...(props as React.ComponentProps<typeof m.button>)}
+      {...motionProps}
       type="button"
       disabled={disabled}
       aria-label={label ?? normalized}
@@ -1463,8 +1484,16 @@ export function ColorPickerContent({
                 )}
               >
                 <m.div
-                  // SAFETY: React HTML motion.div props spread into component
-                  {...(props as React.ComponentProps<typeof m.div>)}
+                  {...(() => {
+                    const {
+                      onDrag: _onDrag,
+                      onDragStart: _onDragStart,
+                      onDragEnd: _onDragEnd,
+                      onAnimationStart: _onAnimationStart,
+                      ...motionProps
+                    } = props;
+                    return motionProps;
+                  })()}
                   style={props.style}
                   id={`${id}-content`}
                   role="dialog"
