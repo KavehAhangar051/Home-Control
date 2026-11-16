@@ -1,96 +1,48 @@
-# معماری اینترنت اشیاء هخامنش (Achaemenid IoT Architecture)
+# Software Architecture & System Design
 
-> **وضعیت سند:** این فایل یک سند مفهومی/طرح معماری است و ممکن است بخش‌هایی از آن هنوز در کد فعلی پیاده‌سازی نشده باشند. برای رفتار و ساختار واقعی برنامه، ابتدا [`ARCHITECTURE.md`](../ARCHITECTURE.md) و سورس کد را مرجع قرار دهید. ادعاهای مربوط به Cloudflare، ESP-NOW، اپ Native و ذخیره‌سازی وضعیت را بدون بررسی پیاده‌سازی، قابلیت موجود فرض نکنید.
+## Layer Map & Dependency Rule
+Dependencies point strictly **inward** (`UI / Hooks -> Application Use Cases & Ports -> Domain / Protocol Rules`) and **infrastructure adapters implement inward ports**:
 
-## مستندات جامع ساختار سیستم (Global & Local)
+1. **Pure Domain & Wire Rules (Inner Core — zero React/DOM/network imports):**
+   - `features/iot/utils/pinValidation.ts` — ESP32 hardware pin invariants (`0..39`, SPI flash `6..11`, input-only `34/35/36/39`).
+   - `features/iot/services/config/{types,defaults}.ts` — canonical schema contract (`CANONICAL_CONFIG_VERSION = "1.2.0"`, `DEFAULT_DEVICE_INFO`).
+   - `features/iot/services/cloudflare/mappers.ts` — pure boundary serialization/deserialization & legacy rule/automation normalization.
+   - `features/iot/services/mqtt/{protocol,messageParser}.ts` & `build*Frame` helpers — binary opcodes, big/little-endian framing, incoming state/status parsing.
+   - `features/iot/components/workflows/workflowEngine.ts` & `features/iot/components/canvas/canvasGeometry.ts` — deterministic DAG evaluation and layout math.
+2. **Ports & Interfaces (Boundary Contracts):**
+   - `features/iot/services/ports.ts` (`IDeviceCommandPort`, `IConfigStoragePort`, `IDeviceSyncPort`).
+   - `features/iot/services/storeBridge.ts` (`IoTStoreBridge` — Dependency Inversion bridge allowing services to read/update store state without importing React hooks).
+3. **Interface Adapters & External Transports (`features/iot/services/*`, `lib/resilience.ts`):**
+   - `deviceGatewayAdapter.ts` (`LiveDeviceSyncAdapter`, `InMemoryDeviceSyncAdapter`, `DeviceCommandAdapter`, `CloudflareStorageAdapter`).
+   - `cloudflare/api.ts`, `mqtt/{client,init,pinPublishers,segmentPublishers,systemPublishers}.ts`, `localWs/client.ts`.
+   - `lib/resilience.ts` — timeouts, circuit breakers, exponential backoff + full jitter, bounded RED metrics.
+4. **Application State & UI Presentation (Outer Layer — React / Zustand):**
+   - `features/iot/hooks/useIoTStore.ts` (composition root registering `registerIoTStoreBridge`), store slices (`store/slices/*`), and orchestration hooks (`achaemenidState/*`).
+   - Next.js static-export pages/components (`app/*`, `components/*`, `features/*/components/*`).
 
-این سند برای درک کامل معماری سیستم طراحی شده است و می‌تواند به عنوان یک مرجع (Reference) برای توسعه‌دهندگان یا هوش مصنوعی‌های دیگر جهت توسعه و پیاده‌سازی سیستم مورد استفاده قرار گیرد.
+## Decision Log
+| Date | Phase | Decision | Rationale |
+|---|---|---|---|
+| 2026-11-15 | 4 | Delete `pinSyncUtils.ts` pass-through and inject `IDeviceSyncPort` into `usePinOperations` | Eliminates shallow indirection while enabling deterministic exception/failure rollback testing |
+| 2026-11-15 | 5 | Introduce `storeBridge.ts` registered in `useIoTStore.ts` | Eliminates direct React/Zustand hook imports inside `mqtt/{client,init}.ts` and `deviceGatewayAdapter.ts` |
+| 2026-11-15 | 6 | Centralize `"1.2.0"` schema version & `DEFAULT_DEVICE_INFO` in `config/defaults.ts` | Eliminates duplicated schema knowledge across `mappers.ts` and `buildEspConfig.ts` |
+| 2026-11-15 | 7 | Centralize timeouts, `CircuitBreaker`, retries, and RED metrics in `lib/resilience.ts` | Protects browser/Capacitor clients from hanging requests, retry storms, and WebViews without `AbortSignal.timeout` |
+| 2026-11-15 | 9 | Serialize `persistStoreConfigToCloudflare` saves & preserve live `pinsState` in `applyEspConfig` | Prevents out-of-order Cloudflare KV lost-update races and protects live ESP32 RAM SSOT from stale KV hydration |
 
----
+## System Context & Sizing
+- **Deployment Model:** Static-export Next.js 15 frontend (`output: "export"`), running entirely inside user browsers or native Capacitor mobile shells; no backend Node server or `app/api/*` routes exist.
+- **Real Load Envelope (Household Automation):**
+  - **Users:** 1–10 DAU per home deployment.
+  - **Throughput:** ~0.001–0.05 avg QPS; peak burst ~1–10 ops/sec during macro scenes or multi-relay sweeps.
+  - **MQTT Frame Budget:** Single pin `7 B`, batch pins `2 + 6N B`, presence `2 B` (~20–300 B even on max batch).
+  - **Cloudflare KV Payload:** Full `EspConfig` JSON typically `4–35 KB` (well under Cloudflare KV 25 MB limit and HTTP 100 KB fast path).
+  - **Client Memory & Storage Budgets:** `localStorage` footprint < 200 KB (`worker_url`, MQTT settings, canvas node positions, cached track metadata); in-memory latency histogram bounded to 64 samples/integration; `pendingStateUpdates` capped at 256 pins; `InMemoryDeviceSyncAdapter.dispatchLog` capped at 500 entries.
 
-## ۱. فلسفه و هدف معماری
-هدف اصلی این سیستم، ساخت یک خانه هوشمند بی‌نقص است که ویژگی‌های زیر را داشته باشد:
-1. **استقلال از اینترنت:** در صورت قطعی اینترنت جهانی، سیستم باید به صورت محلی (Local) و با حداکثر سرعت کار کند.
-2. **پایداری بالا:** جلوگیری از استهلاک قطعات سخت‌افزاری در اثر نوشتن‌های مداوم.
-3. **سرعت و سبکی:** ماژول‌های اجرایی باید بلافاصله واکنش نشان دهند و درگیر پردازش‌های شبکه نشوند.
-4. **توزیع بار پردازشی (Dumb Edges, Smart Core):** یک پردازنده مرکزی تمام منطق را مدیریت کند تا لبه‌های شبکه ارزان و سریع بمانند.
-
----
-
-## ۲. اجزای اصلی سیستم
-
-سیستم از ۴ لایه مجزا تشکیل شده است:
-
-### الف) لایه کاربری (User Interface)
-* **داشبورد ابری / محلی:** یک اپلیکیشن (نوشته شده با Next.js/React) که می‌تواند به صورت یک وب‌سایت در خارج از خانه، یا به صورت یک اپلیکیشن Native (با ابزارهایی نظیر Capacitor.js) در داخل و خارج خانه استفاده شود.
-
-### ب) لایه ابری (Cloud Infrastructure)
-* **CloudFlare Workers & KV:** وظیفه ذخیره تنظیمات ظاهری (UI Config)، احراز هویت و مسیریابی.
-* **MQTT Broker:** لوله انتقال پیام بین داشبورد و هاب مرکزی در زمان استفاده از اینترنت.
-
-### ج) گیت‌وی مرکزی (ESP32 Hub / Smart Core)
-* **نقش:** مغز متفکر سیستم و نقطه اتصال دنیای بیرون به سخت‌افزار درون خانه.
-
-### د) ماژول‌های لبه (ESP8266 Edge Nodes / Dumb Edges)
-* **نقش:** منحصراً اجرای دستورات سخت‌افزاری (روشن/خاموش).
-* **ارتباطات:** اتصال صرفاً از طریق **ESP-NOW** به هاب مرکزی (بدون نیاز به وای‌فای خانه).
-
----
-
-## ۳. معماری ارتباطی هسته هوشمند (ESP32 Gateway)
-
-ESP32 مرکزی به صورت همزمان از ۴ پروتکل ارتباطی پشتیبانی می‌کند:
-1. **MQTT Client (Global):** ارتباط با سرورهای ابری.
-2. **WebSocket Client:** ارتباط با CloudFlare برای دریافت تنظیمات سیستمی.
-3. **Local WebSocket Server (Port 81):** پذیرش اتصال مستقیم اپلیکیشن موبایل درون شبکه خانگی (بدون اینترنت).
-4. **ESP-NOW:** ارتباط بی‌درنگ با ماژول‌های لبه.
-
-*(نکته فنی: استفاده از پردازنده دو هسته‌ای و برنامه‌نویسی ناهمگام (Async) باعث می‌شود این ۴ پروتکل هیچ‌گونه گلوگاه یا افت سرعتی در میکروکنترلر ایجاد نکنند).*
-
----
-
-## ۴. طبقه‌بندی داده‌ها و تخصیص حافظه (Memory Allocation)
-
-یک اصل کلیدی در این معماری، عدم ارسال داده‌های اضافی به سخت‌افزار است. داده‌ها دقیقاً در جای مناسب خود ذخیره می‌شوند:
-
-### ❌ الف) داده‌های صرفاً کاربری (فقط در CloudFlare KV)
-این داده‌ها مربوط به ظاهر اپلیکیشن هستند و **هرگز به ESP32 ارسال نمی‌شوند**:
-* رنگ‌ها، فونت‌ها، انیمیشن‌ها و قالب داشبورد.
-* دسته‌بندی و ترتیب گروه‌ها در موبایل.
-* متادیتا (نام لامپ‌ها و آیکون آن‌ها).
-
-### 💾 ب) پیکربندی و زیرساخت (در حافظه ESP32 EEPROM/NVS)
-این تنظیمات ساختار شبکه را مشخص می‌کنند. خواندن از EEPROM استهلاکی ندارد و چون ندرتاً تغییر می‌کنند، نوشتن آن‌ها در فلش کاملاً ایمن است:
-* نام و رمز وای‌فای و سرور MQTT.
-* نگاشت فیزیکی (مثلاً: شناسه X متصل به پین Y است و نوع آن رله فشاری است).
-
-### 🚀 ج) وضعیت لحظه‌ای / State (منحصراً در ESP32 RAM)
-این داده‌ها مدام در حال تغییرند و برای جلوگیری از سوختن حافظه فلش، فقط در حافظه موقت RAM نگهداری می‌شوند:
-* وضعیت روشن یا خاموش بودن پایه‌ها (Pins State).
-
----
-
-## ۵. انتقال مرجعیت داده (Single Source of Truth) به ESP32
-
-**مهم‌ترین تصمیم معماری این سیستم:**
-مرجع اصلی حقیقت (Source of Truth) برای وضعیت روشن یا خاموش بودن دستگاه‌ها، دیگر دیتابیس‌های ابری (مثل Durable Objects در کلاودفلر) **نیستند**؛ بلکه **حافظه RAM خود ESP32 مرکزی است.**
-
-**چرا؟**
-چون ESP32 مستقیماً به سخت‌افزار متصل است. اگر کلادفلر وضعیت را نگه دارد، قطعی اینترنت باعث عدم تطابق کلاود با وضعیت واقعی خانه می‌شود. اما RAM در ESP32 همیشه با واقعیت فیزیکی ۱۰۰٪ هماهنگ (Sync) است.
-
-### 🔄 چرخه بارگذاری هوشمند داشبورد (Loading Sequence)
-بر اساس این مرجعیت، زمانی که کاربر اپلیکیشن را باز می‌کند، چرخه بارگذاری زیر طی می‌شود:
-
-1. **بارگذاری ظاهر (UI & Config):** داشبورد ابتدا ظاهر، رنگ‌ها و نام دکمه‌ها را از CloudFlare KV (یا کش موبایل) می‌خواند و صفحه را رسم می‌کند.
-2. **دریافت وضعیت (Live State):** داشبورد وضعیت پین‌ها را **فقط و فقط از ESP32 می‌پرسد**:
-   * 🏠 **حالت Local (داخل خانه):** داشبورد از طریق `Local WebSocket Server` مستقیماً به RAM در ESP32 وصل می‌شود و مقادیر را می‌خواند.
-   * 🌐 **حالت Global (خارج خانه):** داشبورد از طریق پروتکل `MQTT` درخواستی به ESP32 می‌فرستد. ESP32 مقادیر RAM خود را از طریق MQTT پابلیش می‌کند تا داشبورد آپدیت شود.
-
-*(نتیجه: در هر دو حالت، کلاودفلر تنها نقش یک "لوله انتقال" را بازی می‌کند و تصمیم‌گیری درباره وضعیت پین‌ها منحصراً در اختیار مغز خانه یعنی ESP32 است).*
-
----
-
-## ۶. مزایای نهایی این معماری
-* **همگام‌سازی بی‌نقص:** به دلیل متمرکز بودن State در هاب سخت‌افزاری، هیچ‌وقت تداخلی بین کلید زدن دستی روی دیوار و زدن کلید در اپلیکیشن موبایل پیش نمی‌آید.
-* **استقلال کامل در آفلاین:** در حالت Local، سیستم نیازی به هیچ پردازش ابری ندارد و سریع‌تر از سیستم‌های سنتی عمل می‌کند.
-* **دوام نامحدود سخت‌افزار:** با استفاده هوشمندانه از RAM، مشکل سوختن آی‌سی میکروکنترلر به طور کامل رفع شده است.
+## Data & Storage Decisions
+- **Authoritative Sources of Truth (Dual-Domain Separation):**
+  - **Live Hardware Pin States (`pinsState`):** ESP32 RAM is the strict **Single Source of Truth (SSOT)**. UI pin toggles are optimistic updates with guarded rollback (`rollbackSinglePinState`, `rollbackBatchPinState`) that only revert a pin if no newer state change has modified that pin in the meantime. When `applyEspConfig` hydrates configuration from Cloudflare KV, `pinsState[pin]` entries already populated by live ESP32 MQTT/LocalWS traffic are preserved rather than overwritten by potentially stale KV `seg.state` fields.
+  - **Configuration & Layout (`EspConfig`):** Cloudflare Workers + Durable Objects / KV store durable dashboard configuration (`/config`) and persistent pin state (`/pins/:pin`, `/pins/batch`). Push-mode momentary segments are excluded from Cloudflare pin persistence.
+- **Concurrency & Lost-Update Prevention:**
+  - `persistStoreConfigToCloudflare` assigns monotonically increasing generation numbers and chains writes sequentially through `configSaveQueue`, reading the freshest store snapshot immediately before issuing `POST /config`. Older stalled saves can never complete out-of-order and clobber newer KV configurations, nor prematurely reset `unsavedChangesCount` when newer edits occurred while in flight.
+- **Schema Evolution & Boundary Normalization:**
+  - `cloudflare/mappers.ts` handles forward/backward normalization of legacy single-target rules, legacy dual-target rules, legacy `segments` arrays, and legacy `automations` records into canonical v`1.2.0` shapes at ingress/egress boundaries.

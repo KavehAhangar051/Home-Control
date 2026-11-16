@@ -4,30 +4,33 @@
 #include <ArduinoJson.h>
 #include <Optimization/CompilerTraits.h>
 #include <AchaemenidConfigProtocol.h>
-
+#include <cstdlib>
 
 namespace uniuno {
 
 WsClientParser::WsClientParser(IEventDispatcher* dispatcher) : _dispatcher(dispatcher) {}
 
+/**
+ * @brief Parse incoming WebSocket messages (binary automations or JSON config).
+ */
 HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& message) {
+    if (UNLIKELY(_dispatcher == nullptr)) return;
+
     if (LIKELY(message.isBinary())) {
         const char* data = message.c_str();
         const size_t len = message.length();
 
         // Single pin binary format: [0x06][pin][state]
-        if (LIKELY(len >= 3) && LIKELY(data[0] == 0x06)) {
+        if (LIKELY(len >= 3) && LIKELY(static_cast<uint8_t>(data[0]) == 0x06)) {
             const uint8_t pin   = static_cast<uint8_t>(data[1]);
             const uint8_t state = static_cast<uint8_t>(data[2]);
 
             Serial.printf("[WebSocket] Automation Triggered! Pin: %u, State: %u\n", pin, state);
             PinStateChangeRequestEvent event{pin, state != 0, 0, PinStateChangeOrigin::Cloudflare};
             _dispatcher->dispatch(event);
-
-            // getWsClientInstance().sendText("{\"type\":\"automation_ack\",\"status\":\"success\"}");
         }
         // Batch binary format: [0x08][count][pin1][state1]...
-        else if (LIKELY(len >= 2) && data[0] == 0x08) {
+        else if (LIKELY(len >= 2) && static_cast<uint8_t>(data[0]) == 0x08) {
             const uint8_t count = static_cast<uint8_t>(data[1]);
             if (len >= 2 + (count * 2)) {
                 Serial.printf("[WebSocket] Batch Automation Triggered! Actions: %u\n", count);
@@ -37,12 +40,11 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
                     PinStateChangeRequestEvent event{pin, state != 0, 0, PinStateChangeOrigin::Cloudflare};
                     _dispatcher->dispatch(event);
                 }
-                // getWsClientInstance().sendText("{\"type\":\"automation_ack\",\"status\":\"success\"}");
             }
         }
     } else {
         // Text message
-        String text = message.data();
+        const String text = message.data();
         if (text.startsWith("ESP_CFG_V2")) {
             Serial.println("[WebSocket] Received Config payload");
             AchaemenidConfigProtocol configParser;
@@ -67,8 +69,9 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
             if (!error && doc.containsKey("states")) {
                 JsonObject states = doc["states"].as<JsonObject>();
                 for (JsonPair kv : states) {
-                    int pin   = String(kv.key().c_str()).toInt();
-                    bool state = kv.value().as<bool>();
+                    // Zero-heap integer parsing directly via standard atoi
+                    const int pin   = atoi(kv.key().c_str());
+                    const bool state = kv.value().as<bool>();
                     PinStateChangeRequestEvent event{pin, state, 0, PinStateChangeOrigin::Cloudflare};
                     _dispatcher->dispatch(event);
                 }

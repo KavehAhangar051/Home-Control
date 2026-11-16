@@ -7,11 +7,13 @@
 #include <Events/IEventDispatcher.h>
 #include <Optimization/CompilerTraits.h>
 #include "WebSocketConfig.h"
+#include "../parsers/WsClientParser.h"
 
 namespace uniuno {
 
-class WsClientParser;
-
+/**
+ * @brief Manages secure TLS WebSocket connection to Cloudflare Worker with background task connecting.
+ */
 class AchaemenidWebSocketClient {
 public:
     AchaemenidWebSocketClient(IEventDispatcher* dispatcher, StateProvider stateProvider);
@@ -26,7 +28,7 @@ public:
     FORCE_INLINE void setNetworkAvailable(bool available) { isNetworkAvailable_ = available; }
     FORCE_INLINE bool isNetworkAvailable() const { return isNetworkAvailable_; }
 
-    void loop();
+    HOT_PATH void loop();
 
 private:
     void onMessageCallback(websockets::WebsocketsMessage message);
@@ -42,8 +44,10 @@ private:
     volatile bool firstConnection_;
     volatile bool isNetworkAvailable_;
     portMUX_TYPE firstConnMux_ = portMUX_INITIALIZER_UNLOCKED;
+    portMUX_TYPE clientMux_ = portMUX_INITIALIZER_UNLOCKED;
 
     unsigned long lastPingTime_ = 0;
+    unsigned long lastPollTime_ = 0;
     volatile unsigned long lastConnectAttemptTime_ = 0;
     volatile unsigned long nextConnectAttemptTime_ = 0;
     volatile uint8_t consecutiveFailures_ = 0;
@@ -52,7 +56,7 @@ private:
     TaskHandle_t connectTaskHandle_ = nullptr;
     IEventDispatcher* dispatcher_;
     StateProvider stateProvider_;
-    WsClientParser* parser_;
+    WsClientParser parser_;
 };
 
 } // namespace uniuno

@@ -2,21 +2,24 @@
 
 #include <ArduinoWebsockets.h>
 #include <Events/IEventDispatcher.h>
+#include <Optimization/CompilerTraits.h>
 #include "WebSocketConfig.h"
+#include "../parsers/WsServerParser.h"
 
 #define WS_SERVER_MAX_CLIENTS 4
 
 namespace uniuno {
 
-class WsServerParser;
-
+/**
+ * @brief Lightweight local WebSocket server with throttled adaptive polling.
+ */
 class AchaemenidWebSocketServer {
 public:
     AchaemenidWebSocketServer(IEventDispatcher* dispatcher, StateProvider stateProvider);
-    ~AchaemenidWebSocketServer();
+    ~AchaemenidWebSocketServer() = default;
 
     void begin(uint16_t port);
-    void loop();
+    HOT_PATH void loop();
     void broadcastState(const String& stateJson);
     void broadcastState(const char* stateJson);
 
@@ -28,8 +31,10 @@ private:
     websockets::WebsocketsClient clients[WS_SERVER_MAX_CLIENTS];
     uint8_t clientCount = 0;
     bool _isStarted = false;
+    unsigned long _lastAcceptPoll = 0;
+    unsigned long _lastClientPoll = 0;
     IEventDispatcher* dispatcher_;
-    class WsServerParser* parser_;
+    WsServerParser parser_;
 };
 
 } // namespace uniuno

@@ -7,10 +7,9 @@
 #include "../parsers/WsClientParser.h"
 #include <WiFi.h>
 
-
 namespace uniuno {
 
-// SSL client bypasses cert validation
+// SSL client bypasses cert validation for embedded flexibility
 class InsecureEsp32TcpClient : public websockets::network::GenericEspTcpClient<WiFiClientSecure> {
 public:
     InsecureEsp32TcpClient() { client.setInsecure(); }
@@ -19,9 +18,9 @@ public:
 
 AchaemenidWebSocketClient::AchaemenidWebSocketClient(IEventDispatcher* dispatcher, StateProvider stateProvider)
     : isRunning_(false), firstConnection_(true), isNetworkAvailable_(false),
-      nextConnectAttemptTime_(0), dispatcher_(dispatcher), stateProvider_(std::move(stateProvider))
+      nextConnectAttemptTime_(0), dispatcher_(dispatcher), stateProvider_(std::move(stateProvider)),
+      parser_(dispatcher_)
 {
-    parser_ = new WsClientParser(dispatcher_);
     auto secureClient = std::make_shared<InsecureEsp32TcpClient>();
     client_ = new websockets::WebsocketsClient(secureClient);
 
@@ -43,14 +42,16 @@ AchaemenidWebSocketClient::~AchaemenidWebSocketClient() {
         delete client_;
         client_ = nullptr;
     }
-    if (parser_) {
-        delete parser_;
-        parser_ = nullptr;
-    }
 }
 
 void AchaemenidWebSocketClient::sendText(const String& payload) {
-    if (client_ && LIKELY(client_->available())) {
+    if (UNLIKELY(isConnecting_ || client_ == nullptr)) return;
+    
+    portENTER_CRITICAL(&clientMux_);
+    const bool canSend = (client_ != nullptr && client_->available());
+    portEXIT_CRITICAL(&clientMux_);
+
+    if (LIKELY(canSend)) {
         client_->send(payload);
     }
 }
@@ -70,6 +71,7 @@ void AchaemenidWebSocketClient::begin(const String& serverUrl) {
     config_.serverUrl = serverUrl.c_str();
     isRunning_ = true;
     lastPingTime_ = 0;
+    lastPollTime_ = 0;
     lastConnectAttemptTime_ = 0;
     nextConnectAttemptTime_ = 0;
     hasConnectAttempted_ = false;
@@ -95,23 +97,38 @@ void AchaemenidWebSocketClient::connectTask(void* param) {
 void AchaemenidWebSocketClient::doConnect() {
     Serial.println("[WebSocket] [Task] Connecting to Cloudflare Worker...");
 
-    if (client_) {
-        client_->close();
-        delete client_;
-        client_ = nullptr;
+    portENTER_CRITICAL(&clientMux_);
+    websockets::WebsocketsClient* oldClient = client_;
+    client_ = nullptr;
+    portEXIT_CRITICAL(&clientMux_);
+
+    if (oldClient) {
+        oldClient->close();
+        delete oldClient;
     }
 
     auto secureClient = std::make_shared<InsecureEsp32TcpClient>();
-    client_ = new websockets::WebsocketsClient(secureClient);
+    websockets::WebsocketsClient* newClient = new websockets::WebsocketsClient(secureClient);
 
-    client_->onMessage([this](websockets::WebsocketsMessage msg) {
+    newClient->onMessage([this](websockets::WebsocketsMessage msg) {
         this->onMessageCallback(msg);
     });
-    client_->onEvent([this](websockets::WebsocketsEvent ev, String data) {
+    newClient->onEvent([this](websockets::WebsocketsEvent ev, String data) {
         this->onEventsCallback(ev, data);
     });
 
-    const bool connected = client_->connect("apii.agkalaa.ir", 443, "/ws");
+    bool connected = false;
+    if (config_.isValid()) {
+        Serial.printf("[WebSocket] [Task] Connecting to configured URL: %s\n", config_.serverUrl.c_str());
+        connected = newClient->connect(config_.serverUrl.c_str());
+    } else {
+        Serial.println("[WebSocket] [Task] Fallback: Connecting to default apii.agkalaa.ir");
+        connected = newClient->connect("apii.agkalaa.ir", 443, "/ws");
+    }
+
+    portENTER_CRITICAL(&clientMux_);
+    client_ = newClient;
+    portEXIT_CRITICAL(&clientMux_);
 
     lastConnectAttemptTime_ = millis();
     hasConnectAttempted_ = true;
@@ -132,22 +149,31 @@ void AchaemenidWebSocketClient::doConnect() {
     }
 }
 
-IRAM_ATTR void AchaemenidWebSocketClient::loop() {
-    // Zero-overhead check: Eliminates thousands of WiFi.status() calls per second!
+/**
+ * @brief High-performance non-blocking loop with throttled adaptive polling.
+ * Eliminates unconstrained socket polling and reduces 64-bit millis() division overhead.
+ */
+HOT_PATH void AchaemenidWebSocketClient::loop() {
+    // Early exit if client is not enabled or currently connecting in background task
     if (UNLIKELY(!isRunning_ || !isNetworkAvailable_ || isConnecting_)) return;
 
+    const unsigned long now = millis();
+
     if (client_ && LIKELY(client_->available())) {
-        client_->poll();
-        const unsigned long now = millis();
-        if (UNLIKELY(now - lastPingTime_ >= WS_PING_INTERVAL_MS)) {
-            client_->ping();
-            lastPingTime_ = now;
+        // Throttled socket polling to ~66 Hz (every 15ms)
+        if (now - lastPollTime_ >= WS_CLIENT_POLL_INTERVAL_MS) {
+            lastPollTime_ = now;
+            client_->poll();
+
+            if (UNLIKELY(now - lastPingTime_ >= WS_PING_INTERVAL_MS)) {
+                client_->ping();
+                lastPingTime_ = now;
+            }
         }
         return;
     }
 
     // Single precomputed deadline subtraction (wrap-safe for millis rollover)
-    const unsigned long now = millis();
     if (hasConnectAttempted_ && static_cast<long>(now - nextConnectAttemptTime_) < 0) {
         return;
     }
@@ -180,9 +206,7 @@ IRAM_ATTR void AchaemenidWebSocketClient::loop() {
 }
 
 void AchaemenidWebSocketClient::onMessageCallback(websockets::WebsocketsMessage message) {
-    if (parser_) {
-        parser_->parseMessage(message);
-    }
+    parser_.parseMessage(message);
 }
 
 void AchaemenidWebSocketClient::onEventsCallback(websockets::WebsocketsEvent event, String /*data*/) {
