@@ -58,6 +58,33 @@ public:
     return this->into_future(std::forward<F>(fn));
   }
 
+  /**
+   * @brief Catches errors and recovers with a fallback output.
+   */
+  template <class F>
+  Future<void, O, E> catch_error(F &&err_fn) {
+    return Future<void, O, E>([this_future = std::move(*this), err_fn = std::forward<F>(err_fn)]() mutable -> AsyncResult<O, E> {
+      if (this_future.result.is_pending()) {
+        this_future.poll();
+      }
+      if (this_future.result.is_pending()) {
+        return AsyncResult<O, E>::pending();
+      }
+      if (UNLIKELY(this_future.result.is_rejected())) {
+        return AsyncResult<O, E>::resolve(err_fn(*this_future.result.get_error()));
+      }
+      return this_future.result;
+    });
+  }
+
+  /**
+   * @brief Transforms the resolved output value.
+   */
+  template <class F>
+  auto map(F &&fn) -> Future<void, decltype(fn(std::declval<O>()))> {
+    return this->and_then(std::forward<F>(fn));
+  }
+
   AsyncResult<O, E> result;
 
 private:

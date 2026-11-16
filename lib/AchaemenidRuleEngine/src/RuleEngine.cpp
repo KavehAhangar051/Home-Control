@@ -3,65 +3,37 @@
 #include <AppEvents.h>
 #include "evaluators/HoldTimeEvaluator.h"
 #include "strategies/ActionStrategies.h"
+#include <Optimization/CompilerTraits.h>
 
 RuleEngine::RuleEngine(RuleContext ctx) : _ctx(ctx) {
-    if (_ctx.eventBus != nullptr) {
-        // We use a lambda to capture `this` and forward it, since onTimerExpired is a member function now.
-        _ctx.eventBus->on<uniuno::TimerExpiredEvent>([this](uniuno::TimerExpiredEvent* evt) {
-            this->onTimerExpired(evt);
-        });
-    }
 }
 
 void RuleEngine::executeAction(const RuleAction& act, int sourcePin) {
-    uniuno::rules::HoldTimeEvaluator eval(_ctx);
-    // Since executeAction in HoldTimeEvaluator is private, wait, HoldTimeEvaluator handles processRelease which calls executeAction internally.
-    // If we need to execute a single action, we can instantiate the strategy directly.
-    if (act.targetPin < 0) return;
-    
-    // Clear any existing rule timer for the target pin
-    if (_ctx.appTimer != nullptr) {
-        uniuno::TimerHandle existingTimer = _ctx.pinManager->getRuleActionTimerIdByPin(act.targetPin);
-        if (existingTimer.isActive()) {
-            existingTimer.cancel();
-            _ctx.pinManager->setRuleActionTimerIdByPin(act.targetPin, uniuno::TimerHandle());
-        }
-    }
-
-    if (act.actionType == ACTION_IMMEDIATE) {
-        uniuno::rules::ImmediateActionStrategy strategy;
-        strategy.execute(act, sourcePin, _ctx);
-    } else if (act.actionType == ACTION_AFTER_DELAY) {
-        uniuno::rules::DelayedActionStrategy strategy;
-        strategy.execute(act, sourcePin, _ctx);
-    } else if (act.actionType == ACTION_FOR_DURATION) {
-        uniuno::rules::DurationActionStrategy strategy;
-        strategy.execute(act, sourcePin, _ctx);
-    }
+    uniuno::rules::ActionExecutor::execute(act, sourcePin, _ctx);
 }
 
 void RuleEngine::onTimerExpired(uniuno::TimerExpiredEvent* evt) {
-    uniuno::TimerId expiredId = evt->timer_id;
+    if (evt == nullptr || _ctx.pinManager == nullptr) return;
+    const uniuno::TimerId expiredId = evt->timer_id;
     
-    // Check Rule Action Timers
-    int targetPin = _ctx.pinManager->findPinByRuleActionTimerId(expiredId);
+    // Fallback: Check Rule Action Timers
+    const int targetPin = _ctx.pinManager->findPinByRuleActionTimerId(expiredId);
     if (targetPin >= 0) {
-        bool stateToApply = _ctx.pinManager->getPendingRuleActionState(targetPin);
+        const bool stateToApply = _ctx.pinManager->getPendingRuleActionState(targetPin);
         _ctx.pinManager->setRuleActionTimerIdByPin(targetPin, uniuno::TimerHandle());
         
-        // Apply state directly since timer expired
-        bool success = _ctx.pinManager->setPinState(targetPin, stateToApply);
-        if (success) {
+        const bool success = _ctx.pinManager->setPinState(targetPin, stateToApply);
+        if (success && _ctx.eventBus != nullptr) {
             PinStateChangedEvent changed{targetPin, stateToApply};
             _ctx.eventBus->dispatch(changed);
         }
         return;
     }
 
-    // Check Hold Action Timers
-    int sourcePin = _ctx.pinManager->findPinByHoldTimerId(expiredId);
+    // Fallback: Check Hold Action Timers
+    const int sourcePin = _ctx.pinManager->findPinByHoldTimerId(expiredId);
     if (sourcePin >= 0) {
-        RuleAction act = _ctx.pinManager->getPendingHoldAction(sourcePin);
+        const RuleAction act = _ctx.pinManager->getPendingHoldAction(sourcePin);
         _ctx.pinManager->setHoldTimerIdByPin(sourcePin, uniuno::TimerHandle());
         executeAction(act, sourcePin);
         _ctx.pinManager->setIsHandledByPin(sourcePin, true);
@@ -69,16 +41,30 @@ void RuleEngine::onTimerExpired(uniuno::TimerExpiredEvent* evt) {
     }
 }
 
-void RuleEngine::handleInput(int sourcePin, bool newState, unsigned long durationSec, const RuleConfig& rule) {
+/**
+ * @brief Handle input pin state transitions and evaluate configured rules.
+ * 
+ * @param sourcePin Hardware pin number of the input.
+ * @param newState The new digital state (true for HIGH, false for LOW).
+ * @param durationSec How many seconds the previous state was held.
+ * @param rule The active rule configuration for this input.
+ */
+HOT_PATH void RuleEngine::handleInput(int sourcePin, bool newState, unsigned long durationSec, const RuleConfig& rule) {
     INFOF("[Input] Pin %d state changed to %s (duration: %lus)", sourcePin, newState ? "HIGH" : "LOW", durationSec);
     
-    if (*(_ctx.isDashboardOnline)) {
+    // 1. Publish immediate state change via MQTT if dashboard is active
+    if (_ctx.isDashboardOnline != nullptr && *(_ctx.isDashboardOnline) && _ctx.mqttClient != nullptr) {
         char payload[64];
         snprintf(payload, sizeof(payload), "{\"id\":\"%d\",\"value\":%s}", sourcePin, newState ? "true" : "false");
-        _ctx.mqttClient->publish("KamyarIoT/Achaemenid/State", payload);
+        String topic = _ctx.mqttClient->getBaseTopic();
+        if (topic.length() == 0) {
+            topic = "KamyarIoT/Achaemenid";
+        }
+        _ctx.mqttClient->publish(topic + "/State", payload);
     }
 
-    if (_ctx.appTimer != nullptr) {
+    // 2. Debounce cloud sync (1000ms delay to prevent event flooding)
+    if (_ctx.appTimer != nullptr && _ctx.pinManager != nullptr) {
         uniuno::TimerHandle existingTimer = _ctx.pinManager->getCloudSyncTimerIdByPin(sourcePin);
         if (existingTimer.isActive()) {
             existingTimer.cancel();
@@ -86,19 +72,25 @@ void RuleEngine::handleInput(int sourcePin, bool newState, unsigned long duratio
         }
         
         uniuno::TimerHandle newTimer = _ctx.appTimer->setTimeout([this, sourcePin]() {
-            _ctx.pinManager->setCloudSyncTimerIdByPin(sourcePin, uniuno::TimerHandle());
-            bool finalState = _ctx.pinManager->getPinState(sourcePin);
-            CloudSyncRequestEvent syncEvt{sourcePin, finalState};
-            _ctx.eventBus->dispatch(syncEvt);
-            INFOF("[Input] Synced debounced state of Pin %d to %s", sourcePin, finalState ? "HIGH" : "LOW");
+            if (_ctx.pinManager != nullptr) {
+                _ctx.pinManager->setCloudSyncTimerIdByPin(sourcePin, uniuno::TimerHandle());
+                const bool finalState = _ctx.pinManager->getPinState(sourcePin);
+                if (_ctx.eventBus != nullptr) {
+                    CloudSyncRequestEvent syncEvt{sourcePin, finalState};
+                    _ctx.eventBus->dispatch(syncEvt);
+                }
+                INFOF("[Input] Synced debounced state of Pin %d to %s", sourcePin, finalState ? "HIGH" : "LOW");
+            }
         }, 1000);
         
         _ctx.pinManager->setCloudSyncTimerIdByPin(sourcePin, newTimer);
     }
 
-    if (rule.active) {
+    // 3. Evaluate configured rules
+    if (rule.active && _ctx.pinManager != nullptr) {
         uniuno::rules::HoldTimeEvaluator evaluator(_ctx);
 
+        // Cancel any pending hold timer for this pin
         if (_ctx.appTimer != nullptr) {
             uniuno::TimerHandle existingHoldTimer = _ctx.pinManager->getHoldTimerIdByPin(sourcePin);
             if (existingHoldTimer.isActive()) {
@@ -107,73 +99,58 @@ void RuleEngine::handleInput(int sourcePin, bool newState, unsigned long duratio
             }
         }
 
-        if (newState == true) { // Changed to HIGH
-            if (!_ctx.pinManager->getIsHandledByPin(sourcePin)) {
-                evaluator.processRelease(rule.lowActions, rule.lowActionCount, durationSec, sourcePin);
-            }
-            
-            _ctx.pinManager->setIsHandledByPin(sourcePin, false);
-            
-            if (rule.highActionCount == 1) {
-                int reqHold = rule.highActions[0].requiredHoldTime;
-                if (reqHold == 0) {
-                    executeAction(rule.highActions[0], sourcePin);
-                    _ctx.pinManager->setIsHandledByPin(sourcePin, true);
-                } else if (_ctx.appTimer != nullptr) {
-                    _ctx.pinManager->setPendingHoldAction(sourcePin, rule.highActions[0]);
-                    uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([](){}, reqHold * 1000);
-                    _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
-                }
-            } else if (rule.highActionCount > 1 && _ctx.appTimer != nullptr) {
-                bool has10s = false;
-                RuleAction act10s;
-                for (int i = 0; i < rule.highActionCount; i++) {
-                    if (rule.highActions[i].requiredHoldTime == 10) {
-                        has10s = true;
-                        act10s = rule.highActions[i];
-                        break;
+        // Symmetrically determine released vs starting action groups
+        const RuleAction* releaseActions = newState ? rule.lowActions : rule.highActions;
+        const int releaseCount = newState ? rule.lowActionCount : rule.highActionCount;
+
+        const RuleAction* startActions = newState ? rule.highActions : rule.lowActions;
+        const int startCount = newState ? rule.highActionCount : rule.lowActionCount;
+
+        // A. Process release of the previous state (unless already executed by a hold timer)
+        if (!_ctx.pinManager->getIsHandledByPin(sourcePin)) {
+            evaluator.processRelease(releaseActions, releaseCount, durationSec, sourcePin);
+        }
+        _ctx.pinManager->setIsHandledByPin(sourcePin, false);
+
+        // B. Process starting actions for the new state
+        if (startCount == 1) {
+            const int reqHold = startActions[0].requiredHoldTime;
+            if (reqHold == 0) {
+                executeAction(startActions[0], sourcePin);
+                _ctx.pinManager->setIsHandledByPin(sourcePin, true);
+            } else if (_ctx.appTimer != nullptr) {
+                const RuleAction pendingAct = startActions[0];
+                _ctx.pinManager->setPendingHoldAction(sourcePin, pendingAct);
+                uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([this, sourcePin, pendingAct]() {
+                    if (_ctx.pinManager != nullptr) {
+                        _ctx.pinManager->setHoldTimerIdByPin(sourcePin, uniuno::TimerHandle());
+                        executeAction(pendingAct, sourcePin);
+                        _ctx.pinManager->setIsHandledByPin(sourcePin, true);
                     }
-                }
-                
-                if (has10s) {
-                    _ctx.pinManager->setPendingHoldAction(sourcePin, act10s);
-                    uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([](){}, 11000);
-                    _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
+                }, reqHold * 1000);
+                _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
+            }
+        } else if (startCount > 1 && _ctx.appTimer != nullptr) {
+            bool has10s = false;
+            RuleAction act10s;
+            for (int i = 0; i < startCount; i++) {
+                if (startActions[i].requiredHoldTime == 10) {
+                    has10s = true;
+                    act10s = startActions[i];
+                    break;
                 }
             }
-        } else { // Changed to LOW
-            if (!_ctx.pinManager->getIsHandledByPin(sourcePin)) {
-                evaluator.processRelease(rule.highActions, rule.highActionCount, durationSec, sourcePin);
-            }
             
-            _ctx.pinManager->setIsHandledByPin(sourcePin, false);
-            
-            if (rule.lowActionCount == 1) {
-                int reqHold = rule.lowActions[0].requiredHoldTime;
-                if (reqHold == 0) {
-                    executeAction(rule.lowActions[0], sourcePin);
-                    _ctx.pinManager->setIsHandledByPin(sourcePin, true);
-                } else if (_ctx.appTimer != nullptr) {
-                    _ctx.pinManager->setPendingHoldAction(sourcePin, rule.lowActions[0]);
-                    uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([](){}, reqHold * 1000);
-                    _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
-                }
-            } else if (rule.lowActionCount > 1 && _ctx.appTimer != nullptr) {
-                bool has10s = false;
-                RuleAction act10s;
-                for (int i = 0; i < rule.lowActionCount; i++) {
-                    if (rule.lowActions[i].requiredHoldTime == 10) {
-                        has10s = true;
-                        act10s = rule.lowActions[i];
-                        break;
+            if (has10s) {
+                _ctx.pinManager->setPendingHoldAction(sourcePin, act10s);
+                uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([this, sourcePin, act10s]() {
+                    if (_ctx.pinManager != nullptr) {
+                        _ctx.pinManager->setHoldTimerIdByPin(sourcePin, uniuno::TimerHandle());
+                        executeAction(act10s, sourcePin);
+                        _ctx.pinManager->setIsHandledByPin(sourcePin, true);
                     }
-                }
-                
-                if (has10s) {
-                    _ctx.pinManager->setPendingHoldAction(sourcePin, act10s);
-                    uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([](){}, 11000);
-                    _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
-                }
+                }, 11000);
+                _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
             }
         }
     }

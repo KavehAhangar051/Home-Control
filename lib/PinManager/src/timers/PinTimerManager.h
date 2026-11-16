@@ -1,10 +1,13 @@
 #ifndef PIN_TIMER_MANAGER_H
 #define PIN_TIMER_MANAGER_H
 
-#include "PinRegistry.h"
+#include "../PinRegistry.h"
 #include <Optimization/CompilerTraits.h>
 #include <Timer/TimerHandle.h>
 
+/**
+ * @brief Manages timer handles associated with each hardware pin.
+ */
 class PinTimerManager {
 public:
     PinTimerManager(PinRegistry& registry) : _registry(registry) {}
@@ -16,7 +19,7 @@ public:
 
     HOT_PATH FORCE_INLINE void setAutoOffDelayByPin(int pin, int delay) {
         PinEntry* entry = _registry.getEntryByPin(pin);
-        if (entry) entry->autoOffDelay = delay;
+        if (entry) entry->autoOffDelay = static_cast<uint16_t>(delay);
     }
     
     HOT_PATH FORCE_INLINE uniuno::TimerHandle getTimerIdByPin(int pin) const {

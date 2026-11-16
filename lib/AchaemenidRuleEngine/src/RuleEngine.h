@@ -6,6 +6,7 @@
 #include <Events/EventDispatcher.h>
 #include <Core/Async/Executor.h>
 #include <PinManager.h>
+#include <Optimization/CompilerTraits.h>
 
 struct RuleContext {
     uniuno::AchaemenidMQTT* mqttClient;
@@ -19,7 +20,7 @@ struct RuleContext {
 class RuleEngine {
 public:
     RuleEngine(RuleContext ctx);
-    void handleInput(int sourcePin, bool newState, unsigned long durationSec, const RuleConfig& rule);
+    HOT_PATH void handleInput(int sourcePin, bool newState, unsigned long durationSec, const RuleConfig& rule);
 
 private:
     void executeAction(const RuleAction& act, int sourcePin);

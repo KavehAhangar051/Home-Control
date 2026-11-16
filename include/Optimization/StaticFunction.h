@@ -35,7 +35,7 @@ public:
             [](void* ctx, Args... args) -> Ret {
                 return (*static_cast<Functor*>(ctx))(args...);
             },
-            functor
+            const_cast<void*>(static_cast<const void*>(functor))
         );
     }
     
@@ -83,7 +83,7 @@ public:
             [](void* ctx, Args... args) {
                 (*static_cast<Functor*>(ctx))(args...);
             },
-            functor
+            const_cast<void*>(static_cast<const void*>(functor))
         );
     }
     

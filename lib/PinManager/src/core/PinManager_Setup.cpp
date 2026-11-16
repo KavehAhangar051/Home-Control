@@ -10,7 +10,7 @@ bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoO
         WARNINGF("[PinManager] Pin %d already in use.", pin);
         return false;
     }
-    int slot = _registry.findEmptySlot();
+    const int slot = _registry.findEmptySlot();
     if (slot < 0) {
         WARNING("[PinManager] No empty slot for new segment.");
         return false;
@@ -22,8 +22,8 @@ bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoO
     strncpy(entry->segmentId, id, sizeof(entry->segmentId) - 1);
     entry->segmentId[sizeof(entry->segmentId) - 1] = '\0';
     entry->type = type;
-    entry->pinNumber   = pin;
-    entry->autoOffDelay = autoOffDelay;
+    entry->pinNumber = static_cast<int8_t>(pin);
+    entry->autoOffDelay = static_cast<uint16_t>(autoOffDelay);
     entry->autoOffTimer = uniuno::TimerHandle();
     entry->cloudSyncTimer = uniuno::TimerHandle();
     entry->ruleActionTimer = uniuno::TimerHandle();
@@ -32,6 +32,8 @@ bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoO
     entry->pendingHoldAction = RuleAction();
     entry->isHandled = false;
     entry->rule = rule;
+    entry->stateStartTime = millis();
+    entry->lastDebounceTime = millis();
 
     if (type == SegmentType::Input) {
         pinMode(pin, INPUT_PULLUP);
@@ -53,7 +55,7 @@ bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoO
 }
 
 bool PinManager::removeSegment(const char* id) {
-    int idx = _registry.findById(id);
+    const int idx = _registry.findById(id);
     if (idx < 0) {
         WARNINGF("[PinManager] Segment '%s' not found.", id);
         return false;
@@ -73,18 +75,20 @@ bool PinManager::removeSegment(const char* id) {
 
     _registry.unmapPin(entry->pinNumber);
 
-    entry->active    = false;
+    entry->active = false;
     entry->pinNumber = -1;
     entry->segmentId[0] = '\0';
     entry->autoOffDelay = 0;
     entry->autoOffTimer = uniuno::TimerHandle();
     entry->cloudSyncTimer = uniuno::TimerHandle();
     entry->ruleActionTimer = uniuno::TimerHandle();
+    entry->holdTimer = uniuno::TimerHandle();
     entry->lastInputState = false;
     entry->pendingRuleActionState = false;
     entry->pendingHoldAction = RuleAction();
-    entry->holdTimer = uniuno::TimerHandle();
     entry->isHandled = false;
+    entry->stateStartTime = 0;
+    entry->lastDebounceTime = 0;
 
     INFOF("[PinManager] Removed segment '%s'", id);
     _stateManager.rebuildInputCache();
@@ -92,7 +96,7 @@ bool PinManager::removeSegment(const char* id) {
 }
 
 bool PinManager::updateSegmentRule(const char* id, const RuleConfig& rule) {
-    int idx = _registry.findById(id);
+    const int idx = _registry.findById(id);
     if (idx < 0) return false;
     PinEntry* entry = _registry.getEntryByIndex(idx);
     if (entry) entry->rule = rule;

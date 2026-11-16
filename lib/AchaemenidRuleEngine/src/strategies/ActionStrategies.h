@@ -3,10 +3,23 @@
 
 #include "../RuleEngine.h"
 #include <AchaemenidConfigProtocol.h>
+#include <Optimization/CompilerTraits.h>
 
 namespace uniuno {
 namespace rules {
 
+/**
+ * @brief High-performance dispatcher for Rule Actions.
+ * Direct dispatch without virtual table overhead.
+ */
+class ActionExecutor {
+public:
+    HOT_PATH static void execute(const RuleAction& act, int sourcePin, RuleContext& ctx);
+};
+
+/**
+ * @brief Backward-compatible interface for action strategies.
+ */
 class IRuleActionStrategy {
 public:
     virtual ~IRuleActionStrategy() = default;

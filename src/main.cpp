@@ -50,7 +50,6 @@ void setup() {
             ::network->add_access_point(savedSSID[i].c_str(), savedPass[i].c_str());
         }
     }
-    
 
     // Configure MQTT independently of Cloudflare so command subscription is
     // ready as soon as WiFi connects, even when the cloud WebSocket is offline.
@@ -84,27 +83,23 @@ void setup() {
 }
 
 void loop() {
-    // 1. Poll the global async executor (handles WiFi, NTP, Config)
+    // 1. Poll the global async executor (hardware bitmask NSA: 1 cycle when idle)
     executor.poll();
 
-    // Service WiFi recovery and the local provisioning portal.
+    // 2. Service WiFi recovery and local provisioning portal (throttled to 500ms)
     if (bootManager) bootManager->loop();
 
-    // 2. Process incoming MQTT messages safely in the main loop
-    mqttClient.processQueue();
-
-    // 3. Keep internal connection instances alive (httpClient removed)
-
-    // 4. Process inputs for segments of type 'input'
+    // 3. Process inputs for segments of type 'input' (zero stack lambda re-allocation)
     if (ruleEngine) {
-        pinManager.processInputs([](int pin, bool state, unsigned long dur, const RuleConfig& r) {
+        static const auto onInputCallback = [](int pin, bool state, unsigned long dur, const RuleConfig& r) {
             ruleEngine->handleInput(pin, state, dur, r);
-        });
+        };
+        pinManager.processInputs(onInputCallback);
     }
 
-    // 5. Poll Local WebSocket Server
+    // 4. Poll Local WebSocket Server (guarded by _isStarted)
     if (wsServer) wsServer->loop();
 
-    // 6. WebSocket Client (Cloud API) - Zero Latency KeepAlive
+    // 5. WebSocket Client (Zero WiFi.status overhead, single-subtraction backoff)
     if (wsClient) wsClient->loop();
 }

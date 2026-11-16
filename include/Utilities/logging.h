@@ -17,6 +17,7 @@
 #endif
 
 #ifdef ARDUINO
+#include <Arduino.h>
 
 static const __FlashStringHelper *get_level_name(int level) {
   switch (level) {

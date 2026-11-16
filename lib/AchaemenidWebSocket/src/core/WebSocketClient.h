@@ -5,6 +5,7 @@
 #include <freertos/semphr.h>
 #include <ArduinoWebsockets.h>
 #include <Events/IEventDispatcher.h>
+#include <Optimization/CompilerTraits.h>
 #include "WebSocketConfig.h"
 
 namespace uniuno {
@@ -22,6 +23,9 @@ public:
     void requestConfig();
     void syncPinState(int pin, bool state);
 
+    FORCE_INLINE void setNetworkAvailable(bool available) { isNetworkAvailable_ = available; }
+    FORCE_INLINE bool isNetworkAvailable() const { return isNetworkAvailable_; }
+
     void loop();
 
 private:
@@ -36,10 +40,12 @@ private:
 
     volatile bool isRunning_;
     volatile bool firstConnection_;
+    volatile bool isNetworkAvailable_;
     portMUX_TYPE firstConnMux_ = portMUX_INITIALIZER_UNLOCKED;
 
     unsigned long lastPingTime_ = 0;
     volatile unsigned long lastConnectAttemptTime_ = 0;
+    volatile unsigned long nextConnectAttemptTime_ = 0;
     volatile uint8_t consecutiveFailures_ = 0;
     volatile bool hasConnectAttempted_ = false;
     volatile bool isConnecting_ = false;

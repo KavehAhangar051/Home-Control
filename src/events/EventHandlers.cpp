@@ -7,6 +7,7 @@
 #include <core/WebSocketClient.h>
 #include <AchaemenidMQTT.h>
 #include <ConfigApplier.h>
+#include <ISegmentStorage.h>
 #include <Arduino.h>
 
 /**
@@ -183,6 +184,9 @@ auto onCloudSyncRequest = [](CloudSyncRequestEvent* evt) {
  */
 auto onNetworkStatus = [](NetworkStatusEvent* evt) {
     if (evt == nullptr) return;
+    if (wsClient) {
+        wsClient->setNetworkAvailable(evt->connected);
+    }
     if (evt->connected) {
         if (wsServer) wsServer->begin(81);
         
