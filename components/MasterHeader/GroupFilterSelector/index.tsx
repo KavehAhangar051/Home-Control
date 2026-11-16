@@ -1,0 +1,126 @@
+import { AnimatePresence } from "motion/react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "@/components/ui/hugeicons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useDashboard } from "@/features/dashboard/context/DashboardContext";
+import FilterButton from "./FilterButton";
+import SkeletonLoader from "./SkeletonLoader";
+import type { GroupFilterSelectorProps } from "./types";
+
+export default function GroupFilterSelector({
+  groupsOrder,
+  selectedGroupFilter,
+  setSelectedGroupFilter,
+  animationsEnabled = true,
+  isCompact = false,
+}: GroupFilterSelectorProps) {
+  const [direction, setDirection] = useState(1);
+  const [offset, setOffset] = useState(0);
+  const { isFullyReady } = useDashboard();
+
+  if (!isFullyReady) {
+    return <SkeletonLoader isCompact={isCompact} />;
+  }
+
+  if (groupsOrder.length === 0) return null;
+
+  const allGroups = [null, ...groupsOrder];
+
+  const currIndex = allGroups.indexOf(selectedGroupFilter);
+  const safeCurrIndex = currIndex === -1 ? 0 : currIndex;
+
+  const goNext = () => {
+    setDirection(-1);
+    setOffset((prev) => prev + 1);
+    const nextIndex = (safeCurrIndex + 1) % allGroups.length;
+    setSelectedGroupFilter(allGroups[nextIndex]);
+  };
+
+  const goPrev = () => {
+    setDirection(1);
+    setOffset((prev) => prev - 1);
+    const prevIndex = (safeCurrIndex - 1 + allGroups.length) % allGroups.length;
+    setSelectedGroupFilter(allGroups[prevIndex]);
+  };
+
+  return (
+    <div
+      className={`flex items-center justify-center pointer-events-auto max-w-full overflow-hidden ${!isCompact ? "mb-2" : ""}`}
+      dir="rtl"
+    >
+      <div
+        className={`flex flex-row items-center justify-center ${isCompact ? "gap-1" : "gap-2"} max-w-full`}
+      >
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size={isCompact ? "icon-xs" : "icon-sm"}
+                onClick={goPrev}
+                className={`hidden md:inline-flex rounded-lg text-[var(--text-muted)] md:hover:bg-[var(--card-hover-bg)] md:hover:text-[var(--text-primary)] shrink-0 ${isCompact ? "p-1" : "p-1.5"}`}
+                aria-label="گروه قبلی"
+              >
+                <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
+              </Button>
+            }
+          />
+          <TooltipContent>قبلی</TooltipContent>
+        </Tooltip>
+
+        <div
+          className={`flex flex-row items-center justify-center relative overflow-hidden ${isCompact ? "gap-1 p-0.5 max-w-[320px]" : "gap-2 p-1 max-w-[460px]"}`}
+        >
+          <AnimatePresence initial={false} mode="popLayout" custom={direction}>
+            {[
+              {
+                group: allGroups[(safeCurrIndex - 1 + allGroups.length) % allGroups.length],
+                key: offset - 1,
+              },
+              { group: allGroups[safeCurrIndex], key: offset },
+              { group: allGroups[(safeCurrIndex + 1) % allGroups.length], key: offset + 1 },
+            ].map(({ group, key }, index) => {
+              const isCenter = index === 1;
+
+              const onClick =
+                index === 0 ? goPrev : index === 2 ? goNext : () => setSelectedGroupFilter(group);
+
+              return (
+                <FilterButton
+                  key={String(key)}
+                  uniqueKey={String(key)}
+                  group={group}
+                  isCenter={isCenter}
+                  onClick={onClick}
+                  animationsEnabled={animationsEnabled}
+                  direction={direction}
+                  isCompact={isCompact}
+                />
+              );
+            })}
+          </AnimatePresence>
+        </div>
+
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size={isCompact ? "icon-xs" : "icon-sm"}
+                onClick={goNext}
+                className={`hidden md:inline-flex rounded-lg text-[var(--text-muted)] md:hover:bg-[var(--card-hover-bg)] md:hover:text-[var(--text-primary)] shrink-0 ${isCompact ? "p-1" : "p-1.5"}`}
+                aria-label="گروه بعدی"
+              >
+                <ChevronLeft className="w-4 h-4" strokeWidth={1.5} />
+              </Button>
+            }
+          />
+          <TooltipContent>بعدی</TooltipContent>
+        </Tooltip>
+      </div>
+    </div>
+  );
+}
