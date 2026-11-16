@@ -29,6 +29,9 @@ enum class BootState : uint8_t {
     RECONNECTING = 3
 };
 
+/**
+ * @brief Manages fast offline bootstrap, async network connectivity, and fallback provisioning.
+ */
 class BootManager {
 private:
     BootContext ctx_;
@@ -37,6 +40,7 @@ private:
     unsigned long fetchConfigStartTime_;
     unsigned long lastReconnectAttempt_;
     unsigned long lastConnectedCheck_ = 0;
+    uint8_t loopPrescaler_ = 0;
     WebServer provisioningServer_{80};
     bool provisioningServerStarted_;
     uniuno::TaskHandle bootTaskHandle_;
@@ -49,7 +53,7 @@ private:
 public:
     BootManager();
     void startBootSequenceAsync(BootContext ctx);
-    void loop();
+    HOT_PATH void loop();
 };
 
 #endif // BOOT_MANAGER_H
