@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { defaultDeviceSyncGateway } from "@/features/iot/services/deviceGatewayAdapter";
-import { initMqtt, onMqttStateChange } from "@/features/iot/services/mqttService";
+import { onMqttStateChange } from "@/features/iot/services/mqtt/client";
 import type { IDeviceSyncPort } from "@/features/iot/services/ports";
 import { soundManager } from "@/lib/audio";
 
@@ -183,13 +183,43 @@ export function usePinOperations() {
   }, []);
 
   useEffect(() => {
-    initMqtt();
+    let cancelled = false;
+    let idleId: number | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const loadMqtt = () => {
+      if (cancelled) return;
+      void import("@/features/iot/services/mqtt/init").then(({ initMqtt }) => {
+        if (!cancelled) {
+          void initMqtt();
+        }
+      });
+    };
+
+    timeoutId = globalThis.setTimeout(() => {
+      if (cancelled) return;
+
+      if ("requestIdleCallback" in window) {
+        idleId = window.requestIdleCallback(loadMqtt, { timeout: 1000 });
+      } else {
+        loadMqtt();
+      }
+    }, 1500);
 
     const unsubscribe = onMqttStateChange((pin, state) => {
       setPinsState((prev) => (prev[pin] === state ? prev : { ...prev, [pin]: state }));
     });
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      if (idleId !== null && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null) {
+        globalThis.clearTimeout(timeoutId);
+      }
+      unsubscribe();
+    };
   }, [setPinsState]);
 
   const updatePinOnServer = useCallback(

@@ -12,8 +12,37 @@ const BUNDLED_TRACK_FILE = "06 Dele Divaneh.mp3";
 const BUNDLED_TRACK_TITLE = "Dele Divaneh";
 const MAX_ONLINE_RESOLVE_ATTEMPTS = 5;
 
-function createBundledFallbackTrack(creator: string): Track {
-  const url = new URL(BUNDLED_TRACK_FILE, document.baseURI).toString();
+export interface AmbientAudioLike {
+  preload: string;
+  loop: boolean;
+  volume: number;
+  src: string;
+  currentTime: number;
+  play: () => Promise<unknown>;
+  pause: () => void;
+}
+
+export interface AmbientManagerDeps {
+  isBrowserEnvironment?: () => boolean;
+  randomFn?: () => number;
+  getMusicSource?: () => string;
+  readCachedTrack?: (expectedSource: string) => Track | null;
+  writeCachedTrack?: (source: string, track: Track) => void;
+  getFallbackBaseUri?: () => string;
+  fetchPlaylistFn?: () => Promise<ArchiveTrackItem[]>;
+  fetchTrackUrlFn?: (identifier: string) => Promise<string | null>;
+  createAudioFn?: () => AmbientAudioLike;
+  dispatchEventFn?: (
+    eventName: "ambientMusicStarted" | "ambientMusicError",
+    detail?: unknown,
+  ) => void;
+  getAudioContextFn?: () => unknown;
+  fetchFn?: typeof fetch;
+  resolvePlayableUrlFn?: (url: string) => Promise<string>;
+}
+
+function createBundledFallbackTrack(creator: string, baseUri: string): Track {
+  const url = new URL(BUNDLED_TRACK_FILE, baseUri).toString();
 
   return { title: BUNDLED_TRACK_TITLE, creator, url, isLocal: true };
 }
@@ -46,13 +75,45 @@ function persistSelectedTrack(source: string, track: Track): void {
 }
 
 export class AmbientManager {
-  public ambientAudio: HTMLAudioElement | null = null;
+  public ambientAudio: AmbientAudioLike | null = null;
   public isAmbientPlaying = false;
   public currentTrack: Track | null = null;
   private onTrackUpdateCallback: ((track: Track) => void) | null = null;
   public playlist: ArchiveTrackItem[] = [];
   public currentTrackIndex = -1;
   private activeObjectUrl: string | null = null;
+  private readonly deps: Required<Omit<AmbientManagerDeps, "resolvePlayableUrlFn">> & {
+    resolvePlayableUrlFn?: (url: string) => Promise<string>;
+  };
+
+  constructor(deps: AmbientManagerDeps = {}) {
+    this.deps = {
+      isBrowserEnvironment: deps.isBrowserEnvironment ?? (() => typeof window !== "undefined"),
+      randomFn: deps.randomFn ?? (() => Math.random()),
+      getMusicSource:
+        deps.getMusicSource ?? (() => localStorage.getItem("music_source") || "local"),
+      readCachedTrack: deps.readCachedTrack ?? tryRestoreCachedTrack,
+      writeCachedTrack: deps.writeCachedTrack ?? persistSelectedTrack,
+      getFallbackBaseUri: deps.getFallbackBaseUri ?? (() => document.baseURI),
+      fetchPlaylistFn: deps.fetchPlaylistFn ?? fetchArchivePlaylist,
+      fetchTrackUrlFn: deps.fetchTrackUrlFn ?? fetchTrackUrl,
+      createAudioFn: deps.createAudioFn ?? (() => new Audio()),
+      dispatchEventFn:
+        deps.dispatchEventFn ??
+        ((eventName, detail) => {
+          if (typeof window === "undefined") return;
+
+          if (detail === undefined) {
+            window.dispatchEvent(new Event(eventName));
+          } else {
+            window.dispatchEvent(new CustomEvent(eventName, { detail }));
+          }
+        }),
+      getAudioContextFn: deps.getAudioContextFn ?? (() => audioContextManager.getContext()),
+      fetchFn: deps.fetchFn ?? fetch,
+      resolvePlayableUrlFn: deps.resolvePlayableUrlFn,
+    };
+  }
 
   public setOnTrackUpdate(cb: (track: Track) => void) {
     this.onTrackUpdateCallback = cb;
@@ -63,7 +124,7 @@ export class AmbientManager {
   public async fetchPlaylistIfNeeded() {
     if (this.playlist.length > 0) return true;
 
-    const docs = await fetchArchivePlaylist();
+    const docs = await this.deps.fetchPlaylistFn();
 
     if (docs.length === 0) {
       debugLog.warn("Audio", "Online playlist request returned no tracks.");
@@ -72,7 +133,7 @@ export class AmbientManager {
     }
 
     this.playlist = docs;
-    this.currentTrackIndex = Math.floor(Math.random() * this.playlist.length);
+    this.currentTrackIndex = Math.floor(this.deps.randomFn() * this.playlist.length);
 
     return true;
   }
@@ -94,7 +155,7 @@ export class AmbientManager {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         const track = this.playlist[this.currentTrackIndex];
-        const url = await fetchTrackUrl(track.identifier);
+        const url = await this.deps.fetchTrackUrlFn(track.identifier);
 
         if (url) {
           return {
@@ -118,12 +179,12 @@ export class AmbientManager {
   }
 
   public async loadAmbientTrack(direction?: "next" | "prev") {
-    if (typeof window === "undefined") return;
+    if (!this.deps.isBrowserEnvironment()) return;
 
-    const source = localStorage.getItem("music_source") || "local";
+    const source = this.deps.getMusicSource();
 
     if (!direction && source === "api") {
-      const restored = tryRestoreCachedTrack(source);
+      const restored = this.deps.readCachedTrack(source);
 
       if (restored) {
         this.currentTrack = restored;
@@ -135,12 +196,15 @@ export class AmbientManager {
     }
 
     if (source === "local") {
-      this.currentTrack = createBundledFallbackTrack("Home-Control");
+      this.currentTrack = createBundledFallbackTrack(
+        "Home-Control",
+        this.deps.getFallbackBaseUri(),
+      );
     } else {
       const hasPlaylist = await this.fetchPlaylistIfNeeded();
 
       if (!hasPlaylist) {
-        this.currentTrack = createBundledFallbackTrack("Fallback");
+        this.currentTrack = createBundledFallbackTrack("Fallback", this.deps.getFallbackBaseUri());
       } else {
         this.advancePlaylistIndex(direction);
         const resolvedTrack = await this.resolveOnlineTrackFromPlaylist();
@@ -148,14 +212,17 @@ export class AmbientManager {
         if (resolvedTrack) {
           this.currentTrack = resolvedTrack;
         } else {
-          this.currentTrack = createBundledFallbackTrack("Fallback");
+          this.currentTrack = createBundledFallbackTrack(
+            "Fallback",
+            this.deps.getFallbackBaseUri(),
+          );
           debugLog.warn("Audio", "Online tracks unavailable; selected bundled fallback track.");
         }
       }
     }
 
     if (this.currentTrack) {
-      persistSelectedTrack(source, this.currentTrack);
+      this.deps.writeCachedTrack(source, this.currentTrack);
     }
 
     if (this.isAmbientPlaying) await this.playCurrentTrack();
@@ -164,6 +231,10 @@ export class AmbientManager {
   }
 
   private async getPlayableUrl(url: string): Promise<string> {
+    if (this.deps.resolvePlayableUrlFn) {
+      return this.deps.resolvePlayableUrlFn(url);
+    }
+
     if (typeof window === "undefined") return url;
 
     const requestUrl = new URL(url, window.location.href).toString();
@@ -183,7 +254,7 @@ export class AmbientManager {
         const timeout = createTimeoutSignal(AUDIO_DOWNLOAD_TIMEOUT_MS);
 
         try {
-          response = await fetch(requestUrl, { signal: timeout.signal });
+          response = await this.deps.fetchFn(requestUrl, { signal: timeout.signal });
         } finally {
           timeout.cleanup();
         }
@@ -224,10 +295,10 @@ export class AmbientManager {
   }
 
   private async playCurrentTrack() {
-    if (!this.currentTrack || typeof window === "undefined") return;
+    if (!this.currentTrack || !this.deps.isBrowserEnvironment()) return;
 
     if (!this.ambientAudio) {
-      this.ambientAudio = new Audio();
+      this.ambientAudio = this.deps.createAudioFn();
       this.ambientAudio.preload = "none";
       this.ambientAudio.loop = true;
       this.ambientAudio.volume = 0.3;
@@ -238,7 +309,7 @@ export class AmbientManager {
       this.ambientAudio.src = playableUrl;
       await this.ambientAudio.play();
       this.isAmbientPlaying = true;
-      window.dispatchEvent(new Event("ambientMusicStarted"));
+      this.deps.dispatchEventFn("ambientMusicStarted");
     } catch (error) {
       this.isAmbientPlaying = false;
       debugLog.error("Audio", "Audio playback failed.", {
@@ -246,18 +317,17 @@ export class AmbientManager {
         source: this.currentTrack.url,
         error,
       });
-      window.dispatchEvent(
-        new CustomEvent("ambientMusicError", {
-          detail: { message: "پخش آهنگ ناموفق بود. اتصال و منبع فایل را بررسی کن.", error },
-        }),
-      );
+      this.deps.dispatchEventFn("ambientMusicError", {
+        message: "پخش آهنگ ناموفق بود. اتصال و منبع فایل را بررسی کن.",
+        error,
+      });
     }
 
-    audioContextManager.getContext();
+    this.deps.getAudioContextFn();
   }
 
   public async start(enabled: boolean) {
-    if (!enabled || typeof window === "undefined") return;
+    if (!enabled || !this.deps.isBrowserEnvironment()) return;
 
     if (this.isAmbientPlaying) return;
 

@@ -2,20 +2,22 @@
 
 import { useCallback, useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
 import {
   publishAddSegmentCommand,
   publishDeleteSegmentCommand,
-} from "@/features/iot/services/mqttService";
-import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
+} from "@/features/iot/services/mqtt/segmentPublishers";
+
+import {
+  createSegmentId,
+  planAddSegment,
+  planGroupConfigRegistration,
+  planGroupOrderRegistration,
+  planRemoveGroup,
+} from "./core/segmentOperations";
 
 interface UseSegmentManagementProps {
   setActiveWorkspaceView: (view: "home" | "modules" | "automations" | "settings") => void;
   updatePinOnServer: (pin: string, state: boolean) => Promise<boolean>;
-}
-
-function createSegmentId(): string {
-  return Math.random().toString(36).substring(2, 9);
 }
 
 export function useSegmentManagement({
@@ -29,21 +31,11 @@ export function useSegmentManagement({
 
   const ensureGroupRegistered = useCallback(
     (finalGroup: string, groupIcon?: string) => {
-      setGroupConfigs((prev) => {
-        const current = prev[finalGroup] || { maxCols: 3 };
+      setGroupConfigs((prev) => planGroupConfigRegistration(prev, finalGroup, groupIcon));
 
-        if (groupIcon && !("icon" in current && current.icon)) {
-          return { ...prev, [finalGroup]: { ...current, icon: groupIcon } };
-        }
-
-        if (!prev[finalGroup]) {
-          return { ...prev, [finalGroup]: current };
-        }
-
-        return prev;
-      });
-
-      setGroupsOrder((prev) => (prev.includes(finalGroup) ? prev : [...prev, finalGroup]));
+      setGroupsOrder((prev) =>
+        prev.includes(finalGroup) ? prev : planGroupOrderRegistration(prev, finalGroup),
+      );
     },
     [setGroupConfigs, setGroupsOrder],
   );
@@ -59,49 +51,25 @@ export function useSegmentManagement({
       icon?: string,
       groupIcon?: string,
     ) => {
-      // Clean Architecture Domain Invariant: Guard against invalid hardware pins
-      if (pin && type !== "placeholder") {
-        const validation = validateEsp32Pin(pin, type);
+      const decision = planAddSegment({
+        input: { type, pin, title, group, mode, auto_off, icon, groupIcon },
+        segments: useIoTStore.getState().segments,
+        targetPlaceholderId,
+      });
 
-        if (!validation.isValid) {
-          useIoTStore.getState().showToast(validation.message, "error");
+      if ("errorMessage" in decision) {
+        useIoTStore.getState().showToast(decision.errorMessage, "error");
 
-          return;
-        }
+        return;
       }
 
-      const finalGroup = resolveSegmentGroup(group);
-      const newSeg = {
-        id: createSegmentId(),
-        type,
-        pin,
-        title: title || `کنترل پایه دیجیتال (GPIO ${pin})`,
-        group: finalGroup,
-        mode: mode || "switch",
-        auto_off: auto_off || 0,
-        icon,
-      };
-
-      ensureGroupRegistered(finalGroup, groupIcon);
-
-      const updated = [...useIoTStore.getState().segments];
+      ensureGroupRegistered(decision.finalGroup, groupIcon);
 
       if (targetPlaceholderId) {
-        const index = updated.findIndex((s) => s.id === targetPlaceholderId);
-
-        if (index !== -1) {
-          newSeg.group = resolveSegmentGroup(updated[index].group);
-          updated[index] = newSeg;
-        } else {
-          updated.push(newSeg);
-        }
-
         setTargetPlaceholderId(null);
-      } else {
-        updated.push(newSeg);
       }
 
-      setSegments(updated);
+      setSegments(decision.nextSegments);
 
       const pinsState = useIoTStore.getState().pinsState;
 
@@ -110,7 +78,12 @@ export function useSegmentManagement({
       }
 
       if (type !== "placeholder") {
-        publishAddSegmentCommand(newSeg.id, newSeg.type, Number(newSeg.pin) | 0, false);
+        publishAddSegmentCommand(
+          decision.newSegment.id,
+          decision.newSegment.type,
+          Number(decision.newSegment.pin) | 0,
+          false,
+        );
       }
     },
     [targetPlaceholderId, ensureGroupRegistered, setSegments, updatePinOnServer],
@@ -164,8 +137,12 @@ export function useSegmentManagement({
 
   const handleRemoveGroup = useCallback(
     (groupId: string) => {
-      setGroupsOrder((prev) => prev.filter((g) => g !== groupId));
-      setSegments((prev) => prev.filter((s) => resolveSegmentGroup(s.group) !== groupId));
+      setGroupsOrder(
+        (prev) => planRemoveGroup({ groupsOrder: prev, segments: [], groupId }).nextGroupsOrder,
+      );
+      setSegments(
+        (prev) => planRemoveGroup({ groupsOrder: [], segments: prev, groupId }).nextSegments,
+      );
     },
     [setGroupsOrder, setSegments],
   );

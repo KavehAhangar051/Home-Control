@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
 import { buildEspConfig, persistStoreConfigToCloudflare } from "./core/buildEspConfig";
+import { evaluateCloudflarePushTransition } from "./core/cloudflareSyncCoordinator";
 
 export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
   const isDark = useIoTStore((s) => s.isDark);
@@ -88,21 +89,29 @@ export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
   }, [isFullyReady]);
 
   useEffect(() => {
-    if (!isFullyReady) {
+    const decision = evaluateCloudflarePushTransition({
+      isFullyReady,
+      remoteSyncEpoch,
+      lastRemoteEpoch: lastRemoteEpochRef.current,
+      lastSyncedSignature: lastSyncedSignatureRef.current,
+      configSignature,
+    });
+
+    if (decision === "reset") {
       lastSyncedSignatureRef.current = null;
       lastRemoteEpochRef.current = remoteSyncEpoch;
 
       return;
     }
 
-    if (lastSyncedSignatureRef.current === null || lastRemoteEpochRef.current !== remoteSyncEpoch) {
+    if (decision === "baseline") {
       lastRemoteEpochRef.current = remoteSyncEpoch;
       lastSyncedSignatureRef.current = configSignature;
 
       return;
     }
 
-    if (lastSyncedSignatureRef.current === configSignature) {
+    if (decision === "noop") {
       return;
     }
 

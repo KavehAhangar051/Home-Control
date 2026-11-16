@@ -16,17 +16,34 @@ export interface StoredCanvasSettings {
   cascadeGroupDrag: boolean;
 }
 
+export type CanvasStorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+
 const memoryNodesCache = new Map<CanvasSubMode, Record<string, CanvasNodeRect>>();
 const memoryViewportCache = new Map<CanvasSubMode, CanvasViewport>();
+
+function resolveCanvasStorage(storage?: CanvasStorageLike | null): CanvasStorageLike | null {
+  if (storage !== undefined) return storage;
+
+  return typeof window !== "undefined" ? window.localStorage : null;
+}
+
+export function resetCanvasStorageMemoryCache(): void {
+  memoryNodesCache.clear();
+  memoryViewportCache.clear();
+}
 
 /**
  * Reads persisted canvas settings for a workspace scope (`home` or `workflows`),
  * falling back to safe defaults on SSR or malformed storage data.
  */
-export function readStoredCanvasSettings(scope: CanvasWorkspaceScope): StoredCanvasSettings {
+export function readStoredCanvasSettings(
+  scope: CanvasWorkspaceScope,
+  storage?: CanvasStorageLike | null,
+): StoredCanvasSettings {
   const defaultSubMode: CanvasSubMode = scope === "workflows" ? "graph" : "groups";
+  const resolvedStorage = resolveCanvasStorage(storage);
 
-  if (typeof window === "undefined") {
+  if (!resolvedStorage) {
     return {
       subMode: defaultSubMode,
       snapToGrid: true,
@@ -36,7 +53,7 @@ export function readStoredCanvasSettings(scope: CanvasWorkspaceScope): StoredCan
   }
 
   try {
-    const raw = window.localStorage.getItem(getCanvasSettingsStorageKey(scope));
+    const raw = resolvedStorage.getItem(getCanvasSettingsStorageKey(scope));
 
     if (raw) {
       // SAFETY: JSON.parse output is validated field-by-field below
@@ -71,11 +88,13 @@ export function readStoredCanvasSettings(scope: CanvasWorkspaceScope): StoredCan
 export function writeStoredCanvasSettings(
   scope: CanvasWorkspaceScope,
   settings: StoredCanvasSettings,
+  storage?: CanvasStorageLike | null,
 ): void {
-  if (typeof window === "undefined") return;
+  const resolvedStorage = resolveCanvasStorage(storage);
+  if (!resolvedStorage) return;
 
   try {
-    window.localStorage.setItem(getCanvasSettingsStorageKey(scope), JSON.stringify(settings));
+    resolvedStorage.setItem(getCanvasSettingsStorageKey(scope), JSON.stringify(settings));
   } catch {
     // Ignore storage write failures
   }
@@ -83,6 +102,7 @@ export function writeStoredCanvasSettings(
 
 export function readStoredCanvasNodes(
   subMode: CanvasSubMode,
+  storage?: CanvasStorageLike | null,
 ): Record<string, CanvasNodeRect> | null {
   const cached = memoryNodesCache.get(subMode);
 
@@ -90,10 +110,11 @@ export function readStoredCanvasNodes(
     return cached;
   }
 
-  if (typeof window === "undefined") return null;
+  const resolvedStorage = resolveCanvasStorage(storage);
+  if (!resolvedStorage) return null;
 
   try {
-    const raw = window.localStorage.getItem(getCanvasStorageKey(subMode));
+    const raw = resolvedStorage.getItem(getCanvasStorageKey(subMode));
 
     if (!raw) return null;
 
@@ -115,14 +136,16 @@ export function readStoredCanvasNodes(
 export function replaceStoredCanvasNodes(
   subMode: CanvasSubMode,
   nextNodes: Record<string, CanvasNodeRect>,
+  storage?: CanvasStorageLike | null,
 ): void {
   const snapshot = { ...nextNodes };
   memoryNodesCache.set(subMode, snapshot);
 
-  if (typeof window === "undefined") return;
+  const resolvedStorage = resolveCanvasStorage(storage);
+  if (!resolvedStorage) return;
 
   try {
-    window.localStorage.setItem(getCanvasStorageKey(subMode), JSON.stringify(snapshot));
+    resolvedStorage.setItem(getCanvasStorageKey(subMode), JSON.stringify(snapshot));
   } catch {
     // Ignore storage write errors
   }
@@ -131,10 +154,11 @@ export function replaceStoredCanvasNodes(
 export function writeStoredCanvasNodes(
   subMode: CanvasSubMode,
   nextNodes: Record<string, CanvasNodeRect>,
+  storage?: CanvasStorageLike | null,
 ): void {
-  const existing = readStoredCanvasNodes(subMode) ?? {};
+  const existing = readStoredCanvasNodes(subMode, storage) ?? {};
   const merged = { ...existing, ...nextNodes };
-  replaceStoredCanvasNodes(subMode, merged);
+  replaceStoredCanvasNodes(subMode, merged, storage);
 }
 
 export interface ReconcileCanvasNodesParams {
@@ -226,15 +250,19 @@ export function reconcileCanvasNodes({
   };
 }
 
-export function readStoredCanvasViewport(subMode: CanvasSubMode): CanvasViewport | null {
+export function readStoredCanvasViewport(
+  subMode: CanvasSubMode,
+  storage?: CanvasStorageLike | null,
+): CanvasViewport | null {
   const cached = memoryViewportCache.get(subMode);
 
   if (cached) return cached;
 
-  if (typeof window === "undefined") return null;
+  const resolvedStorage = resolveCanvasStorage(storage);
+  if (!resolvedStorage) return null;
 
   try {
-    const raw = window.localStorage.getItem(getCanvasViewportStorageKey(subMode));
+    const raw = resolvedStorage.getItem(getCanvasViewportStorageKey(subMode));
 
     if (!raw) return null;
 
@@ -266,27 +294,36 @@ export function readStoredCanvasViewport(subMode: CanvasSubMode): CanvasViewport
   return null;
 }
 
-export function writeStoredCanvasViewport(subMode: CanvasSubMode, vp: CanvasViewport): void {
+export function writeStoredCanvasViewport(
+  subMode: CanvasSubMode,
+  vp: CanvasViewport,
+  storage?: CanvasStorageLike | null,
+): void {
   memoryViewportCache.set(subMode, vp);
 
-  if (typeof window === "undefined") return;
+  const resolvedStorage = resolveCanvasStorage(storage);
+  if (!resolvedStorage) return;
 
   try {
-    window.localStorage.setItem(getCanvasViewportStorageKey(subMode), JSON.stringify(vp));
+    resolvedStorage.setItem(getCanvasViewportStorageKey(subMode), JSON.stringify(vp));
   } catch {
     // Ignore storage write errors
   }
 }
 
-export function clearStoredCanvasMode(subMode: CanvasSubMode): void {
+export function clearStoredCanvasMode(
+  subMode: CanvasSubMode,
+  storage?: CanvasStorageLike | null,
+): void {
   memoryNodesCache.delete(subMode);
   memoryViewportCache.delete(subMode);
 
-  if (typeof window === "undefined") return;
+  const resolvedStorage = resolveCanvasStorage(storage);
+  if (!resolvedStorage) return;
 
   try {
-    window.localStorage.removeItem(getCanvasStorageKey(subMode));
-    window.localStorage.removeItem(getCanvasViewportStorageKey(subMode));
+    resolvedStorage.removeItem(getCanvasStorageKey(subMode));
+    resolvedStorage.removeItem(getCanvasViewportStorageKey(subMode));
   } catch {
     // Ignore storage remove errors
   }

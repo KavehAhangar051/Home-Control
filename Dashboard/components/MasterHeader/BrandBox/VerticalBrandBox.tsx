@@ -93,19 +93,31 @@ export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "v
           {headerTitle}
         </span>
 
-        {marqueeState.isOverflowing ? (
-          <div
-            className="header-title-marquee-track items-center"
-            style={{ animationDuration: `${marqueeState.durationSeconds}s` }}
+        <div
+          className={
+            marqueeState.isOverflowing
+              ? "header-title-marquee-track items-center"
+              : "flex items-center"
+          }
+          style={
+            marqueeState.isOverflowing
+              ? { animationDuration: `${marqueeState.durationSeconds}s` }
+              : undefined
+          }
+        >
+          <span
+            className={`shrink-0 whitespace-nowrap md:!inline-block ${
+              marqueeState.isOverflowing ? "pl-10" : ""
+            }`}
           >
-            <span className="shrink-0 whitespace-nowrap pl-10 md:!inline-block">{headerTitle}</span>
+            {headerTitle}
+          </span>
+          {marqueeState.isOverflowing && (
             <span aria-hidden="true" className="shrink-0 whitespace-nowrap pl-10 md:!inline-block">
               {headerTitle}
             </span>
-          </div>
-        ) : (
-          <span className="whitespace-nowrap md:!inline">{headerTitle}</span>
-        )}
+          )}
+        </div>
       </h1>
     </div>
   );
