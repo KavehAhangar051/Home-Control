@@ -1,6 +1,7 @@
 "use client";
 
 import GroupFilterSelector from "@/components/MasterHeader/GroupFilterSelector";
+import WorkspaceViewModeSelector from "@/components/MasterHeader/WorkspaceViewModeSelector";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -48,7 +49,7 @@ export default function DashboardBreadcrumb() {
     >
       <Breadcrumb dir="rtl" className="relative z-10 min-w-0 shrink-0">
         <BreadcrumbList className="gap-1.5 text-sm text-[var(--sidebar-muted)] sm:gap-2">
-          <BreadcrumbItem>
+          <BreadcrumbItem className="hidden sm:inline-flex">
             <BreadcrumbLink
               href="#"
               onClick={(event) => {
@@ -58,10 +59,10 @@ export default function DashboardBreadcrumb() {
               className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 font-medium text-[var(--sidebar-muted)] transition-colors hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)]"
             >
               <House className="size-4 shrink-0" aria-hidden="true" />
-              <span className="hidden xs:inline sm:inline">خانه</span>
+              <span>خانه</span>
             </BreadcrumbLink>
           </BreadcrumbItem>
-          <BreadcrumbSeparator className="text-[var(--sidebar-muted)] opacity-60" />
+          <BreadcrumbSeparator className="hidden text-[var(--sidebar-muted)] opacity-60 sm:inline-flex" />
           <BreadcrumbItem className="min-w-0">
             <BreadcrumbPage className="inline-flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 font-semibold text-[var(--sidebar-text)]">
               <ActiveIcon className="size-4 shrink-0 text-[var(--accent3)]" aria-hidden="true" />
@@ -82,15 +83,20 @@ export default function DashboardBreadcrumb() {
       </Breadcrumb>
 
       {activeView === "home" && (
-        <div className="pointer-events-none hidden md:flex absolute inset-0 items-center justify-center px-4">
-          <GroupFilterSelector
-            groupsOrder={groupsOrder}
-            selectedGroupFilter={selectedGroupFilter}
-            setSelectedGroupFilter={setSelectedGroupFilter}
-            animationsEnabled={animationsEnabled}
-            isCompact
-          />
-        </div>
+        <>
+          <div className="pointer-events-none hidden lg:flex absolute inset-0 items-center justify-center px-4">
+            <GroupFilterSelector
+              groupsOrder={groupsOrder}
+              selectedGroupFilter={selectedGroupFilter}
+              setSelectedGroupFilter={setSelectedGroupFilter}
+              animationsEnabled={animationsEnabled}
+              isCompact
+            />
+          </div>
+          <div className="relative z-10 flex shrink-0 items-center">
+            <WorkspaceViewModeSelector compact />
+          </div>
+        </>
       )}
     </header>
   );

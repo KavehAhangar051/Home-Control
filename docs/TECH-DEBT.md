@@ -29,6 +29,9 @@
 - `lib/resilience.ts`: Fresh production-hardening module wrapping outbound fetch calls (`cloudflare/api.ts`, `lib/audio/{playlist,AmbientManager}.ts`) and WS reconnect backoff (`useConnectionStrategy.ts`).
 - `features/iot/services/storeBridge.ts`: Dependency inversion bridge decoupling `features/iot/services/*` from React/Zustand hooks.
 - `features/iot/services/mqtt/messageParser.ts`: Extracted pure wire protocol decoder invoked by `mqtt/init.ts`.
+- `features/iot/hooks/achaemenidState/core/{segmentOperations.ts,cloudflareSyncCoordinator.ts}`: Pure segment/group planning and dependency-injected Cloudflare init/push state coordinators extracted from React hooks.
+- `features/iot/components/workflows/workflowRuntimeHelpers.ts` & `features/iot/hooks/voiceRecognitionHelpers.ts`: Headless workflow action/timer edge dispatchers and SpeechRecognition session guards decoupled from React effect hooks.
+- `MqttSettingsDeps`, `PublishMqttCommandDeps`, `StateUpdateQueueDeps`, `LocalWebSocketControllerDeps`, `CanvasStorageLike`, `AmbientManagerDeps`, `SoundManagerDeps`: Minimal parameter/constructor seams breaking global browser, broker, socket, and audio dependencies for deterministic Node testing.
 
 ## Debt Budget & Broken-Windows Policy
 - **Iteration Budget:** Allocate 15–20% of every feature cycle to keeping tests green, removing shallow wrappers, and closing ledger items before shipping new UI or firmware protocol extensions.

@@ -38,7 +38,7 @@ export default function DashboardContainer() {
         <div
           className={`style-nova bg-bg-main text-text-secondary min-h-screen relative font-sans leading-relaxed selection:bg-accent3/15 selection:text-accent3 overflow-x-clip ${isDark ? "dark" : ""}`}
         >
-          <div className="animate-fade-in">
+          <div>
             <DashboardStyles
               accent3={accent3}
               accent4={accent4}
