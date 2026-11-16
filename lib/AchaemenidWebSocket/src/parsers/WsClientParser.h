@@ -2,16 +2,19 @@
 
 #include <ArduinoWebsockets.h>
 #include <Events/IEventDispatcher.h>
-#include "IMessageParser.h"
+#include <Optimization/CompilerTraits.h>
 
 namespace uniuno {
 
-class WsClientParser : public IMessageParser {
+/**
+ * @brief Parses incoming binary automations and JSON configuration from Cloudflare WebSocket.
+ */
+class WsClientParser {
 public:
-    WsClientParser(IEventDispatcher* dispatcher);
-    ~WsClientParser() override = default;
+    explicit WsClientParser(IEventDispatcher* dispatcher = nullptr);
 
-    void parseMessage(const websockets::WebsocketsMessage& message) override;
+    void setDispatcher(IEventDispatcher* dispatcher) { _dispatcher = dispatcher; }
+    HOT_PATH void parseMessage(const websockets::WebsocketsMessage& message);
 
 private:
     IEventDispatcher* _dispatcher;
