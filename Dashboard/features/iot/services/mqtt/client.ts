@@ -1,4 +1,6 @@
 import type { MqttClient } from "mqtt";
+import type { MqttConfig } from "@/features/iot/hooks/store/types";
+import { getIoTStoreSnapshot } from "../storeBridge";
 
 export let client: MqttClient | null = null;
 
@@ -16,20 +18,36 @@ export const onMqttStateChange = (cb: StateChangeCallback) => {
   };
 };
 
-import { getIoTStoreSnapshot } from "../storeBridge";
+export interface MqttResolvedSettings {
+  brokerUrl: string;
+  baseTopic: string;
+  qos: 0 | 1 | 2;
+}
 
-export const getMqttSettings = () => {
-  const mqttConfig = getIoTStoreSnapshot().mqttConfig;
+export interface MqttSettingsDeps {
+  storeConfig?: MqttConfig | null;
+  storage?: Pick<Storage, "getItem"> | null;
+}
+
+export const getMqttSettings = (deps: MqttSettingsDeps = {}): MqttResolvedSettings => {
+  const mqttConfig =
+    deps.storeConfig !== undefined ? deps.storeConfig : getIoTStoreSnapshot().mqttConfig;
+  const storage =
+    deps.storage !== undefined
+      ? deps.storage
+      : typeof window !== "undefined"
+        ? window.localStorage
+        : null;
 
   let storedBrokerUrl: string | null = null;
   let storedBaseTopic: string | null = null;
   let storedQos: number | null = null;
 
-  if (typeof window !== "undefined") {
+  if (storage) {
     try {
-      storedBrokerUrl = localStorage.getItem("mqtt_broker_url");
-      storedBaseTopic = localStorage.getItem("mqtt_base_topic");
-      const rawQos = localStorage.getItem("mqtt_qos");
+      storedBrokerUrl = storage.getItem("mqtt_broker_url");
+      storedBaseTopic = storage.getItem("mqtt_base_topic");
+      const rawQos = storage.getItem("mqtt_qos");
 
       if (rawQos !== null) {
         const parsed = Number.parseInt(rawQos, 10);
@@ -59,42 +77,58 @@ export const setMqttClient = (newClient: MqttClient | null) => {
   client = newClient;
 };
 
+export interface PublishMqttCommandDeps {
+  getClient?: () => Pick<MqttClient, "connected" | "publish"> | null;
+  getSettings?: () => MqttResolvedSettings;
+  initClient?: () => void;
+  warn?: (message: string) => void;
+  log?: (message: string) => void;
+}
+
 /**
  * Deep module command publisher:
  * Encapsulates client readiness check, lazy initialization, topic resolution,
  * binary buffer transmission, and diagnostic logging in one place.
  */
-export const publishMqttCommand = (buf: Uint8Array, logLabel?: string): boolean => {
-  const activeClient = getMqttClient();
+export const publishMqttCommand = (
+  buf: Uint8Array,
+  logLabel?: string,
+  deps: PublishMqttCommandDeps = {},
+): boolean => {
+  const activeClient = deps.getClient ? deps.getClient() : getMqttClient();
+  const warn = deps.warn ?? ((msg: string) => console.warn(msg));
+  const log = deps.log ?? ((msg: string) => console.log(msg));
 
   if (!activeClient) {
     // Lazy initialization on first command if not already started
-    void import("./init").then(({ initMqtt }) => {
-      void initMqtt();
-    });
+    if (deps.initClient) {
+      deps.initClient();
+    } else {
+      void import("./init").then(({ initMqtt }) => {
+        void initMqtt();
+      });
+    }
 
-    console.warn(
-      `[MQTT] Client initializing. Cannot publish yet${logLabel ? ` (${logLabel})` : ""}.`,
-    );
+    warn(`[MQTT] Client initializing. Cannot publish yet${logLabel ? ` (${logLabel})` : ""}.`);
 
     return false;
   }
 
   if (activeClient?.connected) {
-    const settings = getMqttSettings();
+    const settings = deps.getSettings ? deps.getSettings() : getMqttSettings();
     const commandTopic = `${settings.baseTopic}/Command`;
 
     // SAFETY: mqtt.js publish method accepts Uint8Array or Buffer as payload
     activeClient.publish(commandTopic, buf as Buffer, { qos: settings.qos });
 
     if (logLabel) {
-      console.log(`[MQTT Binary] ${logLabel}`);
+      log(`[MQTT Binary] ${logLabel}`);
     }
 
     return true;
   }
 
-  console.warn(`[MQTT] Client not connected. Cannot publish${logLabel ? ` (${logLabel})` : ""}.`);
+  warn(`[MQTT] Client not connected. Cannot publish${logLabel ? ` (${logLabel})` : ""}.`);
 
   return false;
 };

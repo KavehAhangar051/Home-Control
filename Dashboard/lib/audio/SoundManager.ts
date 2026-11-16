@@ -8,9 +8,34 @@ import {
 } from "./effects";
 import type { Track } from "./types";
 
+export interface SoundManagerSynths {
+  playClick: () => void;
+  playToggleOn: () => void;
+  playToggleOff: () => void;
+  playSuccess: () => void;
+  playError: () => void;
+}
+
+export interface SoundManagerDeps {
+  ambientManager?: AmbientManager;
+  synths?: Partial<SoundManagerSynths>;
+}
+
 export class SoundManager {
   private enabled = true;
-  private ambientManager = new AmbientManager();
+  private readonly ambientManager: AmbientManager;
+  private readonly synths: SoundManagerSynths;
+
+  constructor(deps: SoundManagerDeps = {}) {
+    this.ambientManager = deps.ambientManager ?? new AmbientManager();
+    this.synths = {
+      playClick: deps.synths?.playClick ?? playClickSynth,
+      playToggleOn: deps.synths?.playToggleOn ?? playToggleOnSynth,
+      playToggleOff: deps.synths?.playToggleOff ?? playToggleOffSynth,
+      playSuccess: deps.synths?.playSuccess ?? playSuccessSynth,
+      playError: deps.synths?.playError ?? playErrorSynth,
+    };
+  }
 
   get isAmbientPlaying() {
     return this.ambientManager.isAmbientPlaying;
@@ -66,22 +91,22 @@ export class SoundManager {
   }
 
   public playClick() {
-    if (this.enabled) playClickSynth();
+    if (this.enabled) this.synths.playClick();
   }
 
   public playToggleOn() {
-    if (this.enabled) playToggleOnSynth();
+    if (this.enabled) this.synths.playToggleOn();
   }
 
   public playToggleOff() {
-    if (this.enabled) playToggleOffSynth();
+    if (this.enabled) this.synths.playToggleOff();
   }
 
   public playSuccess() {
-    if (this.enabled) playSuccessSynth();
+    if (this.enabled) this.synths.playSuccess();
   }
 
   public playError() {
-    if (this.enabled) playErrorSynth();
+    if (this.enabled) this.synths.playError();
   }
 }

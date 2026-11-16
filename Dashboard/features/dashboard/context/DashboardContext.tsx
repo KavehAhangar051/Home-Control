@@ -138,13 +138,11 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       ...state,
       ...actions,
       ...meta,
-      activeSegmentId: resolved.activeSegmentId,
-      activeGroupId: resolved.activeGroupId,
       state,
       actions,
       meta,
     }),
-    [state, actions, meta, resolved.activeSegmentId, resolved.activeGroupId],
+    [state, actions, meta],
   );
 
   return <DashboardContext value={contextValue}>{children}</DashboardContext>;

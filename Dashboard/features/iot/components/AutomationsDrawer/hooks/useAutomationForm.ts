@@ -25,11 +25,12 @@ interface AutomationFormDraftInput {
 
 type ValidationResult = { ok: true; automation: Automation } | { ok: false; errorMessage: string };
 
-function computeTimerSchedule(
+export function computeTimerSchedule(
   delayHours: number,
   delayMinutes: number,
+  now: Date = new Date(),
 ): { time: string; days: number[]; repeatCount: number } {
-  const targetDate = new Date();
+  const targetDate = new Date(now.getTime());
   targetDate.setHours(targetDate.getHours() + delayHours);
   targetDate.setMinutes(targetDate.getMinutes() + delayMinutes);
 
@@ -43,7 +44,10 @@ function computeTimerSchedule(
   };
 }
 
-export function buildValidatedAutomationDraft(input: AutomationFormDraftInput): ValidationResult {
+export function buildValidatedAutomationDraft(
+  input: AutomationFormDraftInput,
+  now: Date = new Date(),
+): ValidationResult {
   let finalTime = input.time;
   let finalDays = [...input.days];
   let finalRepeatCount =
@@ -62,7 +66,7 @@ export function buildValidatedAutomationDraft(input: AutomationFormDraftInput): 
       return { ok: false, errorMessage: "لطفاً زمان تاخیر را مشخص کنید." };
     }
 
-    const timerSchedule = computeTimerSchedule(dHours, dMins);
+    const timerSchedule = computeTimerSchedule(dHours, dMins, now);
     finalTime = timerSchedule.time;
     finalDays = timerSchedule.days;
     finalRepeatCount = timerSchedule.repeatCount;
@@ -97,7 +101,7 @@ export function buildValidatedAutomationDraft(input: AutomationFormDraftInput): 
   return {
     ok: true,
     automation: {
-      id: input.editingId || `auto_${Date.now()}`,
+      id: input.editingId || `auto_${now.getTime()}`,
       title: input.title,
       time: finalTime,
       days: finalDays,

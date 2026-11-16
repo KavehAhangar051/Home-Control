@@ -14,12 +14,14 @@ import {
 import type { EspConfig } from "./config/types";
 import { getLocalWs } from "./localWs/client";
 import {
-  publishAddSegmentCommand as mqttAddSegment,
-  publishDeleteSegmentCommand as mqttDeleteSegment,
   publishBatchPinCommand as mqttPublishBatch,
   publishPinCommand as mqttPublishPin,
-  publishPresence as mqttPublishPresence,
-} from "./mqttService";
+} from "./mqtt/pinPublishers";
+import {
+  publishAddSegmentCommand as mqttAddSegment,
+  publishDeleteSegmentCommand as mqttDeleteSegment,
+} from "./mqtt/segmentPublishers";
+import { publishPresence as mqttPublishPresence } from "./mqtt/systemPublishers";
 import type {
   AckResponse,
   BatchPinSyncOptions,

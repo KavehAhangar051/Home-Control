@@ -7,7 +7,6 @@ import {
   Vazirmatn,
 } from "next/font/google";
 import localFont from "next/font/local";
-import AudioInitializer from "@/components/AudioInitializer";
 import { MotionProvider } from "@/components/MotionProvider";
 import "./globals.css"; // Global styles
 
@@ -141,10 +140,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         suppressHydrationWarning
         className="style-nova bg-background text-foreground min-h-screen antialiased selection:bg-blue-500/20 selection:text-blue-200 font-sans"
       >
-        <MotionProvider>
-          <AudioInitializer />
-          {children}
-        </MotionProvider>
+        <MotionProvider>{children}</MotionProvider>
       </body>
     </html>
   );
