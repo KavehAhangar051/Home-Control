@@ -2,6 +2,7 @@ import type { PointerEvent } from "react";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useVoiceCommand } from "@/features/iot/hooks/useVoiceCommand";
+import { debugLog } from "@/lib/debug";
 import { executeVoiceCommand } from "./utils";
 
 export interface UseVoiceCommandHandlerOptions {
@@ -19,9 +20,6 @@ export function useVoiceCommandHandler(options: UseVoiceCommandHandlerOptions = 
   const setIsMenuOpen = useIoTStore((s) => s.setIsMenuOpen);
   const setActiveSettingsTab = useIoTStore((s) => s.setActiveSettingsTab);
   const showToast = useIoTStore((s) => s.showToast);
-  const segments = useIoTStore((s) => s.segments);
-  const macros = useIoTStore((s) => s.macros);
-  const voiceCommands = useIoTStore((s) => s.voiceCommands);
 
   const handlePointerDown = (e: PointerEvent) => {
     e.preventDefault();
@@ -33,6 +31,7 @@ export function useVoiceCommandHandler(options: UseVoiceCommandHandlerOptions = 
     }
 
     startListening((finalTranscript) => {
+      const { voiceCommands, macros, segments } = useIoTStore.getState();
       executeVoiceCommand(finalTranscript, {
         voiceCommands,
         macros,
@@ -49,7 +48,9 @@ export function useVoiceCommandHandler(options: UseVoiceCommandHandlerOptions = 
 
     try {
       e.currentTarget.releasePointerCapture?.(e.pointerId);
-    } catch {}
+    } catch (error) {
+      debugLog.warn("VoiceCommand", "Pointer capture was already released.", error);
+    }
 
     stopListening();
   };

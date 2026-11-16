@@ -2,9 +2,9 @@ import { rectSortingStrategy, SortableContext } from "@dnd-kit/sortable";
 import React from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import type { SortableSegmentCardProps } from "../../sortable-segment-card/core/types";
 import SortableGroup from "../../SortableGroup";
 import SortableSegmentCard from "../../SortableSegmentCard";
+import type { SortableSegmentCardProps } from "../../sortable-segment-card/core/types";
 import { getEffectiveGroupsCols } from "../core/gridUtils";
 import type { IoTWorkspaceProps } from "../core/types";
 import { useWorkspaceGrid } from "../hooks/useWorkspaceGrid";
@@ -108,6 +108,11 @@ const ConnectedGroup = React.memo((props: ConnectedGroupProps) => {
         ? GROUP_STYLE_LUT[2]
         : GROUP_STYLE_LUT[3];
 
+  const handleColsChange = React.useCallback(
+    (cols: number) => handleGroupColsChange(groupName, cols),
+    [handleGroupColsChange, groupName],
+  );
+
   const baseClasses = "flex-grow flex-shrink-0 min-w-0 max-w-full";
 
   return (
@@ -118,7 +123,7 @@ const ConnectedGroup = React.memo((props: ConnectedGroupProps) => {
         segmentCount={segmentIds.length}
         maxCols={groupConfigs[groupName]?.maxCols || 3}
         icon={groupConfigs[groupName]?.icon}
-        onColsChange={(cols: number) => handleGroupColsChange(groupName, cols)}
+        onColsChange={handleColsChange}
         onAddPlaceholder={handleAddPlaceholder}
         onDeleteGroup={handleRemoveGroup}
         parentGroupsCols={effectiveGroupsCols}

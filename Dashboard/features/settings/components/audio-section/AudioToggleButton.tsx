@@ -27,14 +27,14 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
         } ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
       >
         <div
-          className={`flex h-6 w-10 shrink-0 items-center rounded-full p-1 transition-colors duration-300 ${
+          className={`flex h-6 w-10 shrink-0 items-center rounded-[8px] border p-1 transition-colors duration-300 ${
             isMusicOn
-              ? "bg-[var(--accent3)]"
-              : "bg-[var(--card-hover-bg)] border border-[var(--border-color)]"
+              ? "bg-[var(--accent3)] border-transparent"
+              : "bg-[var(--card-hover-bg)] border-[var(--border-color)]"
           }`}
         >
           <div
-            className={`w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ${
+            className={`w-3.5 h-3.5 rounded-[4px] shadow-sm transition-transform duration-300 ${
               isMusicOn
                 ? "bg-[var(--bg-main)] translate-x-0"
                 : "bg-[var(--text-secondary)] -translate-x-4"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
   applyDashboardFontToDocument,
@@ -33,7 +33,7 @@ function suppressTransitionsTemporarily() {
   });
 }
 
-export default function DashboardStyles({
+function DashboardStyles({
   accent3,
   accent4,
   isDark,
@@ -81,3 +81,5 @@ export default function DashboardStyles({
 
   return <style>{css}</style>;
 }
+
+export default memo(DashboardStyles);

@@ -1,16 +1,24 @@
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button-variants";
 
 export default function NotFound() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#0b0c10] text-[#c5a880] p-6 text-center select-none font-sans">
-      <h1 className="text-4xl font-extrabold tracking-widest text-[#D4AF37] mb-4">۴۰۴</h1>
-      <h2 className="text-lg font-bold mb-6">صفحه مورد نظر یافت نشد</h2>
+    <main
+      dir="rtl"
+      className="flex min-h-screen flex-col items-center justify-center bg-background p-6 text-center text-foreground select-none font-sans"
+    >
+      <h1 className="mb-3 text-4xl font-extrabold tracking-widest text-accent3">۴۰۴</h1>
+      <h2 className="mb-6 text-lg font-bold text-muted-foreground">صفحه مورد نظر یافت نشد</h2>
       <Link
         href="/"
-        className="px-6 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-bold rounded-sm"
+        className={buttonVariants({
+          variant: "outline",
+          size: "sm",
+          className: "rounded-xl",
+        })}
       >
-        بازگشت به پیشخوان پادشاهی
+        بازگشت به داشبورد
       </Link>
-    </div>
+    </main>
   );
 }

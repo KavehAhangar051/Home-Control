@@ -9,7 +9,7 @@ function readInitialDisplayMode(): WorkspaceDisplayMode {
   try {
     const saved = window.localStorage.getItem(DISPLAY_MODE_STORAGE_KEY);
 
-    if (saved === "trellis" || saved === "grid") {
+    if (saved === "trellis" || saved === "grid" || saved === "canvas") {
       return saved;
     }
   } catch {

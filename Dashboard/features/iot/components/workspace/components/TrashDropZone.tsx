@@ -1,7 +1,6 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-import React from "react";
 import { Card } from "@/components/ui/card";
 import { Trash2 } from "@/components/ui/hugeicons";
 
@@ -17,7 +16,7 @@ export default function TrashDropZone({ activeId }: { activeId: string | null })
       ref={setNodeRef}
       role="status"
       aria-live="polite"
-      className={`!mt-12 !gap-0 !ring-0 !p-6 !w-full !max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[120px] text-center !border-2 !border-dashed transition-all duration-300 z-10 !rounded-xl backdrop-blur-md ${
+      className={`!mt-12 !gap-0 !ring-0 !p-6 !w-full !max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[120px] text-center !border-2 !border-dashed transition-[border-color,background-color,transform,opacity] duration-200 ease-[var(--ease-out)] z-10 !rounded-xl backdrop-blur-md ${
         isOver
           ? "!bg-[var(--accent3-transparent)] !border-[var(--accent3)] !text-[var(--accent3)] scale-105"
           : "!bg-[var(--card-bg)]/80 !border-[var(--accent3-medium)] !text-[var(--accent3)]"

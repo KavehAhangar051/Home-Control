@@ -7,7 +7,6 @@ import {
   useAnimateIconContext,
 } from "@animate-ui/react/icons";
 import { m, type Variants } from "motion/react";
-import * as React from "react";
 
 type SlidersHorizontalProps = IconProps<keyof typeof animations>;
 

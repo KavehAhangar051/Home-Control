@@ -137,7 +137,7 @@ export interface SystemSlice {
   setMqttConfig: (config: MqttConfig | null) => void;
 }
 
-export type WorkspaceDisplayMode = "grid" | "trellis";
+export type WorkspaceDisplayMode = "grid" | "trellis" | "canvas";
 
 export interface UiSlice {
   workspaceDisplayMode: WorkspaceDisplayMode;
@@ -169,7 +169,7 @@ export type WorkspaceView = "home" | "modules" | "automations" | "settings";
 
 export type ModulesSubTab = "add" | "list";
 
-export type AutomationsSubTab = "create" | "manage";
+export type AutomationsSubTab = "create" | "manage" | "workflows";
 
 export interface MenuSlice {
   activeWorkspaceView: WorkspaceView;

@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import {
-  isCloudflareEnabled,
-  saveConfigToCloudflare,
-} from "@/features/iot/services/cloudflareService";
-import { buildEspConfig } from "./core/buildEspConfig";
+import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
+import { buildEspConfig, persistStoreConfigToCloudflare } from "./core/buildEspConfig";
 
-export function useCloudflarePush(isFullyReady: boolean) {
+export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
   const isDark = useIoTStore((s) => s.isDark);
   const accent3 = useIoTStore((s) => s.accent3);
   const accent4 = useIoTStore((s) => s.accent4);
@@ -30,6 +27,7 @@ export function useCloudflarePush(isFullyReady: boolean) {
   const mqttConfig = useIoTStore((s) => s.mqttConfig);
 
   const lastSyncedSignatureRef = useRef<string | null>(null);
+  const lastRemoteEpochRef = useRef(remoteSyncEpoch);
 
   const currentConfig = useMemo(
     () =>
@@ -82,29 +80,23 @@ export function useCloudflarePush(isFullyReady: boolean) {
   const triggerCloudflarePush = useCallback(async () => {
     if (!isCloudflareEnabled() || !isFullyReady) return;
 
-    const latestState = useIoTStore.getState();
-    const snapshotToSave = buildEspConfig(latestState);
-    const signatureToSave = JSON.stringify(snapshotToSave);
-
-    const result = await saveConfigToCloudflare(snapshotToSave);
+    const { result, signature } = await persistStoreConfigToCloudflare();
 
     if (result.success) {
-      lastSyncedSignatureRef.current = signatureToSave;
-      latestState.showToast(result.message, "success");
-      latestState.resetUnsavedChanges();
-    } else {
-      latestState.showToast(result.message, "error");
+      lastSyncedSignatureRef.current = signature;
     }
   }, [isFullyReady]);
 
   useEffect(() => {
     if (!isFullyReady) {
       lastSyncedSignatureRef.current = null;
+      lastRemoteEpochRef.current = remoteSyncEpoch;
 
       return;
     }
 
-    if (lastSyncedSignatureRef.current === null) {
+    if (lastSyncedSignatureRef.current === null || lastRemoteEpochRef.current !== remoteSyncEpoch) {
+      lastRemoteEpochRef.current = remoteSyncEpoch;
       lastSyncedSignatureRef.current = configSignature;
 
       return;
@@ -126,7 +118,7 @@ export function useCloudflarePush(isFullyReady: boolean) {
     }, 1200);
 
     return () => clearTimeout(handler);
-  }, [isFullyReady, configSignature, triggerCloudflarePush]);
+  }, [isFullyReady, remoteSyncEpoch, configSignature, triggerCloudflarePush]);
 
   return { triggerCloudflarePush };
 }

@@ -1,17 +1,30 @@
-import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { getIoTStoreSnapshot } from "../storeBridge";
 import { getMqttClient, getMqttSettings, setMqttClient, stateCallbacks } from "./client";
+import { parseMqttStateMessage, parseMqttStatusMessage } from "./messageParser";
 import { PRESENCE_OFFLINE_FRAME, PRESENCE_ONLINE_FRAME, SYNC_REQUEST_FRAME } from "./protocol";
 
 let initPromise: Promise<void> | null = null;
+let connectionGeneration = 0;
 
 // Queue for batched state updates with double-buffered map to avoid per-frame allocations
+const MAX_PENDING_PIN_UPDATES = 256;
 let pendingStateUpdates = new Map<string, boolean>();
 let processingStateUpdates = new Map<string, boolean>();
 let updateRafId: number | null = null;
 
+function clearPendingStateQueue(): void {
+  if (updateRafId !== null && typeof window !== "undefined") {
+    cancelAnimationFrame(updateRafId);
+    updateRafId = null;
+  }
+
+  pendingStateUpdates.clear();
+  processingStateUpdates.clear();
+}
+
 // ESP32 online/offline detection از طریق LWT
 const markEspStatus = (isOnline: boolean) => {
-  useIoTStore.getState().setIsLocal(isOnline);
+  getIoTStoreSnapshot().setIsLocal(isOnline);
 
   if (isOnline) {
     console.log("[MQTT] ESP32 is ONLINE.");
@@ -31,9 +44,10 @@ const flushStateUpdates = () => {
   processingStateUpdates = temp;
   pendingStateUpdates.clear();
 
-  // Batch update zustand store (short-circuit if all incoming states match existing state)
-  useIoTStore.getState().setPinsState((prev) => {
+  // Batch update store (short-circuit if all incoming states match existing state)
+  getIoTStoreSnapshot().setPinsState((prev) => {
     let hasChange = false;
+
     for (const [pinId, state] of processingStateUpdates) {
       if (prev[pinId] !== state) {
         hasChange = true;
@@ -44,6 +58,7 @@ const flushStateUpdates = () => {
     if (!hasChange) return prev;
 
     const next = { ...prev };
+
     for (const [pinId, state] of processingStateUpdates) {
       next[pinId] = state;
     }
@@ -65,6 +80,15 @@ const flushStateUpdates = () => {
 };
 
 const queueStateUpdate = (pinId: string, state: boolean) => {
+  // Phase 8 bounded queue guard: prevent unbounded memory growth under pathological MQTT bursts
+  if (pendingStateUpdates.size >= MAX_PENDING_PIN_UPDATES && !pendingStateUpdates.has(pinId)) {
+    const oldestKey = pendingStateUpdates.keys().next().value;
+
+    if (oldestKey !== undefined) {
+      pendingStateUpdates.delete(oldestKey);
+    }
+  }
+
   pendingStateUpdates.set(pinId, state);
 
   if (!updateRafId && typeof window !== "undefined") {
@@ -81,8 +105,13 @@ export const initMqtt = (): Promise<void> => {
     return initPromise;
   }
 
+  const generation = connectionGeneration;
+
   initPromise = (async () => {
     const { default: mqtt } = await import("mqtt");
+
+    if (generation !== connectionGeneration) return;
+
     let client = getMqttClient();
 
     if (!client) {
@@ -93,18 +122,22 @@ export const initMqtt = (): Promise<void> => {
       const qos = settings.qos;
 
       client = mqtt.connect(settings.brokerUrl, {
-        clientId: "dashboard_" + Math.random().toString(16).substring(2, 10),
+        clientId: `dashboard_${Math.random().toString(16).substring(2, 10)}`,
         reconnectPeriod: 5000,
       });
       setMqttClient(client);
 
       client.on("connect", () => {
+        if (generation !== connectionGeneration) return;
+
         console.log(`[MQTT] Connected to ${settings.brokerUrl}!`);
         client?.subscribe(stateTopic);
         client?.subscribe(statusTopic);
 
         queueMicrotask(() => {
-          const isPageVisible = useIoTStore.getState().isPageVisible;
+          if (generation !== connectionGeneration) return;
+
+          const isPageVisible = getIoTStoreSnapshot().isPageVisible;
           const presenceBuf = isPageVisible ? PRESENCE_ONLINE_FRAME : PRESENCE_OFFLINE_FRAME;
           // SAFETY: mqtt.js publish accepts Uint8Array or Buffer as binary payload
           client?.publish(commandTopic, presenceBuf as Buffer, { qos });
@@ -116,76 +149,55 @@ export const initMqtt = (): Promise<void> => {
       });
 
       client.on("message", (topic, payload) => {
+        if (generation !== connectionGeneration) return;
+
         if (topic === statusTopic) {
-          if (payload.length === 0) return;
-          const strPayload = payload.toString().trim();
+          const parsedStatus = parseMqttStatusMessage(payload);
 
-          if (strPayload === "offline" || strPayload === "OFFLINE") {
-            markEspStatus(false);
+          if (parsedStatus.kind === "online") {
+            markEspStatus(true);
 
-            return;
-          }
+            const snapshot = getIoTStoreSnapshot();
 
-          if (strPayload.charCodeAt(0) === 123) {
-            try {
-              const data = JSON.parse(strPayload);
-
-              if (data.status === "online") {
-                markEspStatus(true);
-
-                if (data.ip && useIoTStore.getState().localIp !== data.ip) {
-                  useIoTStore.getState().setLocalIp(data.ip);
-                }
-              } else if (data.status === "offline") {
-                markEspStatus(false);
-              }
-            } catch (e) {
-              console.error("[MQTT] Failed to parse status JSON", e);
+            if (parsedStatus.ip && snapshot.localIp !== parsedStatus.ip) {
+              snapshot.setLocalIp(parsedStatus.ip);
             }
+          } else if (parsedStatus.kind === "offline") {
+            markEspStatus(false);
+          } else if (parsedStatus.kind === "error") {
+            console.error("[MQTT] Failed to parse status JSON", parsedStatus.error);
           }
         } else if (topic === stateTopic) {
-          try {
-            if (payload.length > 0) {
-              const cmdType = payload[0];
+          const parsedState = parseMqttStateMessage(payload);
 
-              if (cmdType === 0x06 && payload.length >= 3) {
-                const pinNum = payload[1];
-                const state = payload[2] === 0x01;
-                console.log(
-                  `[MQTT] Received state update from ESP32: pin=${pinNum} state=${state}`,
-                );
-                queueStateUpdate(pinNum.toString(), state);
-              } else if (payload[0] === 123) {
-                const data = JSON.parse(payload.toString());
+          if (parsedState.kind === "pin_update") {
+            const label = parsedState.source === "binary" ? "state update" : "JSON state update";
+            console.log(
+              `[MQTT] Received ${label} from ESP32: pin=${parsedState.pinId} state=${parsedState.state}`,
+            );
+            queueStateUpdate(parsedState.pinId, parsedState.state);
+          } else if (parsedState.kind === "state_sync") {
+            console.log(`[MQTT] Received full state sync from ESP32:`, parsedState.states);
+            getIoTStoreSnapshot().setPinsState(parsedState.states);
+          } else if (parsedState.kind === "ping") {
+            queueMicrotask(() => {
+              if (generation !== connectionGeneration) return;
 
-                if (data.type === "state_sync" && data.states) {
-                  // Full state sync from ESP32
-                  console.log(`[MQTT] Received full state sync from ESP32:`, data.states);
-                  useIoTStore.getState().setPinsState(data.states);
-                } else if (data.command === "ping") {
-                  queueMicrotask(() => {
-                    const isPageVisible = useIoTStore.getState().isPageVisible;
-                    const presenceBuf = isPageVisible
-                      ? PRESENCE_ONLINE_FRAME
-                      : PRESENCE_OFFLINE_FRAME;
-                    // SAFETY: mqtt.js publish accepts Uint8Array or Buffer as binary payload
-                    client?.publish(commandTopic, presenceBuf as Buffer, { qos });
-                  });
-                } else if (data.id !== undefined && data.value !== undefined) {
-                  console.log(
-                    `[MQTT] Received JSON state update from ESP32: pin=${data.id} state=${data.value}`,
-                  );
-                  queueStateUpdate(data.id.toString(), data.value);
-                }
-              }
-            }
-          } catch (e) {
-            console.error("Failed to parse MQTT state message", e);
+              const isPageVisible = getIoTStoreSnapshot().isPageVisible;
+              const presenceBuf = isPageVisible ? PRESENCE_ONLINE_FRAME : PRESENCE_OFFLINE_FRAME;
+
+              // SAFETY: mqtt.js publish accepts Uint8Array or Buffer as binary payload
+              client?.publish(commandTopic, presenceBuf as Buffer, { qos });
+            });
+          } else if (parsedState.kind === "error") {
+            console.error("Failed to parse MQTT state message", parsedState.error);
           }
         }
       });
 
       client.on("error", (err) => {
+        if (generation !== connectionGeneration) return;
+
         console.error("[MQTT] Connection error:", err);
       });
     }
@@ -197,6 +209,10 @@ export const initMqtt = (): Promise<void> => {
 };
 
 export const reconnectMqtt = () => {
+  connectionGeneration += 1;
+  initPromise = null;
+  clearPendingStateQueue();
+
   const client = getMqttClient();
 
   if (client) {

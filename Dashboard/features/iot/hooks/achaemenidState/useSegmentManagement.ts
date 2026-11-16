@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
 import {
   publishAddSegmentCommand,
   publishDeleteSegmentCommand,
@@ -10,7 +11,11 @@ import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 
 interface UseSegmentManagementProps {
   setActiveWorkspaceView: (view: "home" | "modules" | "automations" | "settings") => void;
-  updatePinOnServer: (pin: string, state: boolean) => Promise<void>;
+  updatePinOnServer: (pin: string, state: boolean) => Promise<boolean>;
+}
+
+function createSegmentId(): string {
+  return Math.random().toString(36).substring(2, 9);
 }
 
 export function useSegmentManagement({
@@ -21,6 +26,27 @@ export function useSegmentManagement({
   const setGroupsOrder = useIoTStore((state) => state.setGroupsOrder);
   const setGroupConfigs = useIoTStore((state) => state.setGroupConfigs);
   const [targetPlaceholderId, setTargetPlaceholderId] = useState<string | null>(null);
+
+  const ensureGroupRegistered = useCallback(
+    (finalGroup: string, groupIcon?: string) => {
+      setGroupConfigs((prev) => {
+        const current = prev[finalGroup] || { maxCols: 3 };
+
+        if (groupIcon && !("icon" in current && current.icon)) {
+          return { ...prev, [finalGroup]: { ...current, icon: groupIcon } };
+        }
+
+        if (!prev[finalGroup]) {
+          return { ...prev, [finalGroup]: current };
+        }
+
+        return prev;
+      });
+
+      setGroupsOrder((prev) => (prev.includes(finalGroup) ? prev : [...prev, finalGroup]));
+    },
+    [setGroupConfigs, setGroupsOrder],
+  );
 
   const handleAddSegment = useCallback(
     (
@@ -44,11 +70,9 @@ export function useSegmentManagement({
         }
       }
 
-      const randomId = Math.random().toString(36).substring(2, 9);
-      const finalGroup = group || "Test";
-
+      const finalGroup = resolveSegmentGroup(group);
       const newSeg = {
-        id: randomId,
+        id: createSegmentId(),
         type,
         pin,
         title: title || `کنترل پایه دیجیتال (GPIO ${pin})`,
@@ -58,30 +82,15 @@ export function useSegmentManagement({
         icon,
       };
 
-      setGroupConfigs((prev) => {
-        const current = prev[finalGroup] || { maxCols: 3 };
+      ensureGroupRegistered(finalGroup, groupIcon);
 
-        if (groupIcon && !("icon" in current && current.icon)) {
-          return { ...prev, [finalGroup]: { ...current, icon: groupIcon } };
-        }
-
-        if (!prev[finalGroup]) {
-          return { ...prev, [finalGroup]: current };
-        }
-
-        return prev;
-      });
-
-      setGroupsOrder((prev) => (prev.includes(finalGroup) ? prev : [...prev, finalGroup]));
-
-      const segments = useIoTStore.getState().segments;
-      const updated = [...segments];
+      const updated = [...useIoTStore.getState().segments];
 
       if (targetPlaceholderId) {
         const index = updated.findIndex((s) => s.id === targetPlaceholderId);
 
         if (index !== -1) {
-          newSeg.group = updated[index].group || "Test";
+          newSeg.group = resolveSegmentGroup(updated[index].group);
           updated[index] = newSeg;
         } else {
           updated.push(newSeg);
@@ -96,23 +105,24 @@ export function useSegmentManagement({
 
       const pinsState = useIoTStore.getState().pinsState;
 
-      if (pinsState[pin] === undefined) {
-        updatePinOnServer(pin, false);
+      if (pin && type !== "placeholder" && type !== "input" && pinsState[pin] === undefined) {
+        void updatePinOnServer(pin, false);
       }
 
-      publishAddSegmentCommand(newSeg.id, newSeg.type, Number(newSeg.pin) | 0, false);
+      if (type !== "placeholder") {
+        publishAddSegmentCommand(newSeg.id, newSeg.type, Number(newSeg.pin) | 0, false);
+      }
     },
-    [targetPlaceholderId, setGroupConfigs, setGroupsOrder, setSegments, updatePinOnServer],
+    [targetPlaceholderId, ensureGroupRegistered, setSegments, updatePinOnServer],
   );
 
   const handleAddPlaceholder = useCallback(
     (groupId: string) => {
-      const randomId = Math.random().toString(36).substring(2, 9);
       const segments = useIoTStore.getState().segments;
       setSegments([
         ...segments,
         {
-          id: randomId,
+          id: createSegmentId(),
           type: "placeholder",
           pin: "",
           title: "جایگاه خالی",
@@ -155,7 +165,7 @@ export function useSegmentManagement({
   const handleRemoveGroup = useCallback(
     (groupId: string) => {
       setGroupsOrder((prev) => prev.filter((g) => g !== groupId));
-      setSegments((prev) => prev.filter((s) => (s.group || "Test") !== groupId));
+      setSegments((prev) => prev.filter((s) => resolveSegmentGroup(s.group) !== groupId));
     },
     [setGroupsOrder, setSegments],
   );

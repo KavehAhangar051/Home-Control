@@ -1,4 +1,5 @@
-import React from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Props {
   brokerWsUrl: string;
@@ -24,74 +25,62 @@ export function MqttFormFields({
   return (
     <>
       <div className="space-y-2 text-right">
-        <label
-          htmlFor="mqtt-broker-ws-url"
-          className="text-xs font-bold text-[var(--text-primary)] px-1"
-        >
+        <Label htmlFor="mqtt-broker-ws-url" className="px-1 font-bold">
           آدرس سرور داشبورد (WebSocket URL)
-        </label>
-        <input
+        </Label>
+        <Input
           id="mqtt-broker-ws-url"
           type="text"
           dir="ltr"
           value={brokerWsUrl}
           onChange={(e) => setBrokerWsUrl(e.target.value)}
-          className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
+          className="h-11 bg-card-bg-solid px-4 py-3 text-xs text-text-secondary"
           placeholder="wss://broker.emqx.io:8084/mqtt"
         />
       </div>
 
       <div className="grid grid-cols-3 gap-2">
         <div className="col-span-2 space-y-2 text-right">
-          <label
-            htmlFor="mqtt-broker-host"
-            className="text-xs font-bold text-[var(--text-primary)] px-1"
-          >
+          <Label htmlFor="mqtt-broker-host" className="px-1 font-bold">
             آدرس سرور سخت‌افزار (TCP Host)
-          </label>
-          <input
+          </Label>
+          <Input
             id="mqtt-broker-host"
             type="text"
             dir="ltr"
             value={brokerHost}
             onChange={(e) => setBrokerHost(e.target.value)}
-            className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
+            className="h-11 bg-card-bg-solid px-4 py-3 text-xs text-text-secondary"
             placeholder="broker.emqx.io"
           />
         </div>
         <div className="col-span-1 space-y-2 text-right">
-          <label
-            htmlFor="mqtt-broker-port"
-            className="text-xs font-bold text-[var(--text-primary)] px-1"
-          >
+          <Label htmlFor="mqtt-broker-port" className="px-1 font-bold">
             پورت (Port)
-          </label>
-          <input
+          </Label>
+          <Input
             id="mqtt-broker-port"
             type="number"
             dir="ltr"
             value={brokerPort}
-            onChange={(e) => setBrokerPort(parseInt(e.target.value) || 1883)}
-            className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
+            onChange={(e) => setBrokerPort(parseInt(e.target.value, 10) || 1883)}
+            className="h-11 bg-card-bg-solid px-4 py-3 text-xs text-text-secondary"
             placeholder="1883"
           />
         </div>
       </div>
 
       <div className="space-y-2 text-right">
-        <label
-          htmlFor="mqtt-base-topic"
-          className="text-xs font-bold text-[var(--text-primary)] px-1"
-        >
+        <Label htmlFor="mqtt-base-topic" className="px-1 font-bold">
           موضوع پایه (Base Topic)
-        </label>
-        <input
+        </Label>
+        <Input
           id="mqtt-base-topic"
           type="text"
           dir="ltr"
           value={baseTopic}
           onChange={(e) => setBaseTopic(e.target.value)}
-          className="w-full bg-[var(--card-bg-solid)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
+          className="h-11 bg-card-bg-solid px-4 py-3 text-xs text-text-secondary"
           placeholder="KamyarIoT/Achaemenid"
         />
       </div>

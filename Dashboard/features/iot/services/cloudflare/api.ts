@@ -1,51 +1,136 @@
 import type { EspConfig } from "@/features/iot/services/esp32Config";
+import {
+  CircuitBreaker,
+  CircuitOpenError,
+  createTimeoutSignal,
+  getReliabilityHealthSnapshot,
+  recordCircuitOpen,
+  recordIntegrationRequest,
+  recordIntegrationRetry,
+  type ReliabilityHealthSnapshot,
+  retryWithBackoff,
+} from "@/lib/resilience";
 import { getCloudflareWorkerUrl, isCloudflareEnabled } from "./config";
 import { deserializeFromCloudflare, serializeToCloudflare } from "./mappers";
 
 const REQUEST_TIMEOUT_MS = 8000;
 
-function getRequestTimeoutSignal(timeoutMs = REQUEST_TIMEOUT_MS): AbortSignal | undefined {
-  return globalThis.AbortSignal?.timeout?.(timeoutMs);
+export const cloudflareCircuitBreaker = new CircuitBreaker({
+  serviceName: "cloudflare-worker",
+  failureThreshold: 3,
+  resetTimeoutMs: 30_000,
+});
+
+export function getCloudflareReliabilityHealth(): ReliabilityHealthSnapshot {
+  return getReliabilityHealthSnapshot({ cloudflare: cloudflareCircuitBreaker });
 }
 
-/**
- * Fetch the latest config from Cloudflare Worker.
- */
-export async function fetchConfigFromCloudflare(options?: {
-  timeoutMs?: number;
-}): Promise<EspConfig | null> {
-  if (!isCloudflareEnabled()) return null;
+export type FetchFn = typeof fetch;
 
-  const baseUrl = getCloudflareWorkerUrl();
-  const url = `${baseUrl}/config`;
+export interface CloudflareRequestOptions {
+  timeoutMs?: number;
+  fetchFn?: FetchFn;
+  circuitBreaker?: CircuitBreaker;
+  retryAttempts?: number;
+}
+
+class HttpStatusError extends Error {
+  public readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "HttpStatusError";
+    this.status = status;
+  }
+}
+
+function isRetryableCloudflareError(error: unknown): boolean {
+  if (error instanceof CircuitOpenError) return false;
+  if (error instanceof HttpStatusError && error.status >= 400 && error.status < 500) {
+    return error.status === 408 || error.status === 429;
+  }
+
+  return true;
+}
+
+async function fetchCloudflareConfigOnce(
+  url: string,
+  executeFetch: FetchFn,
+  timeoutMs: number,
+): Promise<EspConfig> {
+  const timeout = createTimeoutSignal(timeoutMs);
 
   try {
-    const res = await fetch(url, {
+    const res = await executeFetch(url, {
       method: "GET",
       headers: {
         Accept: "application/json",
       },
-      signal: getRequestTimeoutSignal(options?.timeoutMs),
+      signal: timeout.signal,
     });
 
     if (!res.ok) {
-      throw new Error(
+      throw new HttpStatusError(
+        res.status,
         `Failed to fetch Cloudflare config from ${url}: ${res.status} ${res.statusText}`,
       );
     }
 
     const data = await res.json();
-    const config = deserializeFromCloudflare(data);
+    const parsed = deserializeFromCloudflare(data);
+    // Keep active endpoint authoritative; older saved configs may contain legacy URL.
+    parsed.worker_url = getCloudflareWorkerUrl();
 
-    // Keep the active endpoint authoritative; older saved configs may still contain the legacy URL.
-    config.worker_url = getCloudflareWorkerUrl();
+    return parsed;
+  } finally {
+    timeout.cleanup();
+  }
+}
+
+/**
+ * Fetch the latest config from Cloudflare Worker with timeout, circuit breaker, and idempotent retry+jitter.
+ */
+export async function fetchConfigFromCloudflare(
+  options?: CloudflareRequestOptions,
+): Promise<EspConfig | null> {
+  if (!isCloudflareEnabled()) return null;
+
+  const baseUrl = getCloudflareWorkerUrl();
+  const url = `${baseUrl}/config`;
+  const executeFetch = options?.fetchFn ?? globalThis.fetch;
+  const breaker = options?.circuitBreaker ?? cloudflareCircuitBreaker;
+  const timeoutMs = options?.timeoutMs ?? REQUEST_TIMEOUT_MS;
+  const retryAttempts = options?.retryAttempts ?? 3;
+
+  const startedAt = Date.now();
+
+  try {
+    const config = await breaker.execute(
+      () =>
+        retryWithBackoff(() => fetchCloudflareConfigOnce(url, executeFetch, timeoutMs), {
+          maxAttempts: retryAttempts,
+          baseDelayMs: 250,
+          maxDelayMs: 2000,
+          isRetryable: isRetryableCloudflareError,
+          onRetry: () => recordIntegrationRetry("cloudflare"),
+        }),
+      { shouldCountFailure: isRetryableCloudflareError },
+    );
+
+    recordIntegrationRequest("cloudflare", Date.now() - startedAt, true);
 
     return config;
   } catch (error) {
+    recordIntegrationRequest("cloudflare", Date.now() - startedAt, false);
+
+    if (error instanceof CircuitOpenError) {
+      recordCircuitOpen("cloudflare");
+    }
+
     const isTimeout =
       error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
 
-    if (!isTimeout) {
+    if (!isTimeout && !(error instanceof CircuitOpenError)) {
       console.warn("Cloudflare fetchConfig failed:", error);
     }
 
@@ -70,44 +155,46 @@ type WorkerPayload =
   | { value: boolean }
   | { actions: Array<{ pin: string; state: boolean }> };
 
-/**
- * Deep helper to execute Cloudflare Worker JSON POST requests,
- * validating configuration, status, ACK responses, and error conditions.
- */
-async function postWorkerJson(
-  endpoint: string,
+async function parseWorkerErrorMessage(res: Response, fallbackMessage: string): Promise<string> {
+  try {
+    // SAFETY: error responses from Cloudflare Worker optionally contain JSON with an error field
+    const errorData = (await res.json()) as WorkerAckResponse;
+
+    if (errorData?.error) {
+      return errorData.error;
+    }
+  } catch {
+    // Non-JSON error body; fall back to contextual error message.
+  }
+
+  return fallbackMessage;
+}
+
+async function sendWorkerPostOnce(
+  url: string,
   payload: WorkerPayload,
   defaultSuccessMessage: string,
   errorContextLabel: string,
+  executeFetch: FetchFn,
+  timeoutMs: number,
 ): Promise<AckResult> {
-  if (!isCloudflareEnabled()) {
-    return { success: false, message: "اتصال کلودفلر غیرفعال است." };
-  }
-
-  const baseUrl = getCloudflareWorkerUrl();
+  const timeout = createTimeoutSignal(timeoutMs);
 
   try {
-    const res = await fetch(`${baseUrl}${endpoint}`, {
+    const res = await executeFetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
-      signal: getRequestTimeoutSignal(),
+      signal: timeout.signal,
     });
 
     if (!res.ok) {
-      let errorMessage = `خطا در ${errorContextLabel}.`;
+      const errorMessage = await parseWorkerErrorMessage(res, `خطا در ${errorContextLabel}.`);
 
-      try {
-        // SAFETY: error responses from Cloudflare Worker optionally contain JSON with an error field
-        const errorData = (await res.json()) as WorkerAckResponse;
-
-        if (errorData?.error) {
-          errorMessage = errorData.error;
-        }
-      } catch {
-        // Non-JSON error body; fall back to contextual error message.
+      if (res.status >= 500) {
+        throw new HttpStatusError(res.status, errorMessage);
       }
 
       return { success: false, message: errorMessage };
@@ -121,7 +208,65 @@ async function postWorkerJson(
     }
 
     return { success: false, message: data?.error || `خطا در ${errorContextLabel}.` };
+  } finally {
+    timeout.cleanup();
+  }
+}
+
+/**
+ * Deep helper to execute Cloudflare Worker JSON POST requests with explicit timeout,
+ * circuit breaker fast-fail protection, RED metrics, ACK parsing, and error conditions.
+ */
+async function postWorkerJson(
+  endpoint: string,
+  payload: WorkerPayload,
+  defaultSuccessMessage: string,
+  errorContextLabel: string,
+  options?: CloudflareRequestOptions,
+): Promise<AckResult> {
+  if (!isCloudflareEnabled()) {
+    return { success: false, message: "اتصال کلودفلر غیرفعال است." };
+  }
+
+  const baseUrl = getCloudflareWorkerUrl();
+  const executeFetch = options?.fetchFn ?? globalThis.fetch;
+  const breaker = options?.circuitBreaker ?? cloudflareCircuitBreaker;
+  const timeoutMs = options?.timeoutMs ?? REQUEST_TIMEOUT_MS;
+  const startedAt = Date.now();
+
+  try {
+    const ackResult = await breaker.execute(
+      () =>
+        sendWorkerPostOnce(
+          `${baseUrl}${endpoint}`,
+          payload,
+          defaultSuccessMessage,
+          errorContextLabel,
+          executeFetch,
+          timeoutMs,
+        ),
+      { shouldCountFailure: isRetryableCloudflareError },
+    );
+
+    recordIntegrationRequest("cloudflare", Date.now() - startedAt, ackResult.success);
+
+    return ackResult;
   } catch (error) {
+    recordIntegrationRequest("cloudflare", Date.now() - startedAt, false);
+
+    if (error instanceof CircuitOpenError) {
+      recordCircuitOpen("cloudflare");
+
+      return {
+        success: false,
+        message: "سرویس کلودفلر موقتاً در دسترس نیست؛ لطفاً کمی بعد دوباره تلاش کنید.",
+      };
+    }
+
+    if (error instanceof HttpStatusError) {
+      return { success: false, message: error.message };
+    }
+
     console.error(`Cloudflare ${endpoint} error:`, error);
 
     return { success: false, message: `تغییرات ${errorContextLabel} بنا به دلایل فنی ذخیره نشد.` };
@@ -131,17 +276,36 @@ async function postWorkerJson(
 /**
  * Save configuration to Cloudflare Worker.
  */
-export async function saveConfigToCloudflare(config: EspConfig): Promise<AckResult> {
+export async function saveConfigToCloudflare(
+  config: EspConfig,
+  options?: CloudflareRequestOptions,
+): Promise<AckResult> {
   const payload = serializeToCloudflare(config);
 
-  return postWorkerJson("/config", payload, "تنظیمات با موفقیت ذخیره شد.", "ذخیره تنظیمات");
+  return postWorkerJson(
+    "/config",
+    payload,
+    "تنظیمات با موفقیت ذخیره شد.",
+    "ذخیره تنظیمات",
+    options,
+  );
 }
 
 /**
  * Update pin state on Durable Objects via Cloudflare Worker.
  */
-export async function updatePinOnCloudflare(pin: string, value: boolean): Promise<AckResult> {
-  return postWorkerJson(`/pins/${pin}`, { value }, `وضعیت پین ${pin} ذخیره شد.`, `پین ${pin}`);
+export async function updatePinOnCloudflare(
+  pin: string,
+  value: boolean,
+  options?: CloudflareRequestOptions,
+): Promise<AckResult> {
+  return postWorkerJson(
+    `/pins/${pin}`,
+    { value },
+    `وضعیت پین ${pin} ذخیره شد.`,
+    `پین ${pin}`,
+    options,
+  );
 }
 
 /**
@@ -149,6 +313,7 @@ export async function updatePinOnCloudflare(pin: string, value: boolean): Promis
  */
 export async function updateBatchPinsOnCloudflare(
   actions: Array<{ pin: string; state: boolean }>,
+  options?: CloudflareRequestOptions,
 ): Promise<AckResult> {
   if (!isCloudflareEnabled()) {
     return { success: false, message: "اتصال کلودفلر غیرفعال است." };
@@ -163,5 +328,6 @@ export async function updateBatchPinsOnCloudflare(
     { actions },
     `وضعیت ${actions.length} پین گروهی ذخیره شد.`,
     "گروهی",
+    options,
   );
 }

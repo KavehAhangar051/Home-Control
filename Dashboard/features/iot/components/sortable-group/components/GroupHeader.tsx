@@ -77,7 +77,7 @@ export default function GroupHeader({
 
   return (
     <div
-      className={`flex items-center justify-between w-full min-w-0 gap-2 relative z-20 border-b border-[var(--border-color)] bg-[var(--card-hover-bg)] rounded-t-2xl ${
+      className={`flex items-center justify-between w-full min-w-0 gap-2 relative z-20 border-b border-[var(--border-color)] bg-[var(--card-hover-bg)] rounded-t-3xl sm:rounded-t-[28px] ${
         isDenseHeader ? "px-2.5 py-2" : "px-3 py-2.5 sm:px-4 sm:py-3"
       }`}
     >
@@ -89,10 +89,12 @@ export default function GroupHeader({
         <Tooltip>
           <TooltipTrigger
             render={
-              <div
+              <button
+                type="button"
                 {...attributes}
                 {...listeners}
-                className={`flex items-center justify-center rounded-lg text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--muted)]/80 transition-colors cursor-grab active:cursor-grabbing shrink-0 ${
+                aria-label={`جابه‌جایی گروه ${id}`}
+                className={`flex items-center justify-center rounded-lg text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--muted)]/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] transition-colors cursor-grab active:cursor-grabbing shrink-0 ${
                   isDenseHeader ? "w-6 h-7" : "w-7 h-8"
                 }`}
               >
@@ -100,7 +102,7 @@ export default function GroupHeader({
                   strokeWidth={2}
                   className={isDenseHeader ? "w-4 h-4" : "w-4 h-4 sm:w-4.5 sm:h-4.5"}
                 />
-              </div>
+              </button>
             }
           />
           <TooltipContent>کشیدن کل گروه برای جابه‌جایی</TooltipContent>
@@ -118,14 +120,14 @@ export default function GroupHeader({
 
           <div className="min-w-0 flex-1 text-right leading-tight">
             <div className="flex items-center gap-2 min-w-0">
-              <h4
+              <h2
                 ref={titleTextRef}
                 className={`font-sans font-bold text-slate-900 dark:text-[var(--text-primary)] truncate ${
                   isDenseHeader ? "text-xs" : "text-xs sm:text-sm"
                 }`}
               >
                 {id}
-              </h4>
+              </h2>
               <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums bg-[var(--muted)]/70 text-[var(--text-muted)] shrink-0">
                 {segmentCount} قطعه
               </span>

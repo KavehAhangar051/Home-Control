@@ -10,7 +10,10 @@ export function useAutomationActions(
 
   const addAction = (type: "pin" | "macro") => {
     if (type === "pin") {
-      setActions([...actions, { targetPin: segments[0]?.pin || "2", actionOn: true }]);
+      const defaultSegment = segments.find(
+        (seg) => seg.type !== "placeholder" && seg.type !== "input" && seg.pin.trim().length > 0,
+      );
+      setActions([...actions, { targetPin: defaultSegment?.pin || "2", actionOn: true }]);
     } else {
       setActions([...actions, { targetMacro: macros[0]?.id || "" }]);
     }

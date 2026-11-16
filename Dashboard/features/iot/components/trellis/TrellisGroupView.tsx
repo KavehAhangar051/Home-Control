@@ -157,9 +157,9 @@ export default function TrellisGroupView({
           </div>
         ) : (
           <div
-            className="grid gap-3"
+            className="grid min-h-full auto-rows-fr gap-3"
             style={{
-              gridTemplateColumns: "repeat(auto-fit, minmax(175px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
             }}
           >
             {groupSegments.map((segment) => (

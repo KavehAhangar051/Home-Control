@@ -2,11 +2,13 @@
 
 import dynamic from "next/dynamic";
 import React from "react";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import IoTWorkspace from "@/features/iot/components/IoTWorkspace";
 import { WorkspaceSkeleton } from "@/features/iot/components/workspace";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useWorkspaceSwipe } from "../../hooks/useWorkspaceSwipe";
+import { WorkspaceSectionSkeleton } from "./WorkspaceSectionSkeletons";
 
 const MacroSidebar = dynamic(() => import("../widgets/MacroSidebar"), { ssr: false });
 
@@ -16,17 +18,14 @@ const WelcomePortal = dynamic(() => import("@/features/iot/components/welcome-po
 
 const WorkspaceSection = dynamic(() => import("./WorkspaceSection"), {
   ssr: false,
-  loading: () => (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6 sm:py-10">
-      <div className="h-14 w-64 rounded-xl bg-[var(--card-bg)] animate-pulse border border-[var(--border-color)]" />
-      <div className="h-80 w-full rounded-2xl bg-[var(--card-bg)] animate-pulse border border-[var(--border-color)]" />
-    </div>
-  ),
+  loading: () => <WorkspaceSectionSkeleton />,
 });
 
-function preloadWorkspaceEngine(mode: "grid" | "trellis") {
+function preloadWorkspaceEngine(mode: "grid" | "trellis" | "canvas") {
   if (mode === "trellis") {
     void import("@/features/iot/components/trellis/TrellisWorkspace");
+  } else if (mode === "canvas") {
+    void import("@/features/iot/components/canvas/CanvasWorkspace");
   } else {
     void import("@/features/iot/components/workspace/components/DndGridWorkspace");
   }
@@ -35,6 +34,7 @@ function preloadWorkspaceEngine(mode: "grid" | "trellis") {
 interface HomeWorkspaceMainContentProps {
   isFullyReady: boolean;
   isTrellisMode: boolean;
+  workspaceDisplayMode: "grid" | "trellis" | "canvas";
   segmentsLength: number;
   groupsCols: number;
   groupsOrder: string[];
@@ -43,9 +43,10 @@ interface HomeWorkspaceMainContentProps {
   hasMacros: boolean;
 }
 
-function HomeWorkspaceMainContent({
+const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
   isFullyReady,
   isTrellisMode,
+  workspaceDisplayMode,
   segmentsLength,
   groupsCols,
   groupsOrder,
@@ -77,8 +78,8 @@ function HomeWorkspaceMainContent({
 
   if (!isFullyReady) {
     return (
-      <div className="w-full flex flex-col gap-4">
-        <WorkspaceSkeleton groupsCols={groupsCols} />
+      <div className={`w-full flex flex-col gap-4 ${isTrellisMode ? "flex-1 min-h-0 h-full" : ""}`}>
+        <WorkspaceSkeleton groupsCols={groupsCols} mode={workspaceDisplayMode} />
       </div>
     );
   }
@@ -99,7 +100,7 @@ function HomeWorkspaceMainContent({
 
   return (
     <div
-      className={`w-full flex flex-col ${isTrellisMode ? "flex-1 min-h-0 h-full gap-2" : "gap-4"}`}
+      className={`w-full flex flex-col ${isTrellisMode ? "flex-1 min-h-0 h-full gap-0" : "gap-4"}`}
     >
       {hasMacros && (
         <div className="block md:hidden w-full">
@@ -110,34 +111,39 @@ function HomeWorkspaceMainContent({
       )}
 
       <div className={isTrellisMode ? "flex-1 min-h-0 w-full flex flex-col" : "w-full"}>
-        <IoTWorkspace
-          sensors={sensors}
-          groupsOrder={groupsOrder}
-          groupsCols={groupsCols}
-          groupConfigs={groupConfigs}
-          isLoadingIoT={isLoadingIoT}
-          activeSegmentId={activeSegmentId}
-          activeGroupId={activeGroupId}
-          animationsEnabled={animationsEnabled}
-          selectedGroupFilter={selectedGroupFilter}
-          handleDragStart={handleDragStart}
-          handleDragOver={handleDragOver}
-          handleDragEnd={handleDragEnd}
-          handleGroupColsChange={handleGroupColsChange}
-          handleAddPlaceholder={handleAddPlaceholder}
-          handleRemoveGroup={handleRemoveGroup}
-          handleRemoveSegment={handleRemoveSegment}
-          handleTogglePin={handleTogglePin}
-          handleSetPinState={handleSetPinState}
-          handleUpdateSegmentMode={handleUpdateSegmentMode}
-          handleUpdateSegmentAutoOff={handleUpdateSegmentAutoOff}
-          handleUpdateSegmentRule={handleUpdateSegmentRule}
-          handleSetupPlaceholder={handleSetupPlaceholder}
-        />
+        <ErrorBoundary
+          fallbackTitle="خطا در رندر فضای کاری دستگاه‌ها"
+          resetKeys={[workspaceDisplayMode, selectedGroupFilter]}
+        >
+          <IoTWorkspace
+            sensors={sensors}
+            groupsOrder={groupsOrder}
+            groupsCols={groupsCols}
+            groupConfigs={groupConfigs}
+            isLoadingIoT={isLoadingIoT}
+            activeSegmentId={activeSegmentId}
+            activeGroupId={activeGroupId}
+            animationsEnabled={animationsEnabled}
+            selectedGroupFilter={selectedGroupFilter}
+            handleDragStart={handleDragStart}
+            handleDragOver={handleDragOver}
+            handleDragEnd={handleDragEnd}
+            handleGroupColsChange={handleGroupColsChange}
+            handleAddPlaceholder={handleAddPlaceholder}
+            handleRemoveGroup={handleRemoveGroup}
+            handleRemoveSegment={handleRemoveSegment}
+            handleTogglePin={handleTogglePin}
+            handleSetPinState={handleSetPinState}
+            handleUpdateSegmentMode={handleUpdateSegmentMode}
+            handleUpdateSegmentAutoOff={handleUpdateSegmentAutoOff}
+            handleUpdateSegmentRule={handleUpdateSegmentRule}
+            handleSetupPlaceholder={handleSetupPlaceholder}
+          />
+        </ErrorBoundary>
       </div>
     </div>
   );
-}
+});
 
 export default function DashboardWorkspace() {
   const { isFullyReady } = useDashboard();
@@ -166,10 +172,17 @@ export default function DashboardWorkspace() {
   }, [activeWorkspaceView, workspaceDisplayMode]);
 
   if (activeWorkspaceView !== "home") {
-    return <WorkspaceSection view={activeWorkspaceView} />;
+    return (
+      <ErrorBoundary fallbackTitle="خطا در بارگذاری این بخش" resetKeys={[activeWorkspaceView]}>
+        <WorkspaceSection view={activeWorkspaceView} />
+      </ErrorBoundary>
+    );
   }
 
-  const isTrellisMode = workspaceDisplayMode === "trellis" && isFullyReady && segmentsLength > 0;
+  const isTrellisMode =
+    (workspaceDisplayMode === "trellis" || workspaceDisplayMode === "canvas") &&
+    (!isFullyReady || segmentsLength > 0);
+
   const hasMacros = macrosLength > 0;
 
   return (
@@ -190,12 +203,14 @@ export default function DashboardWorkspace() {
       )}
       <main
         className={`flex-1 flex flex-col items-center text-center mx-auto w-full relative ${
-          isTrellisMode ? "min-h-0 h-full justify-start gap-2" : "justify-center space-y-8 py-4"
+          isTrellisMode ? "min-h-0 h-full justify-start gap-0" : "justify-center space-y-8 py-4"
         }`}
       >
+        <h1 className="sr-only">نمای خانه و کنترل تجهیزات هوشمند</h1>
         <HomeWorkspaceMainContent
           isFullyReady={isFullyReady}
           isTrellisMode={isTrellisMode}
+          workspaceDisplayMode={workspaceDisplayMode}
           segmentsLength={segmentsLength}
           groupsCols={groupsCols}
           groupsOrder={groupsOrder}

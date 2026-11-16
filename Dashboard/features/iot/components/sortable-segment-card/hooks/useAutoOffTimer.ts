@@ -27,6 +27,18 @@ export function useAutoOffTimer({
     timerState.key === triggerKey ? timerState.remaining : isTimerActive ? (autoOff ?? null) : null;
 
   useEffect(() => {
+    if (!isTimerActive) {
+      const resetId = setTimeout(() => {
+        setTimerState((prev) =>
+          prev.key === `${pin}:off` && prev.remaining === null
+            ? prev
+            : { key: `${pin}:off`, remaining: null },
+        );
+      }, 0);
+
+      return () => clearTimeout(resetId);
+    }
+
     if (countdown === null) return;
 
     const timerId = setTimeout(() => {
@@ -44,7 +56,7 @@ export function useAutoOffTimer({
     }, 1000);
 
     return () => clearTimeout(timerId);
-  }, [countdown, triggerKey, pin, onSetPinState, mode]);
+  }, [isTimerActive, countdown, triggerKey, pin, onSetPinState, mode]);
 
   return { countdown };
 }

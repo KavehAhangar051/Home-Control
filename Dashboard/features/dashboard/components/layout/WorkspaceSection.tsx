@@ -12,19 +12,20 @@ import {
   WORKSPACE_VIEW_META,
 } from "@/features/dashboard/navigation";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-
-const PanelSkeleton = () => (
-  <div className="h-48 w-full animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--card-hover-bg)]/50" />
-);
+import {
+  FormPanelSkeleton,
+  ListPanelSkeleton,
+  WorkflowStudioSkeleton,
+} from "./WorkspaceSectionSkeletons";
 
 const AutomationForm = dynamic(
   () => import("@/features/iot/components/AutomationsDrawer/components/AutomationForm"),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <FormPanelSkeleton /> },
 );
 
 const AutomationList = dynamic(
   () => import("@/features/iot/components/AutomationsDrawer/components/AutomationList"),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <ListPanelSkeleton /> },
 );
 
 const AutomationProvider = dynamic(
@@ -35,39 +36,44 @@ const AutomationProvider = dynamic(
   { ssr: false },
 );
 
+const WorkflowStudio = dynamic(() => import("@/features/iot/components/workflows/WorkflowStudio"), {
+  ssr: false,
+  loading: () => <WorkflowStudioSkeleton />,
+});
+
 const AddSegmentForm = dynamic(
   () => import("@/features/iot/components/modules-drawer/components/AddSegmentForm"),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <FormPanelSkeleton /> },
 );
 
 const SegmentList = dynamic(
   () => import("@/features/iot/components/modules-drawer/components/SegmentList"),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <ListPanelSkeleton /> },
 );
 
 const AudioSection = dynamic(
   () => import("@/features/settings/components/audio-section/AudioSection"),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <FormPanelSkeleton /> },
 );
 
 const ColorsSection = dynamic(
   () => import("@/features/settings/components/colors-section/ColorsSection"),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <FormPanelSkeleton /> },
 );
 
 const ConditionsSection = dynamic(
   () => import("@/features/settings/components/conditions-section/ConditionsSection"),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <FormPanelSkeleton /> },
 );
 
 const LayoutSection = dynamic(
   () => import("@/features/settings/components/layout-section/LayoutSection"),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <FormPanelSkeleton /> },
 );
 
 const MqttSection = dynamic(
   () => import("@/features/settings/components/mqtt-section/MqttSection"),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <FormPanelSkeleton /> },
 );
 
 const InlineStabilitySection = dynamic(
@@ -75,17 +81,17 @@ const InlineStabilitySection = dynamic(
     import("@/features/settings/components/StabilitySection").then(
       (mod) => mod.InlineStabilitySection,
     ),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <FormPanelSkeleton /> },
 );
 
 const VoiceCommandsSection = dynamic(
   () => import("@/features/settings/components/voice-commands-section/VoiceCommandsSection"),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <FormPanelSkeleton /> },
 );
 
 const WifiSection = dynamic(
   () => import("@/features/settings/components/wifi-section/WifiSection"),
-  { ssr: false, loading: PanelSkeleton },
+  { ssr: false, loading: () => <FormPanelSkeleton /> },
 );
 
 type WorkspaceSectionView = "modules" | "automations" | "settings";
@@ -115,29 +121,30 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
   const meta = WORKSPACE_VIEW_META[view];
   const Icon = meta.sectionIcon;
   const activeSubsectionTitle = useActiveSubsectionLabel(view);
+  const activeAutomationsTab = useIoTStore((state) => state.activeAutomationsTab);
+
+  if (view === "automations" && activeAutomationsTab === "workflows") {
+    return <WorkflowsCanvasSection />;
+  }
 
   return (
     <section
       className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 text-right sm:px-6 sm:py-10 lg:py-12"
       dir="rtl"
     >
-      <header className="flex flex-col gap-3 border-b border-[var(--border-color)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-3 border-b border-border-color pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] text-[var(--accent3)]">
-            <Icon className="h-5 w-5" aria-hidden="true" />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border-color bg-card-bg text-accent3">
+            <Icon className="size-5" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl font-bold leading-7 text-balance text-[var(--text-primary)] sm:text-2xl">
+            <h1 className="text-xl font-bold leading-7 text-balance text-text-primary sm:text-2xl">
               {meta.title}
             </h1>
-            <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-              {meta.description}
-            </p>
+            <p className="mt-1 text-sm leading-6 text-text-secondary">{meta.description}</p>
           </div>
         </div>
-        <span className="text-xs font-medium text-[var(--text-secondary)]">
-          {activeSubsectionTitle}
-        </span>
+        <span className="text-xs font-medium text-text-secondary">{activeSubsectionTitle}</span>
       </header>
 
       {view === "modules" && <ModulesWorkspace />}
@@ -285,6 +292,16 @@ function AutomationsWorkspace() {
           {activeAutomationsTab === "create" ? <AutomationForm /> : <AutomationList />}
         </div>
       </AutomationProvider>
+    </div>
+  );
+}
+
+function WorkflowsCanvasSection() {
+  const { handleTogglePin, handleSetPinState } = useDashboard();
+
+  return (
+    <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <WorkflowStudio onTogglePin={handleTogglePin} onSetPinState={handleSetPinState} />
     </div>
   );
 }

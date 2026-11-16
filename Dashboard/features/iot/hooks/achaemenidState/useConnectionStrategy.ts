@@ -3,6 +3,10 @@
 import { useEffect } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { dispatchLocalState, setLocalWs } from "@/features/iot/services/localWs/client";
+import { computeFullJitterDelayMs } from "@/lib/resilience";
+
+const LOCAL_WS_RECONNECT_BASE_MS = 1000;
+const LOCAL_WS_RECONNECT_MAX_MS = 30_000;
 
 function connectLocalWebSocket(
   localIp: string,
@@ -13,6 +17,7 @@ function connectLocalWebSocket(
 ): () => void {
   let ws: WebSocket | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let reconnectAttempt = 0;
   let isMounted = true;
 
   const connect = () => {
@@ -38,6 +43,7 @@ function connectLocalWebSocket(
     ws.onopen = () => {
       if (!isMounted) return;
 
+      reconnectAttempt = 0;
       console.log("[LocalWS] Connected successfully to ESP32.");
       setIsLocal(true);
       ws?.send(JSON.stringify({ command: "get_state" }));
@@ -72,7 +78,13 @@ function connectLocalWebSocket(
 
       if (reconnectTimer !== null) clearTimeout(reconnectTimer);
 
-      reconnectTimer = setTimeout(connect, 5000);
+      const delayMs = computeFullJitterDelayMs(
+        reconnectAttempt,
+        LOCAL_WS_RECONNECT_BASE_MS,
+        LOCAL_WS_RECONNECT_MAX_MS,
+      );
+      reconnectAttempt += 1;
+      reconnectTimer = setTimeout(connect, delayMs);
     };
 
     ws.onerror = (_err) => {

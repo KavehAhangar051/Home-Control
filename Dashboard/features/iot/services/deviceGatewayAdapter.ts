@@ -4,7 +4,6 @@
  * Translates application requests into concrete external services (MQTT / Cloudflare).
  */
 
-import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
   fetchConfigFromCloudflare,
   isCloudflareEnabled,
@@ -30,14 +29,15 @@ import type {
   PinAction,
   SinglePinSyncOptions,
 } from "./ports";
+import { getIoTStoreSnapshot } from "./storeBridge";
 
 export class DeviceCommandAdapter implements IDeviceCommandPort {
-  publishPinCommand(pinId: string, value: boolean, timer?: number): void {
-    mqttPublishPin(pinId, value, timer);
+  publishPinCommand(pinId: string, value: boolean, timer?: number): boolean {
+    return mqttPublishPin(pinId, value, timer);
   }
 
-  publishBatchPinCommand(actions: PinAction[]): void {
-    mqttPublishBatch(actions);
+  publishBatchPinCommand(actions: PinAction[]): boolean {
+    return mqttPublishBatch(actions);
   }
 
   publishAddSegment(id: string, type: string, pin: number, value: boolean): void {
@@ -75,68 +75,121 @@ export class CloudflareStorageAdapter implements IConfigStoragePort {
   }
 }
 
+export interface LocalWsSocketLike {
+  readyState: number;
+  send(data: string): void;
+}
+
+export interface LiveDeviceSyncDependencies {
+  getIsLocal?: () => boolean;
+  getSegments?: () => Array<{ pin: string; auto_off?: number; mode?: string }>;
+  getShowToast?: () => ((message: string, type: "success" | "error") => void) | undefined;
+  getLocalWs?: () => LocalWsSocketLike | null;
+  publishPinCommand?: (pinId: string, value: boolean, timer?: number) => boolean;
+  publishBatchPinCommand?: (actions: PinAction[]) => boolean;
+  isCloudflareEnabled?: () => boolean;
+  updatePinOnCloudflare?: (pin: string, value: boolean) => Promise<AckResponse>;
+  updateBatchPinsOnCloudflare?: (
+    actions: Array<{ pin: string; state: boolean }>,
+  ) => Promise<AckResponse>;
+}
+
+const WS_OPEN_READY_STATE = 1;
+
 /**
  * Deep multi-transport production adapter:
  * Coordinates local WebSocket, MQTT binary transmission, and Cloudflare Durable Object persistence.
  */
 export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
-  async syncSinglePin(pin: string, state: boolean, options?: SinglePinSyncOptions): Promise<void> {
-    const isLocal = useIoTStore.getState().isLocal;
-    const ws = getLocalWs();
+  private readonly deps: Required<LiveDeviceSyncDependencies>;
 
-    if (isLocal && ws?.readyState === WebSocket.OPEN) {
-      ws.send(
-        JSON.stringify({
-          command: "set_state",
-          pin: Number(pin) | 0,
-          state: state ? 1 : 0,
-          timer: options?.autoOff,
-        }),
-      );
-    } else if (!options?.preventMqtt) {
-      mqttPublishPin(pin, state, options?.autoOff);
+  constructor(dependencies: LiveDeviceSyncDependencies = {}) {
+    this.deps = {
+      getIsLocal: dependencies.getIsLocal ?? (() => getIoTStoreSnapshot().isLocal),
+      getSegments: dependencies.getSegments ?? (() => getIoTStoreSnapshot().segments),
+      getShowToast: dependencies.getShowToast ?? (() => getIoTStoreSnapshot().showToast),
+      getLocalWs: dependencies.getLocalWs ?? (() => getLocalWs()),
+      publishPinCommand: dependencies.publishPinCommand ?? mqttPublishPin,
+      publishBatchPinCommand: dependencies.publishBatchPinCommand ?? mqttPublishBatch,
+      isCloudflareEnabled: dependencies.isCloudflareEnabled ?? isCloudflareEnabled,
+      updatePinOnCloudflare: dependencies.updatePinOnCloudflare ?? updatePinOnCloudflare,
+      updateBatchPinsOnCloudflare:
+        dependencies.updateBatchPinsOnCloudflare ?? updateBatchPinsOnCloudflare,
+    };
+  }
+
+  private dispatchHardwareCommand(wsPayload: unknown, mqttSend: () => boolean): boolean {
+    const isLocal = this.deps.getIsLocal();
+    const ws = this.deps.getLocalWs();
+
+    if (isLocal && ws?.readyState === WS_OPEN_READY_STATE) {
+      ws.send(JSON.stringify(wsPayload));
+
+      return true;
     }
 
-    const resolvedPushMode =
-      options?.isPushMode !== undefined
-        ? options.isPushMode
-        : useIoTStore.getState().segments.find((s) => s.pin === pin)?.mode === "push";
+    return mqttSend();
+  }
 
-    if (isCloudflareEnabled() && !resolvedPushMode) {
-      try {
-        const result = await updatePinOnCloudflare(pin, state);
-        const toast = options?.showToast || useIoTStore.getState().showToast;
+  private async persistToCloudflareWithToast(
+    toast: ((message: string, type: "success" | "error") => void) | undefined,
+    persistFn: () => Promise<AckResponse>,
+    logErrorLabel: string,
+  ): Promise<{ succeeded: boolean; showedToast: boolean }> {
+    try {
+      const result = await persistFn();
 
-        if (toast && result.message) {
-          toast(result.message, result.success ? "success" : "error");
-        }
-      } catch (e) {
-        console.error(`Failed to sync pin ${pin} value to Cloudflare:`, e);
+      if (toast && result.message) {
+        toast(result.message, result.success ? "success" : "error");
+
+        return { succeeded: result.success, showedToast: true };
       }
+
+      return { succeeded: result.success, showedToast: false };
+    } catch (e) {
+      console.error(logErrorLabel, e);
+
+      return { succeeded: false, showedToast: false };
     }
   }
 
-  async syncBatchPins(
+  private notifyIfOffline(
+    delivered: boolean,
+    cfShowedToast: boolean,
+    toast: ((message: string, type: "success" | "error") => void) | undefined,
+    offlineMessage: string,
+  ): void {
+    if (!delivered && toast && !cfShowedToast) {
+      toast(offlineMessage, "error");
+    }
+  }
+
+  private resolveIsPushMode(pin: string, options?: SinglePinSyncOptions): boolean {
+    if (options?.isPushMode !== undefined) {
+      return options.isPushMode;
+    }
+
+    return this.deps.getSegments().find((s) => s.pin === pin)?.mode === "push";
+  }
+
+  private partitionBatchActions(
     actions: Array<{ targetPin: string; actionOn: boolean }>,
-    options?: BatchPinSyncOptions,
-  ): Promise<void> {
-    const actionsLen = actions.length;
-
-    if (actionsLen === 0) return;
-
-    const availableSegments = options?.segments ?? useIoTStore.getState().segments;
-    const cfEnabled = options?.isCfEnabled ?? isCloudflareEnabled();
-
-    const mqttActions: { pin: string; state: boolean; timer?: number }[] = [];
-    const cfActions: { pin: string; state: boolean }[] = [];
-
+    availableSegments: Array<{ pin: string; auto_off?: number; mode?: string }>,
+    cfEnabled: boolean,
+  ): {
+    mqttActions: PinAction[];
+    cfActions: Array<{ pin: string; state: boolean }>;
+  } {
     const segmentMap = new Map<string, { auto_off?: number; mode?: string }>();
 
     for (let i = 0; i < availableSegments.length; i++) {
       segmentMap.set(availableSegments[i].pin, availableSegments[i]);
     }
 
-    for (let i = 0; i < actionsLen; i++) {
+    const mqttActions: PinAction[] = [];
+    const cfActions: Array<{ pin: string; state: boolean }> = [];
+
+    for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
       const segment = segmentMap.get(action.targetPin);
       mqttActions.push({ pin: action.targetPin, state: action.actionOn, timer: segment?.auto_off });
@@ -146,41 +199,132 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
       }
     }
 
-    const isLocal = useIoTStore.getState().isLocal;
-    const ws = getLocalWs();
+    return { mqttActions, cfActions };
+  }
 
-    if (isLocal && ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ command: "batch_state", actions: mqttActions }));
-    } else {
-      mqttPublishBatch(mqttActions);
+  async syncSinglePin(
+    pin: string,
+    state: boolean,
+    options?: SinglePinSyncOptions,
+  ): Promise<boolean> {
+    const wsPayload = {
+      command: "set_state",
+      pin: Number(pin) | 0,
+      state: state ? 1 : 0,
+      timer: options?.autoOff,
+    };
+
+    const hardwareSent = this.dispatchHardwareCommand(
+      wsPayload,
+      () => !options?.preventMqtt && this.deps.publishPinCommand(pin, state, options?.autoOff),
+    );
+
+    const isPushMode = this.resolveIsPushMode(pin, options);
+    const toast = options?.showToast || this.deps.getShowToast();
+    let cfSucceeded = false;
+    let cfAttempted = false;
+    let cfShowedToast = false;
+
+    if (this.deps.isCloudflareEnabled() && !isPushMode) {
+      cfAttempted = true;
+      const cfOutcome = await this.persistToCloudflareWithToast(
+        toast,
+        () => this.deps.updatePinOnCloudflare(pin, state),
+        `Failed to sync pin ${pin} value to Cloudflare:`,
+      );
+      cfSucceeded = cfOutcome.succeeded;
+      cfShowedToast = cfOutcome.showedToast;
     }
+
+    if (options?.preventMqtt) {
+      return !cfAttempted || cfSucceeded;
+    }
+
+    const delivered = hardwareSent || cfSucceeded;
+    this.notifyIfOffline(
+      delivered,
+      cfShowedToast,
+      toast,
+      "ارتباط با دستگاه (MQTT/سرور) برقرار نیست؛ دستور ارسال نشد.",
+    );
+
+    return delivered;
+  }
+
+  async syncBatchPins(
+    actions: Array<{ targetPin: string; actionOn: boolean }>,
+    options?: BatchPinSyncOptions,
+  ): Promise<boolean> {
+    if (actions.length === 0) return false;
+
+    const availableSegments = options?.segments ?? this.deps.getSegments();
+    const cfEnabled = options?.isCfEnabled ?? this.deps.isCloudflareEnabled();
+    const { mqttActions, cfActions } = this.partitionBatchActions(
+      actions,
+      availableSegments,
+      cfEnabled,
+    );
+
+    const hardwareSent = this.dispatchHardwareCommand(
+      { command: "batch_state", actions: mqttActions },
+      () => this.deps.publishBatchPinCommand(mqttActions),
+    );
+
+    const toast = options?.showToast || this.deps.getShowToast();
+    let cfSucceeded = false;
+    let cfShowedToast = false;
 
     if (cfActions.length > 0) {
-      try {
-        const result = await updateBatchPinsOnCloudflare(cfActions);
-        const toast = options?.showToast || useIoTStore.getState().showToast;
-
-        if (toast && result.message) {
-          toast(result.message, result.success ? "success" : "error");
-        }
-      } catch (e) {
-        console.error("Failed to batch sync pins to Cloudflare:", e);
-      }
+      const cfOutcome = await this.persistToCloudflareWithToast(
+        toast,
+        () => this.deps.updateBatchPinsOnCloudflare(cfActions),
+        "Failed to batch sync pins to Cloudflare:",
+      );
+      cfSucceeded = cfOutcome.succeeded;
+      cfShowedToast = cfOutcome.showedToast;
     }
+
+    const delivered = hardwareSent || cfSucceeded;
+    this.notifyIfOffline(
+      delivered,
+      cfShowedToast,
+      toast,
+      "ارتباط با دستگاه (MQTT/سرور) برقرار نیست؛ دستور گروهی ارسال نشد.",
+    );
+
+    return delivered;
   }
 }
 
+const MAX_DISPATCH_LOG_ENTRIES = 500;
+
 /**
  * In-memory test & simulation adapter:
- * Tracks dispatches in-memory with zero network I/O for deterministic testing.
+ * Tracks bounded dispatches in-memory with zero network I/O for deterministic testing.
  */
 export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
   public pinsState = new Map<string, boolean>();
   public dispatchLog: Array<{ type: "single" | "batch"; payload: unknown; timestamp: number }> = [];
 
-  async syncSinglePin(pin: string, state: boolean, options?: SinglePinSyncOptions): Promise<void> {
+  private appendDispatchLog(entry: {
+    type: "single" | "batch";
+    payload: unknown;
+    timestamp: number;
+  }): void {
+    this.dispatchLog.push(entry);
+
+    if (this.dispatchLog.length > MAX_DISPATCH_LOG_ENTRIES) {
+      this.dispatchLog.splice(0, this.dispatchLog.length - MAX_DISPATCH_LOG_ENTRIES);
+    }
+  }
+
+  async syncSinglePin(
+    pin: string,
+    state: boolean,
+    options?: SinglePinSyncOptions,
+  ): Promise<boolean> {
     this.pinsState.set(pin, state);
-    this.dispatchLog.push({
+    this.appendDispatchLog({
       type: "single",
       payload: { pin, state, options },
       timestamp: Date.now(),
@@ -189,21 +333,29 @@ export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
     if (options?.showToast) {
       options.showToast(`[Simulation] Pin ${pin} synced to ${state}`, "success");
     }
+
+    return true;
   }
 
   async syncBatchPins(
     actions: Array<{ targetPin: string; actionOn: boolean }>,
     options?: BatchPinSyncOptions,
-  ): Promise<void> {
+  ): Promise<boolean> {
     for (const a of actions) {
       this.pinsState.set(a.targetPin, a.actionOn);
     }
 
-    this.dispatchLog.push({ type: "batch", payload: { actions, options }, timestamp: Date.now() });
+    this.appendDispatchLog({
+      type: "batch",
+      payload: { actions, options },
+      timestamp: Date.now(),
+    });
 
     if (options?.showToast) {
       options.showToast(`[Simulation] ${actions.length} pins batch synced`, "success");
     }
+
+    return true;
   }
 
   reset(): void {

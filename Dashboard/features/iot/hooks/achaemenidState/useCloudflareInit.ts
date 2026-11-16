@@ -23,6 +23,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
   const setGroupConfigs = useIoTStore((state) => state.setGroupConfigs);
   const setSyncStatus = useIoTStore((state) => state.setSyncStatus);
   const [isFullyReady, setIsFullyReady] = useState(false);
+  const [remoteSyncEpoch, setRemoteSyncEpoch] = useState(0);
   const [workerUrl, setWorkerUrlState] = useState(() => getCloudflareWorkerUrl());
   const bypassedRef = useRef(false);
 
@@ -35,7 +36,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     bypassedRef.current = true;
 
     // Optional offline recovery is explicitly disabled during development.
-    if (FEATURE_FLAGS.configLocalCache && typeof window !== "undefined") {
+    if (FEATURE_FLAGS.configLocalCache && globalThis.window !== undefined) {
       try {
         const cached = localStorage.getItem("cached_esp_config");
 
@@ -45,6 +46,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
 
           if (cachedConfig && Array.isArray(cachedConfig.segments) && cachedConfig.layout) {
             handleApplyEspConfig(cachedConfig);
+            setRemoteSyncEpoch((prev) => prev + 1);
             setSyncStatus(false, 100, "اتصال به سرور برقرار نیست؛ تنظیمات کش‌شده بارگذاری شد.");
             setIsFullyReady(true);
             debugLog.warn("ConfigSync", "Recovered configuration from optional local cache.");
@@ -61,6 +63,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     setSegments([]);
     setGroupsOrder([]);
     setGroupConfigs({});
+    setRemoteSyncEpoch((prev) => prev + 1);
     setSyncStatus(
       false,
       0,
@@ -77,7 +80,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     let attemptCount = 0;
     const maxAttempts = 2;
 
-    if (typeof window !== "undefined" && !FEATURE_FLAGS.configLocalCache) {
+    if (globalThis.window !== undefined && !FEATURE_FLAGS.configLocalCache) {
       try {
         localStorage.removeItem("cached_esp_config");
       } catch (error) {
@@ -95,6 +98,13 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
       return;
     }
 
+    if (globalThis.navigator?.onLine === false) {
+      debugLog.warn("ConfigSync", "Browser offline detected; bypassing remote configuration wait.");
+      handleBypassSync();
+
+      return;
+    }
+
     bypassedRef.current = false;
 
     while (!bypassedRef.current && attemptCount < maxAttempts) {
@@ -106,14 +116,15 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
       );
 
       try {
-        const cfConfig = await fetchConfigFromCloudflare({ timeoutMs: 6500 });
+        const timeoutMs = attemptCount === 1 ? 3000 : 1800;
+        const cfConfig = await fetchConfigFromCloudflare({ timeoutMs });
 
         if (cfConfig && Array.isArray(cfConfig.segments)) {
           if (bypassedRef.current) return;
 
           if (cfConfig.worker_url) handleWorkerUrlChange(cfConfig.worker_url);
 
-          if (FEATURE_FLAGS.configLocalCache && typeof window !== "undefined") {
+          if (FEATURE_FLAGS.configLocalCache && globalThis.window !== undefined) {
             try {
               localStorage.setItem("cached_esp_config", JSON.stringify(cfConfig));
             } catch (error) {
@@ -122,6 +133,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
           }
 
           handleApplyEspConfig(cfConfig);
+          setRemoteSyncEpoch((prev) => prev + 1);
           setSyncStatus(false, 100, "همگام‌سازی تنظیمات انجام شد.");
           setIsFullyReady(true);
           debugLog.info("ConfigSync", "Cloud configuration applied.", {
@@ -150,7 +162,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
           Math.min(25 + attemptCount * 35, 95),
           "دریافت تنظیمات ناموفق بود؛ تلاش مجدد...",
         );
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        await new Promise((resolve) => setTimeout(resolve, 250));
       }
     }
 
@@ -174,6 +186,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
   return {
     isFullyReady,
     setIsFullyReady,
+    remoteSyncEpoch,
     handleBypassSync,
     workerUrl,
     setWorkerUrl: handleWorkerUrlChange,

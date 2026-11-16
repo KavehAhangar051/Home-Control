@@ -1,9 +1,8 @@
 import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Save } from "@/components/ui/hugeicons";
-import { buildEspConfig } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
+import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { saveConfigToCloudflare } from "@/features/iot/services/cloudflare/api";
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
 import { getMqttSettings, reconnectMqtt } from "@/features/iot/services/mqttService";
 import { soundManager } from "@/lib/audio";
@@ -21,6 +20,12 @@ type MqttLocalOverrides = {
 const subscribeMqttDefaults = () => () => {};
 const getServerMqttSettingsSnapshot = () => "";
 
+interface ParsedMqttDefaults {
+  brokerUrl: string;
+  baseTopic: string;
+  qos: 0 | 1 | 2;
+}
+
 function getClientMqttSettingsSnapshot(): string {
   const settings = getMqttSettings();
 
@@ -31,6 +36,22 @@ function getClientMqttSettingsSnapshot(): string {
   });
 }
 
+function resolveMqttDraftValues(
+  overrides: MqttLocalOverrides,
+  mqttConfig: ReturnType<typeof useIoTStore.getState>["mqttConfig"],
+  initialSettings: ParsedMqttDefaults | null,
+) {
+  return {
+    brokerWsUrl:
+      overrides.brokerWsUrl ?? mqttConfig?.broker_ws_url ?? initialSettings?.brokerUrl ?? "",
+    brokerHost:
+      overrides.brokerHost ?? mqttConfig?.broker_host ?? (initialSettings ? "broker.emqx.io" : ""),
+    brokerPort: overrides.brokerPort ?? mqttConfig?.broker_port ?? 1883,
+    baseTopic: overrides.baseTopic ?? mqttConfig?.base_topic ?? initialSettings?.baseTopic ?? "",
+    qos: overrides.qos ?? mqttConfig?.qos ?? initialSettings?.qos ?? 1,
+  };
+}
+
 export default function MqttSection() {
   const settingsJson = useSyncExternalStore(
     subscribeMqttDefaults,
@@ -39,9 +60,7 @@ export default function MqttSection() {
   );
 
   // SAFETY: settingsJson is produced by getClientMqttSettingsSnapshot
-  const initialSettings = settingsJson
-    ? (JSON.parse(settingsJson) as { brokerUrl: string; baseTopic: string; qos: 0 | 1 | 2 })
-    : null;
+  const initialSettings = settingsJson ? (JSON.parse(settingsJson) as ParsedMqttDefaults) : null;
 
   const mqttConfig = useIoTStore((state) => state.mqttConfig);
   const setMqttConfig = useIoTStore((state) => state.setMqttConfig);
@@ -50,14 +69,11 @@ export default function MqttSection() {
   const [overrides, setOverrides] = useState<MqttLocalOverrides>({});
   const [isSaved, setIsSaved] = useState(false);
 
-  const brokerWsUrl =
-    overrides.brokerWsUrl ?? mqttConfig?.broker_ws_url ?? initialSettings?.brokerUrl ?? "";
-  const brokerHost =
-    overrides.brokerHost ?? mqttConfig?.broker_host ?? (initialSettings ? "broker.emqx.io" : "");
-  const brokerPort = overrides.brokerPort ?? mqttConfig?.broker_port ?? 1883;
-  const baseTopic =
-    overrides.baseTopic ?? mqttConfig?.base_topic ?? initialSettings?.baseTopic ?? "";
-  const qos = overrides.qos ?? mqttConfig?.qos ?? initialSettings?.qos ?? 1;
+  const { brokerWsUrl, brokerHost, brokerPort, baseTopic, qos } = resolveMqttDraftValues(
+    overrides,
+    mqttConfig,
+    initialSettings,
+  );
 
   const setBrokerWsUrl = (val: string) => setOverrides((prev) => ({ ...prev, brokerWsUrl: val }));
   const setBrokerHost = (val: string) => setOverrides((prev) => ({ ...prev, brokerHost: val }));
@@ -96,19 +112,13 @@ export default function MqttSection() {
     }
 
     try {
-      const currentConfig = buildEspConfig({
-        ...useIoTStore.getState(),
-        mqttConfig: newMqttConfig,
+      const { result } = await persistStoreConfigToCloudflare({
+        overrides: { mqttConfig: newMqttConfig },
       });
-      const res = await saveConfigToCloudflare(currentConfig);
 
-      if (res.success) {
-        useIoTStore.getState().resetUnsavedChanges();
-        showToast(res.message, "success");
+      if (result.success) {
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
-      } else {
-        showToast(res.message, "error");
       }
     } catch (e) {
       console.error("Failed to save MQTT settings to cloud", e);
@@ -119,7 +129,7 @@ export default function MqttSection() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <p className="text-[10px] text-[var(--text-tertiary)] leading-relaxed text-right">
+        <p className="text-[10px] leading-relaxed text-right text-text-tertiary">
           تنظیمات ارتباطی داشبورد با ماژول‌های ESP را مدیریت کنید. پس از ذخیره، اتصال مجدداً برقرار
           می‌شود.
         </p>
@@ -141,22 +151,22 @@ export default function MqttSection() {
 
       <Button
         type="button"
-        variant={isSaved ? "outline" : "default"}
+        variant={isSaved ? "outline" : "accent"}
         onClick={handleSaveAndReconnect}
-        className={`w-full h-auto min-h-12 rounded-xl px-4 py-3.5 text-sm font-bold transition-colors focus-visible:ring-[var(--accent3)] ${
+        className={`w-full h-auto min-h-12 rounded-xl px-4 py-3.5 text-sm font-bold ${
           isSaved
-            ? "border-[var(--accent4)] bg-[var(--accent4-transparent)] text-[var(--accent4)] hover:border-[var(--accent4)] hover:bg-[var(--accent4-transparent)] hover:text-[var(--accent4)]"
-            : "border-transparent bg-[var(--accent3)] text-[var(--bg-main)] shadow-sm hover:bg-[var(--accent3-dark)] hover:text-[var(--bg-main)]"
+            ? "border-accent4 bg-accent4-soft text-accent4 hover:border-accent4 hover:bg-accent4-soft hover:text-accent4"
+            : ""
         }`}
       >
         {isSaved ? (
           <>
-            <Save className="w-4 h-4" />
+            <Save className="size-4" />
             ذخیره شد
           </>
         ) : (
           <>
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="size-4" />
             ذخیره و اتصال مجدد
           </>
         )}

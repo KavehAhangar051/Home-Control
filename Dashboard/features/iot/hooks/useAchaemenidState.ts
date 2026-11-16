@@ -1,7 +1,6 @@
 "use client";
 
 import { useAchaemenidDnd } from "./achaemenidState/useAchaemenidDnd";
-import { useApplyEspConfig } from "./achaemenidState/useApplyEspConfig";
 import { useCloudflareInit } from "./achaemenidState/useCloudflareInit";
 import { useCloudflarePush } from "./achaemenidState/useCloudflarePush";
 import { useCloudflareQuery } from "./achaemenidState/useCloudflareQuery";
@@ -13,15 +12,16 @@ import { useIoTStore } from "./useIoTStore";
 
 export function useAchaemenidState() {
   const setActiveWorkspaceView = useIoTStore((s) => s.setActiveWorkspaceView);
+  const handleApplyEspConfig = useIoTStore((s) => s.applyEspConfig);
 
   useConnectionStrategy();
 
-  const { mounted, refetchIot } = useCloudflareQuery();
-  const { handleApplyEspConfig } = useApplyEspConfig();
+  const { mounted } = useCloudflareQuery();
 
   const {
     isFullyReady,
     setIsFullyReady,
+    remoteSyncEpoch,
     handleBypassSync,
     workerUrl,
     setWorkerUrl,
@@ -31,7 +31,7 @@ export function useAchaemenidState() {
     handleApplyEspConfig,
   });
 
-  const { triggerCloudflarePush } = useCloudflarePush(isFullyReady);
+  const { triggerCloudflarePush } = useCloudflarePush(isFullyReady, remoteSyncEpoch);
 
   const {
     isLoadingIoT,
@@ -39,9 +39,7 @@ export function useAchaemenidState() {
     handleTogglePin,
     handleSetPinState,
     handleBatchPinState,
-  } = usePinOperations({
-    refetchIot,
-  });
+  } = usePinOperations();
 
   const {
     targetPlaceholderId,
@@ -68,7 +66,7 @@ export function useAchaemenidState() {
   return {
     isLoadingIoT,
     mounted,
-    refetchIot,
+    refetchIot: handleRetrySync,
     isFullyReady,
     setIsFullyReady,
     ...dnd,

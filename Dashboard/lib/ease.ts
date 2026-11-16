@@ -45,6 +45,7 @@ export function getStaggerDelay(
 ): number {
   if (index <= 0 || step <= 0 || maxBudget <= 0) return 0;
   const safeCap = Math.min(maxBudget, 0.45);
+
   return Math.min(Number((index * step).toFixed(3)), safeCap);
 }
 

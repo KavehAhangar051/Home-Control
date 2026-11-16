@@ -5,9 +5,41 @@ import {
   getSimilarity,
   normalizePhonetics,
 } from "../components/MasterHeader/VoiceCommandButton/utils.ts";
+import { buildValidatedAutomationDraft } from "../features/iot/components/AutomationsDrawer/hooks/useAutomationForm.ts";
+import {
+  buildBezierWireGeometry,
+  buildDefaultCanvasNodes,
+  CANVAS_GRID_STEP,
+  canvasGroupNodeId,
+  canvasSegmentNodeId,
+  clampCanvasNodeSize,
+  clampCanvasZoom,
+  computeFitCanvasViewport,
+  getCanvasGridStyle,
+  getPresetDimensions,
+  snapNodeRectToGrid,
+} from "../features/iot/components/canvas/canvasGeometry.ts";
+import { reconcileCanvasNodes } from "../features/iot/components/canvas/canvasStorage.ts";
+import {
+  computeDragTiltDeg,
+  findMagneticInputPort,
+} from "../features/iot/components/canvas/nodeMotion.ts";
+import { computeResizedNodeRect } from "../features/iot/components/canvas/useCanvasNodeInteractions.ts";
+import { resolveSegmentSchematicKind } from "../features/iot/components/workflows/workflowSchematicUtils.ts";
+import {
+  canConnectWorkflowPorts,
+  clampWorkflowNodeSize,
+  createEmptyWorkflow,
+  createWorkflowNode,
+  evaluateWorkflowGraph,
+  getWorkflowGridStyle,
+  snapWorkflowNodeToGrid,
+} from "../features/iot/components/workflows/workflowEngine.ts";
 import { buildEspConfig } from "../features/iot/hooks/achaemenidState/core/buildEspConfig.ts";
 import {
   deserializeFromCloudflare,
+  normalizeSegmentRule,
+  resolveSegmentGroup,
   serializeToCloudflare,
 } from "../features/iot/services/cloudflare/mappers.ts";
 import { InMemoryDeviceSyncAdapter } from "../features/iot/services/deviceGatewayAdapter.ts";
@@ -85,10 +117,7 @@ describe("Persian Voice Command Engine Contracts", () => {
       voiceCommands: [
         {
           phrase: "حالت شب",
-          actions: [
-            { targetPin: "4", actionOn: true },
-            { targetMacro: "macro-sleep" },
-          ],
+          actions: [{ targetPin: "4", actionOn: true }, { targetMacro: "macro-sleep" }],
         },
       ],
       macros: [
@@ -146,6 +175,98 @@ describe("Persian Voice Command Engine Contracts", () => {
     ]);
     assert.equal(toasts.length, 2);
   });
+
+  it("blocks input-only/invalid pins and input/placeholder segments from voice actuation", () => {
+    const singleCalls = [];
+    const batchCalls = [];
+    const toasts = [];
+
+    const context = {
+      voiceCommands: [
+        {
+          phrase: "تست پین نامعتبر",
+          actions: [
+            { targetPin: "34", actionOn: true },
+            { targetPin: "6", actionOn: true },
+            { targetPin: "12", actionOn: true },
+          ],
+        },
+        {
+          phrase: "فرمان خالی",
+          actions: [{ targetPin: "34", actionOn: true }],
+        },
+      ],
+      macros: [],
+      segments: [
+        { pin: "34", title: "سنسور حرکت", type: "input" },
+        { pin: "12", title: "روشنایی", type: "relay" },
+        { pin: "13", title: "جایگاه خالی", type: "placeholder" },
+      ],
+      handleSetPinState: (pin, state) => {
+        singleCalls.push({ pin, state });
+      },
+      handleBatchPinState: (actions) => {
+        batchCalls.push(actions);
+      },
+      showToast: (msg, type) => {
+        toasts.push({ msg, type });
+      },
+    };
+
+    const partial = executeVoiceCommand("تست پین نامعتبر", context);
+    assert.equal(partial.matched, true);
+    assert.equal(partial.kind, "custom");
+    assert.equal(partial.dispatchedCount, 1);
+    assert.deepEqual(partial.skippedPins, ["34", "6"]);
+    assert.deepEqual(batchCalls, [[{ targetPin: "12", actionOn: true }]]);
+
+    const emptyCmd = executeVoiceCommand("فرمان خالی", context);
+    assert.equal(emptyCmd.matched, true);
+    assert.equal(emptyCmd.kind, "custom");
+    assert.equal(emptyCmd.dispatchedCount, 0);
+    assert.equal(toasts[toasts.length - 1].type, "error");
+
+    const sensorRes = executeVoiceCommand("سنسور حرکت را روشن کن", context);
+    assert.equal(sensorRes.matched, false);
+    assert.equal(sensorRes.dispatchedCount, 0);
+
+    const placeholderRes = executeVoiceCommand("جایگاه خالی را روشن کن", context);
+    assert.equal(placeholderRes.matched, false);
+    assert.equal(singleCalls.length, 0);
+  });
+
+  it("withholds false success toast when async pin dispatch resolves to false", async () => {
+    const toasts = [];
+
+    executeVoiceCommand("چراغ تست را روشن کن", {
+      voiceCommands: [],
+      macros: [],
+      segments: [{ pin: "18", title: "چراغ تست", type: "relay" }],
+      handleSetPinState: async () => false,
+      handleBatchPinState: async () => false,
+      showToast: (msg, type) => {
+        toasts.push({ msg, type });
+      },
+    });
+
+    await Promise.resolve();
+    assert.equal(toasts.length, 0);
+
+    executeVoiceCommand("چراغ تست را خاموش کن", {
+      voiceCommands: [],
+      macros: [],
+      segments: [{ pin: "18", title: "چراغ تست", type: "relay" }],
+      handleSetPinState: async () => true,
+      handleBatchPinState: async () => true,
+      showToast: (msg, type) => {
+        toasts.push({ msg, type });
+      },
+    });
+
+    await Promise.resolve();
+    assert.equal(toasts.length, 1);
+    assert.equal(toasts[0].type, "success");
+  });
 });
 
 describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
@@ -165,8 +286,12 @@ describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
       segments: [{ id: "seg-1", pin: "5", title: "نور مخفی", type: "relay", group: "LivingRoom" }],
       automations: [],
       macros: [{ id: "m1", title: "ورود", actions: [{ targetPin: "5", actionOn: true }] }],
-      voiceCommands: [{ id: "vc1", phrase: "نور مخفی", actions: [{ targetPin: "5", actionOn: true }] }],
+      voiceCommands: [
+        { id: "vc1", phrase: "نور مخفی", actions: [{ targetPin: "5", actionOn: true }] },
+      ],
       wifiNetworks: [{ ssid: "HomeNet", password: "secret" }],
+      wifiNetworksConfigured: true,
+      wifiApConfig: null,
       mqttConfig: { broker_ws_url: "wss://broker.example/mqtt", base_topic: "home/esp32", qos: 1 },
       headerAnimationType: "chase",
       headerPosition: "left",
@@ -207,6 +332,57 @@ describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
     assert.equal(deserialized.automations?.length, 1);
     assert.deepEqual(deserialized.automations?.[0].actions, [{ targetPin: "23", actionOn: true }]);
   });
+
+  it("normalizes segment groups and legacy single-target/dual-target segment rules at the boundary", () => {
+    assert.equal(resolveSegmentGroup(""), "Test");
+    assert.equal(resolveSegmentGroup("   "), "Test");
+    assert.equal(resolveSegmentGroup(undefined), "Test");
+    assert.equal(resolveSegmentGroup(null), "Test");
+    assert.equal(resolveSegmentGroup("آشپزخانه"), "آشپزخانه");
+
+    assert.deepEqual(
+      normalizeSegmentRule({
+        targetPinHigh: "12",
+        reqHoldHigh: 2,
+        actionOnHigh: false,
+        targetPinLow: "14",
+        actionOnLow: true,
+      }),
+      {
+        highActions: [
+          { reqHold: 2, targetPin: "12", actionOn: false, actionType: 0, delay: 0 },
+        ],
+        lowActions: [
+          { reqHold: 0, targetPin: "14", actionOn: true, actionType: 0, delay: 0 },
+        ],
+      },
+    );
+
+    const deserialized = deserializeFromCloudflare({
+      segments_definition: [
+        {
+          id: "s-legacy",
+          pin: "34",
+          title: "سنسور در",
+          type: "input",
+          group: "",
+          rule: {
+            triggerState: true,
+            targetPin: "5",
+            actionState: true,
+          },
+        },
+      ],
+    });
+
+    assert.equal(deserialized.segments[0].group, "Test");
+    assert.deepEqual(deserialized.segments[0].rule, {
+      highActions: [
+        { reqHold: 0, targetPin: "5", actionOn: true, actionType: 0, delay: 0 },
+      ],
+      lowActions: [],
+    });
+  });
 });
 
 describe("IDeviceSyncPort In-Memory Boundary Contract", () => {
@@ -214,13 +390,14 @@ describe("IDeviceSyncPort In-Memory Boundary Contract", () => {
     const adapter = new InMemoryDeviceSyncAdapter();
     const notifications = [];
 
-    await adapter.syncSinglePin("14", true, {
+    const singleOk = await adapter.syncSinglePin("14", true, {
       showToast: (msg, type) => notifications.push({ msg, type }),
     });
+    assert.equal(singleOk, true);
     assert.equal(adapter.pinsState.get("14"), true);
     assert.equal(adapter.dispatchLog.length, 1);
 
-    await adapter.syncBatchPins(
+    const batchOk = await adapter.syncBatchPins(
       [
         { targetPin: "14", actionOn: false },
         { targetPin: "27", actionOn: true },
@@ -230,6 +407,7 @@ describe("IDeviceSyncPort In-Memory Boundary Contract", () => {
       },
     );
 
+    assert.equal(batchOk, true);
     assert.equal(adapter.pinsState.get("14"), false);
     assert.equal(adapter.pinsState.get("27"), true);
     assert.equal(adapter.dispatchLog.length, 2);
@@ -264,6 +442,557 @@ describe("Motion Design System Contracts (lib/ease)", () => {
     assert.equal(ERROR_SHAKE_KEYFRAMES[ERROR_SHAKE_KEYFRAMES.length - 1], 0);
     const sum = ERROR_SHAKE_KEYFRAMES.reduce((acc, v) => acc + v, 0);
     assert.equal(sum, 0);
+  });
+});
+
+describe("n8n Canvas Sheet Geometry Contracts", () => {
+  it("generates group and segment nodes with valid bounds and bezier wires in graph mode", () => {
+    const groupsOrder = ["پذیرایی"];
+    const segments = [
+      { id: "s1", pin: "2", title: "لوستر", type: "relay", group: "پذیرایی" },
+      { id: "s2", pin: "4", title: "آباژور", type: "relay", group: "پذیرایی" },
+    ];
+
+    const nodes = buildDefaultCanvasNodes("graph", groupsOrder, segments, true);
+    const groupNode = nodes[canvasGroupNodeId("پذیرایی")];
+    const segNode1 = nodes[canvasSegmentNodeId("s1")];
+    const segNode2 = nodes[canvasSegmentNodeId("s2")];
+
+    assert.ok(groupNode);
+    assert.ok(segNode1);
+    assert.ok(segNode2);
+    assert.ok(groupNode.width >= 210 && groupNode.height >= 128);
+    assert.ok(segNode1.width >= 165 && segNode1.height >= 120);
+
+    const wire = buildBezierWireGeometry(groupNode, segNode1);
+    assert.ok(wire.path.startsWith("M "));
+    assert.ok(wire.path.includes(" C "));
+  });
+
+  it("clamps zoom and node resize bounds deterministically", () => {
+    assert.equal(clampCanvasZoom(0.1), 0.35);
+    assert.equal(clampCanvasZoom(5.0), 2.0);
+
+    const clampedSeg = clampCanvasNodeSize("segment", "graph", 80, 60, true);
+    assert.ok(clampedSeg.width >= 160);
+    assert.ok(clampedSeg.height >= 112);
+
+    const fit = computeFitCanvasViewport(
+      {
+        "group:پذیرایی": { x: 100, y: 100, width: 260, height: 160, zIndex: 1 },
+      },
+      ["group:پذیرایی"],
+      800,
+      600,
+      40,
+    );
+    assert.ok(fit.zoom >= 0.35 && fit.zoom <= 2.0);
+    assert.ok(Number.isFinite(fit.x) && Number.isFinite(fit.y));
+  });
+
+  it("keeps every default node, preset, clamp bound, and X/Y gap strictly aligned to the 16px grid", () => {
+    const groupsOrder = ["پذیرایی", "آشپزخانه", "اتاق"];
+    const segments = [
+      { id: "s1", pin: "2", title: "چراغ ۱", type: "relay", group: "پذیرایی" },
+      { id: "s2", pin: "4", title: "چراغ ۲", type: "relay", group: "پذیرایی" },
+      { id: "s3", pin: "5", title: "فر", type: "relay", group: "آشپزخانه" },
+      { id: "s4", pin: "12", title: "هود", type: "relay", group: "آشپزخانه" },
+      { id: "s5", pin: "13", title: "آباژور", type: "relay", group: "اتاق" },
+      { id: "s6", pin: "14", title: "فن", type: "relay", group: "اتاق" },
+    ];
+
+    for (const subMode of ["segments", "groups", "graph"]) {
+      for (const isMobile of [false, true]) {
+        const nodes = buildDefaultCanvasNodes(subMode, groupsOrder, segments, isMobile);
+
+        for (const [id, rect] of Object.entries(nodes)) {
+          assert.equal(rect.x % CANVAS_GRID_STEP, 0, `${subMode} ${id} x=${rect.x} not %16`);
+          assert.equal(rect.y % CANVAS_GRID_STEP, 0, `${subMode} ${id} y=${rect.y} not %16`);
+          assert.equal(
+            rect.width % CANVAS_GRID_STEP,
+            0,
+            `${subMode} ${id} width=${rect.width} not %16`,
+          );
+          assert.equal(
+            rect.height % CANVAS_GRID_STEP,
+            0,
+            `${subMode} ${id} height=${rect.height} not %16`,
+          );
+        }
+      }
+    }
+
+    // Verify uniform equal X and Y gaps in desktop "segments" mode (no 32/16 alternating jitter)
+    const desktopSegNodes = buildDefaultCanvasNodes("segments", groupsOrder, segments, false);
+    const n1 = desktopSegNodes[canvasSegmentNodeId("s1")];
+    const n2 = desktopSegNodes[canvasSegmentNodeId("s2")];
+    const n3 = desktopSegNodes[canvasSegmentNodeId("s3")];
+    const n4 = desktopSegNodes[canvasSegmentNodeId("s4")];
+    const gapCol1 = n2.x - (n1.x + n1.width);
+    const gapCol2 = n3.x - (n2.x + n2.width);
+    const gapRow = n4.y - (n1.y + n1.height);
+    assert.equal(gapCol1, 32);
+    assert.equal(gapCol2, 32);
+    assert.equal(gapRow, 32);
+
+    // Single-row group container height in "groups" mode is tightened (208px) to match inner card without bottom slack
+    const singleGroupNodes = buildDefaultCanvasNodes(
+      "groups",
+      ["حیاط"],
+      [{ id: "s1", pin: "30", title: "در ورودی", type: "relay", group: "حیاط" }],
+      false,
+    );
+    const singleGroupRect = singleGroupNodes[canvasGroupNodeId("حیاط")];
+    assert.equal(singleGroupRect.height, 208);
+    assert.equal(singleGroupRect.height % CANVAS_GRID_STEP, 0);
+
+    // Verify presets and clamped bounds stay strictly divisible by 16
+    for (const preset of ["sm", "md", "lg"]) {
+      for (const kind of ["segment", "group"]) {
+        for (const subMode of ["segments", "groups", "graph"]) {
+          const dims = getPresetDimensions(kind, subMode, preset, 3);
+          assert.equal(dims.width % CANVAS_GRID_STEP, 0);
+          assert.equal(dims.height % CANVAS_GRID_STEP, 0);
+        }
+      }
+    }
+
+    const normalized = snapNodeRectToGrid(
+      { x: 53, y: 101, width: 220, height: 136, zIndex: 2 },
+      "segment",
+      "segments",
+    );
+    assert.deepEqual(normalized, { x: 48, y: 96, width: 224, height: 144, zIndex: 2 });
+  });
+
+  it("centers background grid dots on snapped world intersections without zoom rounding drift", () => {
+    // At zoom=0.92, step must stay exact floating-point 16 * 0.92 = 14.72px (not rounded to 15px)
+    const style92 = getCanvasGridStyle(32, 24, 0.92);
+    assert.equal(style92.backgroundSize, "14.72px 14.72px");
+
+    // At zoom=1.0 and vp=(32, 24): 32 % 16 = 0 => pos = 0 - 8 = -8px; 24 % 16 = 8 => pos = 8 - 8 = 0px
+    const style100 = getCanvasGridStyle(32, 24, 1.0);
+    assert.equal(style100.backgroundSize, "16px 16px");
+    assert.equal(style100.backgroundPosition, "-8px 0px");
+
+    // Below 8px per grid cell (zoom=0.4 => 6.4px), dot spacing doubles cleanly to 12.8px (2x lattice)
+    const style40 = getCanvasGridStyle(0, 0, 0.4);
+    assert.equal(style40.backgroundSize, "12.8px 12.8px");
+    assert.equal(style40.backgroundPosition, "-6.4px -6.4px");
+    assert.deepEqual(getWorkflowGridStyle(32, 24, 0.92), style92);
+  });
+
+  it("prunes deleted group and segment nodes during reconciliation without wiping cold mount storage", () => {
+    const defaults = buildDefaultCanvasNodes(
+      "graph",
+      ["پذیرایی"],
+      [{ id: "s1", pin: "2", title: "لوستر", type: "relay", group: "پذیرایی" }],
+      false,
+    );
+
+    const coldMount = reconcileCanvasNodes({
+      subMode: "graph",
+      defaults: {},
+      storedNodes: {
+        "group:پذیرایی": { x: 64, y: 64, width: 256, height: 144, zIndex: 999 },
+      },
+      prevNodes: {},
+      snapToGrid: true,
+      baseTopZIndex: 30,
+      hasEntities: false,
+    });
+    assert.deepEqual(coldMount.nodes, {});
+    assert.equal(coldMount.shouldPersist, false);
+
+    const pruned = reconcileCanvasNodes({
+      subMode: "graph",
+      defaults,
+      storedNodes: {
+        "group:پذیرایی": { x: 64, y: 64, width: 256, height: 144, zIndex: 35 },
+        "segment:s-deleted": { x: 400, y: 400, width: 224, height: 144, zIndex: 999 },
+      },
+      prevNodes: {
+        "segment:s1": { x: 320, y: 64, width: 224, height: 144, zIndex: 36 },
+        "segment:s-deleted": { x: 400, y: 400, width: 224, height: 144, zIndex: 999 },
+      },
+      snapToGrid: true,
+      baseTopZIndex: 30,
+      hasEntities: true,
+    });
+
+    assert.equal(pruned.shouldPersist, true);
+    assert.equal(Object.hasOwn(pruned.nodes, "segment:s-deleted"), false);
+    assert.equal(pruned.nodes["group:پذیرایی"].x, 64);
+    assert.equal(pruned.nodes["segment:s1"].x, 320);
+    assert.equal(pruned.nextTopZIndex, 37);
+  });
+});
+
+describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
+  const sampleSegments = [
+    { id: "seg-sensor", pin: "34", title: "سنسور حرکت", type: "input", group: "ورودی" },
+    { id: "seg-lamp", pin: "2", title: "چراغ هال", type: "relay", group: "پذیرایی" },
+    { id: "seg-fan", pin: "4", title: "پنکه", type: "relay", group: "پذیرایی" },
+    { id: "seg-ph", pin: "", title: "جایگاه خالی", type: "placeholder", group: "پذیرایی" },
+  ];
+
+  it("creates empty custom groups and pre-filled module groups accurately", () => {
+    const emptyGroup = createWorkflowNode({
+      payload: { kind: "group", isCustomGroup: true },
+      x: 40,
+      y: 40,
+      zIndex: 1,
+      segments: sampleSegments,
+    });
+    assert.deepEqual(emptyGroup.memberSegmentIds, []);
+    assert.equal(emptyGroup.isCustomGroup, true);
+
+    const prefilledGroup = createWorkflowNode({
+      payload: { kind: "group", groupName: "پذیرایی", isCustomGroup: false },
+      x: 120,
+      y: 80,
+      zIndex: 2,
+      segments: sampleSegments,
+    });
+    assert.deepEqual(prefilledGroup.memberSegmentIds, ["seg-lamp", "seg-fan"]);
+    assert.equal(prefilledGroup.isCustomGroup, false);
+  });
+
+  it("rejects self-loops, duplicate wires, trigger targets, and directed cycles", () => {
+    const wf = createEmptyWorkflow("تست اتصال");
+    const trig = createWorkflowNode({
+      payload: { kind: "trigger_manual" },
+      x: 0,
+      y: 0,
+      zIndex: 1,
+      segments: sampleSegments,
+    });
+    const gateAnd = createWorkflowNode({
+      payload: { kind: "logic_and" },
+      x: 300,
+      y: 0,
+      zIndex: 2,
+      segments: sampleSegments,
+    });
+    const gateNot = createWorkflowNode({
+      payload: { kind: "logic_not" },
+      x: 600,
+      y: 0,
+      zIndex: 3,
+      segments: sampleSegments,
+    });
+    const nodes = [trig, gateAnd, gateNot];
+    const edges = [
+      { id: "e1", sourceId: trig.id, targetId: gateAnd.id },
+      { id: "e2", sourceId: gateAnd.id, targetId: gateNot.id },
+    ];
+
+    assert.equal(canConnectWorkflowPorts(edges, nodes, gateAnd.id, gateAnd.id), false);
+    assert.equal(canConnectWorkflowPorts(edges, nodes, trig.id, gateAnd.id), false);
+    assert.equal(canConnectWorkflowPorts(edges, nodes, gateAnd.id, trig.id), false);
+    assert.equal(canConnectWorkflowPorts(edges, nodes, gateNot.id, gateAnd.id), false);
+    assert.equal(canConnectWorkflowPorts(edges, nodes, trig.id, gateNot.id), true);
+  });
+
+  it("evaluates AND / OR / NOT logic, group modes, timers, and target pin actions deterministically", () => {
+    const wf = createEmptyWorkflow("سناریوی کامل");
+    const sensorNode = createWorkflowNode({
+      payload: { kind: "segment", segmentId: "seg-sensor" },
+      x: 0,
+      y: 0,
+      zIndex: 1,
+      segments: sampleSegments,
+    });
+    const manualNode = createWorkflowNode({
+      payload: { kind: "trigger_manual" },
+      x: 0,
+      y: 180,
+      zIndex: 2,
+      segments: sampleSegments,
+    });
+    const andNode = createWorkflowNode({
+      payload: { kind: "logic_and" },
+      x: 280,
+      y: 80,
+      zIndex: 3,
+      segments: sampleSegments,
+    });
+    const notNode = createWorkflowNode({
+      payload: { kind: "logic_not" },
+      x: 280,
+      y: 260,
+      zIndex: 4,
+      segments: sampleSegments,
+    });
+    const timerNode = createWorkflowNode({
+      payload: { kind: "timer" },
+      x: 520,
+      y: 80,
+      zIndex: 5,
+      segments: sampleSegments,
+    });
+    const groupTarget = createWorkflowNode({
+      payload: { kind: "group", groupName: "پذیرایی", isCustomGroup: false },
+      x: 780,
+      y: 80,
+      zIndex: 6,
+      segments: sampleSegments,
+    });
+
+    wf.nodes = [sensorNode, manualNode, andNode, notNode, timerNode, groupTarget];
+    wf.edges = [
+      { id: "e1", sourceId: sensorNode.id, targetId: andNode.id },
+      { id: "e2", sourceId: manualNode.id, targetId: andNode.id },
+      { id: "e3", sourceId: sensorNode.id, targetId: notNode.id },
+      { id: "e4", sourceId: andNode.id, targetId: timerNode.id },
+      { id: "e5", sourceId: timerNode.id, targetId: groupTarget.id },
+    ];
+
+    const step1 = evaluateWorkflowGraph({
+      workflow: wf,
+      segments: sampleSegments,
+      pinsState: { 34: true, 2: false, 4: false },
+      manualPulseNodeIds: new Set([manualNode.id]),
+      timerOutputs: new Map(),
+    });
+
+    assert.equal(step1.nodeOutputs.get(andNode.id), true);
+    assert.equal(step1.nodeOutputs.get(notNode.id), false);
+    assert.deepEqual(step1.triggeredTimerIds, [timerNode.id]);
+    assert.equal(step1.pendingActions.length, 0);
+
+    const step2 = evaluateWorkflowGraph({
+      workflow: wf,
+      segments: sampleSegments,
+      pinsState: { 34: true, 2: false, 4: false },
+      manualPulseNodeIds: new Set([manualNode.id]),
+      timerOutputs: new Map([[timerNode.id, true]]),
+    });
+
+    assert.equal(step2.nodeOutputs.get(groupTarget.id), true);
+    assert.deepEqual(
+      step2.pendingActions.map((a) => ({ targetPin: a.targetPin, actionOn: a.actionOn })),
+      [
+        { targetPin: "2", actionOn: true },
+        { targetPin: "4", actionOn: true },
+      ],
+    );
+  });
+
+  it("creates, clamps, and normalizes all workflow node kinds onto the 16px grid", () => {
+    const wf = createEmptyWorkflow("تست گرید");
+    assert.equal(wf.viewport.x % CANVAS_GRID_STEP, 0);
+    assert.equal(wf.viewport.y % CANVAS_GRID_STEP, 0);
+
+    const kinds = [
+      "trigger_manual",
+      "trigger_schedule",
+      "logic_and",
+      "logic_or",
+      "logic_not",
+      "timer",
+      "group",
+      "segment",
+    ];
+
+    for (const kind of kinds) {
+      const node = createWorkflowNode({
+        payload: { kind, segmentId: "seg-lamp", groupName: "پذیرایی" },
+        x: 52,
+        y: 100,
+        zIndex: 1,
+        segments: sampleSegments,
+      });
+
+      assert.equal(node.x % CANVAS_GRID_STEP, 0, `${kind} x not %16`);
+      assert.equal(node.y % CANVAS_GRID_STEP, 0, `${kind} y not %16`);
+      assert.equal(node.width % CANVAS_GRID_STEP, 0, `${kind} width not %16`);
+      assert.equal(node.height % CANVAS_GRID_STEP, 0, `${kind} height not %16`);
+
+      const clamped = clampWorkflowNodeSize(kind, 999, 50, true);
+      assert.equal(clamped.width % CANVAS_GRID_STEP, 0);
+      assert.equal(clamped.height % CANVAS_GRID_STEP, 0);
+
+      const snapped = snapWorkflowNodeToGrid({ ...node, x: 40, y: 71, width: 244, height: 158 });
+      assert.equal(snapped.x % CANVAS_GRID_STEP, 0);
+      assert.equal(snapped.y % CANVAS_GRID_STEP, 0);
+      assert.equal(snapped.width % CANVAS_GRID_STEP, 0);
+      assert.equal(snapped.height % CANVAS_GRID_STEP, 0);
+    }
+  });
+
+  it("computes bounded drag tilt angles with micro-jitter deadzone and finds closest valid magnetic input port", () => {
+    assert.equal(computeDragTiltDeg(0), 0);
+    assert.equal(computeDragTiltDeg(1.1), 0);
+    assert.equal(computeDragTiltDeg(-1.2), 0);
+    assert.equal(computeDragTiltDeg(Number.NaN), 0);
+    assert.ok(computeDragTiltDeg(10) > 0 && computeDragTiltDeg(10) <= 2.6);
+    assert.equal(computeDragTiltDeg(120, 2.5), 2.5);
+    assert.equal(computeDragTiltDeg(-120, 2.5), -2.5);
+
+    const trig = createWorkflowNode({
+      payload: { kind: "trigger_manual" },
+      x: 0,
+      y: 0,
+      zIndex: 1,
+      segments: sampleSegments,
+    });
+    const gateAnd = createWorkflowNode({
+      payload: { kind: "logic_and" },
+      x: 320,
+      y: 0,
+      zIndex: 2,
+      segments: sampleSegments,
+    });
+    const gateOr = createWorkflowNode({
+      payload: { kind: "logic_or" },
+      x: 320,
+      y: 160,
+      zIndex: 3,
+      segments: sampleSegments,
+    });
+
+    const nodes = [trig, gateAnd, gateOr];
+    const edges = [{ id: "e1", sourceId: trig.id, targetId: gateAnd.id }];
+
+    // Already connected target (gateAnd) and trigger targets must be ignored even within radius
+    const rejectedMatch = findMagneticInputPort({
+      nodes,
+      edges,
+      sourceId: trig.id,
+      pointerWorldX: gateAnd.x + 4,
+      pointerWorldY: Math.round(gateAnd.y + gateAnd.height / 2),
+      snapRadius: 42,
+    });
+    assert.equal(rejectedMatch, null);
+
+    // Eligible target (gateOr) snaps cleanly when within radius
+    const validMatch = findMagneticInputPort({
+      nodes,
+      edges,
+      sourceId: trig.id,
+      pointerWorldX: gateOr.x + 12,
+      pointerWorldY: Math.round(gateOr.y + gateOr.height / 2) - 8,
+      snapRadius: 42,
+    });
+    assert.ok(validMatch);
+    assert.equal(validMatch.targetId, gateOr.id);
+    assert.equal(validMatch.anchorX, gateOr.x);
+    assert.equal(validMatch.anchorY, Math.round(gateOr.y + gateOr.height / 2));
+
+    // Outside capture radius returns null
+    const farMatch = findMagneticInputPort({
+      nodes,
+      edges,
+      sourceId: trig.id,
+      pointerWorldX: gateOr.x - 100,
+      pointerWorldY: Math.round(gateOr.y + gateOr.height / 2),
+      snapRadius: 42,
+    });
+    assert.equal(farMatch, null);
+  });
+
+  it("maps segment hardware types and icons to American-standard ANSI schematic symbols", () => {
+    assert.equal(resolveSegmentSchematicKind("input", "Lightbulb"), "segment_sensor");
+    assert.equal(resolveSegmentSchematicKind("relay", "LampCeiling"), "segment_lamp");
+    assert.equal(resolveSegmentSchematicKind("relay", "Fan"), "segment_fan");
+    assert.equal(resolveSegmentSchematicKind("relay", "Flame"), "segment_heater");
+    assert.equal(resolveSegmentSchematicKind("relay", "Lock"), "segment_lock");
+    assert.equal(resolveSegmentSchematicKind("relay", "Power"), "segment_relay");
+  });
+
+  it("evaluates schedule triggers accurately with indexOf/slice parsing and rejects malformed times", () => {
+    const wf = createEmptyWorkflow("تست زمان‌بندی");
+    const schedNode = createWorkflowNode({
+      payload: { kind: "trigger_schedule" },
+      x: 0,
+      y: 0,
+      zIndex: 1,
+      segments: sampleSegments,
+    });
+    schedNode.scheduleTime = "08:30";
+    schedNode.scheduleDays = [1, 3];
+    wf.nodes = [schedNode];
+
+    // Monday (day 1) at 08:30 -> true
+    const matchRes = evaluateWorkflowGraph({
+      workflow: wf,
+      segments: sampleSegments,
+      pinsState: {},
+      nowDate: new Date(2026, 10, 16, 8, 30, 0),
+    });
+    assert.equal(matchRes.nodeOutputs.get(schedNode.id), true);
+
+    // Malformed times ("08:30:00", ":30", "08:") -> false
+    for (const invalidTime of ["08:30:00", ":30", "08:", "invalid"]) {
+      schedNode.scheduleTime = invalidTime;
+      const badRes = evaluateWorkflowGraph({
+        workflow: wf,
+        segments: sampleSegments,
+        pinsState: {},
+        nowDate: new Date(2026, 10, 16, 8, 30, 0),
+      });
+      assert.equal(badRes.nodeOutputs.get(schedNode.id), false);
+    }
+  });
+
+  it("computes resized canvas node rectangles and validates automation form drafts deterministically", () => {
+    const startRect = { x: 64, y: 64, width: 224, height: 144, zIndex: 5 };
+    const resizedWest = computeResizedNodeRect({
+      startRect,
+      snappedRightEdge: 64 + 224,
+      snappedBottomEdge: 64 + 144,
+      kind: "segment",
+      activeSubMode: "segments",
+      direction: "sw",
+      dx: -32,
+      dy: 32,
+      snapToGrid: true,
+    });
+    assert.equal(resizedWest.x, 32);
+    assert.equal(resizedWest.width, 256);
+    assert.equal(resizedWest.height, 176);
+
+    const invalidSchedule = buildValidatedAutomationDraft({
+      editingId: null,
+      title: "روشنایی شب",
+      autoType: "schedule",
+      time: "",
+      days: [],
+      repeatCount: "",
+      delayHours: "",
+      delayMinutes: "",
+      city: "",
+      temperatureThreshold: "",
+      temperatureCondition: "greater",
+      intervalMinutes: "",
+      hasWeatherCondition: false,
+      actions: [{ targetPin: "2", actionOn: true }],
+    });
+    assert.equal(invalidSchedule.ok, false);
+
+    const validSchedule = buildValidatedAutomationDraft({
+      editingId: "auto_1",
+      title: "روشنایی شب",
+      autoType: "schedule",
+      time: "21:00",
+      days: [6, 0],
+      repeatCount: 3,
+      delayHours: "",
+      delayMinutes: "",
+      city: "",
+      temperatureThreshold: "",
+      temperatureCondition: "greater",
+      intervalMinutes: "",
+      hasWeatherCondition: false,
+      actions: [{ targetPin: "2", actionOn: true }],
+    });
+    assert.equal(validSchedule.ok, true);
+    if (validSchedule.ok) {
+      assert.equal(validSchedule.automation.id, "auto_1");
+      assert.equal(validSchedule.automation.conditionType, "time");
+      assert.equal(validSchedule.automation.repeatCount, 3);
+    }
   });
 });
 

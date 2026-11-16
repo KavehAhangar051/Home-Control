@@ -1,6 +1,7 @@
 "use client";
 
-import React, { forwardRef } from "react";
+import type { IconProps } from "@animate-ui/react/icons";
+import React from "react";
 import { Activity01 } from "@/components/animate-ui/icons/hugeicons/activity-01";
 import { Add01 } from "@/components/animate-ui/icons/hugeicons/add-01";
 import { ArrowDown01 } from "@/components/animate-ui/icons/hugeicons/arrow-down-01";
@@ -57,102 +58,109 @@ export interface HugeIconProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
   animateOnHover?: boolean;
   animate?: boolean | string;
+  ref?: React.Ref<SVGSVGElement>;
 }
 
-export type HugeIconComponent = React.ForwardRefExoticComponent<
-  HugeIconProps & React.RefAttributes<SVGSVGElement>
->;
+export type HugeIconComponent = React.NamedExoticComponent<HugeIconProps>;
+
+let cachedHoverMql: MediaQueryList | null = null;
+let cachedReducedMotionMql: MediaQueryList | null = null;
 
 function shouldEnableParentHoverListeners(): boolean {
   if (typeof window === "undefined") return false;
 
-  if (window.matchMedia("(hover: none)").matches) return false;
+  cachedHoverMql ??= window.matchMedia("(hover: none)");
+  cachedReducedMotionMql ??= window.matchMedia("(prefers-reduced-motion: reduce)");
 
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
-
-  return true;
+  return !cachedHoverMql.matches && !cachedReducedMotionMql.matches;
 }
 
 /**
  * Creates an animated Hugeicons component backed by Animate UI and Motion.
  * Automatically animates when hovering either the icon or its parent container.
  */
-export function createHugeIcon(IconComponent: any, displayName?: string): HugeIconComponent {
-  const Component = forwardRef<SVGSVGElement, HugeIconProps>(
-    (
-      { size = 24, strokeWidth = 2, className = "", animateOnHover = true, animate, ...props },
-      forwardedRef,
-    ) => {
-      const localRef = React.useRef<SVGSVGElement | null>(null);
-      const [isParentHovered, setIsParentHovered] = React.useState(false);
+export function createHugeIcon(
+  IconComponent: React.ComponentType<IconProps<never>>,
+  displayName?: string,
+): HugeIconComponent {
+  const BaseComponent = ({
+    size = 24,
+    strokeWidth = 2,
+    className = "",
+    animateOnHover = true,
+    animate,
+    ref: forwardedRef,
+    ...props
+  }: HugeIconProps) => {
+    const localRef = React.useRef<SVGSVGElement | null>(null);
+    const [isParentHovered, setIsParentHovered] = React.useState(false);
 
-      const setRefs = React.useCallback(
-        (node: SVGSVGElement | null) => {
-          localRef.current = node;
+    const setRefs = React.useCallback(
+      (node: SVGSVGElement | null) => {
+        localRef.current = node;
 
-          if (forwardedRef instanceof Function) {
-            forwardedRef(node);
-          } else if (forwardedRef && "current" in forwardedRef) {
-            forwardedRef.current = node;
-          }
-        },
-        [forwardedRef],
-      );
+        if (forwardedRef instanceof Function) {
+          forwardedRef(node);
+        } else if (forwardedRef && "current" in forwardedRef) {
+          forwardedRef.current = node;
+        }
+      },
+      [forwardedRef],
+    );
 
-      React.useEffect(() => {
-        if (!animateOnHover || !shouldEnableParentHoverListeners()) return;
-        const svgEl = localRef.current;
+    React.useEffect(() => {
+      if (!animateOnHover || !shouldEnableParentHoverListeners()) return;
+      const svgEl = localRef.current;
 
-        if (!svgEl) return;
+      if (!svgEl) return;
 
-        const hoverTarget =
-          svgEl.closest<HTMLElement>(
-            'button, a, [role="button"], [data-slot="breadcrumb-page"], [data-slot="breadcrumb-link"], [data-animate-icon-parent]',
-          ) ?? svgEl.parentElement;
+      const hoverTarget =
+        svgEl.closest<HTMLElement>(
+          'button, a, [role="button"], [data-slot="breadcrumb-page"], [data-slot="breadcrumb-link"], [data-animate-icon-parent]',
+        ) ?? svgEl.parentElement;
 
-        if (!hoverTarget) return;
+      if (!hoverTarget) return;
 
-        const handlePointerEnter = (e: PointerEvent) => {
-          if (e.pointerType !== "touch") {
-            setIsParentHovered(true);
-          }
-        };
+      const handlePointerEnter = (e: PointerEvent) => {
+        if (e.pointerType !== "touch") {
+          setIsParentHovered(true);
+        }
+      };
 
-        const handlePointerLeave = () => {
-          setIsParentHovered(false);
-        };
+      const handlePointerLeave = () => {
+        setIsParentHovered(false);
+      };
 
-        hoverTarget.addEventListener("pointerenter", handlePointerEnter, { passive: true });
-        hoverTarget.addEventListener("pointerleave", handlePointerLeave, { passive: true });
+      hoverTarget.addEventListener("pointerenter", handlePointerEnter, { passive: true });
+      hoverTarget.addEventListener("pointerleave", handlePointerLeave, { passive: true });
 
-        return () => {
-          hoverTarget.removeEventListener("pointerenter", handlePointerEnter);
-          hoverTarget.removeEventListener("pointerleave", handlePointerLeave);
-        };
-      }, [animateOnHover]);
+      return () => {
+        hoverTarget.removeEventListener("pointerenter", handlePointerEnter);
+        hoverTarget.removeEventListener("pointerleave", handlePointerLeave);
+      };
+    }, [animateOnHover]);
 
-      if (!IconComponent) return null;
+    if (!IconComponent) return null;
 
-      return (
-        // SAFETY: Dynamic icon component adapts React callback ref across heterogeneous SVG wrappers
-        <IconComponent
-          ref={setRefs as (node: SVGSVGElement | null) => void}
-          size={size}
-          strokeWidth={strokeWidth}
-          className={className}
-          animateOnHover={animateOnHover}
-          animate={animate ?? (animateOnHover ? isParentHovered : undefined)}
-          {...props}
-        />
-      );
-    },
-  );
+    // SAFETY: Animate UI IconProps narrows motion SVG props while HugeIconProps exposes standard SVGProps
+    const resolvedProps = {
+      ...props,
+      ref: setRefs,
+      size: typeof size === "string" ? Number(size) || 24 : size,
+      strokeWidth,
+      className,
+      animateOnHover,
+      animate: animate ?? (animateOnHover ? isParentHovered : undefined),
+    } as unknown as IconProps<never>;
+
+    return <IconComponent {...resolvedProps} />;
+  };
 
   if (displayName) {
-    Component.displayName = displayName;
+    BaseComponent.displayName = displayName;
   }
 
-  return Component;
+  return React.memo(BaseComponent);
 }
 
 // Navigation & Layout Icons

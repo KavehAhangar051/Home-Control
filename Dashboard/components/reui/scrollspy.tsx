@@ -35,15 +35,22 @@ export function Scrollspy({
   const setActiveSection = useCallback(
     (sectionId: string | null, force = false) => {
       if (!sectionId) return;
-      anchorElementsRef.current?.forEach((item) => {
-        const id = item.getAttribute(`data-${dataAttribute}-anchor`);
+      const anchors = anchorElementsRef.current;
 
-        if (id === sectionId) {
-          item.setAttribute("data-active", "true");
-        } else {
-          item.removeAttribute("data-active");
+      if (anchors) {
+        const attrName = `data-${dataAttribute}-anchor`;
+
+        for (let i = 0; i < anchors.length; i++) {
+          const item = anchors[i];
+          const id = item.getAttribute(attrName);
+
+          if (id === sectionId) {
+            item.setAttribute("data-active", "true");
+          } else {
+            item.removeAttribute("data-active");
+          }
         }
-      });
+      }
 
       if (onUpdate) onUpdate(sectionId);
 
@@ -53,11 +60,13 @@ export function Scrollspy({
 
       prevIdTracker.current = sectionId;
     },
-    [anchorElementsRef, dataAttribute, history, onUpdate],
+    [dataAttribute, history, onUpdate],
   );
 
   const handleScroll = useCallback(() => {
-    if (!anchorElementsRef.current || anchorElementsRef.current.length === 0) return;
+    const anchors = anchorElementsRef.current;
+
+    if (!anchors || anchors.length === 0) return;
 
     let scrollElement: HTMLElement | null =
       targetRef?.current === document
@@ -83,17 +92,23 @@ export function Scrollspy({
     // Find the anchor whose section is closest to but not past the top
     let activeIdx = 0;
     let minDelta = Infinity;
+    const anchorAttr = `data-${dataAttribute}-anchor`;
+    const offsetAttr = `data-${dataAttribute}-offset`;
 
-    anchorElementsRef.current.forEach((anchor, idx) => {
-      const sectionId = anchor.getAttribute(`data-${dataAttribute}-anchor`);
-      const sectionElement = document.getElementById(sectionId!);
+    for (let idx = 0; idx < anchors.length; idx++) {
+      const anchor = anchors[idx];
+      const sectionId = anchor.getAttribute(anchorAttr);
 
-      if (!sectionElement) return;
+      if (!sectionId) continue;
+
+      const sectionElement = document.getElementById(sectionId);
+
+      if (!sectionElement) continue;
 
       let customOffset = offset;
-      const dataOffset = anchor.getAttribute(`data-${dataAttribute}-offset`);
+      const dataOffset = anchor.getAttribute(offsetAttr);
 
-      if (dataOffset) customOffset = parseInt(dataOffset, 10);
+      if (dataOffset) customOffset = Number.parseInt(dataOffset, 10);
 
       const delta = Math.abs(sectionElement.offsetTop - customOffset - scrollTop);
 
@@ -101,22 +116,22 @@ export function Scrollspy({
         minDelta = delta;
         activeIdx = idx;
       }
-    });
+    }
 
     // If at bottom, force last anchor
     const scrollHeight = scrollElement.scrollHeight;
     const clientHeight = scrollElement.clientHeight;
 
     if (scrollTop + clientHeight >= scrollHeight - 2) {
-      activeIdx = anchorElementsRef.current.length - 1;
+      activeIdx = anchors.length - 1;
     }
 
     // Set only one anchor active and sync the URL hash
-    const activeAnchor = anchorElementsRef.current[activeIdx];
-    const sectionId = activeAnchor?.getAttribute(`data-${dataAttribute}-anchor`) || null;
+    const activeAnchor = anchors[activeIdx];
+    const sectionId = activeAnchor?.getAttribute(anchorAttr) || null;
 
     setActiveSection(sectionId);
-  }, [anchorElementsRef, targetRef, dataAttribute, offset, setActiveSection]);
+  }, [targetRef, dataAttribute, offset, setActiveSection]);
 
   const scrollTo = useCallback(
     (anchorElement: HTMLElement) => (event?: Event) => {

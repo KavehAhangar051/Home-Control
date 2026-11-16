@@ -9,6 +9,15 @@ interface ThemeStylesParams {
   selectedFont?: DashboardFontId;
 }
 
+const HEX_6_OR_8_REGEX = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i;
+const HEX_3_OR_4_REGEX = /^#([0-9a-f]{3})([0-9a-f])?$/i;
+
+function toHexByte(n: number): string {
+  const clamped = Math.min(255, Math.max(0, n)) | 0;
+
+  return clamped < 16 ? `0${clamped.toString(16)}` : clamped.toString(16);
+}
+
 function computeDarkPalette(blackness = 70) {
   const clamped = Math.max(0, Math.min(100, blackness));
   const t = (100 - clamped) / 100;
@@ -17,11 +26,15 @@ function computeDarkPalette(blackness = 70) {
   const hoverVal = Math.round(bgVal + 15);
   const borderVal = Math.round(bgVal + 28);
 
-  const hex = (n: number) => Math.min(255, Math.max(0, n)).toString(16).padStart(2, "0");
-  const bgHex = `#${hex(bgVal)}${hex(bgVal)}${hex(bgVal + 2)}`;
-  const cardSolidHex = `#${hex(cardVal)}${hex(cardVal)}${hex(cardVal + 2)}`;
-  const hoverHex = `#${hex(hoverVal)}${hex(hoverVal)}${hex(hoverVal + 3)}`;
-  const borderHex = `#${hex(borderVal)}${hex(borderVal)}${hex(borderVal + 3)}`;
+  const bgByte = toHexByte(bgVal);
+  const cardByte = toHexByte(cardVal);
+  const hoverByte = toHexByte(hoverVal);
+  const borderByte = toHexByte(borderVal);
+
+  const bgHex = `#${bgByte}${bgByte}${toHexByte(bgVal + 2)}`;
+  const cardSolidHex = `#${cardByte}${cardByte}${toHexByte(cardVal + 2)}`;
+  const hoverHex = `#${hoverByte}${hoverByte}${toHexByte(hoverVal + 3)}`;
+  const borderHex = `#${borderByte}${borderByte}${toHexByte(borderVal + 3)}`;
 
   return {
     bg: bgHex,
@@ -52,11 +65,11 @@ function computeLightPalette(whiteness = 70) {
   const borderG = Math.max(200, g - 22);
   const borderB = Math.max(204, b - 22);
 
-  const hex = (n: number) => Math.min(255, Math.max(0, n)).toString(16).padStart(2, "0");
-  const bgHex = `#${hex(r)}${hex(g)}${hex(b)}`;
-  const cardHex = `#${hex(cardVal)}${hex(cardVal)}${hex(cardVal)}`;
-  const hoverHex = `#${hex(hoverR)}${hex(hoverG)}${hex(hoverB)}`;
-  const borderHex = `#${hex(borderR)}${hex(borderG)}${hex(borderB)}`;
+  const cardByte = toHexByte(cardVal);
+  const bgHex = `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`;
+  const cardHex = `#${cardByte}${cardByte}${cardByte}`;
+  const hoverHex = `#${toHexByte(hoverR)}${toHexByte(hoverG)}${toHexByte(hoverB)}`;
+  const borderHex = `#${toHexByte(borderR)}${toHexByte(borderG)}${toHexByte(borderB)}`;
 
   return {
     bg: bgHex,
@@ -69,16 +82,19 @@ function computeLightPalette(whiteness = 70) {
 
 function toSixDigitHex(color: string, fallback: string): string {
   const trimmed = color.trim();
-  const sixOrEight = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(trimmed);
+
+  if (trimmed.charCodeAt(0) !== 35) return fallback;
+
+  const sixOrEight = HEX_6_OR_8_REGEX.exec(trimmed);
 
   if (sixOrEight) return `#${sixOrEight[1]}`;
 
-  const threeOrFour = /^#([0-9a-f]{3})([0-9a-f])?$/i.exec(trimmed);
+  const threeOrFour = HEX_3_OR_4_REGEX.exec(trimmed);
 
   if (threeOrFour) {
-    const [r, g, b] = threeOrFour[1].split("");
+    const h = threeOrFour[1];
 
-    return `#${r}${r}${g}${g}${b}${b}`;
+    return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`;
   }
 
   return fallback;
@@ -174,6 +190,7 @@ export function getThemeStyles({
       --border: ${palette.border};
       --input: ${palette.border};
       --ring: ${isDark ? "#a1a1aa" : "#737373"};
+      --ring-offset: ${palette.bg};
       --radius: 0.5rem;
       --success: var(--color-emerald-500);
       --success-foreground: ${isDark ? "var(--color-zinc-50)" : "var(--color-emerald-950)"};

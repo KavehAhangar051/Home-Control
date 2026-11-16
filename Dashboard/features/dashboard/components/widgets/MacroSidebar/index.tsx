@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence } from "motion/react";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "@/components/ui/hugeicons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
@@ -12,17 +12,22 @@ interface MacroSidebarProps {
   className?: string;
 }
 
+const BIDI_CHARS_REGEX = /[\u200c\u200f\u202a-\u202e]/g;
+const MULTI_SPACE_REGEX = /\s+/g;
+
 export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
   const { handleBatchPinState } = useDashboard();
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const macros = useIoTStore((s) => s.macros);
 
-  const visibleMacros = macros.filter(
-    (macro) =>
-      macro.title
-        .replace(/[\u200c\u200f\u202a-\u202e]/g, "")
-        .replace(/\s+/g, " ")
-        .trim() !== "تمام سگمنت ها روشن",
+  const visibleMacros = useMemo(
+    () =>
+      macros.filter(
+        (macro) =>
+          macro.title.replace(BIDI_CHARS_REGEX, "").replace(MULTI_SPACE_REGEX, " ").trim() !==
+          "تمام سگمنت ها روشن",
+      ),
+    [macros],
   );
 
   const selectedGroupFilter = useIoTStore((s) => s.selectedGroupFilter);
@@ -30,19 +35,22 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
   const [direction, setDirection] = useState(1);
   const [offset, setOffset] = useState(0);
 
+  const handleExecuteMacro = useCallback(
+    (macroId: string) => {
+      const macro = visibleMacros.find((m) => m.id === macroId);
+
+      if (!macro) return;
+
+      handleBatchPinState(macro.actions);
+    },
+    [visibleMacros, handleBatchPinState],
+  );
+
   if (selectedGroupFilter || visibleMacros.length === 0) {
     return null;
   }
 
   const safeActiveIndex = activeIndex % visibleMacros.length;
-
-  const handleExecuteMacro = (macroId: string) => {
-    const macro = visibleMacros.find((m) => m.id === macroId);
-
-    if (!macro) return;
-
-    handleBatchPinState(macro.actions);
-  };
 
   const isHorizontal = true;
 
@@ -72,12 +80,12 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
                   type="button"
                   onClick={goPrev}
                   aria-label="قبلی"
-                  className="p-1 rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-[var(--bg-main)] transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0"
+                  className="p-1 rounded-full text-text-secondary md:hover:bg-accent3 md:hover:text-accent3-foreground transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0 focus-ring"
                 >
                   {isHorizontal ? (
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="size-5" />
                   ) : (
-                    <ChevronUp className="w-5 h-5" />
+                    <ChevronUp className="size-5" />
                   )}
                 </button>
               }
@@ -140,12 +148,12 @@ export default function MacroSidebar({ className = "" }: MacroSidebarProps) {
                   type="button"
                   onClick={goNext}
                   aria-label="بعدی"
-                  className="p-1 rounded-full text-[var(--text-secondary)] md:hover:bg-[var(--accent3)] md:hover:text-[var(--bg-main)] transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0"
+                  className="p-1 rounded-full text-text-secondary md:hover:bg-accent3 md:hover:text-accent3-foreground transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] shrink-0 focus-ring"
                 >
                   {isHorizontal ? (
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="size-5" />
                   ) : (
-                    <ChevronDown className="w-5 h-5" />
+                    <ChevronDown className="size-5" />
                   )}
                 </button>
               }

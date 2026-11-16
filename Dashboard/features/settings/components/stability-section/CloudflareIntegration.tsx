@@ -1,40 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { CloudLightning, Globe, Server } from "@/components/ui/hugeicons";
-import { buildEspConfig } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
+import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { saveConfigToCloudflare } from "@/features/iot/services/cloudflare/api";
 import {
   getCloudflareWorkerUrl,
   isCloudflareEnabled,
   setCloudflareWorkerUrl,
 } from "@/features/iot/services/cloudflareService";
-import type { EspConfig } from "@/features/iot/services/esp32Config";
 
 interface CloudflareIntegrationProps {
   isDark?: boolean;
-}
-
-async function submitCloudflareConfig(
-  currentConfig: EspConfig,
-  showToast: (msg: string, type: "success" | "error") => void,
-  setIsSavingUrl: (val: boolean) => void,
-): Promise<void> {
-  try {
-    const result = await saveConfigToCloudflare(currentConfig);
-
-    if (result.success) {
-      useIoTStore.getState().resetUnsavedChanges();
-    }
-
-    showToast(
-      result.success ? "آدرس ورکر جدید با موفقیت ذخیره شد." : "خطا در ذخیره آدرس ورکر جدید.",
-      result.success ? "success" : "error",
-    );
-  } finally {
-    setIsSavingUrl(false);
-  }
 }
 
 export default function CloudflareIntegration({
@@ -63,10 +40,16 @@ export default function CloudflareIntegration({
       return;
     }
 
-    const currentConfig = buildEspConfig(useIoTStore.getState());
-    currentConfig.worker_url = getCloudflareWorkerUrl();
+    try {
+      await persistStoreConfigToCloudflare({
+        successToast: "آدرس ورکر جدید با موفقیت ذخیره شد.",
+        errorToast: "خطا در ذخیره آدرس ورکر جدید.",
+      });
+    } catch (error) {
+      console.error("Failed to persist Cloudflare worker URL", error);
+    }
 
-    await submitCloudflareConfig(currentConfig, showToast, setIsSavingUrl);
+    setIsSavingUrl(false);
   };
 
   const isCfConnected = isCloudflareEnabled();
@@ -119,11 +102,11 @@ export default function CloudflareIntegration({
             />
             <span
               aria-hidden="true"
-              className={`block w-10 h-6 rounded-full transition-colors ${manualSaveMode ? "bg-[var(--accent3)]" : "bg-[var(--border-color)]"}`}
+              className={`block w-10 h-6 rounded-[8px] transition-colors ${manualSaveMode ? "bg-[var(--accent3)]" : "bg-[var(--border-color)]"}`}
             />
             <span
               aria-hidden="true"
-              className={`dot absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${manualSaveMode ? "bg-[var(--bg-main)] transform translate-x-4" : "bg-[var(--text-secondary)]"}`}
+              className={`dot absolute top-1 left-1 w-4 h-4 rounded-[5px] transition-transform ${manualSaveMode ? "bg-[var(--bg-main)] transform translate-x-4" : "bg-[var(--text-secondary)]"}`}
             />
           </span>
           <span className="flex flex-col flex-1 text-right">

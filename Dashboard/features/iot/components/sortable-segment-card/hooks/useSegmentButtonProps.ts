@@ -1,4 +1,5 @@
 import type React from "react";
+import { useRef } from "react";
 
 interface UseSegmentButtonPropsParams {
   mode: "switch" | "push";
@@ -13,24 +14,31 @@ export default function useSegmentButtonProps({
   onTogglePin,
   onSetPinState,
 }: UseSegmentButtonPropsParams) {
+  const isPressedRef = useRef(false);
+
   if (mode === "push") {
+    const releasePushPin = (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (e.button === 2) return;
+
+      e.stopPropagation();
+
+      if (!isPressedRef.current) return;
+
+      isPressedRef.current = false;
+      onSetPinState?.(pin, false);
+    };
+
     return {
       onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+        if (e.button === 2) return;
+
         e.stopPropagation();
+        isPressedRef.current = true;
         onSetPinState?.(pin, true);
       },
-      onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        onSetPinState?.(pin, false);
-      },
-      onPointerLeave: (e: React.PointerEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        onSetPinState?.(pin, false);
-      },
-      onPointerCancel: (e: React.PointerEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        onSetPinState?.(pin, false);
-      },
+      onPointerUp: releasePushPin,
+      onPointerLeave: releasePushPin,
+      onPointerCancel: releasePushPin,
     };
   }
 
@@ -40,6 +48,8 @@ export default function useSegmentButtonProps({
       onTogglePin(pin);
     },
     onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (e.button === 2) return;
+
       e.stopPropagation();
     },
   };

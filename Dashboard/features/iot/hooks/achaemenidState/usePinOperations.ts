@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { defaultDeviceSyncGateway } from "@/features/iot/services/deviceGatewayAdapter";
 import { initMqtt, onMqttStateChange } from "@/features/iot/services/mqttService";
+import type { IDeviceSyncPort } from "@/features/iot/services/ports";
 import { soundManager } from "@/lib/audio";
-import { syncBatchPins, syncSinglePin } from "./core/pinSyncUtils";
-
-interface UsePinOperationsProps {
-  refetchIot: () => void;
-}
 
 type SetPinsStateFn = (
   updater: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>),
@@ -16,50 +13,134 @@ type SetPinsStateFn = (
 
 type ShowToastFn = (message: string, type: "success" | "error") => void;
 
-async function executeSinglePinUpdate(
+export function rollbackSinglePinState(
+  prev: Record<string, boolean>,
+  pin: string,
+  attemptedState: boolean,
+  prevState: boolean | undefined,
+): Record<string, boolean> {
+  if (prev[pin] !== attemptedState) return prev;
+
+  if (prevState === undefined) {
+    const next: Record<string, boolean> = {};
+
+    for (const key in prev) {
+      if (Object.hasOwn(prev, key) && key !== pin) {
+        next[key] = prev[key];
+      }
+    }
+
+    return next;
+  }
+
+  return { ...prev, [pin]: prevState };
+}
+
+export function rollbackBatchPinState(
+  prev: Record<string, boolean>,
+  previousSnapshots: ReadonlyMap<string, boolean | undefined>,
+  attemptedUpdates: Readonly<Record<string, boolean>>,
+): Record<string, boolean> {
+  let changed = false;
+
+  for (const [pinKey] of previousSnapshots) {
+    if (prev[pinKey] === attemptedUpdates[pinKey]) {
+      changed = true;
+      break;
+    }
+  }
+
+  if (!changed) return prev;
+
+  const next: Record<string, boolean> = {};
+
+  for (const key in prev) {
+    if (!Object.hasOwn(prev, key)) continue;
+
+    if (previousSnapshots.has(key) && prev[key] === attemptedUpdates[key]) {
+      const prevVal = previousSnapshots.get(key);
+
+      if (prevVal !== undefined) {
+        next[key] = prevVal;
+      }
+    } else {
+      next[key] = prev[key];
+    }
+  }
+
+  return next;
+}
+
+export async function executeSinglePinUpdate(
   pin: string,
   pinState: boolean,
   preventMqtt: boolean,
   timer: number | undefined,
   setPinsState: SetPinsStateFn,
   showToast: ShowToastFn,
-  setIsLoadingIoT: (val: boolean) => void,
-): Promise<void> {
-  setIsLoadingIoT(true);
+  beginLoading: () => void,
+  endLoading: () => void,
+  syncGateway: IDeviceSyncPort = defaultDeviceSyncGateway,
+): Promise<boolean> {
+  if (!pin) return false;
+
+  beginLoading();
+  const prevState = useIoTStore.getState().pinsState[pin];
 
   try {
     setPinsState((prev) => (prev[pin] === pinState ? prev : { ...prev, [pin]: pinState }));
     const segment = useIoTStore.getState().segments.find((s) => s.pin === pin);
     const effectiveTimer = timer !== undefined ? timer : segment?.auto_off;
 
-    await syncSinglePin(pin, pinState, {
+    const delivered = await syncGateway.syncSinglePin(pin, pinState, {
       preventMqtt,
       autoOff: effectiveTimer,
       isPushMode: segment?.mode === "push",
       showToast,
     });
+
+    if (delivered === false) {
+      setPinsState((prev) => rollbackSinglePinState(prev, pin, pinState, prevState));
+
+      return false;
+    }
+
+    return true;
   } catch (error) {
     console.error("Failed to update pin value:", error);
+    setPinsState((prev) => rollbackSinglePinState(prev, pin, pinState, prevState));
+
+    return false;
   } finally {
-    setIsLoadingIoT(false);
+    endLoading();
   }
 }
 
-async function executeBatchPinUpdate(
+export async function executeBatchPinUpdate(
   actions: Array<{ targetPin: string; actionOn: boolean }>,
   setPinsState: SetPinsStateFn,
-  setIsLoadingIoT: (val: boolean) => void,
-): Promise<void> {
-  setIsLoadingIoT(true);
+  beginLoading: () => void,
+  endLoading: () => void,
+  syncGateway: IDeviceSyncPort = defaultDeviceSyncGateway,
+): Promise<boolean> {
+  if (actions.length === 0) return false;
+
+  beginLoading();
+  const initialPinsState = useIoTStore.getState().pinsState;
+  const previousSnapshots = new Map<string, boolean | undefined>();
+  const stateUpdates: Record<string, boolean> = {};
 
   try {
     let soundPlayed = false;
-    const stateUpdates: Record<string, boolean> = {};
-    const pinsState = useIoTStore.getState().pinsState;
 
     for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
-      if (action.actionOn !== pinsState[action.targetPin]) {
+
+      if (!previousSnapshots.has(action.targetPin)) {
+        previousSnapshots.set(action.targetPin, initialPinsState[action.targetPin]);
+      }
+
+      if (action.actionOn !== initialPinsState[action.targetPin]) {
         soundPlayed = true;
       }
 
@@ -69,18 +150,37 @@ async function executeBatchPinUpdate(
     if (soundPlayed) soundManager.playToggleOn();
 
     setPinsState((prev) => ({ ...prev, ...stateUpdates }));
-    await syncBatchPins(actions);
+    const delivered = await syncGateway.syncBatchPins(actions);
+
+    if (delivered === false) {
+      setPinsState((prev) => rollbackBatchPinState(prev, previousSnapshots, stateUpdates));
+
+      return false;
+    }
+
+    return true;
   } catch (error) {
     console.error("Failed to update batch pin values:", error);
+    setPinsState((prev) => rollbackBatchPinState(prev, previousSnapshots, stateUpdates));
+
+    return false;
   } finally {
-    setIsLoadingIoT(false);
+    endLoading();
   }
 }
 
-export function usePinOperations({ refetchIot: _refetchIot }: UsePinOperationsProps) {
+export function usePinOperations() {
   const setPinsState = useIoTStore((state) => state.setPinsState);
   const showToast = useIoTStore((state) => state.showToast);
-  const [isLoadingIoT, setIsLoadingIoT] = useState(false);
+  const [inFlightCount, setInFlightCount] = useState(0);
+
+  const beginLoading = useCallback(() => {
+    setInFlightCount((c) => c + 1);
+  }, []);
+
+  const endLoading = useCallback(() => {
+    setInFlightCount((c) => Math.max(0, c - 1));
+  }, []);
 
   useEffect(() => {
     initMqtt();
@@ -94,17 +194,18 @@ export function usePinOperations({ refetchIot: _refetchIot }: UsePinOperationsPr
 
   const updatePinOnServer = useCallback(
     async (pin: string, pinState: boolean, preventMqtt: boolean = false, timer?: number) => {
-      await executeSinglePinUpdate(
+      return executeSinglePinUpdate(
         pin,
         pinState,
         preventMqtt,
         timer,
         setPinsState,
         showToast,
-        setIsLoadingIoT,
+        beginLoading,
+        endLoading,
       );
     },
-    [setPinsState, showToast],
+    [setPinsState, showToast, beginLoading, endLoading],
   );
 
   const handleTogglePin = useCallback(
@@ -115,7 +216,7 @@ export function usePinOperations({ refetchIot: _refetchIot }: UsePinOperationsPr
       if (nextState) soundManager.playToggleOn();
       else soundManager.playToggleOff();
 
-      await updatePinOnServer(pin, nextState, false);
+      return updatePinOnServer(pin, nextState, false);
     },
     [updatePinOnServer],
   );
@@ -129,20 +230,20 @@ export function usePinOperations({ refetchIot: _refetchIot }: UsePinOperationsPr
         else soundManager.playToggleOff();
       }
 
-      await updatePinOnServer(pin, state, preventMqtt);
+      return updatePinOnServer(pin, state, preventMqtt);
     },
     [updatePinOnServer],
   );
 
   const handleBatchPinState = useCallback(
     async (actions: Array<{ targetPin: string; actionOn: boolean }>) => {
-      await executeBatchPinUpdate(actions, setPinsState, setIsLoadingIoT);
+      return executeBatchPinUpdate(actions, setPinsState, beginLoading, endLoading);
     },
-    [setPinsState],
+    [setPinsState, beginLoading, endLoading],
   );
 
   return {
-    isLoadingIoT,
+    isLoadingIoT: inFlightCount > 0,
     updatePinOnServer,
     handleTogglePin,
     handleSetPinState,

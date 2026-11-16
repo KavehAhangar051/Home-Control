@@ -8,19 +8,77 @@ import MobileVoiceCommandButton from "../widgets/MobileVoiceCommandButton";
 import DashboardBreadcrumb from "./DashboardBreadcrumb";
 import DashboardWorkspace from "./DashboardWorkspace";
 
+function resolveScrollContainerClass(params: {
+  activeWorkspaceView: string;
+  workspaceDisplayMode: string;
+  activeAutomationsTab: string;
+  hasOrLoadingContent: boolean;
+}): string {
+  const { activeWorkspaceView, workspaceDisplayMode, activeAutomationsTab, hasOrLoadingContent } =
+    params;
+
+  const isHomeCanvas =
+    activeWorkspaceView === "home" && workspaceDisplayMode === "canvas" && hasOrLoadingContent;
+
+  const isWorkflowCanvas =
+    activeWorkspaceView === "automations" && activeAutomationsTab === "workflows";
+
+  if (isHomeCanvas || isWorkflowCanvas) {
+    return "overflow-hidden gap-0 p-0";
+  }
+
+  const isTrellisActive =
+    activeWorkspaceView === "home" && workspaceDisplayMode === "trellis" && hasOrLoadingContent;
+
+  if (isTrellisActive) {
+    return "overflow-hidden gap-3 p-2 md:p-4";
+  }
+
+  return "overflow-y-auto gap-8 p-3 md:p-6 md:pb-8 md:px-8";
+}
+
+function shouldDisplayHomeBanner(params: {
+  activeWorkspaceView: string;
+  hasSegments: boolean;
+  lowDataMode: boolean;
+  manualSaveMode: boolean;
+  unsavedChangesCount: number;
+}): boolean {
+  if (params.activeWorkspaceView !== "home" || !params.hasSegments) {
+    return false;
+  }
+
+  return params.lowDataMode || (params.manualSaveMode && params.unsavedChangesCount > 0);
+}
+
 export default function DashboardMain() {
-  const { refetchIot, triggerCloudflarePush } = useDashboard();
+  const { isFullyReady, refetchIot, triggerCloudflarePush } = useDashboard();
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const activeWorkspaceView = useIoTStore((s) => s.activeWorkspaceView);
 
-  const segments = useIoTStore((s) => s.segments);
+  const hasSegments = useIoTStore((s) => s.segments.length > 0);
   const lowDataMode = useIoTStore((s) => s.lowDataMode);
   const manualSaveMode = useIoTStore((s) => s.manualSaveMode);
   const unsavedChangesCount = useIoTStore((s) => s.unsavedChangesCount);
+  const activeAutomationsTab = useIoTStore((s) => s.activeAutomationsTab);
   const workspaceDisplayMode = useIoTStore((s) => s.workspaceDisplayMode);
 
-  const isTrellisCanvasActive =
-    activeWorkspaceView === "home" && workspaceDisplayMode === "trellis" && segments.length > 0;
+  const hasOrLoadingContent = !isFullyReady || hasSegments;
+
+  const scrollModeClass = resolveScrollContainerClass({
+    activeWorkspaceView,
+    workspaceDisplayMode,
+    activeAutomationsTab,
+    hasOrLoadingContent,
+  });
+
+  const showBanner = shouldDisplayHomeBanner({
+    activeWorkspaceView,
+    hasSegments,
+    lowDataMode,
+    manualSaveMode,
+    unsavedChangesCount,
+  });
 
   return (
     <>
@@ -28,24 +86,19 @@ export default function DashboardMain() {
 
       <div
         id="dashboard-workspace-scroll"
-        className={`custom-scrollbar flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col w-full ${
-          isTrellisCanvasActive
-            ? "overflow-hidden gap-3 p-2 md:p-4"
-            : "overflow-y-auto gap-8 p-3 md:p-6 md:pb-8 md:px-8"
-        }`}
+        tabIndex={-1}
+        className={`custom-scrollbar flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col w-full focus:outline-none ${scrollModeClass}`}
       >
-        {activeWorkspaceView === "home" &&
-          segments.length > 0 &&
-          (lowDataMode || (manualSaveMode && unsavedChangesCount > 0)) && (
-            <LowDataModeBanner
-              lowDataMode={lowDataMode}
-              animationsEnabled={animationsEnabled}
-              refetchIot={refetchIot}
-              manualSaveMode={manualSaveMode}
-              unsavedChangesCount={unsavedChangesCount}
-              triggerCloudflarePush={triggerCloudflarePush}
-            />
-          )}
+        {showBanner && (
+          <LowDataModeBanner
+            lowDataMode={lowDataMode}
+            animationsEnabled={animationsEnabled}
+            refetchIot={refetchIot}
+            manualSaveMode={manualSaveMode}
+            unsavedChangesCount={unsavedChangesCount}
+            triggerCloudflarePush={triggerCloudflarePush}
+          />
+        )}
 
         <DashboardWorkspace />
       </div>

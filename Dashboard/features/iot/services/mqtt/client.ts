@@ -16,10 +16,10 @@ export const onMqttStateChange = (cb: StateChangeCallback) => {
   };
 };
 
-import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { getIoTStoreSnapshot } from "../storeBridge";
 
 export const getMqttSettings = () => {
-  const mqttConfig = useIoTStore.getState().mqttConfig;
+  const mqttConfig = getIoTStoreSnapshot().mqttConfig;
 
   let storedBrokerUrl: string | null = null;
   let storedBaseTopic: string | null = null;
@@ -30,8 +30,10 @@ export const getMqttSettings = () => {
       storedBrokerUrl = localStorage.getItem("mqtt_broker_url");
       storedBaseTopic = localStorage.getItem("mqtt_base_topic");
       const rawQos = localStorage.getItem("mqtt_qos");
+
       if (rawQos !== null) {
         const parsed = Number.parseInt(rawQos, 10);
+
         if (parsed === 0 || parsed === 1 || parsed === 2) {
           storedQos = parsed;
         }

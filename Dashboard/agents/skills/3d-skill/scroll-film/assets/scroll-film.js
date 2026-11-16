@@ -28,8 +28,20 @@
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
 export class ScrollFilm {
-  constructor({ section, canvas, frames = null, video = null, keys = null, fit = "cover", focus = [0.5, 0.5],
-                smooth = 0.18, reducedMotion = "steps", maxDpr = 2, onUpdate = null, onReady = null }) {
+  constructor({
+    section,
+    canvas,
+    frames = null,
+    video = null,
+    keys = null,
+    fit = "cover",
+    focus = [0.5, 0.5],
+    smooth = 0.18,
+    reducedMotion = "steps",
+    maxDpr = 2,
+    onUpdate = null,
+    onReady = null,
+  }) {
     if (!frames === !video) throw new Error("ScrollFilm needs frames or video");
     Object.assign(this, { section, canvas, keys, fit, focus, smooth, maxDpr, onUpdate, onReady });
     this.ctx = canvas.getContext("2d");
@@ -52,7 +64,12 @@ export class ScrollFilm {
 
     this.resize();
     new ResizeObserver(() => this.resize()).observe(canvas);
-    new IntersectionObserver(([e]) => { this.live = e.isIntersecting; }, { rootMargin: "50% 0px" }).observe(section);
+    new IntersectionObserver(
+      ([e]) => {
+        this.live = e.isIntersecting;
+      },
+      { rootMargin: "50% 0px" },
+    ).observe(section);
     this.tick = this.tick.bind(this);
     requestAnimationFrame(this.tick);
   }
@@ -71,11 +88,17 @@ export class ScrollFilm {
         const img = new Image();
         img.decoding = "async";
         img.src = this.srcOf(i);
-        try { await img.decode(); this.images[i] = img; if (i === this.target()) this.shown = -1; } catch { /* skip */ }
+        try {
+          await img.decode();
+          this.images[i] = img;
+          if (i === this.target()) this.shown = -1;
+        } catch {
+          /* skip */
+        }
         if (i === 0) this.onReady?.(this);
       }
     };
-    for (let k = 0; k < 6; k++) worker();  // six in flight
+    for (let k = 0; k < 6; k++) worker(); // six in flight
   }
 
   async loadVideo({ src, fps = 24 }) {
@@ -93,14 +116,17 @@ export class ScrollFilm {
     this.video = v;
     this.fps = fps;
     this.count = Math.max(1, Math.round(v.duration * fps));
-    v.addEventListener("seeked", () => { this.shown = -1; });
+    v.addEventListener("seeked", () => {
+      this.shown = -1;
+    });
     this.shown = -1;
     this.onReady?.(this);
   }
 
   resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
-    const w = Math.round(this.canvas.clientWidth * dpr), h = Math.round(this.canvas.clientHeight * dpr);
+    const w = Math.round(this.canvas.clientWidth * dpr),
+      h = Math.round(this.canvas.clientHeight * dpr);
     if (w && h && (this.canvas.width !== w || this.canvas.height !== h)) {
       this.canvas.width = w;
       this.canvas.height = h;
@@ -121,14 +147,17 @@ export class ScrollFilm {
     if (p <= k[0][0]) return k[0][1];
     for (let i = 1; i < k.length; i++) {
       if (p <= k[i][0]) {
-        const [p0, f0] = k[i - 1], [p1, f1] = k[i];
+        const [p0, f0] = k[i - 1],
+          [p1, f1] = k[i];
         return f0 + (f1 - f0) * (p1 > p0 ? (p - p0) / (p1 - p0) : 1);
       }
     }
     return k[k.length - 1][1];
   }
 
-  target() { return clamp(Math.round(this.frame), 0, Math.max(0, this.count - 1)); }
+  target() {
+    return clamp(Math.round(this.frame), 0, Math.max(0, this.count - 1));
+  }
 
   tick(now) {
     requestAnimationFrame(this.tick);
@@ -139,11 +168,14 @@ export class ScrollFilm {
     let want = this.frameAt(this.progress);
     if (this.reduced === "still") want = this.keys ? this.keys[this.keys.length - 1][1] : 0;
     else if (this.reduced === "steps" && this.keys) {
-      want = this.keys.reduce((best, [, f]) => (Math.abs(f - want) < Math.abs(best - want) ? f : best), this.keys[0][1]);
+      want = this.keys.reduce(
+        (best, [, f]) => (Math.abs(f - want) < Math.abs(best - want) ? f : best),
+        this.keys[0][1],
+      );
     }
     // ease toward the scroll target, frame-rate independent: wheel steps become motion, not jumps
     const s = this.reduced ? 1 : this.smooth;
-    this.frame += (want - this.frame) * (s >= 1 ? 1 : 1 - Math.pow(1 - s, dt * 60));
+    this.frame += (want - this.frame) * (s >= 1 ? 1 : 1 - (1 - s) ** (dt * 60));
     if (Math.abs(want - this.frame) < 0.02) this.frame = want;
     const i = this.target();
     if (this.video) this.seekVideo(i);
@@ -152,7 +184,8 @@ export class ScrollFilm {
   }
 
   seekVideo(i) {
-    const v = this.video, t = Math.min(i / this.fps, v.duration - 0.001);
+    const v = this.video,
+      t = Math.min(i / this.fps, v.duration - 0.001);
     if (!v.seeking && Math.abs(v.currentTime - t) > 0.5 / this.fps) v.currentTime = t;
   }
 
@@ -167,11 +200,14 @@ export class ScrollFilm {
   draw(i) {
     const src = this.video || this.nearest(i);
     if (!src) return;
-    const sw = src.videoWidth || src.naturalWidth, sh = src.videoHeight || src.naturalHeight;
+    const sw = src.videoWidth || src.naturalWidth,
+      sh = src.videoHeight || src.naturalHeight;
     const { width: cw, height: ch } = this.canvas;
     const scale = this.fit === "cover" ? Math.max(cw / sw, ch / sh) : Math.min(cw / sw, ch / sh);
-    const dw = sw * scale, dh = sh * scale;
-    const dx = (cw - dw) * this.focus[0], dy = (ch - dh) * this.focus[1];
+    const dw = sw * scale,
+      dh = sh * scale;
+    const dx = (cw - dw) * this.focus[0],
+      dy = (ch - dh) * this.focus[1];
     this.ctx.clearRect(0, 0, cw, ch);
     this.ctx.drawImage(src, dx, dy, dw, dh);
     if (this.video ? !this.video.seeking : this.images[i]) this.shown = i;

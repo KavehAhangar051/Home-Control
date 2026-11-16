@@ -1,5 +1,4 @@
 import { DragOverlay } from "@dnd-kit/core";
-import React from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import SortableGroup from "../../SortableGroup";
