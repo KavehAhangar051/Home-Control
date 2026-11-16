@@ -6,7 +6,7 @@ interface UseSegmentDensityProps {
   isMobilePortrait: boolean;
 }
 
-export function useSegmentDensity({
+export function computeSegmentDensity({
   groupMaxCols,
   groupItemsCount,
   index,
@@ -43,4 +43,8 @@ export function useSegmentDensity({
     isCompact,
     isMobileTwoCol,
   };
+}
+
+export function useSegmentDensity(props: UseSegmentDensityProps) {
+  return computeSegmentDensity(props);
 }

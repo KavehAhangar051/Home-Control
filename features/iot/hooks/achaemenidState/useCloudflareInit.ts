@@ -12,6 +12,8 @@ import type { EspConfig } from "@/features/iot/services/esp32Config";
 import { debugLog } from "@/lib/debug";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
 
+import { executeBypassFallback, executeCloudflareInitSync } from "./core/cloudflareSyncCoordinator";
+
 interface UseCloudflareInitProps {
   mounted: boolean;
   handleApplyEspConfig: (config: EspConfig) => void;
@@ -32,142 +34,104 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     setCloudflareWorkerUrl(url);
   }, []);
 
-  const handleBypassSync = useCallback(() => {
-    bypassedRef.current = true;
+  const readLocalCache = useCallback((): EspConfig | null => {
+    if (globalThis.window === undefined) return null;
 
-    // Optional offline recovery is explicitly disabled during development.
-    if (FEATURE_FLAGS.configLocalCache && globalThis.window !== undefined) {
-      try {
-        const cached = localStorage.getItem("cached_esp_config");
+    try {
+      const cached = localStorage.getItem("cached_esp_config");
 
-        if (cached) {
-          // SAFETY: cached_esp_config holds serialized EspConfig structure
-          const cachedConfig = JSON.parse(cached) as EspConfig;
+      if (!cached) return null;
 
-          if (cachedConfig && Array.isArray(cachedConfig.segments) && cachedConfig.layout) {
-            handleApplyEspConfig(cachedConfig);
-            setRemoteSyncEpoch((prev) => prev + 1);
-            setSyncStatus(false, 100, "اتصال به سرور برقرار نیست؛ تنظیمات کش‌شده بارگذاری شد.");
-            setIsFullyReady(true);
-            debugLog.warn("ConfigSync", "Recovered configuration from optional local cache.");
+      // SAFETY: cached_esp_config holds serialized EspConfig structure
+      return JSON.parse(cached) as EspConfig;
+    } catch (error) {
+      debugLog.error("ConfigSync", "Could not read optional configuration cache.", error);
 
-            return;
-          }
-        }
-      } catch (error) {
-        debugLog.error("ConfigSync", "Could not read optional configuration cache.", error);
-      }
+      return null;
     }
+  }, []);
 
-    // Never resurrect stale configuration or seed demo/default segments when cloud sync fails.
+  const resetEmptyState = useCallback(() => {
     setSegments([]);
     setGroupsOrder([]);
     setGroupConfigs({});
+  }, [setGroupConfigs, setGroupsOrder, setSegments]);
+
+  const bumpRemoteEpoch = useCallback(() => {
     setRemoteSyncEpoch((prev) => prev + 1);
-    setSyncStatus(
-      false,
-      0,
-      "تنظیمات از سرور دریافت نشد؛ داشبورد با گروه‌ها و سگمنت‌های خالی آماده است.",
-    );
+  }, []);
+
+  const markReady = useCallback(() => {
     setIsFullyReady(true);
-    debugLog.warn(
-      "ConfigSync",
-      "Cloud configuration unavailable; initialized empty groups and segments.",
-    );
-  }, [handleApplyEspConfig, setGroupConfigs, setGroupsOrder, setSegments, setSyncStatus]);
+  }, []);
+
+  const handleBypassSync = useCallback(() => {
+    bypassedRef.current = true;
+    executeBypassFallback({
+      configLocalCacheEnabled: FEATURE_FLAGS.configLocalCache,
+      readLocalCache,
+      applyConfig: handleApplyEspConfig,
+      onResetEmptyState: resetEmptyState,
+      onBumpRemoteEpoch: bumpRemoteEpoch,
+      onSyncStatus: setSyncStatus,
+      onReady: markReady,
+      warn: debugLog.warn,
+    });
+  }, [
+    bumpRemoteEpoch,
+    handleApplyEspConfig,
+    markReady,
+    readLocalCache,
+    resetEmptyState,
+    setSyncStatus,
+  ]);
 
   const initCloudflareSync = useCallback(async () => {
-    let attemptCount = 0;
-    const maxAttempts = 2;
-
-    if (globalThis.window !== undefined && !FEATURE_FLAGS.configLocalCache) {
-      try {
-        localStorage.removeItem("cached_esp_config");
-      } catch (error) {
-        debugLog.warn("ConfigSync", "Could not clear the legacy configuration cache.", error);
-      }
-    }
-
-    if (!isCloudflareEnabled()) {
-      debugLog.warn(
-        "ConfigSync",
-        "Cloudflare is disabled; no default configuration will be applied.",
-      );
-      handleBypassSync();
-
-      return;
-    }
-
-    if (globalThis.navigator?.onLine === false) {
-      debugLog.warn("ConfigSync", "Browser offline detected; bypassing remote configuration wait.");
-      handleBypassSync();
-
-      return;
-    }
-
     bypassedRef.current = false;
 
-    while (!bypassedRef.current && attemptCount < maxAttempts) {
-      attemptCount++;
-      setSyncStatus(
-        true,
-        Math.min(25 + attemptCount * 35, 95),
-        `در حال دریافت تنظیمات از سرور ابری (تلاش ${attemptCount} از ${maxAttempts})...`,
-      );
+    await executeCloudflareInitSync({
+      configLocalCacheEnabled: FEATURE_FLAGS.configLocalCache,
+      isCloudflareEnabled,
+      isOnline: () => globalThis.navigator?.onLine !== false,
+      isBypassed: () => bypassedRef.current,
+      fetchConfig: (timeoutMs) => fetchConfigFromCloudflare({ timeoutMs }),
+      readLocalCache,
+      writeLocalCache: (cfConfig) => {
+        if (globalThis.window === undefined) return;
 
-      try {
-        const timeoutMs = attemptCount === 1 ? 3000 : 1800;
-        const cfConfig = await fetchConfigFromCloudflare({ timeoutMs });
-
-        if (cfConfig && Array.isArray(cfConfig.segments)) {
-          if (bypassedRef.current) return;
-
-          if (cfConfig.worker_url) handleWorkerUrlChange(cfConfig.worker_url);
-
-          if (FEATURE_FLAGS.configLocalCache && globalThis.window !== undefined) {
-            try {
-              localStorage.setItem("cached_esp_config", JSON.stringify(cfConfig));
-            } catch (error) {
-              debugLog.error("ConfigSync", "Could not write optional configuration cache.", error);
-            }
-          }
-
-          handleApplyEspConfig(cfConfig);
-          setRemoteSyncEpoch((prev) => prev + 1);
-          setSyncStatus(false, 100, "همگام‌سازی تنظیمات انجام شد.");
-          setIsFullyReady(true);
-          debugLog.info("ConfigSync", "Cloud configuration applied.", {
-            segments: cfConfig.segments.length,
-            groups: cfConfig.layout?.groups_order?.length ?? 0,
-          });
-
-          return;
+        try {
+          localStorage.setItem("cached_esp_config", JSON.stringify(cfConfig));
+        } catch (error) {
+          debugLog.error("ConfigSync", "Could not write optional configuration cache.", error);
         }
+      },
+      clearLocalCache: () => {
+        if (globalThis.window === undefined) return;
 
-        debugLog.warn("ConfigSync", "Cloudflare returned an invalid configuration payload.", {
-          attempt: attemptCount,
-        });
-      } catch (error) {
-        debugLog.warn("ConfigSync", "Cloud configuration request failed.", {
-          attempt: attemptCount,
-          reason: error instanceof Error ? error.message : String(error),
-        });
-      }
-
-      if (bypassedRef.current) return;
-
-      if (attemptCount < maxAttempts) {
-        setSyncStatus(
-          true,
-          Math.min(25 + attemptCount * 35, 95),
-          "دریافت تنظیمات ناموفق بود؛ تلاش مجدد...",
-        );
-        await new Promise((resolve) => setTimeout(resolve, 250));
-      }
-    }
-
-    if (!bypassedRef.current) handleBypassSync();
-  }, [handleApplyEspConfig, handleBypassSync, handleWorkerUrlChange, setSyncStatus]);
+        try {
+          localStorage.removeItem("cached_esp_config");
+        } catch (error) {
+          debugLog.warn("ConfigSync", "Could not clear the legacy configuration cache.", error);
+        }
+      },
+      applyConfig: handleApplyEspConfig,
+      onWorkerUrlChange: handleWorkerUrlChange,
+      onResetEmptyState: resetEmptyState,
+      onSyncStatus: setSyncStatus,
+      onBumpRemoteEpoch: bumpRemoteEpoch,
+      onReady: markReady,
+      warn: debugLog.warn,
+      info: debugLog.info,
+    });
+  }, [
+    bumpRemoteEpoch,
+    handleApplyEspConfig,
+    handleWorkerUrlChange,
+    markReady,
+    readLocalCache,
+    resetEmptyState,
+    setSyncStatus,
+  ]);
 
   useEffect(() => {
     let cancelled = false;

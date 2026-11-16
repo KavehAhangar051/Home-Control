@@ -75,9 +75,65 @@ function shouldEnableParentHoverListeners(): boolean {
   return !cachedHoverMql.matches && !cachedReducedMotionMql.matches;
 }
 
+const HOVER_TARGET_SELECTOR =
+  'button, a, [role="button"], [data-slot="breadcrumb-page"], [data-slot="breadcrumb-link"], [data-animate-icon-parent]';
+
+const svgHoverListeners = new WeakMap<SVGSVGElement, (hovered: boolean) => void>();
+let activeHoverTarget: HTMLElement | null = null;
+let delegatedHoverInitialized = false;
+
+function setTargetIconsHovered(target: HTMLElement | null, hovered: boolean) {
+  if (!target) return;
+
+  const svgs = target.querySelectorAll<SVGSVGElement>("[data-hugeicon-hover]");
+
+  for (let i = 0; i < svgs.length; i++) {
+    svgHoverListeners.get(svgs[i])?.(hovered);
+  }
+}
+
+function ensureDelegatedHoverListeners() {
+  if (delegatedHoverInitialized || typeof document === "undefined") return;
+
+  delegatedHoverInitialized = true;
+
+  document.addEventListener(
+    "pointerover",
+    (e: PointerEvent) => {
+      if (e.pointerType === "touch") return;
+
+      const el = e.target instanceof Element ? e.target : null;
+      const nextTarget = el?.closest<HTMLElement>(HOVER_TARGET_SELECTOR) ?? null;
+
+      if (nextTarget === activeHoverTarget) return;
+
+      setTargetIconsHovered(activeHoverTarget, false);
+      activeHoverTarget = nextTarget;
+      setTargetIconsHovered(activeHoverTarget, true);
+    },
+    { passive: true },
+  );
+
+  document.addEventListener(
+    "pointerout",
+    (e: PointerEvent) => {
+      if (!activeHoverTarget) return;
+
+      const related = e.relatedTarget instanceof Element ? e.relatedTarget : null;
+
+      if (related && activeHoverTarget.contains(related)) return;
+
+      setTargetIconsHovered(activeHoverTarget, false);
+      activeHoverTarget = null;
+    },
+    { passive: true },
+  );
+}
+
 /**
  * Creates an animated Hugeicons component backed by Animate UI and Motion.
- * Automatically animates when hovering either the icon or its parent container.
+ * Automatically animates when hovering either the icon or its parent container
+ * via a single shared passive delegated pointer listener (zero per-icon mount DOM queries).
  */
 export function createHugeIcon(
   IconComponent: React.ComponentType<IconProps<never>>,
@@ -97,7 +153,16 @@ export function createHugeIcon(
 
     const setRefs = React.useCallback(
       (node: SVGSVGElement | null) => {
+        if (localRef.current && localRef.current !== node) {
+          svgHoverListeners.delete(localRef.current);
+        }
+
         localRef.current = node;
+
+        if (node && animateOnHover && shouldEnableParentHoverListeners()) {
+          ensureDelegatedHoverListeners();
+          svgHoverListeners.set(node, setIsParentHovered);
+        }
 
         if (forwardedRef instanceof Function) {
           forwardedRef(node);
@@ -105,46 +170,15 @@ export function createHugeIcon(
           forwardedRef.current = node;
         }
       },
-      [forwardedRef],
+      [forwardedRef, animateOnHover],
     );
-
-    React.useEffect(() => {
-      if (!animateOnHover || !shouldEnableParentHoverListeners()) return;
-      const svgEl = localRef.current;
-
-      if (!svgEl) return;
-
-      const hoverTarget =
-        svgEl.closest<HTMLElement>(
-          'button, a, [role="button"], [data-slot="breadcrumb-page"], [data-slot="breadcrumb-link"], [data-animate-icon-parent]',
-        ) ?? svgEl.parentElement;
-
-      if (!hoverTarget) return;
-
-      const handlePointerEnter = (e: PointerEvent) => {
-        if (e.pointerType !== "touch") {
-          setIsParentHovered(true);
-        }
-      };
-
-      const handlePointerLeave = () => {
-        setIsParentHovered(false);
-      };
-
-      hoverTarget.addEventListener("pointerenter", handlePointerEnter, { passive: true });
-      hoverTarget.addEventListener("pointerleave", handlePointerLeave, { passive: true });
-
-      return () => {
-        hoverTarget.removeEventListener("pointerenter", handlePointerEnter);
-        hoverTarget.removeEventListener("pointerleave", handlePointerLeave);
-      };
-    }, [animateOnHover]);
 
     if (!IconComponent) return null;
 
     // SAFETY: Animate UI IconProps narrows motion SVG props while HugeIconProps exposes standard SVGProps
     const resolvedProps = {
       ...props,
+      "data-hugeicon-hover": animateOnHover ? "" : undefined,
       ref: setRefs,
       size: typeof size === "string" ? Number(size) || 24 : size,
       strokeWidth,
@@ -230,5 +264,3 @@ export const Mic01Icon = Mic;
 export const Wifi01Icon = Wifi;
 export const Add01Icon = Plus;
 export const Cancel01Icon = X;
-
-export * from "@/components/animate-ui/icons/hugeicons";

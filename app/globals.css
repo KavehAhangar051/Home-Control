@@ -404,6 +404,9 @@
 .header-title-marquee-track {
   display: flex;
   width: max-content;
+}
+
+.header-title-marquee .header-title-marquee-track {
   will-change: transform;
   animation: header-title-marquee 10s linear infinite;
 }

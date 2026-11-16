@@ -1,25 +1,7 @@
 import { useCallback } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { publishUpdateRuleCommand } from "@/features/iot/services/mqttService";
-import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
-
-function validateRuleActionList(actions?: Array<{ targetPin: string }>): string | null {
-  if (!actions) return null;
-
-  for (let i = 0; i < actions.length; i++) {
-    const targetPin = actions[i].targetPin;
-
-    if (targetPin) {
-      const validation = validateEsp32Pin(targetPin, "output");
-
-      if (!validation.isValid) {
-        return validation.message;
-      }
-    }
-  }
-
-  return null;
-}
+import { validateRuleActionList } from "./core/segmentOperations";
 
 export function useSegmentUpdates() {
   const setSegments = useIoTStore((state) => state.setSegments);
