@@ -1,13 +1,22 @@
 #ifndef PIN_STATE_MANAGER_H
 #define PIN_STATE_MANAGER_H
 
-#include "PinRegistry.h"
+#include "../PinRegistry.h"
 #include <Optimization/CompilerTraits.h>
 #include <Optimization/StaticFunction.h>
 
+/**
+ * @brief Manages GPIO input and output states with hardware-accelerated bitmask scanning.
+ */
 class PinStateManager {
 public:
-    PinStateManager(PinRegistry& registry) : _registry(registry), _numInputs(0) {}
+    PinStateManager(PinRegistry& registry)
+        : _registry(registry),
+          _inputMask0_31(0),
+          _inputMask32_39(0),
+          _lastInputs0_31(0),
+          _lastInputs32_39(0),
+          _numInputs(0) {}
 
     bool setPinState(int pin, bool state);
     bool setStateById(const char* id, bool state);
@@ -16,7 +25,7 @@ public:
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
         if (!entry) return false;
         if (entry->type == SegmentType::Input) {
-            return digitalRead(pin) == HIGH;
+            return entry->lastInputState;
         }
         if (!entry->hasGpio) return false;
         return entry->gpio.getState();
@@ -62,6 +71,10 @@ public:
 
 private:
     PinRegistry& _registry;
+    uint32_t _inputMask0_31;
+    uint32_t _inputMask32_39;
+    uint32_t _lastInputs0_31;
+    uint32_t _lastInputs32_39;
     uint8_t _inputIndices[MAX_PINS];
     uint8_t _numInputs;
 };

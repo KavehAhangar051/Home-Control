@@ -3,15 +3,19 @@
 
 #include "../RuleEngine.h"
 #include <AchaemenidConfigProtocol.h>
+#include <Optimization/CompilerTraits.h>
 
 namespace uniuno {
 namespace rules {
 
+/**
+ * @brief Evaluates button hold durations and triggers matching actions on release.
+ */
 class HoldTimeEvaluator {
 public:
     HoldTimeEvaluator(RuleContext& ctx);
     
-    void processRelease(const RuleAction* actions, int count, unsigned long durationSec, int sourcePin);
+    HOT_PATH void processRelease(const RuleAction* actions, int count, unsigned long durationSec, int sourcePin);
 
 private:
     RuleContext& _ctx;

@@ -25,6 +25,7 @@ void AchaemenidWebSocketServer::begin(uint16_t port) {
 }
 
 void AchaemenidWebSocketServer::loop() {
+    if (UNLIKELY(!_isStarted)) return;
     if (server.poll() && clientCount < WS_SERVER_MAX_CLIENTS) {
         uint8_t idx = clientCount;
         clients[idx] = server.accept();

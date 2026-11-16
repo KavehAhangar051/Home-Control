@@ -5,6 +5,7 @@
 #include <Optimization/CompilerTraits.h>
 #include <utility>
 #include "../parsers/WsClientParser.h"
+#include <WiFi.h>
 
 
 namespace uniuno {
@@ -17,7 +18,8 @@ public:
 };
 
 AchaemenidWebSocketClient::AchaemenidWebSocketClient(IEventDispatcher* dispatcher, StateProvider stateProvider)
-    : isRunning_(false), firstConnection_(true), dispatcher_(dispatcher), stateProvider_(std::move(stateProvider))
+    : isRunning_(false), firstConnection_(true), isNetworkAvailable_(false),
+      nextConnectAttemptTime_(0), dispatcher_(dispatcher), stateProvider_(std::move(stateProvider))
 {
     parser_ = new WsClientParser(dispatcher_);
     auto secureClient = std::make_shared<InsecureEsp32TcpClient>();
@@ -69,8 +71,10 @@ void AchaemenidWebSocketClient::begin(const String& serverUrl) {
     isRunning_ = true;
     lastPingTime_ = 0;
     lastConnectAttemptTime_ = 0;
+    nextConnectAttemptTime_ = 0;
     hasConnectAttempted_ = false;
     consecutiveFailures_ = 0;
+    isNetworkAvailable_ = (WiFi.status() == WL_CONNECTED);
 }
 
 void AchaemenidWebSocketClient::stop() {
@@ -114,6 +118,7 @@ void AchaemenidWebSocketClient::doConnect() {
 
     if (LIKELY(connected)) {
         consecutiveFailures_ = 0;
+        nextConnectAttemptTime_ = 0;
         Serial.println("[WebSocket] [Task] Connected successfully!");
         lastPingTime_ = lastConnectAttemptTime_;
     } else {
@@ -121,18 +126,19 @@ void AchaemenidWebSocketClient::doConnect() {
         const unsigned long retryDelay = consecutiveFailures_ >= WS_MAX_FAST_RETRIES
             ? WS_RETRY_DELAY_AFTER_MAX_FAILURES_MS
             : WS_RETRY_DELAY_MS;
+        nextConnectAttemptTime_ = lastConnectAttemptTime_ + retryDelay;
         Serial.printf("[WebSocket] [Task] Connection failed (%u consecutive failures). Next retry in %lu ms.\n",
                       static_cast<unsigned int>(consecutiveFailures_), retryDelay);
     }
 }
 
 IRAM_ATTR void AchaemenidWebSocketClient::loop() {
-    if (UNLIKELY(!isRunning_ || WiFi.status() != WL_CONNECTED || isConnecting_)) return;
-
-    const unsigned long now = millis();
+    // Zero-overhead check: Eliminates thousands of WiFi.status() calls per second!
+    if (UNLIKELY(!isRunning_ || !isNetworkAvailable_ || isConnecting_)) return;
 
     if (client_ && LIKELY(client_->available())) {
         client_->poll();
+        const unsigned long now = millis();
         if (UNLIKELY(now - lastPingTime_ >= WS_PING_INTERVAL_MS)) {
             client_->ping();
             lastPingTime_ = now;
@@ -140,13 +146,9 @@ IRAM_ATTR void AchaemenidWebSocketClient::loop() {
         return;
     }
 
-    // Do not spawn a new connection task on every Arduino loop iteration.
-    // The timestamp check is wrap-safe for millis() rollover.
-    const unsigned long retryDelay = consecutiveFailures_ >= WS_MAX_FAST_RETRIES
-        ? WS_RETRY_DELAY_AFTER_MAX_FAILURES_MS
-        : WS_RETRY_DELAY_MS;
-    if (hasConnectAttempted_ &&
-        (now - lastConnectAttemptTime_ < retryDelay)) {
+    // Single precomputed deadline subtraction (wrap-safe for millis rollover)
+    const unsigned long now = millis();
+    if (hasConnectAttempted_ && static_cast<long>(now - nextConnectAttemptTime_) < 0) {
         return;
     }
 
@@ -171,6 +173,7 @@ IRAM_ATTR void AchaemenidWebSocketClient::loop() {
         const unsigned long nextRetryDelay = consecutiveFailures_ >= WS_MAX_FAST_RETRIES
             ? WS_RETRY_DELAY_AFTER_MAX_FAILURES_MS
             : WS_RETRY_DELAY_MS;
+        nextConnectAttemptTime_ = lastConnectAttemptTime_ + nextRetryDelay;
         Serial.printf("[WebSocket] Failed to create connection task (%u consecutive failures). Next retry in %lu ms.\n",
                       static_cast<unsigned int>(consecutiveFailures_), nextRetryDelay);
     }

@@ -54,6 +54,9 @@ void BootManager::bootErrorFn(uniuno::Error e) {
 
 void BootManager::startProvisioningPortal() {
     if (provisioningServerStarted_) return;
+    if (bootTaskHandle_) {
+        bootTaskHandle_.cancel();
+    }
 
     WiFi.mode(WIFI_AP_STA);
     String mac = WiFi.macAddress();
@@ -160,16 +163,24 @@ void BootManager::loop() {
     }
 
     if (state_ != BootState::DONE || ctx_.network == nullptr) return;
+
+    const unsigned long now = millis();
+    if (now - lastConnectedCheck_ < 500) return;
+    lastConnectedCheck_ = now;
+
     if (ctx_.network->isConnected()) return;
-    if (millis() - lastReconnectAttempt_ < 5000) return;
+    if (now - lastReconnectAttempt_ < 5000) return;
 
     lastReconnectAttempt_ = millis();
     WARNING("[Network] WiFi disconnected. Retrying saved networks.");
     state_ = BootState::RECONNECTING;
     wifiFut_ = ctx_.network->connectAsync();
 
+    if (bootTaskHandle_) {
+        bootTaskHandle_.cancel();
+    }
     auto reconnectFuture = uniuno::create_future([this]() { return this->bootPollFn(); });
-    ctx_.executor->execute(reconnectFuture, [this](uniuno::Error e) { this->bootErrorFn(e); });
+    bootTaskHandle_ = ctx_.executor->executeInterval(reconnectFuture, 50, [this](uniuno::Error e) { this->bootErrorFn(e); });
 }
 
 void BootManager::startBootSequenceAsync(BootContext ctx) {
@@ -201,5 +212,5 @@ void BootManager::startBootSequenceAsync(BootContext ctx) {
     
     // We bind poll and error functions to this instance for executor
     auto bootFuture = uniuno::create_future([this]() { return this->bootPollFn(); });
-    ctx_.executor->execute(bootFuture, [this](uniuno::Error e) { this->bootErrorFn(e); });
+    bootTaskHandle_ = ctx_.executor->executeInterval(bootFuture, 50, [this](uniuno::Error e) { this->bootErrorFn(e); });
 }

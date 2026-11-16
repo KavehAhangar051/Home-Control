@@ -52,7 +52,7 @@ bool saveNetworkConfig(const ConfigLoadedEvent& config) {
 
     if (config.hasParsedConfig && config.parsed != nullptr && config.parsed->apProvided) {
         prefs.putBool("apConfigured", config.parsed->apValid);
-        if (config.parsed.apValid) {
+        if (config.parsed->apValid) {
             prefs.putString("apSsid", config.parsed->apSsid);
             prefs.putString("apPass", config.parsed->apPassword);
         } else {

@@ -94,6 +94,33 @@ public:
         }));
   }
 
+  /**
+   * @brief Catches errors and recovers from rejection.
+   */
+  template <typename F>
+  Future<I, O, E> catch_error(F &&err_fn) {
+    return Future<I, O, E>([this_future = std::move(*this), err_fn = std::forward<F>(err_fn)](const I& input) mutable -> AsyncResult<O, E> {
+      if (this_future.result.is_pending()) {
+        this_future.poll(input);
+      }
+      if (this_future.result.is_pending()) {
+        return AsyncResult<O, E>::pending();
+      }
+      if (UNLIKELY(this_future.result.is_rejected())) {
+        return AsyncResult<O, E>::resolve(err_fn(*this_future.result.get_error()));
+      }
+      return this_future.result;
+    });
+  }
+
+  /**
+   * @brief Transforms the resolved output value.
+   */
+  template <typename F>
+  auto map(F &&fn) -> Future<I, decltype(fn(std::declval<O>()))> {
+    return this->and_then(std::forward<F>(fn));
+  }
+
   AsyncResult<O, E> result;
 
 private:

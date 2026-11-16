@@ -56,6 +56,34 @@ public:
     return this->into_future(std::forward<F>(fn));
   }
 
+  /**
+   * @brief Catches errors and recovers from rejection.
+   */
+  template <class F>
+  Future<void, void, E> catch_error(F &&err_fn) {
+    return Future<void, void, E>([this_future = std::move(*this), err_fn = std::forward<F>(err_fn)]() mutable -> AsyncResult<void, E> {
+      if (this_future.result.is_pending()) {
+        this_future.poll();
+      }
+      if (this_future.result.is_pending()) {
+        return AsyncResult<void, E>::pending();
+      }
+      if (UNLIKELY(this_future.result.is_rejected())) {
+        err_fn(*this_future.result.get_error());
+        return AsyncResult<void, E>::resolve();
+      }
+      return this_future.result;
+    });
+  }
+
+  /**
+   * @brief Transforms the resolved void into a new output.
+   */
+  template <class F>
+  auto map(F &&fn) -> Future<void, decltype(fn())> {
+    return this->and_then(std::forward<F>(fn));
+  }
+
   AsyncResult<void, E> result;
 
 private:
@@ -70,7 +98,7 @@ private:
 
   template <class F, typename std::enable_if<
                          std::is_same<typename function_traits<F>::result_type,
-                                      void>::value>::type * = nullptr>
+                                       void>::value>::type * = nullptr>
   auto into_future(F &&fn) -> Future<void, decltype(fn())> {
     return this->and_then<void>(Future<void, void>([fn = std::forward<F>(fn)]() mutable {
       fn();

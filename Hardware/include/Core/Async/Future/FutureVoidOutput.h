@@ -58,6 +58,34 @@ public:
         [fn = std::forward<F>(fn)]() mutable { return AsyncResult<OutputType>::resolve(fn()); }));
   }
 
+  /**
+   * @brief Catches errors and recovers from rejection.
+   */
+  template <typename F>
+  Future<I, void, E> catch_error(F &&err_fn) {
+    return Future<I, void, E>([this_future = std::move(*this), err_fn = std::forward<F>(err_fn)](const I& input) mutable -> AsyncResult<void, E> {
+      if (this_future.result.is_pending()) {
+        this_future.poll(input);
+      }
+      if (this_future.result.is_pending()) {
+        return AsyncResult<void, E>::pending();
+      }
+      if (UNLIKELY(this_future.result.is_rejected())) {
+        err_fn(*this_future.result.get_error());
+        return AsyncResult<void, E>::resolve();
+      }
+      return this_future.result;
+    });
+  }
+
+  /**
+   * @brief Transforms the resolved void output into a new output.
+   */
+  template <typename F>
+  auto map(F &&fn) -> Future<I, decltype(fn())> {
+    return this->and_then(std::forward<F>(fn));
+  }
+
   AsyncResult<void, E> result;
 
 private:
