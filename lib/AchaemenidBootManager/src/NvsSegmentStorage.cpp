@@ -1,24 +1,36 @@
 #include "NvsSegmentStorage.h"
 #include <Arduino.h>
+#include <cstdio>
 
 namespace uniuno {
 
+/**
+ * @brief Save segment configuration to NVS with zero dynamic heap string allocations.
+ */
 void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
     Preferences segPrefs;
-    bool started = segPrefs.begin("AchaemenidSeg", false);
-    if (!started) {
+    if (!segPrefs.begin("AchaemenidSeg", false)) {
         Serial.println("[SegStorage] Failed to open Segment Preferences");
         return;
     }
 
+    char key[16];
     int savedCount = 0;
     for (int i = 0; i < MAX_SEGMENTS; i++) {
         if (!parsed.segments[i].valid) continue;
-        String prefix = "s" + String(savedCount);
-        segPrefs.putString((prefix + "id").c_str(), parsed.segments[i].id);
-        segPrefs.putString((prefix + "tp").c_str(), parsed.segments[i].type);
-        segPrefs.putInt((prefix + "pn").c_str(), parsed.segments[i].pin);
-        segPrefs.putInt((prefix + "ao").c_str(), parsed.segments[i].autoOffDelay);
+
+        snprintf(key, sizeof(key), "s%did", savedCount);
+        segPrefs.putString(key, parsed.segments[i].id);
+
+        snprintf(key, sizeof(key), "s%dtp", savedCount);
+        segPrefs.putString(key, parsed.segments[i].type);
+
+        snprintf(key, sizeof(key), "s%dpn", savedCount);
+        segPrefs.putInt(key, parsed.segments[i].pin);
+
+        snprintf(key, sizeof(key), "s%dao", savedCount);
+        segPrefs.putInt(key, parsed.segments[i].autoOffDelay);
+
         savedCount++;
         if (savedCount >= MAX_SEGMENTS) break;
     }
@@ -28,38 +40,47 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
     Serial.printf("[SegStorage] Saved %d segments to NVS\n", savedCount);
 }
 
+/**
+ * @brief Load segment configuration from NVS with stack-only key buffers.
+ */
 bool NvsSegmentStorage::loadSegmentConfig(ParseResult& out) {
     Preferences segPrefs;
-    bool started = segPrefs.begin("AchaemenidSeg", true);
-    if (!started) {
+    if (!segPrefs.begin("AchaemenidSeg", true)) {
         Serial.println("[SegStorage] No segment config in NVS");
         return false;
     }
 
-    int count = segPrefs.getInt("count", 0);
+    const int count = segPrefs.getInt("count", 0);
     if (count <= 0) {
         segPrefs.end();
         Serial.println("[SegStorage] NVS segment count is 0");
         return false;
     }
 
+    char key[16];
     out.count = 0;
     for (int i = 0; i < count && i < MAX_SEGMENTS; i++) {
-        String prefix = "s" + String(i);
-        String id   = segPrefs.getString((prefix + "id").c_str(), "");
-        String type = segPrefs.getString((prefix + "tp").c_str(), "");
-        int    pin  = segPrefs.getInt((prefix + "pn").c_str(), -1);
-        int    ao   = segPrefs.getInt((prefix + "ao").c_str(), 0);
+        snprintf(key, sizeof(key), "s%did", i);
+        String id = segPrefs.getString(key, "");
+
+        snprintf(key, sizeof(key), "s%dtp", i);
+        String type = segPrefs.getString(key, "");
+
+        snprintf(key, sizeof(key), "s%dpn", i);
+        const int pin = segPrefs.getInt(key, -1);
+
+        snprintf(key, sizeof(key), "s%dao", i);
+        const int ao = segPrefs.getInt(key, 0);
 
         if (id.length() > 0 && pin >= 0) {
-            strncpy(out.segments[i].id,   id.c_str(),   sizeof(out.segments[i].id) - 1);
+            strncpy(out.segments[i].id, id.c_str(), sizeof(out.segments[i].id) - 1);
             out.segments[i].id[sizeof(out.segments[i].id) - 1] = '\0';
             strncpy(out.segments[i].type, type.c_str(), sizeof(out.segments[i].type) - 1);
             out.segments[i].type[sizeof(out.segments[i].type) - 1] = '\0';
-            out.segments[i].pin          = pin;
+            out.segments[i].pin = pin;
             out.segments[i].autoOffDelay = ao;
-            out.segments[i].value        = false;
-            out.segments[i].valid        = true;
+            out.segments[i].value = false;
+            out.segments[i].valid = true;
             out.count++;
         }
     }

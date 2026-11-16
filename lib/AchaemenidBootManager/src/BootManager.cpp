@@ -23,9 +23,17 @@ uniuno::AsyncResult<void> BootManager::bootPollFn() {
     if (state_ == BootState::CONNECT_WIFI || state_ == BootState::RECONNECTING) {
         auto res = wifiFut_.poll();
         if (UNLIKELY(res.is_rejected())) {
-            WARNING("[Boot] Saved WiFi networks failed. Starting local provisioning AP.");
-            startProvisioningPortal();
-            return uniuno::AsyncResult<void>::pending();
+            if (state_ == BootState::CONNECT_WIFI) {
+                // Initial boot: all saved APs failed, open setup portal
+                WARNING("[Boot] Saved WiFi networks failed. Starting local provisioning AP.");
+                startProvisioningPortal();
+                return uniuno::AsyncResult<void>::pending();
+            } else {
+                // Runtime disconnect: temporary router drop. Do NOT plunge into setup AP!
+                WARNING("[Network] Reconnection attempt failed. Will retry saved networks.");
+                state_ = BootState::DONE; // Reset state so loop() can retry after backoff
+                return uniuno::AsyncResult<void>::resolve();
+            }
         }
         if (LIKELY(res.is_resolved())) {
             INFO("[Boot] WiFi connected. Starting/restarting network services.");
@@ -79,18 +87,25 @@ void BootManager::startProvisioningPortal() {
     }
 
     provisioningServer_.on("/", HTTP_GET, [this]() {
-        String html =
-            "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"
-            "<meta charset='utf-8'><title>Achaemenid Wi-Fi Setup</title>"
-            "<style>body{font:16px Arial;max-width:560px;margin:30px auto;padding:0 16px;background:#f5f6f8}"
-            "main{background:white;padding:22px;border-radius:12px}input{box-sizing:border-box;width:100%;padding:11px;margin:6px 0 14px}"
-            "button{padding:12px 20px;background:#1769aa;color:white;border:0;border-radius:7px}</style></head><body>"
-            "<main><h2>Wi-Fi setup</h2><p>Enter up to five networks. The ESP32 selects an available saved network.</p>"
-            "<form method='POST' action='/save'>";
+        String html;
+        html.reserve(2048);
+        html += "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"
+                "<meta charset='utf-8'><title>Achaemenid Wi-Fi Setup</title>"
+                "<style>body{font:16px Arial;max-width:560px;margin:30px auto;padding:0 16px;background:#f5f6f8}"
+                "main{background:white;padding:22px;border-radius:12px}input{box-sizing:border-box;width:100%;padding:11px;margin:6px 0 14px}"
+                "button{padding:12px 20px;background:#1769aa;color:white;border:0;border-radius:7px}</style></head><body>"
+                "<main><h2>Wi-Fi setup</h2><p>Enter up to five networks. The ESP32 selects an available saved network.</p>"
+                "<form method='POST' action='/save'>";
         for (int i = 0; i < 5; ++i) {
-            html += "<h3>Network " + String(i + 1) + "</h3>";
-            html += "<label>SSID</label><input name='ssid" + String(i) + "' maxlength='32' autocomplete='off'>";
-            html += "<label>Password</label><input name='pass" + String(i) + "' type='password' maxlength='63' autocomplete='new-password'>";
+            char numBuf[8];
+            snprintf(numBuf, sizeof(numBuf), "%d", i);
+            html += "<h3>Network ";
+            html += (i + 1);
+            html += "</h3><label>SSID</label><input name='ssid";
+            html += numBuf;
+            html += "' maxlength='32' autocomplete='off'><label>Password</label><input name='pass";
+            html += numBuf;
+            html += "' type='password' maxlength='63' autocomplete='new-password'>";
         }
         html += "<button type='submit'>Save and connect</button></form></main></body></html>";
         provisioningServer_.send(200, "text/html; charset=utf-8", html);
@@ -101,9 +116,12 @@ void BootManager::startProvisioningPortal() {
         String passwords[5];
         int count = 0;
 
+        char keyBuf[16];
         for (int i = 0; i < 5; ++i) {
-            String ssid = provisioningServer_.arg("ssid" + String(i));
-            String password = provisioningServer_.arg("pass" + String(i));
+            snprintf(keyBuf, sizeof(keyBuf), "ssid%d", i);
+            String ssid = provisioningServer_.arg(keyBuf);
+            snprintf(keyBuf, sizeof(keyBuf), "pass%d", i);
+            String password = provisioningServer_.arg(keyBuf);
             ssid.trim();
             if (ssid.length() == 0) continue;
             if (ssid.length() > 32 || password.length() > 63 ||
@@ -129,12 +147,16 @@ void BootManager::startProvisioningPortal() {
 
         prefs.putInt("wifiCount", count);
         for (int i = 0; i < count; ++i) {
-            prefs.putString(("ssid" + String(i)).c_str(), ssids[i]);
-            prefs.putString(("pass" + String(i)).c_str(), passwords[i]);
+            snprintf(keyBuf, sizeof(keyBuf), "ssid%d", i);
+            prefs.putString(keyBuf, ssids[i]);
+            snprintf(keyBuf, sizeof(keyBuf), "pass%d", i);
+            prefs.putString(keyBuf, passwords[i]);
         }
         for (int i = count; i < 5; ++i) {
-            prefs.remove(("ssid" + String(i)).c_str());
-            prefs.remove(("pass" + String(i)).c_str());
+            snprintf(keyBuf, sizeof(keyBuf), "ssid%d", i);
+            prefs.remove(keyBuf);
+            snprintf(keyBuf, sizeof(keyBuf), "pass%d", i);
+            prefs.remove(keyBuf);
         }
         prefs.end();
 
@@ -156,11 +178,18 @@ void BootManager::startProvisioningPortal() {
     INFOF("[Provisioning] Access point '%s' started. Open http://192.168.4.1", apSsid.c_str());
 }
 
-void BootManager::loop() {
-    if (state_ == BootState::PROVISIONING) {
+/**
+ * @brief High-performance non-blocking loop for network monitoring and provisioning.
+ * Fast 1-cycle exit in 31 out of 32 iterations, eliminating thousands of millis() calls.
+ */
+HOT_PATH void BootManager::loop() {
+    if (UNLIKELY(state_ == BootState::PROVISIONING)) {
         provisioningServer_.handleClient();
         return;
     }
+
+    // 1-cycle fast pre-scaler exit: only check connection once every 32 loop iterations
+    if (LIKELY(++loopPrescaler_ & 0x1F)) return;
 
     if (state_ != BootState::DONE || ctx_.network == nullptr) return;
 
@@ -171,7 +200,7 @@ void BootManager::loop() {
     if (ctx_.network->isConnected()) return;
     if (now - lastReconnectAttempt_ < 5000) return;
 
-    lastReconnectAttempt_ = millis();
+    lastReconnectAttempt_ = now;
     WARNING("[Network] WiFi disconnected. Retrying saved networks.");
     state_ = BootState::RECONNECTING;
     wifiFut_ = ctx_.network->connectAsync();
@@ -199,7 +228,6 @@ void BootManager::startBootSequenceAsync(BootContext ctx) {
         Serial.println("==========================================");
 
         ConfigLoadedEvent evt;
-
         evt.pinCount = applied;
         ctx_.eventBus->dispatch(evt);
     } else {
@@ -210,7 +238,7 @@ void BootManager::startBootSequenceAsync(BootContext ctx) {
     INFO("[BootManager] Starting WiFi connection (using configured APs)...");
     wifiFut_ = ctx_.network->connectAsync();
     
-    // We bind poll and error functions to this instance for executor
+    // Bind poll and error functions for executor
     auto bootFuture = uniuno::create_future([this]() { return this->bootPollFn(); });
     bootTaskHandle_ = ctx_.executor->executeInterval(bootFuture, 50, [this](uniuno::Error e) { this->bootErrorFn(e); });
 }
