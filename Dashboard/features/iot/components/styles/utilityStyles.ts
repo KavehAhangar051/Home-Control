@@ -21,24 +21,5 @@ export function getUtilityStyles({ animationsEnabled }: UtilityStylesParams): st
     `
         : ""
     }
-
-    .theme-bg-main { background-color: var(--bg-main); }
-    .theme-text-primary { color: var(--text-primary); }
-    .theme-text-secondary { color: var(--text-secondary); }
-    .theme-text-tertiary { color: var(--text-tertiary); }
-    .theme-text-muted { color: var(--text-muted); }
-    .theme-card-bg { background-color: var(--card-bg); }
-    .theme-card-bg-solid { background-color: var(--card-bg-solid); }
-    .theme-card-hover-bg { background-color: var(--card-hover-bg); }
-    .theme-border { border-color: var(--border-color); }
-
-    .text-accent3 { color: var(--accent3); }
-    .text-accent4 { color: var(--accent4); }
-    .bg-accent3 { background-color: var(--accent3); }
-    .bg-accent4 { background-color: var(--accent4); }
-    .border-accent3 { border-color: var(--accent3); }
-    .border-accent4 { border-color: var(--accent4); }
-    .border-accent3-medium { border-color: var(--accent3-medium); }
-    .border-accent4-medium { border-color: var(--accent4-medium); }
   `;
 }

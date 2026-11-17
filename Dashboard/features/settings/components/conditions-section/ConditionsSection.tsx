@@ -38,8 +38,8 @@ export default function ConditionsSection() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-[var(--accent3-transparent)] border border-[var(--accent3)] text-[var(--accent3)] p-4 rounded-xl text-xs flex gap-3 items-start">
-        <Info className="w-5 h-5 shrink-0 mt-0.5" />
+      <div className="bg-accent3-transparent border border-accent3 text-accent3 p-4 rounded-xl text-xs flex gap-3 items-start">
+        <Info className="size-5 shrink-0 mt-0.5" />
         <p className="leading-relaxed font-medium">
           در این بخش می‌توانید برای زمان‌های مختلف نگه‌داشتن کلید (مثلاً 0، 3، 5 یا 10 ثانیه) عملیات
           متفاوتی تعریف کنید. شما می‌توانید برای هر وضعیت چندین عملیات بسازید تا هرکدام روی یک پایه‌ی
@@ -48,12 +48,12 @@ export default function ConditionsSection() {
       </div>
 
       {inputSegments.length === 0 ? (
-        <div className="text-center py-8 px-4 bg-[var(--card-bg-solid)] rounded-2xl border border-dashed border-[var(--border-color)] space-y-1.5">
-          <Settings2 className="w-7 h-7 mx-auto text-[var(--text-secondary)] opacity-45" />
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
+        <div className="text-center py-8 px-4 bg-card-bg-solid rounded-2xl border border-dashed border-border-color space-y-1.5">
+          <Settings2 className="size-7 mx-auto text-text-secondary opacity-45" />
+          <p className="text-sm font-semibold text-text-primary">
             هنوز قطعه ورودی در داشبورد ثبت نشده است
           </p>
-          <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto leading-relaxed">
+          <p className="text-xs text-text-secondary max-w-sm mx-auto leading-relaxed">
             ابتدا از بخش «پالایه و ماژول‌ها» یک قطعه از نوع «ورودی دیجیتال» بسازید تا بتوانید برای آن
             شرط تعریف کنید.
           </p>

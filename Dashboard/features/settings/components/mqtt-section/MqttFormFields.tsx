@@ -39,8 +39,8 @@ export function MqttFormFields({
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <div className="col-span-2 space-y-2 text-right">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="sm:col-span-2 space-y-2 text-right">
           <Label htmlFor="mqtt-broker-host" className="px-1 font-bold">
             آدرس سرور سخت‌افزار (TCP Host)
           </Label>
@@ -54,7 +54,7 @@ export function MqttFormFields({
             placeholder="broker.emqx.io"
           />
         </div>
-        <div className="col-span-1 space-y-2 text-right">
+        <div className="sm:col-span-1 space-y-2 text-right">
           <Label htmlFor="mqtt-broker-port" className="px-1 font-bold">
             پورت (Port)
           </Label>

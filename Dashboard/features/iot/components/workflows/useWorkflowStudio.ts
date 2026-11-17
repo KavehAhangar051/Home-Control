@@ -10,6 +10,7 @@ import {
   computeFitWorkflowViewport,
   createEmptyWorkflow,
   createWorkflowNode,
+  DEFAULT_WORKFLOW_VIEWPORT,
   getWorkflowGridStyle,
   normalizeWorkflowNodeLabel,
   readStoredWorkflowState,
@@ -27,7 +28,28 @@ import type {
 
 export type { ConnectingWireDraft };
 
-const DEFAULT_VIEWPORT: WorkflowViewport = { x: 48, y: 48, zoom: 1 };
+function patchWorkflowById(
+  workflows: ReadonlyArray<WorkflowDefinition>,
+  targetId: string,
+  updater: (wf: WorkflowDefinition) => WorkflowDefinition,
+): WorkflowDefinition[] {
+  const nextWorkflows: WorkflowDefinition[] = [];
+
+  for (let i = 0; i < workflows.length; i++) {
+    const wf = workflows[i];
+
+    if (wf.id === targetId) {
+      nextWorkflows.push({
+        ...updater(wf),
+        updatedAt: Date.now(),
+      });
+    } else {
+      nextWorkflows.push(wf);
+    }
+  }
+
+  return nextWorkflows;
+}
 
 function normalizeWorkflowNodesList(
   nodes: WorkflowNode[],
@@ -132,11 +154,13 @@ export function useWorkflowStudio({
   }, [studioState.workflows, studioState.activeWorkflowId]);
 
   const activeWorkflowRef = React.useRef(activeWorkflow);
-  const viewportRef = React.useRef<WorkflowViewport>(activeWorkflow?.viewport ?? DEFAULT_VIEWPORT);
+  const viewportRef = React.useRef<WorkflowViewport>(
+    activeWorkflow?.viewport ?? DEFAULT_WORKFLOW_VIEWPORT,
+  );
 
   React.useEffect(() => {
     activeWorkflowRef.current = activeWorkflow;
-    viewportRef.current = activeWorkflow?.viewport ?? DEFAULT_VIEWPORT;
+    viewportRef.current = activeWorkflow?.viewport ?? DEFAULT_WORKFLOW_VIEWPORT;
   }, [activeWorkflow]);
 
   const updateActiveWorkflow = React.useCallback(
@@ -146,22 +170,9 @@ export function useWorkflowStudio({
 
         if (!targetId) return prev;
 
-        const nextWorkflows: WorkflowDefinition[] = [];
-
-        for (const wf of prev.workflows) {
-          if (wf.id === targetId) {
-            nextWorkflows.push({
-              ...updater(wf),
-              updatedAt: Date.now(),
-            });
-          } else {
-            nextWorkflows.push(wf);
-          }
-        }
-
         return {
           ...prev,
-          workflows: nextWorkflows,
+          workflows: patchWorkflowById(prev.workflows, targetId, updater),
         };
       });
     },
@@ -294,15 +305,10 @@ export function useWorkflowStudio({
   );
 
   const handleRenameWorkflow = React.useCallback((id: string, name: string) => {
-    setStudioState((prev) => {
-      const nextList: WorkflowDefinition[] = [];
-
-      for (const wf of prev.workflows) {
-        nextList.push(wf.id === id ? { ...wf, name, updatedAt: Date.now() } : wf);
-      }
-
-      return { ...prev, workflows: nextList };
-    });
+    setStudioState((prev) => ({
+      ...prev,
+      workflows: patchWorkflowById(prev.workflows, id, (wf) => ({ ...wf, name })),
+    }));
   }, []);
 
   const handleDeleteWorkflow = React.useCallback(
@@ -327,15 +333,10 @@ export function useWorkflowStudio({
   );
 
   const handleToggleEnabled = React.useCallback((id: string, enabled: boolean) => {
-    setStudioState((prev) => {
-      const nextList: WorkflowDefinition[] = [];
-
-      for (const wf of prev.workflows) {
-        nextList.push(wf.id === id ? { ...wf, enabled, updatedAt: Date.now() } : wf);
-      }
-
-      return { ...prev, workflows: nextList };
-    });
+    setStudioState((prev) => ({
+      ...prev,
+      workflows: patchWorkflowById(prev.workflows, id, (wf) => ({ ...wf, enabled })),
+    }));
   }, []);
 
   const handleAddNode = React.useCallback(

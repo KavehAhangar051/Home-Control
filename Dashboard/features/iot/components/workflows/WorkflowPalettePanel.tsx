@@ -126,11 +126,11 @@ export default function WorkflowPalettePanel({
           }
           onPointerDown={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.stopPropagation()}
-          className="absolute top-12 bottom-0 left-0 z-30 flex w-[288px] max-w-[86vw] flex-col border-r border-[var(--border-color)] bg-[var(--card-bg-solid)]/95 shadow-xl backdrop-blur-xl"
+          className="absolute top-12 bottom-0 left-0 z-30 flex w-[288px] max-w-[86vw] flex-col border-r border-border-color bg-card-bg-solid/95 shadow-xl backdrop-blur-xl"
         >
-          <div className="shrink-0 space-y-2.5 border-b border-[var(--border-color)] p-3">
+          <div className="shrink-0 space-y-2.5 border-b border-border-color p-3">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="truncate text-xs font-bold text-[var(--text-primary)]">
+              <h2 className="truncate text-xs font-bold text-text-primary">
                 کتابخانه قطعات و گیت‌ها
               </h2>
 
@@ -138,15 +138,15 @@ export default function WorkflowPalettePanel({
                 type="button"
                 onClick={onClose}
                 aria-label="بستن کتابخانه گره‌ها"
-                className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-[var(--text-muted)] transition-[color,background-color,transform] duration-150 ease-[var(--ease-out)] hover:bg-[var(--secondary)] hover:text-[var(--text-primary)] active:scale-[0.97] md:hidden"
+                className="inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-text-muted transition-[color,background-color,transform] duration-150 ease-out hover:bg-secondary hover:text-text-primary active:scale-[0.97] md:hidden"
               >
-                <X className="h-4 w-4" />
+                <X className="size-4" />
               </button>
             </div>
 
             <div className="relative">
               <Search
-                className="pointer-events-none absolute top-1/2 right-2.5 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]"
+                className="pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 text-text-muted"
                 aria-hidden="true"
               />
               <input
@@ -155,14 +155,14 @@ export default function WorkflowPalettePanel({
                 onChange={(e) => setQuery(e.target.value)}
                 aria-label="جستجو در کتابخانه گره‌ها"
                 placeholder="جستجو..."
-                className="h-8 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] pr-8 pl-2.5 text-[11px] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent3)]"
+                className="h-8 w-full rounded-lg border border-border-color bg-bg-main pr-8 pl-2.5 text-[11px] text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent3"
               />
             </div>
 
             <div
               role="tablist"
               aria-label="دسته‌بندی گره‌ها"
-              className="grid grid-cols-4 gap-1 rounded-lg bg-[var(--bg-main)] p-1"
+              className="grid grid-cols-4 gap-1 rounded-lg bg-bg-main p-1"
             >
               {PALETTE_TABS.map((tab) => {
                 const active = categoryFilter === tab.id;
@@ -174,10 +174,8 @@ export default function WorkflowPalettePanel({
                     role="tab"
                     aria-selected={active}
                     onClick={() => setCategoryFilter(tab.id)}
-                    className={`relative h-6 cursor-pointer truncate rounded-md px-1.5 text-[10px] font-semibold whitespace-nowrap transition-[color,transform] duration-150 ease-[var(--ease-out)] active:scale-[0.97] ${
-                      active
-                        ? "text-[var(--text-primary)]"
-                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    className={`relative h-6 cursor-pointer truncate rounded-md px-1.5 text-[10px] font-semibold whitespace-nowrap transition-[color,transform] duration-150 ease-out active:scale-[0.97] ${
+                      active ? "text-text-primary" : "text-text-muted hover:text-text-primary"
                     }`}
                   >
                     {active && (
@@ -187,7 +185,7 @@ export default function WorkflowPalettePanel({
                         }
                         transition={SPRING_LAYOUT}
                         aria-hidden="true"
-                        className="absolute inset-0 rounded-md bg-[var(--card-bg-solid)] shadow-xs"
+                        className="absolute inset-0 rounded-md bg-card-bg-solid shadow-xs"
                       />
                     )}
                     <span className="relative z-10">{tab.label}</span>

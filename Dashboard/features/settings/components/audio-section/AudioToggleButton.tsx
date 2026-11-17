@@ -10,7 +10,7 @@ interface Props {
 export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
   return (
     <div className="space-y-2">
-      <p className="text-[10px] text-[var(--text-tertiary)] leading-relaxed text-right">
+      <p className="text-[10px] text-text-tertiary leading-relaxed text-right">
         پخش پیوسته موزیک پس‌زمینه برای افزایش تمرکز و آرامش حین استفاده از داشبورد هوشمند.
       </p>
 
@@ -20,24 +20,20 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
         onPressedChange={() => onToggle()}
         disabled={isLoading}
         aria-label="موزیک پس‌زمینه"
-        className={`switch-toggle w-full h-auto min-h-[5.5rem] flex-row-reverse justify-between gap-3 whitespace-normal rounded-2xl border p-4 text-right transition-colors duration-200 hover:bg-[var(--card-hover-bg)] hover:text-[var(--text-primary)] focus-visible:ring-[var(--accent3)] group ${
+        className={`switch-toggle w-full h-auto min-h-[5.5rem] flex-row-reverse justify-between gap-3 whitespace-normal rounded-2xl border p-4 text-right transition-colors duration-200 hover:bg-card-hover-bg hover:text-text-primary focus-visible:ring-accent3 group ${
           isMusicOn
-            ? "bg-[var(--accent3-transparent)] aria-pressed:bg-[var(--accent3-transparent)] data-[state=on]:bg-[var(--accent3-transparent)] border-[var(--accent3)] shadow-[var(--accent3-transparent)]"
-            : "bg-[var(--card-bg-solid)] border-[var(--border-color)] hover:border-[var(--text-muted)]"
+            ? "bg-accent3-transparent aria-pressed:bg-accent3-transparent data-[state=on]:bg-accent3-transparent border-accent3 shadow-accent3-transparent"
+            : "bg-card-bg-solid border-border-color hover:border-text-muted"
         } ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
       >
         <div
           className={`flex h-6 w-10 shrink-0 items-center rounded-[8px] border p-1 transition-colors duration-300 ${
-            isMusicOn
-              ? "bg-[var(--accent3)] border-transparent"
-              : "bg-[var(--card-hover-bg)] border-[var(--border-color)]"
+            isMusicOn ? "bg-accent3 border-transparent" : "bg-card-hover-bg border-border-color"
           }`}
         >
           <div
-            className={`w-3.5 h-3.5 rounded-[4px] shadow-sm transition-transform duration-300 ${
-              isMusicOn
-                ? "bg-[var(--bg-main)] translate-x-0"
-                : "bg-[var(--text-secondary)] -translate-x-4"
+            className={`size-3.5 rounded-[4px] shadow-sm transition-transform duration-300 ${
+              isMusicOn ? "bg-bg-main translate-x-0" : "bg-text-secondary -translate-x-4"
             }`}
           />
         </div>
@@ -45,12 +41,12 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
         <div className="min-w-0 flex-1 space-y-1 text-right">
           <span
             className={`block text-sm font-bold transition-colors ${
-              isMusicOn ? "text-[var(--accent3)]" : "text-[var(--text-secondary)]"
+              isMusicOn ? "text-accent3" : "text-text-secondary"
             }`}
           >
             موزیک پس‌زمینه
           </span>
-          <span className="block text-xs leading-relaxed text-[var(--text-muted)]">
+          <span className="block text-xs leading-relaxed text-text-muted">
             {isLoading ? "در حال بارگذاری..." : isMusicOn ? "فعال · در حال پخش" : "غیرفعال · متوقف"}
           </span>
         </div>
@@ -58,8 +54,8 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
         <div
           className={`shrink-0 rounded-xl p-2.5 transition-colors duration-200 ${
             isMusicOn
-              ? "bg-[var(--accent3-transparent)] text-[var(--accent3)] shadow-[inset_0_0_8px_rgba(99,102,241,0.2)]"
-              : "bg-[var(--card-hover-bg)] text-[var(--text-muted)]"
+              ? "bg-accent3-transparent text-accent3 shadow-[inset_0_0_8px_rgba(99,102,241,0.2)]"
+              : "bg-card-hover-bg text-text-muted"
           }`}
         >
           {isMusicOn ? (

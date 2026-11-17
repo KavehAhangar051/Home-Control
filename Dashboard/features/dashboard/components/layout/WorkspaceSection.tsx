@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { Alert } from "@/components/reui/alert";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Container } from "@/components/ui/grid";
 import { Clock3 } from "@/components/ui/hugeicons";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import {
@@ -128,29 +130,32 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
   }
 
   return (
-    <section
-      className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 text-right sm:px-6 sm:py-10 lg:py-12"
+    <Container
+      size="lg"
+      className="max-w-5xl space-y-6 py-6 text-right sm:py-10 lg:py-12"
       dir="rtl"
     >
       <header className="flex flex-col gap-3 border-b border-border-color pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border-color bg-card-bg text-accent3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border-color bg-card-bg text-accent3 shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)]">
             <Icon className="size-5" aria-hidden="true" />
           </div>
-          <div className="min-w-0">
-            <h1 className="text-xl font-medium leading-7 text-balance text-text-primary sm:text-2xl">
+          <div className="min-w-0 space-y-1">
+            <span className="inline-flex items-center rounded-full border border-border-color bg-card-bg px-3 py-1 text-[10px] font-medium tracking-wider text-text-secondary">
+              {activeSubsectionTitle}
+            </span>
+            <h1 className="text-fluid-xl font-medium leading-7 text-balance text-text-primary">
               {meta.title}
             </h1>
-            <p className="mt-1 text-sm leading-6 text-text-secondary">{meta.description}</p>
+            <p className="text-sm leading-6 text-text-secondary">{meta.description}</p>
           </div>
         </div>
-        <span className="text-xs font-medium text-text-secondary">{activeSubsectionTitle}</span>
       </header>
 
       {view === "modules" && <ModulesWorkspace />}
       {view === "automations" && <AutomationsWorkspace />}
       {view === "settings" && <SettingsWorkspace />}
-    </section>
+    </Container>
   );
 }
 
@@ -168,7 +173,7 @@ function MobileSubsectionTabs<T extends string>({
   return (
     <nav
       aria-label={ariaLabel}
-      className="min-w-0 overflow-x-auto rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-1.5 md:hidden"
+      className="min-w-0 overflow-x-auto rounded-xl border border-border-color bg-card-bg p-1.5 md:hidden"
     >
       <div className="flex min-w-max gap-1.5">
         {items.map((tab) => {
@@ -180,10 +185,10 @@ function MobileSubsectionTabs<T extends string>({
               type="button"
               onClick={() => onSelect(tab.id)}
               aria-current={isActive ? "page" : undefined}
-              className={`min-h-10 cursor-pointer rounded-lg border px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors ${
+              className={`min-h-11 cursor-pointer rounded-lg border px-3.5 py-2 text-xs font-medium whitespace-nowrap transition-colors duration-200 ease-out ${
                 isActive
-                  ? "border-[var(--accent3)] bg-[var(--card-hover-bg)] text-[var(--text-primary)]"
-                  : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--card-hover-bg)] hover:text-[var(--text-primary)]"
+                  ? "border-accent3 bg-card-hover-bg text-text-primary"
+                  : "border-transparent text-text-secondary hover:bg-card-hover-bg hover:text-text-primary"
               }`}
             >
               {tab.compactTitle}
@@ -221,7 +226,7 @@ function ModulesWorkspace() {
       {targetPlaceholder && (
         <Alert
           variant="info"
-          className="!flex !flex-wrap !items-center !justify-between !gap-3 !border-[var(--accent3-medium)] !bg-[var(--accent3-transparent)] text-sm text-[var(--text-primary)]"
+          className="!flex !flex-wrap !items-center !justify-between !gap-3 !border-accent3-medium !bg-accent3-transparent text-sm text-text-primary"
         >
           <span>
             در حال تخصیص قطعه به جایگاه خالی در گروه{" "}
@@ -233,7 +238,7 @@ function ModulesWorkspace() {
               clearTargetPlaceholder();
               setActiveWorkspaceView("home");
             }}
-            className="cursor-pointer rounded-md border border-[var(--border-color)] bg-[var(--card-bg)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            className="cursor-pointer rounded-md border border-border-color bg-card-bg px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary"
           >
             انصراف و بازگشت
           </button>
@@ -254,8 +259,10 @@ function ModulesWorkspace() {
           />
         </div>
       ) : (
-        <div className="min-w-0 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] p-4 sm:p-5">
-          <SegmentList segments={segments} onRemoveSegment={handleRemoveSegment} />
+        <div className="bezel-shell min-w-0">
+          <div className="bezel-core min-w-0 p-4 sm:p-5">
+            <SegmentList segments={segments} onRemoveSegment={handleRemoveSegment} />
+          </div>
         </div>
       )}
     </div>
@@ -277,9 +284,9 @@ function AutomationsWorkspace() {
 
       <Alert
         variant="info"
-        className="!flex !items-start !gap-3 !border-[var(--border-color)] !bg-[var(--card-bg)] text-sm leading-6 text-[var(--text-secondary)]"
+        className="!flex !items-start !gap-3 !border-border-color !bg-card-bg text-sm leading-6 text-text-secondary"
       >
-        <Clock3 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+        <Clock3 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <p>
           {activeAutomationsTab === "create"
             ? "زمان‌بندی، تایمر یا شرط دمایی جدید را تنظیم و ذخیره کنید"
@@ -300,7 +307,7 @@ function WorkflowsCanvasSection() {
   const { handleTogglePin, handleSetPinState } = useDashboard();
 
   return (
-    <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+    <div className="relative flex size-full min-h-0 flex-1 flex-col overflow-hidden">
       <WorkflowStudio onTogglePin={handleTogglePin} onSetPinState={handleSetPinState} />
     </div>
   );
@@ -359,25 +366,27 @@ function SettingsWorkspace() {
         ariaLabel="دسته‌بندی تنظیمات"
       />
 
-      <section
-        aria-labelledby="active-settings-heading"
-        className="min-w-0 overflow-visible rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)]"
-      >
-        <header className="border-b border-[var(--border-color)] px-4 py-4 sm:px-6">
-          <h2
-            id="active-settings-heading"
-            className="text-base font-medium leading-6 text-[var(--text-primary)]"
-          >
-            {activeSettings.title}
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-            تنظیمات این بخش را از همین‌جا مدیریت کنید
-          </p>
-        </header>
-        <div className="min-w-0 p-4 sm:p-6">
-          <ActiveSettingsPanel activeTab={activeTab} />
-        </div>
-      </section>
+      <div className="bezel-shell min-w-0">
+        <Card
+          aria-labelledby="active-settings-heading"
+          className="bezel-core min-w-0 !gap-0 !overflow-visible !py-0 !ring-0"
+        >
+          <CardHeader className="border-b border-border-color px-4 py-4 sm:px-6">
+            <CardTitle
+              id="active-settings-heading"
+              className="text-base font-medium leading-6 text-text-primary"
+            >
+              {activeSettings.title}
+            </CardTitle>
+            <CardDescription className="mt-1 text-sm leading-6 text-text-secondary">
+              تنظیمات این بخش را از همین‌جا مدیریت کنید
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="min-w-0 p-4 sm:p-6">
+            <ActiveSettingsPanel activeTab={activeTab} />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

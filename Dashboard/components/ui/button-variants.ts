@@ -1,4 +1,4 @@
-import { cn, disabled } from "@/lib/utils";
+import { cn, disabled, focusRing } from "@/lib/utils";
 
 export type ButtonVariant =
   | "default"
@@ -59,7 +59,8 @@ export function buttonVariants({
   className,
 }: ButtonVariantsOptions = {}): string {
   return cn(
-    "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[scale,transform,background-color,color,border-color,box-shadow,opacity] duration-150 ease-[var(--ease-out)] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+    "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[scale,transform,background-color,color,border-color,box-shadow,opacity] duration-150 ease-out [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+    focusRing,
     disabled,
     !isStatic && variant !== "link" && tapScale,
     variants[variant],

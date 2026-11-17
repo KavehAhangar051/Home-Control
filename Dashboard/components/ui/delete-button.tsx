@@ -419,9 +419,9 @@ function runDeleteConfirm({
 }
 
 function getTileToneClass(activePhase: DeleteButtonStatus, armed: boolean): string {
-  if (activePhase === "done") return "text-emerald-500";
+  if (activePhase === "done") return "text-success";
 
-  return armed ? "text-red-500" : "text-muted-foreground hover:text-red-500";
+  return armed ? "text-destructive" : "text-muted-foreground hover:text-destructive";
 }
 
 function getTileLabel(
@@ -627,7 +627,7 @@ export function DeleteButton({
 
                 runDeleteConfirm({ onConfirm, onError, phaseRef, transitionPhase });
               }}
-              className={cn(metrics.action, "text-red-500")}
+              className={cn(metrics.action, "text-destructive")}
             >
               <CheckGlyph className={metrics.actionGlyph} />
             </ActionButton>

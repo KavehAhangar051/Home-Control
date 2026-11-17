@@ -16,14 +16,14 @@ export default function LayoutSection({ headerTitle, setHeaderTitle }: LayoutSec
   return (
     <div className="space-y-6 text-right" dir="rtl">
       <div className="space-y-2">
-        <h4 className="text-xs font-semibold text-[var(--text-secondary)]">چیدمان فضای کار</h4>
+        <h4 className="text-xs font-semibold text-text-secondary">چیدمان فضای کار</h4>
 
-        <div className="flex flex-col gap-3 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg-solid)] px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-lg border border-border-color bg-card-bg-solid px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <span className="text-xs font-medium text-[var(--text-primary)]">
+            <span className="text-xs font-medium text-text-primary">
               فرم نمایش سگمنت‌ها و گروه‌ها
             </span>
-            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+            <p className="mt-0.5 text-[11px] text-text-muted">
               انتخاب بین چیدمان ستونی کلاسیک، پنجره‌های آزاد، یا شیت بوم بی‌نهایت (مشابه n8n)
             </p>
           </div>
@@ -34,12 +34,10 @@ export default function LayoutSection({ headerTitle, setHeaderTitle }: LayoutSec
         </div>
 
         {workspaceDisplayMode === "grid" && (
-          <div className="flex flex-col gap-3 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg-solid)] px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-lg border border-border-color bg-card-bg-solid px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <span className="text-xs font-medium text-[var(--text-primary)]">
-                تعداد ستون گروه‌ها
-              </span>
-              <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+              <span className="text-xs font-medium text-text-primary">تعداد ستون گروه‌ها</span>
+              <p className="mt-0.5 text-[11px] text-text-muted">
                 تعیین تعداد ستون‌های نمایش گروه‌ها در حالت ستونی
               </p>
             </div>
@@ -51,7 +49,7 @@ export default function LayoutSection({ headerTitle, setHeaderTitle }: LayoutSec
         )}
       </div>
 
-      <div className="rounded-lg border border-[var(--border-color)] bg-[var(--card-bg-solid)] p-4">
+      <div className="rounded-lg border border-border-color bg-card-bg-solid p-4">
         <HeaderSettingsContent headerTitle={headerTitle} setHeaderTitle={setHeaderTitle} />
       </div>
     </div>

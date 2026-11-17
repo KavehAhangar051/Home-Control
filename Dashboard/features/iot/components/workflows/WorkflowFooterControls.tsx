@@ -34,7 +34,7 @@ export default function WorkflowFooterControls({
           : "pointer-events-none absolute inset-x-0 bottom-2.5 z-40 flex items-center justify-center px-2"
       }
     >
-      <div className="pointer-events-auto flex max-w-full items-center gap-1 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg-solid)]/95 px-2 py-1 text-xs shadow-lg backdrop-blur-xl">
+      <div className="pointer-events-auto flex max-w-full items-center gap-1 rounded-2xl border border-border-color bg-card-bg-solid/95 px-2 py-1 text-xs shadow-lg backdrop-blur-xl">
         <Tooltip>
           <TooltipTrigger
             render={
@@ -42,9 +42,9 @@ export default function WorkflowFooterControls({
                 type="button"
                 onClick={() => onZoomBy(-0.15)}
                 aria-label="کوچک‌نمایی"
-                className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
+                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary"
               >
-                <Minus className="h-3.5 w-3.5" aria-hidden="true" />
+                <Minus className="size-3.5" aria-hidden="true" />
               </button>
             }
           />
@@ -55,7 +55,7 @@ export default function WorkflowFooterControls({
           type="button"
           onClick={onFitView}
           aria-label="بازنشانی بزرگ‌نمایی"
-          className="inline-flex h-7 min-w-[44px] cursor-pointer items-center justify-center rounded-lg px-1.5 text-[11px] font-bold tabular-nums text-[var(--text-primary)] transition-colors hover:bg-[var(--secondary)]"
+          className="inline-flex h-7 min-w-[44px] cursor-pointer items-center justify-center rounded-lg px-1.5 text-[11px] font-bold tabular-nums text-text-primary transition-colors hover:bg-secondary"
         >
           {Math.round(zoom * 100)}%
         </button>
@@ -67,9 +67,9 @@ export default function WorkflowFooterControls({
                 type="button"
                 onClick={() => onZoomBy(0.15)}
                 aria-label="بزرگ‌نمایی"
-                className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
+                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary"
               >
-                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                <Plus className="size-3.5" aria-hidden="true" />
               </button>
             }
           />
@@ -80,25 +80,25 @@ export default function WorkflowFooterControls({
           type="button"
           onClick={onFitView}
           aria-label="نمای کلی گره‌ها"
-          className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--secondary)] px-2 text-[11px] font-semibold text-[var(--text-primary)] transition-colors hover:border-[var(--accent3)]"
+          className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-border-color bg-secondary px-2 text-[11px] font-semibold text-text-primary transition-colors hover:border-accent3"
         >
-          <Maximize className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <Maximize className="size-3.5 shrink-0" aria-hidden="true" />
           <span className="hidden md:inline">نمای کلی</span>
         </button>
 
-        <div className="flex items-center gap-0.5 border-r border-[var(--border-color)] pr-1">
+        <div className="flex items-center gap-0.5 border-r border-border-color pr-1">
           <button
             type="button"
             aria-pressed={snapToGrid}
             onClick={onToggleSnap}
             aria-label="چسبندگی به شبکه"
-            className={`inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors ${
+            className={`inline-flex size-7 cursor-pointer items-center justify-center rounded-lg transition-colors ${
               snapToGrid
-                ? "bg-[var(--accent3-transparent)] text-[var(--accent3)]"
-                : "text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
+                ? "bg-accent3-transparent text-accent3"
+                : "text-text-muted hover:bg-secondary hover:text-text-primary"
             }`}
           >
-            <Grid className="h-3.5 w-3.5" aria-hidden="true" />
+            <Grid className="size-3.5" aria-hidden="true" />
           </button>
 
           <button
@@ -108,14 +108,14 @@ export default function WorkflowFooterControls({
             aria-label={isLocked ? "باز کردن قفل بوم" : "قفل کردن بوم"}
             className={`inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg px-2 text-[11px] font-semibold transition-colors ${
               isLocked
-                ? "bg-amber-500/15 text-amber-500"
-                : "text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
+                ? "bg-warning-soft text-warning"
+                : "text-text-muted hover:bg-secondary hover:text-text-primary"
             }`}
           >
             {isLocked ? (
-              <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <Lock className="size-3.5 shrink-0" aria-hidden="true" />
             ) : (
-              <Unlock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <Unlock className="size-3.5 shrink-0" aria-hidden="true" />
             )}
             <span className="hidden lg:inline">{isLocked ? "قفل" : "آزاد"}</span>
           </button>

@@ -65,7 +65,7 @@ export function InitialAppLoader(): React.JSX.Element {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15, ease: EASE_OUT }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black text-zinc-200 select-none pointer-events-none"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background text-foreground select-none pointer-events-none"
         >
           <AsciiLineLoader size={32} />
         </m.div>

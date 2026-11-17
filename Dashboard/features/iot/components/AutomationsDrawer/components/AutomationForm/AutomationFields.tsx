@@ -1,6 +1,9 @@
 import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { MapPin } from "@/components/ui/hugeicons";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { AutomationFormHookValue } from "../../context/AutomationContext";
@@ -24,42 +27,34 @@ export function ScheduleFields({
   return (
     <>
       <div className="col-span-2 md:col-span-1">
-        <label
-          htmlFor={timeId}
-          className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
-        >
+        <Label htmlFor={timeId} className="block mb-1">
           زمان (ساعت):
-        </label>
-        <input
+        </Label>
+        <Input
           id={timeId}
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
-          className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] p-2.5 rounded-xl focus:outline-none focus:border-[var(--accent3)] text-sm transition-colors text-[var(--text-primary)]"
+          className="bg-card-bg"
           dir="ltr"
         />
       </div>
       <div className="col-span-2 md:col-span-1">
-        <label
-          htmlFor={repeatId}
-          className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
-        >
+        <Label htmlFor={repeatId} className="block mb-1">
           تعداد تکرار:
-        </label>
-        <input
+        </Label>
+        <Input
           id={repeatId}
           type="number"
           min="0"
           value={repeatCount}
           onChange={(e) => setRepeatCount(e.target.value === "" ? "" : Number(e.target.value))}
           placeholder="0 (بی‌نهایت)"
-          className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] p-2.5 rounded-xl focus:outline-none focus:border-[var(--accent3)] text-sm transition-colors text-[var(--text-primary)]"
+          className="bg-card-bg"
         />
       </div>
       <div className="col-span-2">
-        <div className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
-          روزهای هفته:
-        </div>
+        <div className="block text-xs font-medium text-text-secondary mb-2">روزهای هفته:</div>
         <ToggleGroup
           multiple
           variant="outline"
@@ -73,7 +68,7 @@ export function ScheduleFields({
             <ToggleGroupItem
               key={d.value}
               value={String(d.value)}
-              className="px-3 h-8 rounded-lg text-xs font-medium aria-pressed:bg-[var(--accent3)] aria-pressed:text-[var(--bg-main)] aria-pressed:border-[var(--accent3)]"
+              className="px-3 min-h-10 sm:min-h-8 rounded-lg text-xs font-medium aria-pressed:bg-accent3 aria-pressed:text-bg-main aria-pressed:border-accent3"
             >
               {d.label}
             </ToggleGroupItem>
@@ -100,30 +95,24 @@ export function TimerFields({
   return (
     <>
       <div className="col-span-2 md:col-span-1">
-        <label
-          htmlFor={hoursId}
-          className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
-        >
+        <Label htmlFor={hoursId} className="block mb-1">
           تاخیر (ساعت):
-        </label>
-        <input
+        </Label>
+        <Input
           id={hoursId}
           type="number"
           min="0"
           value={delayHours}
           onChange={(e) => setDelayHours(e.target.value === "" ? "" : Number(e.target.value))}
           placeholder="مثال: 10"
-          className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] p-2.5 rounded-xl focus:outline-none focus:border-[var(--accent3)] text-sm transition-colors text-[var(--text-primary)]"
+          className="bg-card-bg"
         />
       </div>
       <div className="col-span-2 md:col-span-1">
-        <label
-          htmlFor={minutesId}
-          className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
-        >
+        <Label htmlFor={minutesId} className="block mb-1">
           تاخیر (دقیقه):
-        </label>
-        <input
+        </Label>
+        <Input
           id={minutesId}
           type="number"
           min="0"
@@ -131,7 +120,7 @@ export function TimerFields({
           value={delayMinutes}
           onChange={(e) => setDelayMinutes(e.target.value === "" ? "" : Number(e.target.value))}
           placeholder="مثال: 30"
-          className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] p-2.5 rounded-xl focus:outline-none focus:border-[var(--accent3)] text-sm transition-colors text-[var(--text-primary)]"
+          className="bg-card-bg"
         />
       </div>
     </>
@@ -146,19 +135,16 @@ export function WeatherIntervalFields({
 
   return (
     <div className="col-span-2">
-      <label
-        htmlFor={intervalId}
-        className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
-      >
+      <Label htmlFor={intervalId} className="block mb-1">
         دوره بررسی (ساعت):
-      </label>
-      <select
+      </Label>
+      <Select
         id={intervalId}
         value={intervalMinutes ? intervalMinutes / 60 : ""}
         onChange={(e) =>
           setIntervalMinutes(e.target.value === "" ? "" : Number(e.target.value) * 60)
         }
-        className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] p-2.5 rounded-xl focus:outline-none focus:border-[var(--accent3)] text-sm transition-colors text-[var(--text-primary)]"
+        className="bg-card-bg"
       >
         <option value="" disabled>
           انتخاب کنید...
@@ -168,7 +154,7 @@ export function WeatherIntervalFields({
             هر {h} ساعت
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }
@@ -201,20 +187,18 @@ export function WeatherConditionFields({
   return (
     <>
       <div className="col-span-2">
-        <label
-          htmlFor={cityId}
-          className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
-        >
+        <Label htmlFor={cityId} className="block mb-1">
           نام شهر یا مختصات (انگلیسی):
-        </label>
+        </Label>
         <div className="flex min-w-0 gap-2">
-          <input
+          <Input
             id={cityId}
             type="text"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             placeholder="مثال: Tehran یا 36.26,59.61"
-            className="min-w-0 flex-1 bg-[var(--card-bg)] border border-[var(--border-color)] p-2.5 rounded-xl focus:outline-none focus:border-[var(--accent3)] focus-visible:ring-2 focus-visible:ring-[var(--accent3)]/40 text-sm transition-colors text-[var(--text-primary)]"
+            wrapperClassName="min-w-0 flex-1"
+            className="bg-card-bg"
             dir="ltr"
           />
           <Tooltip>
@@ -225,17 +209,17 @@ export function WeatherConditionFields({
                   type="button"
                   onClick={handleGetLocation}
                   disabled={isGettingLocation}
-                  className={`p-2.5 rounded-lg text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 ease-[var(--ease-out)] border flex items-center justify-center min-w-[44px] ${
+                  className={`p-2.5 rounded-lg text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 ease-out border flex items-center justify-center min-w-[44px] ${
                     isGettingLocation
-                      ? "bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-muted)] cursor-not-allowed"
-                      : "bg-[var(--card-hover-bg)] border-[var(--border-color)] text-[var(--text-secondary)] md:hover:border-[var(--accent3)] md:hover:text-[var(--accent3)]"
+                      ? "bg-card-bg border-border-color text-text-muted cursor-not-allowed"
+                      : "bg-card-hover-bg border-border-color text-text-secondary md:hover:border-accent3 md:hover:text-accent3"
                   }`}
                   aria-label="دریافت مکان فعلی"
                 >
                   {isGettingLocation ? (
-                    <div className="w-5 h-5 border-2 border-[var(--accent3)] border-t-transparent rounded-full animate-spin" />
+                    <div className="size-5 border-2 border-accent3 border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <MapPin strokeWidth={1.5} className="w-5 h-5" />
+                    <MapPin strokeWidth={1.5} className="size-5" />
                   )}
                 </Button>
               }
@@ -246,13 +230,10 @@ export function WeatherConditionFields({
       </div>
       <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex-1">
-          <label
-            htmlFor={conditionId}
-            className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
-          >
+          <Label htmlFor={conditionId} className="block mb-1">
             شرط دما:
-          </label>
-          <select
+          </Label>
+          <Select
             id={conditionId}
             value={temperatureCondition}
             onChange={(e) => {
@@ -262,20 +243,17 @@ export function WeatherConditionFields({
                 setTemperatureCondition(val);
               }
             }}
-            className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] p-2.5 rounded-xl focus:outline-none focus:border-[var(--accent3)] text-sm transition-colors text-[var(--text-primary)]"
+            className="bg-card-bg"
           >
             <option value="greater">بیشتر از</option>
             <option value="less">کمتر از</option>
-          </select>
+          </Select>
         </div>
         <div className="flex-1">
-          <label
-            htmlFor={thresholdId}
-            className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
-          >
+          <Label htmlFor={thresholdId} className="block mb-1">
             دما (°C):
-          </label>
-          <input
+          </Label>
+          <Input
             id={thresholdId}
             type="number"
             value={temperatureThreshold}
@@ -283,7 +261,7 @@ export function WeatherConditionFields({
               setTemperatureThreshold(e.target.value === "" ? "" : Number(e.target.value))
             }
             placeholder="مثال: 30"
-            className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] p-2.5 rounded-xl focus:outline-none focus:border-[var(--accent3)] text-sm transition-colors text-[var(--text-primary)]"
+            className="bg-card-bg"
             dir="ltr"
           />
         </div>

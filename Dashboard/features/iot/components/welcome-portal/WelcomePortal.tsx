@@ -56,90 +56,97 @@ export default function WelcomePortal() {
       variants={{
         visible: { transition: { staggerChildren: 0.1 } },
       }}
-      className="mx-auto w-full max-w-5xl px-3 py-5 text-right sm:px-5 sm:py-8"
+      className="@container mx-auto w-full max-w-5xl px-3 py-5 text-right sm:px-5 sm:py-8"
       dir="rtl"
     >
-      <Card className="overflow-hidden">
-        <CardContent className="space-y-5 px-6 pb-6 sm:px-8 sm:pb-8">
-          <m.div variants={chunkVariants} className="space-y-1">
-            <h2 className="text-base font-semibold text-balance text-foreground">
-              نمای کلی سامانه
-            </h2>
-            <p className="text-sm leading-6 text-muted-foreground">
-              برای آشنایی با بخش‌های اصلی، گزینه‌ها را انتخاب کن یا محتوای این پنل را مرور کن.
-            </p>
-          </m.div>
+      <div className="bezel-shell">
+        <Card className="bezel-core overflow-hidden">
+          <CardContent className="space-y-5 px-5 pb-6 sm:px-8 sm:pb-8">
+            <m.div variants={chunkVariants} className="space-y-1.5">
+              <span className="inline-flex items-center rounded-full border border-border bg-muted/40 px-3 py-1 text-[10px] font-medium tracking-wider text-muted-foreground">
+                راهنمای سریع خانه هوشمند
+              </span>
+              <h2 className="text-fluid-lg font-semibold text-balance text-foreground">
+                نمای کلی سامانه
+              </h2>
+              <p className="text-sm leading-6 text-muted-foreground">
+                برای آشنایی با بخش‌های اصلی، گزینه‌ها را انتخاب کن یا محتوای این پنل را مرور کن.
+              </p>
+            </m.div>
 
-          <m.div
-            variants={chunkVariants}
-            className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-4"
-          >
-            <nav aria-label="بخش‌های نمای کلی">
-              <Scrollspy
-                targetRef={overviewRef}
-                history={false}
-                offset={0}
-                className="flex min-w-0 gap-2 overflow-x-auto pb-1 sm:flex-col sm:overflow-visible sm:pb-0"
+            <m.div
+              variants={chunkVariants}
+              className="grid min-w-0 grid-cols-1 gap-3 @md/card:grid-cols-[9.5rem_minmax(0,1fr)] sm:gap-4"
+            >
+              <nav aria-label="بخش‌های نمای کلی">
+                <Scrollspy
+                  targetRef={overviewRef}
+                  history={false}
+                  offset={0}
+                  className="flex min-w-0 gap-2 overflow-x-auto pb-1 @md/card:flex-col @md/card:overflow-visible @md/card:pb-0"
+                >
+                  {overviewSections.map((item) => (
+                    <Button
+                      key={item.id}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      data-scrollspy-anchor={item.id}
+                      className="min-h-11 @md/card:min-h-9 shrink-0 justify-start gap-2 data-[active=true]:border-primary data-[active=true]:bg-primary/10 data-[active=true]:text-foreground @md/card:w-full"
+                    >
+                      <item.Icon className="size-4 shrink-0" strokeWidth={2} aria-hidden="true" />
+                      {item.label}
+                    </Button>
+                  ))}
+                </Scrollspy>
+              </nav>
+
+              <section
+                ref={overviewRef}
+                className="relative h-80 min-w-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-xl border border-border bg-muted/20 shadow-[inset_0_1px_0_0_oklch(1_0_0/0.05)] scroll-smooth"
+                aria-label="توضیحات قابلیت‌های سامانه"
               >
                 {overviewSections.map((item) => (
-                  <Button
+                  <section
                     key={item.id}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    data-scrollspy-anchor={item.id}
-                    className="shrink-0 justify-start gap-2 data-[active=true]:border-primary data-[active=true]:bg-primary/10 data-[active=true]:text-foreground sm:w-full"
+                    id={item.id}
+                    aria-labelledby={`${item.id}-title`}
+                    className="relative flex min-h-72 items-center p-5 sm:p-6"
                   >
-                    <item.Icon className="size-4 shrink-0" strokeWidth={2} aria-hidden="true" />
-                    {item.label}
-                  </Button>
-                ))}
-              </Scrollspy>
-            </nav>
+                    <div className="flex w-full flex-col items-center gap-4 text-center @sm/card:flex-row @sm/card:gap-6 @sm/card:text-right">
+                      <IconStack className={`h-28 w-24 shrink-0 ${item.color}`} aria-hidden="true">
+                        <item.Icon className="size-6" strokeWidth={2} />
+                      </IconStack>
 
-            <section
-              ref={overviewRef}
-              className="relative h-80 min-w-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-lg border border-border bg-muted/20 scroll-smooth"
-              aria-label="توضیحات قابلیت‌های سامانه"
-            >
-              {overviewSections.map((item) => (
-                <section
-                  key={item.id}
-                  id={item.id}
-                  aria-labelledby={`${item.id}-title`}
-                  className="relative flex min-h-72 items-center p-5 sm:p-6"
-                >
-                  <div className="flex w-full flex-col items-center gap-4 text-center sm:flex-row sm:gap-6 sm:text-right">
-                    <IconStack className={`h-28 w-24 shrink-0 ${item.color}`} aria-hidden="true">
-                      <item.Icon className="size-6" strokeWidth={2} />
-                    </IconStack>
-
-                    <div className="min-w-0 space-y-2">
-                      <h3
-                        id={`${item.id}-title`}
-                        className="text-base font-semibold text-foreground"
-                      >
-                        {item.label}
-                      </h3>
-                      <p className="text-sm leading-7 text-muted-foreground">{item.description}</p>
-                      <p className="text-xs font-medium text-muted-foreground">{item.hint}</p>
+                      <div className="min-w-0 space-y-2">
+                        <h3
+                          id={`${item.id}-title`}
+                          className="text-fluid-base font-semibold text-foreground"
+                        >
+                          {item.label}
+                        </h3>
+                        <p className="text-sm leading-7 text-muted-foreground">
+                          {item.description}
+                        </p>
+                        <p className="text-xs font-medium text-muted-foreground">{item.hint}</p>
+                      </div>
                     </div>
-                  </div>
-                </section>
-              ))}
-            </section>
-          </m.div>
-        </CardContent>
+                  </section>
+                ))}
+              </section>
+            </m.div>
+          </CardContent>
 
-        <m.div variants={chunkVariants}>
-          <CardFooter className="text-sm leading-6 text-muted-foreground">
-            <p>
-              <span className="font-medium text-foreground">برای شروع:</span> از بخش «ماژول‌ها» در
-              ناوبری، اولین ماژول خانه را اضافه کن.
-            </p>
-          </CardFooter>
-        </m.div>
-      </Card>
+          <m.div variants={chunkVariants}>
+            <CardFooter className="text-sm leading-6 text-muted-foreground">
+              <p>
+                <span className="font-medium text-foreground">برای شروع:</span> از بخش «ماژول‌ها» در
+                ناوبری، اولین ماژول خانه را اضافه کن.
+              </p>
+            </CardFooter>
+          </m.div>
+        </Card>
+      </div>
     </m.section>
   );
 }

@@ -47,7 +47,7 @@ export function ThemeToggle(): React.JSX.Element {
               pressed={isDark}
               onClick={handleToggle}
               aria-label={titleText}
-              className="group relative inline-flex size-9 h-9 w-9 min-w-9 shrink-0 items-center justify-center gap-0 rounded-lg border border-[var(--sidebar-border)] bg-[var(--sidebar-control-bg)] p-0 px-0 text-[var(--sidebar-muted)] transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer select-none touch-manipulation hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] active:scale-[0.97]"
+              className="group relative inline-flex size-9 size-9 min-w-9 shrink-0 items-center justify-center gap-0 rounded-lg border border-sidebar-border bg-sidebar-control-bg p-0 px-0 text-sidebar-muted transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer select-none touch-manipulation hover:bg-sidebar-hover hover:text-sidebar-text focus:outline-none focus-visible:ring-2 focus-visible:ring-accent3 active:scale-[0.97]"
             >
               <span
                 className="relative flex size-4 items-center justify-center shrink-0"

@@ -51,7 +51,7 @@ export default function WorkflowHeaderBar({
     <div
       dir="rtl"
       onPointerDown={(e) => e.stopPropagation()}
-      className="custom-scrollbar relative z-40 flex h-12 w-full shrink-0 items-center justify-between gap-2 overflow-x-auto border-b border-[var(--border-color)] bg-[var(--card-bg-solid)]/95 px-2.5 backdrop-blur-md sm:px-3"
+      className="custom-scrollbar relative z-40 flex h-12 w-full shrink-0 items-center justify-between gap-2 overflow-x-auto border-b border-border-color bg-card-bg-solid/95 px-2.5 backdrop-blur-md sm:px-3"
     >
       {/* Right side in RTL: Workflow Selector + CRUD + Run + Active Toggle */}
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
@@ -70,15 +70,15 @@ export default function WorkflowHeaderBar({
                 }
               }}
               aria-label="نام گردش کار"
-              className="h-8 w-36 rounded-lg border border-[var(--accent3)] bg-[var(--bg-main)] px-2 text-xs font-bold text-[var(--text-primary)] outline-none sm:w-44"
+              className="h-8 w-36 rounded-lg border border-accent3 bg-bg-main px-2 text-xs font-bold text-text-primary outline-none sm:w-44"
             />
             <button
               type="button"
               onClick={commitRename}
               aria-label="ثبت نام گردش کار"
-              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-[var(--accent3)] text-[var(--accent3-foreground)]"
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg bg-accent3 text-accent3-foreground"
             >
-              <Check className="h-3.5 w-3.5" />
+              <Check className="size-3.5" />
             </button>
           </div>
         ) : (
@@ -87,7 +87,7 @@ export default function WorkflowHeaderBar({
               aria-label="انتخاب گردش کار"
               value={activeWorkflow.id}
               onChange={(e) => onSelectWorkflow(e.target.value)}
-              className="h-8 max-w-[140px] cursor-pointer truncate rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] px-2 text-xs font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] sm:max-w-[200px]"
+              className="h-8 max-w-[140px] cursor-pointer truncate rounded-lg border border-border-color bg-bg-main px-2 text-xs font-bold text-text-primary outline-none focus:border-accent3 sm:max-w-[200px]"
             >
               {workflows.map((wf) => (
                 <option key={wf.id} value={wf.id}>
@@ -103,9 +103,9 @@ export default function WorkflowHeaderBar({
                 setEditingWorkflowId(activeWorkflow.id);
               }}
               aria-label="تغییر نام گردش کار"
-              className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition-colors hover:border-[var(--border-color)] hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
+              className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-transparent text-text-muted transition-colors hover:border-border-color hover:bg-secondary hover:text-text-primary"
             >
-              <Edit3 className="h-3.5 w-3.5" />
+              <Edit3 className="size-3.5" />
             </button>
           </div>
         )}
@@ -114,9 +114,9 @@ export default function WorkflowHeaderBar({
           type="button"
           onClick={onCreateWorkflow}
           aria-label="گردش کار جدید"
-          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--secondary)] px-2 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:border-[var(--accent3)]"
+          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-border-color bg-secondary px-2 text-xs font-semibold text-text-primary transition-colors hover:border-accent3"
         >
-          <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+          <Plus className="size-3.5" aria-hidden="true" />
           <span className="hidden md:inline">جدید</span>
         </button>
 
@@ -124,22 +124,22 @@ export default function WorkflowHeaderBar({
           type="button"
           onClick={() => onDeleteWorkflow(activeWorkflow.id)}
           aria-label={`حذف ${activeWorkflow.name}`}
-          className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition-colors hover:border-red-500/35 hover:bg-red-500/10 hover:text-red-500"
+          className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-transparent text-text-muted transition-colors hover:border-destructive/35 hover:bg-destructive-soft hover:text-destructive"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="size-3.5" />
         </button>
       </div>
 
       {/* Center Status Hint while Connecting Ports */}
       {isConnecting && (
-        <div className="hidden items-center gap-2 rounded-lg border border-[var(--accent3)]/40 bg-[var(--accent3-transparent)] px-2.5 py-1 text-[11px] font-bold text-[var(--accent3)] lg:flex">
+        <div className="hidden items-center gap-2 rounded-lg border border-accent3/40 bg-accent3-transparent px-2.5 py-1 text-[11px] font-bold text-accent3 lg:flex">
           <span>پورت ورودی گره مقصد را انتخاب کنید</span>
           <button
             type="button"
             onClick={onCancelConnect}
-            className="inline-flex cursor-pointer items-center gap-0.5 rounded px-1 text-[10px] hover:bg-[var(--accent3)] hover:text-[var(--accent3-foreground)]"
+            className="inline-flex cursor-pointer items-center gap-0.5 rounded px-1 text-[10px] hover:bg-accent3 hover:text-accent3-foreground"
           >
-            <X className="h-3 w-3" />
+            <X className="size-3" />
             لغو
           </button>
         </div>
@@ -150,9 +150,9 @@ export default function WorkflowHeaderBar({
         <button
           type="button"
           onClick={onRunTest}
-          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500 active:scale-[0.98]"
+          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-success px-2.5 text-xs font-bold text-success-foreground transition-colors hover:bg-success/90 active:scale-[0.98]"
         >
-          <Play className="h-3.5 w-3.5" aria-hidden="true" />
+          <Play className="size-3.5" aria-hidden="true" />
           <span className="hidden sm:inline">تست مدار</span>
         </button>
 
@@ -162,18 +162,18 @@ export default function WorkflowHeaderBar({
           role="switch"
           aria-checked={activeWorkflow.enabled}
           onClick={() => onToggleEnabled(activeWorkflow.id, !activeWorkflow.enabled)}
-          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] px-2 text-[11px] font-semibold text-[var(--text-primary)] transition-colors hover:border-[var(--accent3)]"
+          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-border-color bg-bg-main px-2 text-[11px] font-semibold text-text-primary transition-colors hover:border-accent3"
         >
           <span
             aria-hidden="true"
             className={`relative inline-flex h-5 w-9 shrink-0 items-center justify-start rounded-[7px] p-0.5 transition-colors ${
               activeWorkflow.enabled
-                ? "border border-transparent bg-emerald-600"
-                : "border border-[var(--border-color)] bg-[var(--input)]"
+                ? "border border-transparent bg-success"
+                : "border border-border-color bg-input"
             }`}
           >
             <span
-              className={`pointer-events-none inline-block h-[14px] w-[14px] rounded-[4px] bg-white shadow-xs transition-transform duration-200 ${
+              className={`pointer-events-none inline-block size-[14px] rounded-[4px] bg-card-bg-solid dark:bg-foreground shadow-xs transition-transform duration-200 ${
                 activeWorkflow.enabled ? "translate-x-0" : "-translate-x-4"
               }`}
             />
@@ -187,11 +187,11 @@ export default function WorkflowHeaderBar({
           onClick={onTogglePalette}
           className={`inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold transition-colors ${
             isPaletteOpen
-              ? "border-[var(--accent3)] bg-[var(--accent3-transparent)] text-[var(--accent3)]"
-              : "border-[var(--border-color)] bg-[var(--secondary)] text-[var(--text-primary)] hover:border-[var(--accent3)]"
+              ? "border-accent3 bg-accent3-transparent text-accent3"
+              : "border-border-color bg-secondary text-text-primary hover:border-accent3"
           }`}
         >
-          <PanelLeft className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <PanelLeft className="size-3.5 shrink-0" aria-hidden="true" />
           <span>کتابخانه گره‌ها</span>
         </button>
       </div>

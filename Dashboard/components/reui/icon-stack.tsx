@@ -30,7 +30,7 @@ function IconStack({ className, children, style, ...props }: IconStackProps) {
         aria-hidden="true"
         viewBox="0 0 72 81"
         fill="none"
-        className="h-full w-full overflow-visible"
+        className="size-full overflow-visible"
       >
         <ellipse
           cx="36"

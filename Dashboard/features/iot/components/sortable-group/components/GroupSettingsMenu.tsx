@@ -46,16 +46,16 @@ export default function GroupSettingsMenu({
       exit={{ opacity: 0, scale: 0.96, y: -4, transition: TRANSITION_EXIT_QUICK }}
       transition={TRANSITION_ENTER_QUICK}
     >
-      <div className="relative w-56 sm:w-64 bg-[var(--card-bg-solid)] backdrop-blur-xl border border-[var(--border-color)] rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right">
-        <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2.5">
-          <span className="text-[11px] font-medium text-[var(--text-muted)]">تنظیمات گروه</span>
-          <span className="font-sans font-bold theme-text-primary text-xs sm:text-sm truncate max-w-[140px]">
+      <div className="relative w-56 sm:w-64 bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right">
+        <div className="flex items-center justify-between border-b border-border-color pb-2.5">
+          <span className="text-[11px] font-medium text-text-muted">تنظیمات گروه</span>
+          <span className="font-sans font-bold text-text-primary text-xs sm:text-sm truncate max-w-[140px]">
             {id}
           </span>
         </div>
 
         <div className="flex flex-col gap-1.5 w-full">
-          <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
+          <span className="text-[11px] font-semibold text-text-secondary">
             چیدمان ستون‌های قطعات
           </span>
           <LayoutSelector
@@ -69,7 +69,7 @@ export default function GroupSettingsMenu({
           />
         </div>
 
-        <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--border-color)]">
+        <div className="flex flex-col gap-1.5 pt-2 border-t border-border-color">
           <Button
             variant="ghost"
             type="button"
@@ -77,16 +77,14 @@ export default function GroupSettingsMenu({
               onAddPlaceholder(id);
               setIsSettingsOpen(false);
             }}
-            className="flex items-center justify-start gap-2 px-3 py-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-xl md:hover:bg-emerald-500/20 transition-colors w-full cursor-pointer"
+            className="flex items-center justify-start gap-2 px-3 py-2 text-xs font-bold text-success bg-success-soft rounded-xl md:hover:bg-success/20 transition-colors w-full cursor-pointer"
           >
-            <Plus className="w-4 h-4 shrink-0" />
+            <Plus className="size-4 shrink-0" />
             <span>افزودن جایگاه قطعه</span>
           </Button>
 
-          <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-[var(--secondary)]">
-            <span className="text-xs font-bold text-red-600 dark:text-red-400 truncate">
-              حذف کامل این گروه
-            </span>
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-secondary">
+            <span className="text-xs font-bold text-destructive truncate">حذف کامل این گروه</span>
             <DeleteButton
               size="sm"
               resetAfter={0}

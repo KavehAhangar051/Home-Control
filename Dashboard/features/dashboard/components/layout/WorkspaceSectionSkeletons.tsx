@@ -101,7 +101,7 @@ export function WorkflowStudioSkeleton() {
       dir="rtl"
       aria-busy="true"
       aria-label="در حال بارگذاری استودیوی گردش کار"
-      className="relative flex h-full min-h-[480px] w-full flex-1 flex-col overflow-hidden bg-bg-main"
+      className="relative flex size-full min-h-[480px] flex-1 flex-col overflow-hidden bg-bg-main"
     >
       {/* Top Workflow Header Bar Skeleton */}
       <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border-color bg-card-bg-solid px-3">

@@ -79,7 +79,7 @@ function WorkflowEdgeCutBadge({
         initial={false}
         animate={animationsEnabled && isSelected ? { scale: 1.05 } : { scale: 1 }}
         transition={SPRING_BOUNCE}
-        className={`flex h-8 w-8 items-center justify-center transition-[transform,opacity] duration-150 ease-[var(--ease-out)] ${visibilityClass}`}
+        className={`flex size-8 items-center justify-center transition-[transform,opacity] duration-150 ease-out ${visibilityClass}`}
       >
         <button
           type="button"
@@ -90,12 +90,12 @@ function WorkflowEdgeCutBadge({
             e.stopPropagation();
             onDeleteEdge(edgeId);
           }}
-          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-red-500/60 bg-[var(--card-bg-solid)] text-red-500 shadow-lg transition-[transform,background-color,color] duration-150 ease-[var(--ease-out)] hover:scale-110 hover:bg-red-500 hover:text-white active:scale-[0.97]"
+          className="flex size-6 cursor-pointer items-center justify-center rounded-md border border-destructive/60 bg-card-bg-solid text-destructive shadow-lg transition-[transform,background-color,color] duration-150 ease-out hover:scale-110 hover:bg-destructive hover:text-destructive-foreground active:scale-[0.97]"
         >
           {isSelected ? (
-            <X className="h-3.5 w-3.5" aria-hidden="true" />
+            <X className="size-3.5" aria-hidden="true" />
           ) : (
-            <Scissors className="h-3.5 w-3.5" aria-hidden="true" />
+            <Scissors className="size-3.5" aria-hidden="true" />
           )}
         </button>
       </m.div>
@@ -148,8 +148,8 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         strokeLinecap="round"
         className={`pointer-events-none transition-opacity duration-150 ${
           highlighted
-            ? "opacity-20 group-hover/edge:stroke-red-500 group-hover/edge:opacity-25"
-            : "opacity-0 group-hover/edge:stroke-red-500 group-hover/edge:opacity-25"
+            ? "opacity-20 group-hover/edge:stroke-destructive group-hover/edge:opacity-25"
+            : "opacity-0 group-hover/edge:stroke-destructive group-hover/edge:opacity-25"
         }`}
       />
 
@@ -163,7 +163,7 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         className={`pointer-events-none transition-[stroke,stroke-opacity] duration-150 ${
           isSelected
             ? ""
-            : "group-hover/edge:stroke-red-500 group-hover/edge:[stroke-dasharray:6_4]"
+            : "group-hover/edge:stroke-destructive group-hover/edge:[stroke-dasharray:6_4]"
         }`}
       />
 
@@ -176,7 +176,7 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         fill={endpointFill}
         stroke={strokeColor}
         strokeWidth={2}
-        className="pointer-events-none transition-colors group-hover/edge:stroke-red-500"
+        className="pointer-events-none transition-colors group-hover/edge:stroke-destructive"
       />
       <circle
         cx={end.x}
@@ -185,7 +185,7 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         fill={endpointFill}
         stroke={strokeColor}
         strokeWidth={2}
-        className="pointer-events-none transition-colors group-hover/edge:stroke-red-500"
+        className="pointer-events-none transition-colors group-hover/edge:stroke-destructive"
       />
 
       <WorkflowEdgeCutBadge

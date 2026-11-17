@@ -82,6 +82,11 @@ export function useThemeToggle({
     root.classList.toggle("dark", storeIsDark);
     root.classList.toggle("light", !storeIsDark);
     root.style.colorScheme = storeIsDark ? "dark" : "light";
+
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute("content", storeIsDark ? "#141415" : "#fafafa");
+    }
   }, [storeIsDark]);
 
   const isDark = mounted ? storeIsDark : true;
@@ -94,6 +99,11 @@ export function useThemeToggle({
       root.classList.toggle("dark", nextIsDark);
       root.classList.toggle("light", !nextIsDark);
       root.style.colorScheme = next;
+
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute("content", nextIsDark ? "#141415" : "#fafafa");
+      }
     }
 
     flushSync(() => {

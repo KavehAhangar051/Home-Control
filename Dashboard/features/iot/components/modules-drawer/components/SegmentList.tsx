@@ -14,13 +14,13 @@ interface SegmentListProps {
 
 export default function SegmentList({ segments, onRemoveSegment }: SegmentListProps) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
+    <div className="@container/seglist space-y-3">
+      <div className="flex items-center justify-between border-b border-border-color pb-2">
         <div className="flex items-center gap-2">
-          <Sliders strokeWidth={1.5} className="w-3.5 h-3.5 text-[var(--accent3)]" />
-          <span className="text-xs font-medium theme-text-secondary">قطعات ثبت‌شده</span>
+          <Sliders strokeWidth={1.5} className="size-3.5 text-accent3" />
+          <span className="text-xs font-medium text-text-secondary">قطعات ثبت‌شده</span>
         </div>
-        <span className="text-xs tabular-nums theme-text-muted">{segments.length} مورد</span>
+        <span className="text-xs tabular-nums text-text-muted">{segments.length} مورد</span>
       </div>
 
       <AnimatePresence initial={false} mode="popLayout">
@@ -31,15 +31,15 @@ export default function SegmentList({ segments, onRemoveSegment }: SegmentListPr
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98, transition: TRANSITION_EXIT_STANDARD }}
             transition={TRANSITION_ENTER_STANDARD}
-            className="py-6 px-4 text-center border border-dashed border-[var(--border-color)] rounded-xl bg-[var(--card-hover-bg)] space-y-1"
+            className="py-6 px-4 text-center border border-dashed border-border-color rounded-xl bg-card-hover-bg space-y-1"
           >
-            <p className="text-xs font-medium theme-text-secondary">هنوز قطعه‌ای اضافه نشده است</p>
-            <p className="text-xs theme-text-muted leading-relaxed">
+            <p className="text-xs font-medium text-text-secondary">هنوز قطعه‌ای اضافه نشده است</p>
+            <p className="text-xs text-text-muted leading-relaxed">
               از فرم کناری اولین کلید کنترل یا ورودی دیجیتال خانه را ایجاد کنید
             </p>
           </m.div>
         ) : (
-          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 @xl/seglist:grid-cols-2 gap-2.5 max-h-[360px] overflow-y-auto pe-1">
             {segments.map((seg, index) => (
               <MotionCard
                 initial={{ opacity: 0, y: 8 }}
@@ -54,7 +54,7 @@ export default function SegmentList({ segments, onRemoveSegment }: SegmentListPr
                   delay: getStaggerDelay(index),
                 }}
                 key={seg.id}
-                className="!gap-3 !rounded-xl !border-[var(--border-color)] !bg-[var(--card-bg-solid)] !p-3 flex items-center justify-between text-right group md:hover:!border-[var(--accent3-medium)] transition-colors shadow-none"
+                className="!gap-3 !rounded-xl !border-border-color !bg-card-bg-solid !p-3 flex items-center justify-between text-right group md:hover:!border-accent3-medium transition-colors shadow-none"
               >
                 <DeleteButton
                   size="sm"
@@ -65,10 +65,10 @@ export default function SegmentList({ segments, onRemoveSegment }: SegmentListPr
                 />
 
                 <div className="flex-1 min-w-0">
-                  <span className="block text-xs font-medium theme-text-primary truncate">
+                  <span className="block text-xs font-medium text-text-primary truncate">
                     {seg.title}
                   </span>
-                  <span className="block text-xs tabular-nums theme-text-muted mt-0.5">
+                  <span className="block text-xs tabular-nums text-text-muted mt-0.5">
                     <span className="font-mono text-[11px]" dir="ltr">
                       GPIO {seg.pin}
                     </span>{" "}

@@ -22,6 +22,17 @@ type WorkspaceDragOverlayProps = Pick<
   | "handleUpdateSegmentRule"
 >;
 
+function resolveOverlayGroupCols(
+  segments: ReadonlyArray<{ group?: string }>,
+  groupId: string,
+  groupsCols: number,
+): number {
+  const groupsOrder = Array.from(new Set(segments.map((s) => s.group || "Test")));
+  const groupIndex = groupsOrder.indexOf(groupId);
+
+  return getEffectiveGroupsCols(Math.max(groupIndex, 0), groupsOrder.length, groupsCols);
+}
+
 export default function WorkspaceDragOverlay({
   activeSegmentId,
   activeGroupId,
@@ -39,106 +50,88 @@ export default function WorkspaceDragOverlay({
   const isMobilePortrait = useMediaQuery("(max-width: 767px) and (orientation: portrait)");
   const segments = useIoTStore((s) => s.segments);
 
+  const activeSegment = activeSegmentId
+    ? segments.find((s) => s.id === activeSegmentId)
+    : undefined;
+
+  const activeGroupKey = activeGroupId ? activeGroupId.replace("group-", "") : null;
+
   return (
     <DragOverlay>
-      {activeSegmentId
-        ? (() => {
-            const seg = segments.find((s) => s.id === activeSegmentId);
+      {activeSegment &&
+        (() => {
+          const groupId = activeSegment.group || "Test";
+          const groupSegments = segments.filter((s) => (s.group || "Test") === groupId);
+          const index = groupSegments.findIndex((s) => s.id === activeSegmentId);
+          const originalGroupCols = groupConfigs[groupId]?.maxCols || 3;
+          const effectiveGroupsCols = resolveOverlayGroupCols(segments, groupId, groupsCols);
 
-            if (!seg) return null;
+          return (
+            <div style={{ opacity: 0.8, cursor: "grabbing" }}>
+              <SortableSegmentCard
+                segment={activeSegment}
+                onRemove={handleRemoveSegment}
+                onTogglePin={handleTogglePin}
+                onSetPinState={handleSetPinState}
+                onUpdateSegmentMode={handleUpdateSegmentMode}
+                onUpdateSegmentAutoOff={handleUpdateSegmentAutoOff}
+                onUpdateSegmentRule={handleUpdateSegmentRule}
+                isLoadingIoT={isLoadingIoT}
+                parentGroupsCols={effectiveGroupsCols}
+                groupMaxCols={originalGroupCols}
+                groupItemsCount={groupSegments.length}
+                index={Math.max(index, 0)}
+                animationsEnabled={animationsEnabled}
+                isMobilePortrait={isMobilePortrait}
+              />
+            </div>
+          );
+        })()}
+      {activeGroupKey &&
+        (() => {
+          const groupSegments = segments.filter((s) => (s.group || "Test") === activeGroupKey);
+          const effectiveGroupsCols = resolveOverlayGroupCols(segments, activeGroupKey, groupsCols);
+          const groupMaxCols = groupConfigs[activeGroupKey]?.maxCols || 3;
 
-            const groupSegments = segments.filter(
-              (s) => (s.group || "Test") === (seg.group || "Test"),
-            );
-
-            const index = groupSegments.findIndex((s) => s.id === activeSegmentId);
-            const originalGroupCols = groupConfigs[seg.group || "Test"]?.maxCols || 3;
-
-            const groupsOrder = Array.from(new Set(segments.map((s) => s.group || "Test")));
-            const groupIndex = groupsOrder.indexOf(seg.group || "Test");
-
-            const effectiveGroupsCols = getEffectiveGroupsCols(
-              groupIndex !== -1 ? groupIndex : 0,
-              groupsOrder.length,
-              groupsCols,
-            );
-
-            return (
-              <div style={{ opacity: 0.8, cursor: "grabbing" }}>
-                <SortableSegmentCard
-                  segment={seg}
-                  onRemove={handleRemoveSegment}
-                  onTogglePin={handleTogglePin}
-                  onSetPinState={handleSetPinState}
-                  onUpdateSegmentMode={handleUpdateSegmentMode}
-                  onUpdateSegmentAutoOff={handleUpdateSegmentAutoOff}
-                  onUpdateSegmentRule={handleUpdateSegmentRule}
-                  isLoadingIoT={isLoadingIoT}
-                  parentGroupsCols={effectiveGroupsCols}
-                  groupMaxCols={originalGroupCols}
-                  groupItemsCount={groupSegments.length}
-                  index={index >= 0 ? index : 0}
-                  animationsEnabled={animationsEnabled}
-                  isMobilePortrait={isMobilePortrait}
-                />
-              </div>
-            );
-          })()
-        : null}
-      {activeGroupId
-        ? (() => {
-            const groupId = activeGroupId.replace("group-", "");
-            const groupSegments = segments.filter((s) => (s.group || "Test") === groupId);
-
-            const groupsOrder = Array.from(new Set(segments.map((s) => s.group || "Test")));
-            const groupIndex = groupsOrder.indexOf(groupId);
-
-            const effectiveGroupsCols = getEffectiveGroupsCols(
-              groupIndex !== -1 ? groupIndex : 0,
-              groupsOrder.length,
-              groupsCols,
-            );
-
-            return (
-              <div style={{ opacity: 0.8, cursor: "grabbing" }}>
-                <SortableGroup
-                  id={groupId}
-                  items={groupSegments.map((s) => s.id)}
-                  segmentCount={groupSegments.length}
-                  maxCols={groupConfigs[groupId]?.maxCols || 3}
-                  icon={groupConfigs[groupId]?.icon}
-                  parentGroupsCols={groupsCols}
-                  onColsChange={() => {}}
-                  onAddPlaceholder={() => {}}
-                  onDeleteGroup={() => {}}
-                  animationsEnabled={animationsEnabled}
-                  isOverlayItem={true}
-                >
-                  {groupSegments.map((seg, index) => (
-                    <SortableSegmentCard
-                      key={seg.id}
-                      segment={seg}
-                      onRemove={handleRemoveSegment}
-                      onTogglePin={handleTogglePin}
-                      onSetPinState={handleSetPinState}
-                      onUpdateSegmentMode={handleUpdateSegmentMode}
-                      onUpdateSegmentAutoOff={handleUpdateSegmentAutoOff}
-                      onUpdateSegmentRule={handleUpdateSegmentRule}
-                      isLoadingIoT={isLoadingIoT}
-                      parentGroupsCols={effectiveGroupsCols}
-                      groupMaxCols={groupConfigs[groupId]?.maxCols || 3}
-                      groupItemsCount={groupSegments.length}
-                      index={index}
-                      animationsEnabled={animationsEnabled}
-                      isOverlayItem={true}
-                      isMobilePortrait={isMobilePortrait}
-                    />
-                  ))}
-                </SortableGroup>
-              </div>
-            );
-          })()
-        : null}
+          return (
+            <div style={{ opacity: 0.8, cursor: "grabbing" }}>
+              <SortableGroup
+                id={activeGroupKey}
+                items={groupSegments.map((s) => s.id)}
+                segmentCount={groupSegments.length}
+                maxCols={groupMaxCols}
+                icon={groupConfigs[activeGroupKey]?.icon}
+                parentGroupsCols={groupsCols}
+                onColsChange={() => {}}
+                onAddPlaceholder={() => {}}
+                onDeleteGroup={() => {}}
+                animationsEnabled={animationsEnabled}
+                isOverlayItem={true}
+              >
+                {groupSegments.map((seg, index) => (
+                  <SortableSegmentCard
+                    key={seg.id}
+                    segment={seg}
+                    onRemove={handleRemoveSegment}
+                    onTogglePin={handleTogglePin}
+                    onSetPinState={handleSetPinState}
+                    onUpdateSegmentMode={handleUpdateSegmentMode}
+                    onUpdateSegmentAutoOff={handleUpdateSegmentAutoOff}
+                    onUpdateSegmentRule={handleUpdateSegmentRule}
+                    isLoadingIoT={isLoadingIoT}
+                    parentGroupsCols={effectiveGroupsCols}
+                    groupMaxCols={groupMaxCols}
+                    groupItemsCount={groupSegments.length}
+                    index={index}
+                    animationsEnabled={animationsEnabled}
+                    isOverlayItem={true}
+                    isMobilePortrait={isMobilePortrait}
+                  />
+                ))}
+              </SortableGroup>
+            </div>
+          );
+        })()}
     </DragOverlay>
   );
 }

@@ -13,26 +13,26 @@ interface LowDataToggleProps {
 
 function getLowDataSurfaceClass(lowDataMode: boolean, _isDark: boolean): string {
   if (lowDataMode) {
-    return "bg-[var(--card-hover-bg)] aria-pressed:bg-[var(--card-hover-bg)] data-[state=on]:bg-[var(--card-hover-bg)] border-[var(--accent3)]";
+    return "bg-card-hover-bg aria-pressed:bg-card-hover-bg data-[state=on]:bg-card-hover-bg border-accent3";
   }
 
-  return "bg-[var(--card-bg)] border-[var(--border-color)] hover:bg-[var(--card-hover-bg)]";
+  return "bg-card-bg border-border-color hover:bg-card-hover-bg";
 }
 
 function getLowDataTitleClass(lowDataMode: boolean, _isDark: boolean): string {
   if (lowDataMode) {
-    return "text-[var(--accent3)]";
+    return "text-accent3";
   }
 
-  return "text-[var(--text-primary)]";
+  return "text-text-primary";
 }
 
 function getSwitchTrackClass(lowDataMode: boolean, _isDark: boolean): string {
   if (lowDataMode) {
-    return "bg-[var(--accent4)] border border-transparent";
+    return "bg-accent4 border border-transparent";
   }
 
-  return "bg-[var(--bg-main)] border border-[var(--border-color)]";
+  return "bg-bg-main border border-border-color";
 }
 
 export default function LowDataToggle({
@@ -55,8 +55,8 @@ export default function LowDataToggle({
   const switchTrackClass = getSwitchTrackClass(lowDataMode, isDark);
 
   return (
-    <div className="border-b border-[var(--border-color)] pb-4 space-y-2">
-      <p className="text-xs theme-text-secondary leading-relaxed">
+    <div className="border-b border-border-color pb-4 space-y-2">
+      <p className="text-xs text-text-secondary leading-relaxed">
         در صورت محدودیت حجم اینترنت، سامانه را در حالت کم‌مصرف قرار دهید تا دریافت خودکار پس‌زمینه
         متوقف شود
       </p>
@@ -75,10 +75,10 @@ export default function LowDataToggle({
             <span>{statusLabel}</span>
             <WifiOff
               strokeWidth={1.5}
-              className={`size-4 ${lowDataMode ? "text-[var(--accent3)]" : "text-[var(--text-secondary)]"}`}
+              className={`size-4 ${lowDataMode ? "text-accent3" : "text-text-secondary"}`}
             />
           </span>
-          <span className="text-xs block leading-normal font-sans text-[var(--text-secondary)]">
+          <span className="text-xs block leading-normal font-sans text-text-secondary">
             {lowDataMode
               ? "دریافت اطلاعات فقط با به‌روزرسانی دستی"
               : "همگام‌سازی خودکار با سرور ابری"}
@@ -93,7 +93,7 @@ export default function LowDataToggle({
               animationsEnabled
                 ? "transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 : ""
-            } ${lowDataMode ? "bg-white -translate-x-5" : "bg-[var(--text-secondary)] translate-x-0"}`}
+            } ${lowDataMode ? "bg-white -translate-x-5" : "bg-text-secondary translate-x-0"}`}
           />
         </div>
       </Toggle>

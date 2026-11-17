@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { CloudLightning, Globe, Server } from "@/components/ui/hugeicons";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
@@ -57,10 +59,10 @@ export default function CloudflareIntegration({
   return (
     <div className="pt-2 space-y-4 text-right">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] theme-text-tertiary">همگام‌سازی ابری تنظیمات و چیدمان</span>
+        <span className="text-[11px] text-text-tertiary">همگام‌سازی ابری تنظیمات و چیدمان</span>
         <span className="font-bold text-xs text-accent3">اتصال کلودفلر</span>
       </div>
-      <p className="text-xs theme-text-tertiary leading-relaxed">
+      <p className="text-xs text-text-tertiary leading-relaxed">
         برای ذخیره‌سازی ابری چیدمان و پایش وضعیت کلیدها، آدرس ورکر کلودفلر خود را وارد کنید:
       </p>
       <div className="flex gap-2">
@@ -68,29 +70,29 @@ export default function CloudflareIntegration({
           type="button"
           onClick={handleSaveUrl}
           disabled={isSavingUrl}
-          className="px-4 py-2.5 bg-accent3/20 text-accent3 hover:bg-[var(--accent3)] hover:text-[var(--bg-main)] border border-accent3/30 rounded-xl text-xs font-bold transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] disabled:opacity-50"
+          className="px-4 py-2.5 bg-accent3/20 text-accent3 hover:bg-accent3 hover:text-bg-main border border-accent3/30 rounded-xl text-xs font-bold transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] disabled:opacity-50"
         >
           {isSavingUrl ? "در حال ذخیره..." : "ذخیره آدرس"}
         </button>
         <div className="relative flex-1">
-          <label htmlFor="cloudflare-worker-url" className="sr-only">
+          <Label htmlFor="cloudflare-worker-url" className="sr-only">
             آدرس Cloudflare Worker
-          </label>
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <Globe aria-hidden="true" className="h-4 w-4 text-accent3 opacity-70" />
+          </Label>
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none z-10">
+            <Globe aria-hidden="true" className="size-4 text-accent3 opacity-70" />
           </div>
-          <input
+          <Input
             id="cloudflare-worker-url"
             type="url"
             dir="ltr"
             value={cfUrl}
             onChange={(e) => setCfUrl(e.target.value)}
             placeholder="https://home-control-db.kamyarahangar157.workers.dev"
-            className="block w-full py-2.5 pr-10 pl-3 border border-[var(--border-color)] rounded-xl bg-[var(--bg-main)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-accent3 font-mono transition-colors"
+            className="w-full py-2.5 pr-10 pl-3 border-border-color rounded-xl bg-bg-main text-xs text-text-primary placeholder:text-text-muted focus:border-accent3 font-mono"
           />
         </div>
       </div>
-      <div className="p-3 mt-4 rounded-xl border border-[var(--border-color)] bg-[var(--card-hover-bg)] flex items-center justify-between">
+      <div className="p-3 mt-4 rounded-xl border border-border-color bg-card-hover-bg flex items-center justify-between">
         <label htmlFor="manual-save-mode" className="flex items-center cursor-pointer gap-3 w-full">
           <span className="relative">
             <input
@@ -102,25 +104,23 @@ export default function CloudflareIntegration({
             />
             <span
               aria-hidden="true"
-              className={`block w-10 h-6 rounded-[8px] transition-colors ${manualSaveMode ? "bg-[var(--accent3)]" : "bg-[var(--border-color)]"}`}
+              className={`block w-10 h-6 rounded-[8px] transition-colors ${manualSaveMode ? "bg-accent3" : "bg-border-color"}`}
             />
             <span
               aria-hidden="true"
-              className={`dot absolute top-1 left-1 w-4 h-4 rounded-[5px] transition-transform ${manualSaveMode ? "bg-[var(--bg-main)] transform translate-x-4" : "bg-[var(--text-secondary)]"}`}
+              className={`dot absolute top-1 left-1 size-4 rounded-[5px] transition-transform ${manualSaveMode ? "bg-bg-main transform translate-x-4" : "bg-text-secondary"}`}
             />
           </span>
           <span className="flex flex-col flex-1 text-right">
-            <span className="text-xs font-bold text-[var(--text-primary)]">
-              ذخیره دستی تغییرات چیدمان
-            </span>
-            <span className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+            <span className="text-xs font-bold text-text-primary">ذخیره دستی تغییرات چیدمان</span>
+            <span className="text-[11px] text-text-tertiary mt-0.5">
               تغییرات چیدمان فقط زمانی که دکمه «ذخیره‌سازی تغییرات» را بزنید به سرور ارسال می‌شوند.
             </span>
           </span>
         </label>
       </div>
       <div
-        className={`p-3 rounded-xl border flex items-center justify-between text-right text-xs ${isCfConnected ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400" : "bg-[var(--card-hover-bg)] border-[var(--border-color)] text-[var(--text-tertiary)]"}`}
+        className={`p-3 rounded-xl border flex items-center justify-between text-right text-xs ${isCfConnected ? "bg-success-soft border-success/40 text-success" : "bg-card-hover-bg border-border-color text-text-tertiary"}`}
       >
         <div className="flex items-center gap-2 justify-end w-full">
           <span className="font-medium">
@@ -129,12 +129,9 @@ export default function CloudflareIntegration({
               : "ذخیره‌سازی در حافظه محلی مرورگر (آدرس ورکر تنظیم نشده است)"}
           </span>
           {isCfConnected ? (
-            <CloudLightning
-              aria-hidden="true"
-              className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0"
-            />
+            <CloudLightning aria-hidden="true" className="size-4 text-success shrink-0" />
           ) : (
-            <Server aria-hidden="true" className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
+            <Server aria-hidden="true" className="size-4 text-text-tertiary shrink-0" />
           )}
         </div>
       </div>

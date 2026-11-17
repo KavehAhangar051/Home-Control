@@ -62,8 +62,8 @@ export default function VoiceCommandsSection() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 text-right">
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold flex items-center gap-2 text-[var(--text-primary)]">
-          <Mic className="w-5 h-5 text-[var(--accent3)]" />
+        <h3 className="text-xl font-bold flex items-center gap-2 text-text-primary">
+          <Mic className="size-5 text-accent3" />
           مدیریت دستورات صوتی
         </h3>
         <Tooltip>
@@ -72,10 +72,10 @@ export default function VoiceCommandsSection() {
               <button
                 type="button"
                 onClick={handleAddCommand}
-                className="bg-[var(--accent3)] text-[var(--bg-main)] p-2 rounded-xl hover:bg-[var(--accent3-dark)] transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] shadow-md"
+                className="bg-accent3 text-bg-main p-2 rounded-xl hover:bg-accent3-dark transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] shadow-xs"
                 aria-label="افزودن دستور صوتی جدید"
               >
-                <Plus className="w-4 h-4" strokeWidth={2} />
+                <Plus className="size-4" strokeWidth={2} />
               </button>
             }
           />
@@ -83,7 +83,7 @@ export default function VoiceCommandsSection() {
         </Tooltip>
       </div>
 
-      <p className="text-sm text-[var(--text-secondary)] opacity-80 leading-relaxed">
+      <p className="text-sm text-text-secondary opacity-80 leading-relaxed">
         با تعریف دستورات صوتی، می‌توانید با گفتن یک عبارت خاص به دستیار صوتی، چندین دستور (مانند
         روشن/خاموش کردن ماژول‌ها یا اجرای ماکروها) را هم‌زمان اجرا کنید.
       </p>
@@ -97,12 +97,12 @@ export default function VoiceCommandsSection() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center py-7 px-4 bg-[var(--card-bg-solid)] border border-dashed border-[var(--border-color)] rounded-2xl space-y-1.5"
+              className="text-center py-7 px-4 bg-card-bg-solid border border-dashed border-border-color rounded-2xl space-y-1.5"
             >
-              <p className="text-sm font-semibold text-[var(--text-primary)]">
+              <p className="text-sm font-semibold text-text-primary">
                 هنوز دستور صوتی تعریف نشده است
               </p>
-              <p className="text-xs text-[var(--text-secondary)] max-w-xs mx-auto leading-relaxed">
+              <p className="text-xs text-text-secondary max-w-xs mx-auto leading-relaxed">
                 روی دکمه «+» در بالا بزنید و عبارتی مانند «چراغ پذیرایی روشن» را به عملیات دلخواه
                 متصل کنید.
               </p>

@@ -108,7 +108,7 @@ export default function CanvasWorkspace({
         ...backgroundGridStyle,
         touchAction: "none",
       }}
-      className={`relative h-full min-h-[480px] w-full flex-1 overflow-hidden border-0 bg-[var(--bg-main)] select-none ${
+      className={`relative size-full min-h-[480px] flex-1 overflow-hidden border-0 bg-bg-main select-none ${
         isPanning ? "cursor-grabbing" : "cursor-default"
       }`}
     >
@@ -118,7 +118,7 @@ export default function CanvasWorkspace({
           transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`,
           transformOrigin: "0 0",
         }}
-        className="pointer-events-none absolute top-0 left-0 h-0 w-0 overflow-visible"
+        className="pointer-events-none absolute top-0 left-0 size-0 overflow-visible"
       >
         <CanvasWiresLayer
           connections={wireConnections}

@@ -72,8 +72,8 @@ export default function FilterButton({
                 : "rounded-xl h-9 w-[140px] gap-2 px-3.5"
             } ${
               isCenter
-                ? "bg-[var(--card-hover-bg)] border-[var(--border-color)] text-[var(--text-primary)] font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] z-10"
-                : "hidden md:flex bg-[var(--card-bg-solid)] border-[var(--border-color)] text-[var(--text-muted)] font-normal md:hover:bg-[var(--card-hover-bg)] md:hover:text-[var(--text-secondary)]"
+                ? "bg-card-hover-bg border-border-color text-text-primary font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] z-10"
+                : "hidden md:flex bg-card-bg-solid border-border-color text-text-muted font-normal md:hover:bg-card-hover-bg md:hover:text-text-secondary"
             } transition-[border-color,color,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] relative group flex-row whitespace-nowrap overflow-hidden shrink-0 cursor-pointer`}
             aria-label={label}
           >

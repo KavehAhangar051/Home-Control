@@ -71,9 +71,9 @@ function SortableGroup({
     <div
       ref={setNodeRef}
       style={style}
-      className="relative group/group-card w-full touch-none flex flex-col"
+      className="@container/group relative group/group-card w-full touch-none flex flex-col bezel-shell"
     >
-      <Card className="w-full relative group/body flex-grow !gap-0 !overflow-visible !rounded-2xl !border !border-[var(--border-color)] !bg-[var(--card-bg)] !py-0 !shadow-none !ring-0 transition-colors duration-150">
+      <Card className="w-full relative group/body flex-grow !gap-0 !overflow-visible !rounded-[calc(1.25rem-0.375rem)] !border !border-border-color !bg-card-bg !py-0 !shadow-[inset_0_1px_1px_0_oklch(1_0_0/0.09)] !ring-0 transition-colors duration-200 ease-out">
         <GroupHeader
           id={id}
           segmentCount={segmentCount}

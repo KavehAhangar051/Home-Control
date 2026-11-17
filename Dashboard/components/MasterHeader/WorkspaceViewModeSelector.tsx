@@ -59,7 +59,7 @@ export default function WorkspaceViewModeSelector({
     <fieldset
       aria-label="فرم نمایش گروه‌ها و قطعات"
       className={cn(
-        "m-0 inline-flex min-w-0 shrink-0 items-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] shadow-2xs",
+        "m-0 inline-flex min-w-0 shrink-0 items-center rounded-xl border border-border-color bg-bg-main shadow-2xs",
         compact ? "h-9 gap-0.5 p-0.5 sm:gap-1 sm:p-1" : "h-10 flex-wrap gap-1 p-1 sm:flex-nowrap",
       )}
     >
@@ -77,18 +77,18 @@ export default function WorkspaceViewModeSelector({
                   aria-label={option.label}
                   onClick={() => setDisplayMode(option.id)}
                   className={cn(
-                    "relative inline-flex cursor-pointer items-center gap-1 rounded-lg text-xs font-semibold transition-colors select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] sm:gap-1.5",
+                    "relative inline-flex cursor-pointer items-center gap-1 rounded-lg text-xs font-semibold transition-colors select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 sm:gap-1.5",
                     compact ? "h-7 px-1.5 sm:px-2.5" : "h-8 px-2.5 sm:px-3",
                     isActive
-                      ? "text-[var(--accent3-foreground)]"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                      ? "text-accent3-foreground"
+                      : "text-text-secondary hover:text-text-primary",
                   )}
                 >
                   {isActive && (
                     <m.span
                       layoutId={pillLayoutId}
                       transition={animationsEnabled ? SPRING_SWAP : { duration: 0 }}
-                      className="absolute inset-0 rounded-lg bg-[var(--accent3)] shadow-2xs"
+                      className="absolute inset-0 rounded-lg bg-accent3 shadow-2xs"
                     />
                   )}
                   <Icon className="relative z-10 size-3.5 shrink-0" aria-hidden="true" />

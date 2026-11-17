@@ -42,20 +42,17 @@ export default function WorkflowNodeHeader({
         if (e.button === 0) onStartDrag(node.id, e);
       }}
       style={{ touchAction: "none" }}
-      className={`flex h-8 shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-[var(--border-color)]/70 bg-[var(--secondary)]/70 px-3 ${
+      className={`flex h-8 shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-border-color/70 bg-secondary/70 px-3 ${
         isLocked ? "cursor-default" : "cursor-grab active:cursor-grabbing"
       }`}
     >
       <div className="flex min-w-0 items-center gap-1.5">
-        <GripHorizontal
-          className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]"
-          aria-hidden="true"
-        />
+        <GripHorizontal className="size-3.5 shrink-0 text-text-muted" aria-hidden="true" />
         {!isLogicGate && (
           <span
             dir="ltr"
             className={`inline-flex shrink-0 items-center ${
-              outputSignal ? "text-emerald-500" : "text-[var(--text-secondary)]"
+              outputSignal ? "text-success" : "text-text-secondary"
             }`}
           >
             <WorkflowSchematicSymbol
@@ -68,7 +65,7 @@ export default function WorkflowNodeHeader({
         )}
         <span
           dir={isLogicGate ? "ltr" : undefined}
-          className={`truncate text-[11px] font-bold text-[var(--text-primary)] ${
+          className={`truncate text-[11px] font-bold text-text-primary ${
             isLogicGate ? "font-mono" : ""
           }`}
         >
@@ -85,7 +82,7 @@ export default function WorkflowNodeHeader({
         {hasInputPort && !isLogicGate && (
           <div
             dir="ltr"
-            className="flex items-center gap-0.5 rounded-md border border-[var(--border-color)] bg-[var(--bg-main)] px-1 py-0.5 text-[10px]"
+            className="flex items-center gap-0.5 rounded-md border border-border-color bg-bg-main px-1 py-0.5 text-[10px]"
             title="تعداد ورودی‌ها"
           >
             <button
@@ -93,11 +90,11 @@ export default function WorkflowNodeHeader({
               disabled={inputCount <= minInputCount}
               onClick={() => onChangeInputCount(-1)}
               aria-label="کاهش تعداد ورودی"
-              className="inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-35"
+              className="inline-flex size-4 cursor-pointer items-center justify-center rounded text-text-muted hover:bg-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35"
             >
-              <Minus className="h-2.5 w-2.5" />
+              <Minus className="size-2.5" />
             </button>
-            <span className="min-w-[14px] text-center font-mono text-[10px] font-bold tabular-nums text-[var(--text-primary)]">
+            <span className="min-w-[14px] text-center font-mono text-[10px] font-bold tabular-nums text-text-primary">
               {inputCount}
             </span>
             <button
@@ -105,9 +102,9 @@ export default function WorkflowNodeHeader({
               disabled={inputCount >= 8}
               onClick={() => onChangeInputCount(1)}
               aria-label="افزایش تعداد ورودی"
-              className="inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-35"
+              className="inline-flex size-4 cursor-pointer items-center justify-center rounded text-text-muted hover:bg-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35"
             >
-              <Plus className="h-2.5 w-2.5" />
+              <Plus className="size-2.5" />
             </button>
           </div>
         )}
@@ -116,9 +113,9 @@ export default function WorkflowNodeHeader({
           type="button"
           onClick={() => onDeleteNode(node.id)}
           aria-label={`حذف گره ${node.label}`}
-          className="inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-md text-[var(--text-muted)] transition-colors hover:bg-red-500/15 hover:text-red-500"
+          className="inline-flex size-5 cursor-pointer items-center justify-center rounded-md text-text-muted transition-colors hover:bg-destructive-soft hover:text-destructive"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="size-3" />
         </button>
       </div>
     </div>

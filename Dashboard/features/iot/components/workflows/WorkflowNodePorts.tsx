@@ -32,30 +32,30 @@ function resolveInputPortClassName(
   isPortConnected: boolean,
 ): string {
   if (isMagneticTarget) {
-    return "scale-120 border-emerald-400 bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.65)]";
+    return "scale-120 border-success bg-success text-success-foreground shadow-[0_0_10px_var(--success)]";
   }
 
   if (isConnectTargetHighlight) {
-    return "animate-pulse border-[var(--accent3)] bg-[var(--accent3)] text-[var(--accent3-foreground)] shadow-md";
+    return "animate-pulse border-accent3 bg-accent3 text-accent3-foreground shadow-xs";
   }
 
   if (isPortConnected) {
-    return "border-[var(--accent3)] bg-[var(--card-bg-solid)]";
+    return "border-accent3 bg-card-bg-solid";
   }
 
-  return "border-[var(--border-color)] bg-[var(--card-bg-solid)] hover:border-[var(--accent3)]";
+  return "border-border-color bg-card-bg-solid hover:border-accent3";
 }
 
 function resolveOutputPortClassName(isConnectingSource: boolean, outputSignal: boolean): string {
   if (isConnectingSource) {
-    return "scale-115 border-[var(--accent3)] bg-[var(--accent3)] text-[var(--accent3-foreground)] shadow-md";
+    return "scale-115 border-accent3 bg-accent3 text-accent3-foreground shadow-xs";
   }
 
   if (outputSignal) {
-    return "border-emerald-400 bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.5)]";
+    return "border-success bg-success text-success-foreground shadow-[0_0_8px_var(--success)]";
   }
 
-  return "border-[var(--border-color)] bg-[var(--card-bg-solid)] text-[var(--text-muted)] hover:border-[var(--accent3)]";
+  return "border-border-color bg-card-bg-solid text-text-muted hover:border-accent3";
 }
 
 /**
@@ -99,13 +99,13 @@ export default function WorkflowNodePorts({
             }}
             onClick={(e) => onCompletePortConnect(nodeId, e, slot.index)}
             style={{ top: `${slot.offsetY}px` }}
-            className={`absolute -left-2.5 z-30 flex h-4.5 w-4.5 -translate-y-1/2 cursor-crosshair items-center justify-center rounded-md border-2 transition-[transform,border-color,background-color] duration-150 ease-[var(--ease-out)] hover:scale-115 active:scale-95 ${inputClass}`}
+            className={`absolute -left-2.5 z-30 flex size-4.5 -translate-y-1/2 cursor-crosshair items-center justify-center rounded-md border-2 transition-[transform,border-color,background-color] duration-150 ease-out hover:scale-115 active:scale-95 ${inputClass}`}
           >
-            <span className="h-1.5 w-1.5 rounded-[2px] bg-current opacity-80" />
+            <span className="size-1.5 rounded-[2px] bg-current opacity-80" />
             {isMagneticTarget && shouldAnimateMotion && (
               <span
                 aria-hidden="true"
-                className="animate-port-wakeup pointer-events-none absolute inset-0 rounded-md border border-emerald-400"
+                className="animate-port-wakeup pointer-events-none absolute inset-0 rounded-md border border-success"
               />
             )}
           </button>
@@ -118,13 +118,13 @@ export default function WorkflowNodePorts({
         data-node-id={nodeId}
         aria-label={`پورت خروجی ${nodeLabel}`}
         onPointerDown={(e) => onStartPortConnect(nodeId, e)}
-        className={`absolute top-1/2 -right-2.5 z-30 flex h-5 w-5 -translate-y-1/2 cursor-crosshair items-center justify-center rounded-md border-2 transition-[transform,border-color,background-color] duration-150 ease-[var(--ease-out)] hover:scale-115 active:scale-95 ${outputClass}`}
+        className={`absolute top-1/2 -right-2.5 z-30 flex size-5 -translate-y-1/2 cursor-crosshair items-center justify-center rounded-md border-2 transition-[transform,border-color,background-color] duration-150 ease-out hover:scale-115 active:scale-95 ${outputClass}`}
       >
-        <span className="h-1.5 w-1.5 rounded-[2px] bg-current" />
+        <span className="size-1.5 rounded-[2px] bg-current" />
         {outputSignal && shouldAnimateMotion && (
           <span
             aria-hidden="true"
-            className="animate-port-wakeup pointer-events-none absolute inset-0 rounded-md border border-emerald-400"
+            className="animate-port-wakeup pointer-events-none absolute inset-0 rounded-md border border-success"
           />
         )}
       </button>

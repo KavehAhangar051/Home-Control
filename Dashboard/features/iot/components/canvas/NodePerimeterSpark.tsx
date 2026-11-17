@@ -35,7 +35,7 @@ export default React.memo(function NodePerimeterSpark({
   return (
     <svg
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 z-20 h-full w-full overflow-visible"
+      className="pointer-events-none absolute inset-0 z-20 size-full overflow-visible"
     >
       {/* Subtle outer halo streak */}
       <rect

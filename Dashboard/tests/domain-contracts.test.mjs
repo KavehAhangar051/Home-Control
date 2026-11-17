@@ -5,7 +5,10 @@ import {
   getSimilarity,
   normalizePhonetics,
 } from "../components/MasterHeader/VoiceCommandButton/utils.ts";
-import { buildValidatedAutomationDraft } from "../features/iot/components/AutomationsDrawer/hooks/useAutomationForm.ts";
+import {
+  buildValidatedAutomationDraft,
+  inferAutomationEditType,
+} from "../features/iot/components/AutomationsDrawer/hooks/useAutomationForm.ts";
 import {
   buildBezierWireGeometry,
   buildDefaultCanvasNodes,
@@ -14,6 +17,7 @@ import {
   canvasSegmentNodeId,
   clampCanvasNodeSize,
   clampCanvasZoom,
+  computeCenteredFitViewport,
   computeFitCanvasViewport,
   getCanvasGridStyle,
   getPresetDimensions,
@@ -23,16 +27,20 @@ import { reconcileCanvasNodes } from "../features/iot/components/canvas/canvasSt
 import {
   computeDragTiltDeg,
   findMagneticInputPort,
+  resolveCanvasNodeMotionState,
 } from "../features/iot/components/canvas/nodeMotion.ts";
 import { computeResizedNodeRect } from "../features/iot/components/canvas/useCanvasNodeInteractions.ts";
+import { getSegmentTileDensity } from "../features/iot/components/sortable-segment-card/core/segmentTileDensity.ts";
 import { resolveSegmentSchematicKind } from "../features/iot/components/workflows/workflowSchematicUtils.ts";
 import {
   canConnectWorkflowPorts,
   clampWorkflowNodeSize,
+  collectGroupMemberSegmentIds,
   createEmptyWorkflow,
   createWorkflowNode,
   evaluateWorkflowGraph,
   getWorkflowGridStyle,
+  isTriggerWorkflowNodeKind,
   snapWorkflowNodeToGrid,
 } from "../features/iot/components/workflows/workflowEngine.ts";
 import { buildEspConfig } from "../features/iot/hooks/achaemenidState/core/buildEspConfig.ts";
@@ -56,6 +64,7 @@ import {
   TRANSITION_EXIT_QUICK,
   TRANSITION_EXIT_STANDARD,
 } from "../lib/ease.ts";
+import { cn, disabled, fluidTypeScale, fluidValue, focusRing } from "../lib/utils.ts";
 
 describe("ESP32 Hardware Pin Validation Contracts", () => {
   it("accepts valid general-purpose output pins", () => {
@@ -994,5 +1003,91 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
       assert.equal(validSchedule.automation.repeatCount, 3);
     }
   });
+
+  it("resolves Tailwind v4 class conflicts (border-color, ring-color, size-* vs w-*/h-*) in cn()", () => {
+    assert.equal(cn("border border-border-color", "border-accent3"), "border border-accent3");
+    assert.equal(
+      cn("border border-border-color", "border-destructive"),
+      "border border-destructive",
+    );
+    assert.equal(cn("bg-bg-main", "bg-card-bg"), "bg-card-bg");
+    assert.equal(cn("text-sm", "text-fluid-lg"), "text-fluid-lg");
+    assert.equal(cn("ps-2 pe-4", "px-6"), "px-6");
+    assert.ok(focusRing.includes("focus-visible:ring-2"));
+    assert.ok(disabled.includes("disabled:opacity-50"));
+  });
+
+  it("computes deterministic CSS clamp() fluid typography values across viewport bounds", () => {
+    assert.equal(fluidValue(1, 1.5, 320, 1280), "clamp(1rem, 0.8333rem + 0.8333vw, 1.5rem)");
+    assert.equal(fluidValue(1.25, 1.25, 320, 1280), "1.25rem");
+    assert.equal(fluidValue(1, 2, 1280, 320), "1rem");
+    assert.ok(fluidTypeScale.base.startsWith("clamp(0.9375rem,"));
+    assert.ok(fluidTypeScale["2xl"].endsWith("2.25rem)"));
+  });
+
+  it("computes unified segment tile density classes across standard, compact, and ultra-compact modes", () => {
+    const ultra = getSegmentTileDensity(true, false, false);
+    assert.equal(ultra.badge, "size-8");
+    assert.ok(ultra.container.includes("min-h-[78px]"));
+
+    const compactExt = getSegmentTileDensity(false, true, true);
+    assert.equal(compactExt.badge, "size-9");
+    assert.ok(compactExt.container.includes("min-h-0"));
+    assert.ok(compactExt.title.includes("@[12rem]/segment:text-sm"));
+
+    const standard = getSegmentTileDensity(false, false, false);
+    assert.ok(standard.badge.includes("@[13rem]/segment:size-11"));
+    assert.ok(standard.title.includes("@[15rem]/segment:text-[15px]"));
+  });
+
+  it("identifies trigger node kinds, collects group member segment IDs, and resolves canvas node motion state", () => {
+    assert.equal(isTriggerWorkflowNodeKind("trigger_manual"), true);
+    assert.equal(isTriggerWorkflowNodeKind("trigger_schedule"), true);
+    assert.equal(isTriggerWorkflowNodeKind("logic_and"), false);
+    assert.equal(isTriggerWorkflowNodeKind("segment"), false);
+
+    assert.deepEqual(collectGroupMemberSegmentIds(sampleSegments, "پذیرایی"), [
+      "seg-lamp",
+      "seg-fan",
+    ]);
+    assert.deepEqual(collectGroupMemberSegmentIds(sampleSegments, undefined), []);
+
+    assert.deepEqual(resolveCanvasNodeMotionState(false, true, 2.1, 1.022), {
+      opacity: 1,
+      scale: 1,
+      rotate: 0,
+      y: 0,
+    });
+    assert.deepEqual(resolveCanvasNodeMotionState(true, true, 1.8, 1.022), {
+      opacity: 1,
+      scale: 1.022,
+      rotate: 1.8,
+      y: -2,
+    });
+    assert.deepEqual(resolveCanvasNodeMotionState(true, false, 1.8, 1.022), {
+      opacity: 1,
+      scale: 1,
+      rotate: 0,
+      y: 0,
+    });
+
+    assert.equal(inferAutomationEditType({ id: "1", title: "a", intervalMinutes: 15 }), "weather");
+    assert.equal(inferAutomationEditType({ id: "2", title: "b", repeatCount: 1 }), "timer");
+    assert.equal(inferAutomationEditType({ id: "3", title: "c" }), "schedule");
+
+    const fit = computeCenteredFitViewport(
+      [{ x: 100, y: 100, width: 200, height: 150 }],
+      1000,
+      800,
+      { padding: 48, maxZoom: 1.0 },
+    );
+    assert.equal(fit.zoom, 1);
+    assert.equal(fit.x, 300);
+    assert.equal(fit.y, 225);
+  });
 });
+
+
+
+
 

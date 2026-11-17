@@ -50,12 +50,10 @@ export default function ColorsSection() {
   return (
     <div className="space-y-6 text-right" dir="rtl">
       {/* هدر بخش با دکمه بازنشانی ساده */}
-      <div className="flex items-center justify-between pb-3 border-b border-[var(--border-color)]">
+      <div className="flex items-center justify-between pb-3 border-b border-border-color">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-            شخصی‌سازی ظاهر داشبورد
-          </h3>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
+          <h3 className="text-sm font-semibold text-text-primary">شخصی‌سازی ظاهر داشبورد</h3>
+          <p className="text-xs text-text-muted mt-0.5">
             تنظیم فونت داشبورد، رنگ‌های جانبی و درجه تیرگی و روشنایی تم
           </p>
         </div>
@@ -63,33 +61,31 @@ export default function ColorsSection() {
         <button
           type="button"
           onClick={handleResetAppearance}
-          className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors py-1 px-2 rounded-md hover:bg-[var(--card-hover-bg)]"
+          className="inline-flex min-h-11 sm:min-h-8 items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors py-1.5 px-2.5 rounded-lg hover:bg-card-hover-bg shrink-0"
         >
-          <RotateCcw className="w-3.5 h-3.5" />
+          <RotateCcw className="size-3.5" />
           <span>بازنشانی</span>
         </button>
       </div>
 
       {/* ۱. فونت داشبورد */}
-      <div className="pb-4 border-b border-[var(--border-color)]">
+      <div className="pb-4 border-b border-border-color">
         <FontSection />
       </div>
 
       {/* ۲. رنگ‌های جانبی */}
       <div className="space-y-1">
-        <h4 className="text-xs font-semibold text-[var(--text-secondary)] mb-2">رنگ‌های جانبی</h4>
+        <h4 className="text-xs font-semibold text-text-secondary mb-2">رنگ‌های جانبی</h4>
 
         {/* رنگ جانبی اول */}
         <div
-          className={`relative flex items-center justify-between gap-3 py-3 px-3 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg-solid)] ${
+          className={`relative flex items-center justify-between gap-3 py-3 px-3 rounded-lg border border-border-color bg-card-bg-solid ${
             openPicker === "accent3" ? "z-30" : "z-0"
           }`}
         >
           <div>
-            <span className="text-xs font-medium text-[var(--text-primary)]">رنگ جانبی اول</span>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-              المان‌ها، کادرهای فعال و نشانگرها
-            </p>
+            <span className="text-xs font-medium text-text-primary">رنگ جانبی اول</span>
+            <p className="text-[11px] text-text-muted mt-0.5">المان‌ها، کادرهای فعال و نشانگرها</p>
           </div>
 
           <div className="relative shrink-0">
@@ -122,13 +118,13 @@ export default function ColorsSection() {
 
         {/* رنگ جانبی دوم */}
         <div
-          className={`relative flex items-center justify-between gap-3 py-3 px-3 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg-solid)] ${
+          className={`relative flex items-center justify-between gap-3 py-3 px-3 rounded-lg border border-border-color bg-card-bg-solid ${
             openPicker === "accent4" ? "z-30" : "z-0"
           }`}
         >
           <div>
-            <span className="text-xs font-medium text-[var(--text-primary)]">رنگ جانبی دوم</span>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">اکشن‌های مکمل و هایلایت‌ها</p>
+            <span className="text-xs font-medium text-text-primary">رنگ جانبی دوم</span>
+            <p className="text-[11px] text-text-muted mt-0.5">اکشن‌های مکمل و هایلایت‌ها</p>
           </div>
 
           <div className="relative shrink-0">
@@ -162,19 +158,13 @@ export default function ColorsSection() {
 
       {/* ۳. رنگ‌های اصلی (تنظیم مقدار سیاهی و سفیدی) */}
       <div className="space-y-1 pt-2">
-        <h4 className="text-xs font-semibold text-[var(--text-secondary)] mb-2">
-          رنگ‌های اصلی زمینه
-        </h4>
+        <h4 className="text-xs font-semibold text-text-secondary mb-2">رنگ‌های اصلی زمینه</h4>
 
         {/* مقدار سیاهی حالت شب */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 px-3 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg-solid)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 px-3 rounded-lg border border-border-color bg-card-bg-solid">
           <div>
-            <span className="text-xs font-medium text-[var(--text-primary)]">
-              مقدار سیاهی (حالت شب)
-            </span>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-              از مشکی خالص OLED تا خاکستری ذغالی
-            </p>
+            <span className="text-xs font-medium text-text-primary">مقدار سیاهی (حالت شب)</span>
+            <p className="text-[11px] text-text-muted mt-0.5">از مشکی خالص OLED تا خاکستری ذغالی</p>
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-56">
@@ -186,23 +176,19 @@ export default function ColorsSection() {
               onValueChange={setDarkBlackness}
               aria-label="مقدار سیاهی حالت شب"
               formatValueText={(v) => `${v} درصد`}
-              className="h-9 border border-[var(--border-color)]/60"
+              className="h-9 border border-border-color/60"
             />
-            <span className="font-mono text-xs text-[var(--text-primary)] w-9 text-left tabular-nums shrink-0">
+            <span className="font-mono text-xs text-text-primary w-9 text-left tabular-nums shrink-0">
               {darkBlackness}٪
             </span>
           </div>
         </div>
 
         {/* مقدار سفیدی حالت روز */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 px-3 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg-solid)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 px-3 rounded-lg border border-border-color bg-card-bg-solid">
           <div>
-            <span className="text-xs font-medium text-[var(--text-primary)]">
-              مقدار سفیدی (حالت روز)
-            </span>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-              از سفید خالص تا خاکستری روشن
-            </p>
+            <span className="text-xs font-medium text-text-primary">مقدار سفیدی (حالت روز)</span>
+            <p className="text-[11px] text-text-muted mt-0.5">از سفید خالص تا خاکستری روشن</p>
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-56">
@@ -214,9 +200,9 @@ export default function ColorsSection() {
               onValueChange={setLightWhiteness}
               aria-label="مقدار سفیدی حالت روز"
               formatValueText={(v) => `${v} درصد`}
-              className="h-9 border border-[var(--border-color)]/60"
+              className="h-9 border border-border-color/60"
             />
-            <span className="font-mono text-xs text-[var(--text-primary)] w-9 text-left tabular-nums shrink-0">
+            <span className="font-mono text-xs text-text-primary w-9 text-left tabular-nums shrink-0">
               {lightWhiteness}٪
             </span>
           </div>

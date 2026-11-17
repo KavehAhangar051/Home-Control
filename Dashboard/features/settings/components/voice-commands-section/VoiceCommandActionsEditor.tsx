@@ -51,20 +51,20 @@ export function VoiceCommandActionsEditor({
   };
 
   return (
-    <div className="space-y-2 border-t border-[var(--border-color)] pt-3">
+    <div className="space-y-2 border-t border-border-color pt-3">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-[var(--text-secondary)]">عملیات‌ها</h4>
+        <h4 className="text-sm font-semibold text-text-secondary">عملیات‌ها</h4>
         <button
           type="button"
           onClick={handleAddAction}
-          className="text-[var(--accent3)] text-xs font-bold px-2 py-1 bg-[var(--accent3-transparent)] rounded-lg hover:bg-[var(--accent3)] hover:text-[var(--bg-main)] transition-colors"
+          className="text-accent3 text-xs font-bold px-2 py-1 bg-accent3-transparent rounded-lg hover:bg-accent3 hover:text-bg-main transition-colors"
         >
           + افزودن
         </button>
       </div>
 
       {tempActions.length === 0 && (
-        <p className="text-xs text-[var(--text-tertiary)] opacity-80 text-center py-2">
+        <p className="text-xs text-text-tertiary opacity-80 text-center py-2">
           عملیاتی اضافه نشده است
         </p>
       )}
@@ -79,7 +79,7 @@ export function VoiceCommandActionsEditor({
         return (
           <div
             key={actionKey}
-            className="flex flex-wrap items-center gap-2 bg-[var(--card-bg-solid)] border border-[var(--border-color)] p-2 rounded-xl"
+            className="flex flex-wrap items-center gap-2 bg-card-bg-solid border border-border-color p-2 rounded-xl"
           >
             <select
               aria-label="نوع هدف عملیات"
@@ -91,7 +91,7 @@ export function VoiceCommandActionsEditor({
                   handleUpdateAction(index, { targetPin: segments[0].pin });
                 }
               }}
-              className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
+              className="bg-bg-primary border border-border-color rounded-lg px-2 py-1.5 text-xs text-text-primary outline-none focus:border-accent3 focus:ring-1 focus:ring-accent3 transition-colors"
             >
               <option value="pin">ماژول/سگمنت</option>
               <option value="macro" disabled={macros.length === 0}>
@@ -104,7 +104,7 @@ export function VoiceCommandActionsEditor({
                 aria-label="انتخاب ماکرو"
                 value={action.targetMacro}
                 onChange={(e) => handleUpdateAction(index, { targetMacro: e.target.value })}
-                className="flex-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
+                className="flex-1 bg-bg-primary border border-border-color rounded-lg px-2 py-1.5 text-xs text-text-primary outline-none focus:border-accent3 focus:ring-1 focus:ring-accent3 transition-colors"
               >
                 {macros.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -118,7 +118,7 @@ export function VoiceCommandActionsEditor({
                   aria-label="انتخاب پایه سگمنت"
                   value={action.targetPin}
                   onChange={(e) => handleUpdateAction(index, { targetPin: e.target.value })}
-                  className="flex-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
+                  className="flex-1 bg-bg-primary border border-border-color rounded-lg px-2 py-1.5 text-xs text-text-primary outline-none focus:border-accent3 focus:ring-1 focus:ring-accent3 transition-colors"
                 >
                   {segments.map((seg) => (
                     <option key={seg.id} value={seg.pin}>
@@ -130,7 +130,7 @@ export function VoiceCommandActionsEditor({
                   aria-label="وضعیت خروجی عملیات"
                   value={action.actionOn ? "on" : "off"}
                   onChange={(e) => handleUpdateAction(index, { actionOn: e.target.value === "on" })}
-                  className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
+                  className="bg-bg-primary border border-border-color rounded-lg px-2 py-1.5 text-xs text-text-primary outline-none focus:border-accent3 focus:ring-1 focus:ring-accent3 transition-colors"
                 >
                   <option value="on">روشن شود</option>
                   <option value="off">خاموش شود</option>

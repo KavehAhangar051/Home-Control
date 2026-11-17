@@ -44,19 +44,27 @@ export function computeTimerSchedule(
   };
 }
 
-export function buildValidatedAutomationDraft(
+function resolvePositiveNumber(value: number | ""): number | undefined {
+  return value !== "" && value > 0 ? value : undefined;
+}
+
+interface ResolvedDraftTiming {
+  time: string;
+  days: number[];
+  repeatCount: number | undefined;
+  conditionType: "time" | "weather";
+}
+
+function resolveDraftTimingAndCondition(
   input: AutomationFormDraftInput,
-  now: Date = new Date(),
-): ValidationResult {
-  let finalTime = input.time;
-  let finalDays = [...input.days];
-  let finalRepeatCount =
-    input.repeatCount !== "" && input.repeatCount > 0 ? input.repeatCount : undefined;
-  let finalConditionType: "time" | "weather" = "time";
-  const finalTempThresh =
-    input.temperatureThreshold !== "" ? input.temperatureThreshold : undefined;
-  const finalIntervalMinutes =
-    input.intervalMinutes !== "" && input.intervalMinutes > 0 ? input.intervalMinutes : undefined;
+  finalTempThresh: number | undefined,
+  finalIntervalMinutes: number | undefined,
+  now: Date,
+): { ok: true; value: ResolvedDraftTiming } | { ok: false; errorMessage: string } {
+  let time = input.time;
+  let days = [...input.days];
+  let repeatCount = resolvePositiveNumber(input.repeatCount);
+  let conditionType: "time" | "weather" = "time";
 
   if (input.autoType === "timer") {
     const dHours = Number(input.delayHours) || 0;
@@ -67,17 +75,17 @@ export function buildValidatedAutomationDraft(
     }
 
     const timerSchedule = computeTimerSchedule(dHours, dMins, now);
-    finalTime = timerSchedule.time;
-    finalDays = timerSchedule.days;
-    finalRepeatCount = timerSchedule.repeatCount;
+    time = timerSchedule.time;
+    days = timerSchedule.days;
+    repeatCount = timerSchedule.repeatCount;
   } else if (input.autoType === "weather") {
     if (!input.city || finalTempThresh === undefined || !finalIntervalMinutes) {
       return { ok: false, errorMessage: "لطفاً شهر، شرط دما و دوره بررسی را مشخص کنید." };
     }
 
-    finalConditionType = "weather";
-    finalTime = "";
-    finalDays = [];
+    conditionType = "weather";
+    time = "";
+    days = [];
   } else if (!input.time || input.days.length === 0) {
     return { ok: false, errorMessage: "لطفاً زمان و روزهای هفته را مشخص کنید." };
   }
@@ -87,7 +95,38 @@ export function buildValidatedAutomationDraft(
       return { ok: false, errorMessage: "لطفاً شهر و شرط دما را مشخص کنید." };
     }
 
-    finalConditionType = "weather";
+    conditionType = "weather";
+  }
+
+  return {
+    ok: true,
+    value: { time, days, repeatCount, conditionType },
+  };
+}
+
+export function inferAutomationEditType(auto: Automation): "schedule" | "timer" | "weather" {
+  if (auto.intervalMinutes) return "weather";
+  if (auto.repeatCount) return "timer";
+  return "schedule";
+}
+
+export function buildValidatedAutomationDraft(
+  input: AutomationFormDraftInput,
+  now: Date = new Date(),
+): ValidationResult {
+  const finalTempThresh =
+    input.temperatureThreshold !== "" ? input.temperatureThreshold : undefined;
+  const finalIntervalMinutes = resolvePositiveNumber(input.intervalMinutes);
+
+  const timingResult = resolveDraftTimingAndCondition(
+    input,
+    finalTempThresh,
+    finalIntervalMinutes,
+    now,
+  );
+
+  if ("errorMessage" in timingResult) {
+    return timingResult;
   }
 
   if (!input.title) {
@@ -98,16 +137,18 @@ export function buildValidatedAutomationDraft(
     return { ok: false, errorMessage: "حداقل یک عملیات مشخص کنید." };
   }
 
+  const { time, days, repeatCount, conditionType } = timingResult.value;
+
   return {
     ok: true,
     automation: {
       id: input.editingId || `auto_${now.getTime()}`,
       title: input.title,
-      time: finalTime,
-      days: finalDays,
-      repeatCount: finalRepeatCount,
+      time,
+      days,
+      repeatCount,
       intervalMinutes: finalIntervalMinutes,
-      conditionType: finalConditionType,
+      conditionType,
       city: input.city,
       temperatureThreshold: finalTempThresh,
       temperatureCondition: input.temperatureCondition,
@@ -208,13 +249,7 @@ export function useAutomationForm() {
       setTemperatureThreshold("");
     }
 
-    if (auto.intervalMinutes) {
-      setAutoType("weather");
-    } else if (auto.repeatCount) {
-      setAutoType("timer");
-    } else {
-      setAutoType("schedule");
-    }
+    setAutoType(inferAutomationEditType(auto));
 
     setActions(auto.actions ? [...auto.actions] : []);
     useIoTStore.getState().setActiveAutomationsTab("create");

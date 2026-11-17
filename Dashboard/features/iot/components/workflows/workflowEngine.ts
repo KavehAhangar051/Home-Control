@@ -1,6 +1,6 @@
 import {
   type CanvasGridStyle,
-  clampCanvasZoom,
+  computeCenteredFitViewport,
   getCanvasGridStyle,
   snapCanvasCoordinate,
 } from "@/features/iot/components/canvas/canvasGeometry";
@@ -10,21 +10,35 @@ import {
   canConnectWorkflowPorts,
   type EvaluateWorkflowOptions,
   evaluateWorkflowGraph,
+  isTriggerWorkflowNodeKind,
 } from "./workflowGraphEvaluator";
+import {
+  DEFAULT_WORKFLOW_VIEWPORT,
+  normalizeWorkflowNodeLabel,
+  readStoredWorkflowState,
+  WORKFLOWS_STORAGE_KEY,
+  writeStoredWorkflowState,
+} from "./workflowStorage";
 import type {
   WorkflowDefinition,
   WorkflowNode,
   WorkflowNodeKind,
   WorkflowPaletteDragPayload,
-  WorkflowStudioState,
   WorkflowViewport,
 } from "./workflowTypes";
 
-export { canConnectWorkflowPorts, type EvaluateWorkflowOptions, evaluateWorkflowGraph };
+export {
+  canConnectWorkflowPorts,
+  DEFAULT_WORKFLOW_VIEWPORT,
+  type EvaluateWorkflowOptions,
+  evaluateWorkflowGraph,
+  isTriggerWorkflowNodeKind,
+  normalizeWorkflowNodeLabel,
+  readStoredWorkflowState,
+  WORKFLOWS_STORAGE_KEY,
+  writeStoredWorkflowState,
+};
 
-export const WORKFLOWS_STORAGE_KEY = "iot_workflows_studio_v1";
-
-const DEFAULT_WORKFLOW_VIEWPORT: WorkflowViewport = { x: 48, y: 48, zoom: 1 };
 const MAX_NODE_INPUT_PORTS = 8;
 const DEFAULT_TIMER_SECONDS = 5;
 const DEFAULT_SCHEDULE_TIME = "08:00";
@@ -42,7 +56,6 @@ const FIT_VIEW_MOBILE_PADDING = 28;
 const FIT_VIEW_DESKTOP_PADDING = 64;
 const FIT_VIEW_MIN_BOUNDS_WIDTH = 180;
 const FIT_VIEW_MIN_BOUNDS_HEIGHT = 140;
-const FIT_VIEW_MIN_AVAILABLE_SIZE = 120;
 const FIT_VIEW_MAX_ZOOM = 1.05;
 
 export function createWorkflowId(prefix: string): string {
@@ -85,7 +98,7 @@ function getDefaultNodeDimensions(kind: WorkflowNodeKind): WorkflowDimensions {
 }
 
 export function getNodeMinInputCount(kind: WorkflowNodeKind): number {
-  if (kind === "trigger_manual" || kind === "trigger_schedule") return 0;
+  if (isTriggerWorkflowNodeKind(kind)) return 0;
 
   if (kind === "logic_and" || kind === "logic_or") return 2;
 
@@ -93,7 +106,7 @@ export function getNodeMinInputCount(kind: WorkflowNodeKind): number {
 }
 
 export function getNodeInputCount(node: Pick<WorkflowNode, "kind" | "inputCount">): number {
-  if (node.kind === "trigger_manual" || node.kind === "trigger_schedule") return 0;
+  if (isTriggerWorkflowNodeKind(node.kind)) return 0;
 
   const minInputs = getNodeMinInputCount(node.kind);
   const raw = node.inputCount ?? minInputs;
@@ -132,41 +145,37 @@ function getDefaultNodeLabel(payload: WorkflowPaletteDragPayload, segments: Segm
   }
 }
 
-export function normalizeWorkflowNodeLabel(node: WorkflowNode): string {
-  if (node.kind === "logic_and") return "AND";
+/**
+ * Collects non-placeholder segment IDs belonging to a given module group name.
+ */
+export function collectGroupMemberSegmentIds(
+  segments: ReadonlyArray<Segment>,
+  groupName: string | undefined,
+): string[] {
+  if (!groupName) return [];
 
-  if (node.kind === "logic_or") return "OR";
+  const memberSegmentIds: string[] = [];
 
-  if (node.kind === "logic_not") return "NOT";
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
 
-  if (node.kind === "trigger_manual" && node.label === "شستی فرمان دستی") return "شستی دستی";
-
-  if (node.kind === "trigger_schedule" && node.label === "نوسان‌ساز زمان‌بندی") return "زمان‌بندی";
-
-  if (node.kind === "timer" && node.label === "تایمر و تاخیر") return "تایمر";
-
-  if (node.kind === "group" && node.isCustomGroup && node.label === "زیرمدار گروه سفارشی") {
-    return "گروه سفارشی";
+    if (seg.type !== "placeholder" && resolveSegmentGroup(seg.group) === groupName) {
+      memberSegmentIds.push(seg.id);
+    }
   }
 
-  return node.label;
+  return memberSegmentIds;
 }
 
 function collectInitialGroupMemberIds(
   payload: WorkflowPaletteDragPayload,
   segments: Segment[],
 ): string[] {
-  const memberSegmentIds: string[] = [];
-
   if (payload.kind === "group" && !payload.isCustomGroup && payload.groupName) {
-    for (const seg of segments) {
-      if (seg.type !== "placeholder" && resolveSegmentGroup(seg.group) === payload.groupName) {
-        memberSegmentIds.push(seg.id);
-      }
-    }
+    return collectGroupMemberSegmentIds(segments, payload.groupName);
   }
 
-  return memberSegmentIds;
+  return [];
 }
 
 export interface CreateWorkflowNodeInput {
@@ -328,127 +337,18 @@ export function computeFitWorkflowViewport(
   containerWidth: number,
   containerHeight: number,
 ): WorkflowViewport {
-  if (nodes.length === 0 || containerWidth <= 0 || containerHeight <= 0) {
-    return { ...DEFAULT_WORKFLOW_VIEWPORT };
-  }
-
-  let minX = Number.POSITIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
-
-  for (const node of nodes) {
-    minX = Math.min(minX, node.x);
-    minY = Math.min(minY, node.y);
-    maxX = Math.max(maxX, node.x + node.width);
-    maxY = Math.max(maxY, node.y + node.height);
-  }
-
   const padding =
     containerWidth < FIT_VIEW_MOBILE_BREAKPOINT
       ? FIT_VIEW_MOBILE_PADDING
       : FIT_VIEW_DESKTOP_PADDING;
-  const boundsW = Math.max(FIT_VIEW_MIN_BOUNDS_WIDTH, maxX - minX);
-  const boundsH = Math.max(FIT_VIEW_MIN_BOUNDS_HEIGHT, maxY - minY);
-  const availW = Math.max(FIT_VIEW_MIN_AVAILABLE_SIZE, containerWidth - padding * 2);
-  const availH = Math.max(FIT_VIEW_MIN_AVAILABLE_SIZE, containerHeight - padding * 2);
 
-  const zoom = clampCanvasZoom(Math.min(availW / boundsW, availH / boundsH, FIT_VIEW_MAX_ZOOM));
-  const centerX = minX + boundsW / 2;
-  const centerY = minY + boundsH / 2;
-
-  return {
-    x: Math.round(containerWidth / 2 - centerX * zoom),
-    y: Math.round(containerHeight / 2 - centerY * zoom),
-    zoom,
-  };
-}
-
-let memoryWorkflowState: WorkflowStudioState | null = null;
-
-function hydrateStoredWorkflow(
-  rawWorkflow: Partial<WorkflowDefinition>,
-): WorkflowDefinition | null {
-  if (
-    !rawWorkflow?.id ||
-    !rawWorkflow.name ||
-    !Array.isArray(rawWorkflow.nodes) ||
-    !Array.isArray(rawWorkflow.edges)
-  ) {
-    return null;
-  }
-
-  return {
-    id: rawWorkflow.id,
-    name: rawWorkflow.name,
-    enabled: Boolean(rawWorkflow.enabled),
-    nodes: rawWorkflow.nodes.map((node) => ({
-      ...node,
-      label: normalizeWorkflowNodeLabel(node),
-    })),
-    edges: rawWorkflow.edges,
-    viewport: rawWorkflow.viewport ?? { ...DEFAULT_WORKFLOW_VIEWPORT },
-    updatedAt: Number.isFinite(rawWorkflow.updatedAt)
-      ? (rawWorkflow.updatedAt as number)
-      : Date.now(),
-  };
-}
-
-export function readStoredWorkflowState(): WorkflowStudioState {
-  if (memoryWorkflowState) return memoryWorkflowState;
-
-  if (globalThis.window === undefined) {
-    return { workflows: [], activeWorkflowId: null };
-  }
-
-  try {
-    const raw = globalThis.window.localStorage.getItem(WORKFLOWS_STORAGE_KEY);
-
-    if (!raw) return { workflows: [], activeWorkflowId: null };
-
-    // SAFETY: JSON payload is validated below before hydrating studio state
-    const parsed = JSON.parse(raw) as Partial<WorkflowStudioState>;
-
-    if (!Array.isArray(parsed.workflows)) {
-      return { workflows: [], activeWorkflowId: null };
-    }
-
-    const validWorkflows: WorkflowDefinition[] = [];
-
-    for (const rawWorkflow of parsed.workflows) {
-      const hydrated = hydrateStoredWorkflow(rawWorkflow);
-      if (hydrated) validWorkflows.push(hydrated);
-    }
-
-    const activeId =
-      parsed.activeWorkflowId && validWorkflows.some((w) => w.id === parsed.activeWorkflowId)
-        ? parsed.activeWorkflowId
-        : (validWorkflows[0]?.id ?? null);
-
-    const resolved: WorkflowStudioState = {
-      workflows: validWorkflows,
-      activeWorkflowId: activeId,
-    };
-
-    memoryWorkflowState = resolved;
-
-    return resolved;
-  } catch {
-    // Ignore storage read errors
-    return { workflows: [], activeWorkflowId: null };
-  }
-}
-
-export function writeStoredWorkflowState(state: WorkflowStudioState): void {
-  memoryWorkflowState = state;
-
-  if (globalThis.window === undefined) return;
-
-  try {
-    globalThis.window.localStorage.setItem(WORKFLOWS_STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // Ignore storage write errors
-  }
+  return computeCenteredFitViewport(nodes, containerWidth, containerHeight, {
+    padding,
+    minBoundsWidth: FIT_VIEW_MIN_BOUNDS_WIDTH,
+    minBoundsHeight: FIT_VIEW_MIN_BOUNDS_HEIGHT,
+    maxZoom: FIT_VIEW_MAX_ZOOM,
+    emptyFallback: DEFAULT_WORKFLOW_VIEWPORT,
+  });
 }
 
 export function getWorkflowGridStyle(x: number, y: number, zoom: number): CanvasGridStyle {

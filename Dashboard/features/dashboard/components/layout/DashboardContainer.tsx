@@ -36,7 +36,7 @@ export default function DashboardContainer() {
       <CustomCursor />
       <MotionConfig reducedMotion={animationsEnabled ? "user" : "always"}>
         <div
-          className={`style-nova bg-bg-main text-text-secondary min-h-screen relative font-sans leading-relaxed selection:bg-accent3/15 selection:text-accent3 overflow-x-clip ${isDark ? "dark" : ""}`}
+          className={`style-nova bg-bg-main text-text-secondary min-h-dvh relative font-sans leading-relaxed selection:bg-accent3/15 selection:text-accent3 overflow-x-clip ${isDark ? "dark" : ""}`}
         >
           <div>
             <DashboardStyles
@@ -56,9 +56,9 @@ export default function DashboardContainer() {
               پرش به محتوای اصلی
             </a>
 
-            <div className="relative z-10 flex flex-row items-stretch w-full h-screen overflow-hidden">
+            <div className="relative z-10 flex flex-row items-stretch w-full h-dvh overflow-hidden">
               <DashboardHeader />
-              <div className="flex-1 min-w-0 flex flex-col justify-between w-full h-screen overflow-hidden mx-auto">
+              <div className="flex-1 min-w-0 flex flex-col justify-between w-full h-dvh overflow-hidden mx-auto">
                 <DashboardMain />
               </div>
             </div>

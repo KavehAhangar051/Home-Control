@@ -183,21 +183,21 @@ export function getThemeStyles({
       --muted-foreground: ${isDark ? "#85858b" : "#737373"};
       --accent: ${palette.cardHover};
       --accent-foreground: ${isDark ? "#ededed" : "#171717"};
-      --destructive: ${isDark ? "#e5484d" : "#dc2626"};
+      --destructive: ${isDark ? "oklch(62.8% 0.225 25.3)" : "oklch(57.7% 0.245 27.3)"};
       --destructive-foreground: ${isDark ? "#ededed" : "#ffffff"};
       --border: ${palette.border};
       --input: ${palette.border};
       --ring: ${isDark ? "#85858b" : "#737373"};
       --ring-offset: ${palette.bg};
       --radius: 0.5rem;
-      --success: ${isDark ? "#4cc38a" : "#16a34a"};
+      --success: ${isDark ? "oklch(72.3% 0.16 160)" : "oklch(62.7% 0.194 149.2)"};
       --success-foreground: ${isDark ? "#0f0f10" : "#ffffff"};
-      --warning: var(--color-amber-500);
-      --warning-foreground: var(--color-amber-950);
-      --info: var(--color-sky-500);
-      --info-foreground: ${isDark ? "#ededed" : "var(--color-sky-950)"};
-      --invert: ${isDark ? "var(--color-zinc-700)" : "var(--color-neutral-900)"};
-      --invert-foreground: var(--color-neutral-50);
+      --warning: oklch(79.5% 0.184 86.05);
+      --warning-foreground: oklch(24% 0.05 86);
+      --info: oklch(68.5% 0.169 237.32);
+      --info-foreground: ${isDark ? "#ededed" : "oklch(29% 0.06 243)"};
+      --invert: ${isDark ? "oklch(35% 0.01 264)" : "oklch(20.5% 0.01 264)"};
+      --invert-foreground: oklch(98.5% 0 0);
       --shadow-border: ${
         isDark
           ? "0 0 0 1px oklch(1 0 0 / 0.08)"

@@ -60,7 +60,7 @@ export default function CardHeader({
   return (
     <div
       className={`absolute z-20 flex items-center gap-1 ${
-        isUltraCompact ? "top-2 left-2" : "top-2.5 left-2.5"
+        isUltraCompact ? "top-2 end-2" : "top-2.5 end-2.5"
       }`}
       onPointerDown={(e) => e.stopPropagation()}
     >
@@ -72,11 +72,11 @@ export default function CardHeader({
               {...attributes}
               {...listeners}
               aria-label={`جابه‌جایی کارت ${segment.title}`}
-              className={`flex items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--secondary)] md:hover:border-[var(--border-color)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] cursor-grab active:cursor-grabbing transition-colors shrink-0 ${
-                isUltraCompact ? "w-6 h-6" : "w-7 h-7"
+              className={`flex items-center justify-center rounded-lg border border-transparent text-text-muted md:hover:text-text-primary md:hover:bg-secondary md:hover:border-border-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 cursor-grab active:cursor-grabbing transition-colors shrink-0 ${
+                isUltraCompact ? "size-6" : "size-7"
               }`}
             >
-              <GripVertical className="w-3.5 h-3.5" strokeWidth={2} />
+              <GripVertical className="size-3.5" strokeWidth={2} />
             </button>
           }
         />

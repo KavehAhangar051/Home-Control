@@ -16,10 +16,10 @@ interface Props {
 
 export function ConditionSegment({ segment, rule, updateLocalRule, onSave }: Props) {
   return (
-    <div className="p-5 border border-[var(--border-color)] rounded-2xl bg-[var(--card-bg-solid)] shadow-sm flex flex-col gap-5">
-      <div className="font-bold text-sm text-[var(--accent3)] flex items-center gap-2 border-b border-[var(--border-color)] pb-3">
-        <div className="p-1.5 rounded-lg bg-[var(--accent3-transparent)] text-[var(--accent3)]">
-          <Settings2 aria-hidden="true" className="w-4 h-4" />
+    <div className="p-5 border border-border-color rounded-2xl bg-card-bg-solid shadow-sm flex flex-col gap-5">
+      <div className="font-bold text-sm text-accent3 flex items-center gap-2 border-b border-border-color pb-3">
+        <div className="p-1.5 rounded-lg bg-accent3-transparent text-accent3">
+          <Settings2 aria-hidden="true" className="size-4" />
         </div>
         {segment.title} (پایه: {segment.pin})
       </div>
@@ -39,7 +39,7 @@ export function ConditionSegment({ segment, rule, updateLocalRule, onSave }: Pro
         <button
           type="button"
           onClick={onSave}
-          className="w-full py-3 bg-[var(--accent3)] hover:bg-[var(--accent3-dark)] text-[var(--bg-main)] text-sm font-bold rounded-xl transition-colors shadow-md shadow-[var(--accent3-transparent)]"
+          className="w-full py-3 bg-accent3 hover:bg-accent3-dark text-bg-main text-sm font-bold rounded-xl transition-colors shadow-xs"
         >
           ثبت و ارسال
         </button>

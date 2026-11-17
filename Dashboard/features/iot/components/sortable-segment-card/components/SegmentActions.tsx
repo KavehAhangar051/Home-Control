@@ -53,7 +53,7 @@ export default function SegmentActions({
   autoOffMenuProps,
 }: SegmentActionsProps) {
   const buttonSizeClass =
-    inHeaderBar || isUltraCompact ? "h-6 w-6 min-w-6 p-0 px-0" : "h-7 w-7 min-w-7 p-0 px-0";
+    inHeaderBar || isUltraCompact ? "size-6 min-w-6 p-0 px-0" : "size-7 min-w-7 p-0 px-0";
 
   return (
     <div className="relative flex items-center gap-1 shrink-0">
@@ -72,11 +72,11 @@ export default function SegmentActions({
               aria-expanded={isSettingsOpen}
               className={`${inHeaderBar ? "rounded-md" : "rounded-lg"} transition-colors cursor-pointer ${buttonSizeClass} ${
                 isSettingsOpen
-                  ? "border-[var(--accent3)] text-[var(--accent3)] bg-[var(--accent3-transparent)] aria-pressed:bg-[var(--accent3-transparent)]"
-                  : "border-transparent bg-transparent text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--secondary)] md:hover:border-[var(--border-color)]"
+                  ? "border-accent3 text-accent3 bg-accent3-transparent aria-pressed:bg-accent3-transparent"
+                  : "border-transparent bg-transparent text-text-muted md:hover:text-text-primary md:hover:bg-secondary md:hover:border-border-color"
               }`}
             >
-              <Settings className="w-3.5 h-3.5 shrink-0" />
+              <Settings className="size-3.5 shrink-0" />
             </Toggle>
           }
         />

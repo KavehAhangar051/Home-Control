@@ -1,6 +1,7 @@
 import {
   canConnectWorkflowPorts,
   getPortAnchor,
+  isTriggerWorkflowNodeKind,
 } from "@/features/iot/components/workflows/workflowEngine";
 import type { WorkflowEdge, WorkflowNode } from "@/features/iot/components/workflows/workflowTypes";
 
@@ -22,6 +23,35 @@ export interface FindMagneticPortOptions {
   pointerWorldX: number;
   pointerWorldY: number;
   snapRadius?: number;
+}
+
+export type CanvasNodeMotionState = {
+  opacity: number;
+  scale: number;
+  rotate: number;
+  y: number;
+};
+
+/**
+ * Computes the unified motion target state for canvas and workflow nodes
+ * across idle, dragging, and reduced-motion states.
+ */
+export function resolveCanvasNodeMotionState(
+  animationsEnabled: boolean,
+  isDragging: boolean,
+  dragTiltDeg: number,
+  dragScale = 1.018,
+): CanvasNodeMotionState {
+  if (!animationsEnabled) {
+    return { opacity: 1, scale: 1, rotate: 0, y: 0 };
+  }
+
+  return {
+    opacity: 1,
+    scale: isDragging ? dragScale : 1,
+    rotate: isDragging ? dragTiltDeg : 0,
+    y: isDragging ? -2 : 0,
+  };
 }
 
 /**
@@ -58,11 +88,7 @@ export function findMagneticInputPort({
   for (let i = 0; i < nodes.length; i++) {
     const candidate = nodes[i];
 
-    if (
-      candidate.id === sourceId ||
-      candidate.kind === "trigger_manual" ||
-      candidate.kind === "trigger_schedule"
-    ) {
+    if (candidate.id === sourceId || isTriggerWorkflowNodeKind(candidate.kind)) {
       continue;
     }
 
