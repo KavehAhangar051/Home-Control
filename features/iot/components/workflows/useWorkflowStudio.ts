@@ -253,6 +253,7 @@ export function useWorkflowStudio({
     containerRef,
     viewportRef,
     setViewport,
+    setViewportTransient: setViewport,
     onBackgroundClick: () => {
       setSelectedNodeId(null);
       setSelectedEdgeId(null);
