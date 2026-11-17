@@ -3,6 +3,7 @@
 import { GripHorizontal } from "lucide-react";
 import { m } from "motion/react";
 import React from "react";
+import { useShallow } from "zustand/react/shallow";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus } from "@/components/ui/hugeicons";
 import type { Segment } from "@/features/iot/hooks/store/types";
@@ -224,9 +225,11 @@ export default React.memo(function CanvasGroupNode({
 }: CanvasGroupNodeProps) {
   const groupIcon = useIoTStore((s) => s.groupConfigs[groupName]?.icon);
   const { activeCount, controllableCount } = useIoTStore(
-    React.useCallback(
-      (state) => countGroupSegments(groupSegments, state.pinsState),
-      [groupSegments],
+    useShallow(
+      React.useCallback(
+        (state) => countGroupSegments(groupSegments, state.pinsState),
+        [groupSegments],
+      ),
     ),
   );
   const borderClass = resolveGroupBorderClass(isDragging, isSelected, activeCount);
