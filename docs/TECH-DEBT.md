@@ -61,3 +61,16 @@
 | Knip previously omitted the vendored Oxlint plugin source from its project graph | `knip.json`, `tools/oxlint/anti-slop/` | Audit configuration gap | Low | XS | P2 | Resolved in `chore/align-tooling-audit-config`: both plugin entry points and the tools source tree are now included; PR audit will confirm the refreshed report |
 | Experimental workspace-transition E2E work | PR #9 / `tests/e2e/workspace-transitions.spec.mjs` | Deferred verification | Low | S | P3 | PR #9 closed without merge; new E2E authoring is out of scope; owner performs manual UI verification |
 | Stale optimization entries for removed legacy dnd-kit packages | `next.config.ts` | Obsolete configuration | Low | XS | P2 | Resolved and merged in PR #10 |
+
+
+## Performance and platform follow-ups — 18 November 2026
+
+| Item | Location | Type | Risk | Effort | Priority | Status |
+|---|---|---|---|---|---|---|
+| Confirm Grid DnD chunk is not requested in Trellis/Canvas sessions | \`DndGridWorkspace\`, dashboard workspace loading | Runtime code-splitting verification | Medium | S | P1 | Static graph shows the DnD hook is scoped to Grid, but conditional Grid preloading remains represented in the graph. Needs owner-led browser Network verification. |
+| Measure device-state burst responsiveness and Zustand subscription cost | \`features/iot/hooks/useIoTStore.ts\`, device cards and MQTT state queue | Runtime responsiveness | Medium | M | P1 | Not yet profiled. Establish message-to-UI latency and React commit baseline before changing selectors or batching. |
+| Measure workspace switching and workflow/canvas interaction long tasks | Dashboard workspaces, Workflow Studio, Canvas | Main-thread responsiveness | Medium | M | P1 | Not yet profiled. Do not introduce \`Activity\` or more deferred rendering without a concrete measured use case. |
+| Broad \`motion/react-m\` migration did not improve the tested Turbopack graph | Motion imports and \`MotionProvider\` | Bundle optimization experiment | Low | S | P2 | Reverted. Homepage client graph increased by 10,134 compressed bytes and five chunks in the trial. Keep existing imports unless a new focused experiment demonstrates a benefit. |
+| Tailwind v4 token and CSS duplication audit | \`app/globals.css\`, component styles | CSS maintainability / bundle | Low | M | P2 | Not yet audited. Existing baseline does not justify a broad CSS rewrite. |
+| Base UI primitive coverage and interaction consistency | \`components/ui/\`, feature dialogs/menus | UI consistency / accessibility | Low | M | P2 | Inventory required before replacing any existing component implementation. |
+| Real-user performance evidence is absent | Static dashboard runtime | Observability gap | Medium | M | P2 | Bundle snapshots exist, but they do not measure LCP, INP, CLS, long tasks, or device CPU/network conditions. Establish an appropriate browser/RUM measurement approach before budgets. |
