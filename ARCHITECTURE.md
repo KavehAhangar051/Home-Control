@@ -21,6 +21,7 @@ The application is configured for static export in its normal production mode. I
 - **Forms and validation dependencies:** React Hook Form resolver integration and Zod; use them where the relevant feature already follows this pattern
 - **Linting and formatting:** Biome
 - **Language/tooling:** TypeScript 5
+- **Package manager:** Bun (`bun.lock` is the committed dependency lockfile)
 
 The authoritative dependency and command definitions are in `package.json`; do not document scripts or libraries as active unless they exist there.
 
@@ -61,7 +62,7 @@ docs/                    Protocol, configuration, and project reference docs
 next.config.ts           Next.js export and deployment configuration
 biome.json               Lint/format rules
 package.json             Scripts and dependency manifest
-package-lock.json        Reproducible npm dependency lockfile
+bun.lock                 Reproducible Bun dependency lockfile
 tsconfig.json            TypeScript compiler configuration
 ```
 
@@ -156,31 +157,31 @@ The `start` script runs `next start`, which is not the normal way to serve a sta
 - `.env.example` is the committed template. Copy it to `.env.local` for local development and populate values only when the relevant feature requires them.
 - Real `.env*` files, dependency directories, build outputs, logs, and TypeScript build metadata should remain untracked.
 - `next-env.d.ts` is a standard Next.js-generated type declaration and may be tracked; do not remove it merely because it is generated.
-- `package-lock.json` is intentional and should be committed with dependency changes.
+- `bun.lock` is the authoritative lockfile and must be committed with dependency changes. Keep it synchronized with `package.json` using Bun.
 - Do not commit console dumps, local machine state, generated build artifacts, private keys, credentials, or one-off output files.
 
 ## 11. Developer workflow
 
-Use Node.js compatible with the installed Next.js release and npm.
+Use a Node.js version compatible with the installed Next.js release and Bun.
 
 ```bash
-npm install
-npm run dev
-npm run lint
-npm run build
+bun install --frozen-lockfile
+bun run dev
+bun run lint
+bun run build
 ```
 
 Available scripts in `package.json`:
 
-- `npm run dev` — start the Next.js development server.
-- `npm run build` — run a production build; the script sets `NODE_ENV=production`.
-- `npm run start` — run the Next.js server (not a static-export preview).
-- `npm run lint` — run Biome linting over `app`, `components`, `features`, and `lib`.
-- `npm run format` — format those source directories in place; review the resulting diff before committing.
-- `npm run typecheck` — run TypeScript compiler check (`tsc --noEmit`).
-- `npm run test` — run deterministic domain, edge-case, and boundary integration tests (`tests/*.test.mjs`).
-- `npm run check` — run lint, TypeScript typecheck, and deterministic contract tests together.
-- `npm run clean` — remove local Next.js/export/build-metadata outputs.
+- `bun run dev` — start the Next.js development server.
+- `bun run build` — run a production build; the script sets `NODE_ENV=production`.
+- `bun run start` — run the Next.js server (not a static-export preview).
+- `bun run lint` — run Biome linting over `app`, `components`, `features`, and `lib`.
+- `bun run format` — format those source directories in place; review the resulting diff before committing.
+- `bun run typecheck` — run TypeScript compiler check (`tsc --noEmit`).
+- `bun run test` — run deterministic domain, edge-case, and boundary integration tests (`tests/*.test.mjs`).
+- `bun run check` — run lint, TypeScript typecheck, and deterministic contract tests together.
+- `bun run clean` — remove local Next.js/export/build-metadata outputs.
 
 Before submitting a change, run `npm run check` and production build checks when possible and report checks that could not be run. Avoid formatting unrelated files or committing generated output.
 
