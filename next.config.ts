@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
     },
   },
   experimental: {
+    useTypeScriptCli: true,
     optimizePackageImports: [
       "lucide-react",
       "@hugeicons/react",
