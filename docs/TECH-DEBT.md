@@ -3,6 +3,7 @@
 ## Debt Ledger
 | Item | Location | Type | Risk | Effort | Priority | Status |
 |---|---|---|---|---|---|---|
+| Verbose MQTT state-message logs ran on every received pin update in production | `features/iot/services/mqtt/{init,client}.ts` | Hot-path diagnostic overhead | Low | XS | P2 | Resolved in `perf/gate-mqtt-verbose-logs`: informational logs are development-only; warnings and errors remain enabled |
 | Bundle composition has no recorded baseline yet | `bun run analyze`, `.next/diagnostics/analyze` | Performance observability gap | Medium | S | P1 | Analyzer command now saves a Turbopack snapshot; capture and review the first report before selecting code-splitting or dependency changes |
 | Oxlint Anti-Slop findings in existing application code | `app/`, `components/`, `features/`, `lib/` | Static-analysis cleanup backlog | Medium | M | P2 | 157 findings reported on 390 files with 115 rules (17 Nov 2026); Biome and typecheck pass. Oxlint remains diagnostic-only until findings are triaged; do not bulk autofix. |
 | Stale `optimizePackageImports` entries referenced removed packages and a package already optimized by Next.js | `next.config.ts` | Obsolete configuration | Low | XS | P2 | Resolved in `chore/remove-stale-package-optimizations`; remaining entries are installed custom packages only |
