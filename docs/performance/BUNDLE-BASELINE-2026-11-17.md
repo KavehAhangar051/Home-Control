@@ -43,6 +43,12 @@ The source graph confirms the intended dependency-boundary change: `useAchaemeni
 
 This did **not** produce a meaningful total DnD byte reduction in the static graph. Before, the two DnD-related output chunks contributed 115,412 B raw / 42,501 B compressed; after, the consolidated output contributed 114,155 B / 41,994 B. The analyzer still lists that output in the DashboardShell async group because the graph includes the conditional Grid preload path. The benefit to Trellis/Canvas is avoiding that conditional import at runtime, not shrinking the Grid implementation itself. A browser Network check with Trellis and Canvas selected is still needed to confirm the request is absent.
 
+## Motion lightweight-entrypoint follow-up
+
+The root `MotionProvider` already uses `LazyMotion` with an asynchronously loaded `domMax` feature bundle. The app-facing shared Hugeicons set and core animation/Canvas/Workflow components have now been migrated from the `m` export of `motion/react` to the dedicated `motion/react-m` entrypoint. The migration covers 48 icons imported by `components/ui/hugeicons.tsx` and 10 directly inspected animation/feature components.
+
+This is an import-boundary optimization, not yet a measured bundle-size win. `LazyMotion`, `domMax`, hooks, `AnimatePresence`, `LayoutGroup` and other APIs remain imported from `motion/react`. The app still needs a repository-wide search for additional `m` imports and a matching post-change analyzer comparison before quantifying any reduction.
+
 ## What this report does not establish
 
 - It does not measure LCP, INP, TTI, device CPU time or real network transfer timings.
