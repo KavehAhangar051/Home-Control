@@ -1,0 +1,41 @@
+name: Regenerate Turbopack lockfile
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          token: ${{ github.token }}
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Regenerate lockfile
+        run: bun install
+      - name: Commit lockfile and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock
+          git rm .github/workflows/regenerate-turbopack-lock.yml
+          if git diff --cached --quiet; then
+            echo "No lockfile changes to commit"
+          else
+            git commit -m "Regenerate Bun lockfile for Turbopack migration"
+            git push
+          fi
+      - name: Verify frozen install
+        run: bun install --frozen-lockfile
+      - name: Verify lint and types
+        run: bun run lint && bun run typecheck
+      - name: Verify Turbopack static export
+        run: bun run build
+        env:
+          GITHUB_PAGES: "true"

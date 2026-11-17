@@ -22,7 +22,7 @@ The application is configured for static export in its normal production mode. I
 - **Linting and formatting:** Biome
 - **Language/tooling:** TypeScript 5
 - **Package manager:** Bun (`bun.lock` is the committed dependency lockfile)
-- **Bundler:** Webpack is explicitly selected in the development and production scripts to preserve the existing custom Webpack configuration during the Next.js 16 migration.
+- **Bundler:** Turbopack is used for development and production builds. The `dev:webpack` script remains available for the AI Studio workflow that disables file watching through the custom Webpack configuration.
 
 The authoritative dependency and command definitions are in `package.json`; do not document scripts or libraries as active unless they exist there.
 
@@ -50,7 +50,7 @@ features/
     components/          Device controls, status and IoT workspace UI
     hooks/               IoT state and behavior hooks
     services/            Communication and device integration
-    utils/               IoT-specific utilities
+    utils/               IoT-specific helper functions
   settings/
     components/          Settings sections and controls
 lib/
@@ -61,10 +61,9 @@ docs/                    Protocol, configuration, and project reference docs
 .github/workflows/       GitHub Actions automation
 .env.example             Environment-variable template; contains placeholders only
 next.config.ts           Next.js export and deployment configuration
-biome.json               Lint/format rules
+biome.json               Biome lint/format rules
 package.json             Scripts and dependency manifest
 bun.lock                 Reproducible Bun dependency lockfile
-tsconfig.json            TypeScript compiler configuration
 ```
 
 This is a high-level map, not an exhaustive listing. Inspect the relevant directory before adding files; preserve the existing feature boundaries and naming conventions.
@@ -90,7 +89,7 @@ Owns the dashboard-level composition and workspace behavior. Its `components/`, 
 
 Owns ESP32-facing UI and client communication logic.
 
-- `components/` renders device controls, workspace areas, connection/status feedback, and related interactions.
+- `components/` renders device controls, status and connection feedback, and related interactions.
 - `hooks/` encapsulates reusable IoT state and operations.
 - `services/` contains communication integrations and related service logic.
 - `utils/` contains IoT-specific helper functions.
@@ -100,11 +99,6 @@ Keep transport concerns out of presentational components where practical. Compon
 ### Settings — `features/settings/`
 
 Owns settings UI and configuration controls. The current repository groups these under `features/settings/components/`; follow the existing subdivisions found there. Keep editing/validation logic separated from display code when that improves clarity, but avoid creating abstractions for one-off code without a real reuse or testing benefit.
-
-### Shared utilities and audio — `lib/`
-
-- `lib/presets.ts` stores shared preset/configuration values. Keep reusable constants out of individual components when multiple modules depend on them.
-- `lib/audio/` contains audio-related implementation. Audio APIs are browser capabilities: guard initialization for browser availability and user-gesture restrictions, avoid creating redundant audio contexts, and clean up resources when appropriate.
 
 ## 6. Device communication and security boundaries
 
@@ -137,7 +131,6 @@ A browser-delivered static app cannot keep secrets confidential. Never put priva
 - Keep global styles and global tokens in `app/globals.css`; component-specific styling should stay near the owning component unless it is genuinely shared.
 - Reuse existing motion and icon dependencies rather than introducing overlapping libraries.
 - Preserve the project's Persian-inspired visual identity where already implemented, but prioritize legibility, contrast, predictable controls, and consistent spacing over decorative effects.
-- Do not impose a rigid 100-line file limit. Split modules when responsibility, complexity, reuse, or testability warrants it—not just to satisfy a line count.
 
 ## 9. Static export and deployment
 
@@ -174,8 +167,10 @@ bun run build
 
 Available scripts in `package.json`:
 
-- `bun run dev` — start the Next.js development server.
-- `bun run build` — run a production build; the script sets `NODE_ENV=production`.
+- `bun run dev` — start Next.js development with Turbopack.
+- `bun run dev:webpack` — start the legacy Webpack development workflow, including the AI Studio file-watching workaround.
+- `bun run build` — create the static production export with Turbopack.
+- `bun run analyze` — inspect the Turbopack bundle using Next.js's built-in experimental analyzer.
 - `bun run start` — run the Next.js server (not a static-export preview).
 - `bun run lint` — run Biome linting over `app`, `components`, `features`, and `lib`.
 - `bun run format` — format those source directories in place; review the resulting diff before committing.

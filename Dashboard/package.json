@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack -p 3000 -H 0.0.0.0",
-    "build": "NODE_ENV=production next build --webpack",
+    "dev": "next dev --turbopack -p 3000 -H 0.0.0.0",
+    "dev:webpack": "next dev --webpack -p 3000 -H 0.0.0.0",
+    "build": "NODE_ENV=production next build --turbopack",
     "start": "next start",
+    "analyze": "next experimental-analyze",
     "lint": "biome lint --max-diagnostics=1000 app components features lib",
     "format": "biome format --write app components features lib",
     "typecheck": "tsc --noEmit",
@@ -36,7 +38,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
-    "@next/bundle-analyzer": "^16.4.6",
     "@oxlint/plugins": "1.93.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^20",
