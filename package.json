@@ -33,7 +33,7 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.6.8",
+    "@biomejs/biome": "^2.4.16",
     "@oxlint/plugins": "1.94.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^26.6.6",
