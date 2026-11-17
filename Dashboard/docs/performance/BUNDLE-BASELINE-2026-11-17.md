@@ -63,7 +63,7 @@ Motion-related module-part contributions also increased from 440,952 B raw / 216
 
 ### Decision
 
-The trial was reverted in commit `152179e94c95cd1964bd8f95c769261dd1c3c2de`. The current code keeps its original `motion/react` imports and the existing async `domMax` provider. The official `motion/react-m` pattern is valid, but it did not improve this project's current Turbopack output. Re-evaluate only after a Motion or Turbopack change, or if a focused profile identifies a different way to reduce the initial graph.
+The trial was reverted in commit `152179e94c95cd1964bd8f95c769261dd1c3c2de`. The current code keeps its original `motion/react` imports and the existing async `domMax` provider. The official `motion/react-m` pattern is valid, but it did not improve this project's current Turbopack output. Re-evaluate only after a Motion or Turbopack change, or if a focused profile identifies a different way to reduce the initial graph. A post-revert `after` snapshot is being captured to confirm the original graph is restored.
 
 ## What this report does not establish
 
