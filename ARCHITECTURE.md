@@ -23,6 +23,7 @@ The application is configured for static export in its normal production mode. I
 - **Package manager:** Bun (`bun.lock` is the committed dependency lockfile)
 - **Bundler:** Turbopack is used for development and production builds. The `dev:webpack` script remains available for the AI Studio workflow that disables file watching through the custom Webpack configuration.
 - **React optimization:** React Compiler is enabled in `next.config.ts`; avoid adding manual memoization without profiling or a specific correctness reason.
+- **Package import optimization:** `next.config.ts` keeps only custom entries for installed packages (`@base-ui/react`, `motion`, `zustand`). Next.js already optimizes `lucide-react` by default; removed packages must not remain in this list.
 - **Native transitions:** Workspace switching uses Motion's `AnimateView` integration with React View Transitions, fed by a deferred Zustand workspace selection. Reduced-motion and the dashboard animation setting disable the transition.
 
 The authoritative dependency and command definitions are in `package.json`; do not document scripts or libraries as active unless they exist there.
