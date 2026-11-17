@@ -37,13 +37,13 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
-    "@oxlint/plugins": "1.93.0",
+    "@oxlint/plugins": "1.94.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "^1.0.0",
-    "oxlint": "1.93.0",
+    "oxlint": "1.94.0",
     "tailwindcss": "4.3.5",
     "typescript": "^5.9.3"
   },
