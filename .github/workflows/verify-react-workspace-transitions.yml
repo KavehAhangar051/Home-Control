@@ -1,0 +1,28 @@
+name: Verify React workspace transitions
+
+on:
+  push:
+    branches: ["experiment/react-view-transitions-workspace"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun ci
+      - name: Lint
+        run: bun run lint
+      - name: Format check
+        run: bunx biome format --check features/dashboard/components/layout/DashboardWorkspace.tsx
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Test suite (report-only)
+        continue-on-error: true
+        run: bun run test
