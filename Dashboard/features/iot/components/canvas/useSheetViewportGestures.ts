@@ -191,7 +191,7 @@ export function useSheetViewportGestures({
       const initialVpX = viewportRef.current.x;
       const initialVpY = viewportRef.current.y;
 
-      const onMove = (moveEvent: PointerEvent) => {
+      const applyMove = (moveEvent: PointerEvent) => {
         const dx = moveEvent.clientX - startX;
         const dy = moveEvent.clientY - startY;
         setViewport((prev) => ({
@@ -201,7 +201,35 @@ export function useSheetViewportGestures({
         }));
       };
 
-      const onUp = () => {
+      let pendingMove: PointerEvent | null = null;
+      let frameId: number | null = null;
+
+      const flushMove = () => {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+
+        const latestMove = pendingMove;
+        pendingMove = null;
+
+        if (latestMove) applyMove(latestMove);
+      };
+
+      const onMove = (moveEvent: PointerEvent) => {
+        pendingMove = moveEvent;
+
+        if (frameId === null) {
+          frameId = requestAnimationFrame(() => {
+            frameId = null;
+            const latestMove = pendingMove;
+            pendingMove = null;
+            if (latestMove) applyMove(latestMove);
+          });
+        }
+      };
+
+      const onUp = (endEvent: PointerEvent) => {
+        pendingMove = endEvent;
+        flushMove();
         setIsPanning(false);
         onPanEndRef.current?.(viewportRef.current);
         window.removeEventListener("pointermove", onMove);
