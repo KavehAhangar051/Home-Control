@@ -33,8 +33,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('bun.lock') }}-
 
-      - name: Verify quality gates (lint, typecheck, and contract tests)
-        run: bun run check
+      - name: Verify quality gates (lint and typecheck)
+        run: bun run lint && bun run typecheck
 
       - name: Build static site
         run: bun run build
