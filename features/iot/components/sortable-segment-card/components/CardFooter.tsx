@@ -29,17 +29,17 @@ function getStatusText(
 }
 
 function getStatusDotClass(isPinOn: boolean, mode: "switch" | "push"): string {
-  if (!isPinOn) return "bg-[var(--text-muted)] opacity-45";
+  if (!isPinOn) return "bg-text-muted opacity-45";
 
-  return mode === "push" ? "bg-[var(--accent3)] animate-ping" : "bg-[#4cc38a]";
+  return mode === "push" ? "bg-accent3 animate-ping" : "bg-success";
 }
 
 function PushModeBadge({ isPinOn, isSmallTrack }: { isPinOn: boolean; isSmallTrack: boolean }) {
   const sizeClass = isSmallTrack ? "h-5 px-2 text-[11px]" : "h-6 px-2.5 text-xs";
 
   const toneClass = isPinOn
-    ? "bg-[var(--accent3)] text-[var(--accent3-foreground)] border-[var(--accent3)]"
-    : "bg-[var(--secondary)] text-[var(--text-secondary)] border-[var(--border-color)]";
+    ? "bg-accent3 text-accent3-foreground border-accent3"
+    : "bg-secondary text-text-secondary border-border-color";
 
   return (
     <span
@@ -62,14 +62,12 @@ function SwitchModeTrack({
   const trackSize = isSmallTrack ? "h-5 w-9 rounded-[6px]" : "h-6 w-11 rounded-[7px]";
 
   const trackTone = isPinOn
-    ? "bg-[var(--accent3)] border border-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
-    : "bg-[var(--input)] border border-[var(--border-color)]";
+    ? "bg-accent3 border border-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+    : "bg-input border border-border-color";
 
-  const thumbSize = isSmallTrack
-    ? "h-[14px] w-[14px] rounded-[4px]"
-    : "h-[18px] w-[18px] rounded-[5px]";
+  const thumbSize = isSmallTrack ? "size-[14px] rounded-[4px]" : "size-[18px] rounded-[5px]";
 
-  const thumbTone = isPinOn ? "bg-[var(--accent3-foreground)]" : "bg-white dark:bg-neutral-200";
+  const thumbTone = isPinOn ? "bg-accent3-foreground" : "bg-card-bg-solid dark:bg-foreground";
 
   const thumbOffset = isPinOn
     ? "translate-x-0"
@@ -124,18 +122,18 @@ function CardFooter({
       {/* RTL Right: Minimal Live Status + Signature GPIO Keycap Metadata */}
       <div className="flex items-center gap-1.5 min-w-0 text-right">
         <span
-          className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-150 ${dotClass}`}
+          className={`size-2 rounded-full shrink-0 transition-colors duration-150 ${dotClass}`}
         />
         <span
           className={`font-sans font-medium tabular-nums truncate ${
             isUltraCompact ? "text-[11px]" : "text-xs"
-          } ${isPinOn ? "theme-text-primary" : "text-[var(--text-muted)]"}`}
+          } ${isPinOn ? "text-text-primary" : "text-text-muted"}`}
         >
           {statusText}
         </span>
         {!isUltraCompact && (
           <span
-            className="rounded border border-[var(--border-color)] bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[11px] font-normal tabular-nums text-[var(--text-muted)] shrink-0"
+            className="rounded border border-border-color bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-normal tabular-nums text-text-muted shrink-0"
             dir="ltr"
           >
             GPIO {segment.pin}
@@ -143,7 +141,7 @@ function CardFooter({
         )}
         {showAutoOffBadge && (
           <span
-            className="rounded border border-[var(--border-color)] bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[11px] font-normal tabular-nums text-[var(--text-secondary)] shrink-0"
+            className="rounded border border-border-color bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-normal tabular-nums text-text-secondary shrink-0"
             dir="ltr"
           >
             {autoOffValue}s

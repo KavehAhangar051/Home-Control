@@ -56,25 +56,25 @@ export default function AutomationsDrawer({
               : undefined
           }
           transition={animationsEnabled ? SPRING_PANEL : { duration: 0 }}
-          className="fixed top-0 right-0 h-full w-full max-w-md bg-[var(--background)] border-l border-[var(--border)] rounded-l-xl shadow-2xl z-50 flex flex-col overflow-hidden"
+          className="fixed top-0 right-0 size-full max-w-md bg-background border-l border-border rounded-l-xl shadow-2xl z-50 flex flex-col overflow-hidden"
           dir="rtl"
         >
           {/* Header */}
-          <div className="p-6 pb-4 border-b border-[var(--border)] flex justify-between items-center bg-[var(--card)] shrink-0">
+          <div className="p-6 pb-4 border-b border-border flex justify-between items-center bg-card shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-[var(--muted)] text-[var(--muted-foreground)]">
-                <Clock className="w-5 h-5" />
+              <div className="p-2 rounded-md bg-muted text-muted-foreground">
+                <Clock className="size-5" />
               </div>
-              <h2 className="font-bold text-lg text-[var(--foreground)]">مدیریت اتوماسیون‌ها</h2>
+              <h2 className="font-bold text-lg text-foreground">مدیریت اتوماسیون‌ها</h2>
             </div>
             <Button
               variant="ghost"
               type="button"
               onClick={onClose}
               aria-label="بستن مدیریت اتوماسیون‌ها"
-              className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] rounded-md transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              <X className="w-5 h-5" />
+              <X className="size-5" />
             </Button>
           </div>
 
@@ -83,9 +83,9 @@ export default function AutomationsDrawer({
             {/* Info Box */}
             <Alert
               variant="info"
-              className="!flex !items-start !gap-3 !rounded-xl !border-[var(--border)] !bg-[var(--muted)] !p-4 text-xs leading-relaxed text-[var(--muted-foreground)] shadow-none"
+              className="!flex !items-start !gap-3 !rounded-xl !border-border !bg-muted !p-4 text-xs leading-relaxed text-muted-foreground shadow-none"
             >
-              <Info className="w-4 h-4 shrink-0 mt-0.5" />
+              <Info className="size-4 shrink-0 mt-0.5" />
               <p>
                 زمان‌بندی یا شرط دمایی مورد نظر را تعریف کنید تا دستورات در زمان مشخص‌شده به‌طور خودکار
                 به تجهیزات ارسال شوند.

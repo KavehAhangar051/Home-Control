@@ -47,9 +47,9 @@ export default function CanvasGroupBody({
   if (subMode === "graph") {
     return (
       <div className="flex flex-1 flex-col justify-between gap-2 p-3">
-        <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
+        <div className="flex items-center justify-between text-[11px] text-text-secondary">
           <span>گره مرکزی گروه (n8n)</span>
-          <span className="rounded-md bg-[var(--secondary)] px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-[var(--accent3)]">
+          <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-accent3">
             {activeCount} / {groupSegments.length} روشن
           </span>
         </div>
@@ -59,23 +59,23 @@ export default function CanvasGroupBody({
             <button
               type="button"
               onClick={() => handleBatchGroupPower(true)}
-              className="inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--accent3)]/30 bg-[var(--accent3-transparent)] px-2.5 text-xs font-bold text-[var(--accent3)] transition-colors hover:bg-[var(--accent3)] hover:text-[var(--accent3-foreground)]"
+              className="inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-accent3/30 bg-accent3-transparent px-2.5 text-xs font-bold text-accent3 transition-colors hover:bg-accent3 hover:text-accent3-foreground"
             >
-              <Power className="h-3.5 w-3.5" aria-hidden="true" />
+              <Power className="size-3.5" aria-hidden="true" />
               <span>روشن همه</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleBatchGroupPower(false)}
-              className="inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--border-color)] bg-[var(--secondary)] px-2.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent3)] hover:text-[var(--text-primary)]"
+              className="inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border-color bg-secondary px-2.5 text-xs font-semibold text-text-secondary transition-colors hover:border-accent3 hover:text-text-primary"
             >
-              <PowerOff className="h-3.5 w-3.5" aria-hidden="true" />
+              <PowerOff className="size-3.5" aria-hidden="true" />
               <span>خاموش همه</span>
             </button>
           </div>
         ) : (
-          <p className="text-[11px] text-[var(--text-muted)]">
+          <p className="text-[11px] text-text-muted">
             قطعات این گروه روی شیت به این گره متصل هستند.
           </p>
         )}
@@ -89,14 +89,14 @@ export default function CanvasGroupBody({
       className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3"
     >
       {groupSegments.length === 0 ? (
-        <div className="flex h-full min-h-[100px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border-color)] p-3 text-center text-xs text-[var(--text-muted)]">
+        <div className="flex h-full min-h-[100px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-color p-3 text-center text-xs text-text-muted">
           <span>قطعه‌ای در این گروه نیست.</span>
           <button
             type="button"
             onClick={() => onAddPlaceholder(groupName)}
-            className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--secondary)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)]"
+            className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border-color bg-secondary px-2.5 py-1 text-xs font-semibold text-text-primary"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="size-3.5" />
             افزودن قطعه
           </button>
         </div>

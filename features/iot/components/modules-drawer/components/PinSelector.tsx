@@ -1,3 +1,6 @@
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 interface PinSelectorProps {
   customPin: string;
   setCustomPin: (val: string) => void;
@@ -7,20 +10,17 @@ export default function PinSelector({ customPin, setCustomPin }: PinSelectorProp
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label
-          htmlFor="esp32-hardware-pin"
-          className="text-xs theme-text-secondary font-medium w-full text-right"
-        >
+        <Label htmlFor="esp32-hardware-pin" className="w-full text-right">
           پایه سخت‌افزاری (GPIO)
-        </label>
+        </Label>
       </div>
-      <input
+      <Input
         id="esp32-hardware-pin"
         type="text"
         placeholder="مثال: 14"
         value={customPin}
         onChange={(e) => setCustomPin(e.target.value.replace(/[^0-9]/g, ""))}
-        className="w-full h-10 px-3 text-xs font-mono tabular-nums bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg focus:border-[var(--accent3)] outline-none transition-colors text-right placeholder:font-sans placeholder:text-[var(--text-muted)]"
+        className="text-xs font-mono tabular-nums rounded-lg text-right placeholder:font-sans"
         dir="ltr"
       />
     </div>

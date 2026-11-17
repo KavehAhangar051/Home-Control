@@ -71,9 +71,9 @@ function ActiveCard({
 
   const activeSurfaceClass = isPinOn
     ? isInput
-      ? "border-emerald-500 bg-[var(--card-bg)] shadow-xs"
-      : "border-[var(--accent3)] bg-[var(--card-bg)] shadow-xs"
-    : "border-[var(--border-color)] bg-[var(--card-bg)] shadow-2xs";
+      ? "border-success bg-card-bg shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)]"
+      : "border-accent3 bg-card-bg shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)]"
+    : "border-border-color bg-card-bg shadow-[inset_0_1px_0_0_oklch(1_0_0/0.05)]";
 
   return (
     <m.div
@@ -85,7 +85,7 @@ function ActiveCard({
       className="relative h-full"
     >
       <Card
-        className={`group relative flex h-full flex-col justify-between !overflow-visible !gap-0 !rounded-xl !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
+        className={`@container/segment group relative flex h-full flex-col justify-between !overflow-visible !gap-0 !rounded-xl !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ease-out ${activeSurfaceClass}`}
         style={CARD_SPACING_STYLE}
       >
         <CardHeader

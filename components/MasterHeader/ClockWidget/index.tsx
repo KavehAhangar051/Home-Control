@@ -32,9 +32,9 @@ export default function ClockWidget({ variant, isSidebarCollapsed }: ClockWidget
   if (epochSecond === null) {
     return (
       <div
-        className={`flex h-9 items-center justify-center rounded-md border border-[var(--sidebar-border)] bg-[var(--sidebar-control-bg)] px-2.5 ${variant === "vertical" ? "w-full" : ""}`}
+        className={`flex h-9 items-center justify-center rounded-md border border-sidebar-border bg-sidebar-control-bg px-2.5 ${variant === "vertical" ? "w-full" : ""}`}
       >
-        <Clock className="w-4 h-4 text-[var(--text-muted)] animate-pulse" />
+        <Clock className="size-4 text-text-muted animate-pulse" />
       </div>
     );
   }

@@ -61,7 +61,7 @@ export default function SegmentControls({
             render={
               <ToggleGroupItem
                 value="switch"
-                className="h-6 px-2.5 text-[10px] font-sans font-bold cursor-pointer select-none aria-pressed:bg-[var(--accent3)] aria-pressed:text-[var(--bg-main)]"
+                className="h-6 px-2.5 text-[10px] font-sans font-bold cursor-pointer select-none aria-pressed:bg-accent3 aria-pressed:text-bg-main"
               >
                 سوئیچ
               </ToggleGroupItem>
@@ -76,7 +76,7 @@ export default function SegmentControls({
               render={
                 <ToggleGroupItem
                   value="push"
-                  className="h-6 px-2.5 text-[10px] font-sans font-bold cursor-pointer select-none aria-pressed:bg-[var(--accent3)] aria-pressed:text-[var(--bg-main)]"
+                  className="h-6 px-2.5 text-[10px] font-sans font-bold cursor-pointer select-none aria-pressed:bg-accent3 aria-pressed:text-bg-main"
                 >
                   شستی
                 </ToggleGroupItem>
@@ -88,7 +88,7 @@ export default function SegmentControls({
       </ToggleGroup>
 
       {onUpdateSegmentAutoOff && (
-        <div className="relative flex items-center pr-1.5 border-r border-[var(--border)]">
+        <div className="relative flex items-center pr-1.5 border-r border-border">
           <Tooltip>
             <TooltipTrigger
               render={
@@ -100,8 +100,8 @@ export default function SegmentControls({
                   aria-expanded={showAutoOffMenu}
                   className={`h-6 min-w-6 px-1.5 gap-1 rounded-md transition-[background-color,color,box-shadow,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer group/timer-btn ${
                     autoOffValue > 0
-                      ? "text-[var(--accent3)] bg-[var(--accent3)]/15 border border-[var(--accent3)]/30 aria-pressed:bg-[var(--accent3)]/15 data-[state=on]:bg-[var(--accent3)]/15"
-                      : "text-[var(--muted-foreground)] bg-transparent aria-pressed:bg-[var(--muted)] md:hover:text-[var(--foreground)] md:hover:bg-[var(--muted)]"
+                      ? "text-accent3 bg-accent3/15 border border-accent3/30 aria-pressed:bg-accent3/15 data-[state=on]:bg-accent3/15"
+                      : "text-muted-foreground bg-transparent aria-pressed:bg-muted md:hover:text-foreground md:hover:bg-muted"
                   }`}
                 >
                   <m.svg
@@ -132,11 +132,11 @@ export default function SegmentControls({
                     <polyline points="12 6 12 12 16 14" />
                   </m.svg>
                   {countdown !== null && countdown !== undefined ? (
-                    <span className="text-[10px] font-bold text-[var(--accent3)] tabular-nums">
+                    <span className="text-[10px] font-bold text-accent3 tabular-nums">
                       {countdown}s
                     </span>
                   ) : autoOffValue > 0 ? (
-                    <span className="text-[9.5px] font-bold text-[var(--accent3)] tabular-nums">
+                    <span className="text-[9.5px] font-bold text-accent3 tabular-nums">
                       {autoOffValue}s
                     </span>
                   ) : null}
@@ -156,23 +156,23 @@ export default function SegmentControls({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.96, transition: TRANSITION_EXIT_QUICK }}
             transition={TRANSITION_ENTER_QUICK}
-            className="absolute top-[calc(100%+8px)] left-0 w-56 bg-[var(--card-bg-solid)] backdrop-blur-xl border border-[var(--border-color)] rounded-xl shadow-xl p-3 z-[120] cursor-default text-right"
+            className="absolute top-[calc(100%+8px)] left-0 w-56 bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-xl shadow-xl p-3 z-[120] cursor-default text-right"
           >
             <div className="flex justify-between items-center mb-2.5">
-              <span className="text-[11px] font-bold theme-text-primary tabular-nums">
+              <span className="text-[11px] font-bold text-text-primary tabular-nums">
                 تایمر: {formatTime(autoOffValue)}
               </span>
               {autoOffValue > 0 && (
                 <button
                   type="button"
                   onClick={() => onUpdateSegmentAutoOff(segment.id, 0)}
-                  className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-[var(--secondary)] px-2 py-0.5 rounded-md md:hover:bg-red-600 md:hover:text-white transition-colors cursor-pointer"
+                  className="text-[10px] font-bold text-destructive bg-secondary px-2 py-0.5 rounded-md md:hover:bg-destructive md:hover:text-destructive-foreground transition-colors cursor-pointer"
                 >
                   غیرفعال
                 </button>
               )}
             </div>
-            <span className="block text-[11px] text-[var(--text-secondary)] mb-2">
+            <span className="block text-[11px] text-text-secondary mb-2">
               زمان خاموشی خودکار (ثانیه)
             </span>
             <RangeSlider
@@ -187,11 +187,11 @@ export default function SegmentControls({
               }}
               aria-label="زمان خاموشی خودکار بر حسب ثانیه"
               formatValueText={formatTime}
-              className="h-9 border border-[var(--border-color)]/60"
+              className="h-9 border border-border-color/60"
             />
             <div
               dir="ltr"
-              className="flex justify-between text-[10px] text-[var(--text-muted)] mt-1.5 px-0.5 tabular-nums"
+              className="flex justify-between text-[10px] text-text-muted mt-1.5 px-0.5 tabular-nums"
             >
               <span>غیرفعال</span>
               <span>۱۰ دقیقه</span>

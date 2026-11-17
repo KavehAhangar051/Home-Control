@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import IconPicker from "./IconPicker";
 
 interface FormDetailsInputProps {
@@ -30,23 +32,23 @@ export default function FormDetailsInput({
     <>
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs theme-text-muted">(اختیاری)</span>
-          <span className="text-xs theme-text-secondary font-medium">عنوان دلخواه برای سگمنت</span>
+          <span className="text-xs text-text-muted">(اختیاری)</span>
+          <span className="text-xs text-text-secondary font-medium">عنوان دلخواه برای سگمنت</span>
         </div>
-        <input
+        <Input
           aria-label="عنوان دلخواه برای سگمنت"
           type="text"
           placeholder="مثال: رله پمپ آب حیاط"
           value={customTitle}
           onChange={(e) => setCustomTitle(e.target.value)}
-          className="w-full h-10 px-3 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg focus:border-[var(--accent3)] outline-none transition-colors font-sans text-right placeholder:text-[var(--text-muted)]"
+          className="text-xs rounded-lg font-sans text-right"
         />
       </div>
 
       <IconPicker label="آیکون سگمنت" selectedIcon={segmentIcon} onSelectIcon={setSegmentIcon} />
 
-      <div className="space-y-1.5 pt-2 border-t border-[var(--border-color)]">
-        <div className="text-xs theme-text-secondary font-medium block">گروه سگمنت</div>
+      <div className="space-y-1.5 pt-2 border-t border-border-color">
+        <div className="text-xs text-text-secondary font-medium block">گروه سگمنت</div>
 
         {existingGroups.length > 0 && (
           <div className="flex items-center justify-end gap-3 mb-2 px-1">
@@ -56,9 +58,9 @@ export default function FormDetailsInput({
                 name="segment-group-mode"
                 checked={isNewGroup}
                 onChange={() => setIsNewGroup(true)}
-                className="appearance-none relative h-3.5 w-3.5 rounded-[4px] border border-[var(--border-color)] bg-[var(--bg-main)] checked:border-[var(--accent3)] checked:bg-[var(--accent3)] after:content-[''] after:absolute after:inset-[3px] after:rounded-[2px] after:bg-[var(--accent3-foreground)] after:opacity-0 checked:after:opacity-100 transition-colors cursor-pointer"
+                className="appearance-none relative size-3.5 rounded-[4px] border border-border-color bg-bg-main checked:border-accent3 checked:bg-accent3 after:content-[''] after:absolute after:inset-[3px] after:rounded-[2px] after:bg-accent3-foreground after:opacity-0 checked:after:opacity-100 transition-colors cursor-pointer"
               />
-              <span className="text-xs theme-text-secondary">گروه جدید</span>
+              <span className="text-xs text-text-secondary">گروه جدید</span>
             </label>
             <label className="flex items-center gap-1.5 cursor-pointer">
               <input
@@ -66,36 +68,36 @@ export default function FormDetailsInput({
                 name="segment-group-mode"
                 checked={!isNewGroup}
                 onChange={() => setIsNewGroup(false)}
-                className="appearance-none relative h-3.5 w-3.5 rounded-[4px] border border-[var(--border-color)] bg-[var(--bg-main)] checked:border-[var(--accent3)] checked:bg-[var(--accent3)] after:content-[''] after:absolute after:inset-[3px] after:rounded-[2px] after:bg-[var(--accent3-foreground)] after:opacity-0 checked:after:opacity-100 transition-colors cursor-pointer"
+                className="appearance-none relative size-3.5 rounded-[4px] border border-border-color bg-bg-main checked:border-accent3 checked:bg-accent3 after:content-[''] after:absolute after:inset-[3px] after:rounded-[2px] after:bg-accent3-foreground after:opacity-0 checked:after:opacity-100 transition-colors cursor-pointer"
               />
-              <span className="text-xs theme-text-secondary">انتخاب از موجود</span>
+              <span className="text-xs text-text-secondary">انتخاب از موجود</span>
             </label>
           </div>
         )}
 
         {!isNewGroup && existingGroups.length > 0 ? (
-          <select
+          <Select
             aria-label="گروه سگمنت"
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
-            className="w-full h-10 px-3 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg focus:border-[var(--accent3)] outline-none transition-colors font-sans"
+            className="text-xs rounded-lg font-sans"
             dir="rtl"
           >
             {existingGroups.map((group) => (
-              <option key={group} value={group} className="bg-[var(--bg-main)]">
+              <option key={group} value={group} className="bg-bg-main">
                 {group}
               </option>
             ))}
-          </select>
+          </Select>
         ) : (
           <div className="space-y-3">
-            <input
+            <Input
               aria-label="نام گروه جدید"
               type="text"
               placeholder="مثال: پذیرایی"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              className="w-full h-10 px-3 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg focus:border-[var(--accent3)] outline-none transition-colors font-sans text-right placeholder:text-[var(--text-muted)]"
+              className="text-xs rounded-lg font-sans text-right"
             />
 
             <IconPicker

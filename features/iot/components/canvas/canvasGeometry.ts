@@ -11,6 +11,13 @@ export const CANVAS_MIN_ZOOM = 0.35;
 export const CANVAS_MAX_ZOOM = 2.0;
 export const CANVAS_STORAGE_VERSION = 1;
 
+const WIRE_MIN_CONTROL_OFFSET = 56;
+const WIRE_MAX_CONTROL_OFFSET = 180;
+const FIT_DEFAULT_MIN_BOUNDS_WIDTH = 160;
+const FIT_DEFAULT_MIN_BOUNDS_HEIGHT = 120;
+const FIT_MIN_AVAILABLE_EXTENT = 120;
+const FIT_DEFAULT_MAX_ZOOM = 1.15;
+
 export function getCanvasStorageKey(subMode: CanvasSubMode): string {
   return `iot_canvas_sheet_${subMode}_v${CANVAS_STORAGE_VERSION}`;
 }
@@ -327,6 +334,66 @@ export function buildDefaultCanvasNodes(
   return buildDefaultGroupContainerNodes(segmentsByGroup, groupsOrder, isMobileViewport);
 }
 
+export interface FitViewportCalculationOptions {
+  padding: number;
+  minBoundsWidth?: number;
+  minBoundsHeight?: number;
+  maxZoom?: number;
+  emptyFallback?: CanvasViewport;
+}
+
+/**
+ * Shared bounding-box viewport fitter used by both the Home Canvas and Workflow Studio.
+ * Computes the bounding rectangle of `rects`, scales to fit within `containerWidth x containerHeight`
+ * with `padding`, and centers the resulting viewport.
+ */
+export function computeCenteredFitViewport(
+  rects: ReadonlyArray<{ x: number; y: number; width: number; height: number }>,
+  containerWidth: number,
+  containerHeight: number,
+  {
+    padding,
+    minBoundsWidth = FIT_DEFAULT_MIN_BOUNDS_WIDTH,
+    minBoundsHeight = FIT_DEFAULT_MIN_BOUNDS_HEIGHT,
+    maxZoom = FIT_DEFAULT_MAX_ZOOM,
+    emptyFallback = { x: 0, y: 0, zoom: 1 },
+  }: FitViewportCalculationOptions,
+): CanvasViewport {
+  if (rects.length === 0 || containerWidth <= 0 || containerHeight <= 0) {
+    return { ...emptyFallback };
+  }
+
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+
+  for (let i = 0; i < rects.length; i++) {
+    const rect = rects[i];
+    minX = Math.min(minX, rect.x);
+    minY = Math.min(minY, rect.y);
+    maxX = Math.max(maxX, rect.x + rect.width);
+    maxY = Math.max(maxY, rect.y + rect.height);
+  }
+
+  const boundsWidth = Math.max(minBoundsWidth, maxX - minX);
+  const boundsHeight = Math.max(minBoundsHeight, maxY - minY);
+  const availableWidth = Math.max(FIT_MIN_AVAILABLE_EXTENT, containerWidth - padding * 2);
+  const availableHeight = Math.max(FIT_MIN_AVAILABLE_EXTENT, containerHeight - padding * 2);
+
+  const zoom = clampCanvasZoom(
+    Math.min(availableWidth / boundsWidth, availableHeight / boundsHeight, maxZoom),
+  );
+  const centerX = minX + boundsWidth / 2;
+  const centerY = minY + boundsHeight / 2;
+
+  return {
+    x: Math.round(containerWidth / 2 - centerX * zoom),
+    y: Math.round(containerHeight / 2 - centerY * zoom),
+    zoom,
+  };
+}
+
 /**
  * Computes a viewport translation and zoom that centers and fits all visible nodes inside the container.
  */
@@ -337,48 +404,14 @@ export function computeFitCanvasViewport(
   containerHeight: number,
   padding = 48,
 ): CanvasViewport {
-  if (visibleIds.length === 0 || containerWidth <= 0 || containerHeight <= 0) {
-    return { x: 0, y: 0, zoom: 1 };
+  const visibleRects: CanvasNodeRect[] = [];
+
+  for (let i = 0; i < visibleIds.length; i++) {
+    const rect = nodes[visibleIds[i]];
+    if (rect) visibleRects.push(rect);
   }
 
-  let minX = Number.POSITIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
-  let found = false;
-
-  for (const id of visibleIds) {
-    const rect = nodes[id];
-
-    if (!rect) continue;
-
-    found = true;
-    minX = Math.min(minX, rect.x);
-    minY = Math.min(minY, rect.y);
-    maxX = Math.max(maxX, rect.x + rect.width);
-    maxY = Math.max(maxY, rect.y + rect.height);
-  }
-
-  if (!found) {
-    return { x: 0, y: 0, zoom: 1 };
-  }
-
-  const boundsWidth = Math.max(160, maxX - minX);
-  const boundsHeight = Math.max(120, maxY - minY);
-  const availableWidth = Math.max(120, containerWidth - padding * 2);
-  const availableHeight = Math.max(120, containerHeight - padding * 2);
-
-  const rawZoom = Math.min(availableWidth / boundsWidth, availableHeight / boundsHeight, 1.15);
-  const zoom = clampCanvasZoom(rawZoom);
-
-  const centerX = minX + boundsWidth / 2;
-  const centerY = minY + boundsHeight / 2;
-
-  return {
-    x: Math.round(containerWidth / 2 - centerX * zoom),
-    y: Math.round(containerHeight / 2 - centerY * zoom),
-    zoom,
-  };
+  return computeCenteredFitViewport(visibleRects, containerWidth, containerHeight, { padding });
 }
 
 export interface BezierWireGeometry {
@@ -406,7 +439,10 @@ export function buildBezierWireGeometry(
   const endY = Math.round(targetRect.y + targetRect.height / 2);
 
   const deltaX = Math.abs(endX - startX);
-  const controlOffset = Math.max(56, Math.min(180, Math.round(deltaX * 0.5)));
+  const controlOffset = Math.max(
+    WIRE_MIN_CONTROL_OFFSET,
+    Math.min(WIRE_MAX_CONTROL_OFFSET, Math.round(deltaX * 0.5)),
+  );
   const cp1X = isTargetLeft ? startX - controlOffset : startX + controlOffset;
   const cp2X = isTargetLeft ? endX + controlOffset : endX - controlOffset;
 

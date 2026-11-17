@@ -91,16 +91,16 @@ export default function TrellisSegmentTile({
           />
         </div>
 
-        <Card className="group/ph-card h-full w-full !gap-0 !overflow-hidden !rounded-xl !border-dashed !border-[var(--border-color)] !bg-[var(--card-bg)] !p-0 !ring-0 !shadow-none transition-colors duration-200 md:hover:!border-[var(--accent3)]">
+        <Card className="group/ph-card size-full !gap-0 !overflow-hidden !rounded-xl !border-dashed !border-border-color !bg-card-bg !p-0 !ring-0 !shadow-none transition-colors duration-200 md:hover:!border-accent3">
           <button
             type="button"
             onClick={() => onSetupPlaceholder?.(segment.id)}
-            className="relative flex min-h-[96px] w-full h-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border-0 bg-transparent p-3 text-center"
+            className="relative flex min-h-[96px] size-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border-0 bg-transparent p-3 text-center"
           >
-            <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--accent3-transparent)] text-[var(--accent3)] transition-colors md:group-hover/ph-card:bg-[var(--accent3)] md:group-hover/ph-card:text-[var(--accent3-foreground)]">
-              <Plus className="h-4 w-4" strokeWidth={2.5} />
+            <div className="relative z-10 flex size-8 items-center justify-center rounded-xl border border-border-color bg-accent3-transparent text-accent3 transition-colors md:group-hover/ph-card:bg-accent3 md:group-hover/ph-card:text-accent3-foreground">
+              <Plus className="size-4" strokeWidth={2.5} />
             </div>
-            <span className="block font-sans text-xs font-bold theme-text-primary">
+            <span className="block font-sans text-xs font-bold text-text-primary">
               تخصیص قطعه هوشمند
             </span>
           </button>
@@ -113,9 +113,9 @@ export default function TrellisSegmentTile({
 
   const activeSurfaceClass = isPinOn
     ? isInput
-      ? "border-emerald-500 bg-[var(--card-bg)] shadow-xs"
-      : "border-[var(--accent3)] bg-[var(--card-bg)] shadow-xs"
-    : "border-[var(--border-color)] bg-[var(--card-bg)] shadow-2xs";
+      ? "border-success bg-card-bg shadow-xs"
+      : "border-accent3 bg-card-bg shadow-xs"
+    : "border-border-color bg-card-bg shadow-2xs";
 
   const autoOffMenuProps = {
     showAutoOffMenu,
@@ -147,9 +147,9 @@ export default function TrellisSegmentTile({
                       onPopOutSegment(segment);
                     }}
                     aria-label={`باز کردن ${segment.title} در پنجره مستقل`}
-                    className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition-colors md:hover:border-[var(--border-color)] md:hover:bg-[var(--secondary)] md:hover:text-[var(--text-primary)]"
+                    className="flex size-6 cursor-pointer items-center justify-center rounded-lg border border-transparent text-text-muted transition-colors md:hover:border-border-color md:hover:bg-secondary md:hover:text-text-primary"
                   >
-                    <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                    <ExternalLink className="size-3.5" aria-hidden="true" />
                   </button>
                 }
               />

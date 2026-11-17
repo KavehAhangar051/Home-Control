@@ -10,7 +10,7 @@ export default function DashboardBootSkeleton() {
   return (
     <section
       dir="rtl"
-      className="flex h-screen w-full overflow-hidden bg-background text-foreground"
+      className="flex h-dvh w-full overflow-hidden bg-background text-foreground"
       aria-busy="true"
       aria-label="در حال بارگذاری داشبورد"
     >

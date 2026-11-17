@@ -17,7 +17,7 @@ export default function ControlsIsland({ props }: { props: MasterHeaderProps }) 
         />
       </div>
 
-      <div className="hidden h-14 shrink-0 items-center border-t border-[var(--sidebar-border)] px-2 md:flex md:px-3">
+      <div className="hidden h-14 shrink-0 items-center border-t border-sidebar-border px-2 md:flex md:px-3">
         <ClockWidget variant="vertical" isSidebarCollapsed={isSidebarCollapsed} />
       </div>
     </div>

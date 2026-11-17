@@ -26,16 +26,16 @@ export default function HorizontalVoiceButton({
       onPointerCancel={handlePointerCancel}
       onContextMenu={(e) => e.preventDefault()}
       style={{ touchAction: "none" }}
-      className={`p-2 md:p-2.5 transition-[color,background-color,border-color,transform] duration-150 ease-[var(--ease-out)] border rounded-xl flex justify-center items-center group select-none ${
+      className={`p-2 md:p-2.5 transition-[color,background-color,border-color,transform] duration-150 ease-out border rounded-xl flex justify-center items-center group select-none ${
         isListening
-          ? "bg-[var(--accent4-transparent)] border-[var(--accent4)] text-[var(--accent4)]"
-          : "bg-[var(--card-bg-solid)] md:hover:bg-[var(--card-hover-bg)] border-[var(--border-color)] text-[var(--text-secondary)] md:hover:text-[var(--accent3)] md:hover:border-[var(--accent3)]"
+          ? "bg-accent4-transparent border-accent4 text-accent4"
+          : "bg-card-bg-solid md:hover:bg-card-hover-bg border-border-color text-text-secondary md:hover:text-accent3 md:hover:border-accent3"
       }`}
       aria-label="فرمان صوتی (نگه دارید)"
     >
       <Mic
         aria-hidden="true"
-        className={`w-4 h-4 transition-transform duration-150 ease-[var(--ease-out)] ${isListening && animationsEnabled ? "animate-pulse scale-110" : animationsEnabled ? "md:group-hover:scale-110" : ""}`}
+        className={`size-4 transition-transform duration-150 ease-out ${isListening && animationsEnabled ? "animate-pulse scale-110" : animationsEnabled ? "md:group-hover:scale-110" : ""}`}
       />
     </m.button>
   );

@@ -14,16 +14,16 @@ interface AnimationsToggleProps {
 
 function getToggleSurfaceClass(animationsEnabled: boolean, _isDark: boolean): string {
   if (animationsEnabled) {
-    return "bg-[var(--card-hover-bg)] aria-pressed:bg-[var(--card-hover-bg)] data-[state=on]:bg-[var(--card-hover-bg)] border-[var(--accent4)]";
+    return "bg-card-hover-bg aria-pressed:bg-card-hover-bg data-[state=on]:bg-card-hover-bg border-accent4";
   }
 
-  return "bg-[var(--card-bg)] border-[var(--border-color)] hover:bg-[var(--card-hover-bg)]";
+  return "bg-card-bg border-border-color hover:bg-card-hover-bg";
 }
 
 function getTitleTextClass(animationsEnabled: boolean, _isDark: boolean): string {
-  if (animationsEnabled) return "text-[var(--accent4)]";
+  if (animationsEnabled) return "text-accent4";
 
-  return "text-[var(--text-primary)]";
+  return "text-text-primary";
 }
 
 export default function AnimationsToggle({
@@ -49,12 +49,12 @@ export default function AnimationsToggle({
   const titleClass = getTitleTextClass(animationsEnabled, isDark);
 
   const trackBgClass = animationsEnabled
-    ? "bg-[var(--accent4)] border border-transparent"
-    : "bg-[var(--bg-main)] border border-[var(--border-color)]";
+    ? "bg-accent4 border border-transparent"
+    : "bg-bg-main border border-border-color";
 
   return (
-    <div className="space-y-4 border-b border-[var(--border-color)] pb-4">
-      <p className="text-xs theme-text-secondary leading-relaxed">
+    <div className="space-y-4 border-b border-border-color pb-4">
+      <p className="text-xs text-text-secondary leading-relaxed">
         اگر دستگاه شما با تاخیر یا بار پردازشی بالایی مواجه است، انیمیشن‌ها و ترنزیشن‌های حرکتی را
         متوقف کنید
       </p>
@@ -71,7 +71,7 @@ export default function AnimationsToggle({
           >
             {statusLabel}
           </span>
-          <span className="text-xs block leading-normal font-sans text-[var(--text-secondary)]">
+          <span className="text-xs block leading-normal font-sans text-text-secondary">
             {animationsEnabled
               ? "نمایش نرم جابه‌جایی کارت‌ها و بازخورد حرکتی کنترل‌ها"
               : "کاهش بار پردازشی و حذف جلوه‌های حرکتی"}
@@ -82,13 +82,13 @@ export default function AnimationsToggle({
           className={`relative inline-flex h-6 w-11 rounded-[8px] p-0.5 items-center transition-colors duration-150 shrink-0 select-none ${trackBgClass}`}
         >
           <span
-            className={`pointer-events-none inline-block h-[18px] w-[18px] rounded-[5px] shadow-sm transform ${animationsEnabled ? "bg-white transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] -translate-x-5" : "bg-[var(--text-secondary)] translate-x-0"}`}
+            className={`pointer-events-none inline-block h-[18px] w-[18px] rounded-[5px] shadow-sm transform ${animationsEnabled ? "bg-white transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] -translate-x-5" : "bg-text-secondary translate-x-0"}`}
           />
         </span>
       </Toggle>
       {animationsEnabled && setAnimationsFps && (
         <div className="pt-2 px-2 flex justify-between items-center">
-          <span className="text-xs theme-text-secondary font-medium">نرخ نوسازی انیمیشن‌ها</span>
+          <span className="text-xs text-text-secondary font-medium">نرخ نوسازی انیمیشن‌ها</span>
           <ToggleGroup
             variant="outline"
             size="sm"
@@ -106,7 +106,7 @@ export default function AnimationsToggle({
               <ToggleGroupItem
                 key={fps}
                 value={String(fps)}
-                className="px-3 text-xs font-mono font-medium tabular-nums rounded-lg aria-pressed:bg-[var(--accent4)] aria-pressed:text-white aria-pressed:border-[var(--accent4)]"
+                className="px-3 text-xs font-mono font-medium tabular-nums rounded-lg aria-pressed:bg-accent4 aria-pressed:text-white aria-pressed:border-accent4"
               >
                 {fps} FPS
               </ToggleGroupItem>

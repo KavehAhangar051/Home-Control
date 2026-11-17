@@ -19,16 +19,16 @@ export function AudioTrackInfo({ trackInfo, isLoading, onNext, onPrev }: Props) 
   if (!trackInfo) return null;
 
   return (
-    <div className="p-4 bg-[var(--card-bg-solid)] border border-[var(--border-color)] rounded-xl flex items-center justify-between">
+    <div className="p-4 bg-card-bg-solid border border-border-color rounded-xl flex items-center justify-between">
       <div className="flex items-center gap-3 max-w-[70%]">
-        <div className="w-8 h-8 shrink-0 rounded-full bg-[var(--accent3-transparent)] flex items-center justify-center">
-          <Music aria-hidden="true" className="w-4 h-4 text-[var(--accent3)]" />
+        <div className="size-8 shrink-0 rounded-full bg-accent3-transparent flex items-center justify-center">
+          <Music aria-hidden="true" className="size-4 text-accent3" />
         </div>
         <div className="text-right overflow-hidden">
           <Tooltip>
             <TooltipTrigger
               render={
-                <span className="block text-xs font-bold text-[var(--text-primary)] truncate">
+                <span className="block text-xs font-bold text-text-primary truncate">
                   {trackInfo.title}
                 </span>
               }
@@ -38,7 +38,7 @@ export function AudioTrackInfo({ trackInfo, isLoading, onNext, onPrev }: Props) 
           <Tooltip>
             <TooltipTrigger
               render={
-                <span className="block text-[10px] text-[var(--text-muted)] mt-0.5 truncate">
+                <span className="block text-[10px] text-text-muted mt-0.5 truncate">
                   {trackInfo.creator}
                 </span>
               }
@@ -55,18 +55,18 @@ export function AudioTrackInfo({ trackInfo, isLoading, onNext, onPrev }: Props) 
               aria-label="آهنگ قبلی"
               onClick={onPrev}
               disabled={isLoading}
-              className="p-1.5 rounded bg-[var(--card-hover-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
+              className="p-1.5 rounded bg-card-hover-bg text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
             >
-              <SkipBack aria-hidden="true" className="w-3.5 h-3.5" />
+              <SkipBack aria-hidden="true" className="size-3.5" />
             </button>
             <button
               type="button"
               aria-label="آهنگ بعدی"
               onClick={onNext}
               disabled={isLoading}
-              className="p-1.5 rounded bg-[var(--card-hover-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
+              className="p-1.5 rounded bg-card-hover-bg text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
             >
-              <SkipForward aria-hidden="true" className="w-3.5 h-3.5" />
+              <SkipForward aria-hidden="true" className="size-3.5" />
             </button>
           </div>
         )}
@@ -79,9 +79,9 @@ export function AudioTrackInfo({ trackInfo, isLoading, onNext, onPrev }: Props) 
                   target="_blank"
                   rel="noreferrer"
                   aria-label="دانلود موزیک"
-                  className="p-1.5 rounded bg-[var(--bg-main)] text-[var(--text-secondary)] hover:text-[var(--accent3)] transition-colors"
+                  className="p-1.5 rounded bg-bg-main text-text-secondary hover:text-accent3 transition-colors"
                 >
-                  <Download aria-hidden="true" className="w-3.5 h-3.5" />
+                  <Download aria-hidden="true" className="size-3.5" />
                 </a>
               }
             />
@@ -92,7 +92,7 @@ export function AudioTrackInfo({ trackInfo, isLoading, onNext, onPrev }: Props) 
           {[1, 2, 3, 4].map((bar) => (
             <div
               key={bar}
-              className="w-1 h-3 bg-[var(--accent3)] rounded-full animate-pulse opacity-60"
+              className="w-1 h-3 bg-accent3 rounded-full animate-pulse opacity-60"
               style={{ animationDelay: `${bar * 0.1}s` }}
             />
           ))}

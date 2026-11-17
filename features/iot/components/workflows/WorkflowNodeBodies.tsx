@@ -40,7 +40,7 @@ export function SegmentNodeBody({
 }: SegmentNodeBodyProps) {
   if (!linkedSegment) {
     return (
-      <div className="flex flex-1 items-center justify-center text-center text-[11px] text-[var(--text-muted)]">
+      <div className="flex flex-1 items-center justify-center text-center text-[11px] text-text-muted">
         این قطعه از فهرست پالایه حذف شده است.
       </div>
     );
@@ -53,23 +53,23 @@ export function SegmentNodeBody({
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <span
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
+            className={`flex size-8 shrink-0 items-center justify-center rounded-lg border ${
               isPinOn
-                ? "border-[var(--accent3)] bg-[var(--accent3)] text-[var(--accent3-foreground)]"
-                : "border-[var(--border-color)] bg-[var(--secondary)] text-[var(--text-secondary)]"
+                ? "border-accent3 bg-accent3 text-accent3-foreground"
+                : "border-border-color bg-secondary text-text-secondary"
             }`}
           >
             {React.createElement(getSegmentIcon(linkedSegment.icon), {
-              className: "h-4 w-4",
+              className: "size-4",
               "aria-hidden": true,
             })}
           </span>
 
           <div className="min-w-0">
-            <div className="truncate text-xs font-bold text-[var(--text-primary)]">
+            <div className="truncate text-xs font-bold text-text-primary">
               {linkedSegment.title}
             </div>
-            <div className="truncate font-mono text-[10px] tabular-nums text-[var(--text-muted)]">
+            <div className="truncate font-mono text-[10px] tabular-nums text-text-muted">
               {resolveSegmentGroup(linkedSegment.group)} · GPIO {linkedSegment.pin}
             </div>
           </div>
@@ -82,12 +82,12 @@ export function SegmentNodeBody({
             aria-label={`تغییر وضعیت ${linkedSegment.title}`}
             className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-start rounded-[7px] p-0.5 transition-colors ${
               isPinOn
-                ? "border border-transparent bg-[var(--accent3)]"
-                : "border border-[var(--border-color)] bg-[var(--input)]"
+                ? "border border-transparent bg-accent3"
+                : "border border-border-color bg-input"
             }`}
           >
             <span
-              className={`pointer-events-none inline-block h-[14px] w-[14px] rounded-[4px] bg-white shadow-xs transition-transform duration-200 ${
+              className={`pointer-events-none inline-block size-[14px] rounded-[4px] bg-card-bg-solid dark:bg-foreground shadow-xs transition-transform duration-200 ${
                 isPinOn ? "translate-x-0" : "-translate-x-4"
               }`}
             />
@@ -96,12 +96,12 @@ export function SegmentNodeBody({
       </div>
 
       {linkedSegment.type === "input" ? (
-        <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] px-2 py-1 text-[10px] text-[var(--text-secondary)]">
+        <div className="rounded-lg border border-border-color bg-bg-main px-2 py-1 text-[10px] text-text-secondary">
           سنسور ورودی · سطح سیگنال: {isPinOn ? "فعال (۱)" : "غیرفعال (۰)"}
         </div>
       ) : (
         <div className="flex items-center justify-between gap-2">
-          <span className="shrink-0 text-[10px] text-[var(--text-muted)]">فرمان ورودی:</span>
+          <span className="shrink-0 text-[10px] text-text-muted">فرمان ورودی:</span>
           <select
             aria-label="عملکرد قطعه هنگام دریافت سیگنال"
             value={actionMode}
@@ -110,7 +110,7 @@ export function SegmentNodeBody({
               const val = e.target.value as WorkflowActionMode;
               onUpdateNode(node.id, { actionMode: val });
             }}
-            className="h-7 min-w-0 flex-1 cursor-pointer rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] px-2 text-[10px] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent3)]"
+            className="h-7 min-w-0 flex-1 cursor-pointer rounded-lg border border-border-color bg-bg-main px-2 text-[10px] font-semibold text-text-primary outline-none focus:border-accent3"
           >
             <option value="turn_on">روشن شدن (ON)</option>
             <option value="turn_off">خاموش شدن (OFF)</option>
@@ -157,11 +157,11 @@ export function GroupNodeBody({
             onChange={(e) => onUpdateNode(node.id, { label: e.target.value })}
             aria-label="نام زیرمدار گروه سفارشی"
             placeholder="نام زیرمدار گروه..."
-            className="h-7 min-w-0 flex-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] px-2 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent3)]"
+            className="h-7 min-w-0 flex-1 rounded-lg border border-border-color bg-bg-main px-2 text-[11px] font-bold text-text-primary outline-none focus:border-accent3"
           />
         ) : (
-          <div className="flex min-w-0 flex-1 items-center justify-between gap-1 rounded-lg border border-[var(--border-color)]/70 bg-[var(--bg-main)]/70 px-2 py-1">
-            <span className="truncate text-[10px] font-semibold tabular-nums text-[var(--text-secondary)]">
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-1 rounded-lg border border-border-color/70 bg-bg-main/70 px-2 py-1">
+            <span className="truncate text-[10px] font-semibold tabular-nums text-text-secondary">
               زیرمدار گروه {node.groupName} ({memberSegments.length} قطعه)
             </span>
             <button
@@ -169,9 +169,9 @@ export function GroupNodeBody({
               onClick={onSyncFromModules}
               title="همگام‌سازی قطعات با گروه"
               aria-label="همگام‌سازی قطعات از پالایه"
-              className="inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--accent3)]"
+              className="inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-text-muted hover:bg-secondary hover:text-accent3"
             >
-              <RefreshCw className="h-3 w-3" />
+              <RefreshCw className="size-3" />
             </button>
           </div>
         )}
@@ -180,11 +180,11 @@ export function GroupNodeBody({
       {/* Member Segments List inside Group */}
       <div
         data-canvas-scroll-area="true"
-        className="custom-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto rounded-lg border border-[var(--border-color)]/70 bg-[var(--bg-main)]/45 p-1.5"
+        className="custom-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto rounded-lg border border-border-color/70 bg-bg-main/45 p-1.5"
       >
         {memberSegments.length === 0 ? (
-          <div className="flex h-full min-h-[64px] flex-col items-center justify-center gap-1 p-2 text-center text-[10px] text-[var(--text-muted)]">
-            <FolderPlus className="h-4 w-4 opacity-60" aria-hidden="true" />
+          <div className="flex h-full min-h-[64px] flex-col items-center justify-center gap-1 p-2 text-center text-[10px] text-text-muted">
+            <FolderPlus className="size-4 opacity-60" aria-hidden="true" />
             <span>بدون قطعه · از فهرست پایین یا کتابخانه اضافه کنید</span>
           </div>
         ) : (
@@ -194,14 +194,14 @@ export function GroupNodeBody({
             return (
               <div
                 key={seg.id}
-                className="flex items-center justify-between gap-1.5 rounded-md border border-[var(--border-color)]/60 bg-[var(--card-bg-solid)] px-2 py-1"
+                className="flex items-center justify-between gap-1.5 rounded-md border border-border-color/60 bg-card-bg-solid px-2 py-1"
               >
                 <div className="flex min-w-0 items-center gap-1.5">
                   {React.createElement(getSegmentIcon(seg.icon), {
-                    className: `h-3.5 w-3.5 shrink-0 ${isOn ? "text-[var(--accent3)]" : "text-[var(--text-muted)]"}`,
+                    className: `size-3.5 shrink-0 ${isOn ? "text-accent3" : "text-text-muted"}`,
                     "aria-hidden": true,
                   })}
-                  <span className="truncate text-[11px] font-semibold text-[var(--text-primary)]">
+                  <span className="truncate text-[11px] font-semibold text-text-primary">
                     {seg.title}
                   </span>
                 </div>
@@ -213,9 +213,7 @@ export function GroupNodeBody({
                       onClick={() => onTogglePin(seg.pin)}
                       aria-label={`تغییر ${seg.title}`}
                       className={`cursor-pointer rounded px-1.5 py-0.5 text-[9px] font-bold transition-colors ${
-                        isOn
-                          ? "bg-[var(--accent3)] text-[var(--accent3-foreground)]"
-                          : "bg-[var(--secondary)] text-[var(--text-muted)]"
+                        isOn ? "bg-accent3 text-accent3-foreground" : "bg-secondary text-text-muted"
                       }`}
                     >
                       {isOn ? "روشن" : "خاموش"}
@@ -226,9 +224,9 @@ export function GroupNodeBody({
                     type="button"
                     onClick={() => onRemoveSegment(seg.id)}
                     aria-label={`حذف ${seg.title} از گروه`}
-                    className="inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded text-[var(--text-muted)] hover:bg-red-500/15 hover:text-red-500"
+                    className="inline-flex size-4 cursor-pointer items-center justify-center rounded text-text-muted hover:bg-destructive-soft hover:text-destructive"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="size-3" />
                   </button>
                 </div>
               </div>
@@ -244,7 +242,7 @@ export function GroupNodeBody({
             aria-label="افزودن قطعه به زیرمدار گروه"
             value=""
             onChange={(e) => onAddSegment(e.target.value)}
-            className="h-7 w-full cursor-pointer rounded-lg border border-dashed border-[var(--accent3)]/50 bg-[var(--bg-main)] px-2 text-[10px] font-semibold text-[var(--accent3)] outline-none focus:border-[var(--accent3)]"
+            className="h-7 w-full cursor-pointer rounded-lg border border-dashed border-accent3/50 bg-bg-main px-2 text-[10px] font-semibold text-accent3 outline-none focus:border-accent3"
           >
             <option value="">+ افزودن قطعه به این زیرمدار...</option>
             {availableSegments.map((seg) => (
@@ -264,7 +262,7 @@ export function GroupNodeBody({
               const val = e.target.value as WorkflowGroupEvalMode;
               onUpdateNode(node.id, { groupEvalMode: val });
             }}
-            className="h-6 cursor-pointer rounded-md border border-[var(--border-color)] bg-[var(--bg-main)] px-1.5 text-[10px] font-medium text-[var(--text-secondary)] outline-none"
+            className="h-6 cursor-pointer rounded-md border border-border-color bg-bg-main px-1.5 text-[10px] font-medium text-text-secondary outline-none"
           >
             <option value="any_on">شرط: حداقل یکی روشن (OR)</option>
             <option value="all_on">شرط: همه روشن (AND)</option>
@@ -278,7 +276,7 @@ export function GroupNodeBody({
               const val = e.target.value as WorkflowActionMode;
               onUpdateNode(node.id, { actionMode: val });
             }}
-            className="h-6 cursor-pointer rounded-md border border-[var(--border-color)] bg-[var(--bg-main)] px-1.5 text-[10px] font-medium text-[var(--text-secondary)] outline-none"
+            className="h-6 cursor-pointer rounded-md border border-border-color bg-bg-main px-1.5 text-[10px] font-medium text-text-secondary outline-none"
           >
             <option value="turn_on">فرمان: روشن کردن همه</option>
             <option value="turn_off">فرمان: خاموش کردن همه</option>
@@ -316,24 +314,24 @@ export function LogicNodeBody({
         outputSignal={outputSignal}
       />
 
-      <div className="flex items-center justify-between gap-2 text-[10px] text-[var(--text-muted)]">
-        <span className="font-semibold text-[var(--text-secondary)]">تعداد ورودی</span>
+      <div className="flex items-center justify-between gap-2 text-[10px] text-text-muted">
+        <span className="font-semibold text-text-secondary">تعداد ورودی</span>
 
         <div
           dir="ltr"
-          className="flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] px-1.5 py-0.5"
+          className="flex items-center gap-1 rounded-lg border border-border-color bg-bg-main px-1.5 py-0.5"
         >
           <button
             type="button"
             disabled={inputCount <= minInputCount}
             onClick={() => onChangeInputCount(-1)}
             aria-label="کاهش تعداد ورودی گیت"
-            className="inline-flex h-4.5 w-4.5 cursor-pointer items-center justify-center rounded text-[var(--text-muted)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-35"
+            className="inline-flex size-4.5 cursor-pointer items-center justify-center rounded text-text-muted transition-colors hover:bg-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35"
           >
-            <Minus className="h-3 w-3" />
+            <Minus className="size-3" />
           </button>
 
-          <span className="min-w-[18px] text-center font-mono text-[11px] font-bold tabular-nums text-[var(--text-primary)]">
+          <span className="min-w-[18px] text-center font-mono text-[11px] font-bold tabular-nums text-text-primary">
             {inputCount}
           </span>
 
@@ -342,9 +340,9 @@ export function LogicNodeBody({
             disabled={inputCount >= 8}
             onClick={() => onChangeInputCount(1)}
             aria-label="افزایش تعداد ورودی گیت"
-            className="inline-flex h-4.5 w-4.5 cursor-pointer items-center justify-center rounded text-[var(--text-muted)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-35"
+            className="inline-flex size-4.5 cursor-pointer items-center justify-center rounded text-text-muted transition-colors hover:bg-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35"
           >
-            <Plus className="h-3 w-3" />
+            <Plus className="size-3" />
           </button>
         </div>
       </div>
@@ -365,7 +363,7 @@ export function TimerNodeBody({ node, timerCountdown, onUpdateNode }: TimerNodeB
   return (
     <div className="flex flex-1 flex-col justify-between gap-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] text-[var(--text-muted)]">زمان تاخیر (ثانیه):</span>
+        <span className="text-[10px] text-text-muted">زمان تاخیر (ثانیه):</span>
         <input
           type="number"
           min={1}
@@ -377,7 +375,7 @@ export function TimerNodeBody({ node, timerCountdown, onUpdateNode }: TimerNodeB
           }}
           dir="ltr"
           aria-label="مدت زمان تایمر به ثانیه"
-          className="h-7 w-20 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] px-2 text-center font-mono text-xs font-bold tabular-nums text-[var(--text-primary)] outline-none focus:border-[var(--accent3)]"
+          className="h-7 w-20 rounded-lg border border-border-color bg-bg-main px-2 text-center font-mono text-xs font-bold tabular-nums text-text-primary outline-none focus:border-accent3"
         />
       </div>
 
@@ -389,8 +387,8 @@ export function TimerNodeBody({ node, timerCountdown, onUpdateNode }: TimerNodeB
             onClick={() => onUpdateNode(node.id, { timerSeconds: preset })}
             className={`h-6 cursor-pointer rounded-md border text-[10px] font-bold tabular-nums transition-colors ${
               seconds === preset
-                ? "border-[var(--accent3)] bg-[var(--accent3-transparent)] text-[var(--accent3)]"
-                : "border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                ? "border-accent3 bg-accent3-transparent text-accent3"
+                : "border-border-color bg-bg-main text-text-muted hover:text-text-primary"
             }`}
           >
             {preset}s
@@ -407,14 +405,14 @@ export function TimerNodeBody({ node, timerCountdown, onUpdateNode }: TimerNodeB
             const val = e.target.value as WorkflowTimerMode;
             onUpdateNode(node.id, { timerMode: val });
           }}
-          className="h-7 min-w-0 flex-1 cursor-pointer rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] px-1.5 text-[10px] font-semibold text-[var(--text-primary)] outline-none"
+          className="h-7 min-w-0 flex-1 cursor-pointer rounded-lg border border-border-color bg-bg-main px-1.5 text-[10px] font-semibold text-text-primary outline-none"
         >
           <option value="delay">تاخیر در وصل (On-Delay)</option>
           <option value="hold">نگه‌دارنده پالس (Hold)</option>
         </select>
 
         {timerCountdown !== null && (
-          <span className="shrink-0 font-mono text-[10px] font-bold tabular-nums text-emerald-500">
+          <span className="shrink-0 font-mono text-[10px] font-bold tabular-nums text-success">
             {timerCountdown}s
           </span>
         )}
@@ -449,14 +447,14 @@ export function ScheduleNodeBody({ node, onUpdateNode }: ScheduleNodeBodyProps) 
   return (
     <div className="flex flex-1 flex-col justify-between gap-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] text-[var(--text-muted)]">ساعت تولید پالس:</span>
+        <span className="text-[10px] text-text-muted">ساعت تولید پالس:</span>
         <input
           type="time"
           value={node.scheduleTime ?? "08:00"}
           onChange={(e) => onUpdateNode(node.id, { scheduleTime: e.target.value })}
           dir="ltr"
           aria-label="ساعت اجرای زمان‌بندی"
-          className="h-7 rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] px-2 font-mono text-xs font-bold tabular-nums text-[var(--text-primary)] outline-none focus:border-[var(--accent3)]"
+          className="h-7 rounded-lg border border-border-color bg-bg-main px-2 font-mono text-xs font-bold tabular-nums text-text-primary outline-none focus:border-accent3"
         />
       </div>
 
@@ -472,8 +470,8 @@ export function ScheduleNodeBody({ node, onUpdateNode }: ScheduleNodeBodyProps) 
               onClick={() => toggleDay(item.day)}
               className={`h-6 cursor-pointer rounded-md border text-[10px] font-bold transition-colors ${
                 isOn
-                  ? "border-[var(--accent3)] bg-[var(--accent3)] text-[var(--accent3-foreground)]"
-                  : "border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--text-muted)]"
+                  ? "border-accent3 bg-accent3 text-accent3-foreground"
+                  : "border-border-color bg-bg-main text-text-muted"
               }`}
             >
               {item.label}

@@ -23,7 +23,7 @@ interface GroupHeaderProps {
 }
 
 function GroupAvatar({ icon, isDenseHeader }: { icon?: string; isDenseHeader: boolean }) {
-  const iconClass = isDenseHeader ? "w-3.5 h-3.5" : "w-4 h-4 sm:w-4.5 sm:h-4.5";
+  const iconClass = isDenseHeader ? "size-3.5" : "size-4 sm:size-4.5";
 
   if (!icon) {
     return React.createElement(ICON_MAP.Layers, { className: iconClass });
@@ -36,7 +36,7 @@ function GroupAvatar({ icon, isDenseHeader }: { icon?: string; isDenseHeader: bo
   return (
     <span
       className={`leading-none flex items-center justify-center ${
-        isDenseHeader ? "text-sm w-3.5 h-3.5" : "text-base sm:text-lg w-4 h-4"
+        isDenseHeader ? "text-sm size-3.5" : "text-base sm:text-lg size-4"
       }`}
     >
       {icon}
@@ -77,8 +77,8 @@ export default function GroupHeader({
 
   return (
     <div
-      className={`flex items-center justify-between w-full min-w-0 gap-2 relative z-20 border-b border-[var(--border-color)] bg-[var(--card-hover-bg)] rounded-t-2xl ${
-        isDenseHeader ? "px-2.5 py-2" : "px-3 py-2.5 sm:px-4 sm:py-3"
+      className={`flex items-center justify-between w-full min-w-0 gap-2 relative z-20 border-b border-border-color bg-card-hover-bg rounded-t-[calc(1.25rem-0.375rem)] ${
+        isDenseHeader ? "px-2.5 py-2" : "px-3 py-2.5 @md/group:px-4 @md/group:py-3"
       }`}
     >
       {/* RTL Right: Drag Handle + Group Icon + Title & Count */}
@@ -94,13 +94,13 @@ export default function GroupHeader({
                 {...attributes}
                 {...listeners}
                 aria-label={`جابه‌جایی گروه ${id}`}
-                className={`flex items-center justify-center rounded-lg text-[var(--text-muted)] md:hover:text-[var(--text-primary)] md:hover:bg-[var(--card-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] transition-colors duration-150 cursor-grab active:cursor-grabbing shrink-0 ${
+                className={`flex items-center justify-center rounded-lg text-text-muted md:hover:text-text-primary md:hover:bg-card-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 transition-colors duration-150 cursor-grab active:cursor-grabbing shrink-0 ${
                   isDenseHeader ? "w-6 h-7" : "w-7 h-8"
                 }`}
               >
                 <GripVertical
                   strokeWidth={1.5}
-                  className={isDenseHeader ? "w-4 h-4" : "w-4 h-4 sm:w-4.5 sm:h-4.5"}
+                  className={isDenseHeader ? "size-4" : "size-4 sm:size-4.5"}
                 />
               </button>
             }
@@ -111,8 +111,8 @@ export default function GroupHeader({
         <div data-animate-icon-parent className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
           <div
             aria-hidden="true"
-            className={`flex items-center justify-center rounded-lg bg-[var(--card-bg)] text-[var(--text-secondary)] border border-[var(--border-color)] shrink-0 ${
-              isDenseHeader ? "w-7 h-7" : "w-8 h-8"
+            className={`flex items-center justify-center rounded-lg bg-card-bg text-text-secondary border border-border-color shrink-0 ${
+              isDenseHeader ? "size-7" : "size-8"
             }`}
           >
             <GroupAvatar icon={icon} isDenseHeader={isDenseHeader} />
@@ -122,13 +122,13 @@ export default function GroupHeader({
             <div className="flex items-center gap-2 min-w-0">
               <h2
                 ref={titleTextRef}
-                className={`font-sans font-medium text-[var(--text-primary)] truncate ${
-                  isDenseHeader ? "text-xs" : "text-xs sm:text-sm"
+                className={`font-sans font-medium text-text-primary truncate ${
+                  isDenseHeader ? "text-xs" : "text-xs @sm/group:text-sm"
                 }`}
               >
                 {id}
               </h2>
-              <span className="inline-flex items-center text-xs font-normal tabular-nums text-[var(--text-muted)] shrink-0">
+              <span className="inline-flex items-center text-xs font-normal tabular-nums text-text-muted shrink-0">
                 · {segmentCount} قطعه
               </span>
             </div>

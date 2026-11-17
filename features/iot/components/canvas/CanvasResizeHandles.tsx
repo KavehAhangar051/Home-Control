@@ -26,7 +26,7 @@ export default function CanvasResizeHandles({
   kind,
   ariaLabel,
   isSelected,
-  cornerRadiusClass = "h-3.5 w-3.5 rounded-bl-[10px]",
+  cornerRadiusClass = "size-3.5 rounded-bl-[10px]",
   onStartResize,
 }: CanvasResizeHandlesProps) {
   return (
@@ -39,14 +39,12 @@ export default function CanvasResizeHandles({
           if (e.button === 0) onStartResize(nodeId, kind, "sw", e);
         }}
         style={{ touchAction: "none" }}
-        className="group/resize absolute -bottom-1 -left-1 z-30 h-7 w-7 cursor-nesw-resize"
+        className="group/resize absolute -bottom-1 -left-1 z-30 size-7 cursor-nesw-resize"
       >
         <span
           aria-hidden="true"
           className={`pointer-events-none absolute bottom-[6px] left-[6px] border-b-2 border-l-2 transition-colors ${cornerRadiusClass} ${
-            isSelected
-              ? "border-[var(--accent3)]"
-              : "border-[var(--text-muted)]/45 group-hover/resize:border-[var(--accent3)]"
+            isSelected ? "border-accent3" : "border-text-muted/45 group-hover/resize:border-accent3"
           }`}
         />
       </button>
@@ -56,7 +54,7 @@ export default function CanvasResizeHandles({
           if (e.button === 0) onStartResize(nodeId, kind, "se", e);
         }}
         style={{ touchAction: "none" }}
-        className="absolute -right-1.5 -bottom-1.5 z-30 h-6 w-6 cursor-nwse-resize"
+        className="absolute -right-1.5 -bottom-1.5 z-30 size-6 cursor-nwse-resize"
       />
 
       <div

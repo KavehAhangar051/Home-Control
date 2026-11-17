@@ -78,7 +78,7 @@ export function WorkflowCanvasGateDiagram({
   return (
     <div
       dir="ltr"
-      className="relative flex h-14 w-full items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] px-3 py-1.5 text-[var(--text-primary)]"
+      className="relative flex h-14 w-full items-center justify-center rounded-xl border border-border-color bg-bg-main px-3 py-1.5 text-text-primary"
     >
       <svg
         viewBox="0 0 96 44"

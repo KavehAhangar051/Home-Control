@@ -33,6 +33,13 @@ const TEXT_SIZE_CLASSES = new Set([
   "text-3xl",
   "text-4xl",
   "text-5xl",
+  "text-fluid-xs",
+  "text-fluid-sm",
+  "text-fluid-base",
+  "text-fluid-lg",
+  "text-fluid-xl",
+  "text-fluid-2xl",
+  "text-fluid-3xl",
 ]);
 
 const TEXT_ALIGN_CLASSES = new Set([
@@ -53,6 +60,49 @@ const PADDING_ALL_KEYS = ["p", "px", "py", "pt", "pb", "pl", "pr", "ps", "pe"] a
 const PADDING_X_KEYS = ["px", "pl", "pr", "ps", "pe"] as const;
 const PADDING_Y_KEYS = ["py", "pt", "pb"] as const;
 
+const BORDER_STYLE_CLASSES = new Set([
+  "border-solid",
+  "border-dashed",
+  "border-dotted",
+  "border-double",
+  "border-hidden",
+  "border-none",
+]);
+
+const BORDER_COLLAPSE_CLASSES = new Set(["border-collapse", "border-separate"]);
+const BORDER_SIDE_PREFIX_REGEX = /^border-[trblxyse](-|$)/;
+const RING_WIDTH_REGEX = /^ring(-[01248]|-inset|-\[\d+px\])?$/;
+const SIZE_CONFLICT_KEYS = ["size", "w", "h"] as const;
+
+const SIMPLE_PREFIX_GROUPS: ReadonlyArray<readonly [prefix: string, group: string]> = [
+  ["bg-", "bg-color"],
+  ["min-w-", "min-w"],
+  ["max-w-", "max-w"],
+  ["w-", "w"],
+  ["min-h-", "min-h"],
+  ["max-h-", "max-h"],
+  ["h-", "h"],
+  ["size-", "size"],
+  ["leading-", "leading"],
+  ["justify-", "justify"],
+  ["items-", "items"],
+  ["gap-", "gap"],
+  ["ps-", "ps"],
+  ["pe-", "pe"],
+  ["pl-", "pl"],
+  ["pr-", "pr"],
+  ["pt-", "pt"],
+  ["pb-", "pb"],
+];
+
+const TEXT_NON_COLOR_PREFIXES = [
+  "text-wrap",
+  "text-balance",
+  "text-pretty",
+  "text-ellipsis",
+  "text-clip",
+] as const;
+
 function getConflictGroup(core: string): string | null {
   if (DISPLAY_CLASSES.has(core)) return "display";
 
@@ -71,30 +121,16 @@ function getConflictGroup(core: string): string | null {
 
   if (
     core.startsWith("text-") &&
-    !core.startsWith("text-wrap") &&
-    !core.startsWith("text-balance") &&
-    !core.startsWith("text-pretty") &&
-    !core.startsWith("text-ellipsis") &&
-    !core.startsWith("text-clip")
+    !TEXT_NON_COLOR_PREFIXES.some((prefix) => core.startsWith(prefix))
   ) {
     return "text-color";
   }
 
-  if (core.startsWith("bg-")) return "bg-color";
+  for (let i = 0; i < SIMPLE_PREFIX_GROUPS.length; i++) {
+    const [prefix, group] = SIMPLE_PREFIX_GROUPS[i];
 
-  if (core.startsWith("w-")) return "w";
-
-  if (core.startsWith("min-w-")) return "min-w";
-
-  if (core.startsWith("max-w-")) return "max-w";
-
-  if (core.startsWith("h-")) return "h";
-
-  if (core.startsWith("min-h-")) return "min-h";
-
-  if (core.startsWith("max-h-")) return "max-h";
-
-  if (core.startsWith("size-")) return "size";
+    if (core.startsWith(prefix)) return group;
+  }
 
   if (core === "rounded" || (core.startsWith("rounded-") && ROUNDED_TOKEN_REGEX.test(core))) {
     return "rounded";
@@ -104,17 +140,50 @@ function getConflictGroup(core: string): string | null {
     return "border-w";
   }
 
-  if (core.startsWith("leading-")) return "leading";
+  if (BORDER_STYLE_CLASSES.has(core)) return "border-style";
 
-  if (core.startsWith("justify-")) return "justify";
+  if (BORDER_COLLAPSE_CLASSES.has(core)) return "border-collapse";
 
-  if (core.startsWith("items-")) return "items";
+  if (
+    core.startsWith("border-") &&
+    !core.startsWith("border-spacing-") &&
+    !BORDER_SIDE_PREFIX_REGEX.test(core)
+  ) {
+    return "border-color";
+  }
 
-  if (core.startsWith("gap-")) return "gap";
+  if (core === "ring" || (core.startsWith("ring-") && RING_WIDTH_REGEX.test(core))) {
+    return "ring-w";
+  }
+
+  if (core.startsWith("ring-") && !core.startsWith("ring-offset-")) {
+    return "ring-color";
+  }
 
   if (core.startsWith("flex-") && FLEX_DIR_REGEX.test(core)) return "flex-dir";
 
   return null;
+}
+
+function clearConflictingGroups(
+  result: string[],
+  groupIndexMap: Map<string, number>,
+  variantPrefix: string,
+  keys: ReadonlyArray<string>,
+  deleteFromMap = false,
+): void {
+  for (let k = 0; k < keys.length; k++) {
+    const mapKey = `${variantPrefix}${keys[k]}`;
+    const prevIdx = groupIndexMap.get(mapKey);
+
+    if (prevIdx !== undefined) {
+      result[prevIdx] = "";
+
+      if (deleteFromMap) {
+        groupIndexMap.delete(mapKey);
+      }
+    }
+  }
 }
 
 export function cn(...inputs: Array<string | false | null | undefined>): string {
@@ -152,37 +221,29 @@ export function cn(...inputs: Array<string | false | null | undefined>): string 
       const core = lastColon >= 0 ? token.slice(lastColon + 1) : token;
 
       if (core.startsWith("p-") && core.length > 2) {
-        for (let k = 0; k < PADDING_ALL_KEYS.length; k++) {
-          const prevIdx = groupIndexMap.get(`${variantPrefix}${PADDING_ALL_KEYS[k]}`);
-
-          if (prevIdx !== undefined) result[prevIdx] = "";
-        }
-
+        clearConflictingGroups(result, groupIndexMap, variantPrefix, PADDING_ALL_KEYS);
         groupIndexMap.set(`${variantPrefix}p`, result.length);
         result.push(token);
         continue;
       }
 
       if (core.startsWith("px-") && core.length > 3) {
-        for (let k = 0; k < PADDING_X_KEYS.length; k++) {
-          const prevIdx = groupIndexMap.get(`${variantPrefix}${PADDING_X_KEYS[k]}`);
-
-          if (prevIdx !== undefined) result[prevIdx] = "";
-        }
-
+        clearConflictingGroups(result, groupIndexMap, variantPrefix, PADDING_X_KEYS);
         groupIndexMap.set(`${variantPrefix}px`, result.length);
         result.push(token);
         continue;
       }
 
       if (core.startsWith("py-") && core.length > 3) {
-        for (let k = 0; k < PADDING_Y_KEYS.length; k++) {
-          const prevIdx = groupIndexMap.get(`${variantPrefix}${PADDING_Y_KEYS[k]}`);
-
-          if (prevIdx !== undefined) result[prevIdx] = "";
-        }
-
+        clearConflictingGroups(result, groupIndexMap, variantPrefix, PADDING_Y_KEYS);
         groupIndexMap.set(`${variantPrefix}py`, result.length);
+        result.push(token);
+        continue;
+      }
+
+      if (core.startsWith("size-") && core.length > 5) {
+        clearConflictingGroups(result, groupIndexMap, variantPrefix, SIZE_CONFLICT_KEYS, true);
+        groupIndexMap.set(`${variantPrefix}size`, result.length);
         result.push(token);
         continue;
       }
@@ -198,6 +259,19 @@ export function cn(...inputs: Array<string | false | null | undefined>): string 
         }
 
         groupIndexMap.set(key, result.length);
+
+        if (
+          (group === "w" || group === "h") &&
+          groupIndexMap.has(`${variantPrefix}w`) &&
+          groupIndexMap.has(`${variantPrefix}h`)
+        ) {
+          const prevSizeIdx = groupIndexMap.get(`${variantPrefix}size`);
+
+          if (prevSizeIdx !== undefined) {
+            result[prevSizeIdx] = "";
+            groupIndexMap.delete(`${variantPrefix}size`);
+          }
+        }
       }
 
       result.push(token);
@@ -223,3 +297,36 @@ export const focusRing =
 
 /** Shared disabled interaction utility classes. */
 export const disabled = "disabled:pointer-events-none disabled:opacity-50";
+
+/**
+ * Computes a CSS `clamp()` fluid value that scales linearly between `minSize` (rem)
+ * at `minWidth` (px) and `maxSize` (rem) at `maxWidth` (px).
+ */
+export function fluidValue(
+  minSize: number,
+  maxSize: number,
+  minWidth = 320,
+  maxWidth = 1280,
+): string {
+  if (maxWidth <= minWidth || minSize === maxSize) {
+    return `${minSize}rem`;
+  }
+
+  const minWidthRem = minWidth / 16;
+  const maxWidthRem = maxWidth / 16;
+  const slope = (maxSize - minSize) / (maxWidthRem - minWidthRem);
+  const yAxisIntersection = -minWidthRem * slope + minSize;
+
+  return `clamp(${minSize}rem, ${Number(yAxisIntersection.toFixed(4))}rem + ${Number((slope * 100).toFixed(4))}vw, ${maxSize}rem)`;
+}
+
+/** Standardized fluid typography scale generated via `fluidValue`. */
+export const fluidTypeScale = {
+  xs: fluidValue(0.75, 0.8125),
+  sm: fluidValue(0.8125, 0.9375),
+  base: fluidValue(0.9375, 1.0625),
+  lg: fluidValue(1.0625, 1.25),
+  xl: fluidValue(1.25, 1.625),
+  "2xl": fluidValue(1.5, 2.25),
+  "3xl": fluidValue(1.875, 2.75),
+} as const;

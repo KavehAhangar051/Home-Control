@@ -35,11 +35,9 @@ function getTrellisViewTitle(
 }
 
 function getTrellisSurfaceClass(isPinOn: boolean, isInput: boolean): string {
-  if (!isPinOn) return "border-[var(--border-color)] bg-[var(--card-bg)] shadow-2xs";
+  if (!isPinOn) return "border-border-color bg-card-bg shadow-2xs";
 
-  return isInput
-    ? "border-emerald-500 bg-[var(--card-bg)] shadow-xs"
-    : "border-[var(--accent3)] bg-[var(--card-bg)] shadow-xs";
+  return isInput ? "border-success bg-card-bg shadow-xs" : "border-accent3 bg-card-bg shadow-xs";
 }
 
 function TrellisPlaceholderView({
@@ -54,7 +52,7 @@ function TrellisPlaceholderView({
   onSetupPlaceholder?: (id: string) => void;
 }) {
   return (
-    <div dir="rtl" className="relative h-full w-full p-2">
+    <div dir="rtl" className="relative size-full p-2">
       <div className="absolute top-3.5 left-3.5 z-20">
         <DeleteButton
           size="xs"
@@ -65,19 +63,17 @@ function TrellisPlaceholderView({
         />
       </div>
 
-      <Card className="group/ph-card h-full w-full !gap-0 !overflow-hidden !rounded-xl !border-dashed !border-[var(--border-color)] !bg-[var(--card-bg)] !p-0 !ring-0 !shadow-none transition-colors duration-200 md:hover:!border-[var(--accent3)]">
+      <Card className="group/ph-card size-full !gap-0 !overflow-hidden !rounded-xl !border-dashed !border-border-color !bg-card-bg !p-0 !ring-0 !shadow-none transition-colors duration-200 md:hover:!border-accent3">
         <button
           type="button"
           onClick={() => onSetupPlaceholder?.(segmentId)}
-          className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-0 bg-transparent p-3 text-center"
+          className="flex size-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-0 bg-transparent p-3 text-center"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--accent3-transparent)] text-[var(--accent3)]">
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
+          <div className="flex size-9 items-center justify-center rounded-xl border border-border-color bg-accent3-transparent text-accent3">
+            <Plus className="size-4" strokeWidth={2.5} />
           </div>
           {!isUltraCompact && (
-            <span className="font-sans text-xs font-bold theme-text-primary">
-              تخصیص قطعه هوشمند
-            </span>
+            <span className="font-sans text-xs font-bold text-text-primary">تخصیص قطعه هوشمند</span>
           )}
         </button>
       </Card>
@@ -140,7 +136,7 @@ export default function TrellisSegmentView({
     return (
       <div
         dir="rtl"
-        className="flex h-full w-full items-center justify-center p-4 text-center text-xs text-[var(--text-muted)]"
+        className="flex size-full items-center justify-center p-4 text-center text-xs text-text-muted"
       >
         این قطعه از داشبورد حذف شده است.
       </div>
@@ -171,9 +167,9 @@ export default function TrellisSegmentView({
   };
 
   return (
-    <div dir="rtl" className="relative flex h-full w-full flex-col p-2">
+    <div dir="rtl" className="relative flex size-full flex-col p-2">
       <Card
-        className={`relative flex h-full w-full flex-col justify-between !gap-0 !overflow-visible !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
+        className={`relative flex size-full flex-col justify-between !gap-0 !overflow-visible !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
         style={CARD_SPACING_STYLE}
       >
         <div

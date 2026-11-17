@@ -33,7 +33,7 @@ export default function LayoutSelector({
             <ToggleGroupItem
               value="1"
               aria-label="تک ستون"
-              className={`${parentGroupsCols === 3 ? "h-7 min-w-7 px-1.5" : "h-8 min-w-8 px-2"} cursor-pointer select-none aria-pressed:bg-[var(--accent3-transparent)] aria-pressed:text-[var(--accent3)]`}
+              className={`${parentGroupsCols === 3 ? "h-7 min-w-7 px-1.5" : "h-8 min-w-8 px-2"} cursor-pointer select-none aria-pressed:bg-accent3-transparent aria-pressed:text-accent3`}
             >
               <svg
                 aria-hidden="true"
@@ -45,7 +45,7 @@ export default function LayoutSelector({
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-4 h-4"
+                className="size-4"
               >
                 <rect width="18" height="6" x="3" y="5" rx="2" />
                 <rect width="18" height="6" x="3" y="13" rx="2" />
@@ -62,7 +62,7 @@ export default function LayoutSelector({
             <ToggleGroupItem
               value="2"
               aria-label="دو ستون"
-              className={`${parentGroupsCols === 3 ? "h-7 min-w-7 px-1.5" : "h-8 min-w-8 px-2"} cursor-pointer select-none aria-pressed:bg-[var(--accent3-transparent)] aria-pressed:text-[var(--accent3)]`}
+              className={`${parentGroupsCols === 3 ? "h-7 min-w-7 px-1.5" : "h-8 min-w-8 px-2"} cursor-pointer select-none aria-pressed:bg-accent3-transparent aria-pressed:text-accent3`}
             >
               <svg
                 aria-hidden="true"
@@ -74,7 +74,7 @@ export default function LayoutSelector({
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-4 h-4"
+                className="size-4"
               >
                 <circle cx="7" cy="7" r="3" />
                 <circle cx="17" cy="7" r="3" />
@@ -93,7 +93,7 @@ export default function LayoutSelector({
             <ToggleGroupItem
               value="3"
               aria-label="سه ستون"
-              className={`${parentGroupsCols === 3 ? "h-7 min-w-7 px-1.5" : "h-8 min-w-8 px-2"} cursor-pointer select-none aria-pressed:bg-[var(--accent3-transparent)] aria-pressed:text-[var(--accent3)]`}
+              className={`${parentGroupsCols === 3 ? "h-7 min-w-7 px-1.5" : "h-8 min-w-8 px-2"} cursor-pointer select-none aria-pressed:bg-accent3-transparent aria-pressed:text-accent3`}
             >
               <svg
                 aria-hidden="true"
@@ -105,7 +105,7 @@ export default function LayoutSelector({
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-4 h-4"
+                className="size-4"
               >
                 <circle cx="5" cy="7" r="2" />
                 <circle cx="12" cy="7" r="2" />

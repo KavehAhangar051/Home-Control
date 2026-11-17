@@ -89,7 +89,7 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
       <React.Suspense
         fallback={
           <div className="w-full h-96 flex items-center justify-center">
-            <div className="w-12 h-12 rounded-full border-2 border-[var(--accent3)] border-t-transparent animate-spin" />
+            <div className="size-12 rounded-full border-2 border-accent3 border-t-transparent animate-spin" />
           </div>
         }
       >

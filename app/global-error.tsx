@@ -17,7 +17,7 @@ export default function GlobalError({
 
   return (
     <html lang="fa" dir="rtl" className="dark">
-      <body className="flex min-h-screen w-full items-center justify-center bg-background px-4 text-foreground font-sans">
+      <body className="flex min-h-dvh w-full items-center justify-center bg-background px-4 text-foreground font-sans">
         <main
           role="alert"
           className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 text-center shadow-lg"

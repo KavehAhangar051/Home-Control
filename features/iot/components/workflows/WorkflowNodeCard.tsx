@@ -4,8 +4,8 @@ import { Play } from "lucide-react";
 import { m, useReducedMotion } from "motion/react";
 import React from "react";
 import NodePerimeterSpark from "@/features/iot/components/canvas/NodePerimeterSpark";
+import { resolveCanvasNodeMotionState } from "@/features/iot/components/canvas/nodeMotion";
 import type { Segment } from "@/features/iot/hooks/store/types";
-import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
 import { SPRING_MOUSE, SPRING_PANEL } from "@/lib/ease";
 import {
   GroupNodeBody,
@@ -16,7 +16,13 @@ import {
 } from "./WorkflowNodeBodies";
 import WorkflowNodeHeader from "./WorkflowNodeHeader";
 import WorkflowNodePorts, { type WorkflowInputPortSlot } from "./WorkflowNodePorts";
-import { getInputPortOffsetY, getNodeInputCount, getNodeMinInputCount } from "./workflowEngine";
+import {
+  collectGroupMemberSegmentIds,
+  getInputPortOffsetY,
+  getNodeInputCount,
+  getNodeMinInputCount,
+  isTriggerWorkflowNodeKind,
+} from "./workflowEngine";
 import { WORKFLOW_PALETTE_MIME } from "./workflowPaletteData";
 import type { WorkflowNode, WorkflowPaletteDragPayload } from "./workflowTypes";
 
@@ -56,29 +62,15 @@ function resolveNodeBorderClass(
   isHighlighted: boolean,
   outputSignal: boolean,
 ): string {
-  if (isDragging) return "border-[var(--accent3)] ring-2 ring-[var(--accent3)]/40 shadow-2xl";
-  if (isSelected) return "border-[var(--accent3)] ring-2 ring-[var(--accent3)]/35 shadow-lg";
-  if (isHighlighted) return "border-emerald-500 ring-2 ring-emerald-500/40 shadow-lg";
-  if (outputSignal) return "border-emerald-500/80 shadow-md";
-  return "border-[var(--border-color)] shadow-sm";
-}
-
-function resolveNodeAnimateState(
-  shouldAnimateMotion: boolean,
-  isDragging: boolean,
-  dragTiltDeg: number,
-) {
-  if (!shouldAnimateMotion) return { opacity: 1, scale: 1, rotate: 0, y: 0 };
-  return {
-    opacity: 1,
-    scale: isDragging ? 1.018 : 1,
-    rotate: isDragging ? dragTiltDeg : 0,
-    y: isDragging ? -2 : 0,
-  };
+  if (isDragging) return "border-accent3 ring-2 ring-accent3/40 shadow-2xl";
+  if (isSelected) return "border-accent3 ring-2 ring-accent3/35 shadow-lg";
+  if (isHighlighted) return "border-success ring-2 ring-success/40 shadow-lg";
+  if (outputSignal) return "border-success/80 shadow-sm";
+  return "border-border-color shadow-xs";
 }
 
 function resolveNodeMeta(node: WorkflowNode) {
-  const hasInputPort = node.kind !== "trigger_manual" && node.kind !== "trigger_schedule";
+  const hasInputPort = !isTriggerWorkflowNodeKind(node.kind);
   const isLogicGate =
     node.kind === "logic_and" || node.kind === "logic_or" || node.kind === "logic_not";
   return {
@@ -204,9 +196,9 @@ function WorkflowNodeBodyRouter({
           <button
             type="button"
             onClick={() => onTriggerManualPulse(node.id)}
-            className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white transition-colors hover:bg-emerald-500 active:scale-[0.98]"
+            className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-success px-3 text-xs font-bold text-success-foreground transition-colors hover:bg-success/90 active:scale-[0.98]"
           >
-            <Play className="h-3.5 w-3.5" aria-hidden="true" />
+            <Play className="size-3.5" aria-hidden="true" />
             <span>ارسال پالس</span>
           </button>
         </div>
@@ -236,14 +228,12 @@ function WorkflowNodeResizeGrip({
         if (e.button === 0) onStartResize(nodeId, e);
       }}
       style={{ touchAction: "none" }}
-      className="group/resize absolute -bottom-1 -left-1 z-30 h-7 w-7 cursor-nesw-resize"
+      className="group/resize absolute -bottom-1 -left-1 z-30 size-7 cursor-nesw-resize"
     >
       <span
         aria-hidden="true"
-        className={`pointer-events-none absolute bottom-[6px] left-[6px] h-3.5 w-3.5 rounded-bl-[10px] border-b-2 border-l-2 transition-colors ${
-          isSelected
-            ? "border-[var(--accent3)]"
-            : "border-[var(--text-muted)]/45 group-hover/resize:border-[var(--accent3)]"
+        className={`pointer-events-none absolute bottom-[6px] left-[6px] size-3.5 rounded-bl-[10px] border-b-2 border-l-2 transition-colors ${
+          isSelected ? "border-accent3" : "border-text-muted/45 group-hover/resize:border-accent3"
         }`}
       />
     </button>
@@ -293,12 +283,9 @@ function useWorkflowNodeSegments(
 
   const syncGroupFromModules = () => {
     if (!node.groupName) return;
-    const syncedIds = segments
-      .filter(
-        (seg) => seg.type !== "placeholder" && resolveSegmentGroup(seg.group) === node.groupName,
-      )
-      .map((seg) => seg.id);
-    onUpdateNode(node.id, { memberSegmentIds: syncedIds });
+    onUpdateNode(node.id, {
+      memberSegmentIds: collectGroupMemberSegmentIds(segments, node.groupName),
+    });
   };
 
   return {
@@ -407,9 +394,9 @@ export default React.memo(function WorkflowNodeCard({
     >
       <m.div
         initial={shouldAnimateMotion ? { opacity: 0, scale: 0.95, y: 6 } : false}
-        animate={resolveNodeAnimateState(shouldAnimateMotion, isDragging, dragTiltDeg)}
+        animate={resolveCanvasNodeMotionState(shouldAnimateMotion, isDragging, dragTiltDeg, 1.018)}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        className={`relative flex h-full w-full flex-col rounded-2xl border bg-[var(--card-bg-solid)] text-right transition-[border-color,box-shadow] duration-150 ease-[var(--ease-out)] ${borderClass}`}
+        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-[border-color,box-shadow] duration-150 ease-out ${borderClass}`}
       >
         <NodePerimeterSpark
           active={outputSignal}

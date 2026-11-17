@@ -28,20 +28,20 @@ export default function IconPicker({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        {isOptional && <span className="text-xs theme-text-muted">(اختیاری)</span>}
-        <span className="text-xs theme-text-secondary font-medium block">{label}</span>
+        {isOptional && <span className="text-xs text-text-muted">(اختیاری)</span>}
+        <span className="text-xs text-text-secondary font-medium block">{label}</span>
       </div>
       <button
         type="button"
         aria-expanded={showIcons}
         aria-label={label}
         onClick={() => setShowIcons(!showIcons)}
-        className="w-full h-10 px-3 text-xs bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg flex items-center justify-between hover:border-[var(--accent3)] transition-colors font-sans"
+        className="w-full h-10 px-3 text-xs bg-bg-main text-text-primary border border-border-color rounded-lg flex items-center justify-between hover:border-accent3 transition-colors font-sans"
       >
         {showIcons ? (
-          <ChevronUp strokeWidth={1.5} className="w-4 h-4 opacity-60" />
+          <ChevronUp strokeWidth={1.5} className="size-4 opacity-60" />
         ) : (
-          <ChevronDown strokeWidth={1.5} className="w-4 h-4 opacity-60" />
+          <ChevronDown strokeWidth={1.5} className="size-4 opacity-60" />
         )}
         <div className="flex items-center gap-2">
           <span>{selectedIcon ? "آیکون انتخاب شد" : "انتخاب آیکون"}</span>
@@ -49,7 +49,7 @@ export default function IconPicker({
             (hasIcon(selectedIcon) ? (
               React.createElement(getSegmentIcon(selectedIcon), {
                 strokeWidth: 1.5,
-                className: "w-4 h-4 text-[var(--accent3)]",
+                className: "size-4 text-accent3",
               })
             ) : (
               <span className="text-base leading-none">{selectedIcon}</span>
@@ -58,7 +58,7 @@ export default function IconPicker({
       </button>
 
       {showIcons && (
-        <div className="p-3 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg space-y-3">
+        <div className="p-3 bg-bg-main border border-border-color rounded-lg space-y-3">
           <ToggleGroup
             variant="outline"
             size="sm"
@@ -73,13 +73,13 @@ export default function IconPicker({
           >
             <ToggleGroupItem
               value="emoji"
-              className="flex-1 text-xs font-medium aria-pressed:bg-[var(--accent3)] aria-pressed:text-[var(--bg-main)]"
+              className="flex-1 text-xs font-medium aria-pressed:bg-accent3 aria-pressed:text-bg-main"
             >
               ایموجی
             </ToggleGroupItem>
             <ToggleGroupItem
               value="hugeicons"
-              className="flex-1 text-xs font-medium aria-pressed:bg-[var(--accent3)] aria-pressed:text-[var(--bg-main)]"
+              className="flex-1 text-xs font-medium aria-pressed:bg-accent3 aria-pressed:text-bg-main"
             >
               آیکون خطی
             </ToggleGroupItem>
@@ -92,7 +92,7 @@ export default function IconPicker({
                 onSelectIcon("");
                 setShowIcons(false);
               }}
-              className={`p-2 rounded-lg flex items-center justify-center transition-colors text-xs col-span-2 ${!selectedIcon ? "bg-[var(--accent3)] text-[var(--bg-main)]" : "hover:bg-[var(--card-hover-bg)] text-[var(--text-secondary)]"}`}
+              className={`p-2 rounded-lg flex items-center justify-center transition-colors text-xs col-span-2 ${!selectedIcon ? "bg-accent3 text-bg-main" : "hover:bg-card-hover-bg text-text-secondary"}`}
             >
               بدون آیکون
             </button>
@@ -105,7 +105,7 @@ export default function IconPicker({
                       onSelectIcon(icon);
                       setShowIcons(false);
                     }}
-                    className={`p-2 rounded-lg flex items-center justify-center text-lg leading-none transition-colors ${selectedIcon === icon ? "bg-[var(--accent3)] text-[var(--bg-main)]" : "hover:bg-[var(--card-hover-bg)] text-[var(--text-secondary)]"}`}
+                    className={`p-2 rounded-lg flex items-center justify-center text-lg leading-none transition-colors ${selectedIcon === icon ? "bg-accent3 text-bg-main" : "hover:bg-card-hover-bg text-text-secondary"}`}
                   >
                     {icon}
                   </button>
@@ -120,10 +120,10 @@ export default function IconPicker({
                             onSelectIcon(iconName);
                             setShowIcons(false);
                           }}
-                          className={`p-2 rounded-lg flex items-center justify-center transition-colors ${selectedIcon === iconName ? "bg-[var(--accent3)] text-[var(--bg-main)]" : "hover:bg-[var(--card-hover-bg)] text-[var(--text-secondary)]"}`}
+                          className={`p-2 rounded-lg flex items-center justify-center transition-colors ${selectedIcon === iconName ? "bg-accent3 text-bg-main" : "hover:bg-card-hover-bg text-text-secondary"}`}
                           aria-label={iconName}
                         >
-                          {React.createElement(getSegmentIcon(iconName), { className: "w-4 h-4" })}
+                          {React.createElement(getSegmentIcon(iconName), { className: "size-4" })}
                         </button>
                       }
                     />

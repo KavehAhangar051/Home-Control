@@ -11,16 +11,12 @@ interface Props {
 export function ConditionActionsList({ type, actions, onUpdate }: Props) {
   const showToast = useIoTStore((state) => state.showToast);
   const isHigh = type === "high";
-  const colorClasses = isHigh ? "text-[var(--accent4)]" : "text-[var(--accent3)]";
-  const bgClass = isHigh ? "bg-[var(--accent4)]" : "bg-[var(--accent3)]";
+  const colorClasses = isHigh ? "text-accent4" : "text-accent3";
+  const bgClass = isHigh ? "bg-accent4" : "bg-accent3";
 
-  const borderClass = isHigh
-    ? "border-[var(--accent4-transparent)]"
-    : "border-[var(--accent3-transparent)]";
+  const borderClass = isHigh ? "border-accent4-transparent" : "border-accent3-transparent";
 
-  const containerBg = isHigh
-    ? "bg-[var(--accent4-transparent)]"
-    : "bg-[var(--accent3-transparent)]";
+  const containerBg = isHigh ? "bg-accent4-transparent" : "bg-accent3-transparent";
 
   const addAction = () => {
     if (actions.length >= 4) {
@@ -56,20 +52,20 @@ export function ConditionActionsList({ type, actions, onUpdate }: Props) {
     <div className={`border ${borderClass} ${containerBg} p-4 rounded-xl`}>
       <div className="flex justify-between items-center mb-4">
         <h4 className={`${colorClasses} font-bold text-sm flex items-center gap-2`}>
-          <span aria-hidden="true" className={`w-2 h-2 rounded-full ${bgClass}`} />
+          <span aria-hidden="true" className={`size-2 rounded-full ${bgClass}`} />
           هنگام {isHigh ? "فعال شدن" : "غیرفعال شدن"}
         </h4>
         <button
           type="button"
           onClick={addAction}
           disabled={actions.length >= 4}
-          className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors disabled:opacity-50 ${isHigh ? "border-[var(--accent4)] text-[var(--accent4)] hover:bg-[var(--accent4)] hover:text-white" : "border-[var(--accent3)] text-[var(--accent3)] hover:bg-[var(--accent3)] hover:text-[var(--bg-main)]"}`}
+          className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors disabled:opacity-50 ${isHigh ? "border-accent4 text-accent4 hover:bg-accent4 hover:text-white" : "border-accent3 text-accent3 hover:bg-accent3 hover:text-bg-main"}`}
         >
-          <Plus aria-hidden="true" className="w-3 h-3" /> افزودن
+          <Plus aria-hidden="true" className="size-3" /> افزودن
         </button>
       </div>
       {actions.length === 0 ? (
-        <div className="text-center py-4 text-[var(--text-tertiary)] text-xs bg-[var(--card-bg-solid)] rounded-lg border border-dashed border-[var(--border-color)]">
+        <div className="text-center py-4 text-text-tertiary text-xs bg-card-bg-solid rounded-lg border border-dashed border-border-color">
           هیچ عملیاتی تعریف نشده
         </div>
       ) : (

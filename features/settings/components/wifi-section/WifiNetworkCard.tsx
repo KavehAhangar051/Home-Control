@@ -29,7 +29,7 @@ function WifiNetworkCardFrame({ children }: { children: React.ReactNode }) {
         transition: TRANSITION_EXIT_STANDARD,
       }}
       transition={TRANSITION_ENTER_STANDARD}
-      className="p-4 bg-[var(--card-bg-solid)] border border-[var(--border-color)] rounded-2xl shadow-sm relative overflow-hidden"
+      className="p-4 bg-card-bg-solid border border-border-color rounded-2xl shadow-sm relative overflow-hidden"
     >
       {children}
     </m.div>
@@ -45,17 +45,17 @@ interface WifiNetworkViewCardProps {
 export function WifiNetworkViewCard({ net, onEditStart, onDelete }: WifiNetworkViewCardProps) {
   return (
     <WifiNetworkCardFrame>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <button
           type="button"
-          className="flex-1 cursor-pointer text-right"
+          className="flex-1 min-h-11 cursor-pointer text-right flex flex-col justify-center"
           onClick={onEditStart}
           aria-label={`ویرایش شبکه ${net.ssid}`}
         >
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-bold text-sm text-[var(--text-primary)]">{net.ssid}</span>
+            <span className="font-bold text-sm text-text-primary">{net.ssid}</span>
           </div>
-          <div className="text-xs text-[var(--text-secondary)] opacity-70">
+          <div className="text-xs text-text-secondary opacity-70">
             {net.password ? "رمز عبور تنظیم شده" : "بدون رمز عبور"}
           </div>
         </button>
@@ -64,7 +64,7 @@ export function WifiNetworkViewCard({ net, onEditStart, onDelete }: WifiNetworkV
           resetAfter={0}
           onConfirm={onDelete}
           label={`حذف شبکه ${net.ssid}`}
-          className="ml-2 shrink-0"
+          className="ms-2 shrink-0"
         />
       </div>
     </WifiNetworkCardFrame>

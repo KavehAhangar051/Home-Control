@@ -19,9 +19,9 @@ export default function VerticalClock({
       <SidebarTooltip label={dateString} enabled>
         <div
           data-animate-icon-parent
-          className="group flex h-9 w-full items-center justify-center rounded-lg border border-[var(--sidebar-border)] bg-[var(--sidebar-control-bg)] text-[var(--sidebar-muted)] transition-colors duration-150 md:hover:bg-[var(--sidebar-hover)] md:hover:text-[var(--sidebar-text)]"
+          className="group flex h-9 w-full items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-control-bg text-sidebar-muted transition-colors duration-150 md:hover:bg-sidebar-hover md:hover:text-sidebar-text"
         >
-          <RealTimeClock time={time} className="h-4 w-4 shrink-0" />
+          <RealTimeClock time={time} className="size-4 shrink-0" />
         </div>
       </SidebarTooltip>
     );
@@ -30,15 +30,15 @@ export default function VerticalClock({
   return (
     <div
       data-animate-icon-parent
-      className="group flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-[var(--sidebar-border)] bg-[var(--sidebar-control-bg)] px-2.5 transition-colors duration-150 md:hover:bg-[var(--sidebar-hover)]"
+      className="group flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-sidebar-border bg-sidebar-control-bg px-2.5 transition-colors duration-150 md:hover:bg-sidebar-hover"
     >
-      <div className="flex items-center gap-2 text-[var(--sidebar-text)]">
-        <RealTimeClock time={time} className="h-4 w-4 shrink-0 text-[var(--sidebar-muted)]" />
+      <div className="flex items-center gap-2 text-sidebar-text">
+        <RealTimeClock time={time} className="size-4 shrink-0 text-sidebar-muted" />
         <span className="font-mono text-xs font-medium tabular-nums" dir="ltr">
           {timeString}
         </span>
       </div>
-      <div className="truncate text-xs font-normal tabular-nums text-[var(--sidebar-muted)] transition-colors duration-150 md:group-hover:text-[var(--sidebar-text)]">
+      <div className="truncate text-xs font-normal tabular-nums text-sidebar-muted transition-colors duration-150 md:group-hover:text-sidebar-text">
         {dateString}
       </div>
     </div>

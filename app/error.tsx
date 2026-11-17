@@ -20,7 +20,7 @@ export default function AppError({
     <main
       dir="rtl"
       role="alert"
-      className="flex min-h-screen w-full flex-col items-center justify-center bg-background px-4 text-center text-foreground font-sans"
+      className="flex min-h-dvh w-full flex-col items-center justify-center bg-background px-4 text-center text-foreground font-sans"
     >
       <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-lg">
         <h1 className="text-lg font-bold text-foreground">خطایی در داشبورد رخ داد</h1>

@@ -110,9 +110,9 @@ export default function VerticalControls({
         ? activeWorkspaceView
         : null;
 
-  const itemClass = `relative flex items-center rounded-lg border border-transparent text-sm font-normal text-[var(--text-secondary)] transition-colors duration-150 hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] ${
+  const itemClass = `relative flex items-center rounded-lg border border-transparent text-sm font-normal text-text-secondary transition-colors duration-150 hover:bg-sidebar-hover hover:text-sidebar-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
     isSidebarCollapsed
-      ? "h-9 w-9 justify-center px-0 py-0"
+      ? "size-9 justify-center px-0 py-0"
       : "h-9 w-full justify-between gap-2.5 px-2.5 py-0 text-right max-md:mx-auto max-md:w-9 max-md:justify-center max-md:px-0"
   }`;
 
@@ -182,7 +182,7 @@ export default function VerticalControls({
             onClick={() => handleParentClick(view, hasChildren)}
             className={`${itemClass} ${
               isParentActive
-                ? "border-[var(--sidebar-border)] bg-[var(--sidebar-hover)] font-medium text-[var(--sidebar-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                ? "border-sidebar-border bg-sidebar-hover font-medium text-sidebar-text shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
                 : ""
             }`}
             aria-current={isParentActive && !hasChildren ? "page" : undefined}
@@ -190,18 +190,15 @@ export default function VerticalControls({
             aria-label={meta.title}
           >
             <div className="flex min-w-0 items-center gap-2.5">
-              <NavIcon
-                className="h-4 w-4 shrink-0 text-[var(--sidebar-muted)]"
-                strokeWidth={1.5}
-              />
+              <NavIcon className="size-4 shrink-0 text-sidebar-muted" strokeWidth={1.5} />
               {!isSidebarCollapsed && <span className="truncate text-sm">{meta.title}</span>}
             </div>
             {!isSidebarCollapsed && hasChildren && (
               <ChevronLeft
                 aria-hidden="true"
                 strokeWidth={1.5}
-                className={`hidden h-3.5 w-3.5 shrink-0 text-[var(--sidebar-muted)] transition-transform duration-150 md:block ${
-                  isExpanded ? "-rotate-90 text-[var(--sidebar-text)]" : "rotate-0"
+                className={`hidden size-3.5 shrink-0 text-sidebar-muted transition-transform duration-150 md:block ${
+                  isExpanded ? "-rotate-90 text-sidebar-text" : "rotate-0"
                 }`}
               />
             )}
@@ -218,7 +215,7 @@ export default function VerticalControls({
               exit={reduceMotion ? { opacity: 0 } : "closed"}
               transition={reduceMotion ? { duration: 0.12 } : undefined}
               aria-label={`زیرمنوی ${meta.title}`}
-              className="relative mt-1 mr-4 hidden min-w-0 flex-col gap-0.5 border-r border-[var(--sidebar-border)] pr-2 md:flex"
+              className="relative mt-1 mr-4 hidden min-w-0 flex-col gap-0.5 border-r border-sidebar-border pr-2 md:flex"
             >
               {subItems.map((sub) => {
                 const isSubActive = activeSubId === sub.id;
@@ -233,17 +230,17 @@ export default function VerticalControls({
                       type="button"
                       onClick={() => handleSubItemClick(view, sub.id)}
                       aria-current={isSubActive ? "page" : undefined}
-                      className={`relative flex h-8 w-full cursor-pointer items-center rounded-md px-2.5 text-right text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)] ${
+                      className={`relative flex h-8 w-full cursor-pointer items-center rounded-md px-2.5 text-right text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
                         isSubActive
-                          ? "font-medium text-[var(--sidebar-text)]"
-                          : "font-normal text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)]"
+                          ? "font-medium text-sidebar-text"
+                          : "font-normal text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text"
                       }`}
                     >
                       {isSubActive && (
                         <m.div
                           layoutId="sidebar-submenu-active-bg"
                           transition={reduceMotion ? { duration: 0 } : SPRING_LAYOUT}
-                          className="absolute inset-0 rounded-md border border-[var(--sidebar-border)] bg-[var(--sidebar-hover)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                          className="absolute inset-0 rounded-md border border-sidebar-border bg-sidebar-hover shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
                         />
                       )}
                       <span className="relative z-10 truncate leading-5">{sub.label}</span>
@@ -261,7 +258,7 @@ export default function VerticalControls({
   return (
     <nav className="flex flex-col gap-1" aria-label="بخش‌های کاربری">
       {!isSidebarCollapsed && (
-        <span className="mb-1.5 block px-2.5 text-xs font-normal text-[var(--sidebar-muted)]">
+        <span className="mb-1.5 block px-2.5 text-xs font-normal text-sidebar-muted">
           فضای خانه
         </span>
       )}
@@ -274,7 +271,7 @@ export default function VerticalControls({
         isSidebarCollapsed={isSidebarCollapsed}
       />
 
-      <div className="my-2 border-t border-[var(--sidebar-border)]" />
+      <div className="my-2 border-t border-sidebar-border" />
 
       {renderNavItem("settings")}
     </nav>

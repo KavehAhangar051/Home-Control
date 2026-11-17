@@ -138,7 +138,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body
         suppressHydrationWarning
-        className="style-nova bg-background text-foreground min-h-screen antialiased selection:bg-blue-500/20 selection:text-blue-200 font-sans"
+        className="style-nova bg-background text-foreground min-h-dvh antialiased selection:bg-accent3-medium selection:text-text-primary font-sans"
       >
         <MotionProvider>{children}</MotionProvider>
       </body>

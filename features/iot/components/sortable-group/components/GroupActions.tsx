@@ -54,11 +54,11 @@ export default function GroupActions({
               type="button"
               onClick={() => onAddPlaceholder(id)}
               aria-label={`افزودن قطعه جدید به گروه ${id}`}
-              className={`inline-flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] text-[var(--text-primary)] md:hover:bg-[var(--accent3)] md:hover:text-[var(--accent3-foreground)] md:hover:border-[var(--accent3)] transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] cursor-pointer font-sans font-medium ${
-                isDenseHeader ? "h-7 w-7" : showAddLabel ? "h-8 px-2.5 text-xs" : "h-8 w-8"
+              className={`inline-flex items-center justify-center gap-1.5 rounded-lg border border-border-color bg-card-bg text-text-primary md:hover:bg-accent3 md:hover:text-accent3-foreground md:hover:border-accent3 transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] cursor-pointer font-sans font-medium ${
+                isDenseHeader ? "size-7" : showAddLabel ? "h-8 px-2.5 text-xs" : "size-8"
               }`}
             >
-              <Plus className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+              <Plus className="size-3.5 shrink-0" strokeWidth={1.75} />
               {showAddLabel && <span>افزودن قطعه</span>}
             </button>
           }
@@ -88,15 +88,15 @@ export default function GroupActions({
                 onPressedChange={() => setIsSettingsOpen(!isSettingsOpen)}
                 aria-expanded={isSettingsOpen}
                 aria-label={`تنظیمات و مدیریت گروه ${id}`}
-                className={`rounded-lg border-[var(--border-color)] text-[var(--text-muted)] md:hover:text-[var(--text-primary)] cursor-pointer ${
-                  isDenseHeader ? "h-7 w-7 min-w-7 p-0" : "h-8 w-8 min-w-8 p-0"
+                className={`rounded-lg border-border-color text-text-muted md:hover:text-text-primary cursor-pointer ${
+                  isDenseHeader ? "size-7 min-w-7 p-0" : "size-8 min-w-8 p-0"
                 } ${
                   isSettingsOpen
-                    ? "border-[var(--accent3)] bg-[var(--accent3-transparent)] text-[var(--accent3)] aria-pressed:bg-[var(--accent3-transparent)]"
-                    : "bg-[var(--card-bg)]"
+                    ? "border-accent3 bg-accent3-transparent text-accent3 aria-pressed:bg-accent3-transparent"
+                    : "bg-card-bg"
                 }`}
               >
-                <Settings className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+                <Settings className="size-4 shrink-0" strokeWidth={1.5} />
               </Toggle>
             }
           />

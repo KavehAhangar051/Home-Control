@@ -50,7 +50,7 @@ export function InlineStabilitySection(
   >,
 ) {
   return (
-    <div className="theme-card-bg-solid border border-accent3-medium/30 p-4 space-y-4 overflow-hidden rounded-xl text-right">
+    <div className="bg-card-bg-solid border border-accent3-medium/30 p-4 space-y-4 overflow-hidden rounded-xl text-right">
       <StabilitySectionContent {...props} />
     </div>
   );
@@ -89,18 +89,18 @@ export default function StabilitySection({
         type="button"
         aria-expanded={isExpanded}
         onClick={() => toggleSection?.("animations")}
-        className="w-full py-3 px-4 bg-[var(--card-bg-solid)] flex items-center justify-between text-right cursor-pointer"
+        className="w-full py-3 px-4 bg-card-bg-solid flex items-center justify-between text-right cursor-pointer"
       >
         <ChevronLeft
           aria-hidden="true"
-          className="w-4 h-4 text-accent3 transition-transform duration-300"
+          className="size-4 text-accent3 transition-transform duration-300"
           style={{ transform: isExpanded ? "rotate(-90deg)" : "rotate(0deg)" }}
         />
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold theme-text-primary">کنترل پایداری و بهینه‌سازی</span>
+          <span className="text-xs font-bold text-text-primary">کنترل پایداری و بهینه‌سازی</span>
           <Activity
             aria-hidden="true"
-            className="w-4 h-4 text-accent4"
+            className="size-4 text-accent4"
             style={{ color: "var(--accent4)" }}
           />
         </div>
@@ -112,7 +112,7 @@ export default function StabilitySection({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6, transition: TRANSITION_EXIT_QUICK }}
             transition={TRANSITION_ENTER_QUICK}
-            className="theme-card-bg-solid border-t border-accent3-medium/30 p-4 space-y-4 overflow-hidden"
+            className="bg-card-bg-solid border-t border-accent3-medium/30 p-4 space-y-4 overflow-hidden"
           >
             <StabilitySectionContent
               animationsEnabled={animationsEnabled}

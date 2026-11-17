@@ -59,7 +59,7 @@ export default function TrellisWorkspace({
   return (
     <div
       dir="ltr"
-      className="trellis-rtl-host relative h-full min-h-[460px] w-full flex-1 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-main)] shadow-xs"
+      className="trellis-rtl-host relative size-full min-h-[460px] flex-1 overflow-hidden rounded-2xl border border-border-color bg-bg-main shadow-xs"
     >
       <Workspace
         key={preset}
@@ -81,7 +81,7 @@ export default function TrellisWorkspace({
         <ViewType
           id="group"
           title={(view) => String(view.params.groupName || "گروه")}
-          icon={<Layers className="h-3.5 w-3.5" aria-hidden="true" />}
+          icon={<Layers className="size-3.5" aria-hidden="true" />}
           closable={false}
           minSize={{ width: 240, height: 190 }}
           placement="stage"
@@ -102,7 +102,7 @@ export default function TrellisWorkspace({
         <ViewType
           id="segment"
           title={(view) => segmentTitleLookup(String(view.params.segmentId || ""))}
-          icon={<Cpu className="h-3.5 w-3.5" aria-hidden="true" />}
+          icon={<Cpu className="size-3.5" aria-hidden="true" />}
           closable={preset === "groups"}
           minSize={{ width: 170, height: 120 }}
           placement="stage"
@@ -120,14 +120,14 @@ export default function TrellisWorkspace({
 
         <Workspace.Empty>
           <div dir="rtl" className="flex flex-col items-center gap-3 p-6 text-center">
-            <p className="text-sm font-medium text-[var(--text-secondary)]">
+            <p className="text-sm font-medium text-text-secondary">
               هیچ پنلی در فضای آزاد باز نیست.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={handleResetLayout}
-                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-[var(--accent3)] px-4 text-xs font-bold text-[var(--accent3-foreground)]"
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-accent3 px-4 text-xs font-bold text-accent3-foreground"
               >
                 بازگردانی پنل‌ها
               </button>
@@ -137,9 +137,9 @@ export default function TrellisWorkspace({
                   setActiveModulesTab("add");
                   setActiveWorkspaceView("modules");
                 }}
-                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] px-4 text-xs font-semibold text-[var(--text-primary)]"
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-border-color bg-card-bg px-4 text-xs font-semibold text-text-primary"
               >
-                <Plus className="h-4 w-4" aria-hidden="true" />
+                <Plus className="size-4" aria-hidden="true" />
                 افزودن قطعه
               </button>
             </div>

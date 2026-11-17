@@ -90,7 +90,7 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
   );
 
   return (
-    <div className="relative flex h-full min-h-[480px] w-full flex-1 flex-col overflow-hidden bg-[var(--bg-main)]">
+    <div className="relative flex size-full min-h-[480px] flex-1 flex-col overflow-hidden bg-bg-main">
       <WorkflowHeaderBar
         workflows={studio.workflows}
         activeWorkflow={wf}
@@ -147,13 +147,13 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
                   : undefined
               }
               onPointerDown={(e) => e.stopPropagation()}
-              className="absolute top-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-[var(--accent3)]/45 bg-[var(--card-bg-solid)]/95 px-3 py-1.5 text-[11px] font-bold text-[var(--accent3)] shadow-lg backdrop-blur-md lg:hidden"
+              className="absolute top-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-accent3/45 bg-card-bg-solid/95 px-3 py-1.5 text-[11px] font-bold text-accent3 shadow-lg backdrop-blur-md lg:hidden"
             >
               <span className="whitespace-nowrap">پورت ورودی گره مقصد را انتخاب کنید</span>
               <button
                 type="button"
                 onClick={() => studio.setConnectingFromId(null)}
-                className="cursor-pointer rounded-md bg-[var(--accent3)] px-2 py-0.5 text-[10px] text-[var(--accent3-foreground)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97]"
+                className="cursor-pointer rounded-md bg-accent3 px-2 py-0.5 text-[10px] text-accent3-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
               >
                 لغو
               </button>
@@ -176,11 +176,9 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
               }
               className="pointer-events-none absolute inset-0 flex items-center justify-center p-6"
             >
-              <div className="max-w-sm rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--card-bg-solid)]/80 px-5 py-4 text-center backdrop-blur-sm">
-                <p className="text-xs font-bold text-[var(--text-primary)]">
-                  بوم مدار آماده سیم‌کشی است
-                </p>
-                <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">
+              <div className="max-w-sm rounded-2xl border border-dashed border-border-color bg-card-bg-solid/95 px-5 py-4 text-center shadow-xs">
+                <p className="text-xs font-bold text-text-primary">بوم مدار آماده سیم‌کشی است</p>
+                <p className="mt-1 text-[11px] leading-5 text-text-muted">
                   از کتابخانه سمت چپ، گیت‌های منطقی (AND / OR / NOT)، محرک‌ها یا قطعات را به داخل بوم
                   بکشید. برای جابه‌جایی صفحه، روی بوم کلیک راست کرده و بکشید.
                 </p>
@@ -195,7 +193,7 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
             transform: `translate3d(${wf.viewport.x}px, ${wf.viewport.y}px, 0) scale(${wf.viewport.zoom})`,
             transformOrigin: "0 0",
           }}
-          className="pointer-events-none absolute top-0 left-0 h-0 w-0 overflow-visible"
+          className="pointer-events-none absolute top-0 left-0 size-0 overflow-visible"
         >
           <WorkflowWiresSvg
             nodes={wf.nodes}

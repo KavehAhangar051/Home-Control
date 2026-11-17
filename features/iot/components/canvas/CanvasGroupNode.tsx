@@ -18,6 +18,7 @@ import type {
   CanvasSubMode,
 } from "./canvasTypes";
 import NodePerimeterSpark from "./NodePerimeterSpark";
+import { resolveCanvasNodeMotionState } from "./nodeMotion";
 
 interface CanvasGroupNodeProps extends CanvasGroupHandlers {
   nodeId: string;
@@ -45,19 +46,19 @@ function resolveGroupBorderClass(
   isSelected: boolean,
   activeCount: number,
 ): string {
-  if (isDragging) return "border-[var(--accent3)] ring-2 ring-[var(--accent3)]/40 shadow-2xl";
-  if (isSelected) return "border-[var(--accent3)] ring-2 ring-[var(--accent3)]/35 shadow-xl";
-  if (activeCount > 0) return "border-[var(--accent3)]/65 shadow-md";
-  return "border-[var(--border-color)] shadow-sm";
+  if (isDragging) return "border-accent3 ring-2 ring-accent3/40 shadow-2xl";
+  if (isSelected) return "border-accent3 ring-2 ring-accent3/35 shadow-xl";
+  if (activeCount > 0) return "border-accent3/65 shadow-sm";
+  return "border-border-color shadow-xs";
 }
 
 function renderGroupHeaderIcon(groupIcon?: string) {
   if (!groupIcon) {
-    return React.createElement(ICON_MAP.Layers, { className: "h-4 w-4" });
+    return React.createElement(ICON_MAP.Layers, { className: "size-4" });
   }
 
   if (hasIcon(groupIcon)) {
-    return React.createElement(getSegmentIcon(groupIcon), { className: "h-4 w-4" });
+    return React.createElement(getSegmentIcon(groupIcon), { className: "size-4" });
   }
 
   return <span className="text-sm leading-none">{groupIcon}</span>;
@@ -95,16 +96,16 @@ function CanvasGroupGraphPort({
       />
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute top-1/2 -left-2 z-30 h-4 w-4 -translate-y-1/2 rounded-full border-2 transition-colors ${
+        className={`pointer-events-none absolute top-1/2 -left-2 z-30 size-4 -translate-y-1/2 rounded-full border-2 transition-colors ${
           active
-            ? "border-[var(--accent3)] bg-[var(--accent3)] shadow-[0_0_10px_var(--accent3)]"
-            : "border-[var(--border-color)] bg-[var(--card-bg-solid)]"
+            ? "border-accent3 bg-accent3 shadow-[0_0_10px_var(--accent3)]"
+            : "border-border-color bg-card-bg-solid"
         }`}
       >
         {active && animationsEnabled && (
           <span
             aria-hidden="true"
-            className="animate-port-wakeup pointer-events-none absolute inset-0 rounded-full border border-[var(--accent3)]"
+            className="animate-port-wakeup pointer-events-none absolute inset-0 rounded-full border border-accent3"
           />
         )}
       </div>
@@ -143,28 +144,28 @@ function CanvasGroupHeader({
         if (e.button === 0) onStartDrag(nodeId, e);
       }}
       style={{ touchAction: "none" }}
-      className={`flex shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-[var(--border-color)] bg-[var(--card-hover-bg)] px-4 py-2.5 ${
+      className={`flex shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-border-color bg-card-hover-bg px-4 py-2.5 ${
         isLocked ? "cursor-default" : "cursor-grab active:cursor-grabbing"
       }`}
     >
       <div className="flex min-w-0 items-center gap-2">
         <GripHorizontal
-          className="h-4 w-4 shrink-0 text-[var(--text-muted)]"
+          className="size-4 shrink-0 text-text-muted"
           aria-hidden="true"
           strokeWidth={1.5}
         />
         <div
           aria-hidden="true"
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] text-[var(--text-secondary)]"
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border-color bg-card-bg text-text-secondary"
         >
           {renderGroupHeaderIcon(groupIcon)}
         </div>
 
         <div className="min-w-0">
-          <h3 className="truncate font-sans text-xs font-medium text-[var(--text-primary)] sm:text-sm">
+          <h3 className="truncate font-sans text-xs font-medium text-text-primary sm:text-sm">
             {groupName}
           </h3>
-          <span className="block text-[11px] font-normal tabular-nums text-[var(--text-muted)]">
+          <span className="block text-[11px] font-normal tabular-nums text-text-muted">
             {segmentCount} قطعه · {activeCount} فعال
           </span>
         </div>
@@ -180,9 +181,9 @@ function CanvasGroupHeader({
           type="button"
           onClick={() => onAddPlaceholder(groupName)}
           aria-label={`افزودن قطعه به ${groupName}`}
-          className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] px-2 text-xs font-medium text-[var(--text-primary)] transition-colors duration-150 hover:bg-[var(--accent3)] hover:text-[var(--accent3-foreground)]"
+          className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-border-color bg-card-bg px-2 text-xs font-medium text-text-primary transition-colors duration-150 hover:bg-accent3 hover:text-accent3-foreground"
         >
-          <Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+          <Plus className="size-3.5 shrink-0" strokeWidth={1.75} />
           {!isCompactContainer && <span>قطعه</span>}
         </button>
 
@@ -227,15 +228,12 @@ export default React.memo(function CanvasGroupNode({
   const { activeCount, controllableCount } = countGroupSegments(groupSegments, pinsState);
   const borderClass = resolveGroupBorderClass(isDragging, isSelected, activeCount);
   const zIndex = isDragging ? 950 : isSelected ? 890 : rect.zIndex;
-
-  const animateState = animationsEnabled
-    ? {
-        opacity: 1,
-        scale: isDragging ? 1.016 : 1,
-        rotate: isDragging ? dragTiltDeg : 0,
-        y: isDragging ? -2 : 0,
-      }
-    : { opacity: 1, scale: 1, rotate: 0, y: 0 };
+  const animateState = resolveCanvasNodeMotionState(
+    animationsEnabled,
+    isDragging,
+    dragTiltDeg,
+    1.016,
+  );
 
   return (
     <div
@@ -256,7 +254,7 @@ export default React.memo(function CanvasGroupNode({
         initial={animationsEnabled ? { opacity: 0, scale: 0.95, y: 8 } : false}
         animate={animateState}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        className={`relative flex h-full w-full flex-col rounded-2xl border bg-[var(--card-bg-solid)] text-right transition-[border-color,box-shadow] duration-150 ${borderClass}`}
+        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-[border-color,box-shadow] duration-150 ${borderClass}`}
       >
         {subMode === "graph" && (
           <CanvasGroupGraphPort active={activeCount > 0} animationsEnabled={animationsEnabled} />
@@ -298,7 +296,7 @@ export default React.memo(function CanvasGroupNode({
             kind="group"
             ariaLabel={`تغییر اندازه گروه ${groupName}`}
             isSelected={isSelected}
-            cornerRadiusClass="h-4 w-4 rounded-bl-[18px]"
+            cornerRadiusClass="size-4 rounded-bl-[18px]"
             onStartResize={onStartResize}
           />
         )}

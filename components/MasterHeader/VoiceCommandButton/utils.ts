@@ -189,11 +189,7 @@ export function getSimilarity(a: string, b: string): number {
       const ins = row[j - 1] + 1;
       const sub = prevDiag + cost;
 
-      let min = del < ins ? del : ins;
-
-      if (sub < min) min = sub;
-
-      row[j] = min;
+      row[j] = Math.min(del, ins, sub);
       prevDiag = temp;
     }
   }
@@ -227,14 +223,34 @@ export interface VoiceCommandExecutionResult {
   skippedPins: string[];
 }
 
+type VoiceSegmentItem = NonNullable<VoiceCommandExecutionContext["segments"]>[number];
+type CustomVoiceCommandItem = NonNullable<VoiceCommandExecutionContext["voiceCommands"]>[number];
+type VoiceMacroItem = NonNullable<VoiceCommandExecutionContext["macros"]>[number];
+
 interface ExtractedSegmentIntent {
   targetState: boolean | null;
   segmentName: string;
 }
 
+function buildSegmentsByPinIndex(
+  segments: ReadonlyArray<VoiceSegmentItem>,
+): Map<string, VoiceSegmentItem> {
+  const index = new Map<string, VoiceSegmentItem>();
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+
+    if (seg.pin) {
+      index.set(seg.pin.trim(), seg);
+    }
+  }
+
+  return index;
+}
+
 function isControllableOutputPin(
   pin: string,
-  segmentsByPin: Map<string, NonNullable<VoiceCommandExecutionContext["segments"]>[number]>,
+  segmentsByPin: Map<string, VoiceSegmentItem>,
 ): boolean {
   const seg = segmentsByPin.get(pin);
 
@@ -304,6 +320,115 @@ function extractSegmentIntent(cleanTranscript: string): ExtractedSegmentIntent {
   return { targetState: null, segmentName: "" };
 }
 
+function findBestCustomVoiceCommand(
+  voiceCommands: ReadonlyArray<CustomVoiceCommandItem> | undefined,
+  normalizedTranscript: string,
+): CustomVoiceCommandItem | null {
+  if (!voiceCommands?.length) return null;
+
+  let bestMatchCmd: CustomVoiceCommandItem | null = null;
+  let highestSim = 0;
+
+  for (let i = 0; i < voiceCommands.length; i++) {
+    const command = voiceCommands[i];
+    const normalizedPhrase = normalizePhonetics(command.phrase);
+
+    if (!normalizedPhrase) continue;
+
+    const similarity = getSimilarity(normalizedPhrase, normalizedTranscript);
+
+    if (similarity > highestSim && similarity >= VOICE_SIMILARITY_THRESHOLD) {
+      highestSim = similarity;
+      bestMatchCmd = command;
+    }
+  }
+
+  return bestMatchCmd;
+}
+
+function collectCustomCommandActions(
+  command: CustomVoiceCommandItem,
+  macros: ReadonlyArray<VoiceMacroItem> | undefined,
+  segmentsByPin: Map<string, VoiceSegmentItem>,
+): {
+  batchActions: Array<{ targetPin: string; actionOn: boolean }>;
+  skippedPins: string[];
+} {
+  const dedupedActions = new Map<string, boolean>();
+  const skippedPins: string[] = [];
+  let macroMap: Map<string, VoiceMacroItem> | null = null;
+  const actions = command.actions ?? [];
+
+  const recordPinCandidate = (rawPin: string | undefined, actionOn: boolean) => {
+    const pin = rawPin?.trim();
+
+    if (!pin) return;
+
+    if (isControllableOutputPin(pin, segmentsByPin)) {
+      dedupedActions.set(pin, actionOn);
+    } else {
+      skippedPins.push(pin);
+    }
+  };
+
+  for (let i = 0; i < actions.length; i++) {
+    const action = actions[i];
+
+    if (action.targetPin?.trim()) {
+      recordPinCandidate(action.targetPin, action.actionOn ?? true);
+      continue;
+    }
+
+    if (action.targetMacro && macros?.length) {
+      if (!macroMap) {
+        macroMap = new Map();
+
+        for (let m = 0; m < macros.length; m++) {
+          macroMap.set(macros[m].id, macros[m]);
+        }
+      }
+
+      const macro = macroMap.get(action.targetMacro);
+
+      if (macro) {
+        for (let j = 0; j < macro.actions.length; j++) {
+          recordPinCandidate(macro.actions[j].targetPin, macro.actions[j].actionOn);
+        }
+      }
+    }
+  }
+
+  const batchActions = Array.from(dedupedActions, ([targetPin, actionOn]) => ({
+    targetPin,
+    actionOn,
+  }));
+
+  return { batchActions, skippedPins };
+}
+
+function findBestMatchingOutputSegment(
+  segments: ReadonlyArray<VoiceSegmentItem>,
+  normalizedSegmentName: string,
+): VoiceSegmentItem | null {
+  let bestSegment: VoiceSegmentItem | null = null;
+  let highestSegmentSimilarity = 0;
+
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+
+    if (!segment.pin || segment.type === "input" || segment.type === "placeholder") continue;
+
+    const similarity = getSimilarity(normalizePhonetics(segment.title), normalizedSegmentName);
+
+    if (similarity > highestSegmentSimilarity && similarity >= VOICE_SIMILARITY_THRESHOLD) {
+      highestSegmentSimilarity = similarity;
+      bestSegment = segment;
+    }
+  }
+
+  return bestSegment;
+}
+
 /**
  * Deep voice command resolution engine:
  * Encapsulates phonetic normalization, Levenshtein distance similarity,
@@ -322,97 +447,19 @@ export function executeVoiceCommand(
 
   const normalizedTranscript = normalizePhonetics(cleanTranscript);
   const segments = context.segments ?? [];
-
-  const segmentsByPin = new Map<
-    string,
-    NonNullable<VoiceCommandExecutionContext["segments"]>[number]
-  >();
-
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i];
-
-    if (seg.pin) {
-      segmentsByPin.set(seg.pin.trim(), seg);
-    }
-  }
+  const segmentsByPin = buildSegmentsByPinIndex(segments);
 
   // 1. Try matching configured custom voice commands
-  let bestMatchCmd: NonNullable<VoiceCommandExecutionContext["voiceCommands"]>[number] | null =
-    null;
-
-  let highestSim = 0;
-  const voiceCommands = context.voiceCommands;
-
-  if (voiceCommands) {
-    for (let i = 0; i < voiceCommands.length; i++) {
-      const command = voiceCommands[i];
-      const normalizedPhrase = normalizePhonetics(command.phrase);
-
-      if (!normalizedPhrase) continue;
-
-      const similarity = getSimilarity(normalizedPhrase, normalizedTranscript);
-
-      if (similarity > highestSim && similarity >= VOICE_SIMILARITY_THRESHOLD) {
-        highestSim = similarity;
-        bestMatchCmd = command;
-      }
-    }
-  }
+  const bestMatchCmd = findBestCustomVoiceCommand(context.voiceCommands, normalizedTranscript);
 
   if (bestMatchCmd) {
-    const dedupedActions = new Map<string, boolean>();
-    const skippedPins: string[] = [];
+    const { batchActions, skippedPins } = collectCustomCommandActions(
+      bestMatchCmd,
+      context.macros,
+      segmentsByPin,
+    );
 
-    let macroMap: Map<string, NonNullable<VoiceCommandExecutionContext["macros"]>[number]> | null =
-      null;
-
-    const actions = bestMatchCmd.actions ?? [];
-
-    for (let i = 0; i < actions.length; i++) {
-      const action = actions[i];
-      const directPin = action.targetPin?.trim();
-
-      if (directPin) {
-        if (isControllableOutputPin(directPin, segmentsByPin)) {
-          dedupedActions.set(directPin, action.actionOn ?? true);
-        } else {
-          skippedPins.push(directPin);
-        }
-      } else if (action.targetMacro && context.macros?.length) {
-        if (!macroMap) {
-          macroMap = new Map();
-
-          for (let m = 0; m < context.macros.length; m++) {
-            const item = context.macros[m];
-            macroMap.set(item.id, item);
-          }
-        }
-
-        const macro = macroMap.get(action.targetMacro);
-
-        if (macro) {
-          for (let j = 0; j < macro.actions.length; j++) {
-            const macroAction = macro.actions[j];
-            const macroPin = macroAction.targetPin?.trim();
-
-            if (macroPin) {
-              if (isControllableOutputPin(macroPin, segmentsByPin)) {
-                dedupedActions.set(macroPin, macroAction.actionOn);
-              } else {
-                skippedPins.push(macroPin);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    if (dedupedActions.size > 0) {
-      const batchActions = Array.from(dedupedActions, ([targetPin, actionOn]) => ({
-        targetPin,
-        actionOn,
-      }));
-
+    if (batchActions.length > 0) {
       const dispatchResult = context.handleBatchPinState(batchActions);
       finalizeDispatchToast(
         dispatchResult,
@@ -440,22 +487,7 @@ export function executeVoiceCommand(
   const { targetState, segmentName } = extractSegmentIntent(cleanTranscript);
 
   if (targetState !== null && segmentName) {
-    const normalizedSegmentName = normalizePhonetics(segmentName);
-    let bestSegment: NonNullable<VoiceCommandExecutionContext["segments"]>[number] | null = null;
-    let highestSegmentSimilarity = 0;
-
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
-
-      if (!segment.pin || segment.type === "input" || segment.type === "placeholder") continue;
-
-      const similarity = getSimilarity(normalizePhonetics(segment.title), normalizedSegmentName);
-
-      if (similarity > highestSegmentSimilarity && similarity >= VOICE_SIMILARITY_THRESHOLD) {
-        highestSegmentSimilarity = similarity;
-        bestSegment = segment;
-      }
-    }
+    const bestSegment = findBestMatchingOutputSegment(segments, normalizePhonetics(segmentName));
 
     if (bestSegment) {
       const pinCheck = validateEsp32Pin(bestSegment.pin, "output");

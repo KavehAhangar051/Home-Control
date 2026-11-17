@@ -45,10 +45,10 @@ export default function DashboardBreadcrumb() {
   return (
     <header
       dir="rtl"
-      className="relative flex h-14 w-full shrink-0 items-center justify-between gap-3 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] px-3 sm:px-4 md:px-8"
+      className="relative flex h-14 w-full shrink-0 items-center justify-between gap-3 border-b border-sidebar-border bg-sidebar-bg px-3 sm:px-4 md:px-8"
     >
       <Breadcrumb dir="rtl" className="relative z-10 min-w-0 shrink-0">
-        <BreadcrumbList className="gap-1.5 text-sm text-[var(--sidebar-muted)] sm:gap-2">
+        <BreadcrumbList className="gap-1.5 text-sm text-sidebar-muted sm:gap-2">
           <BreadcrumbItem className="hidden sm:inline-flex">
             <BreadcrumbLink
               href="#"
@@ -56,24 +56,24 @@ export default function DashboardBreadcrumb() {
                 event.preventDefault();
                 setActiveWorkspaceView("home");
               }}
-              className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 font-medium text-[var(--sidebar-muted)] transition-colors hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent3)]"
+              className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
             >
               <House className="size-4 shrink-0" aria-hidden="true" />
               <span>خانه</span>
             </BreadcrumbLink>
           </BreadcrumbItem>
-          <BreadcrumbSeparator className="hidden text-[var(--sidebar-muted)] opacity-60 sm:inline-flex" />
+          <BreadcrumbSeparator className="hidden text-sidebar-muted opacity-60 sm:inline-flex" />
           <BreadcrumbItem className="min-w-0">
-            <BreadcrumbPage className="inline-flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 font-semibold text-[var(--sidebar-text)]">
-              <ActiveIcon className="size-4 shrink-0 text-[var(--accent3)]" aria-hidden="true" />
+            <BreadcrumbPage className="inline-flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 font-semibold text-sidebar-text">
+              <ActiveIcon className="size-4 shrink-0 text-accent3" aria-hidden="true" />
               <span className="truncate">{activeMeta.title}</span>
             </BreadcrumbPage>
           </BreadcrumbItem>
           {subSectionTitle && (
             <>
-              <BreadcrumbSeparator className="hidden text-[var(--sidebar-muted)] opacity-60 sm:inline-flex" />
+              <BreadcrumbSeparator className="hidden text-sidebar-muted opacity-60 sm:inline-flex" />
               <BreadcrumbItem className="hidden min-w-0 sm:inline-flex">
-                <BreadcrumbPage className="truncate rounded-md px-1.5 py-1 text-xs font-medium text-[var(--sidebar-muted)]">
+                <BreadcrumbPage className="truncate rounded-md px-1.5 py-1 text-xs font-medium text-sidebar-muted">
                   {subSectionTitle}
                 </BreadcrumbPage>
               </BreadcrumbItem>

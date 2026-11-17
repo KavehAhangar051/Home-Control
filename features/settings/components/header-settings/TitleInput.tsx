@@ -1,3 +1,6 @@
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 interface TitleInputProps {
   headerTitle: string;
   setHeaderTitle: (val: string) => void;
@@ -12,24 +15,21 @@ export default function TitleInput({ headerTitle, setHeaderTitle }: TitleInputPr
         <button
           type="button"
           onClick={handleResetTitle}
-          className="text-xs theme-text-muted hover:text-[var(--text-primary)] transition-colors underline decoration-dotted cursor-pointer"
+          className="text-xs text-text-muted hover:text-text-primary transition-colors underline decoration-dotted cursor-pointer"
         >
           بازنشانی عنوان
         </button>
-        <label
-          htmlFor="dashboard-header-title"
-          className="font-medium text-xs theme-text-secondary"
-        >
+        <Label htmlFor="dashboard-header-title" className="font-medium text-xs text-text-secondary">
           عنوان هدر
-        </label>
+        </Label>
       </div>
-      <input
+      <Input
         id="dashboard-header-title"
         type="text"
         value={headerTitle}
         onChange={(e) => setHeaderTitle(e.target.value)}
         maxLength={50}
-        className="w-full px-3 py-2.5 text-xs text-right bg-[var(--bg-main)] border border-[var(--border-color)] theme-text-primary rounded-lg focus:outline-none focus:border-[var(--accent3)] transition-colors"
+        className="w-full px-3 py-2.5 text-xs text-right bg-bg-main border-border-color text-text-primary rounded-lg focus:border-accent3"
         placeholder="مثال: کنترل‌گر هوشمند خانه"
       />
     </div>

@@ -165,7 +165,7 @@ export default function AudioSection() {
     <div className="space-y-6">
       <AudioToggleButton isMusicOn={isMusicOn} isLoading={isLoading} onToggle={handleToggle} />
       {playbackError && (
-        <p role="alert" className="text-xs text-red-400 text-right" aria-live="polite">
+        <p role="alert" className="text-xs text-destructive text-right" aria-live="polite">
           {playbackError}
         </p>
       )}

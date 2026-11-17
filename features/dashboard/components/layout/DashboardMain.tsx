@@ -34,7 +34,7 @@ function resolveScrollContainerClass(params: {
     return "overflow-hidden gap-3 p-2 md:p-4";
   }
 
-  return "overflow-y-auto gap-8 p-3 md:p-6 md:pb-8 md:px-8";
+  return "overflow-y-auto gap-fluid-md p-fluid-sm md:p-6 md:pb-8 md:px-8";
 }
 
 function shouldDisplayHomeBanner(params: {
@@ -87,7 +87,7 @@ export default function DashboardMain() {
       <div
         id="dashboard-workspace-scroll"
         tabIndex={-1}
-        className={`custom-scrollbar flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col w-full focus:outline-none ${scrollModeClass}`}
+        className={`@container/workspace custom-scrollbar flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col w-full focus:outline-none ${scrollModeClass}`}
       >
         {showBanner && (
           <LowDataModeBanner
@@ -105,7 +105,7 @@ export default function DashboardMain() {
 
       <footer
         dir="rtl"
-        className="relative z-30 flex h-14 w-full shrink-0 items-center justify-end border-t border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] px-4 md:px-8"
+        className="relative z-30 flex h-14 w-full shrink-0 items-center justify-end border-t border-sidebar-border bg-sidebar-bg px-4 md:px-8"
       >
         <div
           id="dashboard-footer-center"

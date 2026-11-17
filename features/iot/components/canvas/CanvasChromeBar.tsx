@@ -58,12 +58,12 @@ export default function CanvasChromeBar({
           : "pointer-events-none absolute inset-x-0 bottom-2.5 z-40 flex items-center justify-center px-2"
       }
     >
-      <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg-solid)]/95 px-2 py-1 text-xs shadow-lg backdrop-blur-xl [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+      <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-border-color bg-card-bg-solid/95 px-2 py-1 text-xs shadow-lg backdrop-blur-xl [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
         {/* Home Dashboard Sub-mode switcher: Group Sheets | Segment Nodes */}
         {workspaceScope === "home" && (
           <fieldset
             aria-label="حالت نمایش شیت بوم"
-            className="m-0 inline-flex shrink-0 items-center gap-0.5 rounded-xl border-0 bg-[var(--secondary)] p-0.5"
+            className="m-0 inline-flex shrink-0 items-center gap-0.5 rounded-xl border-0 bg-secondary p-0.5"
           >
             <button
               type="button"
@@ -71,11 +71,11 @@ export default function CanvasChromeBar({
               onClick={() => onChangeSubMode("groups")}
               className={`inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-colors ${
                 subMode === "groups"
-                  ? "bg-[var(--accent3)] text-[var(--accent3-foreground)] shadow-2xs"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  ? "bg-accent3 text-accent3-foreground shadow-2xs"
+                  : "text-text-muted hover:text-text-primary"
               }`}
             >
-              <Layers className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <Layers className="size-3.5 shrink-0" aria-hidden="true" />
               <span>گروه‌ها</span>
             </button>
 
@@ -85,11 +85,11 @@ export default function CanvasChromeBar({
               onClick={() => onChangeSubMode("segments")}
               className={`inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-colors ${
                 subMode === "segments"
-                  ? "bg-[var(--accent3)] text-[var(--accent3-foreground)] shadow-2xs"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  ? "bg-accent3 text-accent3-foreground shadow-2xs"
+                  : "text-text-muted hover:text-text-primary"
               }`}
             >
-              <LayoutGrid className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <LayoutGrid className="size-3.5 shrink-0" aria-hidden="true" />
               <span>قطعات</span>
             </button>
           </fieldset>
@@ -98,7 +98,7 @@ export default function CanvasChromeBar({
         {/* Zoom & Fit Controls */}
         <div
           className={`flex shrink-0 items-center gap-0.5 ${
-            workspaceScope === "home" ? "border-r border-[var(--border-color)] pr-1" : ""
+            workspaceScope === "home" ? "border-r border-border-color pr-1" : ""
           }`}
         >
           <Tooltip>
@@ -108,9 +108,9 @@ export default function CanvasChromeBar({
                   type="button"
                   onClick={onZoomOut}
                   aria-label="کوچک‌نمایی شیت"
-                  className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
+                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary"
                 >
-                  <Minus className="h-3.5 w-3.5" aria-hidden="true" />
+                  <Minus className="size-3.5" aria-hidden="true" />
                 </button>
               }
             />
@@ -121,7 +121,7 @@ export default function CanvasChromeBar({
             type="button"
             onClick={onFitView}
             aria-label="تنظیم بزرگ‌نمایی روی نمای کلی"
-            className="inline-flex h-7 min-w-[44px] cursor-pointer items-center justify-center rounded-lg px-1.5 text-[11px] font-bold tabular-nums text-[var(--text-primary)] transition-colors hover:bg-[var(--secondary)]"
+            className="inline-flex h-7 min-w-[44px] cursor-pointer items-center justify-center rounded-lg px-1.5 text-[11px] font-bold tabular-nums text-text-primary transition-colors hover:bg-secondary"
           >
             {Math.round(zoom * 100)}%
           </button>
@@ -133,9 +133,9 @@ export default function CanvasChromeBar({
                   type="button"
                   onClick={onZoomIn}
                   aria-label="بزرگ‌نمایی شیت"
-                  className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
+                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary"
                 >
-                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                  <Plus className="size-3.5" aria-hidden="true" />
                 </button>
               }
             />
@@ -149,9 +149,9 @@ export default function CanvasChromeBar({
                   type="button"
                   onClick={onFitView}
                   aria-label="نمای کلی شیت"
-                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--secondary)] px-2 text-[11px] font-semibold text-[var(--text-primary)] transition-colors hover:border-[var(--accent3)]"
+                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-border-color bg-secondary px-2 text-[11px] font-semibold text-text-primary transition-colors hover:border-accent3"
                 >
-                  <Maximize className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <Maximize className="size-3.5 shrink-0" aria-hidden="true" />
                   <span className="hidden md:inline">نمای کلی</span>
                 </button>
               }
@@ -161,7 +161,7 @@ export default function CanvasChromeBar({
         </div>
 
         {/* Snap, Lock, and Reset Layout */}
-        <div className="flex shrink-0 items-center gap-0.5 border-r border-[var(--border-color)] pr-1">
+        <div className="flex shrink-0 items-center gap-0.5 border-r border-border-color pr-1">
           <Tooltip>
             <TooltipTrigger
               render={
@@ -170,13 +170,13 @@ export default function CanvasChromeBar({
                   aria-pressed={snapToGrid}
                   onClick={onToggleSnap}
                   aria-label="چسبندگی به شبکه شیت"
-                  className={`inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors ${
+                  className={`inline-flex size-7 cursor-pointer items-center justify-center rounded-lg transition-colors ${
                     snapToGrid
-                      ? "bg-[var(--accent3-transparent)] text-[var(--accent3)]"
-                      : "text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
+                      ? "bg-accent3-transparent text-accent3"
+                      : "text-text-muted hover:bg-secondary hover:text-text-primary"
                   }`}
                 >
-                  <Grid className="h-3.5 w-3.5" aria-hidden="true" />
+                  <Grid className="size-3.5" aria-hidden="true" />
                 </button>
               }
             />
@@ -195,14 +195,14 @@ export default function CanvasChromeBar({
                   aria-label={isLocked ? "باز کردن قفل جابه‌جایی" : "قفل کردن جابه‌جایی و تغییر سایز"}
                   className={`inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg px-2 text-[11px] font-semibold transition-colors ${
                     isLocked
-                      ? "bg-amber-500/15 text-amber-500"
-                      : "text-[var(--text-muted)] hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
+                      ? "bg-warning-soft text-warning"
+                      : "text-text-muted hover:bg-secondary hover:text-text-primary"
                   }`}
                 >
                   {isLocked ? (
-                    <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <Lock className="size-3.5 shrink-0" aria-hidden="true" />
                   ) : (
-                    <Unlock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <Unlock className="size-3.5 shrink-0" aria-hidden="true" />
                   )}
                   <span className="hidden lg:inline">{isLocked ? "قفل شده" : "آزاد"}</span>
                 </button>
@@ -222,9 +222,9 @@ export default function CanvasChromeBar({
                   type="button"
                   onClick={onResetLayout}
                   aria-label="چیدمان خودکار شیت"
-                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg px-2 text-[11px] font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--text-primary)]"
+                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg px-2 text-[11px] font-medium text-text-muted transition-colors hover:bg-secondary hover:text-text-primary"
                 >
-                  <RotateCcw className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <RotateCcw className="size-3.5 shrink-0" aria-hidden="true" />
                   <span className="hidden xl:inline">مرتب‌سازی</span>
                 </button>
               }

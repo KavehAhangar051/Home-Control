@@ -21,6 +21,7 @@ import { SPRING_MOUSE, SPRING_PANEL } from "@/lib/ease";
 import CanvasResizeHandles from "./CanvasResizeHandles";
 import type { CanvasNodeRect, CanvasResizeDirection } from "./canvasTypes";
 import NodePerimeterSpark from "./NodePerimeterSpark";
+import { resolveCanvasNodeMotionState } from "./nodeMotion";
 
 interface CanvasSegmentNodeProps extends TrellisSegmentHandlers {
   nodeId: string;
@@ -51,17 +52,17 @@ function resolveSegmentBorderClass(
   isPinOn: boolean,
   isInput: boolean,
 ): string {
-  if (isDragging) return "border-[var(--accent3)] ring-2 ring-[var(--accent3)]/40 shadow-2xl";
-  if (isSelected) return "border-[var(--accent3)] ring-2 ring-[var(--accent3)]/35 shadow-lg";
-  if (!isPinOn) return "border-[var(--border-color)] shadow-xs";
-  return isInput ? "border-emerald-500 shadow-sm" : "border-[var(--accent3)] shadow-sm";
+  if (isDragging) return "border-accent3 ring-2 ring-accent3/40 shadow-2xl";
+  if (isSelected) return "border-accent3 ring-2 ring-accent3/35 shadow-lg";
+  if (!isPinOn) return "border-border-color shadow-xs";
+  return isInput ? "border-success shadow-sm" : "border-accent3 shadow-sm";
 }
 
 function resolveSegmentPortClass(isPinOn: boolean, isInput: boolean): string {
-  if (!isPinOn) return "border-[var(--border-color)] bg-[var(--card-bg-solid)]";
+  if (!isPinOn) return "border-border-color bg-card-bg-solid";
   return isInput
-    ? "border-emerald-400 bg-emerald-500 shadow-[0_0_8px_#10b981]"
-    : "border-[var(--accent3)] bg-[var(--accent3)] shadow-[0_0_8px_var(--accent3)]";
+    ? "border-success bg-success shadow-[0_0_8px_var(--success)]"
+    : "border-accent3 bg-accent3 shadow-[0_0_8px_var(--accent3)]";
 }
 
 function resolveSegmentZIndex(
@@ -74,20 +75,6 @@ function resolveSegmentZIndex(
   if (isDragging) return 950;
   if (isSelected) return 900;
   return baseZIndex;
-}
-
-function resolveSegmentAnimateState(
-  animationsEnabled: boolean,
-  isDragging: boolean,
-  dragTiltDeg: number,
-) {
-  if (!animationsEnabled) return { opacity: 1, scale: 1, rotate: 0, y: 0 };
-  return {
-    opacity: 1,
-    scale: isDragging ? 1.022 : 1,
-    rotate: isDragging ? dragTiltDeg : 0,
-    y: isDragging ? -2 : 0,
-  };
 }
 
 function CanvasSegmentGraphOverlay({
@@ -105,12 +92,12 @@ function CanvasSegmentGraphOverlay({
         active={isPinOn}
         animationsEnabled={animationsEnabled}
         radius={16}
-        color={isInput ? "#10b981" : "var(--accent3)"}
+        color={isInput ? "var(--success)" : "var(--accent3)"}
         speed="flow"
       />
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute top-1/2 -right-2 z-30 h-3.5 w-3.5 -translate-y-1/2 rounded-full border-2 transition-colors ${resolveSegmentPortClass(
+        className={`pointer-events-none absolute top-1/2 -right-2 z-30 size-3.5 -translate-y-1/2 rounded-full border-2 transition-colors ${resolveSegmentPortClass(
           isPinOn,
           isInput,
         )}`}
@@ -132,15 +119,13 @@ function CanvasPlaceholderBody({
     <button
       type="button"
       onClick={() => onSetupPlaceholder?.(segmentId)}
-      className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1.5 border-0 bg-transparent p-2 text-center"
+      className="flex size-full cursor-pointer flex-col items-center justify-center gap-1.5 border-0 bg-transparent p-2 text-center"
     >
-      <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--accent3-transparent)] text-[var(--accent3)]">
-        <Plus className="h-4 w-4" strokeWidth={2.5} />
+      <div className="flex size-8 items-center justify-center rounded-xl border border-border-color bg-accent3-transparent text-accent3">
+        <Plus className="size-4" strokeWidth={2.5} />
       </div>
       {!isUltraCompact && (
-        <span className="font-sans text-xs font-bold text-[var(--text-primary)]">
-          تخصیص قطعه هوشمند
-        </span>
+        <span className="font-sans text-xs font-bold text-text-primary">تخصیص قطعه هوشمند</span>
       )}
     </button>
   );
@@ -199,19 +184,14 @@ function CanvasSegmentHeader({
       onPointerDown={(e) => {
         if (e.button === 0) onStartDrag(nodeId, e);
       }}
-      className={`flex h-8 shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-[var(--border-color)]/60 bg-[var(--secondary)]/65 px-3.5 text-[11px] ${
+      className={`flex h-8 shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-border-color/60 bg-secondary/65 px-3.5 text-[11px] ${
         isLocked ? "cursor-default" : "cursor-grab active:cursor-grabbing"
       }`}
       style={{ touchAction: "none" }}
     >
       <div className="flex min-w-0 items-center gap-1.5">
-        <GripHorizontal
-          className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]"
-          aria-hidden="true"
-        />
-        <span className="truncate font-semibold text-[var(--text-muted)]">
-          {segment.group || "Test"}
-        </span>
+        <GripHorizontal className="size-3.5 shrink-0 text-text-muted" aria-hidden="true" />
+        <span className="truncate font-semibold text-text-muted">{segment.group || "Test"}</span>
       </div>
 
       <div
@@ -309,7 +289,12 @@ export default React.memo(function CanvasSegmentNode({
   const isPlaceholder = segment.type === "placeholder";
   const surfaceBorderClass = resolveSegmentBorderClass(isDragging, isSelected, isPinOn, isInput);
   const zIndex = resolveSegmentZIndex(isSettingsOpen, isDragging, isSelected, rect.zIndex);
-  const animateState = resolveSegmentAnimateState(animationsEnabled, isDragging, dragTiltDeg);
+  const animateState = resolveCanvasNodeMotionState(
+    animationsEnabled,
+    isDragging,
+    dragTiltDeg,
+    1.022,
+  );
 
   return (
     <div
@@ -330,7 +315,7 @@ export default React.memo(function CanvasSegmentNode({
         initial={animationsEnabled ? { opacity: 0, scale: 0.94, y: 8 } : false}
         animate={animateState}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        className="relative h-full w-full"
+        className="relative size-full"
       >
         {showPort && (
           <CanvasSegmentGraphOverlay
@@ -341,7 +326,7 @@ export default React.memo(function CanvasSegmentNode({
         )}
 
         <Card
-          className={`relative flex h-full w-full flex-col justify-between !gap-0 !overflow-visible !rounded-2xl !bg-[var(--card-bg-solid)] !p-0 !ring-0 border transition-[border-color,box-shadow] duration-150 ${surfaceBorderClass}`}
+          className={`relative flex size-full flex-col justify-between !gap-0 !overflow-visible !rounded-2xl !bg-card-bg-solid !p-0 !ring-0 border transition-[border-color,box-shadow] duration-150 ${surfaceBorderClass}`}
           style={CARD_SPACING_STYLE}
         >
           <CanvasSegmentHeader

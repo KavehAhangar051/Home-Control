@@ -1,4 +1,5 @@
 import { Check, X } from "@/components/ui/hugeicons";
+import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { AutomationAction, Macro, Segment } from "@/features/iot/hooks/store/types";
 import { VoiceCommandActionsEditor } from "./VoiceCommandActionsEditor";
@@ -27,13 +28,13 @@ export function VoiceCommandEditor({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <input
+        <Input
           type="text"
           aria-label="عبارت صوتی"
           value={newCommandPhrase}
           onChange={(e) => setNewCommandPhrase(e.target.value)}
           placeholder="عبارت صوتی (مثلاً: رقص نور)..."
-          className="flex-1 bg-[var(--card-bg-solid)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent3)] focus:ring-1 focus:ring-[var(--accent3)] transition-colors"
+          className="flex-1 bg-card-bg-solid border-border-color rounded-xl px-4 py-2.5 text-sm text-text-primary focus:border-accent3"
         />
         <Tooltip>
           <TooltipTrigger
@@ -41,10 +42,10 @@ export function VoiceCommandEditor({
               <button
                 type="button"
                 onClick={onSave}
-                className="p-2.5 bg-[var(--accent3)] text-[var(--bg-main)] rounded-xl hover:bg-[var(--accent3-dark)] transition-colors shadow-md shadow-[var(--accent3-transparent)]"
+                className="p-2.5 bg-accent3 text-bg-main rounded-xl hover:bg-accent3-dark transition-colors shadow-xs"
                 aria-label="ذخیره دستور صوتی"
               >
-                <Check className="w-4 h-4" />
+                <Check className="size-4" />
               </button>
             }
           />
@@ -56,10 +57,10 @@ export function VoiceCommandEditor({
               <button
                 type="button"
                 onClick={onCancel}
-                className="p-2.5 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-xl hover:border-[var(--accent4)] hover:text-[var(--accent4)] transition-colors bg-[var(--card-bg-solid)]"
+                className="p-2.5 border border-border-color text-text-secondary rounded-xl hover:border-accent4 hover:text-accent4 transition-colors bg-card-bg-solid"
                 aria-label="انصراف از ویرایش دستور صوتی"
               >
-                <X className="w-4 h-4" />
+                <X className="size-4" />
               </button>
             }
           />

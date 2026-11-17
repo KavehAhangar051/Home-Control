@@ -60,10 +60,10 @@ export default function GroupFilterSelector({
                 variant="ghost"
                 size={isCompact ? "icon-xs" : "icon-sm"}
                 onClick={goPrev}
-                className={`hidden md:inline-flex rounded-lg text-[var(--text-muted)] md:hover:bg-[var(--card-hover-bg)] md:hover:text-[var(--text-primary)] shrink-0 ${isCompact ? "p-1" : "p-1.5"}`}
+                className={`hidden md:inline-flex rounded-lg text-text-muted md:hover:bg-card-hover-bg md:hover:text-text-primary shrink-0 ${isCompact ? "p-1" : "p-1.5"}`}
                 aria-label="گروه قبلی"
               >
-                <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
+                <ChevronRight className="size-4" strokeWidth={1.5} />
               </Button>
             }
           />
@@ -111,10 +111,10 @@ export default function GroupFilterSelector({
                 variant="ghost"
                 size={isCompact ? "icon-xs" : "icon-sm"}
                 onClick={goNext}
-                className={`hidden md:inline-flex rounded-lg text-[var(--text-muted)] md:hover:bg-[var(--card-hover-bg)] md:hover:text-[var(--text-primary)] shrink-0 ${isCompact ? "p-1" : "p-1.5"}`}
+                className={`hidden md:inline-flex rounded-lg text-text-muted md:hover:bg-card-hover-bg md:hover:text-text-primary shrink-0 ${isCompact ? "p-1" : "p-1.5"}`}
                 aria-label="گروه بعدی"
               >
-                <ChevronLeft className="w-4 h-4" strokeWidth={1.5} />
+                <ChevronLeft className="size-4" strokeWidth={1.5} />
               </Button>
             }
           />

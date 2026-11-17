@@ -70,31 +70,29 @@ export default function SegmentSettingsMenu({
       exit={{ opacity: 0, scale: 0.96, y: initialOffsetY, transition: TRANSITION_EXIT_QUICK }}
       transition={TRANSITION_ENTER_QUICK}
     >
-      <div className="relative w-[256px] sm:w-[280px] bg-[var(--card-bg-solid)] backdrop-blur-xl border border-[var(--border-color)] rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right">
+      <div className="relative w-[256px] sm:w-[280px] bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right">
         {/* Segment Identity & Pin Metadata */}
-        <div className="flex items-center justify-between gap-2 border-b border-[var(--border-color)] pb-2.5">
+        <div className="flex items-center justify-between gap-2 border-b border-border-color pb-2.5">
           <div className="flex items-center gap-2 min-w-0">
             <div
-              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                isPinOn
-                  ? "bg-[var(--accent3-transparent)] text-[var(--accent3)]"
-                  : "bg-[var(--muted)] text-[var(--muted-foreground)]"
+              className={`size-7 rounded-lg flex items-center justify-center shrink-0 ${
+                isPinOn ? "bg-accent3-transparent text-accent3" : "bg-muted text-muted-foreground"
               }`}
               aria-hidden="true"
             >
               {segment.icon && !hasIcon(segment.icon) ? (
-                <span className="text-xs leading-none flex items-center justify-center w-4 h-4">
+                <span className="text-xs leading-none flex items-center justify-center size-4">
                   {segment.icon}
                 </span>
               ) : (
-                React.createElement(getSegmentIcon(segment.icon), { className: "w-4 h-4" })
+                React.createElement(getSegmentIcon(segment.icon), { className: "size-4" })
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <span className="block font-sans font-bold theme-text-primary text-xs truncate">
+              <span className="block font-sans font-bold text-text-primary text-xs truncate">
                 {segment.title}
               </span>
-              <span className="block text-[10px] tabular-nums text-[var(--text-muted)]">
+              <span className="block text-[10px] tabular-nums text-text-muted">
                 پایه {segment.pin} · {isPinOn ? "روشن" : "خاموش"}
               </span>
             </div>
@@ -104,10 +102,10 @@ export default function SegmentSettingsMenu({
         {/* Mode & Auto-Off Timer Controls */}
         {onUpdateSegmentMode && segment.type !== "input" && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
+            <span className="text-[11px] font-semibold text-text-secondary">
               حالت کلید و تایمر خودکار
             </span>
-            <div className="flex items-center justify-between bg-[var(--secondary)] rounded-xl p-2 border border-[var(--border-color)]">
+            <div className="flex items-center justify-between bg-secondary rounded-xl p-2 border border-border-color">
               <SegmentControls
                 segment={segment}
                 mode={mode}
@@ -121,9 +119,9 @@ export default function SegmentSettingsMenu({
         )}
 
         {/* Destructive Action */}
-        <div className="pt-1.5 border-t border-[var(--border-color)]">
-          <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-[var(--secondary)]">
-            <span className="text-xs font-bold text-red-600 dark:text-red-400 truncate">
+        <div className="pt-1.5 border-t border-border-color">
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-secondary">
+            <span className="text-xs font-bold text-destructive truncate">
               حذف این قطعه از داشبورد
             </span>
             <DeleteButton

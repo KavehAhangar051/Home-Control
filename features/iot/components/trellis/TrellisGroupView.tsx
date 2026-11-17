@@ -86,32 +86,32 @@ export default function TrellisGroupView({
   const isCompactPanel = view.size.width < 320;
 
   return (
-    <div dir="rtl" className="flex h-full w-full flex-col overflow-hidden text-right">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border-color)] bg-[var(--card-hover-bg)]/60 px-3 py-2">
+    <div dir="rtl" className="flex size-full flex-col overflow-hidden text-right">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border-color bg-card-hover-bg/60 px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <div
             aria-hidden="true"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] text-[var(--text-secondary)]"
+            className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border-color bg-card-bg text-text-secondary"
           >
             {groupIcon ? (
               hasIcon(groupIcon) ? (
                 React.createElement(getSegmentIcon(groupIcon), {
-                  className: "h-4 w-4",
+                  className: "size-4",
                   strokeWidth: 1.5,
                 })
               ) : (
                 <span className="text-sm leading-none">{groupIcon}</span>
               )
             ) : (
-              React.createElement(ICON_MAP.Layers, { className: "h-4 w-4", strokeWidth: 1.5 })
+              React.createElement(ICON_MAP.Layers, { className: "size-4", strokeWidth: 1.5 })
             )}
           </div>
 
           <div className="min-w-0">
-            <h3 className="truncate font-sans text-xs font-medium text-[var(--text-primary)] sm:text-sm">
+            <h3 className="truncate font-sans text-xs font-medium text-text-primary sm:text-sm">
               {groupName}
             </h3>
-            <span className="block text-[11px] font-normal tabular-nums text-[var(--text-muted)]">
+            <span className="block text-[11px] font-normal tabular-nums text-text-muted">
               {groupSegments.length} قطعه · {activeCount} فعال
             </span>
           </div>
@@ -125,9 +125,9 @@ export default function TrellisGroupView({
                   type="button"
                   onClick={() => onAddPlaceholder(groupName)}
                   aria-label={`افزودن قطعه جدید به گروه ${groupName}`}
-                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] px-2 text-xs font-medium text-[var(--text-primary)] transition-colors duration-150 md:hover:bg-[var(--accent3)] md:hover:text-[var(--accent3-foreground)]"
+                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-border-color bg-card-bg px-2 text-xs font-medium text-text-primary transition-colors duration-150 md:hover:bg-accent3 md:hover:text-accent3-foreground"
                 >
-                  <Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                  <Plus className="size-3.5 shrink-0" strokeWidth={1.75} />
                   {!isCompactPanel && <span>قطعه</span>}
                 </button>
               }
@@ -147,14 +147,14 @@ export default function TrellisGroupView({
 
       <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
         {groupSegments.length === 0 ? (
-          <div className="flex h-full min-h-[120px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border-color)] p-4 text-center text-xs text-[var(--text-muted)]">
+          <div className="flex h-full min-h-[120px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-color p-4 text-center text-xs text-text-muted">
             <span>هنوز قطعه‌ای در این گروه نیست</span>
             <button
               type="button"
               onClick={() => onAddPlaceholder(groupName)}
-              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--secondary)] px-2.5 py-1 text-xs font-medium text-[var(--text-primary)] hover:border-[var(--accent3)]"
+              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border-color bg-secondary px-2.5 py-1 text-xs font-medium text-text-primary hover:border-accent3"
             >
-              <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <Plus className="size-3.5" strokeWidth={1.5} />
               افزودن اولین قطعه
             </button>
           </div>

@@ -19,7 +19,7 @@ function findNodeById(nodes: WorkflowNode[], targetId: string): WorkflowNode | u
   return undefined;
 }
 
-function isTriggerNodeKind(kind: WorkflowNode["kind"]): boolean {
+export function isTriggerWorkflowNodeKind(kind: WorkflowNode["kind"]): boolean {
   return kind === "trigger_manual" || kind === "trigger_schedule";
 }
 
@@ -75,7 +75,7 @@ export function canConnectWorkflowPorts(
 
   const targetNode = findNodeById(nodes, targetId);
 
-  if (!targetNode || isTriggerNodeKind(targetNode.kind)) {
+  if (!targetNode || isTriggerWorkflowNodeKind(targetNode.kind)) {
     return false;
   }
 

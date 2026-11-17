@@ -73,13 +73,13 @@ export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "v
 
   return (
     <div data-animate-icon-parent className="flex min-w-0 flex-1 items-center gap-2.5">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--sidebar-border)] bg-[var(--sidebar-control-bg)] text-[var(--sidebar-text)]">
-        <HousePlug aria-label="Home Control" className="h-4 w-4" strokeWidth={1.5} />
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-control-bg text-sidebar-text">
+        <HousePlug aria-label="Home Control" className="size-4" strokeWidth={1.5} />
       </div>
       <h1
         ref={containerRef}
         title={headerTitle}
-        className={`relative min-w-0 flex-1 overflow-hidden whitespace-nowrap text-right text-sm font-medium text-[var(--sidebar-text)] ${
+        className={`relative min-w-0 flex-1 overflow-hidden whitespace-nowrap text-right text-sm font-medium text-sidebar-text ${
           marqueeState.isOverflowing
             ? "header-title-marquee [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]"
             : ""
