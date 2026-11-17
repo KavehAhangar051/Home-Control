@@ -8,6 +8,9 @@ export interface UseSheetViewportGesturesOptions {
   containerRef: React.RefObject<HTMLDivElement | null>;
   viewportRef: React.RefObject<CanvasViewport>;
   setViewport: (updater: CanvasViewport | ((prev: CanvasViewport) => CanvasViewport)) => void;
+  setViewportTransient: (
+    updater: CanvasViewport | ((prev: CanvasViewport) => CanvasViewport),
+  ) => void;
   onBackgroundClick?: () => void;
   onPanEnd?: (finalViewport: CanvasViewport) => void;
 }
@@ -22,6 +25,7 @@ export function useSheetViewportGestures({
   containerRef,
   viewportRef,
   setViewport,
+  setViewportTransient,
   onBackgroundClick,
   onPanEnd,
 }: UseSheetViewportGesturesOptions) {
@@ -194,7 +198,7 @@ export function useSheetViewportGestures({
       const applyMove = (moveEvent: PointerEvent) => {
         const dx = moveEvent.clientX - startX;
         const dy = moveEvent.clientY - startY;
-        setViewport((prev) => ({
+        setViewportTransient((prev) => ({
           ...prev,
           x: Math.round(initialVpX + dx),
           y: Math.round(initialVpY + dy),
@@ -241,7 +245,7 @@ export function useSheetViewportGestures({
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onUp);
     },
-    [setViewport, viewportRef],
+    [setViewportTransient, viewportRef],
   );
 
   const handleCanvasContextMenu = React.useCallback((e: React.MouseEvent<HTMLElement>) => {
