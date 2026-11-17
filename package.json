@@ -8,7 +8,7 @@
     "build": "NODE_ENV=production next build --turbopack",
     "start": "next start",
     "analyze": "next experimental-analyze",
-    "lint": "biome lint --max-diagnostics=1000 app components features lib",
+    "lint": "biome lint --max-diagnostics=1000 app components features lib && oxlint app components features lib",
     "format": "biome format --write app components features lib",
     "typecheck": "tsc --noEmit",
     "test": "node --import ./tests/ts-loader.mjs --test tests/*.test.mjs",
