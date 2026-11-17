@@ -25,7 +25,7 @@ HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::Webso
         if (pinIdx >= 0 && stateIdx >= 0 && _dispatcher != nullptr) {
             const int pin = atoi(data.c_str() + pinIdx + 6);
             const int state = atoi(data.c_str() + stateIdx + 8);
-            PinStateChangeRequestEvent evt{pin, state == 1, 0};
+            PinStateChangeRequestEvent evt{pin, state == 1, 0, PinStateChangeOrigin::DashboardCommand};
             _dispatcher->dispatch(evt);
         }
     }
