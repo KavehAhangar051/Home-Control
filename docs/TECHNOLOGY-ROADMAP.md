@@ -169,3 +169,6 @@ The recent modernization work has established the following baseline:
 - A manual queue flush now cancels its pending animation-frame callback before applying the batch, avoiding an unnecessary later empty callback and preventing duplicate frame scheduling after a synchronous flush.
 - The queue remains bounded and double-buffered; per-pin updates are still coalesced and the existing callback behavior is preserved.
 - This is a correctness/consistency improvement in a real-time path, not a claim of measurable throughput improvement. Verify with lint and typecheck CI; owner performs device-level validation. No new tests were authored.
+
+- Audited Canvas/Trellis state subscriptions and removed broad pinsState subscriptions from CanvasWorkspace, CanvasGroupNode, and TrellisGroupView. Canvas wires now select their own pin state; group containers select only their derived active count. This narrows React update fan-out without changing the Zustand store shape or ESP32 protocol.
+- This is a code-structure improvement, not a measured percentage speedup. The next verification is a browser session with multiple devices changing state: confirm unrelated Canvas nodes and Trellis groups do not commit/render, and check frame stability under a burst.
