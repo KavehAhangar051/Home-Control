@@ -1,5 +1,6 @@
 #include "PinStateManager.h"
 #include <Utilities/logging.h>
+#include <Timer/Optimization/TimerAsm.h>
 
 #if defined(ESP32)
 #include <soc/gpio_struct.h>
@@ -89,17 +90,17 @@ HOT_PATH IRAM_ATTR void PinStateManager::processInputs(
         bool currentState = false;
 #if defined(ESP32)
         if (pin < 32) {
-            currentState = (current0_31 & (1UL << pin)) != 0;
+            currentState = uniuno::asm_opt::test_bitmap_bit(current0_31, pin);
         } else if (pin < 40) {
-            currentState = (current32_39 & (1UL << (pin - 32))) != 0;
+            currentState = uniuno::asm_opt::test_bitmap_bit(current32_39, pin - 32);
         }
 #else
         currentState = digitalRead(pin) == HIGH;
 #endif
 
         if (currentState != entry->lastInputState) {
-            // Software Debounce: Ignore mechanical bounces under threshold
-            if ((currentMillis - entry->lastDebounceTime) < DEBOUNCE_THRESHOLD_MS) {
+            // Software Debounce: Ignore mechanical bounces under threshold with branchless asm comparison
+            if (!uniuno::asm_opt::is_timer_expired(currentMillis, entry->lastDebounceTime + DEBOUNCE_THRESHOLD_MS)) {
                 continue;
             }
 
@@ -114,15 +115,13 @@ HOT_PATH IRAM_ATTR void PinStateManager::processInputs(
             entry->lastInputState = currentState;
 
 #if defined(ESP32)
-            // Update shadow bitmasks for fast-path comparison
+            // Update shadow bitmasks for fast-path comparison using single-instruction asm
             if (pin < 32) {
-                const uint32_t bit = (1UL << pin);
-                if (currentState) _lastInputs0_31 |= bit;
-                else _lastInputs0_31 &= ~bit;
+                if (currentState) uniuno::asm_opt::set_bitmap_bit(_lastInputs0_31, pin);
+                else uniuno::asm_opt::clear_bitmap_bit(_lastInputs0_31, pin);
             } else if (pin < 40) {
-                const uint32_t bit = (1UL << (pin - 32));
-                if (currentState) _lastInputs32_39 |= bit;
-                else _lastInputs32_39 &= ~bit;
+                if (currentState) uniuno::asm_opt::set_bitmap_bit(_lastInputs32_39, pin - 32);
+                else uniuno::asm_opt::clear_bitmap_bit(_lastInputs32_39, pin - 32);
             }
 #endif
 

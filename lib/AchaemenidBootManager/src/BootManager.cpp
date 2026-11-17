@@ -3,6 +3,7 @@
 #include <ConfigApplier.h>
 #include <AppEvents.h>
 #include <AchaemenidWebSocketClient.h>
+#include <Timer/Optimization/TimerAsm.h>
 #include <Preferences.h>
 #include <WiFi.h>
 
@@ -194,11 +195,11 @@ HOT_PATH void BootManager::loop() {
     if (state_ != BootState::DONE || ctx_.network == nullptr) return;
 
     const unsigned long now = millis();
-    if (now - lastConnectedCheck_ < 500) return;
+    if (!uniuno::asm_opt::is_timer_expired(now, lastConnectedCheck_ + 500)) return;
     lastConnectedCheck_ = now;
 
     if (ctx_.network->isConnected()) return;
-    if (now - lastReconnectAttempt_ < 5000) return;
+    if (!uniuno::asm_opt::is_timer_expired(now, lastReconnectAttempt_ + 5000)) return;
 
     lastReconnectAttempt_ = now;
     WARNING("[Network] WiFi disconnected. Retrying saved networks.");

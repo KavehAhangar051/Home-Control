@@ -3,6 +3,7 @@
 
 #include "PinEntry.h"
 #include <Optimization/CompilerTraits.h>
+#include <Timer/Optimization/TimerAsm.h>
 #include <cstring>
 
 static const int MAX_PINS = 16;
@@ -57,7 +58,7 @@ public:
      * @brief Finds an empty slot in 1 CPU cycle using hardware bit scan.
      */
     HOT_PATH FORCE_INLINE int findEmptySlot() const {
-        const uint16_t inactive = ~_activeMask;
+        const uint16_t inactive = ~static_cast<uint16_t>(_activeMask);
         if (inactive == 0) return -1;
         return __builtin_ctz(inactive);
     }
@@ -72,7 +73,7 @@ public:
     HOT_PATH int findById(const char* id) const {
         if (UNLIKELY(id == nullptr || id[0] == '\0')) return -1;
         for (int i = 0; i < MAX_PINS; i++) {
-            if ((_activeMask & (1U << i)) && strcmp(_entries[i].segmentId, id) == 0) {
+            if (uniuno::asm_opt::test_bitmap_bit(_activeMask, i) && strcmp(_entries[i].segmentId, id) == 0) {
                 return i;
             }
         }
@@ -82,7 +83,7 @@ public:
     HOT_PATH FORCE_INLINE void mapPin(int pin, int index) {
         if (pin >= 0 && pin < 40 && index >= 0 && index < MAX_PINS) {
             _pinToIndex[pin] = static_cast<int8_t>(index);
-            _activeMask |= (1U << index);
+            uniuno::asm_opt::set_bitmap_bit(_activeMask, index);
         }
     }
 
@@ -90,7 +91,7 @@ public:
         if (pin >= 0 && pin < 40) {
             const int8_t idx = _pinToIndex[pin];
             if (idx >= 0 && idx < MAX_PINS) {
-                _activeMask &= ~(1U << idx);
+                uniuno::asm_opt::clear_bitmap_bit(_activeMask, idx);
             }
             _pinToIndex[pin] = -1;
         }
@@ -99,7 +100,7 @@ public:
 private:
     PinEntry _entries[MAX_PINS];
     int8_t _pinToIndex[40];
-    uint16_t _activeMask;
+    uint32_t _activeMask;
 };
 
 #endif // PIN_REGISTRY_H

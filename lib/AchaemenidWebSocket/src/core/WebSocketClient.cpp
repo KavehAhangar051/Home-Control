@@ -3,6 +3,7 @@
 #include <WiFiClientSecure.h>
 #include <tiny_websockets/network/generic_esp/generic_esp_clients.hpp>
 #include <Optimization/CompilerTraits.h>
+#include <Timer/Optimization/TimerAsm.h>
 #include <utility>
 #include "../parsers/WsClientParser.h"
 #include <WiFi.h>
@@ -161,11 +162,11 @@ HOT_PATH void AchaemenidWebSocketClient::loop() {
 
     if (client_ && LIKELY(client_->available())) {
         // Throttled socket polling to ~66 Hz (every 15ms)
-        if (now - lastPollTime_ >= WS_CLIENT_POLL_INTERVAL_MS) {
+        if (uniuno::asm_opt::is_timer_expired(now, lastPollTime_ + WS_CLIENT_POLL_INTERVAL_MS)) {
             lastPollTime_ = now;
             client_->poll();
 
-            if (UNLIKELY(now - lastPingTime_ >= WS_PING_INTERVAL_MS)) {
+            if (UNLIKELY(uniuno::asm_opt::is_timer_expired(now, lastPingTime_ + WS_PING_INTERVAL_MS))) {
                 client_->ping();
                 lastPingTime_ = now;
             }
@@ -173,8 +174,8 @@ HOT_PATH void AchaemenidWebSocketClient::loop() {
         return;
     }
 
-    // Single precomputed deadline subtraction (wrap-safe for millis rollover)
-    if (hasConnectAttempted_ && static_cast<long>(now - nextConnectAttemptTime_) < 0) {
+    // Branchless assembly expiration check (wrap-safe for millis rollover)
+    if (hasConnectAttempted_ && !uniuno::asm_opt::is_timer_expired(now, nextConnectAttemptTime_)) {
         return;
     }
 

@@ -35,7 +35,7 @@ inline bool is_timer_expired(unsigned long current_time, unsigned long next_call
     
     bool result;
     
-    #ifdef __XTENSA__
+    #if defined(__XTENSA__) || defined(ESP32)
     asm volatile (
         "sub    a4, %[curr], %[next]   \n"  // a4 = current - next (unsigned)
         "extui  a4, a4, 31, 1          \n"  // Extract sign bit (1 if curr < next)
@@ -69,7 +69,7 @@ inline bool test_bitmap_bit(uint32_t bitmap, size_t index) {
     
     bool result;
     
-    #ifdef __XTENSA__
+    #if defined(__XTENSA__) || defined(ESP32)
     asm volatile (
         "ssr    %[idx]                 \n"  // Set shift amount register
         "srl    a4, %[bmp]             \n"  // Shift right by index
@@ -99,7 +99,7 @@ inline void set_bitmap_bit(uint32_t& bitmap, size_t index) {
     
     if (index >= 32) return;
     
-    #ifdef __XTENSA__
+    #if defined(__XTENSA__) || defined(ESP32)
     asm volatile (
         "movi   a4, 1                  \n"  // a4 = 1
         "ssl    %[idx]                 \n"  // Set shift amount register
@@ -130,7 +130,7 @@ inline void clear_bitmap_bit(uint32_t& bitmap, size_t index) {
     
     if (index >= 32) return;
     
-    #ifdef __XTENSA__
+    #if defined(__XTENSA__) || defined(ESP32)
     asm volatile (
         "movi   a4, 1                  \n"  // a4 = 1
         "ssl    %[idx]                 \n"  // Set shift amount register
@@ -165,7 +165,7 @@ inline long calculate_drift(unsigned long current, unsigned long scheduled) {
     
     long result;
     
-    #ifdef __XTENSA__
+    #if defined(__XTENSA__) || defined(ESP32)
     asm volatile (
         "sub    %[res], %[curr], %[sched] \n"  // result = current - scheduled
         : [res] "=r" (result)
@@ -194,7 +194,7 @@ inline unsigned long optimize_tick_cache(unsigned long cached_time) {
     // INPUT: a2 = cached_time
     // OUTPUT: a2 = cached_time (unchanged)
     
-    #ifdef __XTENSA__
+    #if defined(__XTENSA__) || defined(ESP32)
     // No-op: value already in register a2
     // Compiler will optimize this away completely
     #else
@@ -218,13 +218,30 @@ inline void fast_process_call(ManagerType* manager, unsigned long cached_time) {
     // INPUT: a2 = manager, a3 = cached_time
     // OPTIMIZATION: Keep a3 in register for next call
     
-    #ifdef __XTENSA__
+    #if defined(__XTENSA__) || defined(ESP32)
     // Hint to compiler: keep cached_time in register
     register unsigned long time_reg asm("a3") = cached_time;
     manager->process(time_reg);
     #else
     manager->process(cached_time);
     #endif
+}
+
+/**
+ * @brief Read hardware CPU cycle counter (CCOUNT) in 1 instruction
+ * @return 32-bit hardware CPU cycle count
+ * 
+ * OPTIMIZATION: Direct special register read without function or division overhead
+ * SPEED: 1 CPU cycle (~4.16ns at 240MHz)
+ */
+inline uint32_t get_cpu_cycle_count() {
+    uint32_t ccount;
+#if defined(__XTENSA__) || defined(ESP32)
+    asm volatile("rsr %0, ccount" : "=r"(ccount));
+#else
+    ccount = 0;
+#endif
+    return ccount;
 }
 
 } // namespace asm_opt
