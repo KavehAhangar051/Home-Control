@@ -15,7 +15,7 @@ The application is configured for static export in its normal production mode. I
 - **Styling:** Tailwind CSS v4, PostCSS, and CSS custom properties
 - **Motion:** `motion`
 - **Client state:** Zustand
-- **Drag and drop:** `@dnd-kit/react` with the DOM sensor adapters from `@dnd-kit/dom`; the sortable hook is scoped to the dynamically loaded Grid workspace so Trellis and Canvas do not import the DnD runtime
+- **Drag and drop:** `@dnd-kit/react` with the DOM sensor adapters from `@dnd-kit/dom`; the sortable hook is imported only by the dynamically loaded Grid workspace; Trellis and Canvas do not statically import it
 - **Device messaging:** `mqtt` (MQTT over WebSocket where supported)
 - **Forms and validation dependencies:** React Hook Form resolver integration and Zod; use them where the relevant feature already follows this pattern
 - **Linting and formatting:** Biome is the required lint/format baseline; Oxlint plus the repository's vendored Anti-Slop plugin is available as a separate diagnostic (`bun run lint:ox`) while its findings are triaged.
@@ -181,7 +181,7 @@ Available scripts in `package.json`:
 - `bun run build` — create the static production export with Turbopack.
 - `bun run analyze` — save a Turbopack bundle-analysis snapshot in `.next/diagnostics/analyze` using Next.js's built-in analyzer (`--output`); pass `--snapshot <name>` to keep named before/after captures.
 - `bun run analyze:export` — stream the latest or selected saved analyzer graph as JSON Lines; pass `--snapshot <name>` and redirect stdout when a machine-readable report is needed.
-- The `Bundle analysis` GitHub Actions workflow captures named snapshots and uploads the matching JSONL graph plus static analyzer report; it runs on relevant pushes to `main` and supports manual `before`/`after` dispatch.
+- The `Bundle analysis` GitHub Actions workflow captures named snapshots and uploads the matching JSONL graph plus static analyzer report; it runs on relevant pushes to `main` and supports manual `before`/`after` dispatch; hidden `.next/diagnostics/analyze` files are included in the artifact.
 - `bun run start` — run the Next.js server (not a static-export preview).
 - `bun run lint` — run the required Biome linting over `app`, `components`, `features`, and `lib`.
 - `bun run lint:ox` — run Oxlint and the repository's custom Anti-Slop rules as a diagnostic report; current legacy findings are not yet a blocking gate.
