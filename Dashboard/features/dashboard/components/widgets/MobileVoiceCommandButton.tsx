@@ -1,4 +1,4 @@
-import { m } from "motion/react";
+import * as m from "motion/react-m";
 import { Mic } from "@/components/ui/hugeicons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
