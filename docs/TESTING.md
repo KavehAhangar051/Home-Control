@@ -2,8 +2,8 @@
 
 ## Test Strategy
 - **Pyramid:** Fast deterministic unit & boundary contract tests run natively in Node (`node --import ./tests/ts-loader.mjs --test tests/*.test.mjs`), covering domain logic (pin validation, voice fuzzy matching, workflow graph evaluation, canvas geometry, easing specs), wire protocols (Cloudflare mappers, MQTT binary encoders & JSON/binary decoders), HTTP gateways (Cloudflare API client, Archive.org playlist resolver), multi-transport orchestration (`LiveDeviceSyncAdapter`, `InMemoryDeviceSyncAdapter`), store reducers (`useIoTStore` + `applyEspConfig`), resilience primitives (`CircuitBreaker`, `retryWithBackoff`, `createTimeoutSignal`, RED metrics), and concurrency/consistency invariants (monotonic KV saves, live ESP32 SSOT priority, batch catch rollback).
-- **Tooling:** Node built-in `node:test` + `node:assert/strict` with custom TypeScript path-alias loader (`tests/ts-loader.mjs`), paired with Biome (`npm run lint`), TypeScript (`npm run typecheck`), and Next.js static export (`npm run build`).
-- **What "green" gates:** `npm run check` (`biome lint` + `tsc --noEmit` + `node --test`) and `npm run build` must pass with 0 diagnostics, 0 type errors, and 100% passing test assertions.
+- **Tooling:** Node built-in `node:test` + `node:assert/strict` with custom TypeScript path-alias loader (`tests/ts-loader.mjs`), paired with Biome (`bun run lint`), TypeScript (`bun run typecheck`), and Next.js static export (`bun run build`).
+- **Verification policy:** lint, typecheck, deterministic tests, browser E2E, static export and deployment are reported separately. Tests remain diagnostic/regression coverage and are not a mandatory production-build gate.
 
 ## Safety Net Map
 | Module | Pinned behaviors | Test files | Gaps |
@@ -32,8 +32,8 @@
 - [x] Legacy seams extraction (`mqtt/{client,init}`, `useConnectionStrategy`, `segmentOperations`, `cloudflareSyncCoordinator`, `useAchaemenidDnd`, `useAutomationForm`/`Actions`, `workflowRuntimeHelpers`, `voiceRecognitionHelpers`, `canvasStorage`, `AmbientManager`/`SoundManager`, layout/date/font utilities) — `tests/legacy-seams.test.mjs` (Done)
 
 ## CI Gates
-- **Primary gate:** `npm run check` (`npm run lint && npm run typecheck && npm run test`)
-- **Static export verification:** `npm run build` (`NODE_ENV=production next build`)
+- **Primary gate:** `bun run check` (`bun run lint && bun run typecheck && bun run test`)
+- **Static export verification:** `bun run build` (`NODE_ENV=production next build`)
 
 
 ## Current verification status (17 November 2026)
