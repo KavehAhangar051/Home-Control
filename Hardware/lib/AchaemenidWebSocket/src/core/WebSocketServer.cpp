@@ -2,6 +2,7 @@
 #include "WebSocketConfig.h"
 #include "../parsers/WsServerParser.h"
 #include <Optimization/CompilerTraits.h>
+#include <Timer/Optimization/TimerAsm.h>
 #include <utility>
 
 namespace uniuno {
@@ -32,7 +33,7 @@ HOT_PATH void AchaemenidWebSocketServer::loop() {
 
     // 1. Throttled Acceptance of New Clients (every 50ms ~ 20 Hz)
     // Eliminates 99.95% of yield() calls in the main Arduino loop!
-    if (clientCount < WS_SERVER_MAX_CLIENTS && (now - _lastAcceptPoll >= WS_SERVER_ACCEPT_INTERVAL_MS)) {
+    if (clientCount < WS_SERVER_MAX_CLIENTS && uniuno::asm_opt::is_timer_expired(now, _lastAcceptPoll + WS_SERVER_ACCEPT_INTERVAL_MS)) {
         _lastAcceptPoll = now;
 
         if (server.poll()) {
@@ -52,7 +53,7 @@ HOT_PATH void AchaemenidWebSocketServer::loop() {
     }
 
     // 2. Throttled Polling of Connected Clients (every 15ms ~ 66 Hz)
-    if (clientCount > 0 && (now - _lastClientPoll >= WS_SERVER_POLL_INTERVAL_MS)) {
+    if (clientCount > 0 && uniuno::asm_opt::is_timer_expired(now, _lastClientPoll + WS_SERVER_POLL_INTERVAL_MS)) {
         _lastClientPoll = now;
 
         for (uint8_t i = 0; i < clientCount; ) {
