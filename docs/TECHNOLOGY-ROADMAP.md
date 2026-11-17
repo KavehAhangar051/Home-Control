@@ -98,6 +98,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 ### Phase D — improve runtime UX and performance
 
 - [ ] Profile first load, workspace switching, device state bursts and automation editing.
+- [x] Gate informational MQTT connection and per-message state logs to development builds; retain warnings and errors in production.
 - [ ] Reduce unnecessary client bundle and defer non-critical UI only where measurements show a benefit.
 - [ ] Verify touch, keyboard, responsive and reduced-motion behavior through owner-led manual checks.
 - [ ] Add regression budgets only after stable baselines exist.

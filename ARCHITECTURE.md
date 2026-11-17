@@ -97,6 +97,8 @@ Owns ESP32-facing UI and client communication logic.
 
 Keep transport concerns out of presentational components where practical. Components should call a clear service or hook API rather than independently creating duplicate MQTT clients or subscriptions. Manage connection lifecycle and cleanup carefully; reconnecting, mounting, or changing a screen must not accidentally multiply listeners or publish duplicate commands.
 
+Informational MQTT connection and state-message logs are development-only to avoid per-message console overhead in production; warnings and errors remain visible.
+
 ### Settings — `features/settings/`
 
 Owns settings UI and configuration controls. The current repository groups these under `features/settings/components/`; follow the existing subdivisions found there. Keep editing/validation logic separated from display code when that improves clarity, but avoid creating abstractions for one-off code without a real reuse or testing benefit.
