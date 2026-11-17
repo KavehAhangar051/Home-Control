@@ -31,7 +31,7 @@ Versions below are read from the repository's committed `bun.lock` at the time o
 | dnd-kit React / DOM | 0.5.3 | Current drag-and-drop API |
 | Zustand | 5.1.0 | Client-side domain and workspace state |
 | MQTT.js | 5.16.1 | Browser MQTT transport |
-| Biome | 2.6.8 | Linting and formatting; package range and schema now aligned with this locked version |
+| Biome | 2.6.8 | Linting and formatting; schema URL aligned with this locked version |
 
 Re-check the lockfile before every dependency update. Do not copy this table as a current version report after packages change.
 
@@ -73,7 +73,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - [ ] Record baseline bundle sizes and representative browser performance metrics.
 - [x] Inventory direct dependencies and locked resolutions; review the first Knip report.
 - [ ] Review unused exports/files without bulk-deleting public or feature APIs.
-- [x] Align the Biome package range and JSON schema with the locked 2.6.8 release.
+- [x] Align the Biome JSON schema with the locked 2.6.8 release; the existing semver range already resolves to this version in `bun.lock`.
 
 ### Phase B — update dependencies deliberately
 
