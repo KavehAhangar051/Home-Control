@@ -1,7 +1,7 @@
 "use client";
 
 import { Columns2, Columns3, Rows2 } from "lucide-react";
-import { m } from "motion/react";
+import * as m from "motion/react-m";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { SPRING_SWAP } from "@/lib/ease";

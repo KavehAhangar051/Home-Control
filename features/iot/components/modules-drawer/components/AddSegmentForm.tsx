@@ -1,4 +1,5 @@
-import { AnimatePresence, m } from "motion/react";
+import * as m from "motion/react-m";
+import { AnimatePresence } from "motion/react";
 import { Card } from "@/components/ui/card";
 import { ChevronDown, Plus, Settings2 } from "@/components/ui/hugeicons";
 import { Label } from "@/components/ui/label";
