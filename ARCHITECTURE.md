@@ -11,7 +11,7 @@ The application is configured for static export in its normal production mode. I
 ## 2. Technology stack
 
 - **Framework:** Next.js 16 App Router
-- **UI:** React 19 and TypeScript
+- **UI:** React 19.3 and TypeScript 7 (the test loader uses the official TypeScript 6 compatibility package for the legacy JavaScript compiler API)
 - **Styling:** Tailwind CSS v4, PostCSS, and CSS custom properties
 - **Motion:** `motion`
 - **Client state:** Zustand
@@ -23,6 +23,8 @@ The application is configured for static export in its normal production mode. I
 - **Language/tooling:** TypeScript 7
 - **Package manager:** Bun (`bun.lock` is the committed dependency lockfile)
 - **Bundler:** Turbopack is used for development and production builds. The `dev:webpack` script remains available for the AI Studio workflow that disables file watching through the custom Webpack configuration.
+- **React optimization:** React Compiler is enabled in `next.config.ts`; avoid adding manual memoization without profiling or a specific correctness reason.
+- **Native transitions:** Workspace switching uses Motion's `AnimateView` integration with React View Transitions, fed by a deferred Zustand workspace selection. Reduced-motion and the dashboard animation setting disable the transition.
 
 The authoritative dependency and command definitions are in `package.json`; do not document scripts or libraries as active unless they exist there.
 
@@ -183,10 +185,10 @@ Available scripts in `package.json`:
 - `bun run format` — format those source directories in place; review the resulting diff before committing.
 - `bun run typecheck` — run TypeScript compiler check (`tsc --noEmit`).
 - `bun run test` — run deterministic domain, edge-case, and boundary integration tests (`tests/*.test.mjs`).
-- `bun run check` — run lint, TypeScript typecheck, and deterministic contract tests together.
+- `bun run lint && bun run typecheck && bun run test` — run lint, TypeScript typecheck, and deterministic contract tests together.
 - `bun run clean` — remove local Next.js/export/build-metadata outputs.
 
-Before submitting a change, run `bun run check` and production build checks when possible and report checks that could not be run. Avoid formatting unrelated files or committing generated output.
+Before submitting a change, run `bun run lint`, `bun run typecheck`, and the relevant deterministic tests; run `bun run build` when requested or when a change needs export validation. Report each result separately. The repository owner has asked that tests remain available as a report/diagnostic suite rather than becoming a mandatory production-build gate. Do not wait for GitHub Pages deployment to finish development verification. CI workflows should use the latest Ubuntu runner available to the project (`ubuntu-26.04` at the time of this update). Avoid formatting unrelated files or committing generated output.
 
 ## 12. Safe change procedure for coding agents (AI-First Engineering)
 
@@ -201,3 +203,13 @@ Before submitting a change, run `bun run check` and production build checks when
 9. Update this document when architecture, scripts, deployment behavior, or protocol ownership changes.
 
 When uncertain, prefer inspecting existing patterns and protocol documents over inventing new conventions.
+
+
+## 13. Current engineering decisions and lessons (November 2026)
+
+- The legacy `@dnd-kit/core`, `@dnd-kit/sortable`, and `@dnd-kit/utilities` stack was replaced by `@dnd-kit/react` and `@dnd-kit/dom` (both locked at 0.5.3). Preserve the existing interaction contract: groups reorder independently, segments stay within their owning group, trash targets remove supported items, and pointer activation retains its 5px threshold.
+- TypeScript 7 is the project compiler, but the Node test loader needs the JavaScript compiler API. TypeScript 7 does not expose that API; `tests/ts-loader.mjs` therefore imports `@typescript/typescript6` as a compatibility-only test dependency. Do not downgrade the application compiler to solve a test-loader concern.
+- React View Transitions are enabled only for workspace-content changes. Zustand remains the source of truth; `useDeferredValue` supplies the deferred render value because external-store mutations cannot reliably be made non-blocking by wrapping the Zustand setter in `startTransition`.
+- The View Transition implementation respects both the dashboard animation preference and the user's reduced-motion preference. Keep these controls in sync when changing transition behavior.
+- A browser test must prove observable navigation and animation behavior, not merely that a browser API exists. The current Playwright experiment still needs selector corrections against the real navigation DOM before it can be treated as verified.
+- Performance changes follow a measure → identify → change → re-measure workflow. New libraries, memoization, or architectural abstractions are not improvements without evidence.
