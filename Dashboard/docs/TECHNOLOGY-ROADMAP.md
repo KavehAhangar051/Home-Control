@@ -46,7 +46,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 ### React and animation
 
 - React Compiler is already enabled. Manual `memo`, `useMemo` and `useCallback` additions should be justified by profiling or semantics, not habit.
-- Workspace transitions use `useDeferredValue` over the Zustand-selected view and Motion's `AnimateView`. Do not assume wrapping an external-store update in `startTransition` makes it non-blocking.
+- Workspace transitions use `useDeferredValue` over the Zustand-selected view and Motion's `AnimateView`, which is built on React's native `ViewTransition`. Do not assume wrapping an external-store update in `startTransition` makes it non-blocking.
 - Respect both the app animation setting and `prefers-reduced-motion`.
 - The experimental Playwright PR #9 was closed without merging. New browser E2E authoring is not part of the current workflow; the project owner performs hands-on UI verification.
 
@@ -87,7 +87,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 
 ### Phase C — use platform capabilities where they help
 
-- [ ] Audit React 19.3 capabilities such as `Activity` and `useEffectEvent` against concrete dashboard use cases.
+- [x] Complete a targeted React 19.3 API audit: workspace transitions already use React `ViewTransition` through Motion's `AnimateView`; defer `Activity` until preserving hidden workspace/form state is a demonstrated UX requirement and its retained DOM/memory cost is profiled; do not replace canvas callback refs with `useEffectEvent` because those callbacks are invoked from React event handlers, while Effect Events may only be called from Effects or other Effect Events. See [Activity](https://react.dev/reference/react/Activity), [useEffectEvent](https://react.dev/reference/react/useEffectEvent), and [Motion AnimateView](https://motion.dev/docs/react-animate-view).
 - [x] Remove stale `optimizePackageImports` entries for removed packages and for `lucide-react`, which Next.js optimizes by default; retain only installed custom entries (`@base-ui/react`, `motion`, `zustand`).
 - [x] Provide a repeatable saved-output command for the Next.js 16/Turbopack analyzer (`bun run analyze` → `.next/diagnostics/analyze`).
 - [x] Expose named analyzer snapshots and JSONL graph export through `bun run analyze --snapshot <name>` and `bun run analyze:export --snapshot <name>` (Next.js 16.4+).
