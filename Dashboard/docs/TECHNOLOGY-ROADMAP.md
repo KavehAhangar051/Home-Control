@@ -172,3 +172,11 @@ The recent modernization work has established the following baseline:
 
 - Audited Canvas/Trellis state subscriptions and removed broad pinsState subscriptions from CanvasWorkspace, CanvasGroupNode, and TrellisGroupView. Canvas wires now select their own pin state; group containers select only their derived active count. This narrows React update fan-out without changing the Zustand store shape or ESP32 protocol.
 - This is a code-structure improvement, not a measured percentage speedup. The next verification is a browser session with multiple devices changing state: confirm unrelated Canvas nodes and Trellis groups do not commit/render, and check frame stability under a burst.
+
+### Phase F execution log — 18 November 2026
+
+- Skipped further Phase E work as requested and moved to workspace/interaction performance.
+- Canvas node drag, node resize, and viewport pan now coalesce high-frequency pointer events through `requestAnimationFrame`, applying only the latest event once per frame instead of scheduling React state updates for every raw pointer event.
+- Pointer-up and pointer-cancel flush the final pointer coordinates before layout persistence, so the last movement is not lost when the frame callback has not run yet.
+- Resize calculations now derive dimensions from the pointer-down rectangle rather than the previous intermediate render, preventing cumulative application of total pointer displacement across successive move events.
+- This is a structural interaction improvement; no frame-time or INP gain is claimed without a browser performance trace. Owner-led verification is required for drag, resize, pan, touch, and persisted layout behavior.

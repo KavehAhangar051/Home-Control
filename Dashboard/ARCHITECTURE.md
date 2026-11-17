@@ -230,3 +230,5 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 - Continue to treat the project as a static-export, browser-first dashboard. Preserve ESP32 protocol compatibility, Cloudflare data formats, persisted settings, accessibility, touch behavior, and reduced-motion preferences.
 
 - Canvas, Trellis, and Grid subscribe to device state at the smallest useful level. Canvas wire activity is selected per pin, while group active counts are selected as derived scalar values; do not reintroduce whole-pinsState subscriptions in workspace parents or group containers, because a single pin update would invalidate unrelated UI.
+
+- Canvas drag, resize, and viewport-pan pointer events are coalesced through `requestAnimationFrame`; only the latest pointer position per frame updates React state. Pointer-up/cancel flushes the final coordinates synchronously before persisting the layout. Keep high-frequency gesture handlers frame-aligned and preserve the final event when changing this path.
