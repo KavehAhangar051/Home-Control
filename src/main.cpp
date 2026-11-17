@@ -92,6 +92,8 @@ void loop() {
     // 3. Process inputs for segments of type 'input' (zero stack lambda re-allocation)
     if (ruleEngine) {
         static const auto onInputCallback = [](int pin, bool state, unsigned long dur, const RuleConfig& r) {
+            PinStateChangedEvent changed{pin, state, true, PinStateChangeOrigin::PhysicalInput};
+            eventBus.dispatch(changed);
             ruleEngine->handleInput(pin, state, dur, r);
         };
         pinManager.processInputs(onInputCallback);
