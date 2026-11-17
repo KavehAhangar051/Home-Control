@@ -16,6 +16,12 @@
 #include <core/WebSocketClient.h>
 #include <NvsSegmentStorage.h>
 
+// Override weak Arduino-ESP32 loopTask stack size (default 8KB -> 16KB)
+// Provides generous headroom for power-of-2 FastFunction SBO, nested Futures, JSON & WiFi init.
+size_t getArduinoLoopTaskStackSize(void) {
+    return 16384;
+}
+
 void setup() {
     Serial.begin(115200);
     delay(1000);

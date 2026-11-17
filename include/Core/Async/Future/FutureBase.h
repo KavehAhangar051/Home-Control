@@ -44,7 +44,7 @@ public:
    * @param input The input value.
    * @return The current state of the future.
    */
-  HOT_PATH AsyncResult<O, E> poll(const I& input) {
+  HOT_PATH const AsyncResult<O, E>& poll(const I& input) {
     if (LIKELY(this->result.is_pending())) {
       this->result = this->poll_callback(input);
     }

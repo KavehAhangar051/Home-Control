@@ -72,7 +72,7 @@ void AchaemenidWebSocketClient::begin(const String& serverUrl) {
     config_.serverUrl = serverUrl.c_str();
     isRunning_ = true;
     lastPingTime_ = 0;
-    lastPollTime_ = 0;
+    lastPollCycle_ = uniuno::asm_opt::get_cpu_cycle_count() - uniuno::asm_opt::ms_to_cycles(50);
     lastConnectAttemptTime_ = 0;
     nextConnectAttemptTime_ = 0;
     hasConnectAttempted_ = false;
@@ -158,23 +158,31 @@ HOT_PATH void AchaemenidWebSocketClient::loop() {
     // Early exit if client is not enabled or currently connecting in background task
     if (UNLIKELY(!isRunning_ || !isNetworkAvailable_ || isConnecting_)) return;
 
-    const unsigned long now = millis();
-
     if (client_ && LIKELY(client_->available())) {
-        // Throttled socket polling to ~66 Hz (every 15ms)
-        if (uniuno::asm_opt::is_timer_expired(now, lastPollTime_ + WS_CLIENT_POLL_INTERVAL_MS)) {
-            lastPollTime_ = now;
-            client_->poll();
+        // 4-cycle CCOUNT hardware throttle (~66 Hz / 15ms) — zero millis() calls when idle!
+        if (LIKELY(!uniuno::asm_opt::is_cycle_interval_elapsed(
+                lastPollCycle_, uniuno::asm_opt::ms_to_cycles(WS_CLIENT_POLL_INTERVAL_MS)))) {
+            return;
+        }
 
-            if (UNLIKELY(uniuno::asm_opt::is_timer_expired(now, lastPingTime_ + WS_PING_INTERVAL_MS))) {
-                client_->ping();
-                lastPingTime_ = now;
-            }
+        client_->poll();
+
+        const unsigned long now = millis();
+        if (UNLIKELY(uniuno::asm_opt::is_timer_expired(now, lastPingTime_ + WS_PING_INTERVAL_MS))) {
+            client_->ping();
+            lastPingTime_ = now;
         }
         return;
     }
 
+    // Disconnected path: gate reconnect deadline check with 50ms CCOUNT throttle
+    if (LIKELY(!uniuno::asm_opt::is_cycle_interval_elapsed(
+            lastPollCycle_, uniuno::asm_opt::ms_to_cycles(50)))) {
+        return;
+    }
+
     // Branchless assembly expiration check (wrap-safe for millis rollover)
+    const unsigned long now = millis();
     if (hasConnectAttempted_ && !uniuno::asm_opt::is_timer_expired(now, nextConnectAttemptTime_)) {
         return;
     }

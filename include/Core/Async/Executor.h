@@ -122,7 +122,7 @@ public:
     if (UNLIKELY(idx == 0xFF)) return TaskHandleBase<Capacity>();
 
     this->future_pool_[idx] = [future = std::move(future), input = std::move(input), on_error = std::forward<F>(on_error)]() mutable {
-      auto result = future.poll(input);
+      const auto& result = future.poll(input);
       if (UNLIKELY(result.is_rejected())) {
         on_error(*result.get_error());
       }
@@ -147,7 +147,7 @@ public:
     this->future_pool_[idx] = [future     = std::move(future),
                                on_error   = std::forward<FErr>(on_error),
                                on_success = std::forward<FOk>(on_success)]() mutable {
-      auto result = future.poll();
+      const auto& result = future.poll();
       if (UNLIKELY(result.is_rejected())) {
         on_error(*result.get_error());
       } else if (result.is_resolved()) {
@@ -172,7 +172,7 @@ public:
     if (UNLIKELY(idx == 0xFF)) return TaskHandleBase<Capacity>();
 
     this->future_pool_[idx] = [future = std::move(future), on_error = std::forward<F>(on_error)]() mutable {
-      auto result = future.poll();
+      const auto& result = future.poll();
       if (UNLIKELY(result.is_rejected())) {
         on_error(*result.get_error());
       }

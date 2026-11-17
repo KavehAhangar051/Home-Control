@@ -27,7 +27,7 @@ public:
         [error = std::move(error)]() mutable { return AsyncResult<O, E>::reject(error); });
   }
 
-  HOT_PATH AsyncResult<O, E> poll() {
+  HOT_PATH const AsyncResult<O, E>& poll() {
     if (LIKELY(this->result.is_pending())) {
       this->result = this->poll_callback();
     }

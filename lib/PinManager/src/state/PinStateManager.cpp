@@ -58,27 +58,73 @@ void PinStateManager::rebuildInputCache() {
 }
 
 /**
- * @brief Ultra-fast input processor with 2-cycle hardware bitmask change detection.
- * Executes on every loop() iteration. In 99.99% of cycles when no inputs change,
- * exits in ~12ns without invoking millis() or traversing arrays.
+ * @brief Hardware bit-scan input processor (O(changed_pins)).
+ * Triggered only after PinManager::processInputs() detects a hardware GPIO bit flip.
+ * Uses Xtensa hardware ctz (nsau) to visit strictly the changed pins instead of scanning all inputs.
  */
 HOT_PATH IRAM_ATTR void PinStateManager::processInputs(
-    uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&> onInputChanged) {
+    const uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>& onInputChanged) {
     if (UNLIKELY(_numInputs == 0)) return;
 
 #if defined(ESP32)
     const uint32_t current0_31 = GPIO.in;
     const uint32_t current32_39 = GPIO.in1.val;
 
-    // FAST-PATH: Detect any input pin transition in ~2 CPU cycles using bitwise logic
-    const uint32_t changed0_31 = (current0_31 ^ _lastInputs0_31) & _inputMask0_31;
-    const uint32_t changed32_39 = (current32_39 ^ _lastInputs32_39) & _inputMask32_39;
+    uint32_t changed0_31 = (current0_31 ^ _lastInputs0_31) & _inputMask0_31;
+    uint32_t changed32_39 = (current32_39 ^ _lastInputs32_39) & _inputMask32_39;
 
     if (LIKELY((changed0_31 | changed32_39) == 0)) {
-        return; // Zero pins changed state; immediate return to main loop
+        return;
     }
-#endif
 
+    const unsigned long currentMillis = millis();
+
+    auto handleTransition = [&](int pin, bool currentState) {
+        PinEntry* entry = _registry.getEntryByPin(pin);
+        if (UNLIKELY(!entry)) return;
+
+        // Software Debounce: Ignore mechanical bounces under threshold with branchless asm comparison
+        if (!uniuno::asm_opt::is_timer_expired(currentMillis, entry->lastDebounceTime + DEBOUNCE_THRESHOLD_MS)) {
+            return;
+        }
+
+        entry->lastDebounceTime = currentMillis;
+
+        // Compute hold duration of the preceding stable state in seconds
+        unsigned long durationSec = 0;
+        if (entry->stateStartTime > 0 && currentMillis > entry->stateStartTime) {
+            durationSec = (currentMillis - entry->stateStartTime) / 1000;
+        }
+        entry->stateStartTime = currentMillis;
+        entry->lastInputState = currentState;
+
+        // Update shadow bitmasks for fast-path comparison using single-instruction asm
+        if (pin < 32) {
+            if (currentState) uniuno::asm_opt::set_bitmap_bit(_lastInputs0_31, pin);
+            else uniuno::asm_opt::clear_bitmap_bit(_lastInputs0_31, pin);
+        } else if (pin < 40) {
+            if (currentState) uniuno::asm_opt::set_bitmap_bit(_lastInputs32_39, pin - 32);
+            else uniuno::asm_opt::clear_bitmap_bit(_lastInputs32_39, pin - 32);
+        }
+
+        if (onInputChanged) {
+            onInputChanged(pin, currentState, durationSec, entry->rule);
+        }
+    };
+
+    // O(changed_pins): Process ONLY pins whose hardware bit actually flipped
+    while (changed0_31) {
+        const int pin = __builtin_ctz(changed0_31);
+        changed0_31 &= changed0_31 - 1;
+        handleTransition(pin, uniuno::asm_opt::test_bitmap_bit(current0_31, pin));
+    }
+
+    while (changed32_39) {
+        const int bitIdx = __builtin_ctz(changed32_39);
+        changed32_39 &= changed32_39 - 1;
+        handleTransition(32 + bitIdx, uniuno::asm_opt::test_bitmap_bit(current32_39, bitIdx));
+    }
+#else
     const unsigned long currentMillis = millis();
 
     for (uint8_t i = 0; i < _numInputs; i++) {
@@ -87,26 +133,15 @@ HOT_PATH IRAM_ATTR void PinStateManager::processInputs(
         if (UNLIKELY(!entry)) continue;
 
         const int pin = entry->pinNumber;
-        bool currentState = false;
-#if defined(ESP32)
-        if (pin < 32) {
-            currentState = uniuno::asm_opt::test_bitmap_bit(current0_31, pin);
-        } else if (pin < 40) {
-            currentState = uniuno::asm_opt::test_bitmap_bit(current32_39, pin - 32);
-        }
-#else
-        currentState = digitalRead(pin) == HIGH;
-#endif
+        const bool currentState = digitalRead(pin) == HIGH;
 
         if (currentState != entry->lastInputState) {
-            // Software Debounce: Ignore mechanical bounces under threshold with branchless asm comparison
             if (!uniuno::asm_opt::is_timer_expired(currentMillis, entry->lastDebounceTime + DEBOUNCE_THRESHOLD_MS)) {
                 continue;
             }
 
             entry->lastDebounceTime = currentMillis;
 
-            // Compute hold duration of the preceding stable state in seconds
             unsigned long durationSec = 0;
             if (entry->stateStartTime > 0 && currentMillis > entry->stateStartTime) {
                 durationSec = (currentMillis - entry->stateStartTime) / 1000;
@@ -114,20 +149,10 @@ HOT_PATH IRAM_ATTR void PinStateManager::processInputs(
             entry->stateStartTime = currentMillis;
             entry->lastInputState = currentState;
 
-#if defined(ESP32)
-            // Update shadow bitmasks for fast-path comparison using single-instruction asm
-            if (pin < 32) {
-                if (currentState) uniuno::asm_opt::set_bitmap_bit(_lastInputs0_31, pin);
-                else uniuno::asm_opt::clear_bitmap_bit(_lastInputs0_31, pin);
-            } else if (pin < 40) {
-                if (currentState) uniuno::asm_opt::set_bitmap_bit(_lastInputs32_39, pin - 32);
-                else uniuno::asm_opt::clear_bitmap_bit(_lastInputs32_39, pin - 32);
-            }
-#endif
-
             if (onInputChanged) {
                 onInputChanged(pin, currentState, durationSec, entry->rule);
             }
         }
     }
+#endif
 }
