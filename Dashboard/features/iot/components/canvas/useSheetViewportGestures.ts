@@ -231,19 +231,28 @@ export function useSheetViewportGestures({
         }
       };
 
-      const onUp = (endEvent: PointerEvent) => {
-        pendingMove = endEvent;
-        flushMove();
+      const finishPan = () => {
         setIsPanning(false);
         onPanEndRef.current?.(viewportRef.current);
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
-        window.removeEventListener("pointercancel", onUp);
+        window.removeEventListener("pointercancel", onCancel);
+      };
+
+      const onUp = (endEvent: PointerEvent) => {
+        pendingMove = endEvent;
+        flushMove();
+        finishPan();
+      };
+
+      const onCancel = () => {
+        flushMove();
+        finishPan();
       };
 
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
-      window.addEventListener("pointercancel", onUp);
+      window.addEventListener("pointercancel", onCancel);
     },
     [setViewportTransient, viewportRef],
   );
