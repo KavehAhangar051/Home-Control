@@ -239,20 +239,29 @@ export function useCanvasNodeInteractions({
         }
       };
 
-      const handlePointerUp = (endEvent: PointerEvent) => {
-        pendingMove = endEvent;
-        flushPointerMove();
+      const finishDrag = () => {
         setDraggingNodeId(null);
         setDragTiltDeg(0);
         window.removeEventListener("pointermove", handlePointerMove);
         window.removeEventListener("pointerup", handlePointerUp);
-        window.removeEventListener("pointercancel", handlePointerUp);
+        window.removeEventListener("pointercancel", handlePointerCancel);
         replaceStoredCanvasNodes(activeSubMode, nodesRef.current);
+      };
+
+      const handlePointerUp = (endEvent: PointerEvent) => {
+        pendingMove = endEvent;
+        flushPointerMove();
+        finishDrag();
+      };
+
+      const handlePointerCancel = () => {
+        flushPointerMove();
+        finishDrag();
       };
 
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp);
-      window.addEventListener("pointercancel", handlePointerUp);
+      window.addEventListener("pointercancel", handlePointerCancel);
     },
     [
       activeSubMode,
@@ -343,17 +352,27 @@ export function useCanvasNodeInteractions({
         }
       };
 
-      const handlePointerUp = () => {
-        flushPointerMove();
+      const finishResize = () => {
         window.removeEventListener("pointermove", handlePointerMove);
         window.removeEventListener("pointerup", handlePointerUp);
-        window.removeEventListener("pointercancel", handlePointerUp);
+        window.removeEventListener("pointercancel", handlePointerCancel);
         replaceStoredCanvasNodes(activeSubMode, nodesRef.current);
+      };
+
+      const handlePointerUp = (endEvent: PointerEvent) => {
+        pendingMove = endEvent;
+        flushPointerMove();
+        finishResize();
+      };
+
+      const handlePointerCancel = () => {
+        flushPointerMove();
+        finishResize();
       };
 
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp);
-      window.addEventListener("pointercancel", handlePointerUp);
+      window.addEventListener("pointercancel", handlePointerCancel);
     },
     [activeSubMode, bringNodeToFront, isLocked, nodesRef, setNodes, snapToGrid, viewportRef],
   );
