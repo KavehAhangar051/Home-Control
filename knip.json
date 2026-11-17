@@ -5,13 +5,20 @@
     "components/**/*.{js,jsx,ts,tsx,css}",
     "features/**/*.{js,jsx,ts,tsx,css}",
     "lib/**/*.{js,jsx,ts,tsx,css}",
-    "*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}"
+    "*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}",
+    "tools/**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
   ],
   "ignoreExportsUsedInFile": {
     "interface": true,
     "type": true
   },
   "ignoreIssues": {
-    "features/iot/services/localWs/client.ts": ["exports"]
-  }
+    "features/iot/services/localWs/client.ts": [
+      "exports"
+    ]
+  },
+  "entry": [
+    "tools/oxlint/anti-slop/index.ts",
+    "tools/oxlint/anti-slop/effect/index.ts"
+  ]
 }

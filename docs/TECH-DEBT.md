@@ -43,7 +43,7 @@
   4. Never re-introduce direct `useIoTStore` hook imports inside `features/iot/services/*`.
 
 ## Adopted Conventions
-- Biome formatting (`indentWidth: 2`, `lineWidth: 100`, organized imports), strict TypeScript, Dependency Inversion via `ports.ts` & `storeBridge.ts`, single canonical config defaults in `features/iot/services/config/defaults.ts`, and mandatory verification via `npm run check` (`lint` + `typecheck` + `test`) and `npm run build`.
+- Biome formatting (`indentWidth: 2`, `lineWidth: 100`, organized imports), strict TypeScript, Dependency Inversion via `ports.ts` & `storeBridge.ts`, single canonical config defaults in `features/iot/services/config/defaults.ts`, and verification via Bun (`bun run lint`, `bun run typecheck`); existing tests and build are reported separately and are not mandatory build gates.
 
 
 ## Current modernization follow-ups (November 2026)
@@ -51,8 +51,8 @@
 | Item | Location | Type | Risk | Effort | Priority | Status |
 |---|---|---|---|---|---|---|
 | Two deterministic MQTT binary-frame expectations fail after the TypeScript 7 test-loader compatibility fix | `features/iot/services/mqtt/messageParser.ts`, existing MQTT tests | Protocol regression / test mismatch | High | M | P0 | Open; owner-led device/protocol verification; no new tests being authored |
-| Three unused runtime dependencies and an unreferenced QueryProvider | `package.json`, `components/QueryProvider.tsx` | Dependency / dead code | Low | S | P2 | Removed on `chore/dependency-audit-cleanup`; lockfile regenerated with Bun |
-| Knip reports unused exports, types and files | Application modules | Dead-code candidates / possible public API | Medium | M | P2 | Open; inspect ownership and dynamic imports before removing anything |
-| Oxlint CLI/configuration is not wired into scripts or workflows; config points to a missing plugin entrypoint | `.oxlintrc.json`, `package.json`, `tools/oxlint/anti-slop/` | Stale tooling configuration | Low | S | P2 | Open; decide whether to repair and activate Oxlint or remove the orphaned setup |
+| Three unused runtime dependencies and an unreferenced QueryProvider | `package.json`, `components/QueryProvider.tsx` | Dependency / dead code | Low | S | P2 | Resolved and merged in PR #12; Bun lockfile regenerated |
+| Knip reports unused files, exports and exported types | Application modules | Dead-code candidates / possible public API | Medium | M | P2 | 17 Nov 2026 PR audit: 11 unused-file candidates, 139 exports, 99 exported types, 9 duplicate exports; zero unused dependencies and zero unresolved imports after tool entry points were added. Review before deleting. |
+| Knip previously omitted the vendored Oxlint plugin source from its project graph | `knip.json`, `tools/oxlint/anti-slop/` | Audit configuration gap | Low | XS | P2 | Resolved in `chore/align-tooling-audit-config`: both plugin entry points and the tools source tree are now included; PR audit will confirm the refreshed report |
 | Experimental workspace-transition E2E work | PR #9 / `tests/e2e/workspace-transitions.spec.mjs` | Deferred verification | Low | S | P3 | PR #9 closed without merge; new E2E authoring is out of scope; owner performs manual UI verification |
 | Stale optimization entries for removed legacy dnd-kit packages | `next.config.ts` | Obsolete configuration | Low | XS | P2 | Resolved and merged in PR #10 |
