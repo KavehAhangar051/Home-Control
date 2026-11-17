@@ -48,7 +48,6 @@ No package or lockfile changes were made. The package manifest intentionally kee
 - [PostCSS on npm](https://www.npmjs.com/package/postcss)
 - [MQTT.js releases](https://github.com/mqttjs/MQTT.js/releases)
 - [Zustand releases](https://github.com/pmndrs/zustand/releases)
-- [TanStack Query release stream](https://github.com/TanStack/query/releases)
 - [Biome releases](https://github.com/biomejs/biome/releases)
 - [Oxlint plugins on npm](https://www.npmjs.com/package/@oxlint/plugins)
 - [Node types on npm](https://www.npmjs.com/package/@types/node)
