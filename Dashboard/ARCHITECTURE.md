@@ -216,3 +216,14 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 - The View Transition implementation respects both the dashboard animation preference and the user's reduced-motion preference. Keep these controls in sync when changing transition behavior.
 - The experimental Playwright PR #9 was closed without merging. The project owner performs hands-on browser verification; do not treat the unmerged experiment as coverage or evidence.
 - Performance changes follow a measure → identify → change → re-measure workflow. New libraries, memoization, or architectural abstractions are not improvements without evidence.
+
+
+## 14. Modernization findings and current direction (18 November 2026)
+
+- The broad \`motion/react-m\` import migration was evaluated against the actual Next.js 16.4.6/Turbopack output and reverted. The trial added five homepage client chunks and 10,134 compressed bytes to the homepage client graph. Keep the existing \`motion/react\` imports and async \`LazyMotion\` + \`domMax\` provider unless a new focused experiment demonstrates a real improvement.
+- The post-revert analyzer graph reports unchanged Motion package contributions versus the original baseline. This is stronger evidence than assuming that the library's documented generic bundle-size example maps directly to this application's build.
+- The DnD hook is owned by the dynamically loaded Grid workspace. The static graph's DnD contribution decreased slightly, but the key intended benefit is avoiding an unnecessary runtime dependency for Trellis/Canvas. Confirm actual chunk requests in a browser before calling that behavior verified.
+- Keep MQTT.js behind its existing asynchronous import. Its large source-module contribution is not equivalent to initial JavaScript cost.
+- The next optimization cycle targets runtime responsiveness: MQTT message-to-UI latency, Zustand selector/subscription fan-out, workspace switching, workflow/canvas long tasks, and actual browser chunk requests.
+- React \`Activity\`, \`useEffectEvent\`, additional memoization, and more code splitting are candidates to evaluate—not mandatory migrations. Adopt them only when a concrete lifecycle or profiling result justifies the change.
+- Continue to treat the project as a static-export, browser-first dashboard. Preserve ESP32 protocol compatibility, Cloudflare data formats, persisted settings, accessibility, touch behavior, and reduced-motion preferences.

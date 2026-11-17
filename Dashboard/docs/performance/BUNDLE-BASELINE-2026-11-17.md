@@ -53,20 +53,54 @@ The root `MotionProvider` already uses `LazyMotion` with asynchronously loaded `
 - Trial after: commit `775456186b5b3fd2a9d8b68b68e86b4a08847a38`, workflow [44172890216](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44172890216)
 - Both analyzer runs covered the same four routes and used Bun 1.4.4 / Ubuntu 26.04.
 
-| Homepage client graph | Before | Trial after | Difference |
-|---|---:|---:|---:|
-| Raw module-part contribution | 2,974,509 B | 2,997,646 B | +23,137 B |
-| Compressed contribution | 1,164,289 B | 1,174,423 B | +10,134 B |
-| Client chunk count | 61 | 66 | +5 |
+| Homepage client graph | Before | Trial after | Post-revert | Trial delta |
+|---|---:|---:|---:|---:|
+| Raw module-part contribution | 2,974,509 B | 2,997,646 B | 2,974,509 B | +23,137 B |
+| Compressed contribution | 1,164,289 B | 1,174,423 B | 1,164,289 B | +10,134 B |
+| Client chunk count | 61 | 66 | 61 | +5 |
 
-Motion-related module-part contributions also increased from 440,952 B raw / 216,794 B compressed to 463,620 B / 226,487 B. The additional Motion chunks had no async loaders in the dashboard route graph, so this was not a deferred-loading win.
+Motion-related module-part contributions increased from 440,952 B raw / 216,794 B compressed to 463,620 B / 226,487 B during the trial. The additional Motion chunks had no async loaders in the dashboard route graph, so this was not a deferred-loading win.
 
-### Decision
+### Decision and revert verification
 
-The trial was reverted in commit `152179e94c95cd1964bd8f95c769261dd1c3c2de`. The current code keeps its original `motion/react` imports and the existing async `domMax` provider. The official `motion/react-m` pattern is valid, but it did not improve this project's current Turbopack output. Re-evaluate only after a Motion or Turbopack change, or if a focused profile identifies a different way to reduce the initial graph. A post-revert `after` snapshot is being captured to confirm the original graph is restored.
+The trial was reverted in commit `152179e94c95cd1964bd8f95c769261dd1c3c2de`. The current code keeps its original `motion/react` imports and the existing async `domMax` provider. The official `motion/react-m` pattern is valid, but it did not improve this project's current Turbopack output.
+
+The post-revert snapshot was captured in workflow [44173469986](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44173469986) from verification commit `e1a5a614d47e0844d8cbb0f75f96189e7544fff3`. It returned exactly to the baseline: 61 client chunks, 2,974,509 raw bytes, 1,164,289 compressed bytes and 7,411 graph records. This confirms the 80-module import migration was fully reverted. Re-evaluate only after a Motion or Turbopack change, or if a focused profile identifies a different way to reduce the initial graph.
 
 ## What this report does not establish
 
 - It does not measure LCP, INP, TTI, device CPU time or real network transfer timings.
 - It does not prove that every output chunk is downloaded during first paint; async groups must be interpreted by their trigger/import path.
 - It does not justify optimizing MQTT, Trellis, Workflow Studio or global CSS solely because their source modules have visible sizes.
+
+
+## Post-revert snapshot — 18 November 2026
+
+- Source commit: \`e1a5a614d47e0844d8cbb0f75f96189e7544fff3\` (the Motion trial had been reverted before this capture).
+- Workflow: [44173469986](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44173469986) — completed successfully.
+- Artifact: \`bundle-analysis-after-e1a5a614d47e0844d8cbb0f75f96189e7544fff3\`.
+- Same analyzer/runtime family and same four selected routes as the original baseline: Next.js 16.4.6, Turbopack, Bun 1.4.4, Ubuntu 26.04.
+
+### Client JavaScript graph comparison
+
+The values below are the sum of Turbopack \`part\` contributions assigned to JavaScript output chunks under \`[client-fs]/\`. They are graph contributions, not a direct measurement of bytes transferred by a browser; shared/module-part accounting and async groups must be interpreted separately.
+
+| Metric | Original baseline | Post-revert snapshot | Difference |
+|---|---:|---:|---:|
+| Client JS output chunks | 60 | 59 | -1 |
+| Client JS raw contribution | 4,222,084 B | 4,222,562 B | +478 B |
+| Client JS compressed contribution | 1,705,406 B | 1,705,753 B | +347 B |
+| dnd-kit contribution, raw | 115,412 B | 114,155 B | -1,257 B |
+| dnd-kit contribution, compressed | 42,501 B | 41,994 B | -507 B |
+| framer-motion contribution, raw / compressed | 190,451 B / 105,668 B | 190,451 B / 105,668 B | No change |
+| motion-dom contribution, raw / compressed | 518,604 B / 239,236 B | 518,604 B / 239,236 B | No change |
+
+The Motion trial was fully reverted in the resulting client graph: the measured \`framer-motion\` and \`motion-dom\` contributions match the original baseline exactly. The total client graph is effectively unchanged (+347 compressed bytes), while the DnD contribution is slightly smaller after the DnD ownership refactor.
+
+This comparison spans more than one code change (including the DnD refactor), so it must not be used to attribute the overall difference to one change. It also does not prove whether a particular async chunk is requested in a real browser session.
+
+### Decision and remaining verification
+
+- Keep the existing \`motion/react\` imports and the asynchronous \`LazyMotion\` + \`domMax\` provider. The measured broad \`motion/react-m\` trial increased the homepage graph and was reverted.
+- Keep the DnD hook scoped to the dynamically loaded Grid workspace. Its value is dependency ownership and avoiding unnecessary runtime reachability in other workspaces, not a large reduction in total static graph bytes.
+- Still required: owner-led browser Network verification for Trellis/Canvas and browser Performance profiling for first load, workspace switching, and device-state bursts.
