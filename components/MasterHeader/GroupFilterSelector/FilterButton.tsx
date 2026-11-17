@@ -1,4 +1,4 @@
-import * as m from "motion/react-m";
+import { m } from "motion/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DURATION, EASE_IN, EASE_OUT, EXIT_DURATION } from "@/lib/ease";
 

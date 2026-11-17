@@ -5,8 +5,7 @@
  * @description Motion-animated action swap components for icons, labels, and cycle buttons.
  */
 
-import * as m from "motion/react-m";
-import { AnimatePresence, useReducedMotion } from "motion/react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { useState } from "react";
 import { SPRING_PRESS } from "@/lib/ease";
 import { cn } from "@/lib/utils";

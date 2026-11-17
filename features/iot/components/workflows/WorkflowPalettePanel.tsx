@@ -1,8 +1,7 @@
 "use client";
 
 import { Search, X } from "lucide-react";
-import * as m from "motion/react-m";
-import { AnimatePresence, useReducedMotion } from "motion/react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import React from "react";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { DURATION, EASE_DRAWER, EASE_IN, EXIT_DURATION, SPRING_LAYOUT } from "@/lib/ease";

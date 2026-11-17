@@ -1,4 +1,4 @@
-import * as m from "motion/react-m";
+import { m } from "motion/react";
 import React from "react";
 import { createPortal } from "react-dom";
 import { DeleteButton } from "@/components/ui/delete-button";

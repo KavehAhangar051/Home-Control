@@ -1,7 +1,7 @@
 "use client";
 
 import { Scissors, X } from "lucide-react";
-import * as m from "motion/react-m";
+import { m } from "motion/react";
 import React from "react";
 import { SPRING_BOUNCE } from "@/lib/ease";
 import type { ConnectingWireDraft } from "./useWorkflowStudio";

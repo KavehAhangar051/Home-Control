@@ -1,6 +1,6 @@
 "use client";
 
-import * as m from "motion/react-m";
+import { m } from "motion/react";
 import type React from "react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
 import { CloudUpload, WifiOff } from "@/components/ui/hugeicons";

@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutGrid, PanelsTopLeft, Workflow } from "lucide-react";
-import * as m from "motion/react-m";
+import { m } from "motion/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { WorkspaceDisplayMode } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
