@@ -28,7 +28,7 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
         // Only suppress Cloudflare sync for commands that originated from Cloudflare.
         // MQTT and local WebSocket changes must be reported to the durable state owner.
         const bool syncCloudflare = (evt->origin != PinStateChangeOrigin::Cloudflare);
-        PinStateChangedEvent changedEvt{evt->pin, evt->state, syncCloudflare};
+        PinStateChangedEvent changedEvt{evt->pin, evt->state, syncCloudflare, evt->origin};
         eventBus.dispatch(changedEvt);
         
         // Handle Auto-Off if requested
@@ -50,9 +50,8 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
                 if (pinManager.setPinState(pin, false)) {
                     INFOF("[AutoOff] Pin %d turned OFF automatically", pin);
                     
-                    // Dispatch event
-                    PinStateChangedEvent changedOff{pin, false};
-                    eventBus.dispatch(changedOff);
+                    // Natural expiry of a Dashboard-owned output timer is intentionally
+                    // silent: the Dashboard already runs the matching countdown locally.
                 }
             }, delay * 1000);
             
@@ -96,22 +95,34 @@ auto onSegmentRemove = [](SegmentRemoveRequestEvent* evt) {
  */
 auto onPinChanged = [](PinStateChangedEvent* evt) {
     if (evt == nullptr) return;
-    INFOF("[Event] Pin %d confirmed -> %s. Syncing via Local WS, Global MQTT, and Cloudflare...", evt->pin, evt->state ? "ON" : "OFF");
-    
-    // Build sync message: stack-only, no heap allocation (replaces 4x String concat)
-    char syncBuf[64];
-    snprintf(syncBuf, sizeof(syncBuf), "{\"type\":\"sync_pin\",\"pin\":%d,\"state\":%d}", evt->pin, evt->state ? 1 : 0);
-    if (wsServer) {
-        wsServer->broadcastState(syncBuf);
-    }
-    // Publish to MQTT State (Retained)
-    uint8_t payload[3] = {0x06, (uint8_t)evt->pin, (uint8_t)(evt->state ? 0x01 : 0x00)};
-    mqttClient.publish(mqttClient.getBaseTopic() + "/State", payload, 3, true);
 
-    // Sync to Cloudflare DurableObject via global WebSocket
-    if (evt->syncCloudflare && wsClient) {
-        wsClient->syncPinState(evt->pin, evt->state);
+    // A command ACK must never be interpreted as a new pin state.
+    if (evt->origin == PinStateChangeOrigin::DashboardCommand) {
+        char ackBuf[96];
+        snprintf(ackBuf, sizeof(ackBuf),
+                 "{\"type\":\"command_ack\",\"pin\":%d,\"state\":%s}",
+                 evt->pin, evt->state ? "true" : "false");
+        mqttClient.publish(mqttClient.getBaseTopic() + "/State", ackBuf);
+        return;
     }
+
+    const char* source = "local";
+    switch (evt->origin) {
+        case PinStateChangeOrigin::Automation: source = "automation"; break;
+        case PinStateChangeOrigin::PhysicalInput: source = "physical_input"; break;
+        case PinStateChangeOrigin::Cloudflare: source = "cloudflare"; break;
+        case PinStateChangeOrigin::Local: source = "local"; break;
+        case PinStateChangeOrigin::DashboardCommand: return;
+    }
+
+    char stateBuf[128];
+    snprintf(stateBuf, sizeof(stateBuf),
+             "{\"type\":\"pin_update\",\"pin\":%d,\"state\":%s,\"source\":\"%s\"}",
+             evt->pin, evt->state ? "true" : "false", source);
+
+    if (wsServer) wsServer->broadcastState(stateBuf);
+    mqttClient.publish(mqttClient.getBaseTopic() + "/State", stateBuf);
+    if (evt->syncCloudflare && wsClient) wsClient->syncPinState(evt->pin, evt->state);
 };
 
 /**
