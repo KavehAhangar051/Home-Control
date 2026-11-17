@@ -19,6 +19,10 @@ jobs:
         uses: oven-sh/setup-bun@v2
       - name: Regenerate lockfile
         run: bun install
+      - name: Lint
+        run: bun run lint
+      - name: Typecheck
+        run: bun run typecheck
       - name: Commit lockfile
         run: |
           if ! git diff --quiet -- bun.lock; then
