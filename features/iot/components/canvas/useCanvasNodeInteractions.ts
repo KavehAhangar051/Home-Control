@@ -181,7 +181,7 @@ export function useCanvasNodeInteractions({
         nodesRef.current,
       );
 
-      const handlePointerMove = (moveEvent: PointerEvent) => {
+      const applyPointerMove = (moveEvent: PointerEvent) => {
         const dx = (moveEvent.clientX - startClientX) / zoom;
         const dy = (moveEvent.clientY - startClientY) / zoom;
         const nextX = snapCanvasCoordinate(startRect.x + dx, snapToGrid);
@@ -194,14 +194,9 @@ export function useCanvasNodeInteractions({
 
         const prev = nodesRef.current;
         const current = prev[nodeId] ?? startRect;
-
         const updated: Record<string, CanvasNodeRect> = {
           ...prev,
-          [nodeId]: {
-            ...current,
-            x: nextX,
-            y: nextY,
-          },
+          [nodeId]: { ...current, x: nextX, y: nextY },
         };
 
         for (let i = 0; i < childInitialRects.length; i++) {
@@ -218,7 +213,34 @@ export function useCanvasNodeInteractions({
         setNodes(updated);
       };
 
+      let pendingMove: PointerEvent | null = null;
+      let frameId: number | null = null;
+
+      const flushPointerMove = () => {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+
+        const latestMove = pendingMove;
+        pendingMove = null;
+
+        if (latestMove) applyPointerMove(latestMove);
+      };
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        pendingMove = moveEvent;
+
+        if (frameId === null) {
+          frameId = requestAnimationFrame(() => {
+            frameId = null;
+            const latestMove = pendingMove;
+            pendingMove = null;
+            if (latestMove) applyPointerMove(latestMove);
+          });
+        }
+      };
+
       const handlePointerUp = () => {
+        flushPointerMove();
         setDraggingNodeId(null);
         setDragTiltDeg(0);
         window.removeEventListener("pointermove", handlePointerMove);
@@ -267,14 +289,14 @@ export function useCanvasNodeInteractions({
       const snappedRightEdge = snapCanvasCoordinate(startRect.x + startRect.width, snapToGrid);
       const snappedBottomEdge = snapCanvasCoordinate(startRect.y + startRect.height, snapToGrid);
 
-      const handlePointerMove = (moveEvent: PointerEvent) => {
+      const applyPointerMove = (moveEvent: PointerEvent) => {
         const dx = (moveEvent.clientX - startClientX) / zoom;
         const dy = (moveEvent.clientY - startClientY) / zoom;
         const prev = nodesRef.current;
         const current = prev[nodeId] ?? startRect;
 
         const resized = computeResizedNodeRect({
-          startRect: current,
+          startRect,
           snappedRightEdge,
           snappedBottomEdge,
           kind,
@@ -287,17 +309,41 @@ export function useCanvasNodeInteractions({
 
         const updated = {
           ...prev,
-          [nodeId]: {
-            ...resized,
-            zIndex: current.zIndex,
-          },
+          [nodeId]: { ...resized, zIndex: current.zIndex },
         };
 
         nodesRef.current = updated;
         setNodes(updated);
       };
 
+      let pendingMove: PointerEvent | null = null;
+      let frameId: number | null = null;
+
+      const flushPointerMove = () => {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+
+        const latestMove = pendingMove;
+        pendingMove = null;
+
+        if (latestMove) applyPointerMove(latestMove);
+      };
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        pendingMove = moveEvent;
+
+        if (frameId === null) {
+          frameId = requestAnimationFrame(() => {
+            frameId = null;
+            const latestMove = pendingMove;
+            pendingMove = null;
+            if (latestMove) applyPointerMove(latestMove);
+          });
+        }
+      };
+
       const handlePointerUp = () => {
+        flushPointerMove();
         window.removeEventListener("pointermove", handlePointerMove);
         window.removeEventListener("pointerup", handlePointerUp);
         window.removeEventListener("pointercancel", handlePointerUp);
