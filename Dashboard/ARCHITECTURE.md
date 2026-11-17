@@ -20,7 +20,7 @@ The application is configured for static export in its normal production mode. I
 - **Device messaging:** `mqtt` (MQTT over WebSocket where supported)
 - **Forms and validation dependencies:** React Hook Form resolver integration and Zod; use them where the relevant feature already follows this pattern
 - **Linting and formatting:** Biome
-- **Language/tooling:** TypeScript 5
+- **Language/tooling:** TypeScript 7
 - **Package manager:** Bun (`bun.lock` is the committed dependency lockfile)
 - **Bundler:** Turbopack is used for development and production builds. The `dev:webpack` script remains available for the AI Studio workflow that disables file watching through the custom Webpack configuration.
 
