@@ -227,7 +227,8 @@ export function useSheetViewportGestures({
         }
       };
 
-      const onUp = () => {
+      const onUp = (endEvent: PointerEvent) => {
+        pendingMove = endEvent;
         flushMove();
         setIsPanning(false);
         onPanEndRef.current?.(viewportRef.current);
