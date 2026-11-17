@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import ./tests/ts-loader.mjs --test tests/*.test.mjs",
     "check": "bun run lint && bun run typecheck && bun run test",
-    "clean": "node -e \"['.next', 'out', 'tsconfig.tsbuildinfo'].forEach(p => require('fs').rmSync(p, { recursive: true, force: true }))\""
+    "clean": "node -e \"['.next', 'out', 'tsconfig.tsbuildinfo'].forEach(p => require('fs').rmSync(p, { recursive: true, force: true }))\"",
+    "lint:ox": "oxlint app components features lib"
   },
   "dependencies": {
     "@animate-ui/react": "^2.4.3",

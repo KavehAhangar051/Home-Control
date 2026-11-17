@@ -1,0 +1,28 @@
+name: Oxlint compatibility verification
+
+on:
+  push:
+    branches: ["main", "chore/restore-anti-slop-plugin"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun ci
+      - name: Biome lint
+        run: bun run lint
+      - name: Oxlint diagnostic report
+        run: bun run lint:ox
+        continue-on-error: true
+      - name: Typecheck
+        run: bun run typecheck
