@@ -34,3 +34,19 @@
 ## CI Gates
 - **Primary gate:** `npm run check` (`npm run lint && npm run typecheck && npm run test`)
 - **Static export verification:** `npm run build` (`NODE_ENV=production next build`)
+
+
+## Current verification status (17 November 2026)
+
+The following is a recorded snapshot, not a claim that every check is currently green:
+
+- The TypeScript 7 test-loader incompatibility was addressed by using `@typescript/typescript6` for the legacy `transpileModule` API while retaining TypeScript 7 for project type-checking.
+- After the loader fix, the deterministic suite reported **69 passing and 2 failing tests (71 total)**. Both known failures concern binary MQTT state frames: the parser/queue path does not produce the expected pin update for frames `[0x06, 12, 0x01]` and `[0x06, 15, 0x01]`. These failures must be reproduced and fixed or explicitly reclassified; do not describe the suite as fully green.
+- The Workspace View Transition Playwright experiment is tracked in [PR #9](https://github.com/KavehAhangar051/Home-Control-Dashboard/pull/9). Its first recorded run installed Bun dependencies and Chromium successfully, but the tests failed while locating the Settings navigation control. This is currently a test-selector/navigation-DOM issue; it does not prove that the native transition itself is broken or working.
+- PR #9 also includes reduced-motion coverage. Re-run the browser suite after correcting selectors and assert both successful navigation and the intended transition behavior.
+- The repository owner requested that tests remain useful diagnostics and regression protection without becoming a mandatory production-build gate. Keep test execution visible and report failures; do not delete tests or silently skip known failures.
+- GitHub Actions workflows should use `ubuntu-26.04` (the latest runner selected for this project at this update). Do not wait for the Pages deployment workflow to finish before continuing development.
+
+## Verification reporting rules
+
+Report lint, typecheck, deterministic tests, browser tests, static export, and Pages deployment as separate results. A successful dependency installation is not a successful test run. A successful CI job is not evidence of visual correctness unless the browser assertions actually cover the behavior. Never claim the whole suite is green while known failures remain.
