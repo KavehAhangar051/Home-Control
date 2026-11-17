@@ -13,7 +13,7 @@ HOT_PATH FORCE_INLINE static void applyState(int targetPin, bool stateToApply, R
     if (ctx.pinManager == nullptr) return;
     if (ctx.pinManager->setPinState(targetPin, stateToApply)) {
         if (ctx.eventBus != nullptr) {
-            PinStateChangedEvent changed{targetPin, stateToApply};
+            PinStateChangedEvent changed{targetPin, stateToApply, true, PinStateChangeOrigin::Automation};
             ctx.eventBus->dispatch(changed);
         }
     }
