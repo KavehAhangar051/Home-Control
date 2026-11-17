@@ -1,0 +1,54 @@
+name: Bundle analysis
+
+on:
+  push:
+    branches:
+      - "perf/automated-bundle-analysis"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bundle-analysis-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun ci
+
+      - name: Capture named Turbopack bundle snapshot
+        run: bun run analyze --snapshot before
+
+      - name: Export bundle graph as JSONL
+        run: bun run analyze:export --snapshot before > bundle-before.jsonl
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: bundle-analysis-${{ github.sha }}
+          path: |
+            bundle-before.jsonl
+            .next/diagnostics/analyze/
+          if-no-files-found: error
+          retention-days: 14
