@@ -1,6 +1,5 @@
 "use client";
 
-import { useAchaemenidDnd } from "./achaemenidState/useAchaemenidDnd";
 import { useCloudflareInit } from "./achaemenidState/useCloudflareInit";
 import { useCloudflarePush } from "./achaemenidState/useCloudflarePush";
 import { useCloudflareQuery } from "./achaemenidState/useCloudflareQuery";
@@ -58,18 +57,12 @@ export function useAchaemenidState() {
   const { handleUpdateSegmentMode, handleUpdateSegmentRule, handleUpdateSegmentAutoOff } =
     useSegmentUpdates();
 
-  const dnd = useAchaemenidDnd({
-    handleRemoveGroup,
-    handleRemoveSegment,
-  });
-
   return {
     isLoadingIoT,
     mounted,
     refetchIot: handleRetrySync,
     isFullyReady,
     setIsFullyReady,
-    ...dnd,
     targetPlaceholderId,
     clearTargetPlaceholder,
     handleApplyEspConfig,

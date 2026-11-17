@@ -58,8 +58,6 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
 }: HomeWorkspaceMainContentProps) {
   const {
     isLoadingIoT,
-    handleDragStart,
-    handleDragEnd,
     handleGroupColsChange,
     handleAddPlaceholder,
     handleRemoveGroup,
@@ -124,8 +122,6 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
             activeGroupId={activeGroupId}
             animationsEnabled={animationsEnabled}
             selectedGroupFilter={selectedGroupFilter}
-            handleDragStart={handleDragStart}
-            handleDragEnd={handleDragEnd}
             handleGroupColsChange={handleGroupColsChange}
             handleAddPlaceholder={handleAddPlaceholder}
             handleRemoveGroup={handleRemoveGroup}
