@@ -124,7 +124,7 @@ A browser-delivered static app cannot keep secrets confidential. Never put priva
 - Use the existing state owner for each domain. Do not introduce a second source of truth for a setting or device state already managed by a feature hook/store.
 - Separate user intent from confirmed device state where the transport can fail or report updates asynchronously. Provide visible pending, connected/disconnected, and error states when relevant.
 - Avoid assuming that publishing a command means the physical device has applied it.
-- Use React Query for query/cache workflows already modeled with it; do not add it mechanically for local transient UI state.
+- The dashboard currently has no TanStack Query dependency or global query provider. Keep server-state/cache libraries out unless a concrete remote-cache workflow is introduced.
 - Keep components accessible: use semantic elements, labels for controls, keyboard-operable interactions, clear focus states, and status text that does not rely on color alone.
 - Preserve responsive behavior and test narrow and wide viewports when modifying layouts.
 - Respect reduced-motion preferences for nonessential animation where practical. Audio feedback must not be required to understand or complete an action.
@@ -186,7 +186,7 @@ Available scripts in `package.json`:
 - `bun run lint && bun run typecheck && bun run test` — run lint, TypeScript typecheck, and deterministic contract tests together.
 - `bun run clean` — remove local Next.js/export/build-metadata outputs.
 
-Before submitting a change, run `bun run lint`, `bun run typecheck`, and the relevant deterministic tests; run `bun run build` when requested or when a change needs export validation. Report each result separately. The repository owner has asked that tests remain available as a report/diagnostic suite rather than becoming a mandatory production-build gate. Do not wait for GitHub Pages deployment to finish development verification. CI workflows should use the latest Ubuntu runner available to the project (`ubuntu-26.04` at the time of this update). Avoid formatting unrelated files or committing generated output.
+Before submitting a change, run `bun run lint` and `bun run typecheck`; report existing deterministic tests and build results separately when they are run. New test authoring is not part of routine work unless the project owner requests it. Run `bun run build` when requested or when a change needs export validation. The repository owner has asked that tests remain available as a report/diagnostic suite rather than becoming a mandatory production-build gate. Do not wait for GitHub Pages deployment to finish development verification. CI workflows should use the latest Ubuntu runner available to the project (`ubuntu-26.04` at the time of this update). Avoid formatting unrelated files or committing generated output.
 
 ## 12. Safe change procedure for coding agents (AI-First Engineering)
 
@@ -209,5 +209,5 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 - TypeScript 7 is the project compiler, but the Node test loader needs the JavaScript compiler API. TypeScript 7 does not expose that API; `tests/ts-loader.mjs` therefore imports `@typescript/typescript6` as a compatibility-only test dependency. Do not downgrade the application compiler to solve a test-loader concern.
 - React View Transitions are enabled only for workspace-content changes. Zustand remains the source of truth; `useDeferredValue` supplies the deferred render value because external-store mutations cannot reliably be made non-blocking by wrapping the Zustand setter in `startTransition`.
 - The View Transition implementation respects both the dashboard animation preference and the user's reduced-motion preference. Keep these controls in sync when changing transition behavior.
-- A browser test must prove observable navigation and animation behavior, not merely that a browser API exists. The current Playwright experiment still needs selector corrections against the real navigation DOM before it can be treated as verified.
+- The experimental Playwright PR #9 was closed without merging. The project owner performs hands-on browser verification; do not treat the unmerged experiment as coverage or evidence.
 - Performance changes follow a measure → identify → change → re-measure workflow. New libraries, memoization, or architectural abstractions are not improvements without evidence.
