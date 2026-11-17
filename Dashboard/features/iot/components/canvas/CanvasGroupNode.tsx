@@ -1,7 +1,7 @@
 "use client";
 
 import { GripHorizontal } from "lucide-react";
-import { m } from "motion/react";
+import * as m from "motion/react-m";
 import React from "react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus } from "@/components/ui/hugeicons";

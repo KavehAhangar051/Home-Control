@@ -5,7 +5,8 @@
  * @description Motion-powered modular loader supporting terminal ASCII spinners (including ascii-line), geometric morphs, and pulse effects.
  */
 
-import { m, useReducedMotion } from "motion/react";
+import * as m from "motion/react-m";
+import { useReducedMotion } from "motion/react";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { EASE_IN_OUT } from "@/lib/ease";

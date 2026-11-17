@@ -1,7 +1,8 @@
 "use client";
 // beui.dev/components/motion/range-slider
 
-import { m, useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
+import * as m from "motion/react-m";
+import { useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { SPRING_GLIDE } from "@/lib/ease";
 import { type SliderOptions, useSlider } from "@/lib/hooks/use-slider";

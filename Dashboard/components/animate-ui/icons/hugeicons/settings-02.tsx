@@ -6,7 +6,8 @@ import {
   IconWrapper,
   useAnimateIconContext,
 } from "@animate-ui/react/icons";
-import { m, type Variants } from "motion/react";
+import * as m from "motion/react-m";
+import type { Variants } from "motion/react";
 
 type Settings02Props = IconProps<keyof typeof animations>;
 
