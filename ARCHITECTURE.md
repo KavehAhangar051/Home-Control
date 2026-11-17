@@ -233,3 +233,11 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 
 - Canvas drag, resize, and viewport-pan pointer events are coalesced through `requestAnimationFrame`; only the latest pointer position per frame updates React state. Pointer-up applies its final coordinates synchronously; pointer-cancel flushes only the last valid move before persisting the layout. Viewport pan uses a transient state setter so it does not synchronously write localStorage on every animation frame; the final viewport is persisted when the gesture ends. Keep high-frequency gesture handlers frame-aligned and preserve the final event when changing this path.
 - Workflow Studio reuses the shared frame-coalesced viewport gesture controller. It retains its existing workflow-state persistence path; the Canvas-specific transient setter must not be passed there unless workflow persistence is also moved to gesture-end commits.
+
+## 15. 60 FPS rendering and animation quality
+
+- The dashboard targets stable 60 FPS on 60 Hz reference devices and should follow higher refresh rates where supported; it cannot guarantee a frame rate on every hardware/browser combination.
+- Prefer compositor-friendly `transform` and `opacity` for high-frequency motion. Profile blur/filter, shadow, large SVG, layout, and large-area view transitions on low-powered devices before treating them as free.
+- Keep per-frame callbacks small and free of synchronous persistence or graph-wide work. Prefer MotionValues/refs for transient visual values and persist at interaction boundaries.
+- Preserve the current async `LazyMotion` + `domMax` setup because the UI uses layout and drag features. Do not repeat the broad `motion/react-m` migration unless a same-environment build proves a real win.
+- Follow `docs/performance/60-FPS-STRATEGY.md` for profiling scenarios and acceptance criteria. No FPS claim is valid without browser frame measurements on named reference devices.
