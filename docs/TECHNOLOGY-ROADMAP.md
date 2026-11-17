@@ -91,6 +91,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - [x] Remove stale `optimizePackageImports` entries for removed packages and for `lucide-react`, which Next.js optimizes by default; retain only installed custom entries (`@base-ui/react`, `motion`, `zustand`).
 - [x] Provide a repeatable saved-output command for the Next.js 16/Turbopack analyzer (`bun run analyze` → `.next/diagnostics/analyze`).
 - [x] Expose named analyzer snapshots and JSONL graph export through `bun run analyze --snapshot <name>` and `bun run analyze:export --snapshot <name>` (Next.js 16.4+).
+- [x] Add a GitHub Actions workflow that captures and uploads the JSONL graph and static analyzer report, avoiding local CLI setup for the project owner.
 - [ ] Review Next.js 16/Turbopack output and package-import optimization using the saved report; capture a measured bundle baseline before further changes.
 - [ ] Review Base UI and Motion coverage before introducing overlapping component or animation libraries.
 - [ ] Audit Tailwind v4 CSS output, token consistency and duplicated styling patterns.
