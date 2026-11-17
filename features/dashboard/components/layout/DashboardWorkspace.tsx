@@ -149,6 +149,7 @@ export default function DashboardWorkspace() {
   const activeWorkspaceView = useIoTStore((s) => s.activeWorkspaceView);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const prefersReducedMotion = useReducedMotion();
+  // Defer only the rendered view so Zustand updates can animate without duplicating store state.
   const deferredWorkspaceView = useDeferredValue(activeWorkspaceView);
   const shouldAnimateWorkspace = animationsEnabled && !prefersReducedMotion;
   const displayedWorkspaceView = shouldAnimateWorkspace
