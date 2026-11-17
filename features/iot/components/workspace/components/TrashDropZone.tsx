@@ -1,23 +1,24 @@
 "use client";
 
-import { useDroppable } from "@dnd-kit/core";
+import { useDroppable } from "@dnd-kit/react";
 import { Card } from "@/components/ui/card";
 import { Trash2 } from "@/components/ui/hugeicons";
 
 export default function TrashDropZone({ activeId }: { activeId: string | null }) {
-  const { isOver, setNodeRef } = useDroppable({
+  const { isDropTarget, ref } = useDroppable({
     id: "trash-dropzone",
+    accept: ["Group", "Segment"],
   });
 
   if (!activeId) return null;
 
   return (
     <Card
-      ref={setNodeRef}
+      ref={ref}
       role="status"
       aria-live="polite"
       className={`!mt-12 !gap-0 !ring-0 !p-6 !w-full !max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[112px] text-center !border !border-dashed transition-[border-color,background-color,color] duration-150 ease-out z-10 !rounded-xl ${
-        isOver
+        isDropTarget
           ? "!bg-destructive/10 !border-destructive !text-destructive"
           : "!bg-card-bg !border-border-color !text-text-muted"
       }`}

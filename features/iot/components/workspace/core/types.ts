@@ -1,13 +1,6 @@
-import type {
-  DragEndEvent,
-  DragOverEvent,
-  DragStartEvent,
-  SensorDescriptor,
-  SensorOptions,
-} from "@dnd-kit/core";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/react";
 
 export interface IoTWorkspaceProps {
-  sensors: SensorDescriptor<SensorOptions>[];
   groupsOrder: string[];
   groupsCols: number;
   groupConfigs: Record<string, { maxCols: number; icon?: string }>;
@@ -18,7 +11,6 @@ export interface IoTWorkspaceProps {
   selectedGroupFilter?: string | null;
 
   handleDragStart: (event: DragStartEvent) => void;
-  handleDragOver: (event: DragOverEvent) => void;
   handleDragEnd: (event: DragEndEvent) => void;
   handleGroupColsChange: (groupName: string, cols: number) => void;
   handleAddPlaceholder: (groupId: string) => void;

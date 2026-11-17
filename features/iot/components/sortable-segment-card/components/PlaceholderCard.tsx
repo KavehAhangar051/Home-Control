@@ -1,4 +1,4 @@
-import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
+import type { RefCallback } from "react";
 import { m } from "motion/react";
 import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -11,8 +11,7 @@ interface PlaceholderCardProps {
   segment: SegmentData;
   onRemove: (id: string) => void;
   onSetupPlaceholder?: (id: string) => void;
-  attributes: DraggableAttributes | Record<string, string | number | boolean | undefined>;
-  listeners: DraggableSyntheticListeners;
+  handleRef?: RefCallback<HTMLElement>;
   isCompact: boolean;
   isUltraCompact: boolean;
   animationsEnabled?: boolean;
@@ -22,8 +21,7 @@ export default function PlaceholderCard({
   segment,
   onRemove,
   onSetupPlaceholder,
-  attributes,
-  listeners,
+  handleRef,
   isCompact,
   isUltraCompact,
   animationsEnabled = true,
@@ -51,8 +49,7 @@ export default function PlaceholderCard({
           <TooltipTrigger
             render={
               <div
-                {...attributes}
-                {...listeners}
+                ref={handleRef}
                 className="size-6 flex items-center justify-center bg-secondary/80 border border-border md:hover:bg-accent text-muted-foreground md:hover:text-foreground cursor-grab active:cursor-grabbing transition-colors rounded-lg"
               >
                 <GripVertical className="size-3.5" />

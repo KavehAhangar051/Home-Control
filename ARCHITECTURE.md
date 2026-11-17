@@ -16,7 +16,7 @@ The application is configured for static export in its normal production mode. I
 - **Motion:** `motion`
 - **Client state:** Zustand
 - **Server-state/query utilities:** TanStack React Query v5
-- **Drag and drop:** `@dnd-kit/core`, `@dnd-kit/sortable`, and `@dnd-kit/utilities`
+- **Drag and drop:** `@dnd-kit/react` with the DOM sensor adapters from `@dnd-kit/dom`
 - **Device messaging:** `mqtt` (MQTT over WebSocket where supported)
 - **Forms and validation dependencies:** React Hook Form resolver integration and Zod; use them where the relevant feature already follows this pattern
 - **Linting and formatting:** Biome

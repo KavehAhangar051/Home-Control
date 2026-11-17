@@ -1,19 +1,28 @@
 "use client";
 
-import {
-  type DragEndEvent,
-  type DragOverEvent,
-  type DragStartEvent,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/react";
+import { isSortable } from "@dnd-kit/react/sortable";
 import { useCallback } from "react";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
+
+function moveItem<T>(items: T[], fromIndex: number, toIndex: number): T[] {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= items.length ||
+    toIndex >= items.length
+  ) {
+    return items;
+  }
+
+  const next = items.slice();
+  const [item] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, item);
+  return next;
+}
 
 export function computeSegmentDragOverIndices(
   segments: readonly Pick<Segment, "id" | "group">[],
@@ -26,15 +35,15 @@ export function computeSegmentDragOverIndices(
   let overIndex = -1;
 
   for (let i = 0; i < segments.length; i++) {
-    const s = segments[i];
+    const segment = segments[i];
 
-    if (s.id === activeId) {
-      activeSeg = s;
+    if (segment.id === activeId) {
+      activeSeg = segment;
       activeIndex = i;
     }
 
-    if (s.id === overId) {
-      overSeg = s;
+    if (segment.id === overId) {
+      overSeg = segment;
       overIndex = i;
     }
 
@@ -94,6 +103,36 @@ export function resolveDragEndDecision(
   return { kind: "none" };
 }
 
+function reorderSegmentsInGroup(
+  segments: Segment[],
+  groupId: string,
+  fromIndex: number,
+  toIndex: number,
+): Segment[] {
+  if (fromIndex === toIndex) return segments;
+
+  const groupIndexes: number[] = [];
+  const groupSegments: Segment[] = [];
+
+  for (let index = 0; index < segments.length; index++) {
+    if (resolveSegmentGroup(segments[index].group) === groupId) {
+      groupIndexes.push(index);
+      groupSegments.push(segments[index]);
+    }
+  }
+
+  const reordered = moveItem(groupSegments, fromIndex, toIndex);
+  if (reordered === groupSegments) return segments;
+
+  const nextSegments = segments.slice();
+
+  for (let index = 0; index < groupIndexes.length; index++) {
+    nextSegments[groupIndexes[index]] = reordered[index];
+  }
+
+  return nextSegments;
+}
+
 export function useAchaemenidDnd({
   handleRemoveGroup,
   handleRemoveSegment,
@@ -103,80 +142,77 @@ export function useAchaemenidDnd({
 }) {
   const setSegments = useIoTStore((state) => state.setSegments);
   const setGroupsOrder = useIoTStore((state) => state.setGroupsOrder);
-
   const setActiveSegmentId = useIoTStore((state) => state.setActiveSegmentId);
   const setActiveGroupId = useIoTStore((state) => state.setActiveGroupId);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
   const handleDragStart = useCallback(
-    (e: DragStartEvent) => {
-      if (e.active.data.current?.type === "Group") setActiveGroupId(String(e.active.id));
-      else setActiveSegmentId(String(e.active.id));
+    (event: DragStartEvent) => {
+      const source = event.operation.source;
+
+      if (source.type === "Group") setActiveGroupId(String(source.id));
+      else setActiveSegmentId(String(source.id));
     },
     [setActiveGroupId, setActiveSegmentId],
   );
 
-  const handleDragOver = useCallback(
-    (e: DragOverEvent) => {
-      const { active, over } = e;
-
-      if (
-        !over ||
-        active.id === over.id ||
-        active.data.current?.type === "Group" ||
-        over.data.current?.type === "Group"
-      )
-        return;
-
-      const move = computeSegmentDragOverIndices(
-        useIoTStore.getState().segments,
-        String(active.id),
-        String(over.id),
-      );
-
-      if (move) {
-        setSegments((prev) => arrayMove(prev, move.activeIndex, move.overIndex));
-      }
-    },
-    [setSegments],
-  );
-
   const handleDragEnd = useCallback(
-    (e: DragEndEvent) => {
+    (event: DragEndEvent) => {
       setActiveSegmentId(null);
       setActiveGroupId(null);
-      const { active, over } = e;
+
+      const { source, target } = event.operation;
+      if (!source || event.canceled) return;
 
       const decision = resolveDragEndDecision(
-        String(active.id),
-        active.data.current?.type,
-        over ? String(over.id) : null,
+        String(source.id),
+        source.type,
+        target ? String(target.id) : null,
       );
 
       if (decision.kind === "remove_group") {
         handleRemoveGroup(decision.groupId);
-      } else if (decision.kind === "remove_segment") {
-        handleRemoveSegment(decision.segmentId);
-      } else if (decision.kind === "reorder_group") {
-        setGroupsOrder((prev) => {
-          const activeIdx = prev.indexOf(decision.activeGroupId);
-          const overIdx = prev.indexOf(decision.overGroupId);
+        return;
+      }
 
-          return activeIdx !== -1 && overIdx !== -1 ? arrayMove(prev, activeIdx, overIdx) : prev;
-        });
+      if (decision.kind === "remove_segment") {
+        handleRemoveSegment(decision.segmentId);
+        return;
+      }
+
+      if (!isSortable(source) || source.initialIndex === source.index) return;
+
+      if (source.type === "Group") {
+        setGroupsOrder((previous) => moveItem(previous, source.initialIndex, source.index));
+        return;
+      }
+
+      if (
+        source.type === "Segment" &&
+        source.initialGroup != null &&
+        source.initialGroup === source.group
+      ) {
+        setSegments((previous) =>
+          reorderSegmentsInGroup(
+            previous,
+            String(source.initialGroup),
+            source.initialIndex,
+            source.index,
+          ),
+        );
       }
     },
-    [handleRemoveGroup, handleRemoveSegment, setGroupsOrder, setActiveSegmentId, setActiveGroupId],
+    [
+      handleRemoveGroup,
+      handleRemoveSegment,
+      setGroupsOrder,
+      setSegments,
+      setActiveSegmentId,
+      setActiveGroupId,
+    ],
   );
 
   return {
-    sensors,
     handleDragStart,
-    handleDragOver,
     handleDragEnd,
   };
 }

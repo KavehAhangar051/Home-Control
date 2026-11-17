@@ -1,7 +1,7 @@
 "use client";
 
-import { DndContext } from "@dnd-kit/core";
-import { optimizedCollisionDetection } from "../core/collisionStrategy";
+import { PointerActivationConstraints, PointerSensor } from "@dnd-kit/dom";
+import { DragDropProvider } from "@dnd-kit/react";
 import type { IoTWorkspaceProps } from "../core/types";
 import TrashDropZone from "./TrashDropZone";
 import WorkspaceDragOverlay from "./WorkspaceDragOverlay";
@@ -9,12 +9,14 @@ import WorkspaceGrid from "./WorkspaceGrid";
 
 export default function DndGridWorkspace(props: IoTWorkspaceProps) {
   return (
-    <DndContext
-      sensors={props.sensors}
-      collisionDetection={optimizedCollisionDetection}
-      autoScroll={{ layoutShiftCompensation: false }}
+    <DragDropProvider
+      sensors={(defaults) => [
+        ...defaults.filter((sensor) => sensor !== PointerSensor),
+        PointerSensor.configure({
+          activationConstraints: [new PointerActivationConstraints.Distance({ value: 5 })],
+        }),
+      ]}
       onDragStart={props.handleDragStart}
-      onDragOver={props.handleDragOver}
       onDragEnd={props.handleDragEnd}
     >
       <WorkspaceGrid {...props} />
@@ -23,6 +25,6 @@ export default function DndGridWorkspace(props: IoTWorkspaceProps) {
       {(props.activeSegmentId || props.activeGroupId) && (
         <style>{"* { cursor: grabbing !important; }"}</style>
       )}
-    </DndContext>
+    </DragDropProvider>
   );
 }

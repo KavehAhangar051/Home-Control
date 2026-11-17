@@ -55,10 +55,8 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
   hasMacros,
 }: HomeWorkspaceMainContentProps) {
   const {
-    sensors,
     isLoadingIoT,
     handleDragStart,
-    handleDragOver,
     handleDragEnd,
     handleGroupColsChange,
     handleAddPlaceholder,
@@ -116,7 +114,6 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
           resetKeys={[workspaceDisplayMode, selectedGroupFilter]}
         >
           <IoTWorkspace
-            sensors={sensors}
             groupsOrder={groupsOrder}
             groupsCols={groupsCols}
             groupConfigs={groupConfigs}
@@ -126,7 +123,6 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
             animationsEnabled={animationsEnabled}
             selectedGroupFilter={selectedGroupFilter}
             handleDragStart={handleDragStart}
-            handleDragOver={handleDragOver}
             handleDragEnd={handleDragEnd}
             handleGroupColsChange={handleGroupColsChange}
             handleAddPlaceholder={handleAddPlaceholder}
