@@ -95,7 +95,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - [x] Move the sortable DnD hook from the global dashboard state hook into the dynamically loaded Grid workspace; the after graph confirms the global state module no longer imports DnD.
 - [ ] Verify in a browser Network panel that Trellis and Canvas do not request the DnD chunk; the static graph still includes the conditional Grid preload path.
 - [ ] Review Base UI and Motion coverage before introducing overlapping component or animation libraries.
-- [x] Migrate the `m` namespace to `motion/react-m` in 48 app-used Hugeicons and 10 core animation/workflow/Canvas components; keep `LazyMotion` and async `domMax` on `motion/react`.
+- [x] Migrate the `m` namespace to `motion/react-m` in 48 app-used Hugeicons and 32 core UI/animation/dashboard/IoT components; keep `LazyMotion` and async `domMax` on `motion/react`.
 - [ ] Complete a repository-wide audit for remaining `m` imports and compare the post-migration Turbopack graph with the baseline; preserve required `domMax` layout features.
 - [ ] Audit Tailwind v4 CSS output, token consistency and duplicated styling patterns.
 

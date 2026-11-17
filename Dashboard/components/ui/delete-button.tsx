@@ -2,7 +2,8 @@
 // ui.devigner.cc/components/delete-button
 
 import { Loader2 } from "lucide-react";
-import { AnimatePresence, m, useReducedMotion } from "motion/react";
+import * as m from "motion/react-m";
+import { AnimatePresence, useReducedMotion } from "motion/react";
 import * as React from "react";
 import { SPRING_LAYOUT, SPRING_PRESS, SPRING_SWAP } from "@/lib/ease";
 import { cn } from "@/lib/utils";

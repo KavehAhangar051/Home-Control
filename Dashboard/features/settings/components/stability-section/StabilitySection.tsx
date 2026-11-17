@@ -1,6 +1,7 @@
 "use client";
 
-import { AnimatePresence, m } from "motion/react";
+import * as m from "motion/react-m";
+import { AnimatePresence } from "motion/react";
 import { Activity, ChevronLeft } from "@/components/ui/hugeicons";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";

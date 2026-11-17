@@ -1,4 +1,4 @@
-import { m } from "motion/react";
+import * as m from "motion/react-m";
 import type { PointerEvent } from "react";
 import { Mic } from "@/components/ui/hugeicons";
 import type { VoiceCommandButtonProps } from "./types";
