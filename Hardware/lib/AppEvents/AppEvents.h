@@ -33,8 +33,11 @@ struct MqttCommandEvent {
  * PinManager listens for this and applies the change to hardware.
  */
 enum class PinStateChangeOrigin : uint8_t {
-    Local,       /**< MQTT, local WebSocket, or another local controller */
-    Cloudflare   /**< Command received from the Cloudflare WebSocket */
+    Local,
+    DashboardCommand,
+    Automation,
+    PhysicalInput,
+    Cloudflare
 };
 
 struct PinStateChangeRequestEvent {
@@ -92,9 +95,15 @@ struct PinStateChangedEvent {
     static constexpr const char* Name = "pin.state_changed";
     int pin;       /**< Physical GPIO pin number */
     bool state;    /**< New state (true=ON, false=OFF) */
-    bool syncCloudflare; /**< Should ESP32 send this to Cloudflare? */
+    bool syncCloudflare;
+    PinStateChangeOrigin origin;
 
-    PinStateChangedEvent(int p, bool s, bool sync = true) : pin(p), state(s), syncCloudflare(sync) {}
+    PinStateChangedEvent(
+        int p,
+        bool s,
+        bool sync = true,
+        PinStateChangeOrigin source = PinStateChangeOrigin::Local
+    ) : pin(p), state(s), syncCloudflare(sync), origin(source) {}
 };
 
 /**
