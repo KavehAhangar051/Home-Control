@@ -2,7 +2,9 @@ name: Oxlint compatibility verification
 
 on:
   push:
-    branches: ["chore/restore-anti-slop-plugin"]
+    branches: ["main", "chore/restore-anti-slop-plugin"]
+  pull_request:
+    branches: ["main"]
 
 permissions:
   contents: read
