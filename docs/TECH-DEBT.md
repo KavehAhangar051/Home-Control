@@ -77,3 +77,5 @@
 
 
 | MQTT queued updates racing full state sync | `features/iot/services/mqtt/init.ts` | State consistency / ordering | Medium | XS | P1 | Resolved on `main` in commit `4f2a017`: flush earlier queued pin updates before applying a full snapshot; manual flush cancels the scheduled animation frame to prevent redundant callbacks. No new tests were added per owner preference; lint/typecheck CI verification is pending. |
+
+| Whole-device-state subscriptions causing workspace-wide rerenders | features/iot/components/canvas/, features/iot/components/trellis/ | React render fan-out | Medium | S | P1 | Resolved on main: Canvas wires now subscribe per pin, Canvas group active counts use a shallow-compared derived selector, Trellis group badges subscribe to the derived active count, and CanvasWorkspace no longer subscribes to the entire pinsState. This is a structural reduction in invalidation scope; no runtime percentage is claimed until browser profiling. |
