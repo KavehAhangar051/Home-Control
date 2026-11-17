@@ -1,6 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useDeferredValue } from "react";
+import { useReducedMotion } from "motion/react";
+import { AnimateView } from "motion/react-animate-view";
 import React from "react";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
@@ -146,6 +149,12 @@ export default function DashboardWorkspace() {
 
   const activeWorkspaceView = useIoTStore((s) => s.activeWorkspaceView);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const prefersReducedMotion = useReducedMotion();
+  const deferredWorkspaceView = useDeferredValue(activeWorkspaceView);
+  const shouldAnimateWorkspace = animationsEnabled && !prefersReducedMotion;
+  const displayedWorkspaceView = shouldAnimateWorkspace
+    ? deferredWorkspaceView
+    : activeWorkspaceView;
   const segmentsLength = useIoTStore((s) => s.segments.length);
   const macrosLength = useIoTStore((s) => s.macros.length);
   const selectedGroupFilter = useIoTStore((s) => s.selectedGroupFilter);
@@ -167,11 +176,16 @@ export default function DashboardWorkspace() {
     preloadWorkspaceEngine(workspaceDisplayMode);
   }, [activeWorkspaceView, workspaceDisplayMode]);
 
-  if (activeWorkspaceView !== "home") {
+  if (displayedWorkspaceView !== "home") {
     return (
-      <ErrorBoundary fallbackTitle="خطا در بارگذاری این بخش" resetKeys={[activeWorkspaceView]}>
-        <WorkspaceSection view={activeWorkspaceView} />
-      </ErrorBoundary>
+      <AnimateView transition={{ duration: shouldAnimateWorkspace ? 0.2 : 0, ease: "easeOut" }}>
+        <ErrorBoundary
+          fallbackTitle="خطا در بارگذاری این بخش"
+          resetKeys={[displayedWorkspaceView]}
+        >
+          <WorkspaceSection view={displayedWorkspaceView} />
+        </ErrorBoundary>
+      </AnimateView>
     );
   }
 
@@ -182,7 +196,8 @@ export default function DashboardWorkspace() {
   const hasMacros = macrosLength > 0;
 
   return (
-    <div
+    <AnimateView transition={{ duration: shouldAnimateWorkspace ? 0.2 : 0, ease: "easeOut" }}>
+      <div
       className={`w-full flex flex-col items-center mx-auto ${isTrellisMode ? "flex-1 min-h-0 h-full" : ""}`}
       onTouchStart={isTrellisMode ? undefined : onTouchStart}
       onTouchMove={isTrellisMode ? undefined : onTouchMove}
@@ -215,6 +230,7 @@ export default function DashboardWorkspace() {
           hasMacros={hasMacros}
         />
       </main>
-    </div>
+      </div>
+    </AnimateView>
   );
 }
