@@ -18,7 +18,7 @@ The application is configured for static export in its normal production mode. I
 - **Drag and drop:** `@dnd-kit/react` with the DOM sensor adapters from `@dnd-kit/dom`
 - **Device messaging:** `mqtt` (MQTT over WebSocket where supported)
 - **Forms and validation dependencies:** React Hook Form resolver integration and Zod; use them where the relevant feature already follows this pattern
-- **Linting and formatting:** Biome
+- **Linting and formatting:** Biome is the required lint/format baseline; Oxlint plus the repository's vendored Anti-Slop plugin is available as a separate diagnostic (`bun run lint:ox`) while its findings are triaged.
 - **Language/tooling:** TypeScript 7
 - **Package manager:** Bun (`bun.lock` is the committed dependency lockfile)
 - **Bundler:** Turbopack is used for development and production builds. The `dev:webpack` script remains available for the AI Studio workflow that disables file watching through the custom Webpack configuration.
@@ -178,7 +178,8 @@ Available scripts in `package.json`:
 - `bun run build` — create the static production export with Turbopack.
 - `bun run analyze` — inspect the Turbopack bundle using Next.js's built-in experimental analyzer.
 - `bun run start` — run the Next.js server (not a static-export preview).
-- `bun run lint` — run Biome linting over `app`, `components`, `features`, and `lib`.
+- `bun run lint` — run the required Biome linting over `app`, `components`, `features`, and `lib`.
+- `bun run lint:ox` — run Oxlint and the repository's custom Anti-Slop rules as a diagnostic report; current legacy findings are not yet a blocking gate.
 - `bun run format` — format those source directories in place; review the resulting diff before committing.
 - `bun run typecheck` — run TypeScript compiler check (`tsc --noEmit`).
 - `bun run test` — run deterministic domain, edge-case, and boundary integration tests (`tests/*.test.mjs`).
