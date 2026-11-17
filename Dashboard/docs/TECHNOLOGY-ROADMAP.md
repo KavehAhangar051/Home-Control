@@ -1,0 +1,106 @@
+# Technology Refresh and Engineering Direction
+
+**Status:** Active engineering direction  
+**Last reviewed:** 17 November 2026
+
+## Product direction
+
+Home Control Dashboard is a browser-based, responsive control surface for ESP32 home automation. The next stage is not a framework rewrite. It is a measured modernization of the existing stack, with a focus on a fast, reliable, accessible and maintainable control experience.
+
+The dashboard should evolve in this order:
+
+1. **Reliability first:** preserve device protocol compatibility, connection lifecycle correctness, bounded queues, clear pending/error states, and recovery behavior.
+2. **Fast interaction:** reduce initial JavaScript and unnecessary work on the main thread; keep navigation, device controls and automation editing responsive.
+3. **Consistent UI/UX:** use shared design tokens and existing UI primitives; improve keyboard, touch, narrow-screen and reduced-motion behavior.
+4. **Modern platform capabilities:** adopt stable React, Next.js, CSS and browser APIs when they solve a demonstrated product need.
+5. **Maintainability:** keep feature boundaries clear, remove obsolete configuration and dependencies when evidence supports removal, and document architectural decisions.
+
+## Current stack snapshot
+
+Versions below are read from the repository's committed `bun.lock` at the time of review. They are installed versions, not a guarantee that every package is the newest available release.
+
+| Technology | Locked version | Current usage / note |
+|---|---:|---|
+| Next.js | 16.4.6 | App Router, static export, Turbopack |
+| React / React DOM | 19.3.1 | React Compiler enabled; View Transition experiment in workspace navigation |
+| TypeScript | 7.0.2 | Main type checker/compiler |
+| TypeScript compatibility API | 6.0.2 | Test-loader-only compiler API compatibility |
+| Tailwind CSS | 4.3.5 | CSS-first configuration and design tokens |
+| Motion | 14.14.0 | LazyMotion and AnimateView integration |
+| Base UI | 1.9.0 | Existing accessible primitives in selected controls |
+| dnd-kit React / DOM | 0.5.3 | Current drag-and-drop API |
+| Zustand | 5.1.0 | Client-side domain and workspace state |
+| TanStack Query | 5.108.0 | Server-state/query workflows |
+| MQTT.js | 5.16.1 | Browser MQTT transport |
+| Biome | 2.6.8 | Linting and formatting |
+
+Re-check the lockfile before every dependency update. Do not copy this table as a current version report after packages change.
+
+## Lessons captured from recent work
+
+### Dependency migrations
+
+- The old dnd-kit packages were replaced with `@dnd-kit/react` and `@dnd-kit/dom`. Preserve the established group/segment/trash behavior and interaction thresholds when changing this area.
+- Remove stale configuration references when a package migration is complete. A stale `optimizePackageImports` entry was found for the three removed dnd-kit packages; its cleanup is tracked separately in PR #10.
+- TypeScript 7 remains the application compiler. The test loader uses `@typescript/typescript6` because it needs the legacy JavaScript compiler API. Keep this compatibility dependency scoped to testing.
+
+### React and animation
+
+- React Compiler is already enabled. Manual `memo`, `useMemo` and `useCallback` additions should be justified by profiling or semantics, not habit.
+- Workspace transitions use `useDeferredValue` over the Zustand-selected view and Motion's `AnimateView`. Do not assume wrapping an external-store update in `startTransition` makes it non-blocking.
+- Respect both the app animation setting and `prefers-reduced-motion`.
+- Browser-level transition verification is incomplete: PR #9's first run failed on navigation selectors. Correct selectors against the rendered navigation before drawing conclusions about transition behavior.
+
+### Testing and verification
+
+- The deterministic Node suite is valuable for protocol, state, resilience and concurrency contracts, but the recorded post-loader-fix result was 69/71 because of two MQTT binary-frame expectations.
+- Keep these tests. Diagnose the two MQTT failures instead of weakening assertions or deleting coverage.
+- Separate lint, typecheck, unit/contract tests, browser E2E, static export and deployment outcomes in reports.
+- Tests are diagnostic/regression tooling, not a required production build gate per the project owner's direction. Do not wait for GitHub Pages deployment to continue engineering work.
+
+### Performance discipline
+
+- Follow the repository performance skill: measure first, identify the bottleneck, make a targeted change, measure again, and retain the change only when evidence supports it.
+- Use bundle analysis, browser performance traces and representative device-interaction flows before proposing broad code splitting, memoization or library replacement.
+- Avoid replacing dependencies solely because a newer major version exists. Evaluate API compatibility, bundle impact, maintenance status and actual feature use.
+
+## Roadmap
+
+### Phase A — establish a trustworthy baseline
+
+- [ ] Correct PR #9 Playwright navigation selectors and verify workspace navigation in Chromium.
+- [ ] Investigate the two known MQTT binary-frame test failures and add/adjust tests only when the expected protocol behavior is confirmed.
+- [ ] Record baseline bundle sizes and representative browser performance metrics.
+- [ ] Inventory direct dependencies, transitive updates, unused exports and obsolete configuration.
+
+### Phase B — update dependencies deliberately
+
+- [ ] Compare every direct dependency with its latest stable release and compatibility requirements.
+- [ ] Group upgrades into small, reviewable changes (patch/minor first; major versions separately).
+- [ ] Regenerate and commit `bun.lock` with Bun; never hand-edit lockfile resolutions.
+- [ ] Run lint, typecheck and relevant tests after each upgrade batch.
+- [ ] Remove dependencies only after confirming they are unused and not required by tooling, scripts or runtime loading.
+
+### Phase C — use platform capabilities where they help
+
+- [ ] Audit React 19.3 capabilities such as `Activity` and `useEffectEvent` against concrete dashboard use cases.
+- [ ] Review Next.js 16/Turbopack configuration and package-import optimization using measured output.
+- [ ] Review Base UI and Motion coverage before introducing overlapping component or animation libraries.
+- [ ] Audit Tailwind v4 CSS output, token consistency and duplicated styling patterns.
+
+### Phase D — improve runtime UX and performance
+
+- [ ] Profile first load, workspace switching, device state bursts and automation editing.
+- [ ] Reduce unnecessary client bundle and defer non-critical UI only where measurements show a benefit.
+- [ ] Verify touch, keyboard, responsive and reduced-motion behavior in browser tests.
+- [ ] Add regression budgets only after stable baselines exist.
+
+## Decision rules
+
+- Prefer stable releases over prereleases unless a required capability justifies the risk.
+- Prefer the existing stack over adding another library with overlapping responsibilities.
+- Do not combine dependency upgrades with unrelated UI redesigns or refactors.
+- Keep changes small and independently verifiable.
+- Never infer a performance gain from a version number or a smaller source diff; measure it.
+- Keep firmware and Cloudflare protocol compatibility as a hard constraint.
+- Update this document when a decision is implemented, reversed or superseded.
