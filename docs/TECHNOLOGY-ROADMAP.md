@@ -31,7 +31,7 @@ Versions below are read from the repository's committed `bun.lock` at the time o
 | dnd-kit React / DOM | 0.5.3 | Current drag-and-drop API |
 | Zustand | 5.1.0 | Client-side domain and workspace state |
 | MQTT.js | 5.16.1 | Browser MQTT transport |
-| Biome | 2.6.8 | Linting and formatting |
+| Biome | 2.6.8 | Linting and formatting; package range and schema now aligned with this locked version |
 
 Re-check the lockfile before every dependency update. Do not copy this table as a current version report after packages change.
 
@@ -68,10 +68,12 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 ### Phase A — establish a trustworthy baseline
 
 - [x] Run the Knip dependency audit and record unused dependency candidates (17 Nov 2026).
+- [x] Include the custom Oxlint plugin entry points and `tools/` source in Knip's project graph to avoid false unused-dependency reports.
 - [ ] Investigate the two known MQTT binary-frame test failures and add/adjust tests only when the expected protocol behavior is confirmed.
 - [ ] Record baseline bundle sizes and representative browser performance metrics.
 - [x] Inventory direct dependencies and locked resolutions; review the first Knip report.
-- [ ] Review unused exports/files and stale tooling configuration without bulk-deleting public or feature APIs.
+- [ ] Review unused exports/files without bulk-deleting public or feature APIs.
+- [x] Align the Biome package range and JSON schema with the locked 2.6.8 release.
 
 ### Phase B — update dependencies deliberately
 
@@ -80,7 +82,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - [ ] Regenerate and commit `bun.lock` with Bun; never hand-edit lockfile resolutions.
 - [ ] Run lint, typecheck and relevant tests after each upgrade batch.
 - [x] Remove three confirmed unused runtime dependencies and their unreferenced QueryProvider; regenerate `bun.lock` with Bun.
-- [ ] Resolve remaining tooling-only dependency candidates after reviewing their actual entry points.
+- [x] Resolve the Oxlint plugin entry-point visibility in Knip; confirm the new report in the PR workflow before changing any additional dependencies.
 
 ### Phase C — use platform capabilities where they help
 
