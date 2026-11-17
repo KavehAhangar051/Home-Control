@@ -1,7 +1,7 @@
 # Technology Refresh and Engineering Direction
 
 **Status:** Active engineering direction  
-**Last reviewed:** 17 November 2026
+**Last reviewed:** 18 November 2026
 
 ## Product direction
 

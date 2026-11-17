@@ -47,7 +47,7 @@ This did **not** produce a meaningful total DnD byte reduction in the static gra
 
 The root `MotionProvider` already uses `LazyMotion` with an asynchronously loaded `domMax` feature bundle. The app-facing shared Hugeicons set and core animation/Canvas/Workflow components have now been migrated from the `m` export of `motion/react` to the dedicated `motion/react-m` entrypoint. The migration covers 48 icons imported by `components/ui/hugeicons.tsx` and 32 directly inspected UI/animation/dashboard/IoT components.
 
-This is an import-boundary optimization, not yet a measured bundle-size win. `LazyMotion`, `domMax`, hooks, `AnimatePresence`, `LayoutGroup` and other APIs remain imported from `motion/react`. The app still needs a repository-wide search for additional `m` imports and a matching post-change analyzer comparison before quantifying any reduction.
+This is an import-boundary optimization, not yet a measured bundle-size win. `LazyMotion`, `domMax`, hooks, `AnimatePresence`, `LayoutGroup` and other APIs remain imported from `motion/react`. The app still needs a repository-wide search for additional `m` imports and a matching post-change analyzer comparison before quantifying any reduction. The migration commits are `256a6b5a6af4035633b9c377720c75c2981c8632` and `fabe66c79f1b33eab5cd80d59c93c1b19edeb318`.
 
 ## What this report does not establish
 
