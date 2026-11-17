@@ -14,6 +14,10 @@ let connectionGeneration = 0;
 
 export const MAX_PENDING_PIN_UPDATES = 256;
 
+const logMqttDebug = (...args: Parameters<typeof console.log>) => {
+  if (process.env.NODE_ENV !== "production") console.log(...args);
+};
+
 export interface StateUpdateQueueDeps {
   maxPending?: number;
   scheduleFrame?: (cb: () => void) => number;
@@ -170,7 +174,7 @@ export function createMqttConnectHandler(deps: {
   return () => {
     if (!deps.isCurrentGeneration()) return;
 
-    console.log(`[MQTT] Connected to ${deps.brokerUrl}!`);
+    logMqttDebug(`[MQTT] Connected to ${deps.brokerUrl}!`);
     deps.subscribeTopic(deps.stateTopic);
     deps.subscribeTopic(deps.statusTopic);
 
@@ -194,7 +198,7 @@ export function createMqttMessageHandler(
     deps.getSnapshot().setIsLocal(isOnline);
 
     if (isOnline) {
-      console.log("[MQTT] ESP32 is ONLINE.");
+      logMqttDebug("[MQTT] ESP32 is ONLINE.");
     } else {
       console.warn("[MQTT] ESP32 is OFFLINE (LWT triggered).");
     }
@@ -224,12 +228,12 @@ export function createMqttMessageHandler(
 
       if (parsedState.kind === "pin_update") {
         const label = parsedState.source === "binary" ? "state update" : "JSON state update";
-        console.log(
+        logMqttDebug(
           `[MQTT] Received ${label} from ESP32: pin=${parsedState.pinId} state=${parsedState.state}`,
         );
         deps.queueStateUpdate(parsedState.pinId, parsedState.state);
       } else if (parsedState.kind === "state_sync") {
-        console.log(`[MQTT] Received full state sync from ESP32:`, parsedState.states);
+        logMqttDebug(`[MQTT] Received full state sync from ESP32:`, parsedState.states);
         deps.getSnapshot().setPinsState(parsedState.states);
       } else if (parsedState.kind === "ping") {
         schedule(() => {
