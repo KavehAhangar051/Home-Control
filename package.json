@@ -7,14 +7,15 @@
     "dev:webpack": "next dev --webpack -p 3000 -H 0.0.0.0",
     "build": "NODE_ENV=production next build --turbopack",
     "start": "next start",
-    "analyze": "next experimental-analyze --output",
+    "analyze": "next analyze --output",
     "lint": "biome lint --max-diagnostics=1000 app components features lib",
     "format": "biome format --write app components features lib",
     "typecheck": "tsc --noEmit",
     "test": "node --import ./tests/ts-loader.mjs --test tests/*.test.mjs",
     "check": "bun run lint && bun run typecheck && bun run test",
     "clean": "node -e \"['.next', 'out', 'tsconfig.tsbuildinfo'].forEach(p => require('fs').rmSync(p, { recursive: true, force: true }))\"",
-    "lint:ox": "oxlint app components features lib"
+    "lint:ox": "oxlint app components features lib",
+    "analyze:export": "next analyze export"
   },
   "dependencies": {
     "@animate-ui/react": "^2.4.3",

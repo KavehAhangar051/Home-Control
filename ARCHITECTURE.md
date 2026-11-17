@@ -179,7 +179,8 @@ Available scripts in `package.json`:
 - `bun run dev` — start Next.js development with Turbopack.
 - `bun run dev:webpack` — start the legacy Webpack development workflow, including the AI Studio file-watching workaround.
 - `bun run build` — create the static production export with Turbopack.
-- `bun run analyze` — generate a repeatable Turbopack bundle-analysis snapshot in `.next/diagnostics/analyze` using Next.js's built-in analyzer (`--output`); inspect client/server modules and import chains before proposing bundle changes.
+- `bun run analyze` — save a Turbopack bundle-analysis snapshot in `.next/diagnostics/analyze` using Next.js's built-in analyzer (`--output`); pass `--snapshot <name>` to keep named before/after captures.
+- `bun run analyze:export` — stream the latest or selected saved analyzer graph as JSON Lines; pass `--snapshot <name>` and redirect stdout when a machine-readable report is needed.
 - `bun run start` — run the Next.js server (not a static-export preview).
 - `bun run lint` — run the required Biome linting over `app`, `components`, `features`, and `lib`.
 - `bun run lint:ox` — run Oxlint and the repository's custom Anti-Slop rules as a diagnostic report; current legacy findings are not yet a blocking gate.
