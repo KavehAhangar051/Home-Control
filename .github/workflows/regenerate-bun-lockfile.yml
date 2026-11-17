@@ -23,6 +23,8 @@ jobs:
         run: bun run lint
       - name: Typecheck
         run: bun run typecheck
+      - name: Run Knip dependency audit
+        run: bunx --bun knip --cache --no-exit-code
       - name: Commit lockfile
         run: |
           if ! git diff --quiet -- bun.lock; then
