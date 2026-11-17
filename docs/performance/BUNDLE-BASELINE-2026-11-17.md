@@ -53,17 +53,19 @@ The root `MotionProvider` already uses `LazyMotion` with asynchronously loaded `
 - Trial after: commit `775456186b5b3fd2a9d8b68b68e86b4a08847a38`, workflow [44172890216](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44172890216)
 - Both analyzer runs covered the same four routes and used Bun 1.4.4 / Ubuntu 26.04.
 
-| Homepage client graph | Before | Trial after | Difference |
-|---|---:|---:|---:|
-| Raw module-part contribution | 2,974,509 B | 2,997,646 B | +23,137 B |
-| Compressed contribution | 1,164,289 B | 1,174,423 B | +10,134 B |
-| Client chunk count | 61 | 66 | +5 |
+| Homepage client graph | Before | Trial after | Post-revert | Trial delta |
+|---|---:|---:|---:|---:|
+| Raw module-part contribution | 2,974,509 B | 2,997,646 B | 2,974,509 B | +23,137 B |
+| Compressed contribution | 1,164,289 B | 1,174,423 B | 1,164,289 B | +10,134 B |
+| Client chunk count | 61 | 66 | 61 | +5 |
 
-Motion-related module-part contributions also increased from 440,952 B raw / 216,794 B compressed to 463,620 B / 226,487 B. The additional Motion chunks had no async loaders in the dashboard route graph, so this was not a deferred-loading win.
+Motion-related module-part contributions increased from 440,952 B raw / 216,794 B compressed to 463,620 B / 226,487 B during the trial. The additional Motion chunks had no async loaders in the dashboard route graph, so this was not a deferred-loading win.
 
-### Decision
+### Decision and revert verification
 
-The trial was reverted in commit `152179e94c95cd1964bd8f95c769261dd1c3c2de`. The current code keeps its original `motion/react` imports and the existing async `domMax` provider. The official `motion/react-m` pattern is valid, but it did not improve this project's current Turbopack output. Re-evaluate only after a Motion or Turbopack change, or if a focused profile identifies a different way to reduce the initial graph. A post-revert `after` snapshot is being captured to confirm the original graph is restored.
+The trial was reverted in commit `152179e94c95cd1964bd8f95c769261dd1c3c2de`. The current code keeps its original `motion/react` imports and the existing async `domMax` provider. The official `motion/react-m` pattern is valid, but it did not improve this project's current Turbopack output.
+
+The post-revert snapshot was captured in workflow [44173469986](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44173469986) from verification commit `e1a5a614d47e0844d8cbb0f75f96189e7544fff3`. It returned exactly to the baseline: 61 client chunks, 2,974,509 raw bytes, 1,164,289 compressed bytes and 7,411 graph records. This confirms the 80-module import migration was fully reverted. Re-evaluate only after a Motion or Turbopack change, or if a focused profile identifies a different way to reduce the initial graph.
 
 ## What this report does not establish
 
