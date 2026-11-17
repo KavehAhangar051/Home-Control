@@ -92,7 +92,8 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - [x] Provide a repeatable saved-output command for the Next.js 16/Turbopack analyzer (`bun run analyze` → `.next/diagnostics/analyze`).
 - [x] Expose named analyzer snapshots and JSONL graph export through `bun run analyze --snapshot <name>` and `bun run analyze:export --snapshot <name>` (Next.js 16.4+).
 - [x] Add a GitHub Actions workflow that captures and uploads the JSONL graph and static analyzer report, avoiding local CLI setup for the project owner.
-- [ ] Compare the `[bundle-after]` snapshot with the documented baseline and confirm that the sortable runtime is deferred for Trellis/Canvas users.
+- [x] Move the sortable DnD hook from the global dashboard state hook into the dynamically loaded Grid workspace; the after graph confirms the global state module no longer imports DnD.
+- [ ] Verify in a browser Network panel that Trellis and Canvas do not request the DnD chunk; the static graph still includes the conditional Grid preload path.
 - [ ] Review Base UI and Motion coverage before introducing overlapping component or animation libraries.
 - [ ] Audit Tailwind v4 CSS output, token consistency and duplicated styling patterns.
 

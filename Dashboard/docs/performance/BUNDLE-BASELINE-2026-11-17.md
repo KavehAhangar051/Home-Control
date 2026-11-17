@@ -31,6 +31,18 @@ Expected effect: Trellis and Canvas users no longer need the `@dnd-kit` sortable
 
 The post-change analyzer run is tagged `after` by the `[bundle-after]` commit-message marker. Compare the resulting JSONL graph with this baseline before claiming a byte reduction.
 
+## After snapshot — 17 November 2026
+
+- Snapshot: `after`
+- Source commit: `a8e43c37d6f7680e613d925f202942f24437b9c0`
+- Workflow run: [44169515586](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44169515586)
+- Artifact: `bundle-analysis-after-a8e43c37d6f7680e613d925f202942f24437b9c0`
+- Graph records: 7,411 total — 2,658 modules, 247 output records and 77 groups
+
+The source graph confirms the intended dependency-boundary change: `useAchaemenidState.ts` no longer imports `useAchaemenidDnd`; `DndGridWorkspace.tsx` now imports and invokes it. The DnD runtime is therefore reachable through the Grid workspace module rather than the global dashboard state hook.
+
+This did **not** produce a meaningful total DnD byte reduction in the static graph. Before, the two DnD-related output chunks contributed 115,412 B raw / 42,501 B compressed; after, the consolidated output contributed 114,155 B / 41,994 B. The analyzer still lists that output in the DashboardShell async group because the graph includes the conditional Grid preload path. The benefit to Trellis/Canvas is avoiding that conditional import at runtime, not shrinking the Grid implementation itself. A browser Network check with Trellis and Canvas selected is still needed to confirm the request is absent.
+
 ## What this report does not establish
 
 - It does not measure LCP, INP, TTI, device CPU time or real network transfer timings.
