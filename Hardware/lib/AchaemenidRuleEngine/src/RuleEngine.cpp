@@ -24,7 +24,7 @@ void RuleEngine::onTimerExpired(uniuno::TimerExpiredEvent* evt) {
         
         const bool success = _ctx.pinManager->setPinState(targetPin, stateToApply);
         if (success && _ctx.eventBus != nullptr) {
-            PinStateChangedEvent changed{targetPin, stateToApply};
+            PinStateChangedEvent changed{targetPin, stateToApply, true, PinStateChangeOrigin::Automation};
             _ctx.eventBus->dispatch(changed);
         }
         return;
@@ -52,16 +52,8 @@ void RuleEngine::onTimerExpired(uniuno::TimerExpiredEvent* evt) {
 HOT_PATH void RuleEngine::handleInput(int sourcePin, bool newState, unsigned long durationSec, const RuleConfig& rule) {
     INFOF("[Input] Pin %d state changed to %s (duration: %lus)", sourcePin, newState ? "HIGH" : "LOW", durationSec);
     
-    // 1. Publish immediate state change via MQTT if dashboard is active
-    if (_ctx.isDashboardOnline != nullptr && *(_ctx.isDashboardOnline) && _ctx.mqttClient != nullptr) {
-        char payload[64];
-        snprintf(payload, sizeof(payload), "{\"id\":\"%d\",\"value\":%s}", sourcePin, newState ? "true" : "false");
-        String topic = _ctx.mqttClient->getBaseTopic();
-        if (topic.length() == 0) {
-            topic = "KamyarIoT/Achaemenid";
-        }
-        _ctx.mqttClient->publish(topic + "/State", payload);
-    }
+    // Input state publication is centralized through PinStateChangedEvent so
+    // MQTT, local WebSocket, and Cloudflare observers receive the same event.
 
     // 2. Debounce cloud sync (1000ms delay to prevent event flooding)
     if (_ctx.appTimer != nullptr && _ctx.pinManager != nullptr) {
