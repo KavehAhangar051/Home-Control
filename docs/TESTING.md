@@ -50,3 +50,14 @@ The following is a recorded snapshot, not a claim that every check is currently 
 ## Verification reporting rules
 
 Report lint, typecheck, deterministic tests, browser tests, static export, and Pages deployment as separate results. A successful dependency installation is not a successful test run. A successful CI job is not evidence of visual correctness unless the browser assertions actually cover the behavior. Never claim the whole suite is green while known failures remain.
+
+
+## Modernization verification snapshot (18 November 2026)
+
+This is a separate CI/tooling snapshot and does not replace the deterministic test result recorded above.
+
+- The post-revert Turbopack Bundle Analysis workflow completed successfully on commit \`e1a5a614d47e0844d8cbb0f75f96189e7544fff3\`: [workflow 44173469986](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44173469986). Its artifact contains the named analyzer output and \`bundle-after.jsonl\`.
+- Knip audit completed successfully on the same commit: [workflow 44173470138](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44173470138).
+- Oxlint compatibility verification completed successfully on the same commit: [workflow 44173470018](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44173470018). Oxlint findings remain diagnostic; a successful workflow means the tool ran, not that the legacy finding count is zero.
+- These workflows did not run the deterministic test suite or prove browser/device behavior. The recorded 69/71 deterministic result and the two MQTT binary-frame failures remain the last documented test-suite result until a later test run is explicitly recorded.
+- The owner performs hands-on browser and ESP32 verification. Do not add browser E2E tests or new test files as part of routine modernization unless requested.
