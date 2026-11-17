@@ -50,7 +50,7 @@ features/
     components/          Device controls, status and IoT workspace UI
     hooks/               IoT state and behavior hooks
     services/            Communication and device integration
-    utils/               IoT-specific helper functions
+    utils/               IoT-specific utilities
   settings/
     components/          Settings sections and controls
 lib/
@@ -61,9 +61,10 @@ docs/                    Protocol, configuration, and project reference docs
 .github/workflows/       GitHub Actions automation
 .env.example             Environment-variable template; contains placeholders only
 next.config.ts           Next.js export and deployment configuration
-biome.json               Biome lint/format rules
+biome.json               Lint/format rules
 package.json             Scripts and dependency manifest
 bun.lock                 Reproducible Bun dependency lockfile
+tsconfig.json            TypeScript compiler configuration
 ```
 
 This is a high-level map, not an exhaustive listing. Inspect the relevant directory before adding files; preserve the existing feature boundaries and naming conventions.
@@ -89,7 +90,7 @@ Owns the dashboard-level composition and workspace behavior. Its `components/`, 
 
 Owns ESP32-facing UI and client communication logic.
 
-- `components/` renders device controls, status and connection feedback, and related interactions.
+- `components/` renders device controls, workspace areas, connection/status feedback, and related interactions.
 - `hooks/` encapsulates reusable IoT state and operations.
 - `services/` contains communication integrations and related service logic.
 - `utils/` contains IoT-specific helper functions.
@@ -99,6 +100,11 @@ Keep transport concerns out of presentational components where practical. Compon
 ### Settings — `features/settings/`
 
 Owns settings UI and configuration controls. The current repository groups these under `features/settings/components/`; follow the existing subdivisions found there. Keep editing/validation logic separated from display code when that improves clarity, but avoid creating abstractions for one-off code without a real reuse or testing benefit.
+
+### Shared utilities and audio — `lib/`
+
+- `lib/presets.ts` stores shared preset/configuration values. Keep reusable constants out of individual components when multiple modules depend on them.
+- `lib/audio/` contains audio-related implementation. Audio APIs are browser capabilities: guard initialization for browser availability and user-gesture restrictions, avoid creating redundant audio contexts, and clean up resources when appropriate.
 
 ## 6. Device communication and security boundaries
 
@@ -131,6 +137,7 @@ A browser-delivered static app cannot keep secrets confidential. Never put priva
 - Keep global styles and global tokens in `app/globals.css`; component-specific styling should stay near the owning component unless it is genuinely shared.
 - Reuse existing motion and icon dependencies rather than introducing overlapping libraries.
 - Preserve the project's Persian-inspired visual identity where already implemented, but prioritize legibility, contrast, predictable controls, and consistent spacing over decorative effects.
+- Do not impose a rigid 100-line file limit. Split modules when responsibility, complexity, reuse, or testability warrants it—not just to satisfy a line count.
 
 ## 9. Static export and deployment
 
