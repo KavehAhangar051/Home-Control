@@ -238,7 +238,7 @@ export function useCanvasController({
         targetId,
         groupName,
         segmentId: seg.id,
-        pin: seg.pin,
+        pin: seg.type === "placeholder" ? "" : seg.pin,
         isInput: seg.type === "input",
       });
     }
