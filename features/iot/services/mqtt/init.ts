@@ -58,7 +58,10 @@ export function createStateUpdateQueue(deps: StateUpdateQueueDeps = {}): StateUp
   let updateRafId: number | null = null;
 
   const flushStateUpdates = () => {
-    updateRafId = null;
+    if (updateRafId !== null) {
+      cancelFrame(updateRafId);
+      updateRafId = null;
+    }
 
     if (pendingStateUpdates.size === 0) return;
 
@@ -153,6 +156,7 @@ export interface MqttMessageHandlerDeps {
   isCurrentGeneration: () => boolean;
   getSnapshot: () => IoTStoreBridge;
   queueStateUpdate: (pinId: string, state: boolean) => void;
+  flushStateUpdates?: () => void;
   publishFrame: (topic: string, buf: Uint8Array, qos: 0 | 1 | 2) => void;
   scheduleMicrotask?: (fn: () => void) => void;
 }
@@ -234,6 +238,7 @@ export function createMqttMessageHandler(
         deps.queueStateUpdate(parsedState.pinId, parsedState.state);
       } else if (parsedState.kind === "state_sync") {
         logMqttDebug(`[MQTT] Received full state sync from ESP32:`, parsedState.states);
+        deps.flushStateUpdates?.();
         deps.getSnapshot().setPinsState(parsedState.states);
       } else if (parsedState.kind === "ping") {
         schedule(() => {
@@ -313,6 +318,7 @@ export const initMqtt = (): Promise<void> => {
         isCurrentGeneration,
         getSnapshot: getIoTStoreSnapshot,
         queueStateUpdate: defaultStateQueue.queueStateUpdate,
+        flushStateUpdates: defaultStateQueue.flushStateUpdates,
         publishFrame,
       });
 
