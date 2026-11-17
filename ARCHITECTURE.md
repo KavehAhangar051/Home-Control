@@ -15,7 +15,6 @@ The application is configured for static export in its normal production mode. I
 - **Styling:** Tailwind CSS v4, PostCSS, and CSS custom properties
 - **Motion:** `motion`
 - **Client state:** Zustand
-- **Server-state/query utilities:** TanStack React Query v5
 - **Drag and drop:** `@dnd-kit/react` with the DOM sensor adapters from `@dnd-kit/dom`
 - **Device messaging:** `mqtt` (MQTT over WebSocket where supported)
 - **Forms and validation dependencies:** React Hook Form resolver integration and Zod; use them where the relevant feature already follows this pattern
@@ -41,7 +40,6 @@ components/
   MasterHeader.tsx       Header/layout dispatcher
   MasterHeader/          Header subcomponents
   AudioInitializer.tsx   Audio initialization integration
-  QueryProvider.tsx      TanStack Query provider
 features/
   dashboard/
     components/          Dashboard/workspace UI
@@ -77,7 +75,6 @@ This is a high-level map, not an exhaustive listing. Inspect the relevant direct
 - `app/page.tsx` is the root route and should stay focused on composing the application rather than accumulating feature implementation.
 - `components/` contains UI or providers shared by multiple features. Keep feature-specific behavior inside the owning `features/<feature>/` directory.
 - `components/MasterHeader.tsx` and `components/MasterHeader/` implement the shared header system. Before changing navigation or header positioning, inspect both the dispatcher and its subcomponents.
-- `components/QueryProvider.tsx` centralizes React Query provider setup.
 - `components/AudioInitializer.tsx` integrates audio initialization with the UI lifecycle.
 
 Avoid introducing duplicate global providers or parallel implementations of existing shared components.

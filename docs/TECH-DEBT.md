@@ -49,6 +49,9 @@
 
 | Item | Location | Type | Risk | Effort | Priority | Status |
 |---|---|---|---|---|---|---|
-| Two deterministic MQTT binary-frame expectations fail after the TypeScript 7 test-loader compatibility fix | `features/iot/services/mqtt/messageParser.ts`, MQTT tests | Protocol regression / test mismatch | High | M | P0 | Open; reproduce against the documented firmware wire format |
-| Workspace View Transition browser tests fail to locate the Settings navigation control | `tests/e2e/workspace-transitions.spec.mjs` | E2E selector / DOM contract | Medium | S | P1 | Open in PR #9; correct selectors and rerun Chromium |
-| Stale optimization entries remain for removed legacy dnd-kit packages | `next.config.ts` | Obsolete configuration | Low | XS | P2 | Cleanup proposed in PR #10; not yet merged |
+| Two deterministic MQTT binary-frame expectations fail after the TypeScript 7 test-loader compatibility fix | `features/iot/services/mqtt/messageParser.ts`, existing MQTT tests | Protocol regression / test mismatch | High | M | P0 | Open; owner-led device/protocol verification; no new tests being authored |
+| Three unused runtime dependencies and an unreferenced QueryProvider | `package.json`, `components/QueryProvider.tsx` | Dependency / dead code | Low | S | P2 | Removed on `chore/dependency-audit-cleanup`; lockfile regenerated with Bun |
+| Knip reports unused exports, types and files | Application modules | Dead-code candidates / possible public API | Medium | M | P2 | Open; inspect ownership and dynamic imports before removing anything |
+| Oxlint CLI/configuration is not wired into scripts or workflows; config points to a missing plugin entrypoint | `.oxlintrc.json`, `package.json`, `tools/oxlint/anti-slop/` | Stale tooling configuration | Low | S | P2 | Open; decide whether to repair and activate Oxlint or remove the orphaned setup |
+| Experimental workspace-transition E2E work | PR #9 / `tests/e2e/workspace-transitions.spec.mjs` | Deferred verification | Low | S | P3 | PR #9 closed without merge; new E2E authoring is out of scope; owner performs manual UI verification |
+| Stale optimization entries for removed legacy dnd-kit packages | `next.config.ts` | Obsolete configuration | Low | XS | P2 | Resolved and merged in PR #10 |

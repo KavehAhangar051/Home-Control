@@ -30,7 +30,6 @@ Versions below are read from the repository's committed `bun.lock` at the time o
 | Base UI | 1.9.0 | Existing accessible primitives in selected controls |
 | dnd-kit React / DOM | 0.5.3 | Current drag-and-drop API |
 | Zustand | 5.1.0 | Client-side domain and workspace state |
-| TanStack Query | 5.108.0 | Server-state/query workflows |
 | MQTT.js | 5.16.1 | Browser MQTT transport |
 | Biome | 2.6.8 | Linting and formatting |
 
@@ -41,7 +40,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 ### Dependency migrations
 
 - The old dnd-kit packages were replaced with `@dnd-kit/react` and `@dnd-kit/dom`. Preserve the established group/segment/trash behavior and interaction thresholds when changing this area.
-- Remove stale configuration references when a package migration is complete. A stale `optimizePackageImports` entry was found for the three removed dnd-kit packages; its cleanup is tracked separately in PR #10.
+- Remove stale configuration references when a package migration is complete. The obsolete dnd-kit `optimizePackageImports` entries were removed and merged in PR #10.
 - TypeScript 7 remains the application compiler. The test loader uses `@typescript/typescript6` because it needs the legacy JavaScript compiler API. Keep this compatibility dependency scoped to testing.
 
 ### React and animation
@@ -49,13 +48,13 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - React Compiler is already enabled. Manual `memo`, `useMemo` and `useCallback` additions should be justified by profiling or semantics, not habit.
 - Workspace transitions use `useDeferredValue` over the Zustand-selected view and Motion's `AnimateView`. Do not assume wrapping an external-store update in `startTransition` makes it non-blocking.
 - Respect both the app animation setting and `prefers-reduced-motion`.
-- Browser-level transition verification is incomplete: PR #9's first run failed on navigation selectors. Correct selectors against the rendered navigation before drawing conclusions about transition behavior.
+- The experimental Playwright PR #9 was closed without merging. New browser E2E authoring is not part of the current workflow; the project owner performs hands-on UI verification.
 
 ### Testing and verification
 
 - The deterministic Node suite is valuable for protocol, state, resilience and concurrency contracts, but the recorded post-loader-fix result was 69/71 because of two MQTT binary-frame expectations.
 - Keep these tests. Diagnose the two MQTT failures instead of weakening assertions or deleting coverage.
-- Separate lint, typecheck, unit/contract tests, browser E2E, static export and deployment outcomes in reports.
+- Report lint and typecheck separately. Existing tests remain diagnostic; new test authoring is not part of routine work unless explicitly requested. The project owner performs hands-on UI/device verification.
 - Tests are diagnostic/regression tooling, not a required production build gate per the project owner's direction. Do not wait for GitHub Pages deployment to continue engineering work.
 
 ### Performance discipline
@@ -68,10 +67,11 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 
 ### Phase A — establish a trustworthy baseline
 
-- [ ] Correct PR #9 Playwright navigation selectors and verify workspace navigation in Chromium.
+- [x] Run the Knip dependency audit and record unused dependency candidates (17 Nov 2026).
 - [ ] Investigate the two known MQTT binary-frame test failures and add/adjust tests only when the expected protocol behavior is confirmed.
 - [ ] Record baseline bundle sizes and representative browser performance metrics.
-- [ ] Inventory direct dependencies, transitive updates, unused exports and obsolete configuration.
+- [x] Inventory direct dependencies and locked resolutions; review the first Knip report.
+- [ ] Review unused exports/files and stale tooling configuration without bulk-deleting public or feature APIs.
 
 ### Phase B — update dependencies deliberately
 
@@ -79,7 +79,8 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - [ ] Group upgrades into small, reviewable changes (patch/minor first; major versions separately).
 - [ ] Regenerate and commit `bun.lock` with Bun; never hand-edit lockfile resolutions.
 - [ ] Run lint, typecheck and relevant tests after each upgrade batch.
-- [ ] Remove dependencies only after confirming they are unused and not required by tooling, scripts or runtime loading.
+- [x] Remove three confirmed unused runtime dependencies and their unreferenced QueryProvider; regenerate `bun.lock` with Bun.
+- [ ] Resolve remaining tooling-only dependency candidates after reviewing their actual entry points.
 
 ### Phase C — use platform capabilities where they help
 
@@ -92,7 +93,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 
 - [ ] Profile first load, workspace switching, device state bursts and automation editing.
 - [ ] Reduce unnecessary client bundle and defer non-critical UI only where measurements show a benefit.
-- [ ] Verify touch, keyboard, responsive and reduced-motion behavior in browser tests.
+- [ ] Verify touch, keyboard, responsive and reduced-motion behavior through owner-led manual checks.
 - [ ] Add regression budgets only after stable baselines exist.
 
 ## Decision rules
