@@ -178,10 +178,7 @@ export default function DashboardWorkspace() {
   if (displayedWorkspaceView !== "home") {
     return (
       <AnimateView transition={{ duration: shouldAnimateWorkspace ? 0.2 : 0, ease: "easeOut" }}>
-        <ErrorBoundary
-          fallbackTitle="خطا در بارگذاری این بخش"
-          resetKeys={[displayedWorkspaceView]}
-        >
+        <ErrorBoundary fallbackTitle="خطا در بارگذاری این بخش" resetKeys={[displayedWorkspaceView]}>
           <WorkspaceSection view={displayedWorkspaceView} />
         </ErrorBoundary>
       </AnimateView>
