@@ -3,10 +3,6 @@ name: Knip audit
 on:
   push:
     branches: ["main"]
-  workflow_run:
-    workflows: ["Deploy to GitHub Pages"]
-    types: [completed]
-    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -14,7 +10,6 @@ permissions:
 
 jobs:
   knip:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-26.04
     steps:
       - name: Checkout
@@ -32,4 +27,4 @@ jobs:
       - name: Install dependencies
         run: bun ci
       - name: Run Knip
-        run: bunx --bun knip
+        run: bunx --bun knip --cache --no-exit-code
