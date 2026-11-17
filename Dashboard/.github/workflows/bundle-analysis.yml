@@ -3,8 +3,23 @@ name: Bundle analysis
 on:
   push:
     branches:
-      - "perf/automated-bundle-analysis"
+      - main
+    paths:
+      - "app/**"
+      - "components/**"
+      - "features/**"
+      - "lib/**"
+      - "package.json"
+      - "bun.lock"
+      - "next.config.ts"
+      - "docs/performance/**"
+      - ".github/workflows/bundle-analysis.yml"
   workflow_dispatch:
+    inputs:
+      snapshot:
+        description: "Snapshot name (for example: before or after)"
+        required: false
+        default: before
 
 permissions:
   contents: read
@@ -17,6 +32,8 @@ jobs:
   analyze:
     runs-on: ubuntu-26.04
     timeout-minutes: 20
+    env:
+      BUNDLE_SNAPSHOT: ${{ inputs.snapshot || (contains(github.event.head_commit.message || '', '[bundle-after]') && 'after') || 'before' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -38,17 +55,17 @@ jobs:
         run: bun ci
 
       - name: Capture named Turbopack bundle snapshot
-        run: bun run analyze --snapshot before
+        run: bun run analyze --snapshot "$BUNDLE_SNAPSHOT"
 
       - name: Export bundle graph as JSONL
-        run: bun run analyze:export --snapshot before > bundle-before.jsonl
+        run: bun run analyze:export --snapshot "$BUNDLE_SNAPSHOT" > "bundle-$BUNDLE_SNAPSHOT.jsonl"
 
       - name: Upload bundle analysis
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: bundle-analysis-${{ github.sha }}
+          name: bundle-analysis-${{ env.BUNDLE_SNAPSHOT }}-${{ github.sha }}
           path: |
-            bundle-before.jsonl
+            bundle-*.jsonl
             .next/diagnostics/analyze/
           if-no-files-found: error
           retention-days: 14

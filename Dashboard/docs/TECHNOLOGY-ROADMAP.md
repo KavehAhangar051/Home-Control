@@ -71,7 +71,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - [x] Include the custom Oxlint plugin entry points and `tools/` source in Knip's project graph to avoid false unused-dependency reports.
 - [x] Re-run Knip after correcting its graph: 11 unused-file candidates, 139 exports, 99 exported types, 9 duplicate exports, no unused dependencies, and no unresolved imports.
 - [ ] Investigate the two known MQTT binary-frame test failures and add/adjust tests only when the expected protocol behavior is confirmed.
-- [ ] Record baseline bundle sizes and representative browser performance metrics. `bun run analyze --snapshot before` writes a named Turbopack snapshot to `.next/diagnostics/analyze`; use `bun run analyze --snapshot after` for the comparison capture and `bun run analyze:export --snapshot after` for JSONL graph output. Inspect client-side route chunks and import chains, then record the measured baseline before code-splitting changes.
+- [x] Capture and document the first Turbopack client/server bundle baseline from the named `before` snapshot (17 Nov 2026); see [Bundle Analysis Baseline](performance/BUNDLE-BASELINE-2026-11-17.md). The report identifies the MQTT runtime as async and the sortable DnD hook as an unnecessary eager dependency of the dashboard state hook.
 - [x] Inventory direct dependencies and locked resolutions; review the first Knip report.
 - [ ] Review unused exports/files without bulk-deleting public or feature APIs.
 - [x] Align the Biome JSON schema with the locked 2.6.8 release; the existing semver range already resolves to this version in `bun.lock`.
@@ -92,7 +92,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - [x] Provide a repeatable saved-output command for the Next.js 16/Turbopack analyzer (`bun run analyze` → `.next/diagnostics/analyze`).
 - [x] Expose named analyzer snapshots and JSONL graph export through `bun run analyze --snapshot <name>` and `bun run analyze:export --snapshot <name>` (Next.js 16.4+).
 - [x] Add a GitHub Actions workflow that captures and uploads the JSONL graph and static analyzer report, avoiding local CLI setup for the project owner.
-- [ ] Review Next.js 16/Turbopack output and package-import optimization using the saved report; capture a measured bundle baseline before further changes.
+- [ ] Compare the `[bundle-after]` snapshot with the documented baseline and confirm that the sortable runtime is deferred for Trellis/Canvas users.
 - [ ] Review Base UI and Motion coverage before introducing overlapping component or animation libraries.
 - [ ] Audit Tailwind v4 CSS output, token consistency and duplicated styling patterns.
 

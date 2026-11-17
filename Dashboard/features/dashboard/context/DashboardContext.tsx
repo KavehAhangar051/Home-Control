@@ -32,8 +32,6 @@ export interface DashboardContextInterface {
     | "setWorkerUrl"
     | "handleRetrySync"
     | "triggerCloudflarePush"
-    | "handleDragStart"
-    | "handleDragEnd"
   >;
   meta: Record<string, never>;
 }
@@ -48,8 +46,7 @@ interface DashboardProviderProps {
 }
 
 /**
- * Provides dashboard IoT state, actions, and drag-and-drop metadata
- * to all descendant workspace and widget components.
+ * Provides dashboard IoT state and actions to workspace and widget components.
  */
 export function DashboardProvider({ children, value }: DashboardProviderProps) {
   const internalState = useDashboardState();
@@ -94,8 +91,6 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       setWorkerUrl: resolved.setWorkerUrl,
       handleRetrySync: resolved.handleRetrySync,
       triggerCloudflarePush: resolved.triggerCloudflarePush,
-      handleDragStart: resolved.handleDragStart,
-      handleDragEnd: resolved.handleDragEnd,
     }),
     [
       resolved.refetchIot,
@@ -118,8 +113,6 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       resolved.setWorkerUrl,
       resolved.handleRetrySync,
       resolved.triggerCloudflarePush,
-      resolved.handleDragStart,
-      resolved.handleDragEnd,
     ],
   );
 
