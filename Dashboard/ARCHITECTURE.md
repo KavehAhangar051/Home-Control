@@ -98,6 +98,7 @@ Owns ESP32-facing UI and client communication logic.
 Keep transport concerns out of presentational components where practical. Components should call a clear service or hook API rather than independently creating duplicate MQTT clients or subscriptions. Manage connection lifecycle and cleanup carefully; reconnecting, mounting, or changing a screen must not accidentally multiply listeners or publish duplicate commands.
 
 Informational MQTT connection and state-message logs are development-only to avoid per-message console overhead in production; warnings and errors remain visible.
+- Incoming pin updates are coalesced and applied once per animation frame. Before applying an authoritative full `state_sync`, flush earlier queued pin updates so a delayed frame cannot overwrite the newer snapshot with stale values. A manual flush cancels its pending animation-frame callback before applying the batch.
 
 ### Settings — `features/settings/`
 
