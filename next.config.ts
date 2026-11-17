@@ -16,12 +16,8 @@ const nextConfig: NextConfig = {
   experimental: {
     useTypeScriptCli: true,
     optimizePackageImports: [
-      "lucide-react",
-      "@hugeicons/react",
-      "@hugeicons/core-free-icons",
       "@base-ui/react",
       "motion",
-      "@tanstack/react-query",
       "zustand",
     ],
   },
