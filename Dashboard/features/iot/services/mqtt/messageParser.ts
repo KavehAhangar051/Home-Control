@@ -6,6 +6,8 @@ export interface MqttStateSyncPayload {
   id?: string | number;
   value?: RawPinStateValue;
   states?: Record<string, RawPinStateValue>;
+  pin?: string | number;
+  state?: RawPinStateValue;
 }
 
 export type ParsedMqttStatusMessage =
@@ -89,20 +91,25 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
   try {
     const cmdType = payload[0];
 
-    if (cmdType === 0x06 && payload.length >= 3) {
-      const pinNum = payload[1];
-      const state = payload[2] === 0x01;
-
-      return {
-        kind: "pin_update",
-        pinId: PIN_ID_STRINGS[pinNum] ?? String(pinNum),
-        state,
-        source: "binary",
-      };
-    }
-
+    // Legacy binary 0x06 frames have no origin metadata and may be delayed
+    // acknowledgements. Ignore them to prevent stale output states overwriting UI.
     if (cmdType === 123) {
       const data = JSON.parse(decodePayloadText(payload)) as MqttStateSyncPayload;
+
+      if (data.type === "pin_update" && data.pin !== undefined && data.state !== undefined) {
+        const rawPin = data.pin;
+        const pinId =
+          typeof rawPin === "number" && rawPin >= 0 && rawPin < 256
+            ? PIN_ID_STRINGS[rawPin]
+            : String(rawPin);
+
+        return {
+          kind: "pin_update",
+          pinId,
+          state: toBooleanPinState(data.state),
+          source: "json",
+        };
+      }
 
       if (data.type === "state_sync" && data.states && !Array.isArray(data.states)) {
         const normalizedStates: Record<string, boolean> = {};
