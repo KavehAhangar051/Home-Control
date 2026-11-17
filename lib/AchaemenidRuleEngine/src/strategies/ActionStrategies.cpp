@@ -11,6 +11,12 @@ namespace rules {
  */
 HOT_PATH FORCE_INLINE static void applyState(int targetPin, bool stateToApply, RuleContext& ctx) {
     if (ctx.pinManager == nullptr) return;
+
+    // An independent automation transition supersedes any Dashboard auto-off timer.
+    uniuno::TimerHandle autoOff = ctx.pinManager->getTimerIdByPin(targetPin);
+    if (autoOff.isActive()) autoOff.cancel();
+    ctx.pinManager->setTimerIdByPin(targetPin, uniuno::TimerHandle());
+
     if (ctx.pinManager->setPinState(targetPin, stateToApply)) {
         if (ctx.eventBus != nullptr) {
             PinStateChangedEvent changed{targetPin, stateToApply, true, PinStateChangeOrigin::Automation};
