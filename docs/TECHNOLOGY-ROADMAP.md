@@ -95,7 +95,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - [x] Move the sortable DnD hook from the global dashboard state hook into the dynamically loaded Grid workspace; the after graph confirms the global state module no longer imports DnD.
 - [ ] Verify in a browser Network panel that Trellis and Canvas do not request the DnD chunk; the static graph still includes the conditional Grid preload path.
 - [ ] Review Base UI and Motion coverage before introducing overlapping component or animation libraries.
-- [x] Evaluate `motion/react-m` against the existing `motion/react` imports in 80 app-facing modules. Reverted the trial: on the same Turbopack setup, the homepage client graph increased by 23,137 raw bytes / 10,134 compressed bytes and five client chunks. Keep the current imports; revisit only after a relevant Motion/Turbopack change or a more targeted profile.
+- [x] Evaluate `motion/react-m` against the existing `motion/react` imports in 80 app-facing modules. Reverted the trial after the homepage graph increased by 23,137 raw bytes / 10,134 compressed bytes and five client chunks; a post-revert capture exactly matched the original 61-chunk / 1,164,289-byte compressed baseline. Keep the current imports; revisit only after a relevant Motion/Turbopack change or a more targeted profile.
 - [ ] Audit Tailwind v4 CSS output, token consistency and duplicated styling patterns.
 
 ### Phase D — improve runtime UX and performance
