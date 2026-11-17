@@ -1,9 +1,18 @@
-import withBundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   reactCompiler: true,
+  turbopack: {
+    resolveAlias: {
+      fs: {
+        browser: "./lib/empty-module.ts",
+      },
+      path: {
+        browser: "./lib/empty-module.ts",
+      },
+    },
+  },
   experimental: {
     optimizePackageImports: [
       "lucide-react",
@@ -74,8 +83,4 @@ if (process.env.GITHUB_PAGES === "true") {
   nextConfig.trailingSlash = true;
 }
 
-const withAnalyzer = withBundleAnalyzer({
-  enabled: process.env.ANALYZE === "true",
-});
-
-export default withAnalyzer(nextConfig);
+export default nextConfig;
