@@ -35,7 +35,7 @@ HOT_PATH IRAM_ATTR void StateParsers::parseTogglePin(const uint8_t* payload, siz
         bool value = (payload[2] == 0x01);
         int timer = readInt32LE(payload, 3);
 
-        PinStateChangeRequestEvent evt{pinNum, value, timer};
+        PinStateChangeRequestEvent evt{pinNum, value, timer, PinStateChangeOrigin::DashboardCommand};
         dispatcher->dispatch(evt);
         INFOF("[MQTT Handler] Binary Toggle: pin=%d state=%s timer=%d", pinNum, value ? "ON" : "OFF", timer);
     }
@@ -46,7 +46,7 @@ HOT_PATH IRAM_ATTR void StateParsers::parseAutomationToggle(const uint8_t* paylo
         int pinNum = payload[1];
         bool value = (payload[2] == 0x01);
 
-        PinStateChangeRequestEvent evt{pinNum, value, 0};
+        PinStateChangeRequestEvent evt{pinNum, value, 0, PinStateChangeOrigin::Automation};
         dispatcher->dispatch(evt);
         INFOF("[MQTT Handler] Automation Triggered! Binary Toggle: pin=%d state=%s", pinNum, value ? "ON" : "OFF");
     }
@@ -61,7 +61,7 @@ HOT_PATH IRAM_ATTR void StateParsers::parseBatchToggle(const uint8_t* payload, s
             bool value = (payload[offset + 1] == 0x01);
             int timer = readInt32LE(payload, offset + 2);
             
-            PinStateChangeRequestEvent evt{pinNum, value, timer};
+            PinStateChangeRequestEvent evt{pinNum, value, timer, PinStateChangeOrigin::DashboardCommand};
             dispatcher->dispatch(evt);
             INFOF("[MQTT Handler] Batch Toggle: pin=%d state=%s timer=%d", pinNum, value ? "ON" : "OFF", timer);
             
