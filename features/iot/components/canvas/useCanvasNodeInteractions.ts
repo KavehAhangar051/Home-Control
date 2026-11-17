@@ -239,7 +239,8 @@ export function useCanvasNodeInteractions({
         }
       };
 
-      const handlePointerUp = () => {
+      const handlePointerUp = (endEvent: PointerEvent) => {
+        pendingMove = endEvent;
         flushPointerMove();
         setDraggingNodeId(null);
         setDragTiltDeg(0);
