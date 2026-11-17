@@ -19,28 +19,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: bun install --frozen-lockfile
       - name: Restore Next.js build cache
         uses: actions/cache@v4
         with:
           path: .next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('bun.lock') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-nextjs-${{ hashFiles('bun.lock') }}-
 
       - name: Verify quality gates (lint, typecheck, and contract tests)
-        run: npm run check
+        run: bun run check
 
       - name: Build static site
-        run: npm run build
+        run: bun run build
         env:
           GITHUB_PAGES: "true"
       - name: Upload artifact
