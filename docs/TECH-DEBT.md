@@ -4,6 +4,7 @@
 | Item | Location | Type | Risk | Effort | Priority | Status |
 |---|---|---|---|---|---|---|
 | Oxlint Anti-Slop findings in existing application code | `app/`, `components/`, `features/`, `lib/` | Static-analysis cleanup backlog | Medium | M | P2 | 157 findings reported on 390 files with 115 rules (17 Nov 2026); Biome and typecheck pass. Oxlint remains diagnostic-only until findings are triaged; do not bulk autofix. |
+| Stale `optimizePackageImports` entries referenced removed packages and a package already optimized by Next.js | `next.config.ts` | Obsolete configuration | Low | XS | P2 | Resolved in `chore/remove-stale-package-optimizations`; remaining entries are installed custom packages only |
 | Duplicated single-pin rollback closure + missing rollback in `executeBatchPinUpdate` catch block | `features/iot/hooks/achaemenidState/usePinOperations.ts` | Bug / Duplication | High | S | P0 | Resolved (Phase 2–3) |
 | Shallow pass-through wrapper (`pinSyncUtils.ts`) over `defaultDeviceSyncGateway` | `features/iot/hooks/achaemenidState/core/pinSyncUtils.ts` | Shallow module | Medium | S | P1 | Resolved & deleted (Phase 4) |
 | 3 empty `catch {}` blocks swallowing speech/clipboard errors silently | `VoiceCommandButton/useVoiceCommandHandler.ts`, `hooks/useVoiceCommand.ts` | Broken window | Low | XS | P1 | Resolved (Phase 2) |
