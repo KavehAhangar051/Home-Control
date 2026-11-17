@@ -13,7 +13,7 @@ The application is configured for static export in its normal production mode. I
 - **Framework:** Next.js 16 App Router
 - **UI:** React 19.3 and TypeScript 7 (the test loader uses the official TypeScript 6 compatibility package for the legacy JavaScript compiler API)
 - **Styling:** Tailwind CSS v4, PostCSS, and CSS custom properties
-- **Motion:** `motion`; import lightweight `m` components from `motion/react-m` when used under `LazyMotion`, while keeping `LazyMotion`, feature bundles, hooks and presence/layout APIs on their documented React entry points
+- **Motion:** `motion`; the root `MotionProvider` uses async `LazyMotion` with `domMax`. Keep the existing `motion/react` imports unless a same-environment Turbopack comparison proves `motion/react-m` reduces the initial client graph; the 18 Nov 2026 trial was reverted after the homepage graph grew by 10,134 compressed bytes.
 - **Client state:** Zustand
 - **Drag and drop:** `@dnd-kit/react` with the DOM sensor adapters from `@dnd-kit/dom`; the sortable hook is imported only by the dynamically loaded Grid workspace; Trellis and Canvas do not statically import it
 - **Device messaging:** `mqtt` (MQTT over WebSocket where supported)
