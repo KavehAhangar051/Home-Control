@@ -88,7 +88,8 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 ### Phase C — use platform capabilities where they help
 
 - [ ] Audit React 19.3 capabilities such as `Activity` and `useEffectEvent` against concrete dashboard use cases.
-- [ ] Review Next.js 16/Turbopack configuration and package-import optimization using measured output.
+- [x] Remove stale `optimizePackageImports` entries for removed packages and for `lucide-react`, which Next.js optimizes by default; retain only installed custom entries (`@base-ui/react`, `motion`, `zustand`).
+- [ ] Review Next.js 16/Turbopack configuration and package-import optimization using measured output; capture a bundle baseline before further changes.
 - [ ] Review Base UI and Motion coverage before introducing overlapping component or animation libraries.
 - [ ] Audit Tailwind v4 CSS output, token consistency and duplicated styling patterns.
 
