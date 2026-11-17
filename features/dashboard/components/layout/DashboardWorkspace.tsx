@@ -1,7 +1,9 @@
 "use client";
 
+import { useReducedMotion } from "motion/react";
+import { AnimateView } from "motion/react-animate-view";
 import dynamic from "next/dynamic";
-import React from "react";
+import React, { useDeferredValue } from "react";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import IoTWorkspace from "@/features/iot/components/IoTWorkspace";
@@ -146,6 +148,13 @@ export default function DashboardWorkspace() {
 
   const activeWorkspaceView = useIoTStore((s) => s.activeWorkspaceView);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const prefersReducedMotion = useReducedMotion();
+  // Defer only the rendered view so Zustand updates can animate without duplicating store state.
+  const deferredWorkspaceView = useDeferredValue(activeWorkspaceView);
+  const shouldAnimateWorkspace = animationsEnabled && !prefersReducedMotion;
+  const displayedWorkspaceView = shouldAnimateWorkspace
+    ? deferredWorkspaceView
+    : activeWorkspaceView;
   const segmentsLength = useIoTStore((s) => s.segments.length);
   const macrosLength = useIoTStore((s) => s.macros.length);
   const selectedGroupFilter = useIoTStore((s) => s.selectedGroupFilter);
@@ -167,11 +176,13 @@ export default function DashboardWorkspace() {
     preloadWorkspaceEngine(workspaceDisplayMode);
   }, [activeWorkspaceView, workspaceDisplayMode]);
 
-  if (activeWorkspaceView !== "home") {
+  if (displayedWorkspaceView !== "home") {
     return (
-      <ErrorBoundary fallbackTitle="خطا در بارگذاری این بخش" resetKeys={[activeWorkspaceView]}>
-        <WorkspaceSection view={activeWorkspaceView} />
-      </ErrorBoundary>
+      <AnimateView transition={{ duration: shouldAnimateWorkspace ? 0.2 : 0, ease: "easeOut" }}>
+        <ErrorBoundary fallbackTitle="خطا در بارگذاری این بخش" resetKeys={[displayedWorkspaceView]}>
+          <WorkspaceSection view={displayedWorkspaceView} />
+        </ErrorBoundary>
+      </AnimateView>
     );
   }
 
@@ -182,39 +193,41 @@ export default function DashboardWorkspace() {
   const hasMacros = macrosLength > 0;
 
   return (
-    <div
-      className={`w-full flex flex-col items-center mx-auto ${isTrellisMode ? "flex-1 min-h-0 h-full" : ""}`}
-      onTouchStart={isTrellisMode ? undefined : onTouchStart}
-      onTouchMove={isTrellisMode ? undefined : onTouchMove}
-      onTouchEnd={isTrellisMode ? undefined : onTouchEnd}
-    >
-      {hasMacros && (
-        <div className="hidden lg:block">
-          <React.Suspense
-            fallback={<div className="w-20 lg:w-24 shrink-0 bg-transparent h-full" />}
-          >
-            <MacroSidebar />
-          </React.Suspense>
-        </div>
-      )}
-      <main
-        className={`flex-1 flex flex-col items-center text-center mx-auto w-full relative ${
-          isTrellisMode ? "min-h-0 h-full justify-start gap-0" : "justify-center space-y-8 py-4"
-        }`}
+    <AnimateView transition={{ duration: shouldAnimateWorkspace ? 0.2 : 0, ease: "easeOut" }}>
+      <div
+        className={`w-full flex flex-col items-center mx-auto ${isTrellisMode ? "flex-1 min-h-0 h-full" : ""}`}
+        onTouchStart={isTrellisMode ? undefined : onTouchStart}
+        onTouchMove={isTrellisMode ? undefined : onTouchMove}
+        onTouchEnd={isTrellisMode ? undefined : onTouchEnd}
       >
-        <h1 className="sr-only">نمای خانه و کنترل تجهیزات هوشمند</h1>
-        <HomeWorkspaceMainContent
-          isFullyReady={isFullyReady}
-          isTrellisMode={isTrellisMode}
-          workspaceDisplayMode={workspaceDisplayMode}
-          segmentsLength={segmentsLength}
-          groupsCols={groupsCols}
-          groupsOrder={groupsOrder}
-          selectedGroupFilter={selectedGroupFilter}
-          animationsEnabled={animationsEnabled}
-          hasMacros={hasMacros}
-        />
-      </main>
-    </div>
+        {hasMacros && (
+          <div className="hidden lg:block">
+            <React.Suspense
+              fallback={<div className="w-20 lg:w-24 shrink-0 bg-transparent h-full" />}
+            >
+              <MacroSidebar />
+            </React.Suspense>
+          </div>
+        )}
+        <main
+          className={`flex-1 flex flex-col items-center text-center mx-auto w-full relative ${
+            isTrellisMode ? "min-h-0 h-full justify-start gap-0" : "justify-center space-y-8 py-4"
+          }`}
+        >
+          <h1 className="sr-only">نمای خانه و کنترل تجهیزات هوشمند</h1>
+          <HomeWorkspaceMainContent
+            isFullyReady={isFullyReady}
+            isTrellisMode={isTrellisMode}
+            workspaceDisplayMode={workspaceDisplayMode}
+            segmentsLength={segmentsLength}
+            groupsCols={groupsCols}
+            groupsOrder={groupsOrder}
+            selectedGroupFilter={selectedGroupFilter}
+            animationsEnabled={animationsEnabled}
+            hasMacros={hasMacros}
+          />
+        </main>
+      </div>
+    </AnimateView>
   );
 }
