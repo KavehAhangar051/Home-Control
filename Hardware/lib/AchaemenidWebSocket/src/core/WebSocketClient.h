@@ -47,7 +47,7 @@ private:
     portMUX_TYPE clientMux_ = portMUX_INITIALIZER_UNLOCKED;
 
     unsigned long lastPingTime_ = 0;
-    unsigned long lastPollTime_ = 0;
+    uint32_t lastPollCycle_ = 0;
     volatile unsigned long lastConnectAttemptTime_ = 0;
     volatile unsigned long nextConnectAttemptTime_ = 0;
     volatile uint8_t consecutiveFailures_ = 0;

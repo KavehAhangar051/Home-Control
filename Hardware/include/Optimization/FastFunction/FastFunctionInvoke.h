@@ -6,7 +6,7 @@ namespace uniuno {
 
 template<typename R, typename... Args, size_t Capacity>
 FORCE_INLINE R FastFunction<R(Args...), Capacity>::operator()(Args... args) const {
-  return invoker_(const_cast<void*>(static_cast<const void*>(storage_.data())),
+  return invoker_(const_cast<void*>(static_cast<const void*>(&storage_)),
                   std::forward<Args>(args)...);
 }
 

@@ -181,7 +181,7 @@ void BootManager::startProvisioningPortal() {
 
 /**
  * @brief High-performance non-blocking loop for network monitoring and provisioning.
- * Fast 1-cycle exit in 31 out of 32 iterations, eliminating thousands of millis() calls.
+ * Uses 4-cycle Xtensa CCOUNT hardware throttle (500ms) — zero millis() calls while connected!
  */
 HOT_PATH void BootManager::loop() {
     if (UNLIKELY(state_ == BootState::PROVISIONING)) {
@@ -189,16 +189,17 @@ HOT_PATH void BootManager::loop() {
         return;
     }
 
-    // 1-cycle fast pre-scaler exit: only check connection once every 32 loop iterations
-    if (LIKELY(++loopPrescaler_ & 0x1F)) return;
+    if (UNLIKELY(state_ != BootState::DONE || ctx_.network == nullptr)) return;
 
-    if (state_ != BootState::DONE || ctx_.network == nullptr) return;
+    // 4-cycle CCOUNT hardware throttle: check WiFi status once every 500ms without calling millis()
+    if (LIKELY(!uniuno::asm_opt::is_cycle_interval_elapsed(
+            lastConnectedCheckCycle_, uniuno::asm_opt::ms_to_cycles(500)))) {
+        return;
+    }
+
+    if (LIKELY(ctx_.network->isConnected())) return;
 
     const unsigned long now = millis();
-    if (!uniuno::asm_opt::is_timer_expired(now, lastConnectedCheck_ + 500)) return;
-    lastConnectedCheck_ = now;
-
-    if (ctx_.network->isConnected()) return;
     if (!uniuno::asm_opt::is_timer_expired(now, lastReconnectAttempt_ + 5000)) return;
 
     lastReconnectAttempt_ = now;
@@ -213,10 +214,11 @@ HOT_PATH void BootManager::loop() {
     bootTaskHandle_ = ctx_.executor->executeInterval(reconnectFuture, 50, [this](uniuno::Error e) { this->bootErrorFn(e); });
 }
 
-void BootManager::startBootSequenceAsync(BootContext ctx) {
-    ctx_ = ctx;
-
-    // بارگذاری بلافاصله تنظیمات از NVS هنگام شروع بوت (آفلاین بوت کاملاً ایزوله از شبکه)
+/**
+ * @brief Loads NVS segments in an isolated stack frame so the ~4.5KB ParseResult
+ * buffer is popped and reclaimed BEFORE esp_wifi_init() runs on loopTask's 8KB stack.
+ */
+__attribute__((noinline)) void BootManager::loadOfflineConfigFromNvs() {
     INFO("[Boot] Booting up... Loading config from NVS immediately.");
     ParseResult nvsResult = {}; // Zero-initialize to avoid garbage memory
     if (ctx_.segmentStorage != nullptr && ctx_.segmentStorage->loadSegmentConfig(nvsResult)) {
@@ -234,6 +236,13 @@ void BootManager::startBootSequenceAsync(BootContext ctx) {
     } else {
         WARNING("[Boot] NVS empty or storage unavailable. No configuration loaded. Please push config.");
     }
+}
+
+void BootManager::startBootSequenceAsync(BootContext ctx) {
+    ctx_ = ctx;
+
+    // بارگذاری بلافاصله تنظیمات از NVS در یک فریم استک مجزا (آزادسازی ۴.۵KB استک قبل از راه‌اندازی WiFi)
+    loadOfflineConfigFromNvs();
 
     state_ = BootState::CONNECT_WIFI;
     INFO("[BootManager] Starting WiFi connection (using configured APs)...");

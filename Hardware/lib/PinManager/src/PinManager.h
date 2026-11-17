@@ -38,8 +38,11 @@ public:
 
     template <typename Callback>
     HOT_PATH FORCE_INLINE void processInputs(Callback&& onInputChanged) {
-        auto callback = uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>::bind(&onInputChanged);
-        _stateManager.processInputs(callback);
+        // Fast-path: skip StaticFunction binding and call overhead unless a GPIO bit flipped
+        if (UNLIKELY(_stateManager.hasInputsChanged())) {
+            auto cb = uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>::bind(&onInputChanged);
+            _stateManager.processInputs(cb);
+        }
     }
 
     HOT_PATH FORCE_INLINE RuleConfig getRuleByPin(int pin) const {

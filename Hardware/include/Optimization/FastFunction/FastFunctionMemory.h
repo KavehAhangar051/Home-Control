@@ -4,29 +4,22 @@
 
 namespace uniuno {
 
-// ---------------------------------------------------------------------------
-// Destructor
-// ---------------------------------------------------------------------------
-
 template<typename R, typename... Args, size_t Capacity>
-FastFunction<R(Args...), Capacity>::~FastFunction() {
+FORCE_INLINE FastFunction<R(Args...), Capacity>::~FastFunction() {
   clear();
 }
 
-// ---------------------------------------------------------------------------
-// clear
-// ---------------------------------------------------------------------------
-
+/**
+ * @brief Single-branch clear: skips outer invoker_ check because destroyer_ is
+ * guaranteed nullptr for both empty and inline-trivial functors (3 cycles fast-path).
+ */
 template<typename R, typename... Args, size_t Capacity>
-void FastFunction<R(Args...), Capacity>::clear() {
-  if (UNLIKELY(invoker_ == nullptr)) return;
-
-  if (vtable_) {
-    vtable_->destroy(storage_.data());
-    vtable_ = nullptr;
+FORCE_INLINE void FastFunction<R(Args...), Capacity>::clear() {
+  if (UNLIKELY(destroyer_ != nullptr)) {
+    destroyer_(&storage_);
+    destroyer_ = nullptr;
   }
   invoker_ = nullptr;
-  storage_.clear();
 }
 
 } // namespace uniuno

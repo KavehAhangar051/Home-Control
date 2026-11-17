@@ -16,26 +16,26 @@ void AchaemenidWebSocketServer::begin(uint16_t port) {
     if (_isStarted) return;
     server.listen(port);
     _isStarted = true;
-    _lastAcceptPoll = 0;
-    _lastClientPoll = 0;
+    const uint32_t nowCycles = uniuno::asm_opt::get_cpu_cycle_count();
+    _lastAcceptCycle = nowCycles;
+    _lastClientPollCycle = nowCycles;
     Serial.printf("[LocalWS] Server started on port %d\n", port);
 }
 
 /**
- * @brief High-performance server loop with throttled adaptive polling.
- * Throttles server.poll() (which invokes yield()) to 50ms intervals, eliminating 99.9%
- * of unnecessary OS context switches and freeing CPU cycles for the main loop.
+ * @brief High-performance server loop with CCOUNT hardware cycle throttling.
+ * Reads Xtensa CCOUNT in 1 cycle (zero millis() 64-bit divisions) and throttles
+ * server.poll() (which invokes yield()) to 50ms intervals.
  */
 HOT_PATH void AchaemenidWebSocketServer::loop() {
     if (UNLIKELY(!_isStarted)) return;
 
-    const unsigned long now = millis();
+    const uint32_t nowCycles = uniuno::asm_opt::get_cpu_cycle_count();
 
-    // 1. Throttled Acceptance of New Clients (every 50ms ~ 20 Hz)
-    // Eliminates 99.95% of yield() calls in the main Arduino loop!
-    if (clientCount < WS_SERVER_MAX_CLIENTS && uniuno::asm_opt::is_timer_expired(now, _lastAcceptPoll + WS_SERVER_ACCEPT_INTERVAL_MS)) {
-        _lastAcceptPoll = now;
-
+    // 1. Throttled Acceptance of New Clients (every 50ms ~ 20 Hz) via 1-cycle CCOUNT
+    if (clientCount < WS_SERVER_MAX_CLIENTS &&
+        UNLIKELY(uniuno::asm_opt::is_cycle_interval_elapsed(
+            nowCycles, _lastAcceptCycle, uniuno::asm_opt::ms_to_cycles(WS_SERVER_ACCEPT_INTERVAL_MS)))) {
         if (server.poll()) {
             const uint8_t idx = clientCount;
             clients[idx] = server.accept();
@@ -52,9 +52,10 @@ HOT_PATH void AchaemenidWebSocketServer::loop() {
         }
     }
 
-    // 2. Throttled Polling of Connected Clients (every 15ms ~ 66 Hz)
-    if (clientCount > 0 && uniuno::asm_opt::is_timer_expired(now, _lastClientPoll + WS_SERVER_POLL_INTERVAL_MS)) {
-        _lastClientPoll = now;
+    // 2. Throttled Polling of Connected Clients (every 15ms ~ 66 Hz) via 1-cycle CCOUNT
+    if (clientCount > 0 &&
+        UNLIKELY(uniuno::asm_opt::is_cycle_interval_elapsed(
+            nowCycles, _lastClientPollCycle, uniuno::asm_opt::ms_to_cycles(WS_SERVER_POLL_INTERVAL_MS)))) {
 
         for (uint8_t i = 0; i < clientCount; ) {
             if (clients[i].available()) {

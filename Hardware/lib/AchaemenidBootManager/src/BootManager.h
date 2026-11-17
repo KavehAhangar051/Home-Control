@@ -39,8 +39,7 @@ private:
     uniuno::Future<void, void> wifiFut_;
     unsigned long fetchConfigStartTime_;
     unsigned long lastReconnectAttempt_;
-    unsigned long lastConnectedCheck_ = 0;
-    uint8_t loopPrescaler_ = 0;
+    uint32_t lastConnectedCheckCycle_ = 0;
     WebServer provisioningServer_{80};
     bool provisioningServerStarted_;
     uniuno::TaskHandle bootTaskHandle_;
@@ -48,6 +47,7 @@ private:
     uniuno::AsyncResult<void> bootPollFn();
     void bootErrorFn(uniuno::Error e);
     void startProvisioningPortal();
+    __attribute__((noinline)) void loadOfflineConfigFromNvs();
     static void restartFn();
 
 public:

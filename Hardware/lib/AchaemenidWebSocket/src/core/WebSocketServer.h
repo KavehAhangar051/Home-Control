@@ -31,8 +31,8 @@ private:
     websockets::WebsocketsClient clients[WS_SERVER_MAX_CLIENTS];
     uint8_t clientCount = 0;
     bool _isStarted = false;
-    unsigned long _lastAcceptPoll = 0;
-    unsigned long _lastClientPoll = 0;
+    uint32_t _lastAcceptCycle = 0;
+    uint32_t _lastClientPollCycle = 0;
     IEventDispatcher* dispatcher_;
     WsServerParser parser_;
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Future.h>
+#include <Timer/Optimization/TimerAsm.h>
 
 #ifdef ARDUINO
 #include <Arduino.h>
@@ -27,7 +28,7 @@ Future<I, O, E> create_timeout_future(Future<I, O, E> future,
                                       unsigned long timeout_ms = 5000) {
   unsigned long timeout_time = millis() + timeout_ms;
   return Future<I, O, E>([future = std::move(future), timeout_time](const I& input) mutable {
-    if (UNLIKELY(millis() >= timeout_time && future.result.is_pending())) {
+    if (UNLIKELY(uniuno::asm_opt::is_timer_expired(millis(), timeout_time) && future.result.is_pending())) {
       return AsyncResult<O, E>::reject(E(ERROR_FUTURE_TIMEOUT));
     }
 
@@ -49,7 +50,7 @@ Future<void, O, E> create_timeout_future(Future<void, O, E> future,
                                          unsigned long timeout_ms = 5000) {
   unsigned long timeout_time = millis() + timeout_ms;
   return Future<void, O, E>([future = std::move(future), timeout_time]() mutable {
-    if (UNLIKELY(millis() >= timeout_time && future.result.is_pending())) {
+    if (UNLIKELY(uniuno::asm_opt::is_timer_expired(millis(), timeout_time) && future.result.is_pending())) {
       return AsyncResult<O, E>::reject(E(ERROR_FUTURE_TIMEOUT));
     }
 

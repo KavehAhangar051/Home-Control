@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Future.h>
+#include <Timer/Optimization/TimerAsm.h>
 
 #ifndef ARDUINO
 #include <native/millis.h>
@@ -15,7 +16,7 @@ namespace uniuno {
  * @return Resolved state if elapsed, Pending otherwise.
  */
 inline AsyncResult<void> get_wait_async_state(unsigned long timeout_time) {
-  if (timeout_time <= millis()) {
+  if (uniuno::asm_opt::is_timer_expired(millis(), timeout_time)) {
     return AsyncResult<void>::resolve();
   }
 

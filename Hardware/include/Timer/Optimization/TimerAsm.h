@@ -244,5 +244,45 @@ inline uint32_t get_cpu_cycle_count() {
     return ccount;
 }
 
+/**
+ * @brief Convert milliseconds to ESP32 CPU cycles at compile time.
+ * Safe for intervals up to ~17,800ms on 240MHz 32-bit CCOUNT.
+ */
+constexpr uint32_t ms_to_cycles(uint32_t ms) {
+#if defined(F_CPU)
+    return ms * (static_cast<uint32_t>(F_CPU) / 1000UL);
+#else
+    return ms * 240000UL;
+#endif
+}
+
+/**
+ * @brief Ultra-fast hardware throttle gate using a pre-read Xtensa CCOUNT value.
+ * Eliminates millis() (64-bit division by 1000) in high-frequency loop() polling.
+ * Uses full unsigned 32-bit modular subtraction (wrap-safe up to ~17.89s at 240MHz).
+ * Must be called consistently on the same CPU core (e.g. Arduino loopTask on Core 1).
+ */
+inline bool is_cycle_interval_elapsed(uint32_t now_cycles, uint32_t& last_cycle, uint32_t interval_cycles) {
+#if defined(__XTENSA__) || defined(ESP32)
+    if (static_cast<uint32_t>(now_cycles - last_cycle) >= interval_cycles) {
+        last_cycle = now_cycles;
+        return true;
+    }
+    return false;
+#else
+    (void)now_cycles;
+    (void)last_cycle;
+    (void)interval_cycles;
+    return true;
+#endif
+}
+
+/**
+ * @brief Convenience overload that reads CCOUNT in 1 cycle and checks elapsed interval.
+ */
+inline bool is_cycle_interval_elapsed(uint32_t& last_cycle, uint32_t interval_cycles) {
+    return is_cycle_interval_elapsed(get_cpu_cycle_count(), last_cycle, interval_cycles);
+}
+
 } // namespace asm_opt
 } // namespace uniuno
