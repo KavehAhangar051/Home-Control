@@ -20,7 +20,7 @@ jobs:
       - name: Lint
         run: bun run lint
       - name: Format check
-        run: bunx biome format --check features/dashboard/components/layout/DashboardWorkspace.tsx
+        run: bunx biome ci features/dashboard/components/layout/DashboardWorkspace.tsx
       - name: Typecheck
         run: bun run typecheck
       - name: Test suite (report-only)
