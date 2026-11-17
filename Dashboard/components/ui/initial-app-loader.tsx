@@ -5,8 +5,7 @@
  * @description Pure, minimal full-screen preloader featuring the raw ASCII Line spinner (| / - \).
  */
 
-import * as m from "motion/react-m";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { AsciiLineLoader } from "@/components/motion/loader";

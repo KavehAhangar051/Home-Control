@@ -1,8 +1,7 @@
 "use client";
 
 import { Play } from "lucide-react";
-import * as m from "motion/react-m";
-import { useReducedMotion } from "motion/react";
+import { m, useReducedMotion } from "motion/react";
 import React from "react";
 import NodePerimeterSpark from "@/features/iot/components/canvas/NodePerimeterSpark";
 import { resolveCanvasNodeMotionState } from "@/features/iot/components/canvas/nodeMotion";

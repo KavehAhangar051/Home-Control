@@ -6,8 +6,7 @@ import {
   IconWrapper,
   useAnimateIconContext,
 } from "@animate-ui/react/icons";
-import * as m from "motion/react-m";
-import type { Variants } from "motion/react";
+import { m, type Variants } from "motion/react";
 
 type Wifi01Props = IconProps<keyof typeof animations>;
 

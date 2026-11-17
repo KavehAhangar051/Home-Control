@@ -1,5 +1,4 @@
-import * as m from "motion/react-m";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 
 interface Props {

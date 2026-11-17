@@ -1,5 +1,4 @@
-import * as m from "motion/react-m";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import type React from "react";
 import { RangeSlider } from "@/components/motion/range-slider";
 import { Toggle } from "@/components/ui/toggle";

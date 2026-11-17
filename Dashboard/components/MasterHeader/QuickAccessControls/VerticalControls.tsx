@@ -1,8 +1,7 @@
 "use client";
 
 import { ChevronLeft } from "lucide-react";
-import * as m from "motion/react-m";
-import { AnimatePresence, useReducedMotion, type Variants } from "motion/react";
+import { AnimatePresence, m, useReducedMotion, type Variants } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {

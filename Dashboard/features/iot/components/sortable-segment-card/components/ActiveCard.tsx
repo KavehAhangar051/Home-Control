@@ -1,4 +1,4 @@
-import * as m from "motion/react-m";
+import { m } from "motion/react";
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { SPRING_LAYOUT, TRANSITION_EXIT_STANDARD } from "@/lib/ease";

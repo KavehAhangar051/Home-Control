@@ -2,12 +2,12 @@
 // beui.dev/components/motion/color-picker
 
 import { Pipette } from "lucide-react";
-import * as m from "motion/react-m";
 import {
   AnimatePresence,
   arc,
   LayoutGroup,
   type MotionValue,
+  m,
   type Transition,
   useAnimate,
   useReducedMotion,

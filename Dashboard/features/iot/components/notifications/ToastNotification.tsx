@@ -1,7 +1,6 @@
 "use client";
 
-import * as m from "motion/react-m";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useEffect } from "react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
 import { Button } from "@/components/ui/button";

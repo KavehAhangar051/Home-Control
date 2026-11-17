@@ -1,5 +1,5 @@
 import type { RefCallback } from "react";
-import * as m from "motion/react-m";
+import { m } from "motion/react";
 import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { GripVertical, Plus } from "@/components/ui/hugeicons";
