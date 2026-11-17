@@ -1,64 +1,92 @@
 #pragma once
 
 #include "StaticArrayDecl.h"
-#include <type_traits>
-#include <utility>
-#include <algorithm>
-#include <cstring>
+#include "StaticArrayConstructors.h"
+#include "StaticArrayAccess.h"
 
 namespace uniuno {
 
+namespace sa_detail {
+
+template<typename T>
+FORCE_INLINE void shift_left(T* dst, T* src, uint32_t count,
+                             std::true_type /*word_trivial*/, std::false_type /*byte_trivial*/) {
+    xtensa_asm::asm_shift_left_words(reinterpret_cast<uint32_t*>(dst),
+                                     reinterpret_cast<const uint32_t*>(src),
+                                     count * static_cast<uint32_t>(sizeof(T) / 4));
+}
+
+template<typename T>
+FORCE_INLINE void shift_left(T* dst, T* src, uint32_t count,
+                             std::false_type /*word_trivial*/, std::true_type /*byte_trivial*/) {
+    if (LIKELY(count > 0)) std::memmove(dst, src, static_cast<size_t>(count) * sizeof(T));
+}
+
+template<typename T>
+FORCE_INLINE void shift_left(T* dst, T* src, uint32_t count,
+                             std::false_type /*word_trivial*/, std::false_type /*byte_trivial*/) {
+    for (uint32_t i = 0; i < count; ++i) {
+        dst[i] = std::move(src[i]);
+    }
+}
+
+} // namespace sa_detail
+
 template<typename T, size_t MaxSize>
 FORCE_INLINE void StaticArray<T, MaxSize>::erase(size_type idx) {
-    if (std::is_trivially_copyable<T>::value) {
-        this->erase_pod(idx, sizeof(T));
-    } else {
-        if (UNLIKELY(idx >= size_)) return;
-        
-        for (size_type i = idx; i < size_ - 1; i++) {
-            data()[i] = std::move(data()[i + 1]);
-        }
-        
-        data()[size_ - 1].~T();
-        size_--;
+    if (UNLIKELY(idx >= size_)) return;
+
+    T* base = data();
+    const uint32_t tail = size_ - idx - 1;
+    if (tail > 0) {
+        sa_detail::shift_left(base + idx, base + idx + 1, tail, IsWordTrivial{}, IsByteTrivial{});
     }
+    --size_;
+    sa_detail::destroy_elems(base + size_, 1, std::is_trivially_destructible<T>{});
+}
+
+template<typename T, size_t MaxSize>
+FORCE_INLINE void StaticArray<T, MaxSize>::erase_unordered(size_type idx) {
+    if (UNLIKELY(idx >= size_)) return;
+    T* base = data();
+    --size_;
+    if (idx != size_) {
+        base[idx] = std::move(base[size_]);
+    }
+    sa_detail::destroy_elems(base + size_, 1, std::is_trivially_destructible<T>{});
 }
 
 template<typename T, size_t MaxSize>
 FORCE_INLINE typename StaticArray<T, MaxSize>::iterator StaticArray<T, MaxSize>::erase(iterator it) {
-    if (UNLIKELY(it < begin() || it >= end())) return end();
-    
-    size_type idx = it - begin();
+    T* base = data();
+    if (UNLIKELY(it < base || it >= base + size_)) return base + size_;
+
+    const size_type idx = static_cast<size_type>(it - base);
     erase(idx);
-    return begin() + idx;
+    return base + idx;
 }
 
 template<typename T, size_t MaxSize>
 FORCE_INLINE typename StaticArray<T, MaxSize>::iterator StaticArray<T, MaxSize>::erase(iterator first, iterator last) {
-    if (UNLIKELY(first >= last || first < begin() || last > end())) return first;
-    
-    size_type start_idx = first - begin();
-    size_type end_idx = last - begin();
-    size_type count = end_idx - start_idx;
-    
-    if (std::is_trivially_copyable<T>::value) {
-        this->erase_pod_range(start_idx, end_idx, sizeof(T));
-    } else {
-        for (size_type i = start_idx; i < this->size_ - count; i++) {
-            data()[i] = std::move(data()[i + count]);
-        }
-        for (size_type i = this->size_ - count; i < this->size_; i++) {
-            data()[i].~T();
-        }
-        this->size_ -= count;
+    T* base = data();
+    T* cur_end = base + size_;
+    if (UNLIKELY(first >= last || first < base || last > cur_end)) return first;
+
+    const uint32_t count = static_cast<uint32_t>(last - first);
+    const uint32_t tail  = static_cast<uint32_t>(cur_end - last);
+
+    if (tail > 0) {
+        sa_detail::shift_left(first, last, tail, IsWordTrivial{}, IsByteTrivial{});
     }
-    
-    return begin() + start_idx;
+    const uint32_t new_size = size_ - count;
+    sa_detail::destroy_elems(base + new_size, count, std::is_trivially_destructible<T>{});
+    size_ = new_size;
+    return first;
 }
 
 template<typename T, size_t MaxSize>
 FORCE_INLINE bool StaticArray<T, MaxSize>::remove(const T& value) {
-    auto it = std::find(begin(), end(), value);
+    iterator it = find(value);
     if (it != end()) {
         erase(it);
         return true;
@@ -68,28 +96,24 @@ FORCE_INLINE bool StaticArray<T, MaxSize>::remove(const T& value) {
 
 template<typename T, size_t MaxSize>
 FORCE_INLINE typename StaticArray<T, MaxSize>::size_type StaticArray<T, MaxSize>::remove_all(const T& value) {
-    size_type removed = 0;
-    size_type write_idx = 0;
-    
-    for (size_type read_idx = 0; read_idx < size_; read_idx++) {
-        if (data()[read_idx] == value) {
-            removed++;
-        } else {
+    T* base = data();
+    uint32_t write_idx = 0;
+
+    for (uint32_t read_idx = 0; read_idx < size_; ++read_idx) {
+        if (!(base[read_idx] == value)) {
             if (write_idx != read_idx) {
-                data()[write_idx] = std::move(data()[read_idx]);
+                base[write_idx] = std::move(base[read_idx]);
             }
-            write_idx++;
+            ++write_idx;
         }
     }
-    
-    if (!std::is_trivially_destructible<T>::value) {
-        for (size_type i = write_idx; i < size_; i++) {
-            data()[i].~T();
-        }
+
+    const uint32_t removed = size_ - write_idx;
+    if (removed > 0) {
+        sa_detail::destroy_elems(base + write_idx, removed, std::is_trivially_destructible<T>{});
+        size_ = write_idx;
     }
-    
-    size_ = write_idx;
-    return removed;
+    return static_cast<size_type>(removed);
 }
 
 } // namespace uniuno
