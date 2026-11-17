@@ -43,3 +43,12 @@
 
 ## Adopted Conventions
 - Biome formatting (`indentWidth: 2`, `lineWidth: 100`, organized imports), strict TypeScript, Dependency Inversion via `ports.ts` & `storeBridge.ts`, single canonical config defaults in `features/iot/services/config/defaults.ts`, and mandatory verification via `npm run check` (`lint` + `typecheck` + `test`) and `npm run build`.
+
+
+## Current modernization follow-ups (November 2026)
+
+| Item | Location | Type | Risk | Effort | Priority | Status |
+|---|---|---|---|---|---|---|
+| Two deterministic MQTT binary-frame expectations fail after the TypeScript 7 test-loader compatibility fix | `features/iot/services/mqtt/messageParser.ts`, MQTT tests | Protocol regression / test mismatch | High | M | P0 | Open; reproduce against the documented firmware wire format |
+| Workspace View Transition browser tests fail to locate the Settings navigation control | `tests/e2e/workspace-transitions.spec.mjs` | E2E selector / DOM contract | Medium | S | P1 | Open in PR #9; correct selectors and rerun Chromium |
+| Stale optimization entries remain for removed legacy dnd-kit packages | `next.config.ts` | Obsolete configuration | Low | XS | P2 | Cleanup proposed in PR #10; not yet merged |
