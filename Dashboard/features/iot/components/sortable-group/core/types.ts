@@ -2,6 +2,7 @@ import type React from "react";
 
 export interface SortableGroupProps {
   id: string; // Group Name
+  index: number;
   items: string[]; // Segment IDs
   segmentCount: number;
   maxCols: number;

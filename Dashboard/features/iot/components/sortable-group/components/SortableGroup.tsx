@@ -1,7 +1,6 @@
 "use client";
 
-import { rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { useSortable } from "@dnd-kit/react/sortable";
 import { AnimatePresence } from "motion/react";
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +29,7 @@ function GroupGrid({ style, children }: { style: React.CSSProperties; children: 
  */
 function SortableGroup({
   id,
+  index,
   items,
   segmentCount,
   maxCols,
@@ -42,20 +42,20 @@ function SortableGroup({
   children,
   isOverlayItem,
 }: SortableGroupProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { ref, handleRef, isDragging } = useSortable({
     id: `group-${id}`,
-    data: {
-      type: "Group",
-      group: id,
-    },
+    index,
+    group: "groups",
+    type: "Group",
+    accept: "Group",
+    data: { group: id },
     disabled: isOverlayItem,
+    transition: animationsEnabled
+      ? { duration: 350, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
+      : null,
   });
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(isDragging ? null : transform),
-    transition: animationsEnabled
-      ? transition || "transform 350ms cubic-bezier(0.22, 1, 0.36, 1)"
-      : "none",
     zIndex: isDragging ? 0 : "auto",
     opacity: isDragging ? 0.35 : 1,
   };
@@ -69,7 +69,7 @@ function SortableGroup({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={ref}
       style={style}
       className="@container/group relative group/group-card w-full touch-none flex flex-col bezel-shell"
     >
@@ -83,18 +83,11 @@ function SortableGroup({
           onAddPlaceholder={onAddPlaceholder}
           onDeleteGroup={onDeleteGroup}
           parentGroupsCols={parentGroupsCols}
-          attributes={attributes}
-          listeners={listeners}
+          handleRef={handleRef}
         />
 
         <CardContent className="!px-0 !py-0">
-          {isOverlayItem ? (
-            <GroupGrid style={contentStyle}>{children}</GroupGrid>
-          ) : (
-            <SortableContext id={id} items={items} strategy={rectSortingStrategy}>
-              <GroupGrid style={contentStyle}>{children}</GroupGrid>
-            </SortableContext>
-          )}
+          <GroupGrid style={contentStyle}>{children}</GroupGrid>
         </CardContent>
       </Card>
     </div>

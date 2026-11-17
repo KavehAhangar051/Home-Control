@@ -33,10 +33,9 @@ export interface DashboardContextInterface {
     | "handleRetrySync"
     | "triggerCloudflarePush"
     | "handleDragStart"
-    | "handleDragOver"
     | "handleDragEnd"
   >;
-  meta: Pick<DashboardState, "sensors">;
+  meta: Record<string, never>;
 }
 
 export type DashboardContextValue = DashboardState & DashboardContextInterface;
@@ -96,7 +95,6 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       handleRetrySync: resolved.handleRetrySync,
       triggerCloudflarePush: resolved.triggerCloudflarePush,
       handleDragStart: resolved.handleDragStart,
-      handleDragOver: resolved.handleDragOver,
       handleDragEnd: resolved.handleDragEnd,
     }),
     [
@@ -121,17 +119,11 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       resolved.handleRetrySync,
       resolved.triggerCloudflarePush,
       resolved.handleDragStart,
-      resolved.handleDragOver,
       resolved.handleDragEnd,
     ],
   );
 
-  const meta = useMemo(
-    () => ({
-      sensors: resolved.sensors,
-    }),
-    [resolved.sensors],
-  );
+  const meta = useMemo(() => ({}), []);
 
   const contextValue = useMemo<DashboardContextValue>(
     () => ({

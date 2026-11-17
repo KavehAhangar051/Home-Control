@@ -1,4 +1,4 @@
-import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
+import type { RefCallback } from "react";
 import { GripVertical } from "@/components/ui/hugeicons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { SegmentData } from "../core/types";
@@ -15,8 +15,7 @@ interface CardHeaderProps {
   onUpdateSegmentMode?: (id: string, mode: "switch" | "push") => void;
   onUpdateSegmentAutoOff?: (id: string, autoOff: number) => void;
   countdown?: number | null;
-  attributes: DraggableAttributes | Record<string, string | number | boolean | undefined>;
-  listeners: DraggableSyntheticListeners;
+  handleRef?: RefCallback<HTMLElement>;
   groupMaxCols?: number;
 }
 
@@ -35,8 +34,7 @@ export default function CardHeader({
   onUpdateSegmentMode,
   onUpdateSegmentAutoOff,
   countdown,
-  attributes,
-  listeners,
+  handleRef,
 }: CardHeaderProps) {
   const {
     isSettingsOpen,
@@ -69,8 +67,7 @@ export default function CardHeader({
           render={
             <button
               type="button"
-              {...attributes}
-              {...listeners}
+              ref={handleRef}
               aria-label={`جابه‌جایی کارت ${segment.title}`}
               className={`flex items-center justify-center rounded-lg border border-transparent text-text-muted md:hover:text-text-primary md:hover:bg-secondary md:hover:border-border-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 cursor-grab active:cursor-grabbing transition-colors shrink-0 ${
                 isUltraCompact ? "size-6" : "size-7"

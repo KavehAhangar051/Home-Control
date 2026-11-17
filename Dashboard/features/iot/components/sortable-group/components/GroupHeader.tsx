@@ -1,6 +1,5 @@
 "use client";
 
-import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
 import React from "react";
 import { GripVertical } from "@/components/ui/hugeicons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -18,8 +17,7 @@ interface GroupHeaderProps {
   onAddPlaceholder: (groupId: string) => void;
   onDeleteGroup: (groupId: string) => void;
   parentGroupsCols: number;
-  attributes: DraggableAttributes | Record<string, string | number | boolean | undefined>;
-  listeners: DraggableSyntheticListeners;
+  handleRef?: React.RefCallback<HTMLElement>;
 }
 
 function GroupAvatar({ icon, isDenseHeader }: { icon?: string; isDenseHeader: boolean }) {
@@ -58,8 +56,7 @@ export default function GroupHeader({
   onAddPlaceholder,
   onDeleteGroup,
   parentGroupsCols,
-  attributes,
-  listeners,
+  handleRef,
 }: GroupHeaderProps) {
   const isMobile = useMediaQuery("(max-width: 639px)");
 
@@ -91,8 +88,7 @@ export default function GroupHeader({
             render={
               <button
                 type="button"
-                {...attributes}
-                {...listeners}
+                ref={handleRef}
                 aria-label={`جابه‌جایی گروه ${id}`}
                 className={`flex items-center justify-center rounded-lg text-text-muted md:hover:text-text-primary md:hover:bg-card-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 transition-colors duration-150 cursor-grab active:cursor-grabbing shrink-0 ${
                   isDenseHeader ? "w-6 h-7" : "w-7 h-8"

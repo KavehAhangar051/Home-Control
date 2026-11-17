@@ -1,4 +1,3 @@
-import { rectSortingStrategy, SortableContext } from "@dnd-kit/sortable";
 import React from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
@@ -119,6 +118,7 @@ const ConnectedGroup = React.memo((props: ConnectedGroupProps) => {
     <div className={baseClasses} style={style}>
       <SortableGroup
         id={groupName}
+        index={groupIndex}
         items={segmentIds}
         segmentCount={segmentIds.length}
         maxCols={groupConfigs[groupName]?.maxCols || 3}
@@ -149,12 +149,7 @@ const ConnectedGroup = React.memo((props: ConnectedGroupProps) => {
 
 type WorkspaceGridProps = Omit<
   IoTWorkspaceProps,
-  | "sensors"
-  | "handleDragStart"
-  | "handleDragOver"
-  | "handleDragEnd"
-  | "activeSegmentId"
-  | "activeGroupId"
+  "sensors" | "handleDragStart" | "handleDragEnd" | "activeSegmentId" | "activeGroupId"
 > & {
   selectedGroupFilter?: string | null;
 };
@@ -206,34 +201,24 @@ export default function WorkspaceGrid({
     ],
   );
 
-  const sortableGroupItems = React.useMemo(
-    () => filteredGroupsOrder.map((g) => `group-${g}`),
-    [filteredGroupsOrder],
-  );
-
   return (
-    <SortableContext
-      items={sortableGroupItems}
-      strategy={isMobilePortrait ? () => null : rectSortingStrategy}
-    >
-      <div className="flex flex-wrap gap-8 w-full items-start">
-        {filteredGroupsOrder.map((groupName, groupIndex) => (
-          <ConnectedGroup
-            key={groupName}
-            groupName={groupName}
-            groupIndex={groupIndex}
-            groupConfigs={groupConfigs}
-            handleGroupColsChange={handleGroupColsChange}
-            handleAddPlaceholder={handleAddPlaceholder}
-            handleRemoveGroup={handleRemoveGroup}
-            animationsEnabled={animationsEnabled}
-            filteredGroupsOrderLength={filteredGroupsOrder.length}
-            groupsCols={groupsCols}
-            isMobilePortrait={isMobilePortrait}
-            segmentProps={segmentProps}
-          />
-        ))}
-      </div>
-    </SortableContext>
+    <div className="flex flex-wrap gap-8 w-full items-start">
+      {filteredGroupsOrder.map((groupName, groupIndex) => (
+        <ConnectedGroup
+          key={groupName}
+          groupName={groupName}
+          groupIndex={groupIndex}
+          groupConfigs={groupConfigs}
+          handleGroupColsChange={handleGroupColsChange}
+          handleAddPlaceholder={handleAddPlaceholder}
+          handleRemoveGroup={handleRemoveGroup}
+          animationsEnabled={animationsEnabled}
+          filteredGroupsOrderLength={filteredGroupsOrder.length}
+          groupsCols={groupsCols}
+          isMobilePortrait={isMobilePortrait}
+          segmentProps={segmentProps}
+        />
+      ))}
+    </div>
   );
 }

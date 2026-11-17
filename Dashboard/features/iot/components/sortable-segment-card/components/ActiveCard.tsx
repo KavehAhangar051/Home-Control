@@ -1,4 +1,3 @@
-import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
 import { m } from "motion/react";
 import React from "react";
 import { Card } from "@/components/ui/card";
@@ -15,8 +14,7 @@ interface ActiveCardProps
   isUltraCompact: boolean;
   isMobileTwoCol?: boolean;
   densityFactor?: number;
-  attributes: DraggableAttributes | Record<string, string | number | boolean | undefined>;
-  listeners: DraggableSyntheticListeners;
+  handleRef?: React.RefCallback<HTMLElement>;
 }
 
 const CARD_MOTION_TRANSITION = SPRING_LAYOUT;
@@ -47,8 +45,7 @@ function ActiveCard({
   isUltraCompact,
   isMobileTwoCol,
   densityFactor,
-  attributes,
-  listeners,
+  handleRef,
 }: ActiveCardProps) {
   const mode = segment.mode || "switch";
 
@@ -96,8 +93,7 @@ function ActiveCard({
           mode={mode}
           onRemove={onRemove}
           onUpdateSegmentMode={onUpdateSegmentMode}
-          attributes={attributes}
-          listeners={listeners}
+          handleRef={handleRef}
           countdown={countdown}
           onUpdateSegmentAutoOff={onUpdateSegmentAutoOff}
           groupMaxCols={groupMaxCols}
