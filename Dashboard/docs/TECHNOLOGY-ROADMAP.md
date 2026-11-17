@@ -95,6 +95,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - [x] Move the sortable DnD hook from the global dashboard state hook into the dynamically loaded Grid workspace; the after graph confirms the global state module no longer imports DnD.
 - [ ] Verify in a browser Network panel that Trellis and Canvas do not request the DnD chunk; the static graph still includes the conditional Grid preload path.
 - [ ] Review Base UI and Motion coverage before introducing overlapping component or animation libraries.
+- [ ] Audit Motion 14.14.0 imports: migrate `m` component namespaces to `motion/react-m` where they are wrapped by `LazyMotion`, then compare the bundle graph without removing required `domMax` layout features.
 - [ ] Audit Tailwind v4 CSS output, token consistency and duplicated styling patterns.
 
 ### Phase D — improve runtime UX and performance
