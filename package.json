@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000 -H 0.0.0.0",
-    "build": "NODE_ENV=production next build",
+    "dev": "next dev --webpack -p 3000 -H 0.0.0.0",
+    "build": "NODE_ENV=production next build --webpack",
     "start": "next start",
     "lint": "biome lint --max-diagnostics=1000 app components features lib",
     "format": "biome format --write app components features lib",
     "typecheck": "tsc --noEmit",
     "test": "node --import ./tests/ts-loader.mjs --test tests/*.test.mjs",
-    "check": "npm run lint && npm run typecheck && npm run test",
+    "check": "bun run lint && bun run typecheck && bun run test",
     "clean": "node -e \"['.next', 'out', 'tsconfig.tsbuildinfo'].forEach(p => require('fs').rmSync(p, { recursive: true, force: true }))\""
   },
   "dependencies": {
@@ -28,7 +28,7 @@
     "lucide-react": "^0.553.0",
     "motion": "^14.0.0",
     "mqtt": "^5.15.1",
-    "next": "^15.4.9",
+    "next": "^16.4.6",
     "postcss": "^8.5.6",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
-    "@next/bundle-analyzer": "^16.2.6",
+    "@next/bundle-analyzer": "^16.4.6",
     "@oxlint/plugins": "1.93.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^20",
