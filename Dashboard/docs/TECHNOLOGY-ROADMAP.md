@@ -142,16 +142,24 @@ The recent modernization work has established the following baseline:
 3. Evaluate React `Activity`, `useEffectEvent`, and transitions only against a specific lifecycle or responsiveness problem. Do not add them simply because they are new APIs.
 4. Inspect expensive workflow-editor interactions, canvas dragging, and sortable-card updates for long tasks and layout thrashing.
 
-#### Phase G — design-system and UI platform consistency
+#### Phase G — 60 FPS animation and rendering quality
+1. Use `docs/performance/60-FPS-STRATEGY.md` as the motion-performance contract: target stable 60 FPS on 60 Hz reference devices and follow higher display refresh rates where available.
+2. Audit high-frequency animation properties and prioritize compositor-friendly `transform` and `opacity`; profile blur/filter, shadows, large SVG effects, layout animation, and large View Transition snapshots on low-powered devices.
+3. Profile Motion-heavy controls (ActionSwap, ColorPicker, RangeSlider, loaders, theme transition) and common workspace transitions. Keep Motion's async `domMax` because layout and drag features are used.
+4. Keep frame callbacks small, avoid synchronous storage/DOM work during animation, and use MotionValues/refs or frame-coalesced updates for high-frequency values.
+5. Design adaptive behavior only after measuring sustained frame drops. Preserve essential state feedback, rich transitions where affordable, the dashboard animation setting, and `prefers-reduced-motion`.
+6. Do not blanket-migrate to `motion/react-m`; the previous same-environment Turbopack trial increased the homepage graph and was reverted.
+
+#### Phase H — design-system and UI platform consistency
 1. Audit Base UI usage and fill gaps with existing primitives before adding another component library.
 2. Consolidate Tailwind v4 design tokens and remove duplicated CSS only when the visual result can be preserved.
 3. Review SVG/icon rendering, font loading, focus behavior, touch targets, keyboard navigation, and reduced-motion behavior.
-4. Keep Motion's async `domMax` feature set while layout animations and drag-related animation behavior require it; do not replace it with `domAnimation` without auditing feature usage.
+4. Keep component semantics and visual consistency while improving rendering efficiency.
 
-#### Phase H — repeatable performance evidence
+#### Phase I — repeatable performance evidence
 1. Keep named Turbopack snapshots and compare equivalent commits, routes, environment, and lockfile state.
-2. Add browser-level measurements for LCP, INP, CLS, long tasks, and actual chunk requests when an appropriate measurement workflow is available.
-3. Set performance budgets only after stable baselines exist.
+2. Record browser frame traces, dropped-frame behavior, long tasks, LCP, INP, CLS, and actual chunk requests across an agreed device matrix.
+3. Set performance budgets only after stable baselines exist; distinguish 60 Hz targets from 90/120/144 Hz devices.
 4. Record both successful and unsuccessful optimization experiments so that reverted work is not repeated.
 
 ### Acceptance criteria for optimization work
@@ -181,3 +189,12 @@ The recent modernization work has established the following baseline:
 - Pointer-up applies its final coordinates synchronously; pointer-cancel flushes only the last valid pointer-move event so a cancelled gesture cannot jump to the cancellation coordinates.
 - Resize calculations now derive dimensions from the pointer-down rectangle rather than the previous intermediate render, preventing cumulative application of total pointer displacement across successive move events.
 - This is a structural interaction improvement; no frame-time or INP gain is claimed without a browser performance trace. Owner-led verification is required for drag, resize, pan, touch, and persisted layout behavior.
+
+
+### 60 FPS motion direction — 18 November 2026
+
+- The product's motion-quality target is stable 60 FPS on 60 Hz reference devices, with animations following higher display refresh rates when available. A universal guarantee on every device is impossible because the browser, display, CPU/GPU, thermal state, and operating-system scheduling are not controlled by the dashboard.
+- Added `docs/performance/60-FPS-STRATEGY.md` with frame budgets, compositor-first animation rules, a source-level motion inventory, manual profiling scenarios, and explicit acceptance criteria.
+- Initial source audit identified blur/filter transitions in ActionSwap and ColorPicker as profiling candidates, plus native theme View Transitions and continuous loader variants. These are not yet proven bottlenecks and must not be removed or rewritten without frame-trace evidence.
+- Keep the existing async `LazyMotion` + `domMax` architecture. The broad `motion/react-m` experiment remains reverted because the measured homepage client graph grew.
+- FPS and frame-time status remains **not measured**. Bundle analyzer output and source inspection cannot establish runtime frame rate.
