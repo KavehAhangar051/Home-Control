@@ -78,7 +78,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 
 ### Phase B — update dependencies deliberately
 
-- [ ] Compare every direct dependency with its latest stable release and compatibility requirements.
+- [x] Compare every direct dependency with its latest stable release and compatibility requirements (18 Nov 2026); all committed lockfile resolutions are current, so no version-only update was justified. See [Direct Dependency Audit](DEPENDENCY-AUDIT-2026-11-18.md).
 - [ ] Group upgrades into small, reviewable changes (patch/minor first; major versions separately).
 - [ ] Regenerate and commit `bun.lock` with Bun; never hand-edit lockfile resolutions.
 - [ ] Run lint, typecheck and relevant tests after each upgrade batch.
