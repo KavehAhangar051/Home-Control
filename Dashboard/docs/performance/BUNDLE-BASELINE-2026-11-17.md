@@ -81,13 +81,13 @@ The post-revert snapshot was captured in workflow [44173469986](https://github.c
 - Artifact: \`bundle-analysis-after-e1a5a614d47e0844d8cbb0f75f96189e7544fff3\`.
 - Same analyzer/runtime family and same four selected routes as the original baseline: Next.js 16.4.6, Turbopack, Bun 1.4.4, Ubuntu 26.04.
 
-### Client JavaScript graph comparison
+### All route-level client-fs JavaScript output records
 
 The values below are the sum of Turbopack \`part\` contributions assigned to JavaScript output chunks under \`[client-fs]/\`. They are graph contributions, not a direct measurement of bytes transferred by a browser; shared/module-part accounting and async groups must be interpreted separately.
 
 | Metric | Original baseline | Post-revert snapshot | Difference |
 |---|---:|---:|---:|
-| Client JS output chunks | 60 | 59 | -1 |
+| All `[client-fs]` JS output records | 60 | 59 | -1 |
 | Client JS raw contribution | 4,222,084 B | 4,222,562 B | +478 B |
 | Client JS compressed contribution | 1,705,406 B | 1,705,753 B | +347 B |
 | dnd-kit contribution, raw | 115,412 B | 114,155 B | -1,257 B |
