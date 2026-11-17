@@ -1,7 +1,8 @@
 name: Regenerate Turbopack lockfile
 
 on:
-  workflow_dispatch:
+  push:
+    branches: ["main"]
 
 permissions:
   contents: write
