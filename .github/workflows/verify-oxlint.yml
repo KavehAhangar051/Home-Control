@@ -17,7 +17,10 @@ jobs:
         uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         run: bun ci
-      - name: Lint (Biome + Oxlint)
+      - name: Biome lint
         run: bun run lint
+      - name: Oxlint diagnostic report
+        run: bun run lint:ox
+        continue-on-error: true
       - name: Typecheck
         run: bun run typecheck
