@@ -21,7 +21,12 @@ void RuleEngine::onTimerExpired(uniuno::TimerExpiredEvent* evt) {
     if (targetPin >= 0) {
         const bool stateToApply = _ctx.pinManager->getPendingRuleActionState(targetPin);
         _ctx.pinManager->setRuleActionTimerIdByPin(targetPin, uniuno::TimerHandle());
-        
+
+        // Rule execution supersedes any active Dashboard auto-off timer.
+        uniuno::TimerHandle autoOff = _ctx.pinManager->getTimerIdByPin(targetPin);
+        if (autoOff.isActive()) autoOff.cancel();
+        _ctx.pinManager->setTimerIdByPin(targetPin, uniuno::TimerHandle());
+
         const bool success = _ctx.pinManager->setPinState(targetPin, stateToApply);
         if (success && _ctx.eventBus != nullptr) {
             PinStateChangedEvent changed{targetPin, stateToApply, true, PinStateChangeOrigin::Automation};
