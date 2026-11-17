@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  reactCompiler: true,
   experimental: {
-    reactCompiler: true,
     optimizePackageImports: [
       "lucide-react",
       "@hugeicons/react",
@@ -17,9 +17,6 @@ const nextConfig: NextConfig = {
       "@tanstack/react-query",
       "zustand",
     ],
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: false,

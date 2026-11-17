@@ -10,7 +10,7 @@ The application is configured for static export in its normal production mode. I
 
 ## 2. Technology stack
 
-- **Framework:** Next.js 15 App Router
+- **Framework:** Next.js 16 App Router
 - **UI:** React 19 and TypeScript
 - **Styling:** Tailwind CSS v4, PostCSS, and CSS custom properties
 - **Motion:** `motion`
@@ -22,6 +22,7 @@ The application is configured for static export in its normal production mode. I
 - **Linting and formatting:** Biome
 - **Language/tooling:** TypeScript 5
 - **Package manager:** Bun (`bun.lock` is the committed dependency lockfile)
+- **Bundler:** Webpack is explicitly selected in the development and production scripts to preserve the existing custom Webpack configuration during the Next.js 16 migration.
 
 The authoritative dependency and command definitions are in `package.json`; do not document scripts or libraries as active unless they exist there.
 
@@ -162,7 +163,7 @@ The `start` script runs `next start`, which is not the normal way to serve a sta
 
 ## 11. Developer workflow
 
-Use a Node.js version compatible with the installed Next.js release and Bun.
+Use Node.js 20.9.0 or newer with Bun, as required by Next.js 16.
 
 ```bash
 bun install --frozen-lockfile
@@ -183,7 +184,7 @@ Available scripts in `package.json`:
 - `bun run check` — run lint, TypeScript typecheck, and deterministic contract tests together.
 - `bun run clean` — remove local Next.js/export/build-metadata outputs.
 
-Before submitting a change, run `npm run check` and production build checks when possible and report checks that could not be run. Avoid formatting unrelated files or committing generated output.
+Before submitting a change, run `bun run check` and production build checks when possible and report checks that could not be run. Avoid formatting unrelated files or committing generated output.
 
 ## 12. Safe change procedure for coding agents (AI-First Engineering)
 
@@ -193,7 +194,7 @@ Before submitting a change, run `npm run check` and production build checks when
 4. Preserve TypeScript types, existing public exports, persisted configuration formats, and ESP32 message compatibility.
 5. Add or update deterministic tests (`tests/*.test.mjs`) for touched domain logic, edge cases, and port/adapter boundary contracts.
 6. Check responsive layouts, loading/error states, keyboard access, and transport failure behavior for UI changes.
-7. Run `npm run check` (`lint` + `typecheck` + `test`) and production build checks where available.
+7. Run `bun run check` (`lint` + `typecheck` + `test`) and production build checks where available.
 8. Review the diff for unrelated formatting, secrets, logs, generated files, or temporary scripts.
 9. Update this document when architecture, scripts, deployment behavior, or protocol ownership changes.
 
