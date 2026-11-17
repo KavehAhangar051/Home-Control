@@ -177,7 +177,7 @@ The recent modernization work has established the following baseline:
 
 - Skipped further Phase E work as requested and moved to workspace/interaction performance.
 - Canvas node drag, node resize, and viewport pan now coalesce high-frequency pointer events through `requestAnimationFrame`, applying only the latest event once per frame instead of scheduling React state updates for every raw pointer event.
-- Pan uses a transient viewport setter during movement, avoiding synchronous localStorage writes on every animation frame; the final viewport is persisted at gesture end.
+- Canvas pan uses a transient viewport setter during movement, avoiding synchronous localStorage writes on every animation frame; the final viewport is persisted at gesture end. Workflow Studio reuses the frame-coalesced gesture controller but retains its existing workflow-state persistence semantics.
 - Pointer-up and pointer-cancel flush the final pointer coordinates before layout persistence, so the last movement is not lost when the frame callback has not run yet.
 - Resize calculations now derive dimensions from the pointer-down rectangle rather than the previous intermediate render, preventing cumulative application of total pointer displacement across successive move events.
 - This is a structural interaction improvement; no frame-time or INP gain is claimed without a browser performance trace. Owner-led verification is required for drag, resize, pan, touch, and persisted layout behavior.
