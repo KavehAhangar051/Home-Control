@@ -23,6 +23,12 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
     }
 
     if (pinManager.setPinState(evt->pin, evt->state)) {
+        // Every newer command supersedes the previous auto-off deadline, including OFF
+        // and ON commands without a timer.
+        uniuno::TimerHandle existing = pinManager.getTimerIdByPin(evt->pin);
+        if (existing.isActive()) existing.cancel();
+        pinManager.setTimerIdByPin(evt->pin, uniuno::TimerHandle());
+
         INFOF("[Event] Pin %d state changed to %s via Request", evt->pin, evt->state ? "ON" : "OFF");
         
         // Only suppress Cloudflare sync for commands that originated from Cloudflare.
@@ -35,12 +41,6 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
         if (evt->state && evt->auto_off > 0) {
             int delay = evt->auto_off;
             int pin = evt->pin;
-            
-            // Cancel existing timer if any
-            uniuno::TimerHandle existing = pinManager.getTimerIdByPin(pin);
-            if (existing.isActive()) {
-                existing.cancel();
-            }
             
             uniuno::TimerHandle newTimer = appTimer->setTimeout([pin, delay]() {
                 // Check if still handled
