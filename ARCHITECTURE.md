@@ -181,6 +181,7 @@ Available scripts in `package.json`:
 - `bun run build` — create the static production export with Turbopack.
 - `bun run analyze` — save a Turbopack bundle-analysis snapshot in `.next/diagnostics/analyze` using Next.js's built-in analyzer (`--output`); pass `--snapshot <name>` to keep named before/after captures.
 - `bun run analyze:export` — stream the latest or selected saved analyzer graph as JSON Lines; pass `--snapshot <name>` and redirect stdout when a machine-readable report is needed.
+- The `Bundle analysis` GitHub Actions workflow captures a named `before` snapshot and uploads `bundle-before.jsonl` plus the static analyzer report as a downloadable workflow artifact; it runs on pushes to `perf/automated-bundle-analysis` and can be manually dispatched after the workflow is on the default branch.
 - `bun run start` — run the Next.js server (not a static-export preview).
 - `bun run lint` — run the required Biome linting over `app`, `components`, `features`, and `lib`.
 - `bun run lint:ox` — run Oxlint and the repository's custom Anti-Slop rules as a diagnostic report; current legacy findings are not yet a blocking gate.
