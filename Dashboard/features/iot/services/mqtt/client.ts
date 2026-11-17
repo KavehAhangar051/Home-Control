@@ -97,7 +97,11 @@ export const publishMqttCommand = (
 ): boolean => {
   const activeClient = deps.getClient ? deps.getClient() : getMqttClient();
   const warn = deps.warn ?? ((msg: string) => console.warn(msg));
-  const log = deps.log ?? ((msg: string) => console.log(msg));
+  const log =
+    deps.log ??
+    ((msg: string) => {
+      if (process.env.NODE_ENV !== "production") console.log(msg);
+    });
 
   if (!activeClient) {
     // Lazy initialization on first command if not already started
