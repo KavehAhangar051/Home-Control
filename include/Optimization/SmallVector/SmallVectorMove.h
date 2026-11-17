@@ -1,68 +1,53 @@
 #pragma once
 
 #include "SmallVectorDecl.h"
-#include <new>
 
 namespace uniuno {
 
 // ---------------------------------------------------------------------------
-// Copy assignment
+// Copy assignment (reuses existing buffer whenever capacity >= other.size()!)
 // ---------------------------------------------------------------------------
 template<typename T, std::size_t N, typename Allocator>
 SmallVector<T, N, Allocator>& SmallVector<T, N, Allocator>::operator=(const SmallVector& other) {
   if (LIKELY(this != &other)) {
-    clear();
-    if (is_heap_) {
-      this->freeHeap(data_);
-    }
-    capacity_ = other.capacity_;
-    size_     = other.size_;
-    is_heap_  = other.is_heap_;
+    destroy_range(begin_, end_);
+    const std::size_t n = other.size();
 
-    if (UNLIKELY(other.is_heap_)) {
-      data_ = this->mallocForGrow(capacity_, sizeof(T));
-      MEMORY_BARRIER();
-    } else {
-      data_ = stack_storage_;
+    if (UNLIKELY(n > capacity())) {
+      if (is_heap()) sv_detail::free_internal(begin_);
+      T* new_buf = static_cast<T*>(sv_detail::alloc_internal(n * sizeof(T)));
+      begin_   = new_buf;
+      cap_end_ = new_buf + n;
     }
 
-    if (std::is_trivially_copyable<T>::value) {
-      std::memcpy(data_, other.data_, size_ * sizeof(T));
-    } else {
-      for (std::size_t i = 0; i < size_; i++) {
-        new (&this->data()[i]) T(other.data()[i]);
-      }
-    }
+    end_ = begin_ + n;
+    copy_elements(begin_, other.begin_, n);
   }
   return *this;
 }
 
 // ---------------------------------------------------------------------------
-// Move constructor
+// Move constructor (O(1) heap pointer steal; Xtensa loopnez copy for inline)
 // ---------------------------------------------------------------------------
 template<typename T, std::size_t N, typename Allocator>
-SmallVector<T, N, Allocator>::SmallVector(SmallVector&& other) noexcept
-    : ArrayBase(stack_storage_, N, false) {
-  capacity_ = other.capacity_;
-  size_     = other.size_;
-  is_heap_  = other.is_heap_;
+SmallVector<T, N, Allocator>::SmallVector(SmallVector&& other) noexcept {
+  if (UNLIKELY(other.is_heap())) {
+    begin_   = other.begin_;
+    end_     = other.end_;
+    cap_end_ = other.cap_end_;
 
-  if (UNLIKELY(other.is_heap_)) {
-    data_           = other.data_;
-    other.data_     = other.stack_storage_;
-    other.size_     = 0;
-    other.is_heap_  = false;
-    other.capacity_ = N;
+    T* other_base  = other.inline_ptr();
+    other.begin_   = other_base;
+    other.end_     = other_base;
+    other.cap_end_ = other_base + kInlineCap;
   } else {
-    if (std::is_trivially_copyable<T>::value) {
-      std::memcpy(data_, other.data_, size_ * sizeof(T));
-    } else {
-      for (std::size_t i = 0; i < size_; i++) {
-        new (&this->data()[i]) T(std::move(other.data()[i]));
-        other.data()[i].~T();
-      }
-    }
-    other.size_ = 0;
+    const std::size_t n = other.size();
+    T* base  = inline_ptr();
+    begin_   = base;
+    end_     = base + n;
+    cap_end_ = base + kInlineCap;
+    move_elements(base, other.begin_, n);
+    other.end_ = other.begin_;
   }
 }
 
@@ -72,30 +57,24 @@ SmallVector<T, N, Allocator>::SmallVector(SmallVector&& other) noexcept
 template<typename T, std::size_t N, typename Allocator>
 SmallVector<T, N, Allocator>& SmallVector<T, N, Allocator>::operator=(SmallVector&& other) noexcept {
   if (LIKELY(this != &other)) {
-    clear();
-    if (is_heap_) { this->freeHeap(data_); }
+    destroy_range(begin_, end_);
 
-    capacity_ = other.capacity_;
-    size_     = other.size_;
-    is_heap_  = other.is_heap_;
+    if (UNLIKELY(other.is_heap())) {
+      if (is_heap()) sv_detail::free_internal(begin_);
+      begin_   = other.begin_;
+      end_     = other.end_;
+      cap_end_ = other.cap_end_;
 
-    if (UNLIKELY(other.is_heap_)) {
-      data_           = other.data_;
-      other.data_     = other.stack_storage_;
-      other.size_     = 0;
-      other.is_heap_  = false;
-      other.capacity_ = N;
+      T* other_base  = other.inline_ptr();
+      other.begin_   = other_base;
+      other.end_     = other_base;
+      other.cap_end_ = other_base + kInlineCap;
     } else {
-      data_ = stack_storage_;
-      if (std::is_trivially_copyable<T>::value) {
-        std::memcpy(data_, other.data_, size_ * sizeof(T));
-      } else {
-        for (std::size_t i = 0; i < size_; i++) {
-          new (&this->data()[i]) T(std::move(other.data()[i]));
-          other.data()[i].~T();
-        }
-      }
-      other.size_ = 0;
+      const std::size_t n = other.size();
+      // Keep current buffer (inline or existing heap with cap >= n) without extra free/malloc!
+      end_ = begin_ + n;
+      move_elements(begin_, other.begin_, n);
+      other.end_ = other.begin_;
     }
   }
   return *this;
@@ -106,25 +85,18 @@ SmallVector<T, N, Allocator>& SmallVector<T, N, Allocator>::operator=(SmallVecto
 // ---------------------------------------------------------------------------
 template<typename T, std::size_t N, typename Allocator>
 SmallVector<T, N, Allocator>& SmallVector<T, N, Allocator>::operator=(std::initializer_list<T> init) {
-  clear();
-  std::size_t init_size = init.size();
-  if (init_size > capacity_) {
-    if (is_heap_) { this->freeHeap(data_); }
-    data_     = this->mallocForGrow(init_size, sizeof(T));
-    capacity_ = init_size;
-    is_heap_  = true;
-    MEMORY_BARRIER();
-  }
-  size_ = init_size;
+  destroy_range(begin_, end_);
+  const std::size_t n = init.size();
 
-  if (std::is_trivially_copyable<T>::value) {
-    std::memcpy(data_, init.begin(), size_ * sizeof(T));
-  } else {
-    std::size_t i = 0;
-    for (const T& val : init) {
-      new (&this->data()[i++]) T(val);
-    }
+  if (UNLIKELY(n > capacity())) {
+    if (is_heap()) sv_detail::free_internal(begin_);
+    T* new_buf = static_cast<T*>(sv_detail::alloc_internal(n * sizeof(T)));
+    begin_   = new_buf;
+    cap_end_ = new_buf + n;
   }
+
+  end_ = begin_ + n;
+  copy_elements(begin_, init.begin(), n);
   return *this;
 }
 
