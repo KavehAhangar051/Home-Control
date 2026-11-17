@@ -1,8 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useReducedMotion } from "motion/react";
 import { AnimateView } from "motion/react-animate-view";
+import dynamic from "next/dynamic";
 import React, { useDeferredValue } from "react";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
