@@ -43,11 +43,27 @@ The source graph confirms the intended dependency-boundary change: `useAchaemeni
 
 This did **not** produce a meaningful total DnD byte reduction in the static graph. Before, the two DnD-related output chunks contributed 115,412 B raw / 42,501 B compressed; after, the consolidated output contributed 114,155 B / 41,994 B. The analyzer still lists that output in the DashboardShell async group because the graph includes the conditional Grid preload path. The benefit to Trellis/Canvas is avoiding that conditional import at runtime, not shrinking the Grid implementation itself. A browser Network check with Trellis and Canvas selected is still needed to confirm the request is absent.
 
-## Motion lightweight-entrypoint follow-up
+## Motion lightweight-entrypoint trial — 18 November 2026
 
-The root `MotionProvider` already uses `LazyMotion` with an asynchronously loaded `domMax` feature bundle. The app-facing shared Hugeicons set and core animation/Canvas/Workflow components have now been migrated from the `m` export of `motion/react` to the dedicated `motion/react-m` entrypoint. The migration covers 48 icons imported by `components/ui/hugeicons.tsx` and 32 directly inspected UI/animation/dashboard/IoT components.
+The root `MotionProvider` already uses `LazyMotion` with asynchronously loaded `domMax`. A trial migrated the `m` namespace to `motion/react-m` in 80 app-facing modules (48 Hugeicons imported by `components/ui/hugeicons.tsx` and 32 UI/animation/dashboard/IoT components). The purpose was to test the official lightweight entrypoint against the actual Next.js 16/Turbopack build.
 
-This is an import-boundary optimization, not yet a measured bundle-size win. `LazyMotion`, `domMax`, hooks, `AnimatePresence`, `LayoutGroup` and other APIs remain imported from `motion/react`. The app still needs a repository-wide search for additional `m` imports and a matching post-change analyzer comparison before quantifying any reduction. The migration commits are `256a6b5a6af4035633b9c377720c75c2981c8632` and `fabe66c79f1b33eab5cd80d59c93c1b19edeb318`.
+### Same-environment comparison
+
+- Before: commit `9198c858bc00df110c20aa085e50dda2b1e1f49f`, workflow [44170435688](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44170435688)
+- Trial after: commit `775456186b5b3fd2a9d8b68b68e86b4a08847a38`, workflow [44172890216](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44172890216)
+- Both analyzer runs covered the same four routes and used Bun 1.4.4 / Ubuntu 26.04.
+
+| Homepage client graph | Before | Trial after | Difference |
+|---|---:|---:|---:|
+| Raw module-part contribution | 2,974,509 B | 2,997,646 B | +23,137 B |
+| Compressed contribution | 1,164,289 B | 1,174,423 B | +10,134 B |
+| Client chunk count | 61 | 66 | +5 |
+
+Motion-related module-part contributions also increased from 440,952 B raw / 216,794 B compressed to 463,620 B / 226,487 B. The additional Motion chunks had no async loaders in the dashboard route graph, so this was not a deferred-loading win.
+
+### Decision
+
+The trial was reverted in commit `152179e94c95cd1964bd8f95c769261dd1c3c2de`. The current code keeps its original `motion/react` imports and the existing async `domMax` provider. The official `motion/react-m` pattern is valid, but it did not improve this project's current Turbopack output. Re-evaluate only after a Motion or Turbopack change, or if a focused profile identifies a different way to reduce the initial graph.
 
 ## What this report does not establish
 
