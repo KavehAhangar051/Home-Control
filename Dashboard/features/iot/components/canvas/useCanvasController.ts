@@ -118,6 +118,15 @@ export function useCanvasController({
     [activeSubMode],
   );
 
+  const setViewportTransient = React.useCallback(
+    (updater: CanvasViewport | ((prev: CanvasViewport) => CanvasViewport)) => {
+      const next = updater instanceof Function ? updater(viewportRef.current) : updater;
+      viewportRef.current = next;
+      setViewportState(next);
+    },
+    [],
+  );
+
   const {
     containerSize,
     isPanning,
@@ -128,6 +137,7 @@ export function useCanvasController({
     containerRef,
     viewportRef,
     setViewport,
+    setViewportTransient,
     onBackgroundClick: () => setSelectedNodeId(null),
     onPanEnd: (finalVp) => writeStoredCanvasViewport(activeSubMode, finalVp),
   });
