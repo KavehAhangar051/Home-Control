@@ -57,15 +57,22 @@ export default function TrellisGroupView({
   );
 
   const groupIcon = useIoTStore((s) => s.groupConfigs[groupName]?.icon);
-  const pinsState = useIoTStore((s) => s.pinsState);
+  const activeCount = useIoTStore(
+    React.useCallback(
+      (state) => {
+        let count = 0;
 
-  let activeCount = 0;
+        for (const seg of groupSegments) {
+          if (seg.type !== "placeholder" && seg.pin && state.pinsState[seg.pin]) {
+            count += 1;
+          }
+        }
 
-  for (const seg of groupSegments) {
-    if (seg.type !== "placeholder" && seg.pin && pinsState[seg.pin]) {
-      activeCount += 1;
-    }
-  }
+        return count;
+      },
+      [groupSegments],
+    ),
+  );
 
   useViewTitle(groupName);
   useViewBadge(activeCount > 0 ? activeCount : null);

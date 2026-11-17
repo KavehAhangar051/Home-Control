@@ -223,9 +223,12 @@ export default React.memo(function CanvasGroupNode({
   onSetupPlaceholder,
 }: CanvasGroupNodeProps) {
   const groupIcon = useIoTStore((s) => s.groupConfigs[groupName]?.icon);
-  const pinsState = useIoTStore((s) => s.pinsState);
-
-  const { activeCount, controllableCount } = countGroupSegments(groupSegments, pinsState);
+  const { activeCount, controllableCount } = useIoTStore(
+    React.useCallback(
+      (state) => countGroupSegments(groupSegments, state.pinsState),
+      [groupSegments],
+    ),
+  );
   const borderClass = resolveGroupBorderClass(isDragging, isSelected, activeCount);
   const zIndex = isDragging ? 950 : isSelected ? 890 : rect.zIndex;
   const animateState = resolveCanvasNodeMotionState(

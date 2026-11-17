@@ -39,7 +39,6 @@ export default function CanvasWorkspace({
   handleSetupPlaceholder,
 }: CanvasWorkspaceProps) {
   const segments = useIoTStore((s) => s.segments);
-  const pinsState = useIoTStore((s) => s.pinsState);
 
   const {
     containerRef,
@@ -68,7 +67,6 @@ export default function CanvasWorkspace({
     workspaceScope,
     groupsOrder,
     segments,
-    pinsState,
     selectedGroupFilter,
   });
 

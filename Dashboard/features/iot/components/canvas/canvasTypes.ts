@@ -26,7 +26,7 @@ export interface CanvasWireConnection {
   targetId: string;
   groupName: string;
   segmentId: string;
-  isActive: boolean;
+  pin: string;
   isInput: boolean;
 }
 

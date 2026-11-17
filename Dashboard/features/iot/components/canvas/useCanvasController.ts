@@ -68,7 +68,6 @@ interface UseCanvasControllerProps {
   workspaceScope?: CanvasWorkspaceScope;
   groupsOrder: string[];
   segments: Segment[];
-  pinsState: Record<string, boolean>;
   selectedGroupFilter: string | null;
 }
 
@@ -76,7 +75,6 @@ export function useCanvasController({
   workspaceScope = "home",
   groupsOrder,
   segments,
-  pinsState,
   selectedGroupFilter,
 }: UseCanvasControllerProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -240,13 +238,13 @@ export function useCanvasController({
         targetId,
         groupName,
         segmentId: seg.id,
-        isActive: seg.type !== "placeholder" && Boolean(seg.pin && pinsState[seg.pin]),
+        pin: seg.pin,
         isInput: seg.type === "input",
       });
     }
 
     return list;
-  }, [activeSubMode, visibleSegments, pinsState]);
+  }, [activeSubMode, visibleSegments]);
 
   const handleFitView = React.useCallback(() => {
     const { width, height, fitPadding } = resolveContainerDimensions(
