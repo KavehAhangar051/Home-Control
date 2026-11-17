@@ -115,3 +115,49 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - Never infer a performance gain from a version number or a smaller source diff; measure it.
 - Keep firmware and Cloudflare protocol compatibility as a hard constraint.
 - Update this document when a decision is implemented, reversed or superseded.
+
+
+## Engineering direction — next execution cycle (18 November 2026)
+
+The recent modernization work has established the following baseline:
+
+- The dashboard remains a static-export, browser-first application. Keep device communication in the browser and preserve compatibility with the ESP32 firmware and Cloudflare data contract.
+- The old dnd-kit API has been replaced by \`@dnd-kit/react\` + \`@dnd-kit/dom\`; sortable behavior is owned by the dynamically loaded Grid workspace rather than global dashboard state.
+- MQTT's heavy client is already asynchronously imported. Do not treat its source-module size as initial-load cost without checking the route's async loader graph and actual browser requests.
+- Informational per-message MQTT logs are development-only; warnings and errors remain available in production.
+- The app already uses React Compiler, Turbopack, \`LazyMotion\` with async \`domMax\`, and deferred workspace rendering. These are existing capabilities, not future migration tasks.
+- A broad \`motion/react-m\` migration across 80 app-facing modules was measured and reverted because the homepage client graph became larger in the tested Turbopack output. Do not repeat that migration as a blanket rule. The official Motion guidance is a useful pattern, but actual Next.js output is the acceptance criterion.
+
+### Next phases
+
+#### Phase E — runtime responsiveness and device-state throughput
+1. Profile realistic device-state bursts and record message-to-UI latency, update batch size, and main-thread long tasks.
+2. Inspect Zustand subscriptions and selectors in device cards, workspace lists, and connection indicators. Reduce subscriptions only where profiling shows excess React work.
+3. Review MQTT parsing, queue draining, and \`requestAnimationFrame\` batching for avoidable allocations or repeated full-state scans. Preserve queue bounds, ordering, reconnect behavior, and wire compatibility.
+4. Keep the MQTT transport dynamically loaded and verify its actual network timing rather than optimizing its raw module size.
+
+#### Phase F — workspace and interaction performance
+1. Profile first dashboard paint and switching between Grid, Trellis, and Canvas.
+2. Verify the DnD chunk is not requested when users stay in Trellis or Canvas; the static graph alone cannot prove runtime network behavior.
+3. Evaluate React \`Activity\`, \`useEffectEvent\`, and transitions only against a specific lifecycle or responsiveness problem. Do not add them simply because they are new APIs.
+4. Inspect expensive workflow-editor interactions, canvas dragging, and sortable-card updates for long tasks and layout thrashing.
+
+#### Phase G — design-system and UI platform consistency
+1. Audit Base UI usage and fill gaps with existing primitives before adding another component library.
+2. Consolidate Tailwind v4 design tokens and remove duplicated CSS only when the visual result can be preserved.
+3. Review SVG/icon rendering, font loading, focus behavior, touch targets, keyboard navigation, and reduced-motion behavior.
+4. Keep Motion's async \`domMax\` feature set while layout animations and drag-related animation behavior require it; do not replace it with \`domAnimation\` without auditing feature usage.
+
+#### Phase H — repeatable performance evidence
+1. Keep named Turbopack snapshots and compare equivalent commits, routes, environment, and lockfile state.
+2. Add browser-level measurements for LCP, INP, CLS, long tasks, and actual chunk requests when an appropriate measurement workflow is available.
+3. Set performance budgets only after stable baselines exist.
+4. Record both successful and unsuccessful optimization experiments so that reverted work is not repeated.
+
+### Acceptance criteria for optimization work
+
+- A change must solve a measured user-visible or maintainability problem.
+- Compare equivalent routes and build environments; distinguish initial, async, server, and client output.
+- A smaller source module or a newer package version is not proof of a faster dashboard.
+- Preserve ESP32 protocol compatibility, persisted configuration formats, accessibility, reduced motion, and responsive layouts.
+- Prefer small direct commits on \`main\`, with lint/typecheck evidence and a concise documentation update. Existing tests remain diagnostic; do not add new tests unless the owner requests them.
