@@ -68,5 +68,6 @@ jobs:
             bundle-*.jsonl
             .next/diagnostics/analyze/
           if-no-files-found: error
+          # Next.js writes its static analyzer report under the hidden .next directory.
           include-hidden-files: true
           retention-days: 14
