@@ -4,6 +4,9 @@ import type { IoTStoreState, SegmentsSlice } from "../types";
 export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSlice> = (set) => ({
   segments: [],
   pinsState: {},
+  autoOffRemaining: {},
+
+  setAutoOffRemaining: (timers) => set({ autoOffRemaining: timers }),
 
   setSegments: (segments) => {
     set((state) => {
