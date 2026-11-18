@@ -1,0 +1,158 @@
+"use client";
+
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import type { Macro } from "@/features/iot/hooks/store/types";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+
+type MacroAction = Macro["actions"][number];
+
+export default function MacrosSection() {
+  const macros = useIoTStore((state) => state.macros);
+  const setMacros = useIoTStore((state) => state.setMacros);
+  const segments = useIoTStore((state) => state.segments);
+  const showToast = useIoTStore((state) => state.showToast);
+  const outputs = segments.filter((segment) => segment.type === "output" && segment.pin.trim());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [icon, setIcon] = useState("");
+  const [actions, setActions] = useState<MacroAction[]>([]);
+
+  const resetEditor = () => {
+    setEditingId(null);
+    setTitle("");
+    setIcon("");
+    setActions([]);
+  };
+
+  const editMacro = (macro: Macro) => {
+    setEditingId(macro.id);
+    setTitle(macro.title);
+    setIcon(macro.icon ?? "");
+    setActions(macro.actions.map((action) => ({ ...action })));
+  };
+
+  const saveMacro = () => {
+    const name = title.trim();
+    if (!name) return showToast("برای دکمه سفارشی یک نام وارد کنید.", "error");
+    if (!actions.length) return showToast("حداقل یک عملیات اضافه کنید.", "error");
+    if (actions.some((action) => !outputs.some((segment) => segment.pin === action.targetPin))) {
+      return showToast("یکی از پایه‌های انتخاب‌شده دیگر خروجی معتبر نیست.", "error");
+    }
+
+    const macro: Macro = {
+      id: editingId === "new" ? `macro_${Date.now()}` : editingId ?? `macro_${Date.now()}`,
+      title: name,
+      ...(icon.trim() ? { icon: icon.trim() } : {}),
+      actions: actions.map((action) => ({ ...action })),
+    };
+    setMacros((current) =>
+      editingId === "new"
+        ? [...current, macro]
+        : current.map((item) => (item.id === editingId ? macro : item)),
+    );
+    showToast(editingId === "new" ? "دکمه سفارشی ساخته شد." : "دکمه سفارشی ویرایش شد.", "success");
+    resetEditor();
+  };
+
+  const removeMacro = (id: string) => {
+    setMacros((current) => current.filter((macro) => macro.id !== id));
+    if (editingId === id) resetEditor();
+    showToast("دکمه سفارشی حذف شد.", "success");
+  };
+
+  return (
+    <section className="space-y-5 text-right" dir="rtl">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-1">
+          <h3 className="text-base font-semibold text-text-primary">مدیریت دکمه‌های سفارشی</h3>
+          <p className="text-xs leading-6 text-text-secondary">
+            برای هر دکمه چند خروجی تعریف کنید تا با یک کلیک، عملیات آن‌ها اجرا شود.
+            تغییرات از مسیر ذخیره‌سازی فعلی داشبورد به‌صورت خودکار همگام می‌شوند.
+          </p>
+        </div>
+        <button type="button" onClick={() => { setEditingId("new"); setTitle(""); setIcon(""); setActions([]); }}
+          className="min-h-10 rounded-xl bg-accent3 px-4 py-2 text-xs font-semibold text-bg-main">
+          + افزودن دکمه
+        </button>
+      </header>
+
+      {!outputs.length && (
+        <p className="rounded-xl border border-dashed border-border-color p-4 text-xs leading-6 text-text-secondary">
+          ابتدا از بخش «پالایه و ماژول‌ها» حداقل یک سگمنت خروجی اضافه کنید.
+        </p>
+      )}
+
+      {editingId !== null && (
+        <div className="space-y-4 rounded-2xl border border-accent3/40 bg-card-bg-solid p-4">
+          <h4 className="text-sm font-semibold text-text-primary">{editingId === "new" ? "ساخت دکمه جدید" : "ویرایش دکمه"}</h4>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="space-y-1.5 text-xs text-text-secondary">
+              <span>نام دکمه</span>
+              <Input value={title} maxLength={40} onChange={(event) => setTitle(event.target.value)} placeholder="مثلاً روشنایی پذیرایی" />
+            </label>
+            <label className="space-y-1.5 text-xs text-text-secondary">
+              <span>آیکون یا ایموجی (اختیاری)</span>
+              <Input value={icon} maxLength={24} onChange={(event) => setIcon(event.target.value)} placeholder="مثلاً 💡" />
+            </label>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <h5 className="text-xs font-semibold text-text-primary">عملیات ({actions.length})</h5>
+            <button type="button" disabled={!outputs.length}
+              onClick={() => setActions((current) => [...current, { targetPin: outputs[0].pin, actionOn: true }])}
+              className="rounded-lg border border-border-color px-3 py-2 text-xs text-text-primary disabled:opacity-40">
+              + افزودن عملیات
+            </button>
+          </div>
+
+          {actions.map((action, index) => (
+            <div key={index} className="flex flex-wrap items-center gap-2 rounded-xl border border-border-color p-3">
+              <Select aria-label={`پایه عملیات ${index + 1}`} value={action.targetPin}
+                onChange={(event) => setActions((current) => current.map((item, i) => i === index ? { ...item, targetPin: event.target.value } : item))}
+                className="min-w-0 flex-1">
+                {outputs.map((segment) => <option key={segment.id} value={segment.pin}>{segment.title} (GPIO {segment.pin})</option>)}
+              </Select>
+              <button type="button" aria-pressed={action.actionOn}
+                onClick={() => setActions((current) => current.map((item, i) => i === index ? { ...item, actionOn: true } : item))}
+                className={`rounded-lg px-3 py-2 text-xs ${action.actionOn ? "bg-accent3 text-bg-main" : "border border-border-color text-text-secondary"}`}>روشن</button>
+              <button type="button" aria-pressed={!action.actionOn}
+                onClick={() => setActions((current) => current.map((item, i) => i === index ? { ...item, actionOn: false } : item))}
+                className={`rounded-lg px-3 py-2 text-xs ${!action.actionOn ? "bg-destructive text-white" : "border border-border-color text-text-secondary"}`}>خاموش</button>
+              <button type="button" aria-label={`حذف عملیات ${index + 1}`}
+                onClick={() => setActions((current) => current.filter((_, i) => i !== index))}
+                className="rounded-lg px-2 py-2 text-xs text-destructive">حذف</button>
+            </div>
+          ))}
+
+          <div className="flex gap-2">
+            <button type="button" onClick={saveMacro} className="min-h-10 rounded-xl bg-accent3 px-4 py-2 text-xs font-semibold text-bg-main">ذخیره دکمه</button>
+            <button type="button" onClick={resetEditor} className="min-h-10 rounded-xl border border-border-color px-4 py-2 text-xs text-text-secondary">انصراف</button>
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {macros.map((macro) => (
+          <article key={macro.id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border-color bg-card-bg-solid p-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-card-hover-bg text-lg">{macro.icon || "▶"}</span>
+              <div className="min-w-0">
+                <h4 className="truncate text-sm font-semibold text-text-primary">{macro.title}</h4>
+                <p className="text-[11px] text-text-muted">{macro.actions.length} عملیات</p>
+              </div>
+            </div>
+            <div className="flex shrink-0 gap-1">
+              <button type="button" onClick={() => editMacro(macro)} className="rounded-lg border border-border-color px-3 py-2 text-xs text-text-secondary">ویرایش</button>
+              <button type="button" onClick={() => removeMacro(macro.id)} className="rounded-lg border border-border-color px-3 py-2 text-xs text-destructive">حذف</button>
+            </div>
+          </article>
+        ))}
+        {macros.length === 0 && editingId === null && (
+          <p className="sm:col-span-2 rounded-xl border border-dashed border-border-color p-6 text-center text-xs text-text-secondary">هنوز دکمه سفارشی‌ای نساخته‌اید.</p>
+        )}
+      </div>
+    </section>
+  );
+}
