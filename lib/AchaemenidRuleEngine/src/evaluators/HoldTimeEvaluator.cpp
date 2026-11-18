@@ -36,7 +36,10 @@ HOT_PATH void HoldTimeEvaluator::processRelease(const RuleAction* actions, int c
     
     // Execute actions corresponding to this duration bracket
     for (int i = 0; i < count; i++) {
-        if (actions[i].requiredHoldTime == durationBracket) {
+        // Zero-second actions are executed when the new input state begins;
+        // release processing is reserved for hold-duration actions.
+        if (actions[i].requiredHoldTime > 0 &&
+            actions[i].requiredHoldTime == durationBracket) {
             executeAction(actions[i], sourcePin);
         }
     }
