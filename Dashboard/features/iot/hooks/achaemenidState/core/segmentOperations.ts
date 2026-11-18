@@ -140,10 +140,9 @@ export function validateRuleActionList(
     const action = actions[i];
     const targetPin = action.targetPin;
 
-    if (targetPin) {
-      const validation = validateEsp32Pin(targetPin, "output");
-      if (!validation.isValid) return validation.message;
-    }
+    if (!targetPin) return "برای هر عملیات باید پایه خروجی مقصد انتخاب شود.";
+    const validation = validateEsp32Pin(targetPin, "output");
+    if (!validation.isValid) return validation.message;
 
     if (
       action.reqHold !== undefined &&
