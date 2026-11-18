@@ -19,6 +19,7 @@ public:
   virtual bool pause(TimerId id) = 0;
   virtual bool resume(TimerId id) = 0;
   virtual bool isPaused(TimerId id) const = 0;
+  virtual bool getRemaining(TimerId id, unsigned long& out_remaining_ms) const = 0;
   virtual void tick() = 0;
 };
 
