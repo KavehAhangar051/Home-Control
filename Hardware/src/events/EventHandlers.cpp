@@ -10,6 +10,16 @@
 #include <ISegmentStorage.h>
 #include <Arduino.h>
 
+static void persistCurrentSegmentConfig(const char* reason) {
+    if (segmentStorage == nullptr) {
+        WARNINGF("[SegStorage] Cannot persist after %s: storage unavailable", reason);
+        return;
+    }
+    ParseResult snapshot;
+    pinManager.exportConfig(snapshot);
+    segmentStorage->saveSegmentConfig(snapshot);
+}
+
 /**
  * @brief Listener: Handles requested pin state changes (e.g. from MQTT).
  */
@@ -67,7 +77,7 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
  * @brief Listener: Handles dynamic segment add requests.
  */
 auto onSegmentAdd = [](SegmentAddRequestEvent* evt) {
-    if (evt == nullptr) return;
+    if (evt == nullptr || evt->id == nullptr || evt->type == nullptr) return;
     SegmentType sType = SegmentType::Output;
     if (strcmp(evt->type, "input") == 0) {
         sType = SegmentType::Input;
@@ -76,6 +86,7 @@ auto onSegmentAdd = [](SegmentAddRequestEvent* evt) {
         evt->id, sType, evt->pin);
     if (success) {
         INFOF("[Event] Segment '%s' added on pin %d", evt->id, evt->pin);
+        persistCurrentSegmentConfig("segment add");
     }
 };
 
@@ -87,6 +98,18 @@ auto onSegmentRemove = [](SegmentRemoveRequestEvent* evt) {
     bool success = pinManager.removeSegment(evt->id);
     if (success) {
         INFOF("[Event] Segment '%s' removed", evt->id);
+        persistCurrentSegmentConfig("segment remove");
+    }
+};
+
+auto onSegmentUpdateRule = [](SegmentUpdateRuleRequestEvent* evt) {
+    if (evt == nullptr || evt->id == nullptr) return;
+    if (pinManager.updateSegmentRule(evt->id, evt->rule)) {
+        INFOF("[Event] Rule updated for segment '%s' (high=%d low=%d active=%d)",
+              evt->id, evt->rule.highActionCount, evt->rule.lowActionCount, evt->rule.active);
+        persistCurrentSegmentConfig("segment rule update");
+    } else {
+        WARNINGF("[Event] Rule update rejected for segment '%s'", evt->id);
     }
 };
 
@@ -214,6 +237,7 @@ void setupEventBus() {
     eventBus.on<PinStateChangeRequestEvent>(onPinChangeRequest);
     eventBus.on<SegmentAddRequestEvent>(onSegmentAdd);
     eventBus.on<SegmentRemoveRequestEvent>(onSegmentRemove);
+    eventBus.on<SegmentUpdateRuleRequestEvent>(onSegmentUpdateRule);
     eventBus.on<PinStateChangedEvent>(onPinChanged);
     eventBus.on<ConfigLoadedEvent>(onConfigLoaded);
     eventBus.on<StateSyncRequestEvent>(onStateSyncRequest);

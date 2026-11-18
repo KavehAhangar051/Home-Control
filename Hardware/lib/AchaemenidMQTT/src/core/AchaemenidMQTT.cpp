@@ -2,6 +2,7 @@
 #include <Utilities/logging.h>
 #include <Optimization/CompilerTraits.h>
 #include <WiFi.h>
+#include <cstring>
 
 namespace uniuno {
 
@@ -99,9 +100,30 @@ void AchaemenidMQTT::_onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
     _connManager.onDisconnect();
 }
 
-HOT_PATH IRAM_ATTR void AchaemenidMQTT::_onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
-    if (LIKELY(_messageCallback)) {
-        _messageCallback((const uint8_t*)payload, len);
+HOT_PATH IRAM_ATTR void AchaemenidMQTT::_onMqttMessage(char* /*topic*/, char* payload, AsyncMqttClientMessageProperties /*properties*/, size_t len, size_t index, size_t total) {
+    if (UNLIKELY(!_messageCallback || payload == nullptr || total == 0)) return;
+
+    if (index == 0) {
+        _messageTotal = total;
+        _messageReceived = 0;
+    }
+
+    if (UNLIKELY(total > MAX_COMMAND_PAYLOAD || total != _messageTotal ||
+                 index != _messageReceived || len > total - index)) {
+        Serial.printf("[MQTT] Dropped malformed/oversized command fragment (index=%u len=%u total=%u)\\n",
+                      static_cast<unsigned>(index), static_cast<unsigned>(len), static_cast<unsigned>(total));
+        _messageTotal = 0;
+        _messageReceived = 0;
+        return;
+    }
+
+    memcpy(_messageBuffer + index, payload, len);
+    _messageReceived += len;
+
+    if (_messageReceived == _messageTotal) {
+        _messageCallback(_messageBuffer, _messageTotal);
+        _messageTotal = 0;
+        _messageReceived = 0;
     }
 }
 

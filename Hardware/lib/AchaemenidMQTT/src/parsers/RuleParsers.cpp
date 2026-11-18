@@ -38,7 +38,6 @@ HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateRule(const uint8_t* payload, siz
         if (offset < len) offset++; 
 
         RuleConfig newRule;
-        newRule.active = true;
 
         if (LIKELY(offset < len)) {
             uint8_t highCount = payload[offset++];
@@ -74,9 +73,16 @@ HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateRule(const uint8_t* payload, siz
             newRule.lowActionCount = c;
         }
 
+        if (idStr.size() == 0) {
+            WARNING("[MQTT Handler] Rejected UPDATE_RULE with an empty segment ID");
+            return;
+        }
+
+        newRule.active = (newRule.highActionCount > 0 || newRule.lowActionCount > 0);
         SegmentUpdateRuleRequestEvent evt{idStr.c_str(), newRule};
         dispatcher->dispatch(evt);
-        INFOF("[MQTT Handler] Binary Update Rule: id=%s high=%d low=%d", idStr.c_str(), newRule.highActionCount, newRule.lowActionCount);
+        INFOF("[MQTT Handler] Binary Update Rule: id=%s high=%d low=%d active=%d",
+              idStr.c_str(), newRule.highActionCount, newRule.lowActionCount, newRule.active);
     }
 }
 
