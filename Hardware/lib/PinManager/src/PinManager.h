@@ -18,6 +18,7 @@ public:
     bool addSegment(const char* id, SegmentType type, int pin, int autoOffDelay = 0, RuleConfig rule = RuleConfig());
     bool removeSegment(const char* id);
     bool updateSegmentRule(const char* id, const RuleConfig& rule);
+    bool updateSegmentRuleByPin(int pin, const RuleConfig& rule);
 
     int getActiveCount() const;
     void printStatus() const;
