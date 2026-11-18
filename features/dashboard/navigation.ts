@@ -80,6 +80,7 @@ export type SettingsTabId =
   | "audio"
   | "conditions"
   | "voice"
+  | "macros"
   | "stability";
 
 export interface SettingsTabMeta {
@@ -99,6 +100,7 @@ export const SETTINGS_TABS: readonly SettingsTabMeta[] = [
   { id: "audio", title: "صدا و موسیقی", compactTitle: "صدا" },
   { id: "conditions", title: "شرط‌ها و ورودی‌ها", compactTitle: "شرط‌ها" },
   { id: "voice", title: "دستورات صوتی", compactTitle: "دستورات صوتی" },
+  { id: "macros", title: "دکمه‌های سفارشی", compactTitle: "دکمه‌های سفارشی" },
   { id: "stability", title: "پایداری و بهینه‌سازی", compactTitle: "پایداری" },
 ] as const;
 

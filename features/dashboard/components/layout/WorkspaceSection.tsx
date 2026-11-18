@@ -73,6 +73,11 @@ const LayoutSection = dynamic(
   { ssr: false, loading: () => <FormPanelSkeleton /> },
 );
 
+const MacrosSection = dynamic(
+  () => import("@/features/settings/components/macros-section/MacrosSection"),
+  { ssr: false, loading: () => <FormPanelSkeleton /> },
+);
+
 const MqttSection = dynamic(
   () => import("@/features/settings/components/mqtt-section/MqttSection"),
   { ssr: false, loading: () => <FormPanelSkeleton /> },
@@ -335,6 +340,8 @@ function ActiveSettingsPanel({ activeTab }: { activeTab: string }) {
       return <ConditionsSection />;
     case "voice":
       return <VoiceCommandsSection />;
+    case "macros":
+      return <MacrosSection />;
     case "stability":
       return (
         <InlineStabilitySection
