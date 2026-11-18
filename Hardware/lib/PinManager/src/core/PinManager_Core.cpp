@@ -51,7 +51,8 @@ String PinManager::exportStateJson() const {
             json += pinText;
             json += "\":";
 
-            // Live state from RAM without slow GPIO hardware reads
+            // Capture each pin's state once so the state and timer sections
+            // describe the same snapshot.
             const bool state = (entry->type == SegmentType::Input)
                 ? entry->lastInputState
                 : (entry->hasGpio && entry->gpio.getState());
@@ -67,7 +68,12 @@ String PinManager::exportStateJson() const {
         const PinEntry* entry = _registry.getEntryByIndexConst(i);
         if (!entry || !entry->active || entry->type != SegmentType::Output) continue;
 
-        const unsigned long remainingMs = getAutoOffRemainingMsByPin(entry->pinNumber);
+        // An OFF output must never restore a stale countdown in the Dashboard.
+        // TimerHandle reports the live deadline, not the originally configured delay.
+        const bool isOn = entry->hasGpio && entry->gpio.getState();
+        const unsigned long remainingMs = isOn
+            ? getAutoOffRemainingMsByPin(entry->pinNumber)
+            : 0UL;
         if (!first) json += ",";
         char pinText[6];
         char remainingText[12];
