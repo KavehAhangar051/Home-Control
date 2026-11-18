@@ -158,7 +158,10 @@ auto onPinChanged = [](PinStateChangedEvent* evt) {
              evt->pin, evt->state ? "true" : "false", source);
 
     if (wsServer) wsServer->broadcastState(stateBuf);
-    mqttClient.publish(mqttClient.getBaseTopic() + "/State", stateBuf);
+    const bool mqttPublished = mqttClient.publish(mqttClient.getBaseTopic() + "/State", stateBuf);
+    if (!mqttPublished) {
+        WARNINGF("[StateSync] MQTT publish failed for pin %d (source=%s); dashboard may remain stale", evt->pin, source);
+    }
     if (evt->syncCloudflare && wsClient) wsClient->syncPinState(evt->pin, evt->state);
 };
 
