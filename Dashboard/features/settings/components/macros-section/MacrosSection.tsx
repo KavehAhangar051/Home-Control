@@ -7,6 +7,7 @@ import type { Macro } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
 type MacroAction = Macro["actions"][number];
+type DraftMacroAction = MacroAction & { draftId: string };
 
 export default function MacrosSection() {
   const macros = useIoTStore((state) => state.macros);
@@ -17,7 +18,7 @@ export default function MacrosSection() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [icon, setIcon] = useState("");
-  const [actions, setActions] = useState<MacroAction[]>([]);
+  const [actions, setActions] = useState<DraftMacroAction[]>([]);
 
   const resetEditor = () => {
     setEditingId(null);
@@ -30,7 +31,7 @@ export default function MacrosSection() {
     setEditingId(macro.id);
     setTitle(macro.title);
     setIcon(macro.icon ?? "");
-    setActions(macro.actions.map((action) => ({ ...action })));
+    setActions(macro.actions.map((action) => ({ ...action, draftId: crypto.randomUUID() })));
   };
 
   const saveMacro = () => {
@@ -45,7 +46,7 @@ export default function MacrosSection() {
       id: editingId === "new" ? `macro_${Date.now()}` : editingId ?? `macro_${Date.now()}`,
       title: name,
       ...(icon.trim() ? { icon: icon.trim() } : {}),
-      actions: actions.map((action) => ({ ...action })),
+      actions: actions.map(({ draftId: _draftId, ...action }) => action),
     };
     setMacros((current) =>
       editingId === "new"
@@ -88,27 +89,27 @@ export default function MacrosSection() {
         <div className="space-y-4 rounded-2xl border border-accent3/40 bg-card-bg-solid p-4">
           <h4 className="text-sm font-semibold text-text-primary">{editingId === "new" ? "ساخت دکمه جدید" : "ویرایش دکمه"}</h4>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1.5 text-xs text-text-secondary">
-              <span>نام دکمه</span>
-              <Input value={title} maxLength={40} onChange={(event) => setTitle(event.target.value)} placeholder="مثلاً روشنایی پذیرایی" />
-            </label>
-            <label className="space-y-1.5 text-xs text-text-secondary">
-              <span>آیکون یا ایموجی (اختیاری)</span>
-              <Input value={icon} maxLength={24} onChange={(event) => setIcon(event.target.value)} placeholder="مثلاً 💡" />
-            </label>
+            <div className="space-y-1.5 text-xs text-text-secondary">
+              <label htmlFor="custom-macro-title">نام دکمه</label>
+              <Input id="custom-macro-title" value={title} maxLength={40} onChange={(event) => setTitle(event.target.value)} placeholder="مثلاً روشنایی پذیرایی" />
+            </div>
+            <div className="space-y-1.5 text-xs text-text-secondary">
+              <label htmlFor="custom-macro-icon">آیکون یا ایموجی (اختیاری)</label>
+              <Input id="custom-macro-icon" value={icon} maxLength={24} onChange={(event) => setIcon(event.target.value)} placeholder="مثلاً 💡" />
+            </div>
           </div>
 
           <div className="flex items-center justify-between gap-2">
             <h5 className="text-xs font-semibold text-text-primary">عملیات ({actions.length})</h5>
             <button type="button" disabled={!outputs.length}
-              onClick={() => setActions((current) => [...current, { targetPin: outputs[0].pin, actionOn: true }])}
+              onClick={() => setActions((current) => [...current, { targetPin: outputs[0].pin, actionOn: true, draftId: crypto.randomUUID() }])}
               className="rounded-lg border border-border-color px-3 py-2 text-xs text-text-primary disabled:opacity-40">
               + افزودن عملیات
             </button>
           </div>
 
           {actions.map((action, index) => (
-            <div key={index} className="flex flex-wrap items-center gap-2 rounded-xl border border-border-color p-3">
+            <div key={action.draftId} className="flex flex-wrap items-center gap-2 rounded-xl border border-border-color p-3">
               <Select aria-label={`پایه عملیات ${index + 1}`} value={action.targetPin}
                 onChange={(event) => setActions((current) => current.map((item, i) => i === index ? { ...item, targetPin: event.target.value } : item))}
                 className="min-w-0 flex-1">
