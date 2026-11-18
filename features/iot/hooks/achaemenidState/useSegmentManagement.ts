@@ -129,14 +129,23 @@ export function useSegmentManagement({
   const handleRemoveSegment = useCallback(
     (id: string) => {
       const segments = useIoTStore.getState().segments;
+      const target = segments.find((segment) => segment.id === id);
       setSegments(segments.filter((s) => s.id !== id));
-      publishDeleteSegmentCommand(id);
+      if (target && target.type !== "placeholder") {
+        publishDeleteSegmentCommand(id);
+      }
     },
     [setSegments],
   );
 
   const handleRemoveGroup = useCallback(
     (groupId: string) => {
+      const currentSegments = useIoTStore.getState().segments;
+      for (const segment of currentSegments) {
+        if (segment.group === groupId && segment.type !== "placeholder") {
+          publishDeleteSegmentCommand(segment.id);
+        }
+      }
       setGroupsOrder(
         (prev) => planRemoveGroup({ groupsOrder: prev, segments: [], groupId }).nextGroupsOrder,
       );
