@@ -117,7 +117,7 @@ auto onSegmentRemove = [](SegmentRemoveRequestEvent* evt) {
 };
 
 auto onSegmentUpdateRule = [](SegmentUpdateRuleRequestEvent* evt) {
-    if (evt == nullptr || evt->id == nullptr) return;
+    if (evt == nullptr) return;
     if (pinManager.updateSegmentRuleByPin(evt->pin, evt->rule)) {
         INFOF("[Event] Rule updated for input GPIO%d (high=%d low=%d active=%d)",
               evt->pin, evt->rule.highActionCount, evt->rule.lowActionCount, evt->rule.active);
