@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
 import {
   publishAddSegmentCommand,
   publishDeleteSegmentCommand,
@@ -142,7 +143,7 @@ export function useSegmentManagement({
     (groupId: string) => {
       const currentSegments = useIoTStore.getState().segments;
       for (const segment of currentSegments) {
-        if (segment.group === groupId && segment.type !== "placeholder") {
+        if (resolveSegmentGroup(segment.group) === groupId && segment.type !== "placeholder") {
           publishDeleteSegmentCommand(segment.id);
         }
       }
