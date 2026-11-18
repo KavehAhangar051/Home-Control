@@ -62,8 +62,6 @@ String PinManager::exportStateJson() const {
         if (!entry || !entry->active || entry->type != SegmentType::Output) continue;
 
         const unsigned long remainingMs = getAutoOffRemainingMsByPin(entry->pinNumber);
-        if (remainingMs == 0) continue;
-
         if (!first) json += ",";
         char pinText[6];
         char remainingText[12];
