@@ -80,25 +80,25 @@ function writeRuleActionChunk(
 }
 
 export const buildUpdateRuleFrame = (
-  id: string,
+  inputPin: number,
   highActions: RuleActionFrameInput[] = [],
   lowActions: RuleActionFrameInput[] = [],
 ): Uint8Array => {
-  const idBytes = textEncoder.encode(id);
   const highLen = highActions.length;
   const lowLen = lowActions.length;
 
-  const bufSize =
-    1 + idBytes.length + 1 + 1 + highLen * RULE_ACTION_SIZE + 1 + lowLen * RULE_ACTION_SIZE;
+  if (!Number.isInteger(inputPin) || inputPin < 0 || inputPin > 39) {
+    throw new RangeError(`Invalid input GPIO: ${inputPin}`);
+  }
+
+  const bufSize = 3 + highLen * RULE_ACTION_SIZE + lowLen * RULE_ACTION_SIZE;
 
   const buf = new Uint8Array(bufSize);
   const view = new DataView(buf.buffer);
 
   buf[0] = MQTT_OPCODES.UPDATE_RULE;
   let offset = 1;
-  buf.set(idBytes, offset);
-  offset += idBytes.length;
-  buf[offset++] = 0;
+  buf[offset++] = inputPin;
 
   offset = writeRuleActionChunk(buf, view, offset, highActions);
   writeRuleActionChunk(buf, view, offset, lowActions);
@@ -107,10 +107,10 @@ export const buildUpdateRuleFrame = (
 };
 
 export const publishUpdateRuleCommand = (
-  id: string,
+  inputPin: number,
   highActions: RuleActionFrameInput[] = [],
   lowActions: RuleActionFrameInput[] = [],
 ) => {
-  const buf = buildUpdateRuleFrame(id, highActions, lowActions);
-  publishMqttCommand(buf, `Published update_rule: id=${id} size=${buf.length}b`);
+  const buf = buildUpdateRuleFrame(inputPin, highActions, lowActions);
+  publishMqttCommand(buf, `Published update_rule: input_gpio=${inputPin} size=${buf.length}b`);
 };
