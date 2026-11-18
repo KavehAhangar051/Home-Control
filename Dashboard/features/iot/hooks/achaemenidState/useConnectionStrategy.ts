@@ -63,6 +63,7 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
   let ws: LocalWebSocketLike | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let reconnectAttempt = 0;
+  let synchronizedTimers: Record<string, number> = {};
   let isMounted = true;
 
   const WS_CONNECTING = 0;
@@ -102,20 +103,21 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
 
         if (data.type === "state_sync" && data.states) {
           deps.setPinsState(data.states);
-          const timers: Record<string, number> = {};
+          synchronizedTimers = {};
           if (data.timers && typeof data.timers === "object") {
             for (const [pin, value] of Object.entries(data.timers)) {
               const seconds = Number(value);
-              timers[pin] = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
+              synchronizedTimers[pin] = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
             }
           }
-          deps.setAutoOffRemaining?.(timers);
-          console.log("[LocalWS] Received full state sync:", data.states, timers);
+          deps.setAutoOffRemaining?.(synchronizedTimers);
+          console.log("[LocalWS] Received full state sync:", data.states, synchronizedTimers);
         } else if (data.pin !== undefined && data.state !== undefined) {
           const pinKey = data.pin.toString();
           const pinBool = data.state === 1 || data.state === true;
           deps.setPinsState((prev) => ({ ...prev, [pinKey]: pinBool }));
-          deps.setAutoOffRemaining?.({ [pinKey]: 0 });
+          synchronizedTimers = { ...synchronizedTimers, [pinKey]: 0 };
+          deps.setAutoOffRemaining?.(synchronizedTimers);
           dispatchLocalStateFn(pinKey, pinBool);
         }
       } catch (e) {
