@@ -99,6 +99,7 @@ bool PinManager::updateSegmentRule(const char* id, const RuleConfig& rule) {
     const int idx = _registry.findById(id);
     if (idx < 0) return false;
     PinEntry* entry = _registry.getEntryByIndex(idx);
-    if (entry) entry->rule = rule;
+    if (!entry || entry->type != SegmentType::Input) return false;
+    entry->rule = rule;
     return true;
 }

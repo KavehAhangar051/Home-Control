@@ -21,6 +21,7 @@ public:
 
     int getActiveCount() const;
     void printStatus() const;
+    void exportConfig(ParseResult& out) const;
     String exportStateJson() const;
 
     // --- State Delegation ---

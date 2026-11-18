@@ -1,94 +1,243 @@
 #include "NvsSegmentStorage.h"
 #include <Arduino.h>
 #include <cstdio>
+#include <cstring>
 
 namespace uniuno {
+namespace {
+static constexpr uint8_t STORAGE_VERSION = 2;
+static constexpr char NVS_NAMESPACE[] = "AchaemenidSeg";
+
+#pragma pack(push, 1)
+struct StoredRuleAction {
+    int32_t requiredHoldTime;
+    int8_t targetPin;
+    uint8_t actionState;
+    uint8_t actionType;
+    int32_t delay;
+};
+struct StoredSegment {
+    char id[32];
+    char type[16];
+    int16_t pin;
+    uint16_t autoOffDelay;
+    uint8_t highActionCount;
+    uint8_t lowActionCount;
+    uint8_t ruleActive;
+    StoredRuleAction highActions[4];
+    StoredRuleAction lowActions[4];
+};
+#pragma pack(pop)
+
+static_assert(sizeof(StoredRuleAction) == 11, "Unexpected stored RuleAction layout");
+
+void copyActionToStorage(const RuleAction& source, StoredRuleAction& target) {
+    target.requiredHoldTime = source.requiredHoldTime;
+    target.targetPin = static_cast<int8_t>(source.targetPin);
+    target.actionState = source.actionState ? 1 : 0;
+    target.actionType = static_cast<uint8_t>(source.actionType);
+    target.delay = source.delay;
+}
+
+bool copyActionFromStorage(const StoredRuleAction& source, RuleAction& target) {
+    if (source.targetPin < -1 || source.targetPin > 39 ||
+        source.actionType > ACTION_FOR_DURATION ||
+        source.delay < 0 || source.delay > 3600) return false;
+    if (source.requiredHoldTime != 0 && source.requiredHoldTime != 3 &&
+        source.requiredHoldTime != 5 && source.requiredHoldTime != 10) return false;
+
+    target.requiredHoldTime = source.requiredHoldTime;
+    target.targetPin = source.targetPin;
+    target.actionState = source.actionState != 0;
+    target.actionType = static_cast<RuleActionType>(source.actionType);
+    target.delay = source.delay;
+    return true;
+}
+
+bool loadLegacyConfig(Preferences& prefs, ParseResult& out) {
+    const int count = prefs.getInt("count", 0);
+    if (count <= 0 || count > MAX_SEGMENTS) return false;
+
+    char key[16];
+    out.count = 0;
+    for (int i = 0; i < count; ++i) {
+        snprintf(key, sizeof(key), "s%did", i);
+        String id = prefs.getString(key, "");
+        snprintf(key, sizeof(key), "s%dtp", i);
+        String type = prefs.getString(key, "");
+        snprintf(key, sizeof(key), "s%dpn", i);
+        const int pin = prefs.getInt(key, -1);
+        snprintf(key, sizeof(key), "s%dao", i);
+        const int autoOff = prefs.getInt(key, 0);
+
+        if (id.length() == 0 || pin < 0 || pin > 39) continue;
+        SegmentConfig& segment = out.segments[out.count++];
+        strlcpy(segment.id, id.c_str(), sizeof(segment.id));
+        strlcpy(segment.type, type.c_str(), sizeof(segment.type));
+        segment.pin = pin;
+        segment.autoOffDelay = autoOff;
+        segment.value = false;
+        segment.valid = true;
+    }
+
+    out.success = true;
+    out.segmentsProvided = true;
+    Serial.printf("[SegStorage] Loaded %d legacy segments; legacy format did not contain rules\n", out.count);
+    return true;
+}
+} // namespace
 
 /**
- * @brief Save segment configuration to NVS with zero dynamic heap string allocations.
+ * Persist the complete segment registry using two banks. The active-bank
+ * pointer changes only after all records and metadata in the inactive bank exist.
  */
 void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
-    Preferences segPrefs;
-    if (!segPrefs.begin("AchaemenidSeg", false)) {
-        Serial.println("[SegStorage] Failed to open Segment Preferences");
+    Preferences prefs;
+    if (!prefs.begin(NVS_NAMESPACE, false)) {
+        Serial.println("[SegStorage] Failed to open Segment Preferences for writing");
         return;
     }
 
+    const String currentBank = prefs.getString("active", "");
+    const char targetBank = currentBank == "a" ? 'b' : 'a';
+    const char* bankName = targetBank == 'a' ? "a" : "b";
     char key[16];
     int savedCount = 0;
-    for (int i = 0; i < MAX_SEGMENTS; i++) {
+    bool writeOk = true;
+
+    for (int i = 0; i < MAX_SEGMENTS; ++i) {
         if (!parsed.segments[i].valid) continue;
-
-        snprintf(key, sizeof(key), "s%did", savedCount);
-        segPrefs.putString(key, parsed.segments[i].id);
-
-        snprintf(key, sizeof(key), "s%dtp", savedCount);
-        segPrefs.putString(key, parsed.segments[i].type);
-
-        snprintf(key, sizeof(key), "s%dpn", savedCount);
-        segPrefs.putInt(key, parsed.segments[i].pin);
-
-        snprintf(key, sizeof(key), "s%dao", savedCount);
-        segPrefs.putInt(key, parsed.segments[i].autoOffDelay);
-
-        savedCount++;
         if (savedCount >= MAX_SEGMENTS) break;
-    }
-    segPrefs.putInt("count", savedCount);
 
-    segPrefs.end();
-    Serial.printf("[SegStorage] Saved %d segments to NVS\n", savedCount);
+        const SegmentConfig& segment = parsed.segments[i];
+        StoredSegment record{};
+        strlcpy(record.id, segment.id, sizeof(record.id));
+        strlcpy(record.type, segment.type, sizeof(record.type));
+        record.pin = static_cast<int16_t>(segment.pin);
+        record.autoOffDelay = static_cast<uint16_t>(segment.autoOffDelay < 0 ? 0 : segment.autoOffDelay);
+        record.highActionCount = static_cast<uint8_t>(constrain(segment.rule.highActionCount, 0, 4));
+        record.lowActionCount = static_cast<uint8_t>(constrain(segment.rule.lowActionCount, 0, 4));
+        record.ruleActive = segment.rule.active ? 1 : 0;
+
+        for (int a = 0; a < record.highActionCount; ++a) {
+            copyActionToStorage(segment.rule.highActions[a], record.highActions[a]);
+        }
+        for (int a = 0; a < record.lowActionCount; ++a) {
+            copyActionToStorage(segment.rule.lowActions[a], record.lowActions[a]);
+        }
+
+        snprintf(key, sizeof(key), "%c%d", targetBank, savedCount);
+        if (prefs.putBytes(key, &record, sizeof(record)) != sizeof(record)) {
+            writeOk = false;
+            Serial.printf("[SegStorage] Failed writing record %s\n", key);
+            break;
+        }
+        ++savedCount;
+    }
+
+    if (writeOk) {
+        for (int i = savedCount; i < MAX_SEGMENTS; ++i) {
+            snprintf(key, sizeof(key), "%c%d", targetBank, i);
+            prefs.remove(key);
+        }
+
+        char countKey[8];
+        char versionKey[8];
+        snprintf(countKey, sizeof(countKey), "%cCount", targetBank);
+        snprintf(versionKey, sizeof(versionKey), "%cVer", targetBank);
+        writeOk = prefs.putInt(countKey, savedCount) == sizeof(int) &&
+                  prefs.putUChar(versionKey, STORAGE_VERSION) == sizeof(uint8_t);
+    }
+
+    if (writeOk) {
+        // Commit point: a failed write leaves the previous active bank untouched.
+        writeOk = prefs.putString("active", bankName) > 0;
+    }
+
+    prefs.end();
+    if (writeOk) {
+        Serial.printf("[SegStorage] Saved %d segments with rules to NVS bank %c\n", savedCount, targetBank);
+    } else {
+        Serial.println("[SegStorage] Save failed; previous active NVS bank was preserved");
+    }
 }
 
 /**
- * @brief Load segment configuration from NVS with stack-only key buffers.
+ * Load a versioned bank. A saved empty configuration is valid and clears
+ * previously registered segments instead of falling back to stale defaults.
  */
 bool NvsSegmentStorage::loadSegmentConfig(ParseResult& out) {
-    Preferences segPrefs;
-    if (!segPrefs.begin("AchaemenidSeg", true)) {
+    out = ParseResult();
+    Preferences prefs;
+    if (!prefs.begin(NVS_NAMESPACE, true)) {
         Serial.println("[SegStorage] No segment config in NVS");
         return false;
     }
 
-    const int count = segPrefs.getInt("count", 0);
-    if (count <= 0) {
-        segPrefs.end();
-        Serial.println("[SegStorage] NVS segment count is 0");
-        return false;
-    }
+    const String activeBank = prefs.getString("active", "");
+    if (activeBank == "a" || activeBank == "b") {
+        const char bank = activeBank[0];
+        char countKey[8];
+        char versionKey[8];
+        snprintf(countKey, sizeof(countKey), "%cCount", bank);
+        snprintf(versionKey, sizeof(versionKey), "%cVer", bank);
+        const int count = prefs.getInt(countKey, -1);
+        const uint8_t version = prefs.getUChar(versionKey, 0);
 
-    char key[16];
-    out.count = 0;
-    for (int i = 0; i < count && i < MAX_SEGMENTS; i++) {
-        snprintf(key, sizeof(key), "s%did", i);
-        String id = segPrefs.getString(key, "");
+        if (version == STORAGE_VERSION && count >= 0 && count <= MAX_SEGMENTS) {
+            char key[16];
+            for (int i = 0; i < count; ++i) {
+                snprintf(key, sizeof(key), "%c%d", bank, i);
+                if (prefs.getBytesLength(key) != sizeof(StoredSegment)) {
+                    Serial.printf("[SegStorage] Invalid record size for %s; skipping\n", key);
+                    continue;
+                }
 
-        snprintf(key, sizeof(key), "s%dtp", i);
-        String type = segPrefs.getString(key, "");
+                StoredSegment record{};
+                if (prefs.getBytes(key, &record, sizeof(record)) != sizeof(record)) continue;
+                if (record.id[0] == '\0' || record.pin < 0 || record.pin > 39 ||
+                    record.highActionCount > 4 || record.lowActionCount > 4) continue;
 
-        snprintf(key, sizeof(key), "s%dpn", i);
-        const int pin = segPrefs.getInt(key, -1);
+                SegmentConfig& segment = out.segments[out.count];
+                strlcpy(segment.id, record.id, sizeof(segment.id));
+                strlcpy(segment.type, record.type, sizeof(segment.type));
+                segment.pin = record.pin;
+                segment.autoOffDelay = record.autoOffDelay;
+                segment.value = false;
+                segment.valid = true;
+                segment.rule.active = record.ruleActive != 0;
 
-        snprintf(key, sizeof(key), "s%dao", i);
-        const int ao = segPrefs.getInt(key, 0);
+                for (int a = 0; a < record.highActionCount; ++a) {
+                    RuleAction action;
+                    if (copyActionFromStorage(record.highActions[a], action)) {
+                        segment.rule.highActions[segment.rule.highActionCount++] = action;
+                    }
+                }
+                for (int a = 0; a < record.lowActionCount; ++a) {
+                    RuleAction action;
+                    if (copyActionFromStorage(record.lowActions[a], action)) {
+                        segment.rule.lowActions[segment.rule.lowActionCount++] = action;
+                    }
+                }
+                if (segment.rule.highActionCount == 0 && segment.rule.lowActionCount == 0) {
+                    segment.rule.active = false;
+                }
+                ++out.count;
+            }
 
-        if (id.length() > 0 && pin >= 0) {
-            strncpy(out.segments[i].id, id.c_str(), sizeof(out.segments[i].id) - 1);
-            out.segments[i].id[sizeof(out.segments[i].id) - 1] = '\0';
-            strncpy(out.segments[i].type, type.c_str(), sizeof(out.segments[i].type) - 1);
-            out.segments[i].type[sizeof(out.segments[i].type) - 1] = '\0';
-            out.segments[i].pin = pin;
-            out.segments[i].autoOffDelay = ao;
-            out.segments[i].value = false;
-            out.segments[i].valid = true;
-            out.count++;
+            out.success = true;
+            out.segmentsProvided = true;
+            prefs.end();
+            Serial.printf("[SegStorage] Loaded %d segments with rules from NVS bank %c\n", out.count, bank);
+            return true;
         }
+        Serial.println("[SegStorage] Active NVS bank has unsupported or invalid metadata");
     }
 
-    segPrefs.end();
-    out.success = (out.count > 0);
-    Serial.printf("[SegStorage] Loaded %d segments from NVS (offline fallback)\n", out.count);
-    return out.success;
+    // Backward compatibility with the old flat-key format (which stored no rules).
+    const bool legacyLoaded = loadLegacyConfig(prefs, out);
+    prefs.end();
+    return legacyLoaded;
 }
 
 } // namespace uniuno
