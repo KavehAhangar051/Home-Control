@@ -34,7 +34,7 @@ private:
     MqttConfig _config;
     MqttConnectionManager _connManager;
     MessageCallback _messageCallback;
-    static constexpr size_t MAX_COMMAND_PAYLOAD = 512;
+    static constexpr size_t MAX_COMMAND_PAYLOAD = 1536;
     uint8_t _messageBuffer[MAX_COMMAND_PAYLOAD]{};
     size_t _messageTotal = 0;
     size_t _messageReceived = 0;
