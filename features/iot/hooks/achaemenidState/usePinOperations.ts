@@ -17,6 +17,21 @@ export interface PinsStateMap {
   [pin: string]: boolean;
 }
 
+function clearTimerOverrides(pins: string[]): void {
+  const store = useIoTStore.getState();
+  const next = { ...store.autoOffRemaining };
+  let changed = false;
+
+  for (const pin of pins) {
+    if (Object.hasOwn(next, pin)) {
+      delete next[pin];
+      changed = true;
+    }
+  }
+
+  if (changed) store.setAutoOffRemaining(next);
+}
+
 export function rollbackSinglePinState(
   prev: PinsStateMap,
   pin: string,
@@ -109,6 +124,7 @@ export async function executeSinglePinUpdate(
       return false;
     }
 
+    clearTimerOverrides([pin]);
     return true;
   } catch (error) {
     console.error("Failed to update pin value:", error);
@@ -162,6 +178,7 @@ export async function executeBatchPinUpdate(
       return false;
     }
 
+    clearTimerOverrides(Object.keys(stateUpdates));
     return true;
   } catch (error) {
     console.error("Failed to update batch pin values:", error);
