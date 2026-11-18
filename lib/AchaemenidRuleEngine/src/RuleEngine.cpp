@@ -127,27 +127,37 @@ HOT_PATH void RuleEngine::handleInput(int sourcePin, bool newState, unsigned lon
                 }, reqHold * 1000);
                 _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
             }
-        } else if (startCount > 1 && _ctx.appTimer != nullptr) {
-            bool has10s = false;
-            RuleAction act10s;
-            for (int i = 0; i < startCount; i++) {
-                if (startActions[i].requiredHoldTime == 10) {
-                    has10s = true;
-                    act10s = startActions[i];
-                    break;
+        } else if (startCount > 1) {
+            // Immediate actions must not disappear just because this state has
+            // additional hold-duration alternatives.
+            for (int i = 0; i < startCount; ++i) {
+                if (startActions[i].requiredHoldTime == 0) {
+                    executeAction(startActions[i], sourcePin);
                 }
             }
-            
-            if (has10s) {
-                _ctx.pinManager->setPendingHoldAction(sourcePin, act10s);
-                uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([this, sourcePin, act10s]() {
-                    if (_ctx.pinManager != nullptr) {
-                        _ctx.pinManager->setHoldTimerIdByPin(sourcePin, uniuno::TimerHandle());
-                        executeAction(act10s, sourcePin);
-                        _ctx.pinManager->setIsHandledByPin(sourcePin, true);
+
+            if (_ctx.appTimer != nullptr) {
+                bool has10s = false;
+                RuleAction act10s;
+                for (int i = 0; i < startCount; ++i) {
+                    if (startActions[i].requiredHoldTime == 10) {
+                        has10s = true;
+                        act10s = startActions[i];
+                        break;
                     }
-                }, 11000);
-                _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
+                }
+
+                if (has10s) {
+                    _ctx.pinManager->setPendingHoldAction(sourcePin, act10s);
+                    uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([this, sourcePin, act10s]() {
+                        if (_ctx.pinManager != nullptr) {
+                            _ctx.pinManager->setHoldTimerIdByPin(sourcePin, uniuno::TimerHandle());
+                            executeAction(act10s, sourcePin);
+                            _ctx.pinManager->setIsHandledByPin(sourcePin, true);
+                        }
+                    }, 11000);
+                    _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
+                }
             }
         }
     }
