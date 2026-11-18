@@ -95,6 +95,9 @@ public:
    */
   bool isPaused() const;
 
+  /** Returns the actual remaining duration in milliseconds, or 0 if inactive. */
+  unsigned long getRemainingMs() const;
+
 private:
   ITimer* timer_;           ///< Parent timer instance
   TimerId id_;        ///< Internal timer ID
