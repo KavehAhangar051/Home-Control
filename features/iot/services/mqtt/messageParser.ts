@@ -128,7 +128,12 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
           }
         }
 
+        // A state snapshot is authoritative: missing timer metadata means
+        // that the pin has no restorable Dashboard auto-off countdown.
         const normalizedTimers: Record<string, number> = {};
+        for (const key in normalizedStates) {
+          if (Object.hasOwn(normalizedStates, key)) normalizedTimers[key] = 0;
+        }
         const rawTimers = data.timers ?? {};
 
         for (const key in rawTimers) {
