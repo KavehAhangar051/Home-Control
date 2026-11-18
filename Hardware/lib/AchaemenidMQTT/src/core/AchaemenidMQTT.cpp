@@ -109,7 +109,7 @@ HOT_PATH IRAM_ATTR void AchaemenidMQTT::_onMqttMessage(char* /*topic*/, char* pa
     }
 
     if (UNLIKELY(total > MAX_COMMAND_PAYLOAD || total != _messageTotal ||
-                 index != _messageReceived || len > total - index)) {
+                 index != _messageReceived || index > total || len > total - index)) {
         Serial.printf("[MQTT] Dropped malformed/oversized command fragment (index=%u len=%u total=%u)\\n",
                       static_cast<unsigned>(index), static_cast<unsigned>(len), static_cast<unsigned>(total));
         _messageTotal = 0;
