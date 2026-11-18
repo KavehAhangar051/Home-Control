@@ -52,24 +52,15 @@ void RuleParsers::handle(const uint8_t* payload, size_t len, IEventDispatcher* d
 }
 
 HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateRule(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
-    if (payload == nullptr || dispatcher == nullptr || len < 5) return;
+    // Frame: opcode, input GPIO, HIGH count/actions, LOW count/actions.
+    if (payload == nullptr || dispatcher == nullptr || len < 4) return;
 
     size_t offset = 1;
-    char id[32] = {};
-    size_t idLength = 0;
-    while (offset < len && payload[offset] != '\0') {
-        if (idLength >= sizeof(id) - 1) {
-            WARNING("[MQTT Handler] Rejected UPDATE_RULE: segment ID is too long");
-            return;
-        }
-        id[idLength++] = static_cast<char>(payload[offset++]);
-    }
-
-    if (offset >= len || payload[offset] != '\0' || idLength == 0) {
-        WARNING("[MQTT Handler] Rejected UPDATE_RULE: missing or empty segment ID");
+    const int inputPin = payload[offset++];
+    if (inputPin > 39) {
+        WARNINGF("[MQTT Handler] Rejected UPDATE_RULE: invalid input GPIO %d", inputPin);
         return;
     }
-    ++offset;
 
     if (offset >= len) return;
     const uint8_t highCount = payload[offset++];
@@ -113,10 +104,10 @@ HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateRule(const uint8_t* payload, siz
     }
 
     newRule.active = (newRule.highActionCount > 0 || newRule.lowActionCount > 0);
-    SegmentUpdateRuleRequestEvent evt{id, newRule};
+    SegmentUpdateRuleRequestEvent evt{inputPin, newRule};
     dispatcher->dispatch(evt);
-    INFOF("[MQTT Handler] Binary Update Rule: id=%s high=%d low=%d active=%d",
-          id, newRule.highActionCount, newRule.lowActionCount, newRule.active);
+    INFOF("[MQTT Handler] Binary Update Rule: input_gpio=%d high=%d low=%d active=%d",
+          inputPin, newRule.highActionCount, newRule.lowActionCount, newRule.active);
 }
 
 } // namespace uniuno
