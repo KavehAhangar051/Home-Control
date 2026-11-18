@@ -449,6 +449,10 @@ public:
     return manager_.isPaused(id);
   }
 
+  bool getRemaining(TimerId id, unsigned long& out_remaining_ms) const override {
+    return manager_.getRemaining(id, out_remaining_ms);
+  }
+
   // ============================================
   // GROUPS FEATURE (Built-in)
   // ============================================
