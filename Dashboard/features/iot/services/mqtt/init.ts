@@ -239,11 +239,16 @@ export function createMqttMessageHandler(
         logMqttDebug(
           `[MQTT] Received ${label} from ESP32: pin=${parsedState.pinId} state=${parsedState.state}`,
         );
+        deps.getSnapshot().setAutoOffRemaining({
+          ...deps.getSnapshot().autoOffRemaining,
+          [parsedState.pinId]: 0,
+        });
         deps.queueStateUpdate(parsedState.pinId, parsedState.state);
       } else if (parsedState.kind === "state_sync") {
         logMqttDebug(`[MQTT] Received full state sync from ESP32:`, parsedState.states);
         deps.flushStateUpdates?.();
         deps.getSnapshot().setPinsState(parsedState.states);
+        deps.getSnapshot().setAutoOffRemaining(parsedState.timers);
       } else if (parsedState.kind === "ping") {
         schedule(() => {
           if (!deps.isCurrentGeneration()) return;
