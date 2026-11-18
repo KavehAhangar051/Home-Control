@@ -49,4 +49,10 @@ inline bool TimerHandle::isPaused() const {
   return false;
 }
 
+inline unsigned long TimerHandle::getRemainingMs() const {
+  unsigned long remaining = 0;
+  if (timer_ && !cancelled_ && timer_->getRemaining(id_, remaining)) return remaining;
+  return 0;
+}
+
 } // namespace uniuno
