@@ -174,7 +174,13 @@ auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
     if (evt->hasParsedConfig && evt->parsed != nullptr) {
         if (evt->parsed->segmentsProvided) {
             static ParseResult previousConfig;
-            if (segmentStorage != nullptr && segmentStorage->loadSegmentConfig(previousConfig)) {
+            bool hasPreviousConfig = false;
+            if (segmentStorage != nullptr) {
+                if (segmentStorageMutex != nullptr) xSemaphoreTake(segmentStorageMutex, portMAX_DELAY);
+                hasPreviousConfig = segmentStorage->loadSegmentConfig(previousConfig);
+                if (segmentStorageMutex != nullptr) xSemaphoreGive(segmentStorageMutex);
+            }
+            if (hasPreviousConfig) {
                 for (int i = 0; i < MAX_SEGMENTS; ++i) {
                     if (previousConfig.segments[i].valid) pinManager.removeSegment(previousConfig.segments[i].id);
                 }
