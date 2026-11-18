@@ -39,6 +39,7 @@ void PinManager::printStatus() const {
 String PinManager::exportStateJson() const {
     // Static stack buffer sized safely for 16 pins
     uniuno::StaticString<768> json("{\"type\":\"state_sync\",\"states\":{");
+    bool pinStates[MAX_PINS] = {};
     bool first = true;
 
     for (int i = 0; i < MAX_PINS; i++) {
@@ -57,6 +58,7 @@ String PinManager::exportStateJson() const {
                 ? entry->lastInputState
                 : (entry->hasGpio && entry->gpio.getState());
             json += state ? "true" : "false";
+            pinStates[i] = state;
             first = false;
         }
     }
@@ -68,9 +70,10 @@ String PinManager::exportStateJson() const {
         const PinEntry* entry = _registry.getEntryByIndexConst(i);
         if (!entry || !entry->active || entry->type != SegmentType::Output) continue;
 
-        // An OFF output must never restore a stale countdown in the Dashboard.
+        // Reuse the state captured above so pin state and timer metadata belong
+        // to the same snapshot, even if a GPIO changes during serialization.
         // TimerHandle reports the live deadline, not the originally configured delay.
-        const bool isOn = entry->hasGpio && entry->gpio.getState();
+        const bool isOn = pinStates[i];
         const unsigned long remainingMs = isOn
             ? getAutoOffRemainingMsByPin(entry->pinNumber)
             : 0UL;
