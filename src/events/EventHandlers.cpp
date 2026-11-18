@@ -9,15 +9,29 @@
 #include <ConfigApplier.h>
 #include <ISegmentStorage.h>
 #include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+
+static SemaphoreHandle_t segmentStorageMutex = nullptr;
 
 static void persistCurrentSegmentConfig(const char* reason) {
     if (segmentStorage == nullptr) {
         WARNINGF("[SegStorage] Cannot persist after %s: storage unavailable", reason);
         return;
     }
-    ParseResult snapshot;
+
+    if (segmentStorageMutex != nullptr) {
+        xSemaphoreTake(segmentStorageMutex, portMAX_DELAY);
+    }
+
+    // ParseResult is ~4.5KB; keep it out of the constrained MQTT/async callback stack.
+    static ParseResult snapshot;
     pinManager.exportConfig(snapshot);
     segmentStorage->saveSegmentConfig(snapshot);
+
+    if (segmentStorageMutex != nullptr) {
+        xSemaphoreGive(segmentStorageMutex);
+    }
 }
 
 /**
@@ -233,6 +247,13 @@ auto onNetworkStatus = [](NetworkStatusEvent* evt) {
 };
 
 void setupEventBus() {
+    if (segmentStorageMutex == nullptr) {
+        segmentStorageMutex = xSemaphoreCreateMutex();
+        if (segmentStorageMutex == nullptr) {
+            WARNING("[SegStorage] Could not create persistence mutex");
+        }
+    }
+
     // Register all event listeners
     eventBus.on<PinStateChangeRequestEvent>(onPinChangeRequest);
     eventBus.on<SegmentAddRequestEvent>(onSegmentAdd);
