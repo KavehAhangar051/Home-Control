@@ -1,4 +1,4 @@
-import { Download, Music, SkipBack, SkipForward } from "@/components/ui/hugeicons";
+import { Download, Music, SkipBack, SkipForward } from "@/components/ui/hugeicons-groups/media";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AudioTrack {

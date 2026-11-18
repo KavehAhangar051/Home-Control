@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { Alert } from "@/components/reui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/grid";
-import { Clock3 } from "@/components/ui/hugeicons";
+import { Clock3 } from "@/components/ui/hugeicons-groups/shell";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import {
   AUTOMATIONS_TABS,

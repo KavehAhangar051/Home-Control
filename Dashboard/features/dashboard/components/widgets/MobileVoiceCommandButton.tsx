@@ -1,5 +1,5 @@
 import { m } from "motion/react";
-import { Mic } from "@/components/ui/hugeicons";
+import { Mic } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useMobileVoiceCommand } from "../../hooks/useMobileVoiceCommand";

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { clampCanvasZoom } from "./canvasGeometry";
+import { clampCanvasZoom, computeFocalZoomViewport } from "./canvasGeometry";
 import type { CanvasViewport } from "./canvasTypes";
 
 export interface UseSheetViewportGesturesOptions {
@@ -13,6 +13,7 @@ export interface UseSheetViewportGesturesOptions {
   ) => void;
   onBackgroundClick?: () => void;
   onPanEnd?: (finalViewport: CanvasViewport) => void;
+  isAttached?: boolean;
 }
 
 /**
@@ -28,6 +29,7 @@ export function useSheetViewportGestures({
   setViewportTransient,
   onBackgroundClick,
   onPanEnd,
+  isAttached = true,
 }: UseSheetViewportGesturesOptions) {
   const [containerSize, setContainerSize] = React.useState({ width: 960, height: 600 });
   const [isPanning, setIsPanning] = React.useState(false);
@@ -43,7 +45,7 @@ export function useSheetViewportGestures({
   React.useEffect(() => {
     const el = containerRef.current;
 
-    if (!el) return;
+    if (!isAttached || !el) return;
 
     const updateRect = () => {
       const rect = el.getBoundingClientRect();
@@ -58,15 +60,11 @@ export function useSheetViewportGestures({
     observer.observe(el);
 
     return () => observer.disconnect();
-  }, [containerRef]);
+  }, [containerRef, isAttached]);
 
   const handleZoomBy = React.useCallback(
     (delta: number, focalClientX?: number, focalClientY?: number) => {
       setViewport((prev) => {
-        const nextZoom = clampCanvasZoom(prev.zoom + delta);
-
-        if (nextZoom === prev.zoom) return prev;
-
         const el = containerRef.current;
         const rect = el?.getBoundingClientRect();
 
@@ -76,14 +74,7 @@ export function useSheetViewportGestures({
         const anchorY =
           focalClientY !== undefined && rect ? focalClientY - rect.top : containerSize.height / 2;
 
-        const worldX = (anchorX - prev.x) / prev.zoom;
-        const worldY = (anchorY - prev.y) / prev.zoom;
-
-        return {
-          x: Math.round(anchorX - worldX * nextZoom),
-          y: Math.round(anchorY - worldY * nextZoom),
-          zoom: nextZoom,
-        };
+        return computeFocalZoomViewport(prev, prev.zoom + delta, anchorX, anchorY);
       });
     },
     [containerRef, containerSize, setViewport],
@@ -92,7 +83,52 @@ export function useSheetViewportGestures({
   React.useEffect(() => {
     const el = containerRef.current;
 
-    if (!el) return;
+    if (!isAttached || !el) return;
+
+    let wheelFrameId: number | null = null;
+    let wheelCommitTimer: ReturnType<typeof setTimeout> | null = null;
+    let pendingWheelDelta = 0;
+    let pendingWheelClientX = 0;
+    let pendingWheelClientY = 0;
+
+    const flushWheelCommit = () => {
+      if (wheelCommitTimer !== null) {
+        clearTimeout(wheelCommitTimer);
+        wheelCommitTimer = null;
+      }
+
+      onPanEndRef.current?.(viewportRef.current);
+    };
+
+    const scheduleWheelCommit = () => {
+      if (wheelCommitTimer !== null) {
+        clearTimeout(wheelCommitTimer);
+      }
+
+      wheelCommitTimer = setTimeout(() => {
+        wheelCommitTimer = null;
+        onPanEndRef.current?.(viewportRef.current);
+      }, 160);
+    };
+
+    const applyPendingWheel = () => {
+      wheelFrameId = null;
+      const delta = pendingWheelDelta;
+      const clientX = pendingWheelClientX;
+      const clientY = pendingWheelClientY;
+      pendingWheelDelta = 0;
+
+      if (delta === 0) return;
+
+      const rect = el.getBoundingClientRect();
+      const anchorX = clientX - rect.left;
+      const anchorY = clientY - rect.top;
+
+      setViewportTransient((prev) =>
+        computeFocalZoomViewport(prev, prev.zoom + delta, anchorX, anchorY),
+      );
+      scheduleWheelCommit();
+    };
 
     const onWheel = (e: WheelEvent) => {
       // SAFETY: WheelEvent target in DOM is an Element/HTMLElement
@@ -103,14 +139,36 @@ export function useSheetViewportGestures({
       }
 
       e.preventDefault();
-      const zoomStep = e.deltaY < 0 ? 0.1 : -0.1;
-      handleZoomBy(zoomStep, e.clientX, e.clientY);
+      pendingWheelDelta += e.deltaY < 0 ? 0.1 : -0.1;
+      pendingWheelClientX = e.clientX;
+      pendingWheelClientY = e.clientY;
+
+      if (wheelFrameId === null) {
+        wheelFrameId = requestAnimationFrame(applyPendingWheel);
+      }
     };
 
     let pinchStartDist = 0;
     let pinchStartZoom = 1;
     let pinchWorldX = 0;
     let pinchWorldY = 0;
+    let isPinching = false;
+    let pinchFrameId: number | null = null;
+    let pendingPinchTarget: { nextZoom: number; midX: number; midY: number } | null = null;
+
+    const applyPendingPinch = () => {
+      pinchFrameId = null;
+      const target = pendingPinchTarget;
+      pendingPinchTarget = null;
+
+      if (!target) return;
+
+      setViewportTransient({
+        x: Math.round(target.midX - pinchWorldX * target.nextZoom),
+        y: Math.round(target.midY - pinchWorldY * target.nextZoom),
+        zoom: target.nextZoom,
+      });
+    };
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
@@ -126,6 +184,7 @@ export function useSheetViewportGestures({
         pinchStartZoom = curr.zoom;
         pinchWorldX = (midX - curr.x) / curr.zoom;
         pinchWorldY = (midY - curr.y) / curr.zoom;
+        isPinching = pinchStartDist > 12;
       }
     };
 
@@ -141,24 +200,55 @@ export function useSheetViewportGestures({
         const midX = (t1.clientX + t2.clientX) / 2 - rect.left;
         const midY = (t1.clientY + t2.clientY) / 2 - rect.top;
 
-        setViewport({
-          x: Math.round(midX - pinchWorldX * nextZoom),
-          y: Math.round(midY - pinchWorldY * nextZoom),
-          zoom: nextZoom,
-        });
+        pendingPinchTarget = { nextZoom, midX, midY };
+
+        if (pinchFrameId === null) {
+          pinchFrameId = requestAnimationFrame(applyPendingPinch);
+        }
       }
+    };
+
+    const onTouchFinish = (e: TouchEvent) => {
+      if (!isPinching || e.touches.length >= 2) return;
+
+      isPinching = false;
+      pinchStartDist = 0;
+
+      if (pinchFrameId !== null) {
+        cancelAnimationFrame(pinchFrameId);
+        applyPendingPinch();
+      }
+
+      onPanEndRef.current?.(viewportRef.current);
     };
 
     el.addEventListener("wheel", onWheel, { passive: false });
     el.addEventListener("touchstart", onTouchStart, { passive: false });
     el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchFinish);
+    el.addEventListener("touchcancel", onTouchFinish);
 
     return () => {
       el.removeEventListener("wheel", onWheel);
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchFinish);
+      el.removeEventListener("touchcancel", onTouchFinish);
+
+      if (wheelFrameId !== null) {
+        cancelAnimationFrame(wheelFrameId);
+        applyPendingWheel();
+      }
+
+      if (wheelCommitTimer !== null) {
+        flushWheelCommit();
+      }
+
+      if (pinchFrameId !== null) {
+        cancelAnimationFrame(pinchFrameId);
+      }
     };
-  }, [containerRef, handleZoomBy, setViewport, viewportRef]);
+  }, [containerRef, isAttached, setViewportTransient, viewportRef]);
 
   const handleCanvasPointerDown = React.useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -226,6 +316,7 @@ export function useSheetViewportGestures({
             frameId = null;
             const latestMove = pendingMove;
             pendingMove = null;
+
             if (latestMove) applyMove(latestMove);
           });
         }

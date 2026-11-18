@@ -217,7 +217,6 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
                 timerCountdown={studio.timerCountdowns.get(node.id) ?? null}
                 isSelected={studio.selectedNodeId === node.id}
                 isDragging={studio.draggingNodeId === node.id}
-                dragTiltDeg={studio.draggingNodeId === node.id ? studio.dragTiltDeg : 0}
                 isLocked={studio.isLocked}
                 animationsEnabled={animationsEnabled}
                 isConnectingSource={studio.connectingFromId === node.id}

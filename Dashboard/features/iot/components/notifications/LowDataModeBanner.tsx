@@ -3,7 +3,7 @@
 import { m } from "motion/react";
 import type React from "react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
-import { CloudUpload, WifiOff } from "@/components/ui/hugeicons";
+import { CloudUpload, WifiOff } from "@/components/ui/hugeicons-groups/shell";
 import { DURATION, EASE_OUT, SPRING_PRESS } from "@/lib/ease";
 
 interface LowDataModeBannerProps {

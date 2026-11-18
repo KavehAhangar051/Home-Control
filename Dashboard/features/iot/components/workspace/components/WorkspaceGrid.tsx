@@ -112,7 +112,7 @@ const ConnectedGroup = React.memo((props: ConnectedGroupProps) => {
     [handleGroupColsChange, groupName],
   );
 
-  const baseClasses = "flex-grow flex-shrink-0 min-w-0 max-w-full";
+  const baseClasses = "cv-auto flex-grow flex-shrink-0 min-w-0 max-w-full";
 
   return (
     <div className={baseClasses} style={style}>

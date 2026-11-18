@@ -50,6 +50,7 @@ export default function WorkflowPalettePanel({
   const matchesSearch = React.useCallback(
     (fields: string[]) => {
       if (!normalizedQuery) return true;
+
       return fields.some((f) => f.toLowerCase().includes(normalizedQuery));
     },
     [normalizedQuery],
@@ -77,12 +78,15 @@ export default function WorkflowPalettePanel({
 
   const groupCounts = React.useMemo(() => {
     const map = new Map<string, number>();
+
     for (const groupName of groupsOrder) map.set(groupName, 0);
+
     for (const seg of segments) {
       if (seg.type === "placeholder") continue;
       const key = seg.group || "Test";
       map.set(key, (map.get(key) ?? 0) + 1);
     }
+
     return map;
   }, [groupsOrder, segments]);
 

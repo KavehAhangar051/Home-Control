@@ -1,0 +1,69 @@
+"use client";
+
+import { Add01 } from "@/components/animate-ui/icons/hugeicons/add-01";
+import { ArrowDown01 } from "@/components/animate-ui/icons/hugeicons/arrow-down-01";
+import { ArrowLeft01 } from "@/components/animate-ui/icons/hugeicons/arrow-left-01";
+import { ArrowRight01 } from "@/components/animate-ui/icons/hugeicons/arrow-right-01";
+import { ArrowUp01 } from "@/components/animate-ui/icons/hugeicons/arrow-up-01";
+import { Cancel01 } from "@/components/animate-ui/icons/hugeicons/cancel-01";
+import { CheckmarkCircle02 } from "@/components/animate-ui/icons/hugeicons/checkmark-circle-02";
+import { CircleX } from "@/components/animate-ui/icons/hugeicons/circle-x";
+import { Clock01 } from "@/components/animate-ui/icons/hugeicons/clock-01";
+import { Clock03 } from "@/components/animate-ui/icons/hugeicons/clock-03";
+import { CloudUpload as CloudUploadIcon } from "@/components/animate-ui/icons/hugeicons/cloud-upload";
+import { Delete02 } from "@/components/animate-ui/icons/hugeicons/delete-02";
+import { Home03 } from "@/components/animate-ui/icons/hugeicons/home-03";
+import { Layers01 } from "@/components/animate-ui/icons/hugeicons/layers-01";
+import { Mic as MicIcon } from "@/components/animate-ui/icons/hugeicons/mic";
+import { Moon02 } from "@/components/animate-ui/icons/hugeicons/moon-02";
+import { MoreVertical } from "@/components/animate-ui/icons/hugeicons/more-vertical";
+import { PanelLeftClose as PanelLeftCloseIcon } from "@/components/animate-ui/icons/hugeicons/panel-left-close";
+import { PanelRightClose as PanelRightCloseIcon } from "@/components/animate-ui/icons/hugeicons/panel-right-close";
+import { Play as PlayIcon } from "@/components/animate-ui/icons/hugeicons/play";
+import { PlugZap } from "@/components/animate-ui/icons/hugeicons/plug-zap";
+import { Refresh as RefreshIcon } from "@/components/animate-ui/icons/hugeicons/refresh";
+import { Settings02 } from "@/components/animate-ui/icons/hugeicons/settings-02";
+import { Settings04 } from "@/components/animate-ui/icons/hugeicons/settings-04";
+import { SlidersHorizontal } from "@/components/animate-ui/icons/hugeicons/sliders-horizontal";
+import { Sun03 } from "@/components/animate-ui/icons/hugeicons/sun-03";
+import { WifiOff01 } from "@/components/animate-ui/icons/hugeicons/wifi-off-01";
+import { createHugeIcon } from "../hugeicon-factory";
+
+export const House = /*#__PURE__*/ createHugeIcon(Home03, "House");
+export const HousePlug = /*#__PURE__*/ createHugeIcon(PlugZap, "HousePlug");
+export const Clock = /*#__PURE__*/ createHugeIcon(Clock01, "Clock");
+export const Clock3 = /*#__PURE__*/ createHugeIcon(Clock03, "Clock3");
+export const Settings = /*#__PURE__*/ createHugeIcon(Settings02, "Settings");
+export const Settings2 = /*#__PURE__*/ createHugeIcon(Settings04, "Settings2");
+export const Layers = /*#__PURE__*/ createHugeIcon(Layers01, "Layers");
+export const PanelRightClose = /*#__PURE__*/ createHugeIcon(PanelRightCloseIcon, "PanelRightClose");
+export const PanelLeftClose = /*#__PURE__*/ createHugeIcon(PanelLeftCloseIcon, "PanelLeftClose");
+
+export const ChevronLeft = /*#__PURE__*/ createHugeIcon(ArrowLeft01, "ChevronLeft");
+export const ChevronRight = /*#__PURE__*/ createHugeIcon(ArrowRight01, "ChevronRight");
+export const ChevronDown = /*#__PURE__*/ createHugeIcon(ArrowDown01, "ChevronDown");
+export const ChevronUp = /*#__PURE__*/ createHugeIcon(ArrowUp01, "ChevronUp");
+export const ArrowUp = /*#__PURE__*/ createHugeIcon(ArrowUp01, "ArrowUp");
+
+export const Plus = /*#__PURE__*/ createHugeIcon(Add01, "Plus");
+export const X = /*#__PURE__*/ createHugeIcon(Cancel01, "X");
+export const CheckCircle = /*#__PURE__*/ createHugeIcon(CheckmarkCircle02, "CheckCircle");
+export const XCircle = /*#__PURE__*/ createHugeIcon(CircleX, "XCircle");
+export const Trash2 = /*#__PURE__*/ createHugeIcon(Delete02, "Trash2");
+export const GripVertical = /*#__PURE__*/ createHugeIcon(MoreVertical, "GripVertical");
+export const Sliders = /*#__PURE__*/ createHugeIcon(SlidersHorizontal, "Sliders");
+export const Play = /*#__PURE__*/ createHugeIcon(PlayIcon, "Play");
+export const RefreshCw = /*#__PURE__*/ createHugeIcon(RefreshIcon, "RefreshCw");
+
+export const Mic = /*#__PURE__*/ createHugeIcon(MicIcon, "Mic");
+export const WifiOff = /*#__PURE__*/ createHugeIcon(WifiOff01, "WifiOff");
+export const CloudUpload = /*#__PURE__*/ createHugeIcon(CloudUploadIcon, "CloudUpload");
+export const Sun = /*#__PURE__*/ createHugeIcon(Sun03, "Sun");
+export const Moon = /*#__PURE__*/ createHugeIcon(Moon02, "Moon");
+
+export const House01Icon = House;
+export const Clock01Icon = Clock;
+export const Settings01Icon = Settings;
+export const Mic01Icon = Mic;
+export const Add01Icon = Plus;
+export const Cancel01Icon = X;

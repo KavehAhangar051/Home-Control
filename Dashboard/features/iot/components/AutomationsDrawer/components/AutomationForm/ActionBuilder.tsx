@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Layers, Play, Plus, Square } from "@/components/ui/hugeicons";
+import { Square } from "@/components/ui/hugeicons-groups/controls";
+import { Layers, Play, Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Select } from "@/components/ui/select";
 import type { AutomationAction } from "@/features/iot/hooks/store/types";
 import { useAutomationActions } from "../../hooks/useAutomationActions";

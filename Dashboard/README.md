@@ -4,37 +4,37 @@ A browser-based dashboard for monitoring and controlling ESP32-based home-automa
 
 ## Features and project areas
 
-- Dashboard and workspace UI for home-automation controls.
-- IoT feature modules for device-facing interactions and communication.
-- Settings UI and shared presets.
-- Shared header, query provider, and audio integration.
-- Static-site deployment configuration for GitHub Pages.
+- Multi-workspace dashboard and IoT UI (`Grid`, `Trellis`, infinite `Canvas`, and node-based `Workflows` studio).
+- IoT feature modules for ESP32 device communication over MQTT (WebSocket), local WebSocket, and Cloudflare KV sync.
+- Settings UI for theme/appearance presets (Light/Dark View Transitions, accents, contrast), typography, stability/FPS mode, and broker configuration.
+- Shared vertical right-rail header (`MasterHeader`) and browser Web Audio feedback (`lib/audio`).
+- Static-site export and GitHub Pages deployment workflow.
 
 Device availability depends on the ESP32 firmware, network connectivity, broker/socket configuration, and browser security policies. A successful UI command publish does not by itself guarantee that a physical device changed state.
 
 ## Technology
 
-- Next.js 15 App Router, React 19, TypeScript
-- Tailwind CSS v4
-- Zustand and TanStack React Query
-- MQTT client and WebSocket-based device communication
-- Motion and dnd-kit for interaction/drag-and-drop
-- Biome for linting and formatting
+- Next.js 16.4 App Router (`output: "export"` + Turbopack + React Compiler), React 19.3, TypeScript 7
+- Tailwind CSS v4 and PostCSS
+- Zustand 5 (`features/iot/hooks/useIoTStore.ts`) for client and hardware state
+- MQTT.js (async WebSocket transport) and native WebSocket client
+- Motion 14 (`LazyMotion` + async `domMax` + `AnimateView`), `@dnd-kit/react` / `@dnd-kit/dom`, Base UI, and `@danfessler/trellis-react`
+- Biome (lint/format), Oxlint diagnostic audit, and `node:test` deterministic suite
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the current source layout, module responsibilities, communication constraints, and contributor guidance. See [DESIGN.md](DESIGN.md) for verified UI conventions. Protocol and configuration references live in [docs/](docs/).
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the current source layout, module responsibilities, communication constraints, and contributor guidance. See [DESIGN.md](DESIGN.md) for verified UI conventions, and [docs/TECHNOLOGY-ROADMAP.md](docs/TECHNOLOGY-ROADMAP.md) / [docs/performance/60-FPS-STRATEGY.md](docs/performance/60-FPS-STRATEGY.md) for the active optimization direction.
 
 ## Requirements
 
-- Node.js compatible with the installed Next.js 15 release
-- npm
+- Node.js 20.9.0 or newer
+- Bun (`bun@1.4.4`, matching `bun.lock`)
 
 ## Local development
 
 ```bash
 git clone https://github.com/KamyarAhangar8778/Home-Control-Dashboard.git
 cd Home-Control-Dashboard
-npm install
-npm run dev
+bun install --frozen-lockfile
+bun run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -51,17 +51,21 @@ Do not commit `.env.local`, real credentials, private broker details, or API key
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Start the development server |
-| `npm run build` | Run the production build/static export |
-| `npm run lint` | Run Biome lint checks |
-| `npm run typecheck` | Run TypeScript compiler checks (`tsc --noEmit`) |
-| `npm run test` | Run deterministic domain and boundary contract tests |
-| `npm run check` | Run lint, typecheck, and deterministic tests together |
-| `npm run format` | Format source directories in place |
-| `npm run clean` | Remove local build/cache outputs |
-| `npm run start` | Run the Next.js server; not intended to preview the static `out/` export |
+| `bun run dev` | Start the Next.js development server with Turbopack |
+| `bun run dev:webpack` | Start the Webpack dev workflow (`DISABLE_HMR=true` compatibility) |
+| `bun run build` | Run the production static export (`out/`) with Turbopack |
+| `bun run analyze` | Capture a Turbopack bundle analysis snapshot under `.next/diagnostics/analyze` |
+| `bun run analyze:export` | Export the saved Turbopack bundle analyzer graph as JSON Lines |
+| `bun run lint` | Run Biome lint checks across `app`, `components`, `features`, and `lib` |
+| `bun run lint:ox` | Run Oxlint + Anti-Slop diagnostic checks |
+| `bun run typecheck` | Run TypeScript compiler checks (`tsc --noEmit`) |
+| `bun run test` | Run deterministic domain and boundary contract tests (`tests/*.test.mjs`) |
+| `bun run check` | Run lint, typecheck, and deterministic tests together |
+| `bun run format` | Format source directories in place with Biome |
+| `bun run clean` | Remove `.next`, `out`, and `tsconfig.tsbuildinfo` |
+| `bun run start` | Run the Next.js server; not intended to preview the static `out/` export |
 
-Run `npm run check` and `npm run build` before submitting changes when possible.
+Run `bun run lint`, `bun run typecheck`, and `bun run build` before submitting changes when possible.
 
 ## GitHub Pages
 

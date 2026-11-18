@@ -1,6 +1,6 @@
 import type { PointerEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic } from "@/components/ui/hugeicons";
+import { Mic } from "@/components/ui/hugeicons-groups/shell";
 import type { VoiceCommandButtonProps } from "./types";
 
 interface VerticalVoiceButtonProps extends VoiceCommandButtonProps {

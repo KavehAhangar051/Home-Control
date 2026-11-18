@@ -35,7 +35,6 @@ interface WorkflowNodeCardProps {
   timerCountdown: number | null;
   isSelected: boolean;
   isDragging?: boolean;
-  dragTiltDeg?: number;
   isLocked: boolean;
   animationsEnabled?: boolean;
   isConnectingSource: boolean;
@@ -63,16 +62,22 @@ function resolveNodeBorderClass(
   outputSignal: boolean,
 ): string {
   if (isDragging) return "border-accent3 ring-2 ring-accent3/40 shadow-2xl";
+
   if (isSelected) return "border-accent3 ring-2 ring-accent3/35 shadow-lg";
+
   if (isHighlighted) return "border-success ring-2 ring-success/40 shadow-lg";
+
   if (outputSignal) return "border-success/80 shadow-sm";
+
   return "border-border-color shadow-xs";
 }
 
 function resolveNodeMeta(node: WorkflowNode) {
   const hasInputPort = !isTriggerWorkflowNodeKind(node.kind);
+
   const isLogicGate =
     node.kind === "logic_and" || node.kind === "logic_or" || node.kind === "logic_not";
+
   return {
     hasInputPort,
     isLogicGate,
@@ -89,6 +94,7 @@ function buildInputPortSlots(
 ): WorkflowInputPortSlot[] {
   if (!hasInputPort) return [];
   const slots: WorkflowInputPortSlot[] = [];
+
   for (let i = 0; i < inputCount; i += 1) {
     slots.push({
       key: `${nodeId}:in:${i}`,
@@ -96,6 +102,7 @@ function buildInputPortSlots(
       offsetY: getInputPortOffsetY(nodeHeight, i, inputCount),
     });
   }
+
   return slots;
 }
 
@@ -103,6 +110,7 @@ function parseGroupSegmentDropId(raw: string): string | null {
   try {
     // SAFETY: Drag payload is serialized from WorkflowPaletteDragPayload
     const payload = JSON.parse(raw) as WorkflowPaletteDragPayload;
+
     return payload.kind === "segment" && payload.segmentId ? payload.segmentId : null;
   } catch {
     return null;
@@ -247,7 +255,9 @@ function useWorkflowNodeSegments(
 ) {
   const segmentMap = React.useMemo(() => {
     const map = new Map<string, Segment>();
+
     for (const seg of segments) map.set(seg.id, seg);
+
     return map;
   }, [segments]);
 
@@ -255,21 +265,26 @@ function useWorkflowNodeSegments(
 
   const groupMemberSegments = React.useMemo(() => {
     const list: Segment[] = [];
+
     for (const id of memberIds ?? []) {
       const seg = segmentMap.get(id);
+
       if (seg && seg.type !== "placeholder") list.push(seg);
     }
+
     return list;
   }, [memberIds, segmentMap]);
 
   const availableSegmentsForGroup = React.useMemo(() => {
     const existingSet = new Set(memberIds ?? []);
+
     return segments.filter((seg) => seg.type !== "placeholder" && !existingSet.has(seg.id));
   }, [memberIds, segments]);
 
   const addSegmentToGroup = (segmentId: string) => {
     if (!segmentId) return;
     const current = memberIds ?? [];
+
     if (!current.includes(segmentId)) {
       onUpdateNode(node.id, { memberSegmentIds: [...current, segmentId] });
     }
@@ -307,7 +322,6 @@ export default React.memo(function WorkflowNodeCard({
   timerCountdown,
   isSelected,
   isDragging = false,
-  dragTiltDeg = 0,
   isLocked,
   animationsEnabled = true,
   isConnectingSource,
@@ -345,6 +359,7 @@ export default React.memo(function WorkflowNodeCard({
   const handleGroupDrop = (e: React.DragEvent<HTMLDivElement>) => {
     if (node.kind !== "group") return;
     const raw = e.dataTransfer.getData(WORKFLOW_PALETTE_MIME);
+
     if (!raw) return;
 
     const droppedSegmentId = parseGroupSegmentDropId(raw);
@@ -363,6 +378,7 @@ export default React.memo(function WorkflowNodeCard({
     isDragOverGroup || isMagneticTarget,
     outputSignal,
   );
+
   const inputPortSlots = React.useMemo(
     () => buildInputPortSlots(hasInputPort, inputCount, node.id, node.height),
     [hasInputPort, inputCount, node.height, node.id],
@@ -372,6 +388,7 @@ export default React.memo(function WorkflowNodeCard({
     <section
       aria-label={node.label}
       data-canvas-node="true"
+      data-canvas-node-id={node.id}
       dir="rtl"
       onPointerDown={(e) => {
         if (e.button !== 2) onSelect(node.id);
@@ -394,9 +411,10 @@ export default React.memo(function WorkflowNodeCard({
     >
       <m.div
         initial={shouldAnimateMotion ? { opacity: 0, scale: 0.95, y: 6 } : false}
-        animate={resolveCanvasNodeMotionState(shouldAnimateMotion, isDragging, dragTiltDeg, 1.018)}
+        animate={resolveCanvasNodeMotionState(shouldAnimateMotion, isDragging, 0, 1.018)}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-[border-color,box-shadow] duration-150 ease-out ${borderClass}`}
+        style={shouldAnimateMotion ? { rotate: "var(--drag-tilt, 0deg)" } : undefined}
+        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-[border-color,box-shadow,rotate] duration-150 ease-out ${borderClass}`}
       >
         <NodePerimeterSpark
           active={outputSignal}

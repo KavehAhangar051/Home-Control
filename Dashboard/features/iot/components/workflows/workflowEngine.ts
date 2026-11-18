@@ -281,6 +281,7 @@ export function getInputPortOffsetY(
     MIN_INPUT_PORT_SPAN,
     nodeHeight - INPUT_PORT_TOP_PADDING - INPUT_PORT_BOTTOM_PADDING,
   );
+
   const clampedIdx = Math.max(0, Math.min(totalPorts - 1, portIndex));
 
   return Math.round(INPUT_PORT_TOP_PADDING + (span * clampedIdx) / (totalPorts - 1));
@@ -318,10 +319,12 @@ export function buildWorkflowBezierPath(
   endY: number,
 ): BezierPathGeometry {
   const deltaX = Math.abs(endX - startX);
+
   const offset = Math.max(
     BEZIER_MIN_CONTROL_OFFSET,
     Math.min(BEZIER_MAX_CONTROL_OFFSET, Math.round(deltaX * 0.5)),
   );
+
   const cp1X = startX + offset;
   const cp2X = endX - offset;
 

@@ -148,9 +148,11 @@ export default function DashboardWorkspace() {
   // Defer only the rendered view so Zustand updates can animate without duplicating store state.
   const deferredWorkspaceView = useDeferredValue(activeWorkspaceView);
   const shouldAnimateWorkspace = animationsEnabled && !prefersReducedMotion;
+
   const displayedWorkspaceView = shouldAnimateWorkspace
     ? deferredWorkspaceView
     : activeWorkspaceView;
+
   const segmentsLength = useIoTStore((s) => s.segments.length);
   const macrosLength = useIoTStore((s) => s.macros.length);
   const selectedGroupFilter = useIoTStore((s) => s.selectedGroupFilter);

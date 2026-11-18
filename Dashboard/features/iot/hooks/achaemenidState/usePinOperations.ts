@@ -13,16 +13,20 @@ type SetPinsStateFn = (
 
 type ShowToastFn = (message: string, type: "success" | "error") => void;
 
+export interface PinsStateMap {
+  [pin: string]: boolean;
+}
+
 export function rollbackSinglePinState(
-  prev: Record<string, boolean>,
+  prev: PinsStateMap,
   pin: string,
   attemptedState: boolean,
   prevState: boolean | undefined,
-): Record<string, boolean> {
+): PinsStateMap {
   if (prev[pin] !== attemptedState) return prev;
 
   if (prevState === undefined) {
-    const next: Record<string, boolean> = {};
+    const next: PinsStateMap = {};
 
     for (const key in prev) {
       if (Object.hasOwn(prev, key) && key !== pin) {
@@ -37,10 +41,10 @@ export function rollbackSinglePinState(
 }
 
 export function rollbackBatchPinState(
-  prev: Record<string, boolean>,
+  prev: PinsStateMap,
   previousSnapshots: ReadonlyMap<string, boolean | undefined>,
   attemptedUpdates: Readonly<Record<string, boolean>>,
-): Record<string, boolean> {
+): PinsStateMap {
   let changed = false;
 
   for (const [pinKey] of previousSnapshots) {
@@ -52,7 +56,7 @@ export function rollbackBatchPinState(
 
   if (!changed) return prev;
 
-  const next: Record<string, boolean> = {};
+  const next: PinsStateMap = {};
 
   for (const key in prev) {
     if (!Object.hasOwn(prev, key)) continue;
@@ -212,12 +216,15 @@ export function usePinOperations() {
 
     return () => {
       cancelled = true;
+
       if (idleId !== null && "cancelIdleCallback" in window) {
         window.cancelIdleCallback(idleId);
       }
+
       if (timeoutId !== null) {
         globalThis.clearTimeout(timeoutId);
       }
+
       unsubscribe();
     };
   }, [setPinsState]);

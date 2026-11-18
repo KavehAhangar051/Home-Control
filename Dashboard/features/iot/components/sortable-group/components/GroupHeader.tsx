@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { GripVertical } from "@/components/ui/hugeicons";
+import { GripVertical } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/features/iot/hooks/useMediaQuery";
 import { getSegmentIcon, hasIcon, ICON_MAP } from "@/features/iot/utils/icons";

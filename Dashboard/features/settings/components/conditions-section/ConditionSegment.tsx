@@ -1,4 +1,4 @@
-import { Settings2 } from "@/components/ui/hugeicons";
+import { Settings2 } from "@/components/ui/hugeicons-groups/shell";
 import type { ConditionAction } from "./ConditionActionItem";
 import { ConditionActionsList } from "./ConditionActionsList";
 

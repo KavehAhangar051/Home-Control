@@ -1,4 +1,4 @@
-import { Activity, VolumeX } from "@/components/ui/hugeicons";
+import { Activity, VolumeX } from "@/components/ui/hugeicons-groups/media";
 import { Toggle } from "@/components/ui/toggle";
 
 interface Props {

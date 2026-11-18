@@ -49,7 +49,6 @@ export default function CanvasWorkspace({
     selectedNodeId,
     isPanning,
     draggingNodeId,
-    dragTiltDeg,
     visibleGroups,
     visibleSegments,
     wireConnections,
@@ -142,7 +141,6 @@ export default function CanvasWorkspace({
                   subMode={settings.subMode}
                   isSelected={selectedNodeId === nodeId}
                   isDragging={draggingNodeId === nodeId}
-                  dragTiltDeg={draggingNodeId === nodeId ? dragTiltDeg : 0}
                   isLocked={settings.isLocked}
                   animationsEnabled={animationsEnabled}
                   onSelect={bringNodeToFront}
@@ -176,7 +174,6 @@ export default function CanvasWorkspace({
                   rect={rect}
                   isSelected={selectedNodeId === nodeId}
                   isDragging={draggingNodeId === nodeId}
-                  dragTiltDeg={draggingNodeId === nodeId ? dragTiltDeg : 0}
                   isLocked={settings.isLocked}
                   showPort={settings.subMode === "graph"}
                   animationsEnabled={animationsEnabled}

@@ -1,4 +1,5 @@
-import { Check, X } from "@/components/ui/hugeicons";
+import { Check } from "@/components/ui/hugeicons-groups/controls";
+import { X } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { AutomationAction, Macro, Segment } from "@/features/iot/hooks/store/types";

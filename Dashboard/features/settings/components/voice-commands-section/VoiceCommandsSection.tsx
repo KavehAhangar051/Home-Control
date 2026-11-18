@@ -1,6 +1,6 @@
 import { AnimatePresence, m } from "motion/react";
 import { useState } from "react";
-import { Mic, Plus } from "@/components/ui/hugeicons";
+import { Mic, Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { VoiceCommandEditCard, VoiceCommandViewCard } from "./VoiceCommandCard";

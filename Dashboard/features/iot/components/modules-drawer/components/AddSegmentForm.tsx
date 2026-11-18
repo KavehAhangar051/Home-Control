@@ -1,6 +1,6 @@
 import { AnimatePresence, m } from "motion/react";
 import { Card } from "@/components/ui/card";
-import { ChevronDown, Plus, Settings2 } from "@/components/ui/hugeicons";
+import { ChevronDown, Plus, Settings2 } from "@/components/ui/hugeicons-groups/shell";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import {

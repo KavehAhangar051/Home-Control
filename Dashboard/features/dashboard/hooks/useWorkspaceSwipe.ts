@@ -13,6 +13,7 @@ export function resolveSwipeGroupFilter(params: {
   minSwipeDistance?: number;
 }): string | null | undefined {
   const { touchStart, touchEnd, selectedGroupFilter, groupsOrder, minSwipeDistance = 50 } = params;
+
   if (!touchStart || !touchEnd) return undefined;
 
   const distanceX = touchStart.x - touchEnd.x;

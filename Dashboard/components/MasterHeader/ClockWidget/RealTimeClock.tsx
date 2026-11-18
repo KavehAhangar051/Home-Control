@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Clock } from "@/components/ui/hugeicons";
+import { Clock } from "@/components/ui/hugeicons-groups/shell";
 
 export default function RealTimeClock({
   time,

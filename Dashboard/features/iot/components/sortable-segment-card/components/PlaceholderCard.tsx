@@ -2,7 +2,7 @@ import type { RefCallback } from "react";
 import { m } from "motion/react";
 import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { GripVertical, Plus } from "@/components/ui/hugeicons";
+import { GripVertical, Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SPRING_LAYOUT, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 import type { SegmentData } from "../core/types";

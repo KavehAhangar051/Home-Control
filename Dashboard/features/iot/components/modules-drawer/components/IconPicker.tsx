@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp } from "@/components/ui/hugeicons";
+import { ChevronDown, ChevronUp } from "@/components/ui/hugeicons-groups/shell";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AVAILABLE_ICONS,
   getSegmentIcon,
   hasIcon,
+  preloadSegmentIcons,
   SUGGESTED_EMOJIS,
 } from "@/features/iot/utils/icons";
 
@@ -25,6 +26,10 @@ export default function IconPicker({
   const [showIcons, setShowIcons] = useState(false);
   const [iconMode, setIconMode] = useState<"emoji" | "hugeicons">("hugeicons");
 
+  const warmIconCatalog = () => {
+    preloadSegmentIcons(AVAILABLE_ICONS);
+  };
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -35,7 +40,12 @@ export default function IconPicker({
         type="button"
         aria-expanded={showIcons}
         aria-label={label}
-        onClick={() => setShowIcons(!showIcons)}
+        onMouseEnter={warmIconCatalog}
+        onFocus={warmIconCatalog}
+        onClick={() => {
+          warmIconCatalog();
+          setShowIcons(!showIcons);
+        }}
         className="w-full h-10 px-3 text-xs bg-bg-main text-text-primary border border-border-color rounded-lg flex items-center justify-between hover:border-accent3 transition-colors font-sans"
       >
         {showIcons ? (

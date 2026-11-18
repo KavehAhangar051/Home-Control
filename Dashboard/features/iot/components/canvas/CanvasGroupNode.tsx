@@ -5,7 +5,7 @@ import { m } from "motion/react";
 import React from "react";
 import { useShallow } from "zustand/react/shallow";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Plus } from "@/components/ui/hugeicons";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { getSegmentIcon, hasIcon, ICON_MAP } from "@/features/iot/utils/icons";
@@ -48,8 +48,11 @@ function resolveGroupBorderClass(
   activeCount: number,
 ): string {
   if (isDragging) return "border-accent3 ring-2 ring-accent3/40 shadow-2xl";
+
   if (isSelected) return "border-accent3 ring-2 ring-accent3/35 shadow-xl";
+
   if (activeCount > 0) return "border-accent3/65 shadow-sm";
+
   return "border-border-color shadow-xs";
 }
 
@@ -72,6 +75,7 @@ function countGroupSegments(groupSegments: Segment[], pinsState: Record<string, 
   for (const seg of groupSegments) {
     if (seg.type !== "placeholder" && seg.pin) {
       if (seg.type !== "input") controllableCount += 1;
+
       if (pinsState[seg.pin]) activeCount += 1;
     }
   }
@@ -224,6 +228,7 @@ export default React.memo(function CanvasGroupNode({
   onSetupPlaceholder,
 }: CanvasGroupNodeProps) {
   const groupIcon = useIoTStore((s) => s.groupConfigs[groupName]?.icon);
+
   const { activeCount, controllableCount } = useIoTStore(
     useShallow(
       React.useCallback(
@@ -232,8 +237,10 @@ export default React.memo(function CanvasGroupNode({
       ),
     ),
   );
+
   const borderClass = resolveGroupBorderClass(isDragging, isSelected, activeCount);
   const zIndex = isDragging ? 950 : isSelected ? 890 : rect.zIndex;
+
   const animateState = resolveCanvasNodeMotionState(
     animationsEnabled,
     isDragging,
@@ -244,6 +251,7 @@ export default React.memo(function CanvasGroupNode({
   return (
     <div
       data-canvas-node="true"
+      data-canvas-node-id={nodeId}
       dir="rtl"
       onPointerDown={(e) => {
         if (e.button !== 2) onSelect(nodeId);
@@ -260,7 +268,8 @@ export default React.memo(function CanvasGroupNode({
         initial={animationsEnabled ? { opacity: 0, scale: 0.95, y: 8 } : false}
         animate={animateState}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-[border-color,box-shadow] duration-150 ${borderClass}`}
+        style={animationsEnabled ? { rotate: "var(--drag-tilt, 0deg)" } : undefined}
+        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-[border-color,box-shadow,rotate] duration-150 ${borderClass}`}
       >
         {subMode === "graph" && (
           <CanvasGroupGraphPort active={activeCount > 0} animationsEnabled={animationsEnabled} />

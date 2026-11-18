@@ -4,6 +4,9 @@ export function useGroupHeaderLayout() {
   const [isCompact, setIsCompact] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  const isCompactRef = useRef(isCompact);
+  isCompactRef.current = isCompact;
+
   const titleContainerRef = useRef<HTMLDivElement>(null);
   const titleTextRef = useRef<HTMLHeadingElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -19,7 +22,7 @@ export function useGroupHeaderLayout() {
       const textWidth = text.scrollWidth;
       const textClientWidth = text.clientWidth;
 
-      if (!isCompact) {
+      if (!isCompactRef.current) {
         if (textWidth > textClientWidth) {
           setIsCompact(true);
         }
@@ -37,9 +40,11 @@ export function useGroupHeaderLayout() {
     observer.observe(container);
 
     return () => observer.disconnect();
-  }, [isCompact]);
+  }, []);
 
   useEffect(() => {
+    if (!isSettingsOpen) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target;
 
@@ -55,12 +60,19 @@ export function useGroupHeaderLayout() {
       }
     };
 
-    if (isSettingsOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSettingsOpen(false);
+        buttonRef.current?.focus({ preventScroll: true });
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isSettingsOpen]);
 

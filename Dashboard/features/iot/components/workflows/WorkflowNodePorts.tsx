@@ -80,6 +80,7 @@ export default function WorkflowNodePorts({
     <>
       {inputPortSlots.map((slot) => {
         const isPortConnected = slot.index < incomingCount;
+
         const inputClass = resolveInputPortClassName(
           isMagneticTarget,
           isConnectTargetHighlight,

@@ -18,8 +18,13 @@ export interface AmbientAudioLike {
   volume: number;
   src: string;
   currentTime: number;
-  play: () => Promise<unknown>;
+  play: () => Promise<void>;
   pause: () => void;
+}
+
+export interface AmbientMusicErrorDetail {
+  message: string;
+  cause: unknown;
 }
 
 export interface AmbientManagerDeps {
@@ -34,9 +39,9 @@ export interface AmbientManagerDeps {
   createAudioFn?: () => AmbientAudioLike;
   dispatchEventFn?: (
     eventName: "ambientMusicStarted" | "ambientMusicError",
-    detail?: unknown,
+    detail?: AmbientMusicErrorDetail,
   ) => void;
-  getAudioContextFn?: () => unknown;
+  getAudioContextFn?: () => AudioContext | null | undefined;
   fetchFn?: typeof fetch;
   resolvePlayableUrlFn?: (url: string) => Promise<string>;
 }
@@ -91,7 +96,14 @@ export class AmbientManager {
       isBrowserEnvironment: deps.isBrowserEnvironment ?? (() => typeof window !== "undefined"),
       randomFn: deps.randomFn ?? (() => Math.random()),
       getMusicSource:
-        deps.getMusicSource ?? (() => localStorage.getItem("music_source") || "local"),
+        deps.getMusicSource ??
+        (() => {
+          try {
+            return window.localStorage.getItem("music_source") || "local";
+          } catch {
+            return "local";
+          }
+        }),
       readCachedTrack: deps.readCachedTrack ?? tryRestoreCachedTrack,
       writeCachedTrack: deps.writeCachedTrack ?? persistSelectedTrack,
       getFallbackBaseUri: deps.getFallbackBaseUri ?? (() => document.baseURI),
@@ -188,6 +200,7 @@ export class AmbientManager {
 
       if (restored) {
         this.currentTrack = restored;
+
         if (this.isAmbientPlaying) await this.playCurrentTrack();
         this.onTrackUpdateCallback?.(this.currentTrack);
 
@@ -319,7 +332,7 @@ export class AmbientManager {
       });
       this.deps.dispatchEventFn("ambientMusicError", {
         message: "پخش آهنگ ناموفق بود. اتصال و منبع فایل را بررسی کن.",
-        error,
+        cause: error,
       });
     }
 

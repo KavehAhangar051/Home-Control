@@ -1,6 +1,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Save } from "@/components/ui/hugeicons";
+import { Save } from "@/components/ui/hugeicons-groups/controls";
+import { RefreshCw } from "@/components/ui/hugeicons-groups/shell";
 import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";

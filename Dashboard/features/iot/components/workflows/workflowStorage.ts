@@ -52,9 +52,7 @@ function hydrateStoredWorkflow(
     })),
     edges: rawWorkflow.edges,
     viewport: rawWorkflow.viewport ?? { ...DEFAULT_WORKFLOW_VIEWPORT },
-    updatedAt: Number.isFinite(rawWorkflow.updatedAt)
-      ? (rawWorkflow.updatedAt as number)
-      : Date.now(),
+    updatedAt: Number.isFinite(rawWorkflow.updatedAt) ? Number(rawWorkflow.updatedAt) : Date.now(),
   };
 }
 
@@ -81,6 +79,7 @@ export function readStoredWorkflowState(): WorkflowStudioState {
 
     for (const rawWorkflow of parsed.workflows) {
       const hydrated = hydrateStoredWorkflow(rawWorkflow);
+
       if (hydrated) validWorkflows.push(hydrated);
     }
 

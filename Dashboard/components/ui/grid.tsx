@@ -13,7 +13,9 @@ type GridCols =
   | "auto-lg"
   | "container-2"
   | "container-3";
+
 type GridGap = "none" | "sm" | "md" | "lg" | "xl" | "fluid-sm" | "fluid-md" | "fluid-lg";
+
 type ContainerSize = "sm" | "md" | "lg" | "xl" | "2xl" | "full";
 
 const gridColClasses: Record<GridCols, string> = {

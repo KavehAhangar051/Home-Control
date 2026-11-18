@@ -1,135 +1,415 @@
-import { Activity01 } from "@/components/animate-ui/icons/hugeicons/activity-01";
-import { Airplay } from "@/components/animate-ui/icons/hugeicons/airplay";
-import { BatteryCharging } from "@/components/animate-ui/icons/hugeicons/battery-charging";
-import { BatteryFull } from "@/components/animate-ui/icons/hugeicons/battery-full";
-import { Bluetooth } from "@/components/animate-ui/icons/hugeicons/bluetooth";
-import { Bookmark } from "@/components/animate-ui/icons/hugeicons/bookmark";
-import { Bot } from "@/components/animate-ui/icons/hugeicons/bot";
-import { Camera } from "@/components/animate-ui/icons/hugeicons/camera";
-import { Cancel01 } from "@/components/animate-ui/icons/hugeicons/cancel-01";
-import { Cast } from "@/components/animate-ui/icons/hugeicons/cast";
-import { Check as CheckIcon } from "@/components/animate-ui/icons/hugeicons/check";
-import { CircuitBoard } from "@/components/animate-ui/icons/hugeicons/circuit-board";
-import { Clapperboard } from "@/components/animate-ui/icons/hugeicons/clapperboard";
-import { Clock01 } from "@/components/animate-ui/icons/hugeicons/clock-01";
-import { CloudRain } from "@/components/animate-ui/icons/hugeicons/cloud-rain";
-import { CloudRainWind } from "@/components/animate-ui/icons/hugeicons/cloud-rain-wind";
-import { Coffee02 } from "@/components/animate-ui/icons/hugeicons/coffee-02";
-import { ComputerTerminal01 } from "@/components/animate-ui/icons/hugeicons/computer-terminal-01";
-import { Droplet } from "@/components/animate-ui/icons/hugeicons/droplet";
-import { Fan } from "@/components/animate-ui/icons/hugeicons/fan";
-import { Flame } from "@/components/animate-ui/icons/hugeicons/flame";
-import { Flash } from "@/components/animate-ui/icons/hugeicons/flash";
-import { Home03 } from "@/components/animate-ui/icons/hugeicons/home-03";
-import { Key01 } from "@/components/animate-ui/icons/hugeicons/key-01";
-import { Layers01 } from "@/components/animate-ui/icons/hugeicons/layers-01";
-import { Leaf } from "@/components/animate-ui/icons/hugeicons/leaf";
-import { Lightbulb } from "@/components/animate-ui/icons/hugeicons/lightbulb";
-import { Location01 } from "@/components/animate-ui/icons/hugeicons/location-01";
-import { LockKeyhole } from "@/components/animate-ui/icons/hugeicons/lock-keyhole";
-import { LockKeyholeOpen } from "@/components/animate-ui/icons/hugeicons/lock-keyhole-open";
-import { Menu01 } from "@/components/animate-ui/icons/hugeicons/menu-01";
-import { Mic } from "@/components/animate-ui/icons/hugeicons/mic";
-import { Moon02 } from "@/components/animate-ui/icons/hugeicons/moon-02";
-import { Music3 } from "@/components/animate-ui/icons/hugeicons/music-3";
-import { Notification01 } from "@/components/animate-ui/icons/hugeicons/notification-01";
-import { Pause } from "@/components/animate-ui/icons/hugeicons/pause";
-import { Phone } from "@/components/animate-ui/icons/hugeicons/phone";
-import { PhoneCall } from "@/components/animate-ui/icons/hugeicons/phone-call";
-import { PlaneTakeoff } from "@/components/animate-ui/icons/hugeicons/plane-takeoff";
-import { Play } from "@/components/animate-ui/icons/hugeicons/play";
-import { Power } from "@/components/animate-ui/icons/hugeicons/power";
-import { Radio } from "@/components/animate-ui/icons/hugeicons/radio";
-import { Refresh } from "@/components/animate-ui/icons/hugeicons/refresh";
-import { Search01 } from "@/components/animate-ui/icons/hugeicons/search-01";
-import { Settings02 } from "@/components/animate-ui/icons/hugeicons/settings-02";
-import { ShieldCheck } from "@/components/animate-ui/icons/hugeicons/shield-check";
-import { Snowflake } from "@/components/animate-ui/icons/hugeicons/snowflake";
-import { SquareX } from "@/components/animate-ui/icons/hugeicons/square-x";
-import { Sun03 } from "@/components/animate-ui/icons/hugeicons/sun-03";
-import { Temperature } from "@/components/animate-ui/icons/hugeicons/temperature";
-import { Timer } from "@/components/animate-ui/icons/hugeicons/timer";
-import { View } from "@/components/animate-ui/icons/hugeicons/view";
-import { VolumeHigh } from "@/components/animate-ui/icons/hugeicons/volume-high";
-import { Waves } from "@/components/animate-ui/icons/hugeicons/waves";
-import { Wifi01 } from "@/components/animate-ui/icons/hugeicons/wifi-01";
-import { createHugeIcon, type HugeIconComponent } from "@/components/ui/hugeicons";
+"use client";
 
-export const ICON_MAP = {
-  Cpu: createHugeIcon(CircuitBoard, "Cpu"),
-  Lightbulb: createHugeIcon(Lightbulb, "Lightbulb"),
-  Zap: createHugeIcon(Flash, "Zap"),
-  Power: createHugeIcon(Power, "Power"),
-  Fan: createHugeIcon(Fan, "Fan"),
-  Droplets: createHugeIcon(Droplet, "Droplets"),
-  Droplet: createHugeIcon(Droplet, "Droplet"),
-  Thermometer: createHugeIcon(Temperature, "Thermometer"),
-  ThermometerSun: createHugeIcon(Temperature, "ThermometerSun"),
-  Lock: createHugeIcon(LockKeyhole, "Lock"),
-  Unlock: createHugeIcon(LockKeyholeOpen, "Unlock"),
-  Key: createHugeIcon(Key01, "Key"),
-  Shield: createHugeIcon(ShieldCheck, "Shield"),
-  Bell: createHugeIcon(Notification01, "Bell"),
-  Camera: createHugeIcon(Camera, "Camera"),
-  Video: createHugeIcon(Clapperboard, "Video"),
-  Tv: createHugeIcon(Cast, "Tv"),
-  Monitor: createHugeIcon(ComputerTerminal01, "Monitor"),
-  Smartphone: createHugeIcon(Phone, "Smartphone"),
-  Phone: createHugeIcon(PhoneCall, "Phone"),
-  Speaker: createHugeIcon(VolumeHigh, "Speaker"),
-  Volume2: createHugeIcon(VolumeHigh, "Volume2"),
-  Mic: createHugeIcon(Mic, "Mic"),
-  Music: createHugeIcon(Music3, "Music"),
-  Radio: createHugeIcon(Radio, "Radio"),
-  Airplay: createHugeIcon(Airplay, "Airplay"),
-  Wifi: createHugeIcon(Wifi01, "Wifi"),
-  Bluetooth: createHugeIcon(Bluetooth, "Bluetooth"),
-  Sun: createHugeIcon(Sun03, "Sun"),
-  Moon: createHugeIcon(Moon02, "Moon"),
-  Cloud: createHugeIcon(CloudRain, "Cloud"),
-  Wind: createHugeIcon(CloudRainWind, "Wind"),
-  Flame: createHugeIcon(Flame, "Flame"),
-  Snowflake: createHugeIcon(Snowflake, "Snowflake"),
-  Waves: createHugeIcon(Waves, "Waves"),
-  Sprout: createHugeIcon(Leaf, "Sprout"),
-  Leaf: createHugeIcon(Leaf, "Leaf"),
-  Home: createHugeIcon(Home03, "Home"),
-  Car: createHugeIcon(PlaneTakeoff, "Car"),
-  Settings: createHugeIcon(Settings02, "Settings"),
-  Activity: createHugeIcon(Activity01, "Activity"),
-  Layers: createHugeIcon(Layers01, "Layers"),
-  Battery: createHugeIcon(BatteryCharging, "Battery"),
-  BatteryFull: createHugeIcon(BatteryFull, "BatteryFull"),
-  Clock: createHugeIcon(Clock01, "Clock"),
-  Timer: createHugeIcon(Timer, "Timer"),
-  Eye: createHugeIcon(View, "Eye"),
-  MapPin: createHugeIcon(Location01, "MapPin"),
-  Book: createHugeIcon(Bookmark, "Book"),
-  Coffee: createHugeIcon(Coffee02, "Coffee"),
-  Server: createHugeIcon(ComputerTerminal01, "Server"),
-  Gamepad2: createHugeIcon(Bot, "Gamepad2"),
-  Play: createHugeIcon(Play, "Play"),
-  Pause: createHugeIcon(Pause, "Pause"),
-  Square: createHugeIcon(SquareX, "Square"),
-  Check: createHugeIcon(CheckIcon, "Check"),
-  RefreshCw: createHugeIcon(Refresh, "RefreshCw"),
-  X: createHugeIcon(Cancel01, "X"),
-  Menu: createHugeIcon(Menu01, "Menu"),
-  Search: createHugeIcon(Search01, "Search"),
+import { createElement, memo, useEffect, useSyncExternalStore } from "react";
+import { CircuitBoard } from "@/components/animate-ui/icons/hugeicons/circuit-board";
+import { Layers01 } from "@/components/animate-ui/icons/hugeicons/layers-01";
+import {
+  createHugeIcon,
+  type HugeIconComponent,
+  type HugeIconProps,
+} from "@/components/ui/hugeicon-factory";
+import { cn } from "@/lib/utils";
+import { createLazyIconRegistry, type IconLoader } from "./iconRegistry";
+
+const CpuIcon = createHugeIcon(CircuitBoard, "Cpu");
+const LayersIcon = createHugeIcon(Layers01, "Layers");
+
+const STATIC_ICONS = {
+  Cpu: CpuIcon,
+  Layers: LayersIcon,
 } satisfies Record<string, HugeIconComponent>;
 
-export const hasIcon = (icon?: string): boolean => Boolean(icon && icon in ICON_MAP);
-
-export const getSegmentIcon = (icon?: string): HugeIconComponent => {
-  if (icon && icon in ICON_MAP) {
-    // SAFETY: verified key membership in ICON_MAP via in operator
-    return ICON_MAP[icon as keyof typeof ICON_MAP];
-  }
-
-  return ICON_MAP.Cpu;
+const lazy = <TMod>(
+  importFn: () => Promise<TMod>,
+  pick: (mod: TMod) => Parameters<typeof createHugeIcon>[0],
+  displayName: string,
+): IconLoader<HugeIconComponent> => {
+  return async () => createHugeIcon(pick(await importFn()), displayName);
 };
 
-export const AVAILABLE_ICONS = Object.keys(ICON_MAP);
+const LAZY_ICON_LOADERS = {
+  Lightbulb: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/lightbulb"),
+    (m) => m.Lightbulb,
+    "Lightbulb",
+  ),
+  Zap: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/flash"),
+    (m) => m.Flash,
+    "Zap",
+  ),
+  Power: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/power"),
+    (m) => m.Power,
+    "Power",
+  ),
+  Fan: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/fan"),
+    (m) => m.Fan,
+    "Fan",
+  ),
+  Droplets: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/droplet"),
+    (m) => m.Droplet,
+    "Droplets",
+  ),
+  Droplet: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/droplet"),
+    (m) => m.Droplet,
+    "Droplet",
+  ),
+  Thermometer: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/temperature"),
+    (m) => m.Temperature,
+    "Thermometer",
+  ),
+  ThermometerSun: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/temperature"),
+    (m) => m.Temperature,
+    "ThermometerSun",
+  ),
+  Lock: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/lock-keyhole"),
+    (m) => m.LockKeyhole,
+    "Lock",
+  ),
+  Unlock: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/lock-keyhole-open"),
+    (m) => m.LockKeyholeOpen,
+    "Unlock",
+  ),
+  Key: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/key-01"),
+    (m) => m.Key01,
+    "Key",
+  ),
+  Shield: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/shield-check"),
+    (m) => m.ShieldCheck,
+    "Shield",
+  ),
+  Bell: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/notification-01"),
+    (m) => m.Notification01,
+    "Bell",
+  ),
+  Camera: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/camera"),
+    (m) => m.Camera,
+    "Camera",
+  ),
+  Video: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/clapperboard"),
+    (m) => m.Clapperboard,
+    "Video",
+  ),
+  Tv: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/cast"),
+    (m) => m.Cast,
+    "Tv",
+  ),
+  Monitor: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/computer-terminal-01"),
+    (m) => m.ComputerTerminal01,
+    "Monitor",
+  ),
+  Smartphone: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/phone"),
+    (m) => m.Phone,
+    "Smartphone",
+  ),
+  Phone: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/phone-call"),
+    (m) => m.PhoneCall,
+    "Phone",
+  ),
+  Speaker: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/volume-high"),
+    (m) => m.VolumeHigh,
+    "Speaker",
+  ),
+  Volume2: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/volume-high"),
+    (m) => m.VolumeHigh,
+    "Volume2",
+  ),
+  Mic: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/mic"),
+    (m) => m.Mic,
+    "Mic",
+  ),
+  Music: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/music-3"),
+    (m) => m.Music3,
+    "Music",
+  ),
+  Radio: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/radio"),
+    (m) => m.Radio,
+    "Radio",
+  ),
+  Airplay: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/airplay"),
+    (m) => m.Airplay,
+    "Airplay",
+  ),
+  Wifi: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/wifi-01"),
+    (m) => m.Wifi01,
+    "Wifi",
+  ),
+  Bluetooth: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/bluetooth"),
+    (m) => m.Bluetooth,
+    "Bluetooth",
+  ),
+  Sun: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/sun-03"),
+    (m) => m.Sun03,
+    "Sun",
+  ),
+  Moon: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/moon-02"),
+    (m) => m.Moon02,
+    "Moon",
+  ),
+  Cloud: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/cloud-rain"),
+    (m) => m.CloudRain,
+    "Cloud",
+  ),
+  Wind: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/cloud-rain-wind"),
+    (m) => m.CloudRainWind,
+    "Wind",
+  ),
+  Flame: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/flame"),
+    (m) => m.Flame,
+    "Flame",
+  ),
+  Snowflake: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/snowflake"),
+    (m) => m.Snowflake,
+    "Snowflake",
+  ),
+  Waves: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/waves"),
+    (m) => m.Waves,
+    "Waves",
+  ),
+  Sprout: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/leaf"),
+    (m) => m.Leaf,
+    "Sprout",
+  ),
+  Leaf: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/leaf"),
+    (m) => m.Leaf,
+    "Leaf",
+  ),
+  Home: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/home-03"),
+    (m) => m.Home03,
+    "Home",
+  ),
+  Car: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/plane-takeoff"),
+    (m) => m.PlaneTakeoff,
+    "Car",
+  ),
+  Settings: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/settings-02"),
+    (m) => m.Settings02,
+    "Settings",
+  ),
+  Activity: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/activity-01"),
+    (m) => m.Activity01,
+    "Activity",
+  ),
+  Battery: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/battery-charging"),
+    (m) => m.BatteryCharging,
+    "Battery",
+  ),
+  BatteryFull: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/battery-full"),
+    (m) => m.BatteryFull,
+    "BatteryFull",
+  ),
+  Clock: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/clock-01"),
+    (m) => m.Clock01,
+    "Clock",
+  ),
+  Timer: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/timer"),
+    (m) => m.Timer,
+    "Timer",
+  ),
+  Eye: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/view"),
+    (m) => m.View,
+    "Eye",
+  ),
+  MapPin: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/location-01"),
+    (m) => m.Location01,
+    "MapPin",
+  ),
+  Book: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/bookmark"),
+    (m) => m.Bookmark,
+    "Book",
+  ),
+  Coffee: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/coffee-02"),
+    (m) => m.Coffee02,
+    "Coffee",
+  ),
+  Server: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/computer-terminal-01"),
+    (m) => m.ComputerTerminal01,
+    "Server",
+  ),
+  Gamepad2: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/bot"),
+    (m) => m.Bot,
+    "Gamepad2",
+  ),
+  Play: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/play"),
+    (m) => m.Play,
+    "Play",
+  ),
+  Pause: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/pause"),
+    (m) => m.Pause,
+    "Pause",
+  ),
+  Square: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/square-x"),
+    (m) => m.SquareX,
+    "Square",
+  ),
+  Check: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/check"),
+    (m) => m.Check,
+    "Check",
+  ),
+  RefreshCw: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/refresh"),
+    (m) => m.Refresh,
+    "RefreshCw",
+  ),
+  X: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/cancel-01"),
+    (m) => m.Cancel01,
+    "X",
+  ),
+  Menu: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/menu-01"),
+    (m) => m.Menu01,
+    "Menu",
+  ),
+  Search: lazy(
+    () => import("@/components/animate-ui/icons/hugeicons/search-01"),
+    (m) => m.Search01,
+    "Search",
+  ),
+} satisfies Record<string, IconLoader<HugeIconComponent>>;
+
+const iconRegistry = createLazyIconRegistry<HugeIconComponent>(
+  STATIC_ICONS,
+  LAZY_ICON_LOADERS,
+  "Cpu",
+);
+
+const getServerIconFallback = () => null;
+
+function LazySegmentIcon({ iconKey, ...props }: HugeIconProps & { iconKey: string }) {
+  const LoadedIcon = useSyncExternalStore(
+    iconRegistry.subscribe,
+    () => iconRegistry.getResolved(iconKey),
+    getServerIconFallback,
+  );
+
+  useEffect(() => {
+    if (!iconRegistry.getResolved(iconKey)) {
+      void iconRegistry.loadIcon(iconKey);
+    }
+  }, [iconKey]);
+
+  if (!LoadedIcon) {
+    return createElement("span", {
+      "aria-hidden": true,
+      className: cn("inline-block shrink-0", props.className),
+    });
+  }
+
+  return createElement(LoadedIcon, props);
+}
+
+function renderBoundSegmentIcon(this: string, props: HugeIconProps) {
+  return createElement(LazySegmentIcon, { ...props, iconKey: this });
+}
+
+const LAZY_WRAPPER_CACHE = new Map<string, HugeIconComponent>();
+
+const getLazyWrapper = (iconKey: string): HugeIconComponent => {
+  const cached = LAZY_WRAPPER_CACHE.get(iconKey);
+
+  if (cached) return cached;
+
+  const wrapper = memo(renderBoundSegmentIcon.bind(iconKey));
+  wrapper.displayName = `LazyHugeIcon(${iconKey})`;
+
+  LAZY_WRAPPER_CACHE.set(iconKey, wrapper);
+
+  return wrapper;
+};
+
+export interface SegmentIconMap {
+  [key: string]: HugeIconComponent;
+  Cpu: HugeIconComponent;
+  Layers: HugeIconComponent;
+}
+
+/**
+ * Compatibility map retaining direct `ICON_MAP.Cpu` / `ICON_MAP.Layers` synchronous access
+ * while loading all other segment icons on demand.
+ */
+export const ICON_MAP: SegmentIconMap = {
+  Cpu: CpuIcon,
+  Layers: LayersIcon,
+};
+
+for (const key of Object.keys(LAZY_ICON_LOADERS)) {
+  ICON_MAP[key] = getLazyWrapper(key);
+}
+
+export const hasIcon = (icon?: string): boolean => iconRegistry.hasIcon(icon);
+
+export const getSegmentIcon = (icon?: string): HugeIconComponent => {
+  if (icon && iconRegistry.hasIcon(icon)) {
+    return iconRegistry.getResolved(icon) ?? getLazyWrapper(icon);
+  }
+
+  return CpuIcon;
+};
+
+export const preloadSegmentIcons = (icons: readonly string[]): void => {
+  iconRegistry.preloadIcons(icons);
+};
+
+// Preserve the historical picker order (Cpu first, then the remaining 54 icons in order)
+export const AVAILABLE_ICONS: string[] = [
+  "Cpu",
+  ...Object.keys(LAZY_ICON_LOADERS).slice(0, 38),
+  "Layers",
+  ...Object.keys(LAZY_ICON_LOADERS).slice(38),
+];
 
 export const SUGGESTED_EMOJIS = [
   "⚡",

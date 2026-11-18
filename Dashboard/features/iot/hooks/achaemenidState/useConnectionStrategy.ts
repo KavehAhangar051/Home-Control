@@ -2,7 +2,11 @@
 
 import { useEffect } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { dispatchLocalState, setLocalWs } from "@/features/iot/services/localWs/client";
+import {
+  dispatchLocalState,
+  type MinimalLocalSocket,
+  setLocalWs,
+} from "@/features/iot/services/localWs/client";
 import { computeFullJitterDelayMs } from "@/lib/resilience";
 
 const LOCAL_WS_RECONNECT_BASE_MS = 1000;
@@ -10,10 +14,10 @@ const LOCAL_WS_RECONNECT_MAX_MS = 30_000;
 
 export interface LocalWebSocketLike {
   readyState: number;
-  onopen: (() => void) | null;
+  onopen: ((ev: Event) => void) | (() => void) | null;
   onmessage: ((event: { data: string }) => void) | null;
-  onclose: (() => void) | null;
-  onerror: ((err: unknown) => void) | null;
+  onclose: ((ev: CloseEvent) => void) | (() => void) | null;
+  onerror: ((err: Event) => void) | null;
   send: (data: string) => void;
   close: () => void;
 }
@@ -26,7 +30,7 @@ export interface LocalWebSocketControllerDeps {
   ) => void;
   isNativeRuntime?: () => boolean;
   createWebSocket?: (url: string) => LocalWebSocketLike;
-  setLocalWs?: (ws: WebSocket | null) => void;
+  setLocalWs?: (ws: MinimalLocalSocket | null) => void;
   dispatchLocalState?: (pin: string, state: boolean) => void;
   scheduleTimeout?: (fn: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
   clearTimeoutFn?: (id: ReturnType<typeof setTimeout>) => void;
@@ -44,8 +48,11 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
     (() =>
       // @ts-expect-error Capacitor global is injected only in native mobile builds
       typeof window !== "undefined" && Boolean(window.Capacitor?.isNative));
+
+  // SAFETY: Native browser WebSocket implements LocalWebSocketLike handler slots and send/close
   const createWebSocket =
-    deps.createWebSocket ?? ((url: string) => new WebSocket(url) as unknown as LocalWebSocketLike);
+    deps.createWebSocket ?? ((url: string) => new WebSocket(url) as LocalWebSocketLike);
+
   const setLocalWsFn = deps.setLocalWs ?? setLocalWs;
   const dispatchLocalStateFn = deps.dispatchLocalState ?? dispatchLocalState;
   const scheduleTimeout = deps.scheduleTimeout ?? ((fn, delayMs) => setTimeout(fn, delayMs));
@@ -75,7 +82,7 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
 
     console.log(`[LocalWS] Attempting connection to ws://${deps.localIp}:81`);
     ws = createWebSocket(`ws://${deps.localIp}:81`);
-    setLocalWsFn(ws as unknown as WebSocket);
+    setLocalWsFn(ws);
 
     ws.onopen = () => {
       if (!isMounted) return;
@@ -122,6 +129,7 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
         LOCAL_WS_RECONNECT_MAX_MS,
         randomFn,
       );
+
       reconnectAttempt += 1;
       reconnectTimer = scheduleTimeout(connect, delayMs);
     };

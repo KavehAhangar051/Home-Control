@@ -49,6 +49,7 @@ export function planAddSegment(params: {
   }
 
   const finalGroup = resolveSegmentGroup(input.group);
+
   const newSegment: Segment = {
     id: createId(),
     type: input.type,
@@ -108,11 +109,16 @@ export function planGroupOrderRegistration(prev: readonly string[], finalGroup: 
   return prev.includes(finalGroup) ? [...prev] : [...prev, finalGroup];
 }
 
+export interface RemoveGroupPlan {
+  nextGroupsOrder: string[];
+  nextSegments: Segment[];
+}
+
 export function planRemoveGroup(params: {
   groupsOrder: readonly string[];
   segments: readonly Segment[];
   groupId: string;
-}): { nextGroupsOrder: string[]; nextSegments: Segment[] } {
+}): RemoveGroupPlan {
   return {
     nextGroupsOrder: params.groupsOrder.filter((g) => g !== params.groupId),
     nextSegments: params.segments.filter((s) => resolveSegmentGroup(s.group) !== params.groupId),

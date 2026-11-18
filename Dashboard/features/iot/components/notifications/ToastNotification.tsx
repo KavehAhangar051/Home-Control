@@ -4,7 +4,7 @@ import { AnimatePresence, m } from "motion/react";
 import { useEffect } from "react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, X, XCircle } from "@/components/ui/hugeicons";
+import { CheckCircle, X, XCircle } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { soundManager } from "@/lib/audio";
 import {

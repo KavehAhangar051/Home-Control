@@ -17,7 +17,12 @@ import type {
   CanvasSubMode,
   CanvasViewport,
 } from "./canvasTypes";
-import { computeDragTiltDeg } from "./nodeMotion";
+import {
+  clearNodeDragTiltCssVar,
+  computeDragTiltDeg,
+  findNodeTiltElement,
+  setNodeDragTiltCssVar,
+} from "./nodeMotion";
 
 const GROUP_NODE_PREFIX = "group:";
 
@@ -85,13 +90,17 @@ export function computeResizedNodeRect({
   let rawY = startRect.y;
 
   if (direction.includes("e")) rawWidth = startRect.width + dx;
+
   if (direction.includes("w")) rawWidth = startRect.width - dx;
+
   if (direction.includes("s")) rawHeight = startRect.height + dy;
+
   if (direction.includes("n")) rawHeight = startRect.height - dy;
 
   const clamped = clampCanvasNodeSize(kind, activeSubMode, rawWidth, rawHeight, snapToGrid);
 
   if (direction.includes("w")) rawX = snappedRightEdge - clamped.width;
+
   if (direction.includes("n")) rawY = snappedBottomEdge - clamped.height;
 
   return {
@@ -129,7 +138,6 @@ export function useCanvasNodeInteractions({
   setSelectedNodeId,
 }: UseCanvasNodeInteractionsOptions) {
   const [draggingNodeId, setDraggingNodeId] = React.useState<string | null>(null);
-  const [dragTiltDeg, setDragTiltDeg] = React.useState(0);
 
   const bringNodeToFront = React.useCallback(
     (nodeId: string) => {
@@ -170,8 +178,9 @@ export function useCanvasNodeInteractions({
       const startClientY = e.clientY;
       let lastClientX = e.clientX;
       const zoom = viewportRef.current.zoom;
+      const tiltEl = findNodeTiltElement(nodeId);
       setDraggingNodeId(nodeId);
-      setDragTiltDeg(0);
+      setNodeDragTiltCssVar(tiltEl, 0);
 
       const childInitialRects = collectCascadeGroupChildren(
         nodeId,
@@ -189,12 +198,13 @@ export function useCanvasNodeInteractions({
         const appliedDx = nextX - startRect.x;
         const appliedDy = nextY - startRect.y;
 
-        setDragTiltDeg(computeDragTiltDeg(moveEvent.clientX - lastClientX));
+        setNodeDragTiltCssVar(tiltEl, computeDragTiltDeg(moveEvent.clientX - lastClientX));
         lastClientX = moveEvent.clientX;
 
         const prev = nodesRef.current;
         const current = prev[nodeId] ?? startRect;
-        const updated: Record<string, CanvasNodeRect> = {
+
+        const updated = {
           ...prev,
           [nodeId]: { ...current, x: nextX, y: nextY },
         };
@@ -234,6 +244,7 @@ export function useCanvasNodeInteractions({
             frameId = null;
             const latestMove = pendingMove;
             pendingMove = null;
+
             if (latestMove) applyPointerMove(latestMove);
           });
         }
@@ -241,7 +252,7 @@ export function useCanvasNodeInteractions({
 
       const finishDrag = () => {
         setDraggingNodeId(null);
-        setDragTiltDeg(0);
+        clearNodeDragTiltCssVar(tiltEl);
         window.removeEventListener("pointermove", handlePointerMove);
         window.removeEventListener("pointerup", handlePointerUp);
         window.removeEventListener("pointercancel", handlePointerCancel);
@@ -347,6 +358,7 @@ export function useCanvasNodeInteractions({
             frameId = null;
             const latestMove = pendingMove;
             pendingMove = null;
+
             if (latestMove) applyPointerMove(latestMove);
           });
         }
@@ -403,7 +415,6 @@ export function useCanvasNodeInteractions({
 
   return {
     draggingNodeId,
-    dragTiltDeg,
     bringNodeToFront,
     startNodeDrag,
     startNodeResize,

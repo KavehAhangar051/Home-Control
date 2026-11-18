@@ -1,4 +1,4 @@
-import { Globe, HardDrive } from "@/components/ui/hugeicons";
+import { Globe, HardDrive } from "@/components/ui/hugeicons-groups/media";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface Props {

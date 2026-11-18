@@ -6,7 +6,7 @@ import { IconStack } from "@/components/reui/icon-stack";
 import { Scrollspy } from "@/components/reui/scrollspy";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Lightbulb, Network, Workflow } from "@/components/ui/hugeicons";
+import { Lightbulb, Network, Workflow } from "@/components/ui/hugeicons-groups/welcome";
 import { DURATION, EASE_OUT } from "@/lib/ease";
 
 const overviewSections = [

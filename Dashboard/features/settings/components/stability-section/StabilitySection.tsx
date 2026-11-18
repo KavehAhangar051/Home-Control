@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, m } from "motion/react";
-import { Activity, ChevronLeft } from "@/components/ui/hugeicons";
+import { Activity } from "@/components/ui/hugeicons-groups/media";
+import { ChevronLeft } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import { ACCORDION_CLIP } from "@/lib/presets";

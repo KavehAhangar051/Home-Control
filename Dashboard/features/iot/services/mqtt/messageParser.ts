@@ -60,12 +60,16 @@ export function parseMqttStatusMessage(payload: Uint8Array): ParsedMqttStatusMes
 
   if (strPayload.charCodeAt(0) === 123) {
     try {
+      // SAFETY: strPayload starts with '{' and every accessed property is validated below
       const data = JSON.parse(strPayload) as { status?: unknown; ip?: unknown };
 
       if (data.status === "online") {
+        const ipText =
+          Object.prototype.toString.call(data.ip) === "[object String]" ? String(data.ip) : "";
+
         return {
           kind: "online",
-          ip: typeof data.ip === "string" && data.ip.length > 0 ? data.ip : undefined,
+          ip: ipText.length > 0 ? ipText : undefined,
         };
       }
 
@@ -94,13 +98,15 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
     // Legacy binary 0x06 frames have no origin metadata and may be delayed
     // acknowledgements. Ignore them to prevent stale output states overwriting UI.
     if (cmdType === 123) {
+      // SAFETY: cmdType === 123 ('{') guarantees JSON object text parsed with field guards below
       const data = JSON.parse(decodePayloadText(payload)) as MqttStateSyncPayload;
 
       if (data.type === "pin_update" && data.pin !== undefined && data.state !== undefined) {
         const rawPin = data.pin;
+
         const pinId =
-          typeof rawPin === "number" && rawPin >= 0 && rawPin < 256
-            ? PIN_ID_STRINGS[rawPin]
+          Number.isInteger(rawPin) && Number(rawPin) >= 0 && Number(rawPin) < 256
+            ? PIN_ID_STRINGS[Number(rawPin)]
             : String(rawPin);
 
         return {
@@ -130,9 +136,10 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
 
       if (data.id !== undefined && data.value !== undefined) {
         const rawId = data.id;
+
         const pinId =
-          typeof rawId === "number" && rawId >= 0 && rawId < 256
-            ? PIN_ID_STRINGS[rawId]
+          Number.isInteger(rawId) && Number(rawId) >= 0 && Number(rawId) < 256
+            ? PIN_ID_STRINGS[Number(rawId)]
             : String(rawId);
 
         return {

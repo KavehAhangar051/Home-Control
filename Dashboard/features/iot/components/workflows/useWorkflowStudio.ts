@@ -51,10 +51,15 @@ function patchWorkflowById(
   return nextWorkflows;
 }
 
+interface NormalizedWorkflowNodesResult {
+  nodes: WorkflowNode[];
+  changed: boolean;
+}
+
 function normalizeWorkflowNodesList(
   nodes: WorkflowNode[],
   shouldSnap: boolean,
-): { nodes: WorkflowNode[]; changed: boolean } {
+): NormalizedWorkflowNodesResult {
   let changed = false;
   const normalizedNodes: WorkflowNode[] = [];
 
@@ -80,8 +85,10 @@ function normalizeWorkflowNodesList(
 
 function normalizeStoredStudioState(state: WorkflowStudioState): WorkflowStudioState {
   let anyChanged = false;
+
   const workflows = state.workflows.map((wf) => {
     const { nodes, changed } = normalizeWorkflowNodesList(wf.nodes, true);
+
     if (!changed) return wf;
     anyChanged = true;
 
@@ -120,7 +127,7 @@ export function useWorkflowStudio({
       setPaletteOverride((prev) => {
         const current = prev ?? isDesktop;
 
-        return typeof value === "function" ? value(current) : value;
+        return value instanceof Function ? value(current) : value;
       });
     },
     [isDesktop],
@@ -132,16 +139,53 @@ export function useWorkflowStudio({
   const [selectedEdgeId, setSelectedEdgeId] = React.useState<string | null>(null);
 
   const didMountStorageRef = React.useRef(false);
+  const studioStateRef = React.useRef(studioState);
+  const persistModeRef = React.useRef<"immediate" | "transient">("immediate");
+  const queuedTransientCommitRef = React.useRef(false);
+  const hasPendingTransientPersistRef = React.useRef(false);
 
   React.useEffect(() => {
+    studioStateRef.current = studioState;
+
     if (!didMountStorageRef.current) {
       didMountStorageRef.current = true;
 
       return;
     }
 
+    if (persistModeRef.current === "transient") {
+      persistModeRef.current = "immediate";
+      queuedTransientCommitRef.current = false;
+      hasPendingTransientPersistRef.current = true;
+
+      return;
+    }
+
+    queuedTransientCommitRef.current = false;
+    hasPendingTransientPersistRef.current = false;
     writeStoredWorkflowState(studioState);
   }, [studioState]);
+
+  React.useEffect(() => {
+    return () => {
+      if (hasPendingTransientPersistRef.current || queuedTransientCommitRef.current) {
+        writeStoredWorkflowState(studioStateRef.current);
+      }
+    };
+  }, []);
+
+  const commitWorkflowPersistence = React.useCallback(() => {
+    if (queuedTransientCommitRef.current) {
+      persistModeRef.current = "immediate";
+
+      return;
+    }
+
+    if (hasPendingTransientPersistRef.current) {
+      hasPendingTransientPersistRef.current = false;
+      writeStoredWorkflowState(studioStateRef.current);
+    }
+  }, []);
 
   const activeWorkflow = React.useMemo<WorkflowDefinition | null>(() => {
     if (studioState.workflows.length === 0) return null;
@@ -154,6 +198,7 @@ export function useWorkflowStudio({
   }, [studioState.workflows, studioState.activeWorkflowId]);
 
   const activeWorkflowRef = React.useRef(activeWorkflow);
+
   const viewportRef = React.useRef<WorkflowViewport>(
     activeWorkflow?.viewport ?? DEFAULT_WORKFLOW_VIEWPORT,
   );
@@ -164,7 +209,18 @@ export function useWorkflowStudio({
   }, [activeWorkflow]);
 
   const updateActiveWorkflow = React.useCallback(
-    (updater: (wf: WorkflowDefinition) => WorkflowDefinition) => {
+    (
+      updater: (wf: WorkflowDefinition) => WorkflowDefinition,
+      options?: { transient?: boolean },
+    ) => {
+      if (options?.transient) {
+        persistModeRef.current = "transient";
+        queuedTransientCommitRef.current = true;
+      } else {
+        persistModeRef.current = "immediate";
+        queuedTransientCommitRef.current = false;
+      }
+
       setStudioState((prev) => {
         const targetId = prev.activeWorkflowId ?? prev.workflows[0]?.id;
 
@@ -189,6 +245,19 @@ export function useWorkflowStudio({
     [updateActiveWorkflow],
   );
 
+  const setViewportTransient = React.useCallback(
+    (updater: WorkflowViewport | ((prev: WorkflowViewport) => WorkflowViewport)) => {
+      updateActiveWorkflow(
+        (wf) => ({
+          ...wf,
+          viewport: updater instanceof Function ? updater(wf.viewport) : updater,
+        }),
+        { transient: true },
+      );
+    },
+    [updateActiveWorkflow],
+  );
+
   const setSnapToGrid = React.useCallback(
     (nextSnap: boolean) => {
       setSnapToGridState(nextSnap);
@@ -204,24 +273,40 @@ export function useWorkflowStudio({
     [updateActiveWorkflow],
   );
 
-  const handleUpdateNode = React.useCallback(
-    (nodeId: string, patch: Partial<WorkflowNode>) => {
-      updateActiveWorkflow((wf) => {
-        const nextNodes: WorkflowNode[] = [];
+  const patchNode = React.useCallback(
+    (nodeId: string, patch: Partial<WorkflowNode>, transient = false) => {
+      updateActiveWorkflow(
+        (wf) => {
+          const nextNodes: WorkflowNode[] = [];
 
-        for (const n of wf.nodes) {
-          nextNodes.push(n.id === nodeId ? { ...n, ...patch } : n);
-        }
+          for (const n of wf.nodes) {
+            nextNodes.push(n.id === nodeId ? { ...n, ...patch } : n);
+          }
 
-        return { ...wf, nodes: nextNodes };
-      });
+          return { ...wf, nodes: nextNodes };
+        },
+        transient ? { transient: true } : undefined,
+      );
     },
     [updateActiveWorkflow],
   );
 
+  const handleUpdateNode = React.useCallback(
+    (nodeId: string, patch: Partial<WorkflowNode>) => {
+      patchNode(nodeId, patch, false);
+    },
+    [patchNode],
+  );
+
+  const handleUpdateNodeTransient = React.useCallback(
+    (nodeId: string, patch: Partial<WorkflowNode>) => {
+      patchNode(nodeId, patch, true);
+    },
+    [patchNode],
+  );
+
   const {
     draggingNodeId,
-    dragTiltDeg,
     connectingFromId,
     setConnectingFromId,
     connectingDraft,
@@ -237,7 +322,8 @@ export function useWorkflowStudio({
     isLocked,
     snapToGrid,
     updateActiveWorkflow,
-    handleUpdateNode,
+    handleUpdateNodeTransient,
+    onCommitInteraction: commitWorkflowPersistence,
     setSelectedNodeId,
     setSelectedEdgeId,
     showToast,
@@ -253,7 +339,9 @@ export function useWorkflowStudio({
     containerRef,
     viewportRef,
     setViewport,
-    setViewportTransient: setViewport,
+    setViewportTransient,
+    isAttached: Boolean(activeWorkflow),
+    onPanEnd: commitWorkflowPersistence,
     onBackgroundClick: () => {
       setSelectedNodeId(null);
       setSelectedEdgeId(null);
@@ -449,7 +537,6 @@ export function useWorkflowStudio({
     setSelectedEdgeId,
     isPanning,
     draggingNodeId,
-    dragTiltDeg,
     connectingFromId,
     setConnectingFromId,
     connectingDraft,

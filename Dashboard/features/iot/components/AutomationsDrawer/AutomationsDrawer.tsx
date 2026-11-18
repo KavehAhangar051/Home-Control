@@ -1,9 +1,11 @@
 "use client";
 
 import { AnimatePresence, m } from "motion/react";
+import { useEffect } from "react";
 import { Alert } from "@/components/reui/alert";
 import { Button } from "@/components/ui/button";
-import { Clock, Info, X } from "@/components/ui/hugeicons";
+import { Info } from "@/components/ui/hugeicons-groups/controls";
+import { Clock, X } from "@/components/ui/hugeicons-groups/shell";
 import { SPRING_PANEL, TRANSITION_ENTER_STANDARD, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 import AutomationForm from "./components/AutomationForm";
 import AutomationList from "./components/AutomationList";
@@ -24,6 +26,20 @@ export default function AutomationsDrawer({
 }: AutomationsDrawerProps) {
   const backdropBackground = isDark ? "rgba(9, 9, 11, 0.68)" : "rgba(24, 24, 27, 0.18)";
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -38,9 +54,6 @@ export default function AutomationsDrawer({
           }
           transition={animationsEnabled ? TRANSITION_ENTER_STANDARD : { duration: 0 }}
           onClick={onClose}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") onClose();
-          }}
           style={{ backdropFilter: "blur(16px)", background: backdropBackground }}
           className="fixed inset-0 z-50 cursor-pointer border-0 p-0"
         />
@@ -48,6 +61,9 @@ export default function AutomationsDrawer({
       {isOpen && (
         <m.div
           key="automations-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="automations-drawer-title"
           initial={animationsEnabled ? { x: "100%", opacity: 0.85 } : false}
           animate={{ x: 0, opacity: 1 }}
           exit={
@@ -65,7 +81,9 @@ export default function AutomationsDrawer({
               <div className="p-2 rounded-md bg-muted text-muted-foreground">
                 <Clock className="size-5" />
               </div>
-              <h2 className="font-bold text-lg text-foreground">مدیریت اتوماسیون‌ها</h2>
+              <h2 id="automations-drawer-title" className="font-bold text-lg text-foreground">
+                مدیریت اتوماسیون‌ها
+              </h2>
             </div>
             <Button
               variant="ghost"

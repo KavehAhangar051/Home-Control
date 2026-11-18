@@ -35,6 +35,20 @@ export const CASCADE_LETTER_VARIANTS: Variants = {
   }),
 };
 
+export const LITE_CASCADE_LETTER_VARIANTS: Variants = {
+  initial: { opacity: 0, y: "105%" },
+  animate: (delay = 0) => ({
+    opacity: 1,
+    y: "0%",
+    transition: { ...SPRING_SWAP, delay },
+  }),
+  exit: (delay = 0) => ({
+    opacity: 0,
+    y: "-105%",
+    transition: { duration: EXIT_DURATION.quick, ease: EASE_IN, delay: delay * 0.5 },
+  }),
+};
+
 export const TEXT_VARIANTS: Record<CoreAnimation, Variants> = {
   blur: {
     initial: { opacity: 0, scale: 0.94, filter: SWAP_BLUR },
@@ -68,6 +82,19 @@ export const TEXT_VARIANTS: Record<CoreAnimation, Variants> = {
   },
 };
 
+export const LITE_TEXT_VARIANTS: Record<CoreAnimation, Variants> = {
+  blur: {
+    initial: { opacity: 0, scale: 0.94 },
+    animate: { opacity: 1, scale: 1, transition: BLUR_TRANSITION },
+    exit: { opacity: 0, scale: 0.94, transition: BLUR_TRANSITION },
+  },
+  roll: {
+    initial: { opacity: 0, y: "90%" },
+    animate: { opacity: 1, y: "0%", transition: ROLL_TRANSITION },
+    exit: { opacity: 0, y: "-90%", transition: ROLL_EXIT_TRANSITION },
+  },
+};
+
 export const ICON_VARIANTS: Record<CoreAnimation, Variants> = {
   blur: {
     initial: { opacity: 0, scale: 0.25, filter: ICON_SWAP_BLUR },
@@ -98,6 +125,19 @@ export const ICON_VARIANTS: Record<CoreAnimation, Variants> = {
       filter: ROLL_BLUR,
       transition: ROLL_EXIT_TRANSITION,
     },
+  },
+};
+
+export const LITE_ICON_VARIANTS: Record<CoreAnimation, Variants> = {
+  blur: {
+    initial: { opacity: 0, scale: 0.25 },
+    animate: { opacity: 1, scale: 1, transition: ICON_BLUR_TRANSITION },
+    exit: { opacity: 0, scale: 0.25, transition: ICON_BLUR_TRANSITION },
+  },
+  roll: {
+    initial: { opacity: 0, y: 12 },
+    animate: { opacity: 1, y: 0, transition: ROLL_TRANSITION },
+    exit: { opacity: 0, y: -12, transition: ROLL_EXIT_TRANSITION },
   },
 };
 

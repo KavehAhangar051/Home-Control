@@ -1,7 +1,8 @@
 import { m } from "motion/react";
 import type React from "react";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Edit2, Mic } from "@/components/ui/hugeicons";
+import { Edit2 } from "@/components/ui/hugeicons-groups/controls";
+import { Mic } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type {
   AutomationAction,

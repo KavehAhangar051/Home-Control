@@ -94,7 +94,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
       isCloudflareEnabled,
       isOnline: () => globalThis.navigator?.onLine !== false,
       isBypassed: () => bypassedRef.current,
-      fetchConfig: (timeoutMs) => fetchConfigFromCloudflare({ timeoutMs }),
+      fetchConfig: (timeoutMs) => fetchConfigFromCloudflare({ timeoutMs, retryAttempts: 1 }),
       readLocalCache,
       writeLocalCache: (cfConfig) => {
         if (globalThis.window === undefined) return;
@@ -136,16 +136,24 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
   useEffect(() => {
     let cancelled = false;
 
-    void Promise.resolve().then(() => {
-      if (!cancelled) {
-        return initCloudflareSync();
-      }
-    });
+    void Promise.resolve()
+      .then(() => {
+        if (!cancelled) {
+          return initCloudflareSync();
+        }
+      })
+      .catch((error) => {
+        debugLog.error("ConfigSync", "Unexpected initialization failure; falling back.", error);
+
+        if (!cancelled) {
+          handleBypassSync();
+        }
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [initCloudflareSync]);
+  }, [handleBypassSync, initCloudflareSync]);
 
   return {
     isFullyReady,

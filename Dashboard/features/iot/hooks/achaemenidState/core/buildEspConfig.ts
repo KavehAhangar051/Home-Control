@@ -1,3 +1,4 @@
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import type { IoTStoreState } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
@@ -137,6 +138,14 @@ export async function persistStoreConfigToCloudflare(
     if (result.success) {
       if (myGeneration === persistGeneration) {
         useIoTStore.getState().resetUnsavedChanges();
+
+        if (FEATURE_FLAGS.configLocalCache && globalThis.window !== undefined) {
+          try {
+            localStorage.setItem("cached_esp_config", signature);
+          } catch {
+            // Storage may be blocked inside restricted iframe contexts.
+          }
+        }
       }
 
       useIoTStore.getState().showToast(options?.successToast || result.message, "success");

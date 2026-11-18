@@ -91,6 +91,7 @@ export function writeStoredCanvasSettings(
   storage?: CanvasStorageLike | null,
 ): void {
   const resolvedStorage = resolveCanvasStorage(storage);
+
   if (!resolvedStorage) return;
 
   try {
@@ -111,6 +112,7 @@ export function readStoredCanvasNodes(
   }
 
   const resolvedStorage = resolveCanvasStorage(storage);
+
   if (!resolvedStorage) return null;
 
   try {
@@ -142,6 +144,7 @@ export function replaceStoredCanvasNodes(
   memoryNodesCache.set(subMode, snapshot);
 
   const resolvedStorage = resolveCanvasStorage(storage);
+
   if (!resolvedStorage) return;
 
   try {
@@ -259,6 +262,7 @@ export function readStoredCanvasViewport(
   if (cached) return cached;
 
   const resolvedStorage = resolveCanvasStorage(storage);
+
   if (!resolvedStorage) return null;
 
   try {
@@ -302,6 +306,7 @@ export function writeStoredCanvasViewport(
   memoryViewportCache.set(subMode, vp);
 
   const resolvedStorage = resolveCanvasStorage(storage);
+
   if (!resolvedStorage) return;
 
   try {
@@ -319,6 +324,7 @@ export function clearStoredCanvasMode(
   memoryViewportCache.delete(subMode);
 
   const resolvedStorage = resolveCanvasStorage(storage);
+
   if (!resolvedStorage) return;
 
   try {

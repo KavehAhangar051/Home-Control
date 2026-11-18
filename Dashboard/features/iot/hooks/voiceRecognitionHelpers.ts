@@ -54,6 +54,7 @@ export function resolveSpeechRecognitionConstructor(
   >,
 ): SpeechRecognitionConstructor | undefined {
   const target = win ?? (typeof window !== "undefined" ? window : undefined);
+
   if (!target) return undefined;
 
   // SAFETY: SpeechRecognition and webkitSpeechRecognition are optional browser speech API constructors

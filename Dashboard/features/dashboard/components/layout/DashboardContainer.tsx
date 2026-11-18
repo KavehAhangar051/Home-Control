@@ -7,6 +7,7 @@ import DashboardStyles from "@/features/iot/components/DashboardStyles";
 import ToastNotification from "@/features/iot/components/notifications/ToastNotification";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { usePageVisibility } from "@/features/iot/hooks/usePageVisibility";
+import { usePerformanceTierObserver } from "@/lib/hooks/use-performance-tier";
 import DashboardDrawers from "./DashboardDrawers";
 import DashboardHeader from "./DashboardHeader";
 import DashboardMain from "./DashboardMain";
@@ -27,9 +28,17 @@ export default function DashboardContainer() {
   const accent4 = useIoTStore((s) => s.accent4);
   const isDark = useIoTStore((s) => s.isDark);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const animationsFps = useIoTStore((s) => s.animationsFps);
+  const isPageVisible = useIoTStore((s) => s.isPageVisible);
   const darkBlackness = useIoTStore((s) => s.darkBlackness);
   const lightWhiteness = useIoTStore((s) => s.lightWhiteness);
   const selectedFont = useIoTStore((s) => s.selectedFont);
+
+  usePerformanceTierObserver({
+    animationsEnabled,
+    animationsFps,
+    isPageVisible,
+  });
 
   return (
     <TooltipProvider>

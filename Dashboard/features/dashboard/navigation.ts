@@ -1,11 +1,5 @@
-import {
-  Clock3,
-  House,
-  type HugeIconComponent,
-  Layers,
-  Settings,
-  Settings2,
-} from "@/components/ui/hugeicons";
+import type { HugeIconComponent } from "@/components/ui/hugeicon-factory";
+import { Clock3, House, Layers, Settings, Settings2 } from "@/components/ui/hugeicons-groups/shell";
 import type { WorkspaceView } from "@/features/iot/hooks/store/types";
 
 export interface WorkspaceViewMeta {

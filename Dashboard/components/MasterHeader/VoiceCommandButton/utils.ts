@@ -224,7 +224,9 @@ export interface VoiceCommandExecutionResult {
 }
 
 type VoiceSegmentItem = NonNullable<VoiceCommandExecutionContext["segments"]>[number];
+
 type CustomVoiceCommandItem = NonNullable<VoiceCommandExecutionContext["voiceCommands"]>[number];
+
 type VoiceMacroItem = NonNullable<VoiceCommandExecutionContext["macros"]>[number];
 
 interface ExtractedSegmentIntent {
@@ -346,14 +348,16 @@ function findBestCustomVoiceCommand(
   return bestMatchCmd;
 }
 
+interface CollectedVoiceCommandActions {
+  batchActions: Array<{ targetPin: string; actionOn: boolean }>;
+  skippedPins: string[];
+}
+
 function collectCustomCommandActions(
   command: CustomVoiceCommandItem,
   macros: ReadonlyArray<VoiceMacroItem> | undefined,
   segmentsByPin: Map<string, VoiceSegmentItem>,
-): {
-  batchActions: Array<{ targetPin: string; actionOn: boolean }>;
-  skippedPins: string[];
-} {
+): CollectedVoiceCommandActions {
   const dedupedActions = new Map<string, boolean>();
   const skippedPins: string[] = [];
   let macroMap: Map<string, VoiceMacroItem> | null = null;
