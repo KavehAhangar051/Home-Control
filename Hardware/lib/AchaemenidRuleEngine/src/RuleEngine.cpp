@@ -155,7 +155,7 @@ HOT_PATH void RuleEngine::handleInput(int sourcePin, bool newState, unsigned lon
                             executeAction(act10s, sourcePin);
                             _ctx.pinManager->setIsHandledByPin(sourcePin, true);
                         }
-                    }, 11000);
+                    }, static_cast<uint32_t>(act10s.requiredHoldTime) * 1000UL);
                     _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
                 }
             }
