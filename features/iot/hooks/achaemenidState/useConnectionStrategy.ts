@@ -28,6 +28,7 @@ export interface LocalWebSocketControllerDeps {
   setPinsState: (
     updater: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>),
   ) => void;
+  setAutoOffRemaining?: (timers: Record<string, number>) => void;
   isNativeRuntime?: () => boolean;
   createWebSocket?: (url: string) => LocalWebSocketLike;
   setLocalWs?: (ws: MinimalLocalSocket | null) => void;
@@ -101,11 +102,20 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
 
         if (data.type === "state_sync" && data.states) {
           deps.setPinsState(data.states);
-          console.log("[LocalWS] Received full state sync:", data.states);
+          const timers: Record<string, number> = {};
+          if (data.timers && typeof data.timers === "object") {
+            for (const [pin, value] of Object.entries(data.timers)) {
+              const seconds = Number(value);
+              timers[pin] = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
+            }
+          }
+          deps.setAutoOffRemaining?.(timers);
+          console.log("[LocalWS] Received full state sync:", data.states, timers);
         } else if (data.pin !== undefined && data.state !== undefined) {
           const pinKey = data.pin.toString();
           const pinBool = data.state === 1 || data.state === true;
           deps.setPinsState((prev) => ({ ...prev, [pinKey]: pinBool }));
+          deps.setAutoOffRemaining?.({ [pinKey]: 0 });
           dispatchLocalStateFn(pinKey, pinBool);
         }
       } catch (e) {
@@ -166,10 +176,11 @@ export function useConnectionStrategy() {
   const localIp = useIoTStore((state) => state.localIp);
   const setIsLocal = useIoTStore((state) => state.setIsLocal);
   const setPinsState = useIoTStore((state) => state.setPinsState);
+  const setAutoOffRemaining = useIoTStore((state) => state.setAutoOffRemaining);
 
   useEffect(() => {
     if (!localIp) return;
 
-    return createLocalWebSocketController({ localIp, setIsLocal, setPinsState });
-  }, [localIp, setIsLocal, setPinsState]);
+    return createLocalWebSocketController({ localIp, setIsLocal, setPinsState, setAutoOffRemaining });
+  }, [localIp, setIsLocal, setPinsState, setAutoOffRemaining]);
 }
