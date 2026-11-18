@@ -2,17 +2,43 @@
 #include <AppEvents.h>
 #include <Utilities/logging.h>
 #include <Optimization/CompilerTraits.h>
-#include <Optimization/StaticString.h>
+#include <cstring>
 
 namespace uniuno {
 
 FORCE_INLINE static int32_t readInt32LE(const uint8_t* buf, size_t offset) {
-    int32_t val = 0;
-    val |= ((int32_t)buf[offset]);
-    val |= ((int32_t)buf[offset + 1] << 8);
-    val |= ((int32_t)buf[offset + 2] << 16);
-    val |= ((int32_t)buf[offset + 3] << 24);
-    return val;
+    uint32_t value = static_cast<uint32_t>(buf[offset]) |
+        (static_cast<uint32_t>(buf[offset + 1]) << 8) |
+        (static_cast<uint32_t>(buf[offset + 2]) << 16) |
+        (static_cast<uint32_t>(buf[offset + 3]) << 24);
+    return static_cast<int32_t>(value);
+}
+
+static bool isValidHoldTime(int32_t value) {
+    return value == 0 || value == 3 || value == 5 || value == 10;
+}
+
+static bool readAction(const uint8_t* payload, size_t len, size_t& offset, RuleAction& action) {
+    if (offset + 11 > len) return false;
+
+    const int targetPin = static_cast<int8_t>(payload[offset]);
+    const int32_t holdTime = readInt32LE(payload, offset + 1);
+    const uint8_t actionType = payload[offset + 6];
+    const int32_t delay = readInt32LE(payload, offset + 7);
+    const bool actionState = payload[offset + 5] == 0x01;
+    offset += 11;
+
+    if (targetPin < 0 || targetPin > 39 || !isValidHoldTime(holdTime) ||
+        actionType > ACTION_FOR_DURATION || delay < 0 || delay > 60) {
+        return false;
+    }
+
+    action.targetPin = targetPin;
+    action.requiredHoldTime = holdTime;
+    action.actionState = actionState;
+    action.actionType = static_cast<RuleActionType>(actionType);
+    action.delay = delay;
+    return true;
 }
 
 bool RuleParsers::canHandle(uint8_t cmdType) const {
@@ -26,64 +52,71 @@ void RuleParsers::handle(const uint8_t* payload, size_t len, IEventDispatcher* d
 }
 
 HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateRule(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
-    if (LIKELY(len >= 3)) {
-        size_t offset = 1;
-        
-        StaticString<32> idStr;
-        while (offset < len && payload[offset] != '\0' && idStr.size() < idStr.capacity()) {
-            char c[2] = {(char)payload[offset++], '\0'};
-            idStr += c;
-        }
-        while (offset < len && payload[offset] != '\0') offset++;
-        if (offset < len) offset++; 
+    if (payload == nullptr || dispatcher == nullptr || len < 5) return;
 
-        RuleConfig newRule;
-
-        if (LIKELY(offset < len)) {
-            uint8_t highCount = payload[offset++];
-            int c = 0;
-            for (int i = 0; i < highCount && offset + 11 <= len; i++) {
-                if (LIKELY(c < 4)) {
-                    newRule.highActions[c].targetPin = (int8_t)payload[offset];
-                    newRule.highActions[c].requiredHoldTime = readInt32LE(payload, offset + 1);
-                    newRule.highActions[c].actionState = (payload[offset + 5] == 0x01);
-                    newRule.highActions[c].actionType = static_cast<RuleActionType>(payload[offset + 6]);
-                    newRule.highActions[c].delay = readInt32LE(payload, offset + 7);
-                    c++;
-                }
-                offset += 11;
-            }
-            newRule.highActionCount = c;
-        }
-
-        if (LIKELY(offset < len)) {
-            uint8_t lowCount = payload[offset++];
-            int c = 0;
-            for (int i = 0; i < lowCount && offset + 11 <= len; i++) {
-                if (LIKELY(c < 4)) {
-                    newRule.lowActions[c].targetPin = (int8_t)payload[offset];
-                    newRule.lowActions[c].requiredHoldTime = readInt32LE(payload, offset + 1);
-                    newRule.lowActions[c].actionState = (payload[offset + 5] == 0x01);
-                    newRule.lowActions[c].actionType = static_cast<RuleActionType>(payload[offset + 6]);
-                    newRule.lowActions[c].delay = readInt32LE(payload, offset + 7);
-                    c++;
-                }
-                offset += 11;
-            }
-            newRule.lowActionCount = c;
-        }
-
-        if (idStr.size() == 0) {
-            WARNING("[MQTT Handler] Rejected UPDATE_RULE with an empty segment ID");
+    size_t offset = 1;
+    char id[32] = {};
+    size_t idLength = 0;
+    while (offset < len && payload[offset] != '\0') {
+        if (idLength >= sizeof(id) - 1) {
+            WARNING("[MQTT Handler] Rejected UPDATE_RULE: segment ID is too long");
             return;
         }
-
-        newRule.active = (newRule.highActionCount > 0 || newRule.lowActionCount > 0);
-        SegmentUpdateRuleRequestEvent evt{idStr.c_str(), newRule};
-        dispatcher->dispatch(evt);
-        INFOF("[MQTT Handler] Binary Update Rule: id=%s high=%d low=%d active=%d",
-              idStr.c_str(), newRule.highActionCount, newRule.lowActionCount, newRule.active);
+        id[idLength++] = static_cast<char>(payload[offset++]);
     }
+
+    if (offset >= len || payload[offset] != '\0' || idLength == 0) {
+        WARNING("[MQTT Handler] Rejected UPDATE_RULE: missing or empty segment ID");
+        return;
+    }
+    ++offset;
+
+    if (offset >= len) return;
+    const uint8_t highCount = payload[offset++];
+    if (highCount > 4) {
+        WARNING("[MQTT Handler] Rejected UPDATE_RULE: too many HIGH actions");
+        return;
+    }
+
+    RuleConfig newRule;
+    for (uint8_t i = 0; i < highCount; ++i) {
+        RuleAction action;
+        if (!readAction(payload, len, offset, action)) {
+            WARNING("[MQTT Handler] Rejected UPDATE_RULE: invalid or truncated HIGH action");
+            return;
+        }
+        newRule.highActions[newRule.highActionCount++] = action;
+    }
+
+    if (offset >= len) {
+        WARNING("[MQTT Handler] Rejected UPDATE_RULE: missing LOW action count");
+        return;
+    }
+    const uint8_t lowCount = payload[offset++];
+    if (lowCount > 4) {
+        WARNING("[MQTT Handler] Rejected UPDATE_RULE: too many LOW actions");
+        return;
+    }
+
+    for (uint8_t i = 0; i < lowCount; ++i) {
+        RuleAction action;
+        if (!readAction(payload, len, offset, action)) {
+            WARNING("[MQTT Handler] Rejected UPDATE_RULE: invalid or truncated LOW action");
+            return;
+        }
+        newRule.lowActions[newRule.lowActionCount++] = action;
+    }
+
+    if (offset != len) {
+        WARNING("[MQTT Handler] Rejected UPDATE_RULE: unexpected trailing bytes");
+        return;
+    }
+
+    newRule.active = (newRule.highActionCount > 0 || newRule.lowActionCount > 0);
+    SegmentUpdateRuleRequestEvent evt{id, newRule};
+    dispatcher->dispatch(evt);
+    INFOF("[MQTT Handler] Binary Update Rule: id=%s high=%d low=%d active=%d",
+          id, newRule.highActionCount, newRule.lowActionCount, newRule.active);
 }
 
 } // namespace uniuno
