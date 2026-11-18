@@ -178,7 +178,10 @@ export async function executeBatchPinUpdate(
       return false;
     }
 
-    clearTimerOverrides(Object.keys(stateUpdates));
+    const store = useIoTStore.getState();
+    const noTimerOverrides = { ...store.autoOffRemaining };
+    for (const pin of Object.keys(stateUpdates)) noTimerOverrides[pin] = 0;
+    store.setAutoOffRemaining(noTimerOverrides);
     return true;
   } catch (error) {
     console.error("Failed to update batch pin values:", error);
