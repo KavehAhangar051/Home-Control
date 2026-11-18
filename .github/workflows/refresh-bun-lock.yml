@@ -31,3 +31,5 @@ jobs:
           git add bun.lock
           git commit -m "chore: regenerate Bun lockfile"
           git push origin HEAD:main
+
+# Trigger lockfile refresh after workflow registration.
