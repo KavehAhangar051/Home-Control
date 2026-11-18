@@ -118,12 +118,12 @@ auto onSegmentRemove = [](SegmentRemoveRequestEvent* evt) {
 
 auto onSegmentUpdateRule = [](SegmentUpdateRuleRequestEvent* evt) {
     if (evt == nullptr || evt->id == nullptr) return;
-    if (pinManager.updateSegmentRule(evt->id, evt->rule)) {
-        INFOF("[Event] Rule updated for segment '%s' (high=%d low=%d active=%d)",
-              evt->id, evt->rule.highActionCount, evt->rule.lowActionCount, evt->rule.active);
+    if (pinManager.updateSegmentRuleByPin(evt->pin, evt->rule)) {
+        INFOF("[Event] Rule updated for input GPIO%d (high=%d low=%d active=%d)",
+              evt->pin, evt->rule.highActionCount, evt->rule.lowActionCount, evt->rule.active);
         persistCurrentSegmentConfig("segment rule update");
     } else {
-        WARNINGF("[Event] Rule update rejected for segment '%s'", evt->id);
+        WARNINGF("[Event] Rule update rejected for input GPIO%d (not registered as an input)", evt->pin);
     }
 };
 
