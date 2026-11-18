@@ -21,8 +21,8 @@ template <size_t Capacity>
 class ExecutorBase;
 
 /**
- * @brief Lightweight handle to an asynchronous task scheduled in an Executor.
- * Enables zero-overhead O(1) cancellation, interval adjustment, and event-driven wakeups.
+ * @brief Lightweight generation-checked handle to an async task scheduled in an Executor.
+ * Enables zero-overhead O(1) cancellation, interval adjustment, liveness check, and event wakeups.
  */
 template <size_t Capacity = 32>
 class TaskHandleBase {
@@ -31,10 +31,13 @@ public:
   TaskHandleBase(ExecutorBase<Capacity>* exec, uint8_t idx, uint16_t gen)
       : executor_(exec), index_(idx), generation_(gen) {}
 
-  /** @brief Returns true if this handle points to a valid, active task. */
+  /** @brief Returns true if this handle was bound to an Executor slot. */
   FORCE_INLINE bool isValid() const { return executor_ != nullptr && index_ != 0xFF; }
 
-  /** @brief Implicit boolean conversion for backward compatibility with bool returns. */
+  /** @brief Returns true if the referenced task is still active with matching generation. */
+  FORCE_INLINE bool isAlive() const;
+
+  /** @brief Implicit boolean conversion for backward compatibility. */
   FORCE_INLINE operator bool() const { return isValid(); }
 
   /** @brief Wakes up the task immediately in the next executor poll cycle (1 clock cycle). */
@@ -73,34 +76,35 @@ private:
 using TaskHandle = TaskHandleBase<32>;
 
 /**
- * @brief High-performance Hybrid Reactive Async Executor.
- * 
+ * @brief High-performance Hybrid Reactive Async Executor for Xtensa ESP32.
+ *
  * Features:
- * 1. Hardware-accelerated bitmask scheduling: Uses Xtensa single-cycle NSA instruction (__builtin_ctz)
- *    to find ready tasks in 1 clock cycle.
- * 2. Event-Driven Wakeup: Dormant tasks consume 0 CPU cycles until wake() is triggered (via ISR, Event, or Deferred).
- * 3. Throttled/Interval Polling: Prevents busy-wait burning CPU cycles during slow I/O or WiFi handshakes.
- * 4. Zero dynamic allocations: All memory is statically pooled and word-aligned in RAM.
- * 
- * @tparam Capacity Maximum number of concurrently executing futures (up to 32).
+ * 1. Hardware bitmask scheduling: 1-cycle Xtensa NSA/CTZ for both ready-task scan
+ *    and free-slot allocation (~active_mask_ — zero free_indices_ array!).
+ * 2. 1ms CCOUNT Hardware Fast-Gate: eliminates 100,000/sec millis() calls while
+ *    interval tasks (e.g. WiFi recovery) are active.
+ * 3. Event-Driven Wakeup: dormant tasks consume 0 CPU cycles until wake().
+ * 4. Zero dynamic allocations: statically pooled Power-of-2 FastFunction slots.
  */
 template <size_t Capacity = 32>
 class ExecutorBase {
-  static_assert(Capacity <= 32, "ExecutorBase bitmask currently supports up to 32 concurrent futures.");
+  static_assert(Capacity > 0 && Capacity <= 32,
+                "ExecutorBase bitmask supports between 1 and 32 concurrent futures.");
+
+  static constexpr uint32_t kValidMask =
+      (Capacity == 32) ? 0xFFFFFFFFUL : ((1UL << Capacity) - 1UL);
 
 public:
-  ExecutorBase() {
-    this->active_mask_ = 0;
-    this->ready_mask_.store(0, std::memory_order_relaxed);
-    this->interval_mask_ = 0;
-    this->sleep_mask_ = 0;
-    this->free_count_ = Capacity;
-
+  ExecutorBase()
+      : active_mask_(0),
+        ready_mask_(0),
+        interval_mask_(0),
+        sleep_mask_(0),
+        last_interval_cycle_(0) {
     for (size_t i = 0; i < Capacity; i++) {
-      this->free_indices_[i] = static_cast<uint8_t>(Capacity - 1 - i);
-      this->generations_[i] = 1;
-      this->intervals_ms_[i] = 0;
-      this->next_poll_ms_[i] = 0;
+      generations_[i]  = 1;
+      intervals_ms_[i] = 0;
+      next_poll_ms_[i] = 0;
     }
   }
 
@@ -108,20 +112,16 @@ public:
   // SCHEDULING INTERFACE
   // =========================================================================
 
-  /**
-   * @brief Schedule a future with input and an error callback.
-   * @return TaskHandle to control execution, or invalid handle if full.
-   */
   template <typename I, typename O, typename E = Error, class F,
             typename std::enable_if<
                 function_traits<F>::arity == 1 &&
                 std::is_same<typename function_traits<F>::template arg<0>::type,
                              E>::value>::type * = nullptr>
   TaskHandleBase<Capacity> execute(Future<I, O, E> future, I input, F &&on_error) {
-    uint8_t idx = allocateSlot();
+    const uint8_t idx = allocateSlot();
     if (UNLIKELY(idx == 0xFF)) return TaskHandleBase<Capacity>();
 
-    this->future_pool_[idx] = [future = std::move(future), input = std::move(input), on_error = std::forward<F>(on_error)]() mutable {
+    future_pool_[idx] = [future = std::move(future), input = std::move(input), on_error = std::forward<F>(on_error)]() mutable {
       const auto& result = future.poll(input);
       if (UNLIKELY(result.is_rejected())) {
         on_error(*result.get_error());
@@ -132,21 +132,18 @@ public:
     return activateSlot(idx);
   }
 
-  /**
-   * @brief Schedule a void-input future with error and success callbacks.
-   */
   template <typename O, typename E = Error, class FErr, class FOk,
             typename std::enable_if<
                 function_traits<FErr>::arity == 1 &&
                 std::is_same<typename function_traits<FErr>::template arg<0>::type, E>::value &&
                 function_traits<FOk>::arity == 0>::type * = nullptr>
   TaskHandleBase<Capacity> execute(Future<void, O, E> future, FErr &&on_error, FOk &&on_success) {
-    uint8_t idx = allocateSlot();
+    const uint8_t idx = allocateSlot();
     if (UNLIKELY(idx == 0xFF)) return TaskHandleBase<Capacity>();
 
-    this->future_pool_[idx] = [future     = std::move(future),
-                               on_error   = std::forward<FErr>(on_error),
-                               on_success = std::forward<FOk>(on_success)]() mutable {
+    future_pool_[idx] = [future     = std::move(future),
+                         on_error   = std::forward<FErr>(on_error),
+                         on_success = std::forward<FOk>(on_success)]() mutable {
       const auto& result = future.poll();
       if (UNLIKELY(result.is_rejected())) {
         on_error(*result.get_error());
@@ -159,19 +156,16 @@ public:
     return activateSlot(idx);
   }
 
-  /**
-   * @brief Schedule a void-input future with only an error callback.
-   */
   template <typename O, typename E = Error, class F,
             typename std::enable_if<
                 function_traits<F>::arity == 1 &&
                 std::is_same<typename function_traits<F>::template arg<0>::type,
                              E>::value>::type * = nullptr>
   TaskHandleBase<Capacity> execute(Future<void, O, E> future, F &&on_error) {
-    uint8_t idx = allocateSlot();
+    const uint8_t idx = allocateSlot();
     if (UNLIKELY(idx == 0xFF)) return TaskHandleBase<Capacity>();
 
-    this->future_pool_[idx] = [future = std::move(future), on_error = std::forward<F>(on_error)]() mutable {
+    future_pool_[idx] = [future = std::move(future), on_error = std::forward<F>(on_error)]() mutable {
       const auto& result = future.poll();
       if (UNLIKELY(result.is_rejected())) {
         on_error(*result.get_error());
@@ -184,31 +178,24 @@ public:
 
   template <typename I, typename O, typename E = Error>
   TaskHandleBase<Capacity> execute(Future<I, O, E> future, I input) {
-    return this->execute(std::move(future), std::move(input), [](E) {});
+    return execute(std::move(future), std::move(input), [](E) {});
   }
 
   template <typename O, typename E = Error>
   TaskHandleBase<Capacity> execute(Future<void, O, E> future) {
-    return this->execute(std::move(future), [](E) {});
+    return execute(std::move(future), [](E) {});
   }
 
-  /**
-   * @brief Schedule a future in event-driven mode (dormant until wake() is called).
-   * Consumes 0 CPU cycles until awakened.
-   */
   template <typename O, typename E = Error, class F>
   TaskHandleBase<Capacity> executeEventDriven(Future<void, O, E> future, F &&on_error) {
-    auto handle = this->execute(std::move(future), std::forward<F>(on_error));
+    auto handle = execute(std::move(future), std::forward<F>(on_error));
     if (handle) handle.sleep();
     return handle;
   }
 
-  /**
-   * @brief Schedule a future with a throttled polling interval (e.g. check every 50ms).
-   */
   template <typename O, typename E = Error, class F>
   TaskHandleBase<Capacity> executeInterval(Future<void, O, E> future, uint32_t interval_ms, F &&on_error) {
-    auto handle = this->execute(std::move(future), std::forward<F>(on_error));
+    auto handle = execute(std::move(future), std::forward<F>(on_error));
     if (handle) handle.setInterval(interval_ms);
     return handle;
   }
@@ -217,6 +204,10 @@ public:
   // TASK CONTROL (INVOKED VIA TaskHandle)
   // =========================================================================
 
+  FORCE_INLINE bool isAlive(uint8_t idx, uint16_t gen) const {
+    return idx < Capacity && ((active_mask_ & (1UL << idx)) != 0) && generations_[idx] == gen;
+  }
+
   FORCE_INLINE void wake(uint8_t idx, uint16_t gen) {
     if (UNLIKELY(idx >= Capacity || generations_[idx] != gen)) return;
     ready_mask_.fetch_or(1UL << idx, std::memory_order_relaxed);
@@ -224,28 +215,29 @@ public:
 
   FORCE_INLINE void sleep(uint8_t idx, uint16_t gen) {
     if (UNLIKELY(idx >= Capacity || generations_[idx] != gen)) return;
-    uint32_t bit = 1UL << idx;
+    const uint32_t bit = 1UL << idx;
     sleep_mask_ |= bit;
     ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
   }
 
   FORCE_INLINE void cancel(uint8_t idx, uint16_t gen) {
     if (UNLIKELY(idx >= Capacity || generations_[idx] != gen)) return;
-    uint32_t bit = 1UL << idx;
+    const uint32_t bit = 1UL << idx;
     if (active_mask_ & bit) {
       future_pool_[idx].clear();
       active_mask_ &= ~bit;
-      ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
+      if (ready_mask_.load(std::memory_order_relaxed) & bit) {
+        ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
+      }
       interval_mask_ &= ~bit;
       sleep_mask_ &= ~bit;
       generations_[idx]++;
-      free_indices_[free_count_++] = idx;
     }
   }
 
   FORCE_INLINE void setInterval(uint8_t idx, uint16_t gen, uint32_t interval_ms) {
     if (UNLIKELY(idx >= Capacity || generations_[idx] != gen)) return;
-    uint32_t bit = 1UL << idx;
+    const uint32_t bit = 1UL << idx;
     if (interval_ms > 0) {
       intervals_ms_[idx] = interval_ms;
       next_poll_ms_[idx] = millis() + interval_ms;
@@ -262,39 +254,41 @@ public:
   // =========================================================================
 
   /**
-   * @brief Polls all active and ready futures in hardware-accelerated Xtensa bitmask steps.
-   * In 95%+ of loop cycles where no tasks are ready or pending intervals,
-   * exits in ~2 CPU cycles without branch penalties or stack overhead.
+   * @brief Polls all active and ready futures using Xtensa bitmask + CCOUNT hardware gates.
+   *  - Idle loop: ~2 CPU cycles exit.
+   *  - Active interval task waiting: ~4 CPU cycles CCOUNT 1ms gate (100x fewer millis() calls!).
    */
   HOT_PATH void poll() {
-    uint32_t to_process = this->ready_mask_.load(std::memory_order_relaxed);
+    uint32_t to_process = ready_mask_.load(std::memory_order_relaxed);
 
-    // FAST-PATH: If no tasks are ready and no intervals exist, or no tasks are active
-    if (LIKELY((to_process | this->interval_mask_) == 0 || this->active_mask_ == 0)) {
+    // FAST-PATH: If nothing is ready and no intervals exist, or no tasks are active
+    if (LIKELY((to_process | interval_mask_) == 0 || active_mask_ == 0)) {
       return;
     }
 
     uint32_t cached_now = 0;
     bool now_cached = false;
 
-    // 1. Check expired timers for interval-throttled tasks using branchless assembly
-    if (UNLIKELY(this->interval_mask_ != 0)) {
-      uint32_t pending_intervals = this->interval_mask_ & ~to_process;
-      if (pending_intervals) {
+    // 1. Check expired timers for interval-throttled tasks (1ms CCOUNT hardware fast-gate)
+    if (UNLIKELY(interval_mask_ != 0)) {
+      uint32_t pending_intervals = interval_mask_ & ~to_process;
+      if (pending_intervals &&
+          UNLIKELY(uniuno::asm_opt::is_cycle_interval_elapsed(
+              last_interval_cycle_, uniuno::asm_opt::ms_to_cycles(1)))) {
         cached_now = millis();
         now_cached = true;
         uint32_t newly_ready = 0;
 
         while (pending_intervals) {
           const uint32_t idx = __builtin_ctz(pending_intervals);
-          if (uniuno::asm_opt::is_timer_expired(cached_now, this->next_poll_ms_[idx])) {
+          if (uniuno::asm_opt::is_timer_expired(cached_now, next_poll_ms_[idx])) {
             newly_ready |= (1UL << idx);
           }
-          pending_intervals &= pending_intervals - 1; // 1-cycle clear lowest set bit
+          pending_intervals &= pending_intervals - 1;
         }
 
         if (newly_ready) {
-          this->ready_mask_.fetch_or(newly_ready, std::memory_order_relaxed);
+          ready_mask_.fetch_or(newly_ready, std::memory_order_relaxed);
           to_process |= newly_ready;
         }
       }
@@ -302,57 +296,59 @@ public:
 
     if (to_process == 0) return;
 
-    // 2. Process each ready task (Single-cycle Xtensa bit-scan)
+    // 2. Process each ready task (Single-cycle Xtensa ctz bit-scan + 1-cycle slli slot index)
     while (to_process) {
       const uint32_t idx = __builtin_ctz(to_process);
       const uint32_t bit = 1UL << idx;
-      to_process &= to_process - 1; // 1-cycle clear lowest set bit
+      to_process &= to_process - 1;
 
-      // If it's dormant or interval-based, clear ready bit before calling task
-      if ((this->sleep_mask_ | this->interval_mask_) & bit) {
-        this->ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
-        if (this->interval_mask_ & bit) {
+      if ((sleep_mask_ | interval_mask_) & bit) {
+        ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
+        if (interval_mask_ & bit) {
           if (!now_cached) {
             cached_now = millis();
             now_cached = true;
           }
-          this->next_poll_ms_[idx] = cached_now + this->intervals_ms_[idx];
+          next_poll_ms_[idx] = cached_now + intervals_ms_[idx];
         }
       }
 
-      auto* slot = &this->future_pool_[idx];
+      auto* slot = &future_pool_[idx];
       if ((*slot)() != AsyncState::Pending) {
-        // Task completed (Resolved or Rejected): free slot immediately
         slot->clear();
-        this->active_mask_ &= ~bit;
-        this->ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
-        this->interval_mask_ &= ~bit;
-        this->sleep_mask_ &= ~bit;
-        this->generations_[idx]++;
-        this->free_indices_[this->free_count_++] = static_cast<uint8_t>(idx);
+        active_mask_ &= ~bit;
+        // Skip expensive atomic CAS if bit was already cleared above
+        if (UNLIKELY(ready_mask_.load(std::memory_order_relaxed) & bit)) {
+          ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
+        }
+        interval_mask_ &= ~bit;
+        sleep_mask_ &= ~bit;
+        generations_[idx]++;
       }
     }
   }
 
   FORCE_INLINE size_t getActiveCount() const {
-    return __builtin_popcount(this->active_mask_);
+    return __builtin_popcount(active_mask_);
   }
 
   FORCE_INLINE size_t getReadyCount() const {
-    return __builtin_popcount(this->ready_mask_.load(std::memory_order_relaxed));
+    return __builtin_popcount(ready_mask_.load(std::memory_order_relaxed));
   }
 
 private:
-  FORCE_INLINE uint8_t allocateSlot() {
-    if (UNLIKELY(this->free_count_ == 0)) return 0xFF;
-    return this->free_indices_[--this->free_count_];
+  /** @brief 1-cycle hardware free-slot allocation using Xtensa ctz (~active_mask_). */
+  FORCE_INLINE uint8_t allocateSlot() const {
+    const uint32_t free_bits = (~active_mask_) & kValidMask;
+    if (UNLIKELY(free_bits == 0)) return 0xFF;
+    return static_cast<uint8_t>(__builtin_ctz(free_bits));
   }
 
   FORCE_INLINE TaskHandleBase<Capacity> activateSlot(uint8_t idx) {
-    uint32_t bit = 1UL << idx;
-    this->active_mask_ |= bit;
-    this->ready_mask_.fetch_or(bit, std::memory_order_relaxed);
-    return TaskHandleBase<Capacity>(this, idx, this->generations_[idx]);
+    const uint32_t bit = 1UL << idx;
+    active_mask_ |= bit;
+    ready_mask_.fetch_or(bit, std::memory_order_relaxed);
+    return TaskHandleBase<Capacity>(this, idx, generations_[idx]);
   }
 
   FastFunction<AsyncState(void), 128> future_pool_[Capacity];
@@ -360,14 +356,18 @@ private:
   std::atomic<uint32_t> ready_mask_;
   uint32_t interval_mask_;
   uint32_t sleep_mask_;
+  uint32_t last_interval_cycle_;
   uint32_t intervals_ms_[Capacity];
   uint32_t next_poll_ms_[Capacity];
   uint16_t generations_[Capacity];
-  uint8_t free_indices_[Capacity];
-  size_t free_count_;
 };
 
 // Out-of-line inlined definitions for TaskHandleBase
+template <size_t Capacity>
+FORCE_INLINE bool TaskHandleBase<Capacity>::isAlive() const {
+  return isValid() && executor_->isAlive(index_, generation_);
+}
+
 template <size_t Capacity>
 FORCE_INLINE void TaskHandleBase<Capacity>::wake() const {
   if (LIKELY(isValid())) executor_->wake(index_, generation_);
