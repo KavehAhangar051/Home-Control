@@ -30,6 +30,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add bun.lock
           git commit -m "chore: regenerate Bun lockfile"
+          # Rebase the generated lockfile commit onto the latest main without pull.
+          git fetch origin main
+          git rebase origin/main
           git push origin HEAD:main
 
-# Trigger lockfile refresh after workflow registration.
+# Regenerate the lockfile in CI and publish the resulting commit.
