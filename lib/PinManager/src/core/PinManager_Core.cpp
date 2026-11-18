@@ -64,7 +64,7 @@ void PinManager::printStatus() const {
 }
 
 String PinManager::exportStateJson() const {
-    uniuno::StaticString<768> json("{\\"type\\":\\"state_sync\\",\\"states\\":{");
+    uniuno::StaticString<768> json("{\"type\":\"state_sync\",\"states\":{");
     bool pinStates[MAX_PINS] = {};
     bool first = true;
 
@@ -74,9 +74,9 @@ String PinManager::exportStateJson() const {
             if (!first) json += ",";
             char pinText[6];
             snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
-            json += "\\"";
+            json += "\"";
             json += pinText;
-            json += "\\":";
+            json += "\":";
 
             const bool state = (entry->type == SegmentType::Input)
                 ? entry->lastInputState
@@ -87,7 +87,7 @@ String PinManager::exportStateJson() const {
         }
     }
 
-    json += "},\\"timers\\":{";
+    json += "},\"timers\":{";
     first = true;
     for (int i = 0; i < MAX_PINS; i++) {
         const PinEntry* entry = _registry.getEntryByIndexConst(i);
@@ -101,9 +101,9 @@ String PinManager::exportStateJson() const {
         char remainingText[12];
         snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
         snprintf(remainingText, sizeof(remainingText), "%lu", (remainingMs + 999UL) / 1000UL);
-        json += "\\"";
+        json += "\"";
         json += pinText;
-        json += "\\":";
+        json += "\":";
         json += remainingText;
         first = false;
     }
