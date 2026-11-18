@@ -32,7 +32,7 @@ void PinManager::printStatus() const {
 
 String PinManager::exportStateJson() const {
     // Static stack buffer sized safely for 16 pins
-    uniuno::StaticString<384> json("{\"type\":\"state_sync\",\"states\":{");
+    uniuno::StaticString<768> json("{\"type\":\"state_sync\",\"states\":{");
     bool first = true;
 
     for (int i = 0; i < MAX_PINS; i++) {
@@ -52,6 +52,28 @@ String PinManager::exportStateJson() const {
             json += state ? "true" : "false";
             first = false;
         }
+    }
+
+    json += "},\"timers\":{";
+    first = true;
+
+    for (int i = 0; i < MAX_PINS; i++) {
+        const PinEntry* entry = _registry.getEntryByIndexConst(i);
+        if (!entry || !entry->active || entry->type != SegmentType::Output) continue;
+
+        const unsigned long remainingMs = getAutoOffRemainingMsByPin(entry->pinNumber);
+        if (remainingMs == 0) continue;
+
+        if (!first) json += ",";
+        char pinText[6];
+        char remainingText[12];
+        snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
+        snprintf(remainingText, sizeof(remainingText), "%lu", (remainingMs + 999UL) / 1000UL);
+        json += "\"";
+        json += pinText;
+        json += "\":";
+        json += remainingText;
+        first = false;
     }
 
     json += "}}";
