@@ -20,6 +20,7 @@ export interface IoTStoreBridge {
   setIsLocal: (val: boolean) => void;
   setLocalIp: (ip: string | null) => void;
   setPinsState: (updater: PinsStateUpdater) => void;
+  setAutoOffRemaining: (timers: Record<string, number>) => void;
 }
 
 const NOOP_BRIDGE: IoTStoreBridge = {
@@ -32,6 +33,7 @@ const NOOP_BRIDGE: IoTStoreBridge = {
   setIsLocal: () => {},
   setLocalIp: () => {},
   setPinsState: () => {},
+  setAutoOffRemaining: () => {},
 };
 
 let storeSnapshotProvider: (() => IoTStoreBridge) | null = null;
