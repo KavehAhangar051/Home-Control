@@ -1,6 +1,7 @@
 #include "../PinManager.h"
 #include <Utilities/logging.h>
 #include <Optimization/StaticString.h>
+#include <Timer/Timer.h>
 #include <cstdio>
 
 PinManager::PinManager() : _registry(), _timerManager(_registry), _stateManager(_registry) {
@@ -8,6 +9,11 @@ PinManager::PinManager() : _registry(), _timerManager(_registry), _stateManager(
 
 PinManager::~PinManager() {
     // Zero dynamic allocations; static memory managed via PinRegistry
+}
+
+unsigned long PinManager::getAutoOffRemainingMsByPin(int pin) const {
+    const uniuno::TimerHandle timer = _timerManager.getTimerIdByPin(pin);
+    return timer.getRemainingMs();
 }
 
 int PinManager::getActiveCount() const {
