@@ -143,6 +143,19 @@ public:
     return node && node->state == TimerState::Paused;
   }
 
+  bool getRemaining(TimerId id, unsigned long& out_remaining_ms) const {
+    const TimerNode* node = storage_.lookup_const(id);
+    if (!node) return false;
+    if (node->state == TimerState::Paused) {
+      out_remaining_ms = node->remaining_ms;
+      return true;
+    }
+    if (node->state != TimerState::Active) return false;
+    const unsigned long now = core_->now();
+    out_remaining_ms = timer_due(now, node->next_call_ms) ? 0 : (node->next_call_ms - now);
+    return true;
+  }
+
   HOT_PATH FORCE_INLINE bool getNextExpiry(unsigned long& out_expiry) const {
     const auto& active = storage_.getActiveTimers();
     if (active.empty()) return false;
