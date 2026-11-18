@@ -22,6 +22,12 @@
   animation: none;
 }
 
+/* Adaptive lite tier: keep View Transition geometry smooth without full-screen GPU filter blur */
+html[data-perf-tier="lite"][data-beui-vt="circle-blur"]::view-transition-new(root) {
+  animation-name: beui-circle-reveal;
+  animation-duration: 480ms;
+}
+
 /* Accessibility: Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),

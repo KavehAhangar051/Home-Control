@@ -17,8 +17,8 @@ export interface CloudflareInitSyncDeps {
   onBumpRemoteEpoch: () => void;
   onReady: () => void;
   sleep?: (ms: number) => Promise<void>;
-  warn?: (tag: string, msg: string, data?: unknown) => void;
-  info?: (tag: string, msg: string, data?: unknown) => void;
+  warn?: (tag: string, msg: string, cause?: unknown) => void;
+  info?: (tag: string, msg: string, cause?: unknown) => void;
 }
 
 export type CloudflareInitSyncOutcome =
@@ -70,29 +70,67 @@ export function executeBypassFallback(
   return "empty_fallback";
 }
 
+function isValidCachedConfig(config: EspConfig | null): config is EspConfig {
+  return Boolean(config && Array.isArray(config.segments) && config.layout);
+}
+
 /**
- * Coordinates initial Cloudflare configuration hydration with bounded retries,
- * offline short-circuiting, optional cache recovery, and bypass cancellation safety.
+ * Coordinates initial Cloudflare configuration hydration with Stale-While-Revalidate
+ * cache fast-path, bounded retries, offline short-circuiting, and bypass cancellation safety.
  */
 export async function executeCloudflareInitSync(
   deps: CloudflareInitSyncDeps,
 ): Promise<CloudflareInitSyncOutcome> {
   const maxAttempts = Math.max(1, deps.maxAttempts ?? 2);
+
   const sleep =
     deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
 
+  let hasAppliedCache = false;
+  let cachedSignature: string | null = null;
+
   if (!deps.configLocalCacheEnabled) {
     deps.clearLocalCache();
+  } else {
+    const cachedConfig = deps.readLocalCache();
+
+    if (isValidCachedConfig(cachedConfig)) {
+      if (cachedConfig.worker_url) {
+        deps.onWorkerUrlChange(cachedConfig.worker_url);
+      }
+
+      deps.applyConfig(cachedConfig);
+      deps.onBumpRemoteEpoch();
+      deps.onReady();
+      hasAppliedCache = true;
+      cachedSignature = JSON.stringify(cachedConfig);
+      deps.info?.("ConfigSync", "Hydrated instant configuration from local SWR cache.", {
+        segments: cachedConfig.segments.length,
+        groups: cachedConfig.layout?.groups_order?.length ?? 0,
+      });
+    }
   }
 
   if (!deps.isCloudflareEnabled()) {
     deps.warn?.("ConfigSync", "Cloudflare is disabled; no default configuration will be applied.");
+
+    if (hasAppliedCache) {
+      deps.onSyncStatus(false, 100, "اتصال به سرور برقرار نیست؛ تنظیمات کش‌شده بارگذاری شد.");
+
+      return { kind: "cache_recovered" };
+    }
 
     return { kind: executeBypassFallback(deps) };
   }
 
   if (!deps.isOnline()) {
     deps.warn?.("ConfigSync", "Browser offline detected; bypassing remote configuration wait.");
+
+    if (hasAppliedCache) {
+      deps.onSyncStatus(false, 100, "اتصال به سرور برقرار نیست؛ تنظیمات کش‌شده بارگذاری شد.");
+
+      return { kind: "cache_recovered" };
+    }
 
     return { kind: executeBypassFallback(deps) };
   }
@@ -102,7 +140,7 @@ export async function executeCloudflareInitSync(
   while (!deps.isBypassed() && attemptCount < maxAttempts) {
     attemptCount++;
     deps.onSyncStatus(
-      true,
+      !hasAppliedCache,
       Math.min(25 + attemptCount * 35, 95),
       `در حال دریافت تنظیمات از سرور ابری (تلاش ${attemptCount} از ${maxAttempts})...`,
     );
@@ -124,13 +162,23 @@ export async function executeCloudflareInitSync(
           deps.writeLocalCache(cfConfig);
         }
 
-        deps.applyConfig(cfConfig);
-        deps.onBumpRemoteEpoch();
+        const remoteSignature = hasAppliedCache ? JSON.stringify(cfConfig) : null;
+
+        if (!hasAppliedCache || remoteSignature !== cachedSignature) {
+          deps.applyConfig(cfConfig);
+          deps.onBumpRemoteEpoch();
+        }
+
         deps.onSyncStatus(false, 100, "همگام‌سازی تنظیمات انجام شد.");
-        deps.onReady();
+
+        if (!hasAppliedCache) {
+          deps.onReady();
+        }
+
         deps.info?.("ConfigSync", "Cloud configuration applied.", {
           segments: cfConfig.segments.length,
           groups: cfConfig.layout?.groups_order?.length ?? 0,
+          revalidated: hasAppliedCache,
         });
 
         return { kind: "remote_applied", attempts: attemptCount };
@@ -152,7 +200,7 @@ export async function executeCloudflareInitSync(
 
     if (attemptCount < maxAttempts) {
       deps.onSyncStatus(
-        true,
+        !hasAppliedCache,
         Math.min(25 + attemptCount * 35, 95),
         "دریافت تنظیمات ناموفق بود؛ تلاش مجدد...",
       );
@@ -162,6 +210,12 @@ export async function executeCloudflareInitSync(
 
   if (deps.isBypassed()) {
     return { kind: "aborted_by_bypass" };
+  }
+
+  if (hasAppliedCache) {
+    deps.onSyncStatus(false, 100, "اتصال به سرور برقرار نیست؛ تنظیمات کش‌شده بارگذاری شد.");
+
+    return { kind: "cache_recovered" };
   }
 
   return { kind: executeBypassFallback(deps) };

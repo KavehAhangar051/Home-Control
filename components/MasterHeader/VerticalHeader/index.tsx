@@ -1,4 +1,4 @@
-import { HousePlug, PanelLeftClose, PanelRightClose } from "@/components/ui/hugeicons";
+import { HousePlug, PanelLeftClose, PanelRightClose } from "@/components/ui/hugeicons-groups/shell";
 import { Toggle } from "@/components/ui/toggle";
 import BrandBox from "../BrandBox";
 import SidebarTooltip from "../SidebarTooltip";

@@ -16,19 +16,16 @@ Use ChatGPT and Cloudflare Dashboard as interaction references, not as assets or
 
 ## Color and appearance
 
-- Default appearance is dark mode only.
-- Use a neutral near-black canvas, slightly differentiated surface layers, restrained borders, and high-contrast text. Avoid ornamental gradients, glowing borders, and animation where they compete with device status or controls.
-- The default palette is fixed by the product; users do not choose theme/accent colors from settings.
-- Do not add a light/dark toggle or custom theme-color settings.
-- Feature-specific colors that belong to a visualization, such as the matrix background effect, are not global theme controls and should remain scoped to that feature.
-- Use color as a supporting signal, never the only indication of device state. Maintain readable contrast for active, pending, disabled, and error states.
+- Default appearance starts in dark mode (`Graphite` neutral ramp `#141415`) and supports user switching to light mode through `ThemeToggle` using the native View Transition API with a reduced-motion fallback.
+- Settings expose controlled customization for primary/secondary accents (`accent3`, `accent4`) and dark/light contrast balance (`darkBlackness`, `lightWhiteness`), applied through CSS custom properties (`--bg-main`, `--card-bg-solid`, `--border-color`, `--text-*`, `--accent3`, `--accent4`).
+- Prefer neutral surfaces, restrained borders, and readable contrast across active, pending, disabled, and error states. Do not rely on color alone to convey device state.
+- When `data-perf-tier="lite"` or `animationsFps=30` is active on resource-constrained devices, multi-layer `backdrop-blur` and expensive per-frame filters step down cleanly to crisp solid surfaces without flattening state hierarchy.
 
 ## Typography
 
-- Vazirmatn is the sole UI font, loaded through next/font.
-- Do not load alternative UI font families or offer font selection, typography management, or font preview settings.
-- Use a consistent type scale and weight hierarchy. Persian labels should be concise and align naturally in RTL layouts.
-- Technical values may use semantic code styling when needed, but must not introduce another selectable application-wide font.
+- **Dana** (`--font-dana`, bundled locally via `next/font/local` with Persian `FaNum` glyphs) is the default UI font.
+- Five selectable secondary fonts (`Vazirmatn`, `IBM Plex Sans Arabic`, `Noto Sans Arabic`, `Rubik`, `Readex Pro`) are configured in `app/layout.tsx` (`preload: false`) and managed through `lib/fonts.ts` so users only fetch non-default webfonts when chosen.
+- Use a consistent type scale (`text-fluid-*` / tabular numbers for telemetry and counters). Keep Persian labels concise and aligned naturally in RTL layouts.
 
 ## Layout and responsive behavior
 
@@ -41,8 +38,8 @@ Use ChatGPT and Cloudflare Dashboard as interaction references, not as assets or
 
 - Use semantic buttons, accessible names for icon-only controls, visible keyboard focus, and appropriate disabled/pending states.
 - Distinguish a requested command from confirmed device state when MQTT, WebSocket, or Cloudflare communication may fail.
-- Use short, purposeful transitions for state changes and navigation. Respect reduced-motion preferences.
-- Sound must never be required to understand or complete an action.
+- Preserve rich Motion springs, transforms, opacity transitions, and View Transitions by default; adaptively step down GPU-heavy filters and continuous ambient loops on struggling devices while never blocking essential interaction feedback.
+- Respect both `animationsEnabled` and `prefers-reduced-motion` (`MotionConfig reducedMotion`). Sound must never be required to understand or complete an action.
 
 ## Implementation boundaries
 

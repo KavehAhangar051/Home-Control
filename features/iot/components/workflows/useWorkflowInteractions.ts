@@ -3,8 +3,11 @@
 import React from "react";
 import { snapCanvasCoordinate } from "@/features/iot/components/canvas/canvasGeometry";
 import {
+  clearNodeDragTiltCssVar,
   computeDragTiltDeg,
   findMagneticInputPort,
+  findNodeTiltElement,
+  setNodeDragTiltCssVar,
 } from "@/features/iot/components/canvas/nodeMotion";
 import { canConnectWorkflowPorts, clampWorkflowNodeSize, createWorkflowId } from "./workflowEngine";
 import type { WorkflowDefinition, WorkflowEdge, WorkflowNode } from "./workflowTypes";
@@ -23,7 +26,8 @@ export interface UseWorkflowInteractionsOptions {
   isLocked: boolean;
   snapToGrid: boolean;
   updateActiveWorkflow: (updater: (wf: WorkflowDefinition) => WorkflowDefinition) => void;
-  handleUpdateNode: (nodeId: string, patch: Partial<WorkflowNode>) => void;
+  handleUpdateNodeTransient: (nodeId: string, patch: Partial<WorkflowNode>) => void;
+  onCommitInteraction: () => void;
   setSelectedNodeId: React.Dispatch<React.SetStateAction<string | null>>;
   setSelectedEdgeId: React.Dispatch<React.SetStateAction<string | null>>;
   showToast?: (msg: string, type: "success" | "error") => void;
@@ -31,8 +35,8 @@ export interface UseWorkflowInteractionsOptions {
 
 /**
  * Deep workflow node & port interaction controller.
- * Encapsulates z-order promotion, node drag with physics tilt, concentric node resize,
- * and magnetic port wiring (both drag-to-connect and tap-to-connect).
+ * Encapsulates z-order promotion, rAF-coalesced node drag with CSS-variable tilt,
+ * concentric node resize, and rAF-coalesced magnetic port wiring.
  */
 export function useWorkflowInteractions({
   containerRef,
@@ -41,13 +45,13 @@ export function useWorkflowInteractions({
   isLocked,
   snapToGrid,
   updateActiveWorkflow,
-  handleUpdateNode,
+  handleUpdateNodeTransient,
+  onCommitInteraction,
   setSelectedNodeId,
   setSelectedEdgeId,
   showToast,
 }: UseWorkflowInteractionsOptions) {
   const [draggingNodeId, setDraggingNodeId] = React.useState<string | null>(null);
-  const [dragTiltDeg, setDragTiltDeg] = React.useState(0);
   const [connectingFromId, setConnectingFromId] = React.useState<string | null>(null);
   const [connectingDraft, setConnectingDraft] = React.useState<ConnectingWireDraft | null>(null);
 
@@ -89,33 +93,80 @@ export function useWorkflowInteractions({
       const startClientY = e.clientY;
       let lastClientX = e.clientX;
       const zoom = activeWorkflow.viewport.zoom;
+      const tiltEl = findNodeTiltElement(nodeId);
       setDraggingNodeId(nodeId);
-      setDragTiltDeg(0);
+      setNodeDragTiltCssVar(tiltEl, 0);
 
-      const onMove = (moveEvent: PointerEvent) => {
+      const applyPointerMove = (moveEvent: PointerEvent) => {
         const dx = (moveEvent.clientX - startClientX) / zoom;
         const dy = (moveEvent.clientY - startClientY) / zoom;
         const nextX = snapCanvasCoordinate(startNode.x + dx, snapToGrid);
         const nextY = snapCanvasCoordinate(startNode.y + dy, snapToGrid);
 
-        setDragTiltDeg(computeDragTiltDeg(moveEvent.clientX - lastClientX));
+        setNodeDragTiltCssVar(tiltEl, computeDragTiltDeg(moveEvent.clientX - lastClientX));
         lastClientX = moveEvent.clientX;
-        handleUpdateNode(nodeId, { x: nextX, y: nextY });
+        handleUpdateNodeTransient(nodeId, { x: nextX, y: nextY });
       };
 
-      const onUp = () => {
+      let pendingMove: PointerEvent | null = null;
+      let frameId: number | null = null;
+
+      const flushPointerMove = () => {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+
+        const latestMove = pendingMove;
+        pendingMove = null;
+
+        if (latestMove) applyPointerMove(latestMove);
+      };
+
+      const onMove = (moveEvent: PointerEvent) => {
+        pendingMove = moveEvent;
+
+        if (frameId === null) {
+          frameId = requestAnimationFrame(() => {
+            frameId = null;
+            const latestMove = pendingMove;
+            pendingMove = null;
+
+            if (latestMove) applyPointerMove(latestMove);
+          });
+        }
+      };
+
+      const finishDrag = () => {
         setDraggingNodeId(null);
-        setDragTiltDeg(0);
+        clearNodeDragTiltCssVar(tiltEl);
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
-        window.removeEventListener("pointercancel", onUp);
+        window.removeEventListener("pointercancel", onCancel);
+        onCommitInteraction();
+      };
+
+      const onUp = (endEvent: PointerEvent) => {
+        pendingMove = endEvent;
+        flushPointerMove();
+        finishDrag();
+      };
+
+      const onCancel = () => {
+        flushPointerMove();
+        finishDrag();
       };
 
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
-      window.addEventListener("pointercancel", onUp);
+      window.addEventListener("pointercancel", onCancel);
     },
-    [activeWorkflow, bringNodeToFront, handleUpdateNode, isLocked, snapToGrid],
+    [
+      activeWorkflow,
+      bringNodeToFront,
+      handleUpdateNodeTransient,
+      isLocked,
+      onCommitInteraction,
+      snapToGrid,
+    ],
   );
 
   const startNodeResize = React.useCallback(
@@ -135,7 +186,7 @@ export function useWorkflowInteractions({
       const zoom = activeWorkflow.viewport.zoom;
       const snappedRightEdge = snapCanvasCoordinate(startNode.x + startNode.width, snapToGrid);
 
-      const onMove = (moveEvent: PointerEvent) => {
+      const applyPointerMove = (moveEvent: PointerEvent) => {
         const dx = (moveEvent.clientX - startClientX) / zoom;
         const dy = (moveEvent.clientY - startClientY) / zoom;
 
@@ -148,24 +199,70 @@ export function useWorkflowInteractions({
 
         const nextX = snapCanvasCoordinate(snappedRightEdge - clamped.width, snapToGrid);
 
-        handleUpdateNode(nodeId, {
+        handleUpdateNodeTransient(nodeId, {
           x: nextX,
           width: clamped.width,
           height: clamped.height,
         });
       };
 
-      const onUp = () => {
+      let pendingMove: PointerEvent | null = null;
+      let frameId: number | null = null;
+
+      const flushPointerMove = () => {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+
+        const latestMove = pendingMove;
+        pendingMove = null;
+
+        if (latestMove) applyPointerMove(latestMove);
+      };
+
+      const onMove = (moveEvent: PointerEvent) => {
+        pendingMove = moveEvent;
+
+        if (frameId === null) {
+          frameId = requestAnimationFrame(() => {
+            frameId = null;
+            const latestMove = pendingMove;
+            pendingMove = null;
+
+            if (latestMove) applyPointerMove(latestMove);
+          });
+        }
+      };
+
+      const finishResize = () => {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
-        window.removeEventListener("pointercancel", onUp);
+        window.removeEventListener("pointercancel", onCancel);
+        onCommitInteraction();
+      };
+
+      const onUp = (endEvent: PointerEvent) => {
+        pendingMove = endEvent;
+        flushPointerMove();
+        finishResize();
+      };
+
+      const onCancel = () => {
+        flushPointerMove();
+        finishResize();
       };
 
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
-      window.addEventListener("pointercancel", onUp);
+      window.addEventListener("pointercancel", onCancel);
     },
-    [activeWorkflow, bringNodeToFront, handleUpdateNode, isLocked, snapToGrid],
+    [
+      activeWorkflow,
+      bringNodeToFront,
+      handleUpdateNodeTransient,
+      isLocked,
+      onCommitInteraction,
+      snapToGrid,
+    ],
   );
 
   const connectNodes = React.useCallback(
@@ -213,7 +310,7 @@ export function useWorkflowInteractions({
       const vp = activeWorkflow.viewport;
       const rect = el.getBoundingClientRect();
 
-      const onMove = (moveEvent: PointerEvent) => {
+      const applyPointerMove = (moveEvent: PointerEvent) => {
         if (Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY) > 6) {
           hasDragged = true;
         }
@@ -239,11 +336,39 @@ export function useWorkflowInteractions({
         });
       };
 
+      let pendingMove: PointerEvent | null = null;
+      let frameId: number | null = null;
+
+      const onMove = (moveEvent: PointerEvent) => {
+        if (Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY) > 6) {
+          hasDragged = true;
+        }
+
+        pendingMove = moveEvent;
+
+        if (frameId === null) {
+          frameId = requestAnimationFrame(() => {
+            frameId = null;
+            const latestMove = pendingMove;
+            pendingMove = null;
+
+            if (latestMove) applyPointerMove(latestMove);
+          });
+        }
+      };
+
       const onUp = (upEvent: PointerEvent) => {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+        pendingMove = null;
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
         setConnectingDraft(null);
+
+        if (Math.hypot(upEvent.clientX - startX, upEvent.clientY - startY) > 6) {
+          hasDragged = true;
+        }
 
         if (!hasDragged) {
           setConnectingFromId((prev) => (prev === sourceNodeId ? null : sourceNodeId));
@@ -290,7 +415,6 @@ export function useWorkflowInteractions({
 
   return {
     draggingNodeId,
-    dragTiltDeg,
     connectingFromId,
     setConnectingFromId,
     connectingDraft,

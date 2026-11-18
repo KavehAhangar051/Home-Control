@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { Clock } from "@/components/ui/hugeicons";
+import { Clock } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import HorizontalClock from "./HorizontalClock";
 import { getPersianDateString, getTimeString } from "./persianDateUtils";

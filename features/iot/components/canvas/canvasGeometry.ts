@@ -44,6 +44,30 @@ export function clampCanvasZoom(zoom: number): number {
   return Math.min(CANVAS_MAX_ZOOM, Math.max(CANVAS_MIN_ZOOM, Math.round(zoom * 100) / 100));
 }
 
+/**
+ * Computes the next viewport so the world point under `(anchorX, anchorY)` stays pinned
+ * across a zoom transition. Returns `prev` unchanged when the clamped zoom does not move.
+ */
+export function computeFocalZoomViewport(
+  prev: CanvasViewport,
+  targetZoom: number,
+  anchorX: number,
+  anchorY: number,
+): CanvasViewport {
+  const nextZoom = clampCanvasZoom(targetZoom);
+
+  if (nextZoom === prev.zoom) return prev;
+
+  const worldX = (anchorX - prev.x) / prev.zoom;
+  const worldY = (anchorY - prev.y) / prev.zoom;
+
+  return {
+    x: Math.round(anchorX - worldX * nextZoom),
+    y: Math.round(anchorY - worldY * nextZoom),
+    zoom: nextZoom,
+  };
+}
+
 export function snapCanvasCoordinate(value: number, snapEnabled: boolean): number {
   if (!snapEnabled) return Math.round(value);
 
@@ -187,11 +211,15 @@ function groupSegmentsByGroupName(
   return segmentsByGroup;
 }
 
+interface CanvasNodeRectMap {
+  [nodeId: string]: CanvasNodeRect;
+}
+
 function buildDefaultGraphNodes(
   segmentsByGroup: Map<string, Segment[]>,
   isMobileViewport: boolean,
-): Record<string, CanvasNodeRect> {
-  const nodes: Record<string, CanvasNodeRect> = {};
+): CanvasNodeRectMap {
+  const nodes: CanvasNodeRectMap = {};
   let zCursor = 1;
   let currentY = 64;
   const groupX = isMobileViewport ? 352 : 688;
@@ -247,8 +275,8 @@ function buildDefaultGroupContainerNodes(
   segmentsByGroup: Map<string, Segment[]>,
   groupsOrder: string[],
   isMobileViewport: boolean,
-): Record<string, CanvasNodeRect> {
-  const nodes: Record<string, CanvasNodeRect> = {};
+): CanvasNodeRectMap {
+  const nodes: CanvasNodeRectMap = {};
   let zCursor = 1;
   const cols = isMobileViewport ? 1 : Math.min(2, Math.max(1, groupsOrder.length));
   const colWidth = isMobileViewport ? 320 : 448;
@@ -283,9 +311,10 @@ function buildDefaultGroupContainerNodes(
 function buildDefaultFreeSegmentNodes(
   segments: Segment[],
   isMobileViewport: boolean,
-): Record<string, CanvasNodeRect> {
-  const nodes: Record<string, CanvasNodeRect> = {};
+): CanvasNodeRectMap {
+  const nodes: CanvasNodeRectMap = {};
   let zCursor = 1;
+
   const cols = isMobileViewport
     ? 2
     : Math.min(4, Math.max(2, Math.ceil(Math.sqrt(segments.length))));
@@ -384,6 +413,7 @@ export function computeCenteredFitViewport(
   const zoom = clampCanvasZoom(
     Math.min(availableWidth / boundsWidth, availableHeight / boundsHeight, maxZoom),
   );
+
   const centerX = minX + boundsWidth / 2;
   const centerY = minY + boundsHeight / 2;
 
@@ -408,6 +438,7 @@ export function computeFitCanvasViewport(
 
   for (let i = 0; i < visibleIds.length; i++) {
     const rect = nodes[visibleIds[i]];
+
     if (rect) visibleRects.push(rect);
   }
 
@@ -439,10 +470,12 @@ export function buildBezierWireGeometry(
   const endY = Math.round(targetRect.y + targetRect.height / 2);
 
   const deltaX = Math.abs(endX - startX);
+
   const controlOffset = Math.max(
     WIRE_MIN_CONTROL_OFFSET,
     Math.min(WIRE_MAX_CONTROL_OFFSET, Math.round(deltaX * 0.5)),
   );
+
   const cp1X = isTargetLeft ? startX - controlOffset : startX + controlOffset;
   const cp2X = isTargetLeft ? endX + controlOffset : endX - controlOffset;
 

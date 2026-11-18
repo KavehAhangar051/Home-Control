@@ -1,7 +1,8 @@
 import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Edit2, Plus } from "@/components/ui/hugeicons";
+import { Edit2 } from "@/components/ui/hugeicons-groups/controls";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";

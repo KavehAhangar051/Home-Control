@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { Button } from "@/components/ui/button";
-import { MapPin } from "@/components/ui/hugeicons";
+import { MapPin } from "@/components/ui/hugeicons-groups/controls";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";

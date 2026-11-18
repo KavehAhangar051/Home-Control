@@ -17,14 +17,18 @@ function updateWorkerState(url: string) {
 }
 
 if (typeof window !== "undefined") {
-  const saved = localStorage.getItem("cloudflare_worker_url");
+  try {
+    const saved = window.localStorage.getItem("cloudflare_worker_url");
 
-  if (saved) {
-    updateWorkerState(saved);
+    if (saved) {
+      updateWorkerState(saved);
 
-    if (inMemoryWorkerUrl !== saved) {
-      localStorage.setItem("cloudflare_worker_url", inMemoryWorkerUrl);
+      if (inMemoryWorkerUrl !== saved) {
+        window.localStorage.setItem("cloudflare_worker_url", inMemoryWorkerUrl);
+      }
     }
+  } catch {
+    // Ignore storage access failures in restricted iframe/privacy contexts
   }
 } else if (typeof process !== "undefined" && process.env) {
   updateWorkerState(process.env.NEXT_PUBLIC_CLOUDFLARE_WORKER_URL || DEFAULT_WORKER_URL);
@@ -38,7 +42,11 @@ export function setCloudflareWorkerUrl(url: string) {
   updateWorkerState(url);
 
   if (typeof window !== "undefined") {
-    localStorage.setItem("cloudflare_worker_url", inMemoryWorkerUrl);
+    try {
+      window.localStorage.setItem("cloudflare_worker_url", inMemoryWorkerUrl);
+    } catch {
+      // Ignore storage access failures in restricted iframe/privacy contexts
+    }
   }
 }
 

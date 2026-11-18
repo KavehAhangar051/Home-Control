@@ -57,6 +57,7 @@ export default function WorkspaceDragOverlay({
 
         if (source.type === "Segment") {
           const activeSegment = segments.find((segment) => segment.id === sourceId);
+
           if (!activeSegment) return null;
 
           const groupId = activeSegment.group || "Test";

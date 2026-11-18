@@ -1,9 +1,9 @@
 /**
  * Runtime switches for optional browser-side behavior.
- * Keep configuration caching disabled during development so Cloudflare remains authoritative.
+ * `configLocalCache` enables instant Stale-While-Revalidate hydration while Cloudflare stays authoritative in background sync.
  */
 export const FEATURE_FLAGS = {
-  configLocalCache: false,
+  configLocalCache: true,
   audioLocalCache: true,
   debugLogging: true,
 } as const;

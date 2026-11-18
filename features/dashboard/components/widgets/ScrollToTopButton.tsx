@@ -2,7 +2,7 @@
 
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useState } from "react";
-import { ArrowUp } from "@/components/ui/hugeicons";
+import { ArrowUp } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { DURATION, EASE_IN, EASE_OUT, EXIT_DURATION } from "@/lib/ease";

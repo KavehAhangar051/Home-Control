@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CloudLightning, Globe, Server } from "@/components/ui/hugeicons";
+import { CloudLightning, Server } from "@/components/ui/hugeicons-groups/controls";
+import { Globe } from "@/components/ui/hugeicons-groups/media";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";

@@ -1,6 +1,6 @@
 import { AnimatePresence } from "motion/react";
 import type React from "react";
-import { Plus, Settings } from "@/components/ui/hugeicons";
+import { Plus, Settings } from "@/components/ui/hugeicons-groups/shell";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import GroupSettingsMenu from "./GroupSettingsMenu";

@@ -1,4 +1,4 @@
-import { Plus } from "@/components/ui/hugeicons";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { type ConditionAction, ConditionActionItem } from "./ConditionActionItem";
 

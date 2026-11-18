@@ -9,7 +9,7 @@ import type React from "react";
 import { useRef } from "react";
 import { ActionSwapIcon } from "@/components/motion/action-swap";
 import { useThemeToggle } from "@/components/motion/theme-toggle";
-import { Moon, Sun } from "@/components/ui/hugeicons";
+import { Moon, Sun } from "@/components/ui/hugeicons-groups/shell";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 

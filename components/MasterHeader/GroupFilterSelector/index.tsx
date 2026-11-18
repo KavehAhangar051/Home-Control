@@ -1,7 +1,7 @@
 import { AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "@/components/ui/hugeicons";
+import { ChevronLeft, ChevronRight } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import FilterButton from "./FilterButton";

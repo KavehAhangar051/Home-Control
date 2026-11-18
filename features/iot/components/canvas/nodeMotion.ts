@@ -71,6 +71,42 @@ export function computeDragTiltDeg(deltaClientX: number, maxDeg = 2.6): number {
 }
 
 /**
+ * Resolves the outer DOM element for a dragged node once at gesture start.
+ */
+export function findNodeTiltElement(nodeId: string): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+
+  const escapedId =
+    typeof CSS !== "undefined" && CSS.escape instanceof Function ? CSS.escape(nodeId) : nodeId;
+
+  return document.querySelector<HTMLElement>(`[data-canvas-node-id="${escapedId}"]`);
+}
+
+/**
+ * Updates `--drag-tilt` imperatively on the dragged element so pointer velocity
+ * animates smoothly on the compositor thread without triggering React re-renders.
+ */
+export function setNodeDragTiltCssVar(element: HTMLElement | null, tiltDeg: number): void {
+  if (!element) return;
+
+  if (
+    typeof document !== "undefined" &&
+    document.documentElement.dataset.animationsEnabled === "false"
+  ) {
+    element.style.removeProperty("--drag-tilt");
+
+    return;
+  }
+
+  element.style.setProperty("--drag-tilt", `${tiltDeg}deg`);
+}
+
+export function clearNodeDragTiltCssVar(element: HTMLElement | null): void {
+  if (!element) return;
+  element.style.removeProperty("--drag-tilt");
+}
+
+/**
  * Finds the closest eligible workflow target input port within `snapRadius` world pixels
  * of the pointer during wire drafting, enforcing cycle/self-loop validation.
  */

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
 import { buildBezierWireGeometry } from "./canvasGeometry";
 import type { CanvasNodeRect, CanvasWireConnection } from "./canvasTypes";
 
@@ -17,6 +18,7 @@ interface CanvasWireItemProps {
   nodes: Record<string, CanvasNodeRect>;
   selectedNodeId: string | null;
   animationsEnabled: boolean;
+  showParticles: boolean;
 }
 
 const CanvasWireItem = React.memo(function CanvasWireItem({
@@ -24,14 +26,19 @@ const CanvasWireItem = React.memo(function CanvasWireItem({
   nodes,
   selectedNodeId,
   animationsEnabled,
+  showParticles,
 }: CanvasWireItemProps) {
-  const isActive = useIoTStore((state) => Boolean(connection.pin && state.pinsState[connection.pin]));
+  const isActive = useIoTStore((state) =>
+    Boolean(connection.pin && state.pinsState[connection.pin]),
+  );
+
   const sourceRect = nodes[connection.sourceId];
   const targetRect = nodes[connection.targetId];
 
   if (!sourceRect || !targetRect) return null;
 
   const { path, startX, startY, endX, endY } = buildBezierWireGeometry(sourceRect, targetRect);
+
   const isHighlighted =
     selectedNodeId === connection.sourceId || selectedNodeId === connection.targetId;
 
@@ -76,16 +83,20 @@ const CanvasWireItem = React.memo(function CanvasWireItem({
             strokeLinecap="round"
             className="animate-[dash_1.15s_linear_infinite]"
           />
-          <circle
-            r={4.2}
-            fill={connection.isInput ? "#10b981" : "var(--accent3)"}
-            fillOpacity={0.3}
-          >
-            <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
-          </circle>
-          <circle r={2.3} fill={connection.isInput ? "#a7f3d0" : "#ffffff"}>
-            <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
-          </circle>
+          {showParticles && (
+            <>
+              <circle
+                r={4.2}
+                fill={connection.isInput ? "#10b981" : "var(--accent3)"}
+                fillOpacity={0.3}
+              >
+                <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
+              </circle>
+              <circle r={2.3} fill={connection.isInput ? "#a7f3d0" : "#ffffff"}>
+                <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
+              </circle>
+            </>
+          )}
         </>
       )}
 
@@ -115,7 +126,11 @@ export default React.memo(function CanvasWiresLayer({
   selectedNodeId,
   animationsEnabled,
 }: CanvasWiresLayerProps) {
+  const isLiteTier = useIsLitePerformanceTier();
+
   if (connections.length === 0) return null;
+
+  const showParticles = animationsEnabled && !isLiteTier;
 
   return (
     <svg
@@ -130,6 +145,7 @@ export default React.memo(function CanvasWiresLayer({
           nodes={nodes}
           selectedNodeId={selectedNodeId}
           animationsEnabled={animationsEnabled}
+          showParticles={showParticles}
         />
       ))}
     </svg>

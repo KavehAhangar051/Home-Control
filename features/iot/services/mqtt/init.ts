@@ -39,9 +39,11 @@ export interface StateUpdateQueue {
  */
 export function createStateUpdateQueue(deps: StateUpdateQueueDeps = {}): StateUpdateQueue {
   const maxPending = Math.max(1, deps.maxPending ?? MAX_PENDING_PIN_UPDATES);
+
   const scheduleFrame =
     deps.scheduleFrame ??
     ((cb: () => void) => (typeof window !== "undefined" ? window.requestAnimationFrame(cb) : 0));
+
   const cancelFrame =
     deps.cancelFrame ??
     ((id: number) => {
@@ -49,8 +51,10 @@ export function createStateUpdateQueue(deps: StateUpdateQueueDeps = {}): StateUp
         window.cancelAnimationFrame(id);
       }
     });
+
   const applyPinsState =
     deps.applyPinsState ?? ((updater) => getIoTStoreSnapshot().setPinsState(updater));
+
   const getCallbacks = deps.getCallbacks ?? (() => stateCallbacks);
 
   let pendingStateUpdates = new Map<string, boolean>();
@@ -291,6 +295,7 @@ export const initMqtt = (): Promise<void> => {
       setMqttClient(client);
 
       const isCurrentGeneration = () => generation === connectionGeneration;
+
       const publishFrame = (topic: string, buf: Uint8Array, targetQos: 0 | 1 | 2) => {
         // SAFETY: mqtt.js publish accepts Uint8Array or Buffer as binary payload
         client?.publish(topic, buf as Buffer, { qos: targetQos });
@@ -352,3 +357,78 @@ export const reconnectMqtt = () => {
 
   void initMqtt();
 };
+
+export const MIN_RESUME_SYNC_INTERVAL_MS = 3000;
+
+export type MqttResumeOutcome = "noop" | "throttled" | "synced" | "reconnected";
+
+export interface MqttResumeClientLike {
+  connected: boolean;
+  publish: (topic: string, payload: Buffer, options: { qos: 0 | 1 | 2 }) => void;
+  reconnect?: () => void;
+}
+
+export interface MqttResumeControllerDeps {
+  getClient: () => MqttResumeClientLike | null;
+  getSettings: () => { baseTopic: string; qos: 0 | 1 | 2 };
+  now?: () => number;
+  minSyncIntervalMs?: number;
+  onReconnect?: () => void;
+}
+
+/**
+ * Coordinates instant MQTT state resynchronization or immediate reconnect
+ * when the browser tab wakes up or regains network connectivity.
+ */
+export function createMqttResumeController(
+  deps: MqttResumeControllerDeps,
+): () => MqttResumeOutcome {
+  const now = deps.now ?? (() => Date.now());
+  const minSyncIntervalMs = deps.minSyncIntervalMs ?? MIN_RESUME_SYNC_INTERVAL_MS;
+  let lastSyncAt = Number.NEGATIVE_INFINITY;
+
+  return () => {
+    const activeClient = deps.getClient();
+
+    if (!activeClient) {
+      return "noop";
+    }
+
+    if (!activeClient.connected) {
+      if (activeClient.reconnect instanceof Function) {
+        activeClient.reconnect();
+      } else {
+        deps.onReconnect?.();
+      }
+
+      return "reconnected";
+    }
+
+    const currentNow = now();
+
+    if (currentNow - lastSyncAt < minSyncIntervalMs) {
+      return "throttled";
+    }
+
+    lastSyncAt = currentNow;
+    const settings = deps.getSettings();
+    const commandTopic = `${settings.baseTopic}/Command`;
+
+    // SAFETY: mqtt.js publish accepts Uint8Array or Buffer as binary payload
+    activeClient.publish(commandTopic, PRESENCE_ONLINE_FRAME as Buffer, { qos: settings.qos });
+
+    // SAFETY: mqtt.js publish accepts Uint8Array or Buffer as binary payload
+    activeClient.publish(commandTopic, SYNC_REQUEST_FRAME as Buffer, { qos: settings.qos });
+
+    return "synced";
+  };
+}
+
+const defaultMqttResume = createMqttResumeController({
+  // SAFETY: MqttClient structurally implements connected, publish, and optional reconnect
+  getClient: () => getMqttClient() as MqttResumeClientLike | null,
+  getSettings: getMqttSettings,
+  onReconnect: reconnectMqtt,
+});
+
+export const notifyMqttResume = (): MqttResumeOutcome => defaultMqttResume();

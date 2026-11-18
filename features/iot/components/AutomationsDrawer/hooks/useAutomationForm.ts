@@ -25,11 +25,17 @@ interface AutomationFormDraftInput {
 
 type ValidationResult = { ok: true; automation: Automation } | { ok: false; errorMessage: string };
 
+interface ComputedTimerSchedule {
+  time: string;
+  days: number[];
+  repeatCount: number;
+}
+
 export function computeTimerSchedule(
   delayHours: number,
   delayMinutes: number,
   now: Date = new Date(),
-): { time: string; days: number[]; repeatCount: number } {
+): ComputedTimerSchedule {
   const targetDate = new Date(now.getTime());
   targetDate.setHours(targetDate.getHours() + delayHours);
   targetDate.setMinutes(targetDate.getMinutes() + delayMinutes);
@@ -106,7 +112,9 @@ function resolveDraftTimingAndCondition(
 
 export function inferAutomationEditType(auto: Automation): "schedule" | "timer" | "weather" {
   if (auto.intervalMinutes) return "weather";
+
   if (auto.repeatCount) return "timer";
+
   return "schedule";
 }
 
@@ -116,6 +124,7 @@ export function buildValidatedAutomationDraft(
 ): ValidationResult {
   const finalTempThresh =
     input.temperatureThreshold !== "" ? input.temperatureThreshold : undefined;
+
   const finalIntervalMinutes = resolvePositiveNumber(input.intervalMinutes);
 
   const timingResult = resolveDraftTimingAndCondition(

@@ -111,6 +111,7 @@ export function getThemeStyles({
 
   const isDefaultAccent3 =
     accent3.toUpperCase() === "#E5E7EB" || accent3.toUpperCase() === "#EDEDED";
+
   const resolvedAccent3 = !isDark && isDefaultAccent3 ? "#171717" : accent3;
   const opaqueAccent3 = toSixDigitHex(resolvedAccent3, isDark ? "#ededed" : "#171717");
   const opaqueAccent4 = toSixDigitHex(accent4, "#3b82f6");

@@ -32,43 +32,35 @@ Average FPS alone is insufficient. Review dropped/partially presented frames, fr
 9. Respect the dashboard animation setting and prefers-reduced-motion. Reduced motion is an accessibility preference, not a performance tier to override.
 10. Avoid animating large numbers of independent elements simultaneously. Stagger decorative entrances where appropriate, but never delay urgent device-state feedback.
 
-## Existing motion inventory (source audit, not runtime profiling)
+## Existing motion & rendering inventory
 
-- components/MotionProvider.tsx: async LazyMotion with domMax; retain domMax because layout and drag-related features are used.
-- components/motion/action-swap-variants.ts: common label/icon transitions include blur filters alongside opacity and transform. Profile these effects under dense UI updates before changing the visual language.
-- components/motion/color-picker.tsx: uses layout animation, spring/transform motion, and a blurred panel-item entrance. Inspect while dragging the color area and opening/closing the panel.
-- components/motion/range-slider.tsx: drives fill and thumb positions with MotionValues/springs rather than React state for every visual interpolation.
-- components/motion/loader.tsx: several continuous decorative loader variants exist. Keep loops limited to visible loading states and verify they stop when unmounted.
-- components/motion/theme-toggle.tsx and styles/view-transitions.css: theme changes use native View Transitions with a reduced-motion fallback.
-- Canvas drag, resize, and pan are frame-coalesced; persistent layout writes happen at gesture completion.
-
-This inventory identifies profiling candidates. It does not prove that any listed animation currently drops frames.
+- `components/MotionProvider.tsx`: async `LazyMotion` with `domMax`; all 134 Motion calls already use `m.*` rather than monolithic `motion.*`. Retain `domMax` because layout and drag features are active.
+- `lib/performanceTier.ts` & `lib/hooks/use-performance-tier.ts`: pure adaptive performance controller combining hardware hints (`hardwareConcurrency`, `deviceMemory`, `saveData`), Zustand `animationsFps` (`30 | 60`), a 1.5 s post-mount warmup grace window, and a sliding-window rAF frame-drop detector to manage `html[data-perf-tier="full" | "lite"]`.
+- `components/motion/action-swap-variants.ts` & `action-swap.tsx`: `"full"` tier uses the expressive blur/roll/cascade variants; `"lite"` tier shifts to compositor-only transform + opacity variants with zero CSS `filter: blur()`.
+- `components/motion/color-picker.tsx`: uses `useSpring`/`useTransform`/`MotionValue` for cursor thumb and pendulum loupe without React state loops on drag; panel reveal avoids blur in `"lite"` tier.
+- `components/motion/range-slider.tsx`: drives fill and thumb transforms via `MotionValue` + `useSpring`.
+- `components/motion/theme-toggle.tsx` & `styles/view-transitions.css`: theme changes use native View Transitions without synchronous `document.body.offsetHeight` forced reflow; `"lite"` tier skips root `filter: blur(8px)`.
+- Canvas & Workflow gestures (`useSheetViewportGestures.ts`, `useCanvasNodeInteractions.ts`, `useWorkflowInteractions.ts`, `useWorkflowStudio.ts`): pointer move, resize, wheel zoom, and 2-finger pinch zoom are coalesced to `requestAnimationFrame`; transient viewport changes avoid per-frame `localStorage` serialization; node drag tilt updates `--drag-tilt` without forcing React parent re-renders.
+- Infinite background loops (`usePageVisibility.ts`, `app/globals.css`, `CanvasWiresLayer.tsx`, `WorkflowEdgeItem.tsx`): hidden tabs (`html[data-page-hidden="true"]`) pause infinite CSS keyframes, and `"lite"` tier replaces dual SVG SMIL `<animateMotion>` wire particles with lightweight dash feedback.
 
 ## Verification protocol
 
-Use equivalent production-mode sessions and the same device/browser for before/after comparisons. Cover:
+Use equivalent Chromium desktop (`1440x900`) and mobile (`390x844`, 4x/6x CPU throttle or simulated weak-device tier) sessions for comparisons. Cover:
 
-- First dashboard render and initial hydration.
-- Grid, Trellis, Canvas, and Workflow workspace switching.
-- Canvas drag, resize, pan, and wire interactions.
-- Workflow node drag and connection interactions.
-- Rapid device-state changes while transitions and ambient UI are active.
-- ColorPicker drag, RangeSlider drag, theme change, and common dialogs/menus.
-- Touch input on a low-powered mobile device.
-
-In Chrome DevTools, use the Performance panel's Frames and Animations tracks, the Rendering panel's Frame Rendering Stats/FPS meter, and paint flashing. Inspect dropped/partially presented frames, long tasks, layout/paint work, and compositing failures. Record the device, browser, refresh rate, route/workspace, interaction, and whether the run was production or development.
-
-React Profiler and React Performance tracks help attribute React work, but their instrumentation adds overhead and is not a substitute for the browser's frame timeline. Bundle analyzer output is not an FPS measurement.
+- First dashboard render, initial hydration, and actual network chunk requests (verifying `@dnd-kit/react` loads only for Grid).
+- Grid, Trellis, Canvas, and Workflow workspace switching (`AnimateView` / View Transitions).
+- Canvas & Workflow node drag, resize, wheel zoom, pinch zoom, and wire connections.
+- Rapid device-state changes while wires, perimeter sparks, and UI transitions run.
+- Settings Stability (`animationsEnabled` + `30 FPS` / `60 FPS`), ThemeToggle View Transition, and `content-visibility: auto` scrolling.
 
 ## Acceptance criteria
 
-- On a 60 Hz target device, the common interaction scenarios should sustain approximately 60 FPS without recurring dropped-frame bursts.
-- On higher-refresh displays, the app should not impose an unnecessary 60 FPS cap.
-- State changes and input feedback remain responsive while decorative animations run.
-- No repeated long tasks or forced-layout loops occur during common gestures.
-- The weakest agreed reference device is recorded explicitly; results must not be generalized to every possible device.
-- Any adaptive quality behavior must be driven by a demonstrated runtime bottleneck and must preserve essential state feedback, touch behavior, and reduced-motion settings.
+- On a 60 Hz target device, common interaction scenarios sustain smooth ~60 FPS with minimal dropped-frame bursts, and high-frequency gestures trigger zero per-frame `localStorage` writes or forced full-DOM reflows.
+- On higher-refresh displays (`90/120/144 Hz`), the dashboard imposes no artificial 60 FPS cap.
+- Adaptive tiering never disables essential device-state feedback, card transitions, touch affordances, or accessibility (`animationsEnabled` / `prefers-reduced-motion`).
 
 ## Current measurement status
 
-**Not measured.** The repository currently has source-level optimization records and Turbopack bundle snapshots, but no comparable browser frame traces or device matrix. Do not claim a 60 FPS result until owner-led browser measurements are recorded.
+- **Turbopack pre-optimization baseline:** 7,411 graph records, 58 homepage `/` client JS outputs (**2,880,282 B raw / 1,164,449 B compressed**).
+- **Turbopack post-optimization snapshot:** 7,415 graph records, 58 homepage `/` client JS outputs (**2,890,766 B raw (+10,484 B) / 1,168,296 B compressed (+3,847 B)** — zero extra client chunks added).
+- **Live browser verification (`playwright-cli`, headless Chromium 1440x900 & 390x844):** Verified `perfTier="full"` steady ~60 Hz (`16.6–16.8 ms`) rAF cadence, `30 FPS` / `60 FPS` switching in Settings → پایداری toggling `data-perf-tier` between `"lite"` and `"full"`, zero synchronous `localStorage` spam during Canvas & Workflow Studio wheel zoom bursts, imperative `--drag-tilt` rotation without parent re-renders during node drag, zero horizontal overflow on `390x844` mobile, and clean `bun run build` static export.

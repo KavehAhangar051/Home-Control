@@ -1,82 +1,51 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import type { IoTStoreState } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
 import { buildEspConfig, persistStoreConfigToCloudflare } from "./core/buildEspConfig";
 import { evaluateCloudflarePushTransition } from "./core/cloudflareSyncCoordinator";
 
-export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
-  const isDark = useIoTStore((s) => s.isDark);
-  const accent3 = useIoTStore((s) => s.accent3);
-  const accent4 = useIoTStore((s) => s.accent4);
-  const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
-  const animationsFps = useIoTStore((s) => s.animationsFps);
-  const headerTitle = useIoTStore((s) => s.headerTitle);
-  const selectedFont = useIoTStore((s) => s.selectedFont);
-  const manualSaveMode = useIoTStore((s) => s.manualSaveMode);
-  const segments = useIoTStore((s) => s.segments);
-  const groupsOrder = useIoTStore((s) => s.groupsOrder);
-  const groupConfigs = useIoTStore((s) => s.groupConfigs);
-  const groupsCols = useIoTStore((s) => s.groupsCols);
-  const automations = useIoTStore((s) => s.automations);
-  const macros = useIoTStore((s) => s.macros);
-  const voiceCommands = useIoTStore((s) => s.voiceCommands);
-  const wifiNetworks = useIoTStore((s) => s.wifiNetworks);
-  const wifiNetworksConfigured = useIoTStore((s) => s.wifiNetworksConfigured);
-  const wifiApConfig = useIoTStore((s) => s.wifiApConfig);
-  const mqttConfig = useIoTStore((s) => s.mqttConfig);
+const CONFIG_WATCHED_KEYS = [
+  "isDark",
+  "accent3",
+  "accent4",
+  "animationsEnabled",
+  "animationsFps",
+  "headerTitle",
+  "selectedFont",
+  "manualSaveMode",
+  "segments",
+  "groupsOrder",
+  "groupConfigs",
+  "groupsCols",
+  "automations",
+  "macros",
+  "voiceCommands",
+  "wifiNetworks",
+  "wifiNetworksConfigured",
+  "wifiApConfig",
+  "mqttConfig",
+] as const satisfies ReadonlyArray<keyof IoTStoreState>;
 
+function hasWatchedConfigFieldsChanged(prev: IoTStoreState | null, next: IoTStoreState): boolean {
+  if (!prev) return true;
+
+  for (let i = 0; i < CONFIG_WATCHED_KEYS.length; i++) {
+    const key = CONFIG_WATCHED_KEYS[i];
+
+    if (prev[key] !== next[key]) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
   const lastSyncedSignatureRef = useRef<string | null>(null);
   const lastRemoteEpochRef = useRef(remoteSyncEpoch);
-
-  const currentConfig = useMemo(
-    () =>
-      buildEspConfig({
-        isDark,
-        accent3,
-        accent4,
-        animationsEnabled,
-        animationsFps,
-        headerTitle,
-        selectedFont,
-        manualSaveMode,
-        segments,
-        groupsOrder,
-        groupConfigs,
-        groupsCols,
-        automations,
-        macros,
-        voiceCommands,
-        wifiNetworks,
-        wifiNetworksConfigured,
-        wifiApConfig,
-        mqttConfig,
-      }),
-    [
-      isDark,
-      accent3,
-      accent4,
-      animationsEnabled,
-      animationsFps,
-      headerTitle,
-      selectedFont,
-      manualSaveMode,
-      segments,
-      groupsOrder,
-      groupConfigs,
-      groupsCols,
-      automations,
-      macros,
-      voiceCommands,
-      wifiNetworks,
-      wifiNetworksConfigured,
-      wifiApConfig,
-      mqttConfig,
-    ],
-  );
-
-  const configSignature = useMemo(() => JSON.stringify(currentConfig), [currentConfig]);
 
   const triggerCloudflarePush = useCallback(async () => {
     if (!isCloudflareEnabled() || !isFullyReady) return;
@@ -89,45 +58,81 @@ export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
   }, [isFullyReady]);
 
   useEffect(() => {
-    const decision = evaluateCloudflarePushTransition({
-      isFullyReady,
-      remoteSyncEpoch,
-      lastRemoteEpoch: lastRemoteEpochRef.current,
-      lastSyncedSignature: lastSyncedSignatureRef.current,
-      configSignature,
-    });
-
-    if (decision === "reset") {
+    if (!isFullyReady) {
       lastSyncedSignatureRef.current = null;
       lastRemoteEpochRef.current = remoteSyncEpoch;
 
       return;
     }
 
-    if (decision === "baseline") {
-      lastRemoteEpochRef.current = remoteSyncEpoch;
-      lastSyncedSignatureRef.current = configSignature;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastObservedState: IoTStoreState | null = null;
 
-      return;
-    }
-
-    if (decision === "noop") {
-      return;
-    }
-
-    const handler = setTimeout(() => {
-      const latestState = useIoTStore.getState();
-
-      if (latestState.manualSaveMode) {
-        lastSyncedSignatureRef.current = configSignature;
-        latestState.incrementUnsavedChanges();
-      } else {
-        void triggerCloudflarePush();
+    const evaluateState = (state: IoTStoreState, forceCheck: boolean) => {
+      if (!forceCheck && !hasWatchedConfigFieldsChanged(lastObservedState, state)) {
+        return;
       }
-    }, 1200);
 
-    return () => clearTimeout(handler);
-  }, [isFullyReady, remoteSyncEpoch, configSignature, triggerCloudflarePush]);
+      lastObservedState = state;
+      const configSignature = JSON.stringify(buildEspConfig(state));
+
+      const decision = evaluateCloudflarePushTransition({
+        isFullyReady,
+        remoteSyncEpoch,
+        lastRemoteEpoch: lastRemoteEpochRef.current,
+        lastSyncedSignature: lastSyncedSignatureRef.current,
+        configSignature,
+      });
+
+      if (decision === "reset") {
+        lastSyncedSignatureRef.current = null;
+        lastRemoteEpochRef.current = remoteSyncEpoch;
+
+        return;
+      }
+
+      if (decision === "baseline") {
+        lastRemoteEpochRef.current = remoteSyncEpoch;
+        lastSyncedSignatureRef.current = configSignature;
+
+        return;
+      }
+
+      if (decision === "noop") {
+        return;
+      }
+
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        const latestState = useIoTStore.getState();
+
+        if (latestState.manualSaveMode) {
+          lastSyncedSignatureRef.current = configSignature;
+          latestState.incrementUnsavedChanges();
+        } else {
+          void triggerCloudflarePush();
+        }
+      }, 1200);
+    };
+
+    evaluateState(useIoTStore.getState(), true);
+
+    const unsubscribe = useIoTStore.subscribe((nextState) => {
+      evaluateState(nextState, false);
+    });
+
+    return () => {
+      unsubscribe();
+
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+    };
+  }, [isFullyReady, remoteSyncEpoch, triggerCloudflarePush]);
 
   return { triggerCloudflarePush };
 }

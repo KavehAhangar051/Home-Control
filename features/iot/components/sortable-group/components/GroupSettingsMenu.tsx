@@ -2,7 +2,7 @@ import { m } from "motion/react";
 import type React from "react";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Plus } from "@/components/ui/hugeicons";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import LayoutSelector from "./LayoutSelector";
 

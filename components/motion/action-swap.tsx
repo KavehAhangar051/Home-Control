@@ -8,6 +8,7 @@
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { useState } from "react";
 import { SPRING_PRESS } from "@/lib/ease";
+import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
 import { cn } from "@/lib/utils";
 import type {
   ActionSwapButtonProps,
@@ -20,6 +21,9 @@ import {
   CASCADE_STAGGER,
   type CoreAnimation,
   ICON_VARIANTS,
+  LITE_CASCADE_LETTER_VARIANTS,
+  LITE_ICON_VARIANTS,
+  LITE_TEXT_VARIANTS,
   SIZE_CLASS,
   TEXT_VARIANTS,
   VARIANT_CLASS,
@@ -47,9 +51,12 @@ function isStringText(val: unknown): val is string {
  */
 function ActionSwapText({ value, children, animation = "blur", className }: ActionSwapTextProps) {
   const reduce = useReducedMotion();
+  const isLiteTier = useIsLitePerformanceTier();
   const label = isStringText(children) ? children : null;
   const cascade = animation === "cascade" && label !== null && !reduce;
   const coreAnimation: CoreAnimation = animation === "cascade" ? "roll" : animation;
+  const textVariants = isLiteTier ? LITE_TEXT_VARIANTS : TEXT_VARIANTS;
+  const letterVariants = isLiteTier ? LITE_CASCADE_LETTER_VARIANTS : CASCADE_LETTER_VARIANTS;
 
   const cascadeChars =
     cascade && label
@@ -97,7 +104,7 @@ function ActionSwapText({ value, children, animation = "blur", className }: Acti
               <m.span
                 key={item.id}
                 custom={item.delay}
-                variants={CASCADE_LETTER_VARIANTS}
+                variants={letterVariants}
                 className="inline-block whitespace-pre"
               >
                 {item.char}
@@ -107,9 +114,15 @@ function ActionSwapText({ value, children, animation = "blur", className }: Acti
         ) : (
           <m.span
             key={`${coreAnimation}-${value}`}
-            variants={TEXT_VARIANTS[coreAnimation]}
+            variants={textVariants[coreAnimation]}
             initial={reduce ? false : "initial"}
-            animate={reduce ? { opacity: 1, filter: "blur(0px)", scale: 1, y: 0 } : "animate"}
+            animate={
+              reduce
+                ? isLiteTier
+                  ? { opacity: 1, scale: 1, y: 0 }
+                  : { opacity: 1, filter: "blur(0px)", scale: 1, y: 0 }
+                : "animate"
+            }
             exit={reduce ? undefined : "exit"}
             className="absolute start-0 top-[0.08em] inline-block max-w-full truncate"
           >
@@ -134,7 +147,9 @@ export function ActionSwapIcon({
   className,
 }: ActionSwapIconProps) {
   const reduce = useReducedMotion();
+  const isLiteTier = useIsLitePerformanceTier();
   const coreAnimation: CoreAnimation = animation === "cascade" ? "roll" : animation;
+  const iconVariants = isLiteTier ? LITE_ICON_VARIANTS : ICON_VARIANTS;
 
   return (
     <span
@@ -144,9 +159,15 @@ export function ActionSwapIcon({
         <m.span
           key={`${animation}-${value}`}
           aria-hidden
-          variants={ICON_VARIANTS[coreAnimation]}
+          variants={iconVariants[coreAnimation]}
           initial={reduce ? false : "initial"}
-          animate={reduce ? { opacity: 1, filter: "blur(0px)", scale: 1, y: 0 } : "animate"}
+          animate={
+            reduce
+              ? isLiteTier
+                ? { opacity: 1, scale: 1, y: 0 }
+                : { opacity: 1, filter: "blur(0px)", scale: 1, y: 0 }
+              : "animate"
+          }
           exit={reduce ? undefined : "exit"}
           className="col-start-1 row-start-1 inline-flex items-center justify-center"
         >

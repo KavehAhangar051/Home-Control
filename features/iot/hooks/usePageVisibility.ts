@@ -2,7 +2,13 @@
 
 import { useEffect } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { publishPresence } from "@/features/iot/services/mqttService";
+import { notifyMqttResume, publishPresence } from "@/features/iot/services/mqttService";
+
+const syncDocumentPageHidden = (isVisible: boolean) => {
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.pageHidden = isVisible ? "false" : "true";
+  }
+};
 
 export function usePageVisibility() {
   const setIsPageVisible = useIoTStore((state) => state.setIsPageVisible);
@@ -10,19 +16,32 @@ export function usePageVisibility() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
+      syncDocumentPageHidden(isVisible);
       setIsPageVisible(isVisible);
-      publishPresence(isVisible);
+
+      if (isVisible) {
+        notifyMqttResume();
+      } else {
+        publishPresence(false);
+      }
     };
 
-    // Set initial value
-    setIsPageVisible(!document.hidden);
-    // Don't publish initial presence here because initMqtt does it automatically,
-    // or we might publish before connected. We rely on the event listener for subsequent changes.
+    const handleOnline = () => {
+      if (!document.hidden) {
+        notifyMqttResume();
+      }
+    };
+
+    const initialVisible = !document.hidden;
+    syncDocumentPageHidden(initialVisible);
+    setIsPageVisible(initialVisible);
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("online", handleOnline);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("online", handleOnline);
     };
   }, [setIsPageVisible]);
 }

@@ -44,10 +44,11 @@ class HttpStatusError extends Error {
   }
 }
 
-function isRetryableCloudflareError(error: unknown): boolean {
-  if (error instanceof CircuitOpenError) return false;
-  if (error instanceof HttpStatusError && error.status >= 400 && error.status < 500) {
-    return error.status === 408 || error.status === 429;
+function isRetryableCloudflareError(cause: unknown): boolean {
+  if (cause instanceof CircuitOpenError) return false;
+
+  if (cause instanceof HttpStatusError && cause.status >= 400 && cause.status < 500) {
+    return cause.status === 408 || cause.status === 429;
   }
 
   return true;

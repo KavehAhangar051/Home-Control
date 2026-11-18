@@ -4,7 +4,7 @@ import { ExternalLink } from "lucide-react";
 import type React from "react";
 import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Plus } from "@/components/ui/hugeicons";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import CardBody from "@/features/iot/components/sortable-segment-card/components/CardBody";
 import SegmentActions from "@/features/iot/components/sortable-segment-card/components/SegmentActions";

@@ -2,7 +2,7 @@
 
 import { m } from "motion/react";
 import React from "react";
-import { Play } from "@/components/ui/hugeicons";
+import { Play } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Macro } from "@/features/iot/hooks/store/types";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";

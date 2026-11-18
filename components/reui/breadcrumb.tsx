@@ -1,5 +1,5 @@
 import type * as React from "react";
-import { ChevronLeft } from "@/components/ui/hugeicons";
+import { ChevronLeft } from "@/components/ui/hugeicons-groups/shell";
 import { cn } from "@/lib/utils";
 
 export function Breadcrumb({ ...props }: React.ComponentProps<"nav">) {

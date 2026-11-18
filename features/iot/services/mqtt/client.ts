@@ -32,19 +32,20 @@ export interface MqttSettingsDeps {
 export const getMqttSettings = (deps: MqttSettingsDeps = {}): MqttResolvedSettings => {
   const mqttConfig =
     deps.storeConfig !== undefined ? deps.storeConfig : getIoTStoreSnapshot().mqttConfig;
-  const storage =
-    deps.storage !== undefined
-      ? deps.storage
-      : typeof window !== "undefined"
-        ? window.localStorage
-        : null;
 
   let storedBrokerUrl: string | null = null;
   let storedBaseTopic: string | null = null;
   let storedQos: number | null = null;
 
-  if (storage) {
-    try {
+  try {
+    const storage =
+      deps.storage !== undefined
+        ? deps.storage
+        : typeof window !== "undefined"
+          ? window.localStorage
+          : null;
+
+    if (storage) {
       storedBrokerUrl = storage.getItem("mqtt_broker_url");
       storedBaseTopic = storage.getItem("mqtt_base_topic");
       const rawQos = storage.getItem("mqtt_qos");
@@ -56,9 +57,9 @@ export const getMqttSettings = (deps: MqttSettingsDeps = {}): MqttResolvedSettin
           storedQos = parsed;
         }
       }
-    } catch {
-      // Ignore storage read failures
     }
+  } catch {
+    // Ignore storage read failures
   }
 
   const qosVal = mqttConfig?.qos ?? storedQos;
@@ -97,6 +98,7 @@ export const publishMqttCommand = (
 ): boolean => {
   const activeClient = deps.getClient ? deps.getClient() : getMqttClient();
   const warn = deps.warn ?? ((msg: string) => console.warn(msg));
+
   const log =
     deps.log ??
     ((msg: string) => {

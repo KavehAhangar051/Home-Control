@@ -35,6 +35,7 @@ import {
 } from "react";
 import { EASE_OUT, SPRING_GLIDE, SPRING_LAYOUT, SPRING_PRESS } from "@/lib/ease";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
+import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
 import { useMessages } from "@/lib/i18n";
 import { PresenceGate } from "@/lib/presence-gate";
 import { capturePointer, releasePointer, TOUCH_GESTURE_CLASS } from "@/lib/touch";
@@ -1234,7 +1235,17 @@ export interface ColorPickerTriggerProps extends Omit<ComponentPropsWithRef<"but
  */
 function TriggerLabel({ hex }: { hex: string }) {
   const reduce = useReducedMotion();
+  const isLiteTier = useIsLitePerformanceTier();
+  const skipBlur = reduce || isLiteTier;
   const alpha = hex.slice(7);
+
+  const alphaInitial = skipBlur
+    ? { opacity: 0, x: reduce ? 0 : -4 }
+    : { opacity: 0, x: reduce ? 0 : -4, filter: "blur(3px)" };
+
+  const alphaExit = skipBlur
+    ? { opacity: 0, transition: { duration: 0.12 } }
+    : { opacity: 0, filter: "blur(3px)", transition: { duration: 0.12 } };
 
   return (
     <m.span
@@ -1252,17 +1263,9 @@ function TriggerLabel({ hex }: { hex: string }) {
             <m.span
               key="alpha"
               className="text-muted-foreground"
-              initial={{
-                opacity: 0,
-                x: reduce ? 0 : -4,
-                filter: reduce ? "blur(0px)" : "blur(3px)",
-              }}
-              animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-              exit={{
-                opacity: 0,
-                filter: reduce ? "blur(0px)" : "blur(3px)",
-                transition: { duration: 0.12 },
-              }}
+              initial={alphaInitial}
+              animate={skipBlur ? { opacity: 1, x: 0 } : { opacity: 1, x: 0, filter: "blur(0px)" }}
+              exit={alphaExit}
               transition={SPRING_LAYOUT}
             >
               {alpha}
@@ -1345,6 +1348,11 @@ const PANEL_ITEM = {
   animate: { opacity: 1, y: 0, filter: "blur(0px)" },
 };
 
+const PANEL_ITEM_LITE = {
+  initial: { opacity: 0, y: -6 },
+  animate: { opacity: 1, y: 0 },
+};
+
 const PANEL_ITEM_REDUCED = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
@@ -1365,6 +1373,7 @@ export function ColorPickerContent({
 }: ColorPickerContentProps) {
   const { id, t, open, setOpen, triggerRef } = usePickerContext("ColorPickerContent");
   const reduce = useReducedMotion() ?? false;
+  const isLiteTier = useIsLitePerformanceTier();
   const panelRef = useRef<HTMLDivElement>(null);
   const [shiftX, setShiftX] = useState(0);
   const [openUpward, setOpenUpward] = useState(false);
@@ -1492,6 +1501,7 @@ export function ColorPickerContent({
                       onAnimationStart: _onAnimationStart,
                       ...motionProps
                     } = props;
+
                     return motionProps;
                   })()}
                   style={props.style}
@@ -1514,7 +1524,12 @@ export function ColorPickerContent({
                     {Children.map(children, (child) => {
                       if (isValidElement(child) && child.type === ColorPickerArea) return child;
                       row += 1;
-                      const item = reduce ? PANEL_ITEM_REDUCED : PANEL_ITEM;
+
+                      const item = reduce
+                        ? PANEL_ITEM_REDUCED
+                        : isLiteTier
+                          ? PANEL_ITEM_LITE
+                          : PANEL_ITEM;
 
                       return (
                         <m.div

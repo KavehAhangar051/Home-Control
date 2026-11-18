@@ -9,8 +9,13 @@ const subscribeAudioSnapshot = () => () => {};
 const getInitialIsMusicOn = () => soundManager.isAmbientPlaying;
 const getServerIsMusicOn = () => false;
 
-const getInitialMusicSource = (): "local" | "api" =>
-  localStorage.getItem("music_source") === "api" ? "api" : "local";
+const getInitialMusicSource = (): "local" | "api" => {
+  try {
+    return window.localStorage.getItem("music_source") === "api" ? "api" : "local";
+  } catch {
+    return "local";
+  }
+};
 
 const getServerMusicSource = (): "local" | "api" => "local";
 const getInitialTrackInfo = () => soundManager.currentTrack;
@@ -120,7 +125,13 @@ export default function AudioSection() {
     if (source === musicSource) return;
 
     setMusicSourceOverride(source);
-    localStorage.setItem("music_source", source);
+
+    try {
+      window.localStorage.setItem("music_source", source);
+    } catch {
+      // Ignore storage access failures in restricted iframe/privacy contexts
+    }
+
     soundManager.playClick();
     setPlaybackError(null);
 

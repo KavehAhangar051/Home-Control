@@ -4,7 +4,7 @@ import { useView, useViewBadge, useViewTitle, useWorkspace } from "@danfessler/t
 import React from "react";
 import { useShallow } from "zustand/react/shallow";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Plus } from "@/components/ui/hugeicons";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
@@ -57,6 +57,7 @@ export default function TrellisGroupView({
   );
 
   const groupIcon = useIoTStore((s) => s.groupConfigs[groupName]?.icon);
+
   const activeCount = useIoTStore(
     React.useCallback(
       (state) => {

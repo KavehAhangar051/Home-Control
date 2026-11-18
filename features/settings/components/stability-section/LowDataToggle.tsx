@@ -1,6 +1,6 @@
 "use client";
 
-import { WifiOff } from "@/components/ui/hugeicons";
+import { WifiOff } from "@/components/ui/hugeicons-groups/shell";
 import { Toggle } from "@/components/ui/toggle";
 import { soundManager } from "@/lib/audio";
 

@@ -1,7 +1,8 @@
 import { AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Wifi } from "@/components/ui/hugeicons";
+import { Wifi } from "@/components/ui/hugeicons-groups/controls";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";

@@ -484,6 +484,11 @@
   @apply relative before:absolute before:top-0 before:-left-[100vw] before:h-px before:w-[200vw] before:bg-border-color/60;
 }
 
+@utility cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
 /* Native Popover API entry/exit transitions */
 [popover] {
   transition:
@@ -520,6 +525,17 @@
   animation: header-title-marquee 10s linear infinite;
 }
 
+/* Pause infinite decorative animations when the browser tab is hidden */
+html[data-page-hidden="true"] .header-title-marquee-track,
+html[data-page-hidden="true"] .animate-node-spark,
+html[data-page-hidden="true"] .animate-node-spark-fast,
+html[data-page-hidden="true"] .animate-port-wakeup,
+html[data-page-hidden="true"] .animate-pulse,
+html[data-page-hidden="true"] [class*="animate-[dash"] {
+  /* biome-ignore lint/complexity/noImportantStyles: Pauses continuous GPU/SVG timers in hidden tabs */
+  animation-play-state: paused !important;
+}
+
 .header-title-marquee:hover .header-title-marquee-track {
   animation-play-state: paused;
 }
@@ -546,7 +562,16 @@
 html.theme-switching *:not(#header-theme-toggle):not(#header-theme-toggle *),
 html.theme-switching *::before,
 html.theme-switching *::after {
-  transition: none;
+  /* biome-ignore lint/complexity/noImportantStyles: Prevents transition lag during root theme flips without forced reflow */
+  transition: none !important;
+}
+
+/* Step down stacked GPU backdrop-blur fills in adaptive lite tier while preserving crisp surfaces */
+html[data-perf-tier="lite"] [class*="backdrop-blur"] {
+  /* biome-ignore lint/complexity/noImportantStyles: Reduces GPU fillrate overhead on low-powered devices or 30 FPS mode */
+  backdrop-filter: none !important;
+  /* biome-ignore lint/complexity/noImportantStyles: WebKit vendor fallback for backdrop-blur removal in lite tier */
+  -webkit-backdrop-filter: none !important;
 }
 
 .trellis-rtl-host .trellis {

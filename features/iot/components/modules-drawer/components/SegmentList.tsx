@@ -1,7 +1,7 @@
 import { AnimatePresence, m } from "motion/react";
 import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Sliders } from "@/components/ui/hugeicons";
+import { Sliders } from "@/components/ui/hugeicons-groups/shell";
 import { getStaggerDelay, TRANSITION_ENTER_STANDARD, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 import type { Segment } from "../core/types";
 

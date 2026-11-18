@@ -10,7 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/reui/breadcrumb";
-import { House } from "@/components/ui/hugeicons";
+import { House } from "@/components/ui/hugeicons-groups/shell";
 import {
   AUTOMATIONS_TABS,
   MODULES_TABS,

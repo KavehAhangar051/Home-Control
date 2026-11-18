@@ -16,11 +16,13 @@ function getOrCreateEntry(query: string): MediaQueryEntry {
   if (!entry) {
     const mql = window.matchMedia(query);
     const listeners = new Set<() => void>();
+
     const handler = () => {
       for (const listener of listeners) {
         listener();
       }
     };
+
     entry = { mql, listeners, handler };
     mediaQueryRegistry.set(query, entry);
   }

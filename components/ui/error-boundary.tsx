@@ -22,6 +22,7 @@ function areResetKeysEqual(
   nextKeys?: ReadonlyArray<unknown>,
 ): boolean {
   if (prevKeys === nextKeys) return true;
+
   if (!prevKeys || !nextKeys || prevKeys.length !== nextKeys.length) return false;
 
   for (let i = 0; i < prevKeys.length; i++) {
@@ -80,6 +81,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     }
 
     const title = this.props.fallbackTitle ?? "بروز خطا در نمایش این بخش";
+
     const description =
       this.props.fallbackDescription ??
       "در بارگذاری یا اجرای این قسمت مشکلی پیش آمد. می‌توانید دوباره تلاش کنید.";

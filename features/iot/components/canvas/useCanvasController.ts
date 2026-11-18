@@ -53,10 +53,16 @@ function isMobileWindowViewport(): boolean {
   return globalThis.window !== undefined && globalThis.window.innerWidth < MOBILE_BREAKPOINT;
 }
 
+interface ResolvedContainerDimensions {
+  width: number;
+  height: number;
+  fitPadding: number;
+}
+
 function resolveContainerDimensions(
   element: HTMLDivElement | null,
   fallbackSize: { width: number; height: number },
-): { width: number; height: number; fitPadding: number } {
+): ResolvedContainerDimensions {
   const width = element ? element.clientWidth : fallbackSize.width;
   const height = element ? element.clientHeight : fallbackSize.height;
   const fitPadding = width < FIT_MOBILE_BREAKPOINT ? FIT_MOBILE_PADDING : FIT_DESKTOP_PADDING;
@@ -162,6 +168,7 @@ export function useCanvasController({
   // Reconcile stored nodes with current groupsOrder & segments without losing saved positions
   React.useEffect(() => {
     const stored = readStoredCanvasNodes(activeSubMode) ?? {};
+
     const defaults = buildDefaultCanvasNodes(
       activeSubMode,
       groupsOrder,
@@ -287,25 +294,19 @@ export function useCanvasController({
     }
   }, [nodes, visibleNodeIds, handleFitView]);
 
-  const {
-    draggingNodeId,
-    dragTiltDeg,
-    bringNodeToFront,
-    startNodeDrag,
-    startNodeResize,
-    applyNodeSizePreset,
-  } = useCanvasNodeInteractions({
-    activeSubMode,
-    isLocked: settings.isLocked,
-    snapToGrid: settings.snapToGrid,
-    cascadeGroupDrag: settings.cascadeGroupDrag,
-    segments,
-    nodesRef,
-    viewportRef,
-    topZIndexRef,
-    setNodes,
-    setSelectedNodeId,
-  });
+  const { draggingNodeId, bringNodeToFront, startNodeDrag, startNodeResize, applyNodeSizePreset } =
+    useCanvasNodeInteractions({
+      activeSubMode,
+      isLocked: settings.isLocked,
+      snapToGrid: settings.snapToGrid,
+      cascadeGroupDrag: settings.cascadeGroupDrag,
+      segments,
+      nodesRef,
+      viewportRef,
+      topZIndexRef,
+      setNodes,
+      setSelectedNodeId,
+    });
 
   const handlePanToWorldPoint = React.useCallback(
     (worldX: number, worldY: number) => {
@@ -327,6 +328,7 @@ export function useCanvasController({
       segments,
       isMobileWindowViewport(),
     );
+
     nodesRef.current = fresh;
     setNodes(fresh);
     replaceStoredCanvasNodes(activeSubMode, fresh);
@@ -335,6 +337,7 @@ export function useCanvasController({
       containerRef.current,
       containerSize,
     );
+
     setViewport(computeFitCanvasViewport(fresh, visibleNodeIds, width, height, fitPadding));
   }, [activeSubMode, groupsOrder, segments, containerSize, visibleNodeIds, setViewport]);
 
@@ -383,7 +386,6 @@ export function useCanvasController({
     setSelectedNodeId,
     isPanning,
     draggingNodeId,
-    dragTiltDeg,
     visibleGroups,
     visibleSegments,
     visibleNodeIds,

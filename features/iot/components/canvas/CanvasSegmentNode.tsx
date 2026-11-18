@@ -5,7 +5,7 @@ import { m } from "motion/react";
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Plus } from "@/components/ui/hugeicons";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import CardBody from "@/features/iot/components/sortable-segment-card/components/CardBody";
 import SegmentActions from "@/features/iot/components/sortable-segment-card/components/SegmentActions";
 import { useAutoOffTimer } from "@/features/iot/components/sortable-segment-card/hooks/useAutoOffTimer";
@@ -53,13 +53,17 @@ function resolveSegmentBorderClass(
   isInput: boolean,
 ): string {
   if (isDragging) return "border-accent3 ring-2 ring-accent3/40 shadow-2xl";
+
   if (isSelected) return "border-accent3 ring-2 ring-accent3/35 shadow-lg";
+
   if (!isPinOn) return "border-border-color shadow-xs";
+
   return isInput ? "border-success shadow-sm" : "border-accent3 shadow-sm";
 }
 
 function resolveSegmentPortClass(isPinOn: boolean, isInput: boolean): string {
   if (!isPinOn) return "border-border-color bg-card-bg-solid";
+
   return isInput
     ? "border-success bg-success shadow-[0_0_8px_var(--success)]"
     : "border-accent3 bg-accent3 shadow-[0_0_8px_var(--accent3)]";
@@ -72,8 +76,11 @@ function resolveSegmentZIndex(
   baseZIndex: number,
 ): number {
   if (isSettingsOpen) return 999;
+
   if (isDragging) return 950;
+
   if (isSelected) return 900;
+
   return baseZIndex;
 }
 
@@ -289,6 +296,7 @@ export default React.memo(function CanvasSegmentNode({
   const isPlaceholder = segment.type === "placeholder";
   const surfaceBorderClass = resolveSegmentBorderClass(isDragging, isSelected, isPinOn, isInput);
   const zIndex = resolveSegmentZIndex(isSettingsOpen, isDragging, isSelected, rect.zIndex);
+
   const animateState = resolveCanvasNodeMotionState(
     animationsEnabled,
     isDragging,
@@ -299,6 +307,7 @@ export default React.memo(function CanvasSegmentNode({
   return (
     <div
       data-canvas-node="true"
+      data-canvas-node-id={nodeId}
       dir="rtl"
       onPointerDown={(e) => {
         if (e.button !== 2) onSelect(nodeId);
@@ -315,7 +324,8 @@ export default React.memo(function CanvasSegmentNode({
         initial={animationsEnabled ? { opacity: 0, scale: 0.94, y: 8 } : false}
         animate={animateState}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        className="relative size-full"
+        style={animationsEnabled ? { rotate: "var(--drag-tilt, 0deg)" } : undefined}
+        className="relative size-full transition-[rotate] duration-150 ease-out"
       >
         {showPort && (
           <CanvasSegmentGraphOverlay

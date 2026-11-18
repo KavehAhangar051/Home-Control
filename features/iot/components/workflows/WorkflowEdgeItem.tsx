@@ -4,6 +4,7 @@ import { Scissors, X } from "lucide-react";
 import { m } from "motion/react";
 import React from "react";
 import { SPRING_BOUNCE } from "@/lib/ease";
+import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
 import type { ConnectingWireDraft } from "./useWorkflowStudio";
 import { buildWorkflowBezierPath, getPortAnchor } from "./workflowEngine";
 import type { WorkflowEdge, WorkflowNode } from "./workflowTypes";
@@ -23,11 +24,19 @@ interface WorkflowEdgeItemProps {
 
 function resolveEdgeStrokeColor(isSelected: boolean, isActive: boolean): string {
   if (isSelected) return "var(--accent3)";
+
   if (isActive) return "#10b981";
+
   return "var(--border-color)";
 }
 
-function WorkflowEdgeSignalParticles({ path }: { path: string }) {
+function WorkflowEdgeSignalParticles({
+  path,
+  showParticles,
+}: {
+  path: string;
+  showParticles: boolean;
+}) {
   return (
     <>
       <path
@@ -39,17 +48,21 @@ function WorkflowEdgeSignalParticles({ path }: { path: string }) {
         strokeLinecap="round"
         className="pointer-events-none animate-[dash_1s_linear_infinite] group-hover/edge:opacity-0"
       />
-      <circle
-        r={4.5}
-        fill="#10b981"
-        fillOpacity={0.28}
-        className="pointer-events-none group-hover/edge:opacity-0"
-      >
-        <animateMotion dur="1.25s" repeatCount="indefinite" path={path} />
-      </circle>
-      <circle r={2.5} fill="#a7f3d0" className="pointer-events-none group-hover/edge:opacity-0">
-        <animateMotion dur="1.25s" repeatCount="indefinite" path={path} />
-      </circle>
+      {showParticles && (
+        <>
+          <circle
+            r={4.5}
+            fill="#10b981"
+            fillOpacity={0.28}
+            className="pointer-events-none group-hover/edge:opacity-0"
+          >
+            <animateMotion dur="1.25s" repeatCount="indefinite" path={path} />
+          </circle>
+          <circle r={2.5} fill="#a7f3d0" className="pointer-events-none group-hover/edge:opacity-0">
+            <animateMotion dur="1.25s" repeatCount="indefinite" path={path} />
+          </circle>
+        </>
+      )}
     </>
   );
 }
@@ -118,6 +131,7 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
   onSelectEdge,
   onDeleteEdge,
 }: WorkflowEdgeItemProps) {
+  const isLiteTier = useIsLitePerformanceTier();
   const start = getPortAnchor(source, "out");
   const end = getPortAnchor(target, "in", resolvedPortIdx, totalInPorts);
   const { path, midX, midY } = buildWorkflowBezierPath(start.x, start.y, end.x, end.y);
@@ -167,7 +181,9 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         }`}
       />
 
-      {isActive && animationsEnabled && <WorkflowEdgeSignalParticles path={path} />}
+      {isActive && animationsEnabled && (
+        <WorkflowEdgeSignalParticles path={path} showParticles={!isLiteTier} />
+      )}
 
       <circle
         cx={start.x}
@@ -214,12 +230,15 @@ export function WorkflowDraftWire({
   connectingDraft,
   animationsEnabled,
 }: WorkflowDraftWireProps) {
+  const isLiteTier = useIsLitePerformanceTier();
+
   const draftBezier = buildWorkflowBezierPath(
     draftAnchor.x,
     draftAnchor.y,
     connectingDraft.pointerWorldX,
     connectingDraft.pointerWorldY,
   );
+
   const isDraftMagnetic = Boolean(connectingDraft.magneticTargetId);
 
   return (
@@ -245,7 +264,7 @@ export function WorkflowDraftWire({
         className={animationsEnabled ? "animate-[dash_0.65s_linear_infinite]" : undefined}
       />
 
-      {isDraftMagnetic && animationsEnabled && (
+      {isDraftMagnetic && animationsEnabled && !isLiteTier && (
         <circle r={3} fill="#a7f3d0">
           <animateMotion dur="0.7s" repeatCount="indefinite" path={draftBezier.path} />
         </circle>

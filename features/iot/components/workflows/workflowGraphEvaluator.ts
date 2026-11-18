@@ -116,6 +116,7 @@ function isScheduleTriggerActive(node: WorkflowNode, nowDate: Date): boolean {
   if (!Number.isFinite(targetHour) || !Number.isFinite(targetMinute)) return false;
 
   const scheduleDays = node.scheduleDays;
+
   const dayMatch =
     !scheduleDays || scheduleDays.length === 0 || scheduleDays.includes(nowDate.getDay());
 
@@ -238,8 +239,10 @@ function evaluateGroupNode(
   const memberIds = node.memberSegmentIds;
   const memberLen = memberIds ? memberIds.length : 0;
   const mode = node.actionMode ?? "turn_on";
+
   const shouldDispatch =
     signals.hasIncoming && signals.anyIncomingTrue && mode !== "condition_only";
+
   const desired = mode !== "turn_off";
   let validMemberCount = 0;
   let anyMemberOn = false;
@@ -361,6 +364,7 @@ export function evaluateWorkflowGraph({
         if (signals.anyIncomingTrue) {
           triggeredTimerIds.push(node.id);
         }
+
         output = Boolean(timerOutputs?.get(node.id));
         break;
       case "segment":

@@ -33,6 +33,11 @@ import type {
 } from "./ports";
 import { getIoTStoreSnapshot } from "./storeBridge";
 
+interface PartitionedBatchActions {
+  mqttActions: PinAction[];
+  cfActions: Array<{ pin: string; state: boolean }>;
+}
+
 export class DeviceCommandAdapter implements IDeviceCommandPort {
   publishPinCommand(pinId: string, value: boolean, timer?: number): boolean {
     return mqttPublishPin(pinId, value, timer);
@@ -120,7 +125,16 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
     };
   }
 
-  private dispatchHardwareCommand(wsPayload: unknown, mqttSend: () => boolean): boolean {
+  private dispatchHardwareCommand(
+    wsPayload: {
+      command: string;
+      pin?: number;
+      state?: number;
+      timer?: number;
+      actions?: PinAction[];
+    },
+    mqttSend: () => boolean,
+  ): boolean {
     const isLocal = this.deps.getIsLocal();
     const ws = this.deps.getLocalWs();
 
@@ -178,10 +192,7 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
     actions: Array<{ targetPin: string; actionOn: boolean }>,
     availableSegments: Array<{ pin: string; auto_off?: number; mode?: string }>,
     cfEnabled: boolean,
-  ): {
-    mqttActions: PinAction[];
-    cfActions: Array<{ pin: string; state: boolean }>;
-  } {
+  ): PartitionedBatchActions {
     const segmentMap = new Map<string, { auto_off?: number; mode?: string }>();
 
     for (let i = 0; i < availableSegments.length; i++) {
@@ -229,11 +240,13 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
 
     if (this.deps.isCloudflareEnabled() && !isPushMode) {
       cfAttempted = true;
+
       const cfOutcome = await this.persistToCloudflareWithToast(
         toast,
         () => this.deps.updatePinOnCloudflare(pin, state),
         `Failed to sync pin ${pin} value to Cloudflare:`,
       );
+
       cfSucceeded = cfOutcome.succeeded;
       cfShowedToast = cfOutcome.showedToast;
     }
@@ -261,6 +274,7 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
 
     const availableSegments = options?.segments ?? this.deps.getSegments();
     const cfEnabled = options?.isCfEnabled ?? this.deps.isCloudflareEnabled();
+
     const { mqttActions, cfActions } = this.partitionBatchActions(
       actions,
       availableSegments,
@@ -282,6 +296,7 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
         () => this.deps.updateBatchPinsOnCloudflare(cfActions),
         "Failed to batch sync pins to Cloudflare:",
       );
+
       cfSucceeded = cfOutcome.succeeded;
       cfShowedToast = cfOutcome.showedToast;
     }

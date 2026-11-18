@@ -21,6 +21,7 @@ function moveItem<T>(items: T[], fromIndex: number, toIndex: number): T[] {
   const next = items.slice();
   const [item] = next.splice(fromIndex, 1);
   next.splice(toIndex, 0, item);
+
   return next;
 }
 
@@ -69,9 +70,11 @@ export type DragEndDecision =
   | { kind: "remove_segment"; segmentId: string }
   | { kind: "reorder_group"; activeGroupId: string; overGroupId: string };
 
+export type DragEntityType = NonNullable<DragEndEvent["operation"]["source"]>["type"] | undefined;
+
 export function resolveDragEndDecision(
   activeId: string,
-  activeType: unknown,
+  activeType: DragEntityType,
   overId: string | null,
 ): DragEndDecision {
   if (!overId) return { kind: "none" };
@@ -122,6 +125,7 @@ function reorderSegmentsInGroup(
   }
 
   const reordered = moveItem(groupSegments, fromIndex, toIndex);
+
   if (reordered === groupSegments) return segments;
 
   const nextSegments = segments.slice();
@@ -161,6 +165,7 @@ export function useAchaemenidDnd({
       setActiveGroupId(null);
 
       const { source, target } = event.operation;
+
       if (!source || event.canceled) return;
 
       const decision = resolveDragEndDecision(
@@ -171,11 +176,13 @@ export function useAchaemenidDnd({
 
       if (decision.kind === "remove_group") {
         handleRemoveGroup(decision.groupId);
+
         return;
       }
 
       if (decision.kind === "remove_segment") {
         handleRemoveSegment(decision.segmentId);
+
         return;
       }
 
@@ -183,6 +190,7 @@ export function useAchaemenidDnd({
 
       if (source.type === "Group") {
         setGroupsOrder((previous) => moveItem(previous, source.initialIndex, source.index));
+
         return;
       }
 

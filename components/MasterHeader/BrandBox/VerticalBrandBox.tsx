@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { HousePlug } from "@/components/ui/hugeicons";
+import { HousePlug } from "@/components/ui/hugeicons-groups/shell";
 import type { BrandBoxProps } from "./types";
 
 const MARQUEE_PIXELS_PER_SECOND = 34;

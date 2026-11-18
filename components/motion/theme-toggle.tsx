@@ -10,7 +10,7 @@ import { useReducedMotion } from "motion/react";
 import { type ComponentPropsWithoutRef, useEffect, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 import { ActionSwapIcon } from "@/components/motion/action-swap";
-import { Moon, Sun } from "@/components/ui/hugeicons";
+import { Moon, Sun } from "@/components/ui/hugeicons-groups/shell";
 import { Toggle } from "@/components/ui/toggle";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { cn } from "@/lib/utils";
@@ -84,6 +84,7 @@ export function useThemeToggle({
     root.style.colorScheme = storeIsDark ? "dark" : "light";
 
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+
     if (metaThemeColor) {
       metaThemeColor.setAttribute("content", storeIsDark ? "#141415" : "#fafafa");
     }
@@ -101,6 +102,7 @@ export function useThemeToggle({
       root.style.colorScheme = next;
 
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+
       if (metaThemeColor) {
         metaThemeColor.setAttribute("content", nextIsDark ? "#141415" : "#fafafa");
       }
@@ -116,18 +118,11 @@ export function useThemeToggle({
 
     if (reduce || typeof document === "undefined" || !("startViewTransition" in document)) {
       if (typeof document !== "undefined") {
-        const style = document.createElement("style");
-        style.append(
-          document.createTextNode(
-            "*:not(#header-theme-toggle):not(#header-theme-toggle *),*::before,*::after{transition:none !important}",
-          ),
-        );
-        document.head.append(style);
+        const root = document.documentElement;
+        root.classList.add("theme-switching");
         applyThemeSynchronously(next);
-        const _flushReflow = document.body.offsetHeight;
-        void _flushReflow;
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => style.remove());
+          requestAnimationFrame(() => root.classList.remove("theme-switching"));
         });
       } else {
         setIsDark(next === "dark");
@@ -155,23 +150,13 @@ export function useThemeToggle({
     };
 
     const vt = docWithVT.startViewTransition(() => {
-      const style = document.createElement("style");
-      style.append(
-        document.createTextNode(
-          "*:not(#header-theme-toggle):not(#header-theme-toggle *),*::before,*::after{transition:none !important}",
-        ),
-      );
-      document.head.append(style);
+      root.classList.add("theme-switching");
       applyThemeSynchronously(next);
-      const _flushReflow = document.body.offsetHeight;
-      void _flushReflow;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => style.remove());
-      });
     });
 
     vt.finished.finally(() => {
       root.removeAttribute("data-beui-vt");
+      root.classList.remove("theme-switching");
     });
   };
 

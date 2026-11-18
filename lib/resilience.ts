@@ -14,6 +14,7 @@ export interface TimeoutSignalHandle {
 export function createTimeoutSignal(timeoutMs: number): TimeoutSignalHandle {
   const controller = new AbortController();
   const safeTimeoutMs = Math.max(1, timeoutMs);
+
   const timerId = setTimeout(() => {
     const timeoutError = new Error(`Request timed out after ${safeTimeoutMs}ms`);
     timeoutError.name = "TimeoutError";
@@ -98,7 +99,7 @@ export class CircuitBreaker {
 
   public async execute<T>(
     operation: () => Promise<T>,
-    options?: { shouldCountFailure?: (error: unknown) => boolean },
+    options?: { shouldCountFailure?: (cause: unknown) => boolean },
   ): Promise<T> {
     const effectiveState = this.getState();
 
@@ -146,10 +147,10 @@ export interface BackoffRetryOptions {
   maxAttempts?: number;
   baseDelayMs?: number;
   maxDelayMs?: number;
-  isRetryable?: (error: unknown) => boolean;
+  isRetryable?: (cause: unknown) => boolean;
   sleepFn?: (delayMs: number) => Promise<void>;
   randomFn?: () => number;
-  onRetry?: (attempt: number, delayMs: number, error: unknown) => void;
+  onRetry?: (attempt: number, delayMs: number, cause: unknown) => void;
 }
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));

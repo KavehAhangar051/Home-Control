@@ -1,7 +1,7 @@
 "use client";
 
 import { Power, PowerOff } from "lucide-react";
-import { Plus } from "@/components/ui/hugeicons";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import TrellisSegmentTile from "@/features/iot/components/trellis/TrellisSegmentTile";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import type { CanvasGroupHandlers, CanvasSubMode } from "./canvasTypes";

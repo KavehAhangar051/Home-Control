@@ -4,7 +4,7 @@ import { useView, useViewBadge, useViewTitle } from "@danfessler/trellis-react";
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Plus } from "@/components/ui/hugeicons";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import CardBody from "@/features/iot/components/sortable-segment-card/components/CardBody";
 import SegmentActions from "@/features/iot/components/sortable-segment-card/components/SegmentActions";
 import { useAutoOffTimer } from "@/features/iot/components/sortable-segment-card/hooks/useAutoOffTimer";

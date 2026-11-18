@@ -1,5 +1,5 @@
 import type { RefCallback } from "react";
-import { GripVertical } from "@/components/ui/hugeicons";
+import { GripVertical } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { SegmentData } from "../core/types";
 import { useCardHeaderLayout } from "../hooks/useCardHeaderLayout";
