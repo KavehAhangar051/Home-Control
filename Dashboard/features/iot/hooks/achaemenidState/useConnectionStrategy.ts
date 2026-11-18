@@ -106,8 +106,10 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
           if (data.timers && typeof data.timers === "object") {
             for (const [pin, value] of Object.entries(data.timers)) {
               const seconds = Number(value);
+              const pinState = data.states[pin];
+              const isPinOn = pinState === true || pinState === 1 || pinState === "1" || pinState === "true";
               synchronizedTimers[pin] =
-                Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
+                isPinOn && Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
             }
           }
           deps.setAutoOffRemaining?.(synchronizedTimers);
