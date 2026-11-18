@@ -81,7 +81,7 @@ struct SegmentRemoveRequestEvent {
  */
 struct SegmentUpdateRuleRequestEvent {
     static constexpr const char* Name = "segment.update_rule_request";
-    const char* id;
+    int pin;
     RuleConfig rule;
 };
 
