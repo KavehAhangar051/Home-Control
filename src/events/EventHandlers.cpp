@@ -163,7 +163,7 @@ auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
                 }
             }
             evt->pinCount = ConfigApplier::apply(*evt->parsed, &pinManager);
-            if (segmentStorage != nullptr) segmentStorage->saveSegmentConfig(*evt->parsed);
+            persistCurrentSegmentConfig("full config apply");
         }
         configLoaded = true;
     }
