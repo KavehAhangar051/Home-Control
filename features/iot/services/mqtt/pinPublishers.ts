@@ -1,4 +1,12 @@
 import { publishMqttCommand } from "./client";
+import { getIoTStoreSnapshot } from "../storeBridge";
+
+const clearSynchronizedTimer = (pinId: string) => {
+  const snapshot = getIoTStoreSnapshot();
+  const next = { ...snapshot.autoOffRemaining };
+  delete next[pinId];
+  snapshot.setAutoOffRemaining(next);
+};
 import {
   BATCH_ACTION_SIZE,
   BATCH_HEADER_SIZE,
@@ -22,6 +30,7 @@ export const buildPinCommandFrame = (pinId: string, value: boolean, timer?: numb
 };
 
 export const publishPinCommand = (pinId: string, value: boolean, timer?: number): boolean => {
+  clearSynchronizedTimer(pinId);
   const buf = buildPinCommandFrame(pinId, value, timer);
 
   return publishMqttCommand(
@@ -68,6 +77,7 @@ export const publishBatchPinCommand = (
   if (!buf) return false;
 
   const count = buf[1];
+  for (const action of actions.slice(0, count)) clearSynchronizedTimer(action.pin);
 
   return publishMqttCommand(buf, `Published batch toggle command with ${count} actions`);
 };
