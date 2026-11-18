@@ -85,7 +85,7 @@ export default function ConditionsSection() {
               }
 
               updateSegmentRule(segment.id, rule);
-              publishUpdateRuleCommand(segment.id, rule.highActions, rule.lowActions);
+              publishUpdateRuleCommand(Number(segment.pin), rule.highActions, rule.lowActions);
               showToast("شرط‌ها با موفقیت ثبت و به دستگاه ارسال شدند.", "success");
             };
 
