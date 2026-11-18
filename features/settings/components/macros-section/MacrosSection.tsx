@@ -14,7 +14,11 @@ export default function MacrosSection() {
   const setMacros = useIoTStore((state) => state.setMacros);
   const segments = useIoTStore((state) => state.segments);
   const showToast = useIoTStore((state) => state.showToast);
-  const outputs = segments.filter((segment) => segment.type === "output" && segment.pin.trim());
+  const outputs = segments.filter(
+    (segment) =>
+      (segment.type === "gpio_toggle" || segment.type === "output") &&
+      segment.pin.trim().length > 0,
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [icon, setIcon] = useState("");
