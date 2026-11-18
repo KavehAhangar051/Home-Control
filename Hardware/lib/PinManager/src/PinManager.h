@@ -90,10 +90,7 @@ public:
         _timerManager.setTimerIdByPin(pin, timer);
     }
 
-    HOT_PATH FORCE_INLINE unsigned long getAutoOffRemainingMsByPin(int pin) const {
-        const uniuno::TimerHandle timer = _timerManager.getTimerIdByPin(pin);
-        return timer.getRemainingMs();
-    }
+    unsigned long getAutoOffRemainingMsByPin(int pin) const;
 
     HOT_PATH FORCE_INLINE uniuno::TimerHandle getCloudSyncTimerIdByPin(int pin) const {
         return _timerManager.getCloudSyncTimerIdByPin(pin);
