@@ -6,6 +6,7 @@ export interface MqttStateSyncPayload {
   id?: string | number;
   value?: RawPinStateValue;
   states?: Record<string, RawPinStateValue>;
+  timers?: Record<string, RawPinStateValue>;
   pin?: string | number;
   state?: RawPinStateValue;
 }
@@ -18,7 +19,7 @@ export type ParsedMqttStatusMessage =
 
 export type ParsedMqttStateMessage =
   | { kind: "pin_update"; pinId: string; state: boolean; source: "binary" | "json" }
-  | { kind: "state_sync"; states: Record<string, boolean> }
+  | { kind: "state_sync"; states: Record<string, boolean>; timers: Record<string, number> }
   | { kind: "ping" }
   | { kind: "ignored" }
   | { kind: "error"; error: unknown };
@@ -127,7 +128,17 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
           }
         }
 
-        return { kind: "state_sync", states: normalizedStates };
+        const normalizedTimers: Record<string, number> = {};
+        const rawTimers = data.timers ?? {};
+
+        for (const key in rawTimers) {
+          if (Object.hasOwn(rawTimers, key)) {
+            const seconds = Number(rawTimers[key]);
+            normalizedTimers[key] = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
+          }
+        }
+
+        return { kind: "state_sync", states: normalizedStates, timers: normalizedTimers };
       }
 
       if (data.command === "ping") {
