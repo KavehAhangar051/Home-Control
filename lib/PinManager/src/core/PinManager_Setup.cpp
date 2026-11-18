@@ -103,3 +103,10 @@ bool PinManager::updateSegmentRule(const char* id, const RuleConfig& rule) {
     entry->rule = rule;
     return true;
 }
+
+bool PinManager::updateSegmentRuleByPin(int pin, const RuleConfig& rule) {
+    PinEntry* entry = _registry.getEntryByPin(pin);
+    if (!entry || !entry->active || entry->type != SegmentType::Input) return false;
+    entry->rule = rule;
+    return true;
+}
