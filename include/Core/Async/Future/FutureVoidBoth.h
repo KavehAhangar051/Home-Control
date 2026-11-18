@@ -6,107 +6,112 @@ namespace uniuno {
 
 /**
  * @brief Specialization of Future for void input and void output.
- * 
- * @tparam E The error type.
  */
 template <typename E> class Future<void, void, E> {
 public:
-  Future(FastFunction<AsyncResult<void, E>(), 64> callback) {
-    this->poll_callback = std::move(callback);
-    this->result = AsyncResult<void, E>::pending();
+  Future(FastFunction<AsyncResult<void, E>(), 64> callback)
+      : poll_callback_(std::move(callback)), result_(AsyncResult<void, E>::pending()) {}
+
+  /** @brief Zero-overhead already-resolved Future (no FastFunction or callx8). */
+  static FORCE_INLINE Future<void, void, E> resolve() {
+    return Future<void, void, E>(ImmediateTag{}, AsyncResult<void, E>::resolve());
   }
 
-  static Future<void, void, E> resolve() {
-    return Future<void, void, E>(
-        []() { return AsyncResult<void, E>::resolve(); });
+  /** @brief Zero-overhead already-rejected Future (no FastFunction or callx8). */
+  static FORCE_INLINE Future<void, void, E> reject(E error) {
+    return Future<void, void, E>(ImmediateTag{}, AsyncResult<void, E>::reject(std::move(error)));
   }
 
-  static Future<void, void, E> reject(E error) {
-    return Future<void, void, E>(
-        [error = std::move(error)]() mutable { return AsyncResult<void, E>::reject(error); });
-  }
-
-  HOT_PATH const AsyncResult<void, E>& poll() {
-    if (LIKELY(this->result.is_pending())) {
-      this->result = this->poll_callback();
+  HOT_PATH FORCE_INLINE const AsyncResult<void, E>& poll() {
+    if (LIKELY(result_.is_pending()) && LIKELY(static_cast<bool>(poll_callback_))) {
+      result_ = poll_callback_();
     }
-    return this->result;
+    return result_;
   }
+
+  FORCE_INLINE bool is_pending()  const { return result_.is_pending(); }
+  FORCE_INLINE bool is_resolved() const { return result_.is_resolved(); }
+  FORCE_INLINE bool is_rejected() const { return result_.is_rejected(); }
+  FORCE_INLINE const AsyncResult<void, E>& get_result() const { return result_; }
+  FORCE_INLINE AsyncResult<void, E>&       get_result()       { return result_; }
 
   template <typename N, typename G = Error>
   Future<void, N, G> and_then(Future<void, N, G> next_future) {
     return Future<void, N, G>([this_future = std::move(*this), next_future = std::move(next_future)]() mutable -> AsyncResult<N, G> {
-      if (this_future.result.is_pending()) {
-        this_future.poll();
-      }
-
-      if (this_future.result.is_pending()) {
-        return AsyncResult<N, G>::pending();
-      }
-
-      if (UNLIKELY(this_future.result.is_rejected())) {
-        return AsyncResult<N, G>::reject(G(*this_future.result.get_error()));
-      }
-
+      const auto& res = this_future.poll();
+      if (res.is_pending()) return AsyncResult<N, G>::pending();
+      if (UNLIKELY(res.is_rejected())) return AsyncResult<N, G>::reject(G(*res.get_error()));
       return next_future.poll();
     });
   }
 
-  template <class F> auto and_then(F &&fn) -> Future<void, decltype(fn())> {
+  template <class F> auto and_then(F &&fn) -> Future<void, decltype(fn()), E> {
     return this->into_future(std::forward<F>(fn));
   }
 
-  /**
-   * @brief Catches errors and recovers from rejection.
-   */
   template <class F>
   Future<void, void, E> catch_error(F &&err_fn) {
     return Future<void, void, E>([this_future = std::move(*this), err_fn = std::forward<F>(err_fn)]() mutable -> AsyncResult<void, E> {
-      if (this_future.result.is_pending()) {
-        this_future.poll();
-      }
-      if (this_future.result.is_pending()) {
-        return AsyncResult<void, E>::pending();
-      }
-      if (UNLIKELY(this_future.result.is_rejected())) {
-        err_fn(*this_future.result.get_error());
+      const auto& res = this_future.poll();
+      if (res.is_pending()) return AsyncResult<void, E>::pending();
+      if (UNLIKELY(res.is_rejected())) {
+        err_fn(*res.get_error());
         return AsyncResult<void, E>::resolve();
       }
-      return this_future.result;
+      return res;
     });
   }
 
-  /**
-   * @brief Transforms the resolved void into a new output.
-   */
+  /** @brief Fluent OOP timeout using branchless Xtensa assembly is_timer_expired(). */
+  Future<void, void, E> timeout(unsigned long timeout_ms) {
+    const unsigned long deadline = millis() + timeout_ms;
+    return Future<void, void, E>([this_future = std::move(*this), deadline]() mutable -> AsyncResult<void, E> {
+      if (UNLIKELY(this_future.is_pending() && uniuno::asm_opt::is_timer_expired(millis(), deadline))) {
+        return AsyncResult<void, E>::reject(E(ERROR_FUTURE_TIMEOUT));
+      }
+      return this_future.poll();
+    });
+  }
+
   template <class F>
-  auto map(F &&fn) -> Future<void, decltype(fn())> {
+  auto map(F &&fn) -> Future<void, decltype(fn()), E> {
     return this->and_then(std::forward<F>(fn));
   }
 
-  AsyncResult<void, E> result;
-
 private:
+  struct ImmediateTag {};
+  FORCE_INLINE Future(ImmediateTag, AsyncResult<void, E>&& immediate)
+      : poll_callback_(nullptr), result_(std::move(immediate)) {}
+
+  // Single-layer direct function execution (no redundant inner Future!)
   template <class F, typename std::enable_if<
                          !std::is_same<typename function_traits<F>::result_type,
                                        void>::value>::type * = nullptr>
-  auto into_future(F &&fn) -> Future<void, decltype(fn())> {
+  auto into_future(F &&fn) -> Future<void, decltype(fn()), E> {
     using OutputType = decltype(fn());
-    return this->and_then<OutputType>(Future<void, OutputType>(
-        [fn = std::forward<F>(fn)]() mutable { return AsyncResult<OutputType>::resolve(fn()); }));
+    return Future<void, OutputType, E>([this_future = std::move(*this), fn = std::forward<F>(fn)]() mutable -> AsyncResult<OutputType, E> {
+      const auto& res = this_future.poll();
+      if (res.is_pending()) return AsyncResult<OutputType, E>::pending();
+      if (UNLIKELY(res.is_rejected())) return AsyncResult<OutputType, E>::reject(*res.get_error());
+      return AsyncResult<OutputType, E>::resolve(fn());
+    });
   }
 
   template <class F, typename std::enable_if<
                          std::is_same<typename function_traits<F>::result_type,
-                                       void>::value>::type * = nullptr>
-  auto into_future(F &&fn) -> Future<void, decltype(fn())> {
-    return this->and_then<void>(Future<void, void>([fn = std::forward<F>(fn)]() mutable {
+                                      void>::value>::type * = nullptr>
+  auto into_future(F &&fn) -> Future<void, void, E> {
+    return Future<void, void, E>([this_future = std::move(*this), fn = std::forward<F>(fn)]() mutable -> AsyncResult<void, E> {
+      const auto& res = this_future.poll();
+      if (res.is_pending()) return AsyncResult<void, E>::pending();
+      if (UNLIKELY(res.is_rejected())) return AsyncResult<void, E>::reject(*res.get_error());
       fn();
-      return AsyncResult<void>::resolve();
-    }));
+      return AsyncResult<void, E>::resolve();
+    });
   }
 
-  FastFunction<AsyncResult<void, E>(), 64> poll_callback;
+  FastFunction<AsyncResult<void, E>(), 64> poll_callback_;
+  AsyncResult<void, E> result_;
 };
 
 } // namespace uniuno
