@@ -66,16 +66,16 @@ void AchaemenidMQTT::subscribe(const String& topic) {
 
 bool AchaemenidMQTT::publish(const String& topic, const uint8_t* payload, size_t length, bool retained) {
     if (LIKELY(_mqttClient.connected())) {
-        _mqttClient.publish(topic.c_str(), _config.qos, retained, (const char*)payload, length);
-        return true;
+        const uint16_t packetId = _mqttClient.publish(topic.c_str(), _config.qos, retained, (const char*)payload, length);
+        return packetId != 0;
     }
     return false;
 }
 
 bool AchaemenidMQTT::publish(const String& topic, const String& payload, bool retained) {
     if (LIKELY(_mqttClient.connected())) {
-        _mqttClient.publish(topic.c_str(), _config.qos, retained, payload.c_str());
-        return true;
+        const uint16_t packetId = _mqttClient.publish(topic.c_str(), _config.qos, retained, payload.c_str());
+        return packetId != 0;
     }
     return false;
 }
