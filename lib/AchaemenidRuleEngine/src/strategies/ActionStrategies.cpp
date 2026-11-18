@@ -22,6 +22,8 @@ HOT_PATH FORCE_INLINE static void applyState(int targetPin, bool stateToApply, R
             PinStateChangedEvent changed{targetPin, stateToApply, true, PinStateChangeOrigin::Automation};
             ctx.eventBus->dispatch(changed);
         }
+    } else {
+        WARNINGF("[Rule] Action failed: target GPIO %d is not registered as an output segment", targetPin);
     }
 }
 
