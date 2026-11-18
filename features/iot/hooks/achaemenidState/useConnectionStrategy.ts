@@ -102,7 +102,12 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
 
         if (data.type === "state_sync" && data.states) {
           deps.setPinsState(data.states);
+          // Missing timer metadata in a full snapshot must clear any previous
+          // countdown instead of falling back to the configured full duration.
           synchronizedTimers = {};
+          for (const pin of Object.keys(data.states)) {
+            synchronizedTimers[pin] = 0;
+          }
           if (data.timers && typeof data.timers === "object") {
             for (const [pin, value] of Object.entries(data.timers)) {
               const seconds = Number(value);
