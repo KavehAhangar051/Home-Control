@@ -86,6 +86,8 @@ export interface MqttConfig {
 export interface SegmentsSlice {
   segments: Segment[];
   pinsState: Record<string, boolean>;
+  autoOffRemaining: Record<string, number>;
+  setAutoOffRemaining: (timers: Record<string, number>) => void;
   setSegments: (segments: Segment[] | ((prev: Segment[]) => Segment[])) => void;
   setPinsState: (
     pins: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>),
