@@ -134,7 +134,9 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
         for (const key in rawTimers) {
           if (Object.hasOwn(rawTimers, key)) {
             const seconds = Number(rawTimers[key]);
-            normalizedTimers[key] = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
+            const isPinOn = normalizedStates[key] === true;
+            normalizedTimers[key] =
+              isPinOn && Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
           }
         }
 
