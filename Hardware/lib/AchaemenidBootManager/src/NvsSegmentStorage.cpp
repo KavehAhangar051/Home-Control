@@ -40,9 +40,10 @@ void copyActionToStorage(const RuleAction& source, StoredRuleAction& target) {
 }
 
 bool copyActionFromStorage(const StoredRuleAction& source, RuleAction& target) {
-    if (source.targetPin < -1 || source.targetPin > 39 ||
+    if (source.targetPin < 0 || source.targetPin > 39 ||
+        source.actionState > 1 ||
         source.actionType > ACTION_FOR_DURATION ||
-        source.delay < 0 || source.delay > 3600) return false;
+        source.delay < 0 || source.delay > 60) return false;
     if (source.requiredHoldTime != 0 && source.requiredHoldTime != 3 &&
         source.requiredHoldTime != 5 && source.requiredHoldTime != 10) return false;
 
@@ -54,12 +55,96 @@ bool copyActionFromStorage(const StoredRuleAction& source, RuleAction& target) {
     return true;
 }
 
+bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
+    out = ParseResult();
+
+    char countKey[8];
+    char versionKey[8];
+    snprintf(countKey, sizeof(countKey), "%cCount", bank);
+    snprintf(versionKey, sizeof(versionKey), "%cVer", bank);
+
+    const int count = prefs.getInt(countKey, -1);
+    const uint8_t version = prefs.getUChar(versionKey, 0);
+    if (version != STORAGE_VERSION || count < 0 || count > MAX_SEGMENTS) {
+        return false;
+    }
+
+    char key[16];
+    for (int i = 0; i < count; ++i) {
+        snprintf(key, sizeof(key), "%c%d", bank, i);
+        if (prefs.getBytesLength(key) != sizeof(StoredSegment)) {
+            Serial.printf("[SegStorage] Bank %c rejected: invalid record size for %s\n", bank, key);
+            return false;
+        }
+
+        StoredSegment record{};
+        if (prefs.getBytes(key, &record, sizeof(record)) != sizeof(record)) {
+            Serial.printf("[SegStorage] Bank %c rejected: failed reading %s\n", bank, key);
+            return false;
+        }
+
+        const bool idTerminated = memchr(record.id, '\0', sizeof(record.id)) != nullptr;
+        const bool typeTerminated = memchr(record.type, '\0', sizeof(record.type)) != nullptr;
+        if (!idTerminated || !typeTerminated || record.id[0] == '\0' ||
+            record.type[0] == '\0' || record.pin < 0 || record.pin > 39 ||
+            record.highActionCount > 4 || record.lowActionCount > 4 ||
+            record.ruleActive > 1) {
+            Serial.printf("[SegStorage] Bank %c rejected: invalid segment record %s\n", bank, key);
+            return false;
+        }
+
+        // A pin and segment ID must each identify exactly one registry entry.
+        for (int previous = 0; previous < out.count; ++previous) {
+            if (out.segments[previous].pin == record.pin ||
+                strcmp(out.segments[previous].id, record.id) == 0) {
+                Serial.printf("[SegStorage] Bank %c rejected: duplicate ID or GPIO in %s\n", bank, key);
+                return false;
+            }
+        }
+
+        SegmentConfig& segment = out.segments[out.count];
+        strlcpy(segment.id, record.id, sizeof(segment.id));
+        strlcpy(segment.type, record.type, sizeof(segment.type));
+        segment.pin = record.pin;
+        segment.autoOffDelay = record.autoOffDelay;
+        segment.value = false;
+        segment.valid = true;
+        segment.rule.active = record.ruleActive != 0;
+
+        for (int a = 0; a < record.highActionCount; ++a) {
+            RuleAction action;
+            if (!copyActionFromStorage(record.highActions[a], action)) {
+                Serial.printf("[SegStorage] Bank %c rejected: invalid HIGH action in %s\n", bank, key);
+                return false;
+            }
+            segment.rule.highActions[segment.rule.highActionCount++] = action;
+        }
+        for (int a = 0; a < record.lowActionCount; ++a) {
+            RuleAction action;
+            if (!copyActionFromStorage(record.lowActions[a], action)) {
+                Serial.printf("[SegStorage] Bank %c rejected: invalid LOW action in %s\n", bank, key);
+                return false;
+            }
+            segment.rule.lowActions[segment.rule.lowActionCount++] = action;
+        }
+
+        if (segment.rule.highActionCount == 0 && segment.rule.lowActionCount == 0) {
+            segment.rule.active = false;
+        }
+        ++out.count;
+    }
+
+    out.success = true;
+    out.segmentsProvided = true;
+    return true;
+}
+
 bool loadLegacyConfig(Preferences& prefs, ParseResult& out) {
     const int count = prefs.getInt("count", 0);
     if (count <= 0 || count > MAX_SEGMENTS) return false;
 
     char key[16];
-    out.count = 0;
+    out = ParseResult();
     for (int i = 0; i < count; ++i) {
         snprintf(key, sizeof(key), "s%did", i);
         String id = prefs.getString(key, "");
@@ -70,12 +155,23 @@ bool loadLegacyConfig(Preferences& prefs, ParseResult& out) {
         snprintf(key, sizeof(key), "s%dao", i);
         const int autoOff = prefs.getInt(key, 0);
 
-        if (id.length() == 0 || pin < 0 || pin > 39) continue;
+        if (id.length() == 0 || id.length() >= sizeof(out.segments[0].id) ||
+            type.length() == 0 || type.length() >= sizeof(out.segments[0].type) ||
+            pin < 0 || pin > 39 || out.count >= MAX_SEGMENTS) {
+            Serial.printf("[SegStorage] Invalid legacy segment at index %d\n", i);
+            return false;
+        }
+
+        for (int previous = 0; previous < out.count; ++previous) {
+            if (out.segments[previous].pin == pin ||
+                strcmp(out.segments[previous].id, id.c_str()) == 0) return false;
+        }
+
         SegmentConfig& segment = out.segments[out.count++];
         strlcpy(segment.id, id.c_str(), sizeof(segment.id));
         strlcpy(segment.type, type.c_str(), sizeof(segment.type));
         segment.pin = pin;
-        segment.autoOffDelay = autoOff;
+        segment.autoOffDelay = autoOff < 0 ? 0 : autoOff;
         segment.value = false;
         segment.valid = true;
     }
@@ -107,16 +203,26 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
 
     for (int i = 0; i < MAX_SEGMENTS; ++i) {
         if (!parsed.segments[i].valid) continue;
-        if (savedCount >= MAX_SEGMENTS) break;
+        if (savedCount >= MAX_SEGMENTS) {
+            writeOk = false;
+            break;
+        }
 
         const SegmentConfig& segment = parsed.segments[i];
+        if (segment.id[0] == '\0' || segment.pin < 0 || segment.pin > 39 ||
+            segment.rule.highActionCount > 4 || segment.rule.lowActionCount > 4) {
+            writeOk = false;
+            Serial.printf("[SegStorage] Refusing invalid segment at slot %d\n", i);
+            break;
+        }
+
         StoredSegment record{};
         strlcpy(record.id, segment.id, sizeof(record.id));
         strlcpy(record.type, segment.type, sizeof(record.type));
         record.pin = static_cast<int16_t>(segment.pin);
         record.autoOffDelay = static_cast<uint16_t>(segment.autoOffDelay < 0 ? 0 : segment.autoOffDelay);
-        record.highActionCount = static_cast<uint8_t>(constrain(segment.rule.highActionCount, 0, 4));
-        record.lowActionCount = static_cast<uint8_t>(constrain(segment.rule.lowActionCount, 0, 4));
+        record.highActionCount = segment.rule.highActionCount;
+        record.lowActionCount = segment.rule.lowActionCount;
         record.ruleActive = segment.rule.active ? 1 : 0;
 
         for (int a = 0; a < record.highActionCount; ++a) {
@@ -163,8 +269,9 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
 }
 
 /**
- * Load a versioned bank. A saved empty configuration is valid and clears
- * previously registered segments instead of falling back to stale defaults.
+ * Load the active bank as an all-or-nothing snapshot. If it is damaged, try
+ * the previous bank before considering the legacy flat-key format. A valid
+ * zero-record bank is an intentional empty configuration, not a cache miss.
  */
 bool NvsSegmentStorage::loadSegmentConfig(ParseResult& out) {
     out = ParseResult();
@@ -176,65 +283,29 @@ bool NvsSegmentStorage::loadSegmentConfig(ParseResult& out) {
 
     const String activeBank = prefs.getString("active", "");
     if (activeBank == "a" || activeBank == "b") {
-        const char bank = activeBank[0];
-        char countKey[8];
-        char versionKey[8];
-        snprintf(countKey, sizeof(countKey), "%cCount", bank);
-        snprintf(versionKey, sizeof(versionKey), "%cVer", bank);
-        const int count = prefs.getInt(countKey, -1);
-        const uint8_t version = prefs.getUChar(versionKey, 0);
+        const char active = activeBank[0];
+        const char backup = active == 'a' ? 'b' : 'a';
 
-        if (version == STORAGE_VERSION && count >= 0 && count <= MAX_SEGMENTS) {
-            char key[16];
-            for (int i = 0; i < count; ++i) {
-                snprintf(key, sizeof(key), "%c%d", bank, i);
-                if (prefs.getBytesLength(key) != sizeof(StoredSegment)) {
-                    Serial.printf("[SegStorage] Invalid record size for %s; skipping\n", key);
-                    continue;
-                }
-
-                StoredSegment record{};
-                if (prefs.getBytes(key, &record, sizeof(record)) != sizeof(record)) continue;
-                if (record.id[0] == '\0' || record.pin < 0 || record.pin > 39 ||
-                    record.highActionCount > 4 || record.lowActionCount > 4) continue;
-
-                SegmentConfig& segment = out.segments[out.count];
-                strlcpy(segment.id, record.id, sizeof(segment.id));
-                strlcpy(segment.type, record.type, sizeof(segment.type));
-                segment.pin = record.pin;
-                segment.autoOffDelay = record.autoOffDelay;
-                segment.value = false;
-                segment.valid = true;
-                segment.rule.active = record.ruleActive != 0;
-
-                for (int a = 0; a < record.highActionCount; ++a) {
-                    RuleAction action;
-                    if (copyActionFromStorage(record.highActions[a], action)) {
-                        segment.rule.highActions[segment.rule.highActionCount++] = action;
-                    }
-                }
-                for (int a = 0; a < record.lowActionCount; ++a) {
-                    RuleAction action;
-                    if (copyActionFromStorage(record.lowActions[a], action)) {
-                        segment.rule.lowActions[segment.rule.lowActionCount++] = action;
-                    }
-                }
-                if (segment.rule.highActionCount == 0 && segment.rule.lowActionCount == 0) {
-                    segment.rule.active = false;
-                }
-                ++out.count;
-            }
-
-            out.success = true;
-            out.segmentsProvided = true;
+        if (loadBank(prefs, active, out)) {
             prefs.end();
-            Serial.printf("[SegStorage] Loaded %d segments with rules from NVS bank %c\n", out.count, bank);
+            Serial.printf("[SegStorage] Loaded %d segments with rules from active NVS bank %c\n", out.count, active);
             return true;
         }
-        Serial.println("[SegStorage] Active NVS bank has unsupported or invalid metadata");
+
+        Serial.printf("[SegStorage] Active bank %c is invalid; checking backup bank %c\n", active, backup);
+        if (loadBank(prefs, backup, out)) {
+            prefs.end();
+            Serial.printf("[SegStorage] Recovered %d segments with rules from backup NVS bank %c\n", out.count, backup);
+            return true;
+        }
+
+        prefs.end();
+        out = ParseResult();
+        Serial.println("[SegStorage] Both versioned NVS banks are invalid; refusing stale legacy fallback");
+        return false;
     }
 
-    // Backward compatibility with the old flat-key format (which stored no rules).
+    // Backward compatibility only when no versioned bank has ever been activated.
     const bool legacyLoaded = loadLegacyConfig(prefs, out);
     prefs.end();
     return legacyLoaded;
