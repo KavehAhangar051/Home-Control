@@ -91,7 +91,7 @@ export const buildUpdateRuleFrame = (
     throw new RangeError(`Invalid input GPIO: ${inputPin}`);
   }
 
-  const bufSize = 3 + highLen * RULE_ACTION_SIZE + lowLen * RULE_ACTION_SIZE;
+  const bufSize = 4 + highLen * RULE_ACTION_SIZE + lowLen * RULE_ACTION_SIZE;
 
   const buf = new Uint8Array(bufSize);
   const view = new DataView(buf.buffer);
