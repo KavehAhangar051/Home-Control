@@ -125,18 +125,50 @@ export function planRemoveGroup(params: {
   };
 }
 
-export function validateRuleActionList(actions?: Array<{ targetPin: string }>): string | null {
+export function validateRuleActionList(
+  actions?: Array<{
+    targetPin: string;
+    reqHold?: number;
+    actionType?: number;
+    delay?: number;
+  }>,
+): string | null {
   if (!actions) return null;
+  if (actions.length > 4) return "هر حالت حداکثر می‌تواند ۴ عملیات داشته باشد.";
 
   for (let i = 0; i < actions.length; i++) {
-    const targetPin = actions[i].targetPin;
+    const action = actions[i];
+    const targetPin = action.targetPin;
 
     if (targetPin) {
       const validation = validateEsp32Pin(targetPin, "output");
+      if (!validation.isValid) return validation.message;
+    }
 
-      if (!validation.isValid) {
-        return validation.message;
-      }
+    if (
+      action.reqHold !== undefined &&
+      action.reqHold !== 0 &&
+      action.reqHold !== 3 &&
+      action.reqHold !== 5 &&
+      action.reqHold !== 10
+    ) {
+      return "زمان نگه‌داشتن باید یکی از مقادیر ۰، ۳، ۵ یا ۱۰ ثانیه باشد.";
+    }
+
+    if (
+      action.actionType !== undefined &&
+      action.actionType !== 0 &&
+      action.actionType !== 1 &&
+      action.actionType !== 2
+    ) {
+      return "نوع عملیات انتخاب‌شده معتبر نیست.";
+    }
+
+    if (
+      action.delay !== undefined &&
+      (!Number.isInteger(action.delay) || action.delay < 0 || action.delay > 60)
+    ) {
+      return "تأخیر عملیات باید بین ۰ تا ۶۰ ثانیه باشد.";
     }
   }
 
