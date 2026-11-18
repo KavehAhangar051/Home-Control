@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
 interface UseAutoOffTimerProps {
   isPinOn: boolean;
@@ -15,8 +16,13 @@ export function useAutoOffTimer({
   pin,
   onSetPinState,
 }: UseAutoOffTimerProps) {
-  const isTimerActive = Boolean(isPinOn && autoOff && autoOff > 0);
-  const triggerKey = isTimerActive ? `${pin}:${autoOff}:on` : `${pin}:off`;
+  const synchronizedTimers = useIoTStore((state) => state.autoOffRemaining);
+  const hasSynchronizedTimer = Object.hasOwn(synchronizedTimers, pin);
+  const initialRemaining = hasSynchronizedTimer ? synchronizedTimers[pin] : autoOff;
+  const isTimerActive = Boolean(isPinOn && initialRemaining && initialRemaining > 0);
+  const triggerKey = isTimerActive
+    ? `${pin}:${autoOff}:${initialRemaining}:on`
+    : `${pin}:off`;
 
   const [timerState, setTimerState] = useState<{ key: string; remaining: number | null }>({
     key: "",
@@ -24,7 +30,7 @@ export function useAutoOffTimer({
   });
 
   const countdown =
-    timerState.key === triggerKey ? timerState.remaining : isTimerActive ? (autoOff ?? null) : null;
+    timerState.key === triggerKey ? timerState.remaining : isTimerActive ? (initialRemaining ?? null) : null;
 
   useEffect(() => {
     if (!isTimerActive) {
