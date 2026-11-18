@@ -61,8 +61,20 @@ export function useSegmentUpdates() {
         return;
       }
 
+      const targetSegment = useIoTStore.getState().segments.find((segment) => segment.id === id);
+      if (!targetSegment || targetSegment.type !== "input") {
+        useIoTStore.getState().showToast("سگمنت ورودی موردنظر در داشبورد پیدا نشد.", "error");
+        return;
+      }
+
+      const inputPin = Number(targetSegment.pin);
+      if (!Number.isInteger(inputPin) || inputPin < 0 || inputPin > 39) {
+        useIoTStore.getState().showToast("شماره GPIO سگمنت ورودی معتبر نیست.", "error");
+        return;
+      }
+
       setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, rule } : s)));
-      publishUpdateRuleCommand(id, rule.highActions || [], rule.lowActions || []);
+      publishUpdateRuleCommand(inputPin, rule.highActions || [], rule.lowActions || []);
     },
     [setSegments],
   );
