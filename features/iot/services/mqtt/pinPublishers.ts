@@ -18,6 +18,13 @@ import {
   PIN_STATE_LOW,
 } from "./protocol";
 
+const clearSynchronizedTimer = (pinId: string) => {
+  const snapshot = getIoTStoreSnapshot();
+  const next = { ...snapshot.autoOffRemaining };
+  delete next[pinId];
+  snapshot.setAutoOffRemaining(next);
+};
+
 export const buildPinCommandFrame = (pinId: string, value: boolean, timer?: number): Uint8Array => {
   const buf = new Uint8Array(PIN_COMMAND_BUFFER_SIZE);
   const view = new DataView(buf.buffer);
@@ -30,13 +37,14 @@ export const buildPinCommandFrame = (pinId: string, value: boolean, timer?: numb
 };
 
 export const publishPinCommand = (pinId: string, value: boolean, timer?: number): boolean => {
-  clearSynchronizedTimer(pinId);
   const buf = buildPinCommandFrame(pinId, value, timer);
-
-  return publishMqttCommand(
+  const published = publishMqttCommand(
     buf,
     `Published toggle command: pin=${buf[1]} state=${value} timer=${timer}`,
   );
+
+  if (published) clearSynchronizedTimer(pinId);
+  return published;
 };
 
 export const buildBatchPinCommandFrame = (
@@ -77,7 +85,11 @@ export const publishBatchPinCommand = (
   if (!buf) return false;
 
   const count = buf[1];
-  for (const action of actions.slice(0, count)) clearSynchronizedTimer(action.pin);
+  const published = publishMqttCommand(buf, `Published batch toggle command with ${count} actions`);
 
-  return publishMqttCommand(buf, `Published batch toggle command with ${count} actions`);
+  if (published) {
+    for (const action of actions.slice(0, count)) clearSynchronizedTimer(action.pin);
+  }
+
+  return published;
 };
