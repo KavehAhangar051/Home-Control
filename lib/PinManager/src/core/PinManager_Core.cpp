@@ -20,6 +20,31 @@ int PinManager::getActiveCount() const {
     return _registry.getActiveCount();
 }
 
+void PinManager::exportConfig(ParseResult& out) const {
+    out = ParseResult();
+    out.success = true;
+    out.segmentsProvided = true;
+
+    int target = 0;
+    for (int i = 0; i < MAX_PINS && target < MAX_SEGMENTS; ++i) {
+        const PinEntry* entry = _registry.getEntryByIndexConst(i);
+        if (!entry || !entry->active) continue;
+
+        SegmentConfig& segment = out.segments[target++];
+        strncpy(segment.id, entry->segmentId, sizeof(segment.id) - 1);
+        segment.id[sizeof(segment.id) - 1] = '\0';
+        const char* type = entry->type == SegmentType::Input ? "input" : "gpio_toggle";
+        strncpy(segment.type, type, sizeof(segment.type) - 1);
+        segment.type[sizeof(segment.type) - 1] = '\0';
+        segment.pin = entry->pinNumber;
+        segment.autoOffDelay = entry->autoOffDelay;
+        segment.value = false;
+        segment.rule = entry->rule;
+        segment.valid = true;
+    }
+    out.count = target;
+}
+
 void PinManager::printStatus() const {
     Serial.println("========= Pin Manager Status =========");
     Serial.printf("  Active pins: %d / %d\n", getActiveCount(), MAX_PINS);
