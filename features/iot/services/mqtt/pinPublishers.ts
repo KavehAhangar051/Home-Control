@@ -1,12 +1,5 @@
-import { publishMqttCommand } from "./client";
 import { getIoTStoreSnapshot } from "../storeBridge";
-
-const clearSynchronizedTimer = (pinId: string) => {
-  const snapshot = getIoTStoreSnapshot();
-  const next = { ...snapshot.autoOffRemaining };
-  delete next[pinId];
-  snapshot.setAutoOffRemaining(next);
-};
+import { publishMqttCommand } from "./client";
 import {
   BATCH_ACTION_SIZE,
   BATCH_HEADER_SIZE,
