@@ -9,6 +9,9 @@ Use ChatGPT and Cloudflare Dashboard as interaction references, not as assets or
 
 - On desktop (`md` and above), navigation uses a vertical rail on the right side of the viewport, consistent with the application's RTL direction, paired with a bottom desktop footer bar.
 - On mobile (`< md`), the right rail and desktop footer are hidden; navigation uses a centered floating bottom Dock with upward-expanding `ExpandableTabs` panels (`MobileDockNav`) and an integrated press-and-hold voice command trigger, while `ThemeToggle` lives cleanly in the mobile top breadcrumb bar.
+- Custom buttons / macros live cleanly inside the top `DashboardBreadcrumb` header (desktop next to `WorkspaceViewModeSelector`, mobile next to `ThemeToggle`) as a compact quick-run button or anchored dropdown selector so Grid, Trellis, and Canvas remain unobstructed.
+- Every submenu entry (`Modules`, `Automations`, `Settings`) pairs its Persian label with a semantic Lucide icon across desktop sidebar submenus, mobile Dock upward panels, mobile subsection tabs, and breadcrumbs.
+- Status notifications (`ToastNotification`) render as compact single-line pills anchored in the top header band inside a `pointer-events-none` wrapper so they never cover segment cards or block clicks on mobile or desktop.
 - Do not expose header-position switchers or controls that move desktop navigation to another edge.
 - Preserve existing application actions and behavior when adjusting navigation. Presentation changes must not alter MQTT topics, ESP32 payloads, Cloudflare synchronization, or automation logic.
 - The product title may remain editable, but it must not control header placement.
@@ -17,6 +20,7 @@ Use ChatGPT and Cloudflare Dashboard as interaction references, not as assets or
 
 - Default appearance starts in dark mode (`Graphite` neutral ramp `#141415`) and supports user switching to light mode through `ThemeToggle` using the native View Transition API with a reduced-motion fallback.
 - Settings expose controlled customization for primary/secondary accents (`accent3`, `accent4`) and dark/light contrast balance (`darkBlackness`, `lightWhiteness`), applied through CSS custom properties (`--bg-main`, `--card-bg-solid`, `--border-color`, `--text-*`, `--accent3`, `--accent4`).
+- Active (`1`) output and input segments share unified `accent3` surface (`bg-accent3-transparent`), border (`border-accent3`), icon badge (`bg-accent3 text-accent3-foreground`), and Canvas wire/port styling, while input segments remain clearly distinguished via a read-only `ورودی` footer badge.
 - Prefer neutral surfaces, restrained borders, and readable contrast across active, pending, disabled, and error states. Do not rely on color alone to convey device state.
 - When `data-perf-tier="lite"` or `animationsFps=30` is active on resource-constrained devices, multi-layer `backdrop-blur` and expensive per-frame filters step down cleanly to crisp solid surfaces without flattening state hierarchy.
 

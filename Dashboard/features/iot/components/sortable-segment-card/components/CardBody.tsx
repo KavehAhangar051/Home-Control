@@ -36,10 +36,20 @@ export function InputSegmentBody({
 }) {
   const SegmentIcon = getSegmentIcon(segment.icon);
   const density = getSegmentTileDensity(isUltraCompact, isCompact, hasExternalHeader);
+  const isSmallTrack = isCompact || isUltraCompact;
+
+  const surfaceTone = isPinOn
+    ? "bg-accent3-transparent text-text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+    : "bg-transparent text-text-primary";
 
   const badgeTone = isPinOn
-    ? "bg-success text-success-foreground"
+    ? "bg-accent3 text-accent3-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
     : "bg-secondary text-text-secondary border border-border-color";
+
+  const inputBadgeSize = isSmallTrack ? "h-5 px-2 text-[11px]" : "h-6 px-2.5 text-xs";
+  const inputBadgeTone = isPinOn
+    ? "bg-accent3 text-accent3-foreground border-accent3"
+    : "bg-secondary text-text-secondary border-border-color";
 
   const showEmojiIcon = Boolean(segment.icon) && !hasIcon(segment.icon);
   const radiusClass = hasExternalHeader ? "rounded-none rounded-b-[15px]" : "rounded-xl";
@@ -48,7 +58,7 @@ export function InputSegmentBody({
   return (
     <div
       data-animate-icon-parent
-      className={`flex flex-col justify-between size-full text-right select-none ${radiusClass} ${density.container}`}
+      className={`flex flex-col justify-between size-full text-right select-none transition-[background-color,border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] ${radiusClass} ${density.container} ${surfaceTone}`}
     >
       <div className={`flex items-center gap-2.5 sm:gap-3 w-full min-w-0 ${topRowInsetClass}`}>
         <div
@@ -75,28 +85,37 @@ export function InputSegmentBody({
 
       <div
         className={`flex items-center justify-between w-full gap-2 ${
-          hasExternalHeader || isCompact || isUltraCompact ? "pt-1" : "pt-2"
+          hasExternalHeader || isSmallTrack ? "pt-1" : "pt-2"
         }`}
       >
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 text-right">
           <span
-            className={`size-2 rounded-full shrink-0 ${
-              isPinOn ? "bg-success animate-pulse" : "bg-text-muted opacity-45"
+            className={`size-2 rounded-full shrink-0 transition-colors duration-150 ${
+              isPinOn ? "bg-success" : "bg-text-muted opacity-45"
             }`}
           />
-          <span className="text-xs font-sans font-medium tabular-nums truncate">
-            {isPinOn ? "ورودی فعال (۱)" : "ورودی غیرفعال (۰)"}
+          <span
+            className={`font-sans font-medium tabular-nums truncate ${
+              isUltraCompact ? "text-[11px]" : "text-xs"
+            } ${isPinOn ? "text-text-primary" : "text-text-muted"}`}
+          >
+            {isPinOn ? "فعال (۱)" : "غیرفعال (۰)"}
           </span>
+          {!isUltraCompact && (
+            <span
+              className="rounded border border-border-color bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-normal tabular-nums text-text-muted shrink-0"
+              dir="ltr"
+            >
+              GPIO {segment.pin}
+            </span>
+          )}
         </div>
 
-        {!isUltraCompact && (
-          <span
-            className="rounded border border-border-color bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-normal tabular-nums text-text-muted shrink-0"
-            dir="ltr"
-          >
-            GPIO {segment.pin}
-          </span>
-        )}
+        <span
+          className={`inline-flex items-center justify-center rounded-md font-sans font-medium shrink-0 border transition-colors duration-150 ${inputBadgeSize} ${inputBadgeTone}`}
+        >
+          ورودی
+        </span>
       </div>
     </div>
   );

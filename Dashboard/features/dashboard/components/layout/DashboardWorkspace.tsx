@@ -12,8 +12,6 @@ import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useWorkspaceSwipe } from "../../hooks/useWorkspaceSwipe";
 import { WorkspaceSectionSkeleton } from "./WorkspaceSectionSkeletons";
 
-const MacroSidebar = dynamic(() => import("../widgets/MacroSidebar"), { ssr: false });
-
 const WelcomePortal = dynamic(() => import("@/features/iot/components/welcome-portal"), {
   ssr: false,
 });
@@ -42,7 +40,6 @@ interface HomeWorkspaceMainContentProps {
   groupsOrder: string[];
   selectedGroupFilter: string | null;
   animationsEnabled: boolean;
-  hasMacros: boolean;
 }
 
 const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
@@ -54,7 +51,6 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
   groupsOrder,
   selectedGroupFilter,
   animationsEnabled,
-  hasMacros,
 }: HomeWorkspaceMainContentProps) {
   const {
     isLoadingIoT,
@@ -100,14 +96,6 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
     <div
       className={`w-full flex flex-col ${isTrellisMode ? "flex-1 min-h-0 h-full gap-0" : "gap-4"}`}
     >
-      {hasMacros && (
-        <div className="block md:hidden w-full">
-          <React.Suspense fallback={<div className="h-16 w-full" />}>
-            <MacroSidebar />
-          </React.Suspense>
-        </div>
-      )}
-
       <div className={isTrellisMode ? "flex-1 min-h-0 w-full flex flex-col" : "w-full"}>
         <ErrorBoundary
           fallbackTitle="خطا در رندر فضای کاری دستگاه‌ها"
@@ -154,7 +142,6 @@ export default function DashboardWorkspace() {
     : activeWorkspaceView;
 
   const segmentsLength = useIoTStore((s) => s.segments.length);
-  const macrosLength = useIoTStore((s) => s.macros.length);
   const selectedGroupFilter = useIoTStore((s) => s.selectedGroupFilter);
   const setSelectedGroupFilter = useIoTStore((s) => s.setSelectedGroupFilter);
   const groupsOrder = useIoTStore((s) => s.groupsOrder);
@@ -188,8 +175,6 @@ export default function DashboardWorkspace() {
     (workspaceDisplayMode === "trellis" || workspaceDisplayMode === "canvas") &&
     (!isFullyReady || segmentsLength > 0);
 
-  const hasMacros = macrosLength > 0;
-
   return (
     <AnimateView transition={{ duration: shouldAnimateWorkspace ? 0.2 : 0, ease: "easeOut" }}>
       <div
@@ -198,15 +183,6 @@ export default function DashboardWorkspace() {
         onTouchMove={isTrellisMode ? undefined : onTouchMove}
         onTouchEnd={isTrellisMode ? undefined : onTouchEnd}
       >
-        {hasMacros && (
-          <div className="hidden lg:block">
-            <React.Suspense
-              fallback={<div className="w-20 lg:w-24 shrink-0 bg-transparent h-full" />}
-            >
-              <MacroSidebar />
-            </React.Suspense>
-          </div>
-        )}
         <main
           className={`flex-1 flex flex-col items-center text-center mx-auto w-full relative ${
             isTrellisMode ? "min-h-0 h-full justify-start gap-0" : "justify-center space-y-8 py-4"
@@ -222,7 +198,6 @@ export default function DashboardWorkspace() {
             groupsOrder={groupsOrder}
             selectedGroupFilter={selectedGroupFilter}
             animationsEnabled={animationsEnabled}
-            hasMacros={hasMacros}
           />
         </main>
       </div>

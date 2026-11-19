@@ -109,12 +109,8 @@ export default function TrellisSegmentTile({
     );
   }
 
-  const isInput = segment.type === "input";
-
   const activeSurfaceClass = isPinOn
-    ? isInput
-      ? "border-success bg-card-bg shadow-xs"
-      : "border-accent3 bg-card-bg shadow-xs"
+    ? "border-accent3 bg-card-bg shadow-xs"
     : "border-border-color bg-card-bg shadow-2xs";
 
   const autoOffMenuProps = {
