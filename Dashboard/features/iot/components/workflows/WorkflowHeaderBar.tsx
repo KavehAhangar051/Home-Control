@@ -12,7 +12,10 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import React from "react";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import type { WorkflowDefinition } from "./workflowTypes";
 
 interface WorkflowHeaderBarProps {
@@ -50,6 +53,9 @@ export default function WorkflowHeaderBar({
   onShareWorkflow,
   onImportWorkflow,
 }: WorkflowHeaderBarProps) {
+  const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const prefersReduced = useReducedMotion();
+  const reduceMotion = !animationsEnabled || Boolean(prefersReduced);
   const [editingWorkflowId, setEditingWorkflowId] = React.useState<string | null>(null);
   const [draftName, setDraftName] = React.useState(activeWorkflow.name);
   const isEditingName = editingWorkflowId === activeWorkflow.id;
@@ -182,19 +188,32 @@ export default function WorkflowHeaderBar({
       </div>
 
       {/* Center Status Hint while Connecting Ports */}
-      {isConnecting && (
-        <div className="hidden items-center gap-2 rounded-lg border border-accent3/40 bg-accent3-transparent px-2.5 py-1 text-[11px] font-bold text-accent3 lg:flex">
-          <span>پورت ورودی گره مقصد را انتخاب کنید</span>
-          <button
-            type="button"
-            onClick={onCancelConnect}
-            className="inline-flex cursor-pointer items-center gap-0.5 rounded px-1 text-[10px] hover:bg-accent3 hover:text-accent3-foreground"
+      <AnimatePresence>
+        {isConnecting && (
+          <m.div
+            key="header-connecting-hint"
+            initial={reduceMotion ? false : { opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={
+              reduceMotion
+                ? { opacity: 0, transition: { duration: 0 } }
+                : { opacity: 0, scale: 0.95, y: -4, transition: TRANSITION_EXIT_QUICK }
+            }
+            transition={reduceMotion ? { duration: 0 } : TRANSITION_ENTER_QUICK}
+            className="hidden items-center gap-2 rounded-lg border border-accent3/40 bg-accent3-transparent px-2.5 py-1 text-[11px] font-bold text-accent3 lg:flex"
           >
-            <X className="size-3" />
-            لغو
-          </button>
-        </div>
-      )}
+            <span>پورت ورودی گره مقصد را انتخاب کنید</span>
+            <button
+              type="button"
+              onClick={onCancelConnect}
+              className="inline-flex cursor-pointer items-center gap-0.5 rounded px-1 text-[10px] hover:bg-accent3 hover:text-accent3-foreground"
+            >
+              <X className="size-3" />
+              لغو
+            </button>
+          </m.div>
+        )}
+      </AnimatePresence>
 
       {/* Left side in RTL: Run, Enable Switch, Left Palette Toggle */}
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">

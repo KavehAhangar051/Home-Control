@@ -1,10 +1,10 @@
 "use client";
 
-import { AnimatePresence, m } from "motion/react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { Activity } from "@/components/ui/hugeicons-groups/media";
 import { ChevronLeft } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
+import { EASE_OUT } from "@/lib/ease";
 import { ACCORDION_CLIP } from "@/lib/presets";
 import AnimationsToggle from "./AnimationsToggle";
 import BackupRestoreSection from "./BackupRestoreSection";
@@ -55,7 +55,7 @@ export function InlineStabilitySection(
   >,
 ) {
   return (
-    <div className="bg-card-bg-solid border border-accent3-medium/30 p-4 space-y-4 overflow-hidden rounded-xl text-right">
+    <div className="min-w-0 space-y-4 text-right">
       <StabilitySectionContent {...props} />
     </div>
   );
@@ -71,6 +71,9 @@ export default function StabilitySection({
   hideHeader = false,
   isDark = true,
 }: StabilitySectionProps) {
+  const prefersReduced = useReducedMotion();
+  const reduceMotion = !animationsEnabled || Boolean(prefersReduced);
+
   if (hideHeader) {
     return (
       <InlineStabilitySection
@@ -110,22 +113,34 @@ export default function StabilitySection({
           />
         </div>
       </button>
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isExpanded && (
           <m.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6, transition: TRANSITION_EXIT_QUICK }}
-            transition={TRANSITION_ENTER_QUICK}
-            className="bg-card-bg-solid border-t border-accent3-medium/30 p-4 space-y-4 overflow-hidden"
+            key="stability-accordion-content"
+            initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={
+              reduceMotion ? { opacity: 0, transition: { duration: 0 } } : { height: 0, opacity: 0 }
+            }
+            transition={
+              reduceMotion
+                ? { duration: 0 }
+                : {
+                    height: { duration: 0.24, ease: EASE_OUT },
+                    opacity: { duration: 0.18, ease: EASE_OUT },
+                  }
+            }
+            className="bg-card-bg-solid border-t border-accent3-medium/30 overflow-hidden"
           >
-            <StabilitySectionContent
-              animationsEnabled={animationsEnabled}
-              setAnimationsEnabled={setAnimationsEnabled}
-              animationsFps={animationsFps}
-              setAnimationsFps={setAnimationsFps}
-              isDark={isDark}
-            />
+            <div className="p-4 space-y-4">
+              <StabilitySectionContent
+                animationsEnabled={animationsEnabled}
+                setAnimationsEnabled={setAnimationsEnabled}
+                animationsFps={animationsFps}
+                setAnimationsFps={setAnimationsFps}
+                isDark={isDark}
+              />
+            </div>
           </m.div>
         )}
       </AnimatePresence>

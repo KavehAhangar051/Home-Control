@@ -35,7 +35,7 @@ function resolveScrollContainerClass(params: {
     return "overflow-hidden gap-3 p-2 pb-20 md:p-4";
   }
 
-  return "overflow-y-auto gap-fluid-md p-fluid-sm pb-24 md:p-6 md:pb-8 md:px-8";
+  return "overflow-y-auto gap-fluid-sm p-2.5 pb-24 sm:p-fluid-sm md:p-6 md:pb-8 md:px-8";
 }
 
 function shouldDisplayHomeBanner(params: {

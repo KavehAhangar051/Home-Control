@@ -70,20 +70,27 @@ export default function DashboardBreadcrumb() {
           </BreadcrumbItem>
           <BreadcrumbSeparator className="hidden text-sidebar-muted opacity-60 sm:inline-flex" />
           <BreadcrumbItem className="min-w-0">
-            <BreadcrumbPage className="inline-flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1.5 font-semibold text-sidebar-text sm:px-2">
-              <ActiveIcon className="size-4 shrink-0 text-accent3" aria-hidden="true" />
-              <span className="truncate">{activeMeta.title}</span>
-            </BreadcrumbPage>
+            {subSectionMeta ? (
+              <span className="inline-flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1.5 font-medium text-sidebar-muted sm:px-2">
+                <ActiveIcon className="size-4 shrink-0 text-sidebar-muted" aria-hidden="true" />
+                <span className="truncate">{activeMeta.title}</span>
+              </span>
+            ) : (
+              <BreadcrumbPage className="inline-flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1.5 font-semibold text-sidebar-text sm:px-2">
+                <ActiveIcon className="size-4 shrink-0 text-accent3" aria-hidden="true" />
+                <span className="truncate">{activeMeta.title}</span>
+              </BreadcrumbPage>
+            )}
           </BreadcrumbItem>
           {subSectionMeta && (
             <>
               <BreadcrumbSeparator className="inline-flex text-sidebar-muted opacity-60" />
               <BreadcrumbItem className="inline-flex min-w-0">
-                <BreadcrumbPage className="inline-flex min-w-0 items-center gap-1.5 rounded-md px-1 py-1 text-xs font-medium text-sidebar-muted sm:px-1.5">
+                <BreadcrumbPage className="inline-flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1.5 text-sm font-semibold text-sidebar-text sm:px-2">
                   {SubSectionIcon && (
                     <SubSectionIcon
                       className="size-3.5 shrink-0 text-accent3"
-                      strokeWidth={1.75}
+                      strokeWidth={1.9}
                       aria-hidden="true"
                     />
                   )}

@@ -104,18 +104,19 @@ export default function GroupActions({
         </Tooltip>
 
         <AnimatePresence>
-          <GroupSettingsMenu
-            id={id}
-            isSettingsOpen={isSettingsOpen}
-            isCompact={isCompact}
-            isMobile={isMobile}
-            maxCols={maxCols}
-            onColsChange={onColsChange}
-            onAddPlaceholder={onAddPlaceholder}
-            onDeleteGroup={onDeleteGroup}
-            setIsSettingsOpen={setIsSettingsOpen}
-            menuRef={menuRef}
-          />
+          {isSettingsOpen && (
+            <GroupSettingsMenu
+              id={id}
+              isCompact={isCompact}
+              isMobile={isMobile}
+              maxCols={maxCols}
+              onColsChange={onColsChange}
+              onAddPlaceholder={onAddPlaceholder}
+              onDeleteGroup={onDeleteGroup}
+              setIsSettingsOpen={setIsSettingsOpen}
+              menuRef={menuRef}
+            />
+          )}
         </AnimatePresence>
       </div>
     </div>

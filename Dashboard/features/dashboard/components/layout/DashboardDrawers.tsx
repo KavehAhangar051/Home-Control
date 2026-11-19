@@ -14,6 +14,13 @@ export default function DashboardDrawers() {
   const setIsAutomationsMenuOpen = useIoTStore((s) => s.setIsAutomationsMenuOpen);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const isDark = useIoTStore((s) => s.isDark);
+  const [hasOpenedAutomations, setHasOpenedAutomations] = React.useState(isAutomationsMenuOpen);
+
+  React.useEffect(() => {
+    if (isAutomationsMenuOpen) {
+      setHasOpenedAutomations(true);
+    }
+  }, [isAutomationsMenuOpen]);
 
   return (
     <ErrorBoundary
@@ -22,7 +29,7 @@ export default function DashboardDrawers() {
       onReset={() => setIsAutomationsMenuOpen(false)}
     >
       <React.Suspense fallback={null}>
-        {isAutomationsMenuOpen && (
+        {(hasOpenedAutomations || isAutomationsMenuOpen) && (
           <AutomationsDrawer
             isOpen={isAutomationsMenuOpen}
             onClose={() => setIsAutomationsMenuOpen(false)}

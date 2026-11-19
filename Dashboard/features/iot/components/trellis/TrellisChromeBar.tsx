@@ -14,11 +14,14 @@ import {
   Trash2,
   ZoomOut,
 } from "lucide-react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import type React from "react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import type { SavedTrellisLayout } from "@/features/iot/hooks/usePreferencesStore";
+import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import { usePortalTarget } from "@/lib/hooks/use-portal-target";
 import type { TrellisLayoutPreset } from "./trellisLayout";
 
@@ -52,6 +55,9 @@ export default function TrellisChromeBar({
   const ws = useWorkspace();
   const framed = useWorkspaceSelector((s) => s.framed);
   const hiddenPanels = useWorkspaceSelector((s) => s.hidden);
+  const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const prefersReduced = useReducedMotion();
+  const reduceMotion = !animationsEnabled || Boolean(prefersReduced);
   const [showHiddenMenu, setShowHiddenMenu] = useState(false);
   const [showLayoutsMenu, setShowLayoutsMenu] = useState(false);
   const [layoutName, setLayoutName] = useState("");
@@ -94,7 +100,10 @@ export default function TrellisChromeBar({
     setLayoutName("");
   };
 
-  const popoverAnchorClass = footerSlot ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]";
+  const popoverAnchorClass = footerSlot
+    ? "bottom-[calc(100%+8px)] origin-bottom-left"
+    : "top-[calc(100%+8px)] origin-top-left";
+  const popoverOffsetY = footerSlot ? 4 : -4;
 
   const barContent = (
     <div
@@ -188,91 +197,107 @@ export default function TrellisChromeBar({
             <TooltipContent>ذخیره و بارگذاری چیدمان‌های سفارشی پنل‌ها</TooltipContent>
           </Tooltip>
 
-          {showLayoutsMenu && (
-            <div
-              role="dialog"
-              aria-label="مدیریت چیدمان‌های ذخیره‌شده"
-              className={`absolute left-0 z-50 w-64 rounded-2xl border border-border-color bg-card-bg-solid p-2.5 text-right shadow-xl ${popoverAnchorClass}`}
-            >
-              <form onSubmit={handleSaveSubmit} className="flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={layoutName}
-                  onChange={(e) => setLayoutName(e.target.value)}
-                  placeholder="نام چیدمان فعلی (مثلاً شبانه)"
-                  maxLength={32}
-                  className="h-8 min-w-0 flex-1 rounded-lg border border-border-color bg-bg-main px-2.5 text-xs text-text-primary placeholder:text-text-muted focus:border-accent3 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  aria-label="ذخیره چیدمان فعلی"
-                  className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-accent3 px-2.5 text-[11px] font-semibold text-accent3-foreground transition-opacity hover:opacity-90"
-                >
-                  <Save className="size-3.5" aria-hidden="true" />
-                  <span>ذخیره</span>
-                </button>
-              </form>
+          <AnimatePresence>
+            {showLayoutsMenu && (
+              <m.div
+                key="trellis-layouts-menu"
+                role="dialog"
+                aria-label="مدیریت چیدمان‌های ذخیره‌شده"
+                initial={reduceMotion ? false : { opacity: 0, scale: 0.96, y: popoverOffsetY }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={
+                  reduceMotion
+                    ? { opacity: 0, transition: { duration: 0 } }
+                    : {
+                        opacity: 0,
+                        scale: 0.96,
+                        y: popoverOffsetY,
+                        transition: TRANSITION_EXIT_QUICK,
+                      }
+                }
+                transition={reduceMotion ? { duration: 0 } : TRANSITION_ENTER_QUICK}
+                className={`absolute left-0 z-50 w-64 rounded-2xl border border-border-color bg-card-bg-solid p-2.5 text-right shadow-xl ${popoverAnchorClass}`}
+              >
+                <form onSubmit={handleSaveSubmit} className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={layoutName}
+                    onChange={(e) => setLayoutName(e.target.value)}
+                    placeholder="نام چیدمان فعلی (مثلاً شبانه)"
+                    maxLength={32}
+                    className="h-8 min-w-0 flex-1 rounded-lg border border-border-color bg-bg-main px-2.5 text-xs text-text-primary placeholder:text-text-muted focus:border-accent3 focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    aria-label="ذخیره چیدمان فعلی"
+                    className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-accent3 px-2.5 text-[11px] font-semibold text-accent3-foreground transition-opacity hover:opacity-90"
+                  >
+                    <Save className="size-3.5" aria-hidden="true" />
+                    <span>ذخیره</span>
+                  </button>
+                </form>
 
-              <div className="mt-2.5 border-t border-border-color/70 pt-2">
-                {savedLayouts.length === 0 ? (
-                  <p className="px-1 py-2 text-center text-[11px] text-text-muted">
-                    پنل‌ها را دلخواه بچینید و با یک نام ذخیره کنید
-                  </p>
-                ) : (
-                  <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
-                    {savedLayouts.map((entry) => {
-                      const isActive = activeSavedLayoutId === entry.id;
+                <div className="mt-2.5 border-t border-border-color/70 pt-2">
+                  {savedLayouts.length === 0 ? (
+                    <p className="px-1 py-2 text-center text-[11px] text-text-muted">
+                      پنل‌ها را دلخواه بچینید و با یک نام ذخیره کنید
+                    </p>
+                  ) : (
+                    <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
+                      {savedLayouts.map((entry) => {
+                        const isActive = activeSavedLayoutId === entry.id;
 
-                      return (
-                        <div
-                          key={entry.id}
-                          className={`flex items-center justify-between gap-1.5 rounded-xl px-2 py-1.5 transition-colors ${
-                            isActive ? "bg-accent3/15" : "hover:bg-card-hover-bg"
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onApplySavedLayout(entry.id);
-                              setShowLayoutsMenu(false);
-                            }}
-                            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-right"
+                        return (
+                          <div
+                            key={entry.id}
+                            className={`flex items-center justify-between gap-1.5 rounded-xl px-2 py-1.5 transition-colors ${
+                              isActive ? "bg-accent3/15" : "hover:bg-card-hover-bg"
+                            }`}
                           >
-                            {isActive ? (
-                              <Check
-                                className="size-3.5 shrink-0 text-accent3"
-                                aria-hidden="true"
-                              />
-                            ) : (
-                              <Bookmark
-                                className="size-3.5 shrink-0 text-text-muted"
-                                aria-hidden="true"
-                              />
-                            )}
-                            <span className="min-w-0 flex-1 truncate text-xs font-medium text-text-primary">
-                              {entry.name}
-                            </span>
-                            <span className="shrink-0 rounded border border-border-color bg-secondary px-1.5 py-0.5 text-[10px] text-text-muted">
-                              {PRESET_LABELS[entry.preset]}
-                            </span>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onApplySavedLayout(entry.id);
+                                setShowLayoutsMenu(false);
+                              }}
+                              className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-right"
+                            >
+                              {isActive ? (
+                                <Check
+                                  className="size-3.5 shrink-0 text-accent3"
+                                  aria-hidden="true"
+                                />
+                              ) : (
+                                <Bookmark
+                                  className="size-3.5 shrink-0 text-text-muted"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              <span className="min-w-0 flex-1 truncate text-xs font-medium text-text-primary">
+                                {entry.name}
+                              </span>
+                              <span className="shrink-0 rounded border border-border-color bg-secondary px-1.5 py-0.5 text-[10px] text-text-muted">
+                                {PRESET_LABELS[entry.preset]}
+                              </span>
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => onDeleteSavedLayout(entry.id)}
-                            aria-label={`حذف چیدمان ${entry.name}`}
-                            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-destructive/15 hover:text-destructive"
-                          >
-                            <Trash2 className="size-3.5" aria-hidden="true" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                            <button
+                              type="button"
+                              onClick={() => onDeleteSavedLayout(entry.id)}
+                              aria-label={`حذف چیدمان ${entry.name}`}
+                              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-destructive/15 hover:text-destructive"
+                            >
+                              <Trash2 className="size-3.5" aria-hidden="true" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </m.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {framed && (
@@ -325,33 +350,49 @@ export default function TrellisChromeBar({
               <span>پنهان ({hiddenPanels.length})</span>
             </button>
 
-            {showHiddenMenu && (
-              <div
-                className={`absolute left-0 min-w-[180px] rounded-xl border border-border-color bg-card-bg-solid p-1.5 shadow-xl ${popoverAnchorClass}`}
-              >
-                <span className="block px-2 py-1 text-[10px] font-semibold text-text-muted">
-                  بازگردانی پنل‌های پنهان
-                </span>
-                {hiddenPanels.map((entry) => {
-                  const firstTitle = entry.views[0]?.title || entry.panelId;
+            <AnimatePresence>
+              {showHiddenMenu && (
+                <m.div
+                  key="trellis-hidden-menu"
+                  initial={reduceMotion ? false : { opacity: 0, scale: 0.96, y: popoverOffsetY }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={
+                    reduceMotion
+                      ? { opacity: 0, transition: { duration: 0 } }
+                      : {
+                          opacity: 0,
+                          scale: 0.96,
+                          y: popoverOffsetY,
+                          transition: TRANSITION_EXIT_QUICK,
+                        }
+                  }
+                  transition={reduceMotion ? { duration: 0 } : TRANSITION_ENTER_QUICK}
+                  className={`absolute left-0 min-w-[180px] rounded-xl border border-border-color bg-card-bg-solid p-1.5 shadow-xl ${popoverAnchorClass}`}
+                >
+                  <span className="block px-2 py-1 text-[10px] font-semibold text-text-muted">
+                    بازگردانی پنل‌های پنهان
+                  </span>
+                  {hiddenPanels.map((entry) => {
+                    const firstTitle = entry.views[0]?.title || entry.panelId;
 
-                  return (
-                    <button
-                      key={entry.panelId}
-                      type="button"
-                      onClick={() => {
-                        ws.restore(entry.panelId);
-                        setShowHiddenMenu(false);
-                      }}
-                      className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-right text-xs font-medium text-text-primary hover:bg-card-hover-bg"
-                    >
-                      <span className="truncate">{firstTitle}</span>
-                      <span className="text-[10px] text-accent3">بازگردانی</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                    return (
+                      <button
+                        key={entry.panelId}
+                        type="button"
+                        onClick={() => {
+                          ws.restore(entry.panelId);
+                          setShowHiddenMenu(false);
+                        }}
+                        className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-right text-xs font-medium text-text-primary hover:bg-card-hover-bg"
+                      >
+                        <span className="truncate">{firstTitle}</span>
+                        <span className="text-[10px] text-accent3">بازگردانی</span>
+                      </button>
+                    );
+                  })}
+                </m.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 

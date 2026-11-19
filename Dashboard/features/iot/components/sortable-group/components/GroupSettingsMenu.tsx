@@ -1,14 +1,14 @@
-import { m } from "motion/react";
+import { m, useReducedMotion } from "motion/react";
 import type React from "react";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus } from "@/components/ui/hugeicons-groups/shell";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import LayoutSelector from "./LayoutSelector";
 
 interface GroupSettingsMenuProps {
   id: string;
-  isSettingsOpen: boolean;
   isCompact: boolean;
   isMobile: boolean;
   maxCols: number;
@@ -26,7 +26,6 @@ interface GroupSettingsMenuProps {
  */
 export default function GroupSettingsMenu({
   id,
-  isSettingsOpen,
   maxCols,
   onColsChange,
   onAddPlaceholder,
@@ -34,17 +33,23 @@ export default function GroupSettingsMenu({
   setIsSettingsOpen,
   menuRef,
 }: GroupSettingsMenuProps) {
-  if (!isSettingsOpen) return null;
+  const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const prefersReduced = useReducedMotion();
+  const reduceMotion = !animationsEnabled || Boolean(prefersReduced);
 
   return (
     <m.div
       ref={menuRef}
-      className="absolute top-[calc(100%+8px)] left-0 z-[100]"
+      className="absolute top-[calc(100%+8px)] left-0 z-[100] origin-top-left"
       onPointerDown={(e) => e.stopPropagation()}
-      initial={{ opacity: 0, scale: 0.96, y: -4 }}
+      initial={reduceMotion ? false : { opacity: 0, scale: 0.96, y: -4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96, y: -4, transition: TRANSITION_EXIT_QUICK }}
-      transition={TRANSITION_ENTER_QUICK}
+      exit={
+        reduceMotion
+          ? { opacity: 0, transition: { duration: 0 } }
+          : { opacity: 0, scale: 0.96, y: -4, transition: TRANSITION_EXIT_QUICK }
+      }
+      transition={reduceMotion ? { duration: 0 } : TRANSITION_ENTER_QUICK}
     >
       <div className="relative w-56 sm:w-64 bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right">
         <div className="flex items-center justify-between border-b border-border-color pb-2.5">

@@ -58,24 +58,24 @@ export default function CloudflareIntegration({
   const isCfConnected = isCloudflareEnabled();
 
   return (
-    <div className="pt-2 space-y-4 text-right">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] text-text-tertiary">همگام‌سازی ابری تنظیمات و چیدمان</span>
+    <div className="pt-1 sm:pt-2 space-y-3.5 sm:space-y-4 text-right">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-bold text-xs text-accent3">اتصال کلودفلر</span>
+        <span className="text-[11px] text-text-tertiary">همگام‌سازی ابری تنظیمات و چیدمان</span>
       </div>
-      <p className="text-xs text-text-tertiary leading-relaxed">
+      <p className="text-[11px] sm:text-xs text-text-tertiary leading-relaxed">
         برای ذخیره‌سازی ابری چیدمان و پایش وضعیت کلیدها، آدرس ورکر کلودفلر خود را وارد کنید:
       </p>
-      <div className="flex gap-2">
+      <div className="flex flex-col-reverse sm:flex-row gap-2">
         <button
           type="button"
           onClick={handleSaveUrl}
           disabled={isSavingUrl}
-          className="px-4 py-2.5 bg-accent3/20 text-accent3 hover:bg-accent3 hover:text-bg-main border border-accent3/30 rounded-xl text-xs font-bold transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] disabled:opacity-50"
+          className="min-h-10 sm:min-h-0 px-4 py-2.5 bg-accent3/20 text-accent3 hover:bg-accent3 hover:text-bg-main border border-accent3/30 rounded-xl text-xs font-bold transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] disabled:opacity-50 shrink-0"
         >
           {isSavingUrl ? "در حال ذخیره..." : "ذخیره آدرس"}
         </button>
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <Label htmlFor="cloudflare-worker-url" className="sr-only">
             آدرس Cloudflare Worker
           </Label>
@@ -93,9 +93,9 @@ export default function CloudflareIntegration({
           />
         </div>
       </div>
-      <div className="p-3 mt-4 rounded-xl border border-border-color bg-card-hover-bg flex items-center justify-between">
+      <div className="p-3 rounded-xl border border-border-color bg-card-hover-bg flex items-center justify-between">
         <label htmlFor="manual-save-mode" className="flex items-center cursor-pointer gap-3 w-full">
-          <span className="relative">
+          <span className="relative shrink-0">
             <input
               id="manual-save-mode"
               type="checkbox"
@@ -112,9 +112,9 @@ export default function CloudflareIntegration({
               className={`dot absolute top-1 left-1 size-4 rounded-[5px] transition-transform ${manualSaveMode ? "bg-bg-main transform translate-x-4" : "bg-text-secondary"}`}
             />
           </span>
-          <span className="flex flex-col flex-1 text-right">
+          <span className="flex flex-col flex-1 min-w-0 text-right">
             <span className="text-xs font-bold text-text-primary">ذخیره دستی تغییرات چیدمان</span>
-            <span className="text-[11px] text-text-tertiary mt-0.5">
+            <span className="text-[11px] text-text-tertiary mt-0.5 leading-relaxed">
               تغییرات چیدمان فقط زمانی که دکمه «ذخیره‌سازی تغییرات» را بزنید به سرور ارسال می‌شوند.
             </span>
           </span>
@@ -123,17 +123,17 @@ export default function CloudflareIntegration({
       <div
         className={`p-3 rounded-xl border flex items-center justify-between text-right text-xs ${isCfConnected ? "bg-success-soft border-success/40 text-success" : "bg-card-hover-bg border-border-color text-text-tertiary"}`}
       >
-        <div className="flex items-center gap-2 justify-end w-full">
-          <span className="font-medium">
-            {isCfConnected
-              ? "متصل به فضای ابری کلودفلر"
-              : "ذخیره‌سازی در حافظه محلی مرورگر (آدرس ورکر تنظیم نشده است)"}
-          </span>
+        <div className="flex items-center gap-2 justify-start w-full">
           {isCfConnected ? (
             <CloudLightning aria-hidden="true" className="size-4 text-success shrink-0" />
           ) : (
             <Server aria-hidden="true" className="size-4 text-text-tertiary shrink-0" />
           )}
+          <span className="font-medium leading-relaxed">
+            {isCfConnected
+              ? "متصل به فضای ابری کلودفلر"
+              : "ذخیره‌سازی در حافظه محلی مرورگر (آدرس ورکر تنظیم نشده است)"}
+          </span>
         </div>
       </div>
     </div>

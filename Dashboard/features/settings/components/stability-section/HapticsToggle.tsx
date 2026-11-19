@@ -46,8 +46,8 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
     : "bg-bg-main border border-border-color";
 
   return (
-    <div className="border-b border-border-color pb-4 space-y-2">
-      <p className="text-xs text-text-secondary leading-relaxed">
+    <div className="border-b border-border-color pb-3.5 sm:pb-4 space-y-2.5 sm:space-y-3">
+      <p className="text-[11px] text-text-muted leading-relaxed sm:text-xs sm:text-text-secondary">
         ایجاد لرزش کوتاه و ظریف روی موبایل هنگام لمس کلیدها، اجرای ماکرو، فرمان صوتی و اعلان‌ها
       </p>
 
@@ -56,20 +56,20 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
         pressed={hapticsEnabled}
         onPressedChange={handleToggle}
         aria-label={statusLabel}
-        className={`switch-toggle w-full h-auto p-4 rounded-xl border whitespace-normal transition-[background-color,border-color] duration-150 flex items-center justify-between cursor-pointer text-right group ${surfaceClass}`}
+        className={`switch-toggle w-full h-auto gap-3 p-3 sm:p-4 rounded-xl border whitespace-normal transition-[background-color,border-color] duration-150 flex items-center justify-between cursor-pointer text-right group ${surfaceClass}`}
       >
-        <div className="text-right space-y-1 max-w-[75%]">
+        <div className="min-w-0 flex-1 text-right space-y-1">
           <span
-            className={`font-sans font-medium text-xs flex items-center gap-1.5 w-full justify-end transition-colors duration-150 ${titleClass}`}
+            className={`font-sans font-medium text-xs flex items-center gap-1.5 w-full justify-start transition-colors duration-150 ${titleClass}`}
           >
-            <span>{statusLabel}</span>
             <Vibrate
               strokeWidth={1.6}
               aria-hidden="true"
-              className={`size-4 ${hapticsEnabled ? "text-accent3" : "text-text-secondary"}`}
+              className={`size-4 shrink-0 ${hapticsEnabled ? "text-accent3" : "text-text-secondary"}`}
             />
+            <span className="leading-5">{statusLabel}</span>
           </span>
-          <span className="text-xs block leading-normal font-sans text-text-secondary">
+          <span className="text-[11px] sm:text-xs block leading-relaxed font-sans text-text-muted sm:text-text-secondary">
             {supported
               ? hapticsEnabled
                 ? "لرزش ظریف هنگام تعامل با کنترل‌ها فعال است"

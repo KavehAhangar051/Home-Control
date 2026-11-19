@@ -2,7 +2,6 @@
 # while keeping all application source code (app, components, features, lib, tests, tools)
 # and project documentation (ARCHITECTURE.md, DESIGN.md, AGENTS.md, docs/).
 agents/skills/
-.playwright-cli/
 .next/
 out/
 node_modules/

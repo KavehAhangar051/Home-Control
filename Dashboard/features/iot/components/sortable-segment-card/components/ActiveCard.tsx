@@ -50,16 +50,12 @@ function ActiveCard({
 }: ActiveCardProps) {
   const mode = segment.mode || "switch";
 
-  const {
-    effectivePinOn,
-    isPending,
-    handleTogglePinOptimistic,
-    handleSetPinStateOptimistic,
-  } = useOptimisticPinState({
-    isPinOn,
-    onTogglePin,
-    onSetPinState,
-  });
+  const { effectivePinOn, isPending, handleTogglePinOptimistic, handleSetPinStateOptimistic } =
+    useOptimisticPinState({
+      isPinOn,
+      onTogglePin,
+      onSetPinState,
+    });
 
   const buttonProps = useSegmentButtonProps({
     mode,

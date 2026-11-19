@@ -66,8 +66,8 @@ export default function AutomationForm({ formHook: propFormHook }: AutomationFor
   } = resolvedHook;
 
   return (
-    <div className="bezel-shell">
-      <Card className="@container/autoform bezel-core !relative !gap-4 !overflow-hidden !p-5">
+    <div className="min-w-0 sm:bezel-shell">
+      <Card className="@container/autoform bezel-core !relative !gap-4 !overflow-hidden !p-3 sm:!p-5">
         <h3 className="font-medium text-sm text-text-primary flex items-center gap-2">
           {editingId ? (
             <Edit2 strokeWidth={1.5} className="size-4 text-accent3" />

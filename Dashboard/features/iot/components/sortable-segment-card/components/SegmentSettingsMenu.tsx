@@ -1,7 +1,8 @@
-import { m } from "motion/react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import React from "react";
 import { createPortal } from "react-dom";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
 import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import type { SegmentData } from "../core/types";
@@ -49,26 +50,35 @@ export default function SegmentSettingsMenu({
   countdown,
   autoOffMenuProps,
 }: SegmentSettingsMenuProps) {
-  if (!isSettingsOpen || typeof document === "undefined") return null;
+  const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const prefersReduced = useReducedMotion();
+  const reduceMotion = !animationsEnabled || Boolean(prefersReduced);
+
+  if (typeof document === "undefined") return null;
 
   const isPositioned = menuPosition !== null;
   const initialOffsetY = menuPosition?.placement === "top" ? 4 : -4;
 
   const menuNode = (
     <m.div
+      key="segment-settings-menu"
       ref={menuRef}
       dir="rtl"
-      className="fixed z-[180]"
+      className={`fixed z-[180] ${menuPosition?.placement === "top" ? "origin-bottom-left" : "origin-top-left"}`}
       style={{
         top: menuPosition ? `${menuPosition.top}px` : "-9999px",
         left: menuPosition ? `${menuPosition.left}px` : "-9999px",
         visibility: isPositioned ? "visible" : "hidden",
       }}
       onPointerDown={(e) => e.stopPropagation()}
-      initial={{ opacity: 0, scale: 0.96, y: initialOffsetY }}
+      initial={reduceMotion ? false : { opacity: 0, scale: 0.96, y: initialOffsetY }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96, y: initialOffsetY, transition: TRANSITION_EXIT_QUICK }}
-      transition={TRANSITION_ENTER_QUICK}
+      exit={
+        reduceMotion
+          ? { opacity: 0, transition: { duration: 0 } }
+          : { opacity: 0, scale: 0.96, y: initialOffsetY, transition: TRANSITION_EXIT_QUICK }
+      }
+      transition={reduceMotion ? { duration: 0 } : TRANSITION_ENTER_QUICK}
     >
       <div className="relative w-[256px] sm:w-[280px] bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right">
         {/* Segment Identity & Pin Metadata */}
@@ -139,5 +149,8 @@ export default function SegmentSettingsMenu({
     </m.div>
   );
 
-  return createPortal(menuNode, document.body);
+  return createPortal(
+    <AnimatePresence>{isSettingsOpen && menuNode}</AnimatePresence>,
+    document.body,
+  );
 }

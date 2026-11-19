@@ -29,11 +29,7 @@ function getStatusText(
   return isPinOn ? "روشن" : "خاموش";
 }
 
-function getStatusDotClass(
-  isPinOn: boolean,
-  mode: "switch" | "push",
-  isPending = false,
-): string {
+function getStatusDotClass(isPinOn: boolean, mode: "switch" | "push", isPending = false): string {
   if (isPending) return "bg-accent3 animate-pulse";
 
   if (!isPinOn) return "bg-text-muted opacity-45";

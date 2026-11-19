@@ -48,7 +48,7 @@ Re-check the lockfile before every dependency update. Do not copy this table as 
 - React Compiler is already enabled. Manual `memo`, `useMemo` and `useCallback` additions should be justified by profiling or semantics, not habit.
 - Workspace transitions use `useDeferredValue` over the Zustand-selected view and Motion's `AnimateView`, which is built on React's native `ViewTransition`. Do not assume wrapping an external-store update in `startTransition` makes it non-blocking.
 - Respect both the app animation setting and `prefers-reduced-motion`.
-- The experimental Playwright PR #9 was closed without merging. New browser E2E authoring is not part of the current workflow; the project owner performs hands-on UI verification.
+- Browser E2E automation tools are not used in this workflow; the project owner performs hands-on UI verification.
 
 ### Testing and verification
 
@@ -198,7 +198,7 @@ The recent modernization work has established the following baseline:
   1. **Zero-jank Canvas & Workflow gestures:** Coalesce 2-finger pinch-zoom and wheel zoom via `requestAnimationFrame` + transient state (`useSheetViewportGestures.ts`), isolate `useWorkflowStudio` pan/zoom viewport updates from per-frame `localStorage` serialization via debounced commit + gesture-end flush, rAF-coalesce Workflow drag/resize (`useWorkflowInteractions.ts`), and move high-frequency `dragTiltDeg` updates out of React parent re-renders into CSS `--drag-tilt` compositor transforms.
   2. **Adaptive 60 FPS tiering + live `animationsFps` wiring:** Wire the already-present Settings `animationsFps` (`30 | 60`) control and a pure sliding-window frame-drop + hardware heuristic controller (`lib/performanceTier.ts`) to `html[data-perf-tier="full" | "lite"]`. Under `"full"` tier, all rich animations (springs, View Transitions, ActionSwap blur/roll/cascade, wire particle signals, glass overlays) run unconstrained at native display refresh rate (`60/90/120/144 Hz`). Under `"lite"` tier (when `animationsFps=30`, low-core/memory/Save-Data, or sustained dropped frames `>28ms` are detected), GPU-fillrate bottlenecks (`backdrop-blur`, multi-element `filter: blur`, root VT blur, dual SVG SMIL `<animateMotion>` particles) degrade smoothly to transform/opacity equivalents while keeping **every spring, card motion, layout transition, and View Transition responsive at 60 FPS**.
   3. **Browser-native platform efficiency:** Eliminate `document.body.offsetHeight` forced synchronous reflow inside `ThemeToggle`, pause continuous CSS infinite animations in hidden/background tabs (`html[data-page-hidden="true"]` from `usePageVisibility`), and apply CSS `content-visibility: auto` on offscreen Grid workspace group containers (`WorkspaceGrid`).
-  4. **Real verification without UI test bloat:** Compare Turbopack `analyze:export` JSONL deltas, verify static export (`bun run build`), and inspect real desktop/mobile behavior in Chromium (cleaning up temporary `.playwright-cli/` artifacts afterward).
+  4. **Real verification without UI test bloat:** Compare Turbopack `analyze:export` JSONL deltas, verify static export (`bun run build`), and inspect real desktop/mobile behavior in Chromium (cleaning up temporary verification files afterward).
 
 ### Execution log — 18 November 2026 (SWR boot, subscription isolation & scoped icon splitting)
 
