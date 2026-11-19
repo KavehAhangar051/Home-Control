@@ -4,6 +4,7 @@ import type { SegmentData } from "../core/types";
 interface CardFooterProps {
   segment: SegmentData;
   isPinOn: boolean;
+  isPending?: boolean;
   mode: "switch" | "push";
   countdown?: number | null;
   animationsEnabled?: boolean;
@@ -28,7 +29,13 @@ function getStatusText(
   return isPinOn ? "روشن" : "خاموش";
 }
 
-function getStatusDotClass(isPinOn: boolean, mode: "switch" | "push"): string {
+function getStatusDotClass(
+  isPinOn: boolean,
+  mode: "switch" | "push",
+  isPending = false,
+): string {
+  if (isPending) return "bg-accent3 animate-pulse";
+
   if (!isPinOn) return "bg-text-muted opacity-45";
 
   return mode === "push" ? "bg-accent3 animate-ping" : "bg-success";
@@ -98,6 +105,7 @@ function SwitchModeTrack({
 function CardFooter({
   segment,
   isPinOn,
+  isPending = false,
   mode,
   countdown,
   animationsEnabled = true,
@@ -108,7 +116,7 @@ function CardFooter({
   const autoOffValue = segment.auto_off || 0;
   const isSmallTrack = isCompact || isUltraCompact;
   const statusText = getStatusText(isPinOn, mode, countdown);
-  const dotClass = getStatusDotClass(isPinOn, mode);
+  const dotClass = getStatusDotClass(isPinOn, mode, isPending);
 
   const showAutoOffBadge =
     !isUltraCompact && autoOffValue > 0 && (countdown === null || countdown === undefined);

@@ -32,6 +32,7 @@ import {
 } from "@/features/dashboard/navigation";
 import type { WorkspaceDisplayMode, WorkspaceView } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 const DISPLAY_MODE_OPTIONS: ReadonlyArray<{
@@ -112,6 +113,7 @@ export default function MobileDockNav() {
 
   const handleSelectModulesTab = useCallback(
     (tabId: ModulesTabId) => {
+      triggerHaptic("tap");
       setActiveModulesTab(tabId);
       setActiveWorkspaceView("modules");
       setOpenPanel(null);
@@ -121,6 +123,7 @@ export default function MobileDockNav() {
 
   const handleSelectAutomationsTab = useCallback(
     (tabId: AutomationsTabId) => {
+      triggerHaptic("tap");
       setActiveAutomationsTab(tabId);
       setActiveWorkspaceView("automations");
       setOpenPanel(null);
@@ -130,6 +133,7 @@ export default function MobileDockNav() {
 
   const handleSelectSettingsTab = useCallback(
     (tabId: SettingsTabId) => {
+      triggerHaptic("tap");
       setActiveSettingsTab(tabId);
       setActiveWorkspaceView("settings");
       setOpenPanel(null);
@@ -139,6 +143,7 @@ export default function MobileDockNav() {
 
   const handleSelectDisplayMode = useCallback(
     (mode: WorkspaceDisplayMode) => {
+      triggerHaptic("tap");
       setWorkspaceDisplayMode(mode);
       setActiveWorkspaceView("home");
       setOpenPanel(null);
@@ -148,6 +153,7 @@ export default function MobileDockNav() {
 
   const handleSelectGroupFilter = useCallback(
     (group: string | null) => {
+      triggerHaptic("tap");
       setSelectedGroupFilter(group);
       setOpenPanel(null);
     },
@@ -156,6 +162,7 @@ export default function MobileDockNav() {
 
   const handleTabClick = useCallback(
     (id: string) => {
+      triggerHaptic("tap");
       const clicked = id as WorkspaceView;
       const result = resolveMobileDockTabAction({
         clickedTabId: clicked,

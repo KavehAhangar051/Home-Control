@@ -1,3 +1,4 @@
+import { LayoutGroup } from "motion/react";
 import React from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
@@ -204,20 +205,21 @@ export default function WorkspaceGrid({
   return (
     <div className="flex flex-wrap gap-8 w-full items-start">
       {filteredGroupsOrder.map((groupName, groupIndex) => (
-        <ConnectedGroup
-          key={groupName}
-          groupName={groupName}
-          groupIndex={groupIndex}
-          groupConfigs={groupConfigs}
-          handleGroupColsChange={handleGroupColsChange}
-          handleAddPlaceholder={handleAddPlaceholder}
-          handleRemoveGroup={handleRemoveGroup}
-          animationsEnabled={animationsEnabled}
-          filteredGroupsOrderLength={filteredGroupsOrder.length}
-          groupsCols={groupsCols}
-          isMobilePortrait={isMobilePortrait}
-          segmentProps={segmentProps}
-        />
+        <LayoutGroup key={groupName} id={`group-layout-${groupName}`}>
+          <ConnectedGroup
+            groupName={groupName}
+            groupIndex={groupIndex}
+            groupConfigs={groupConfigs}
+            handleGroupColsChange={handleGroupColsChange}
+            handleAddPlaceholder={handleAddPlaceholder}
+            handleRemoveGroup={handleRemoveGroup}
+            animationsEnabled={animationsEnabled}
+            filteredGroupsOrderLength={filteredGroupsOrder.length}
+            groupsCols={groupsCols}
+            isMobilePortrait={isMobilePortrait}
+            segmentProps={segmentProps}
+          />
+        </LayoutGroup>
       ))}
     </div>
   );

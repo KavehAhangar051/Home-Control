@@ -1,4 +1,4 @@
-import { emptyDocument } from "@danfessler/trellis";
+import { emptyDocument, sanitize } from "@danfessler/trellis";
 import {
   createDocument,
   layout as L,
@@ -9,9 +9,13 @@ import {
 } from "@danfessler/trellis-react";
 import type { Segment } from "@/features/iot/hooks/store/types";
 
-export type TrellisLayoutPreset = "groups" | "segments";
+export type TrellisLayoutPreset = "groups" | "segments" | "wall-panel";
 
 export const TRELLIS_LAYOUT_VERSION = 1;
+
+export function isTrellisLayoutPreset(value: string | null): value is TrellisLayoutPreset {
+  return value === "groups" || value === "segments" || value === "wall-panel";
+}
 
 export function getTrellisStorageKey(preset: TrellisLayoutPreset): string {
   return `iot_trellis_workspace_${preset}_v${TRELLIS_LAYOUT_VERSION}`;
@@ -27,6 +31,13 @@ export function groupViewId(groupName: string): string {
 
 export function segmentViewId(segmentId: string): string {
   return `segment:${segmentId}`;
+}
+
+/**
+ * Repairs any persisted or user-saved Trellis LayoutDocument against removed/unknown view types.
+ */
+export function sanitizeTrellisDocument(doc: LayoutDocument): LayoutDocument {
+  return sanitize(doc, (type) => type === "group" || type === "segment");
 }
 
 function buildBalancedFractal(nodes: LayoutSpec[], primaryAxis: "x" | "y" = "x"): LayoutSpec {
@@ -78,6 +89,68 @@ export function buildGroupDockDocument(groupsOrder: string[]): LayoutDocument {
   }
 
   const rootTree = buildBalancedFractal(groupViews, "x");
+
+  return createDocument(L.stage(rootTree), { version: TRELLIS_LAYOUT_VERSION });
+}
+
+/**
+ * Builds a wall-mounted tablet preset: places the busiest primary room group on the right (62%)
+ * and stacks secondary room groups vertically on the left (38%) for quick glanceable control.
+ */
+export function buildWallPanelDocument(
+  groupsOrder: string[],
+  segments: Segment[],
+): LayoutDocument {
+  if (groupsOrder.length === 0) {
+    return emptyDocument();
+  }
+
+  if (groupsOrder.length === 1) {
+    return buildGroupDockDocument(groupsOrder);
+  }
+
+  const counts = new Map<string, number>();
+
+  for (const seg of segments) {
+    if (seg.type === "placeholder") continue;
+    const key = seg.group || "Test";
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  let primaryGroup = groupsOrder[0];
+  let maxCount = counts.get(primaryGroup) ?? 0;
+
+  for (let i = 1; i < groupsOrder.length; i++) {
+    const candidate = groupsOrder[i];
+    const candidateCount = counts.get(candidate) ?? 0;
+
+    if (candidateCount > maxCount) {
+      primaryGroup = candidate;
+      maxCount = candidateCount;
+    }
+  }
+
+  const primaryView = L.view("group", {
+    id: groupViewId(primaryGroup),
+    params: { groupName: primaryGroup },
+    title: primaryGroup,
+  });
+
+  const secondaryViews: LayoutSpec[] = groupsOrder
+    .filter((name) => name !== primaryGroup)
+    .map((groupName) =>
+      L.view("group", {
+        id: groupViewId(groupName),
+        params: { groupName },
+        title: groupName,
+      }),
+    );
+
+  const secondaryStack =
+    secondaryViews.length === 1 ? secondaryViews[0] : L.column(secondaryViews);
+
+  // Trellis workspace host is dir="ltr", so index 1 sits on the RTL visual start (right side).
+  const rootTree = L.row([secondaryStack, primaryView], [0.38, 0.62]);
 
   return createDocument(L.stage(rootTree), { version: TRELLIS_LAYOUT_VERSION });
 }

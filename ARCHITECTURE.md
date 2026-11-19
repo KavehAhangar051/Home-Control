@@ -258,3 +258,34 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 - **Compact non-blocking toasts (`ToastNotification`):** `features/iot/components/notifications/ToastNotification.tsx` renders as a compact single-line pill anchored in the top header band (`top-1.5` / `md:top-2`) inside a `pointer-events-none` container with click-to-dismiss and quick auto-dismiss, preventing toasts from covering segment cards or blocking buttons on mobile and desktop.
 - **Unified active (`1`) input segment styling & submenu icons:** Active input segments now share the same `accent3` active surface tint (`bg-accent3-transparent`), border (`border-accent3`), icon badge (`bg-accent3 text-accent3-foreground`), and Canvas wire/port styling as output segments while displaying a read-only `ورودی` badge. All submenu entries in `features/dashboard/navigation.ts` (`MODULES_TABS`, `AUTOMATIONS_TABS`, `SETTINGS_TABS`) define Lucide icons rendered across desktop sidebar submenus, mobile Dock panels, mobile subsection tabs, and header breadcrumbs.
 - **Test & documentation hygiene:** Removed UI-focused and temporary tests (`mobile-dock.test.mjs`, `lazy-icons.test.mjs`, `performance-tier.test.mjs`, `dynamic-retry.test.mjs`, plus UI/CSS/layout/motion/DnD blocks inside `domain-contracts.test.mjs` and `legacy-seams.test.mjs`) and `.playwright-cli/` artifacts. Repository policy strictly prohibits UI/throwaway tests and requires updating docs immediately after code changes.
+
+## 18. Platform capability upgrades (19 November 2026)
+
+- **React 19.3 (`useOptimistic`, `useEffectEvent`, `<Activity>`):**
+  - `features/iot/components/sortable-segment-card/hooks/useOptimisticPinState.ts` wraps `onTogglePin` and `onSetPinState` inside React 19 `useOptimistic` + `useTransition`, providing instant optimistic tile feedback (`ActiveCard`, `TrellisSegmentTile`, `TrellisSegmentView`, `CanvasSegmentNode`) with subtle pending indicator (`CardFooter`) and automatic rollback on command failure.
+  - `useEffectEvent` decouples non-reactive callbacks from `useEffect` subscriptions in `useCloudflarePush.ts`, `ToastNotification.tsx`, `MacroSidebar/index.tsx`, `ExpandableTabs`, and `TrellisChromeBar.tsx` (strictly invoked inside `useEffect`, never inside event handlers).
+  - `<Activity mode="visible" | "hidden">` in `WorkspaceSection.tsx` preserves in-progress form state when switching between `AddSegmentForm` ↔ `SegmentList` and `AutomationForm` ↔ `AutomationList`, while keeping `WorkflowsCanvasSection` conditionally unmounted when hidden.
+- **Zustand 5 (`subscribeWithSelector`, dev-only `devtools`, `persist`):**
+  - `features/iot/hooks/useIoTStore.ts` enables `subscribeWithSelector` and dev-only `devtools` (`HomeControlIoTStore`).
+  - `useCloudflarePush.ts` subscribes directly via `useIoTStore.subscribe(selectWatchedConfigSlice, ..., { equalityFn: shallow })` instead of manual full-store diffing.
+  - `features/iot/hooks/usePreferencesStore.ts` uses Zustand 5 `persist` (`home-control-preferences-v1`), `subscribeWithSelector`, and dev-only `devtools` for strictly browser-local preferences (`hapticsEnabled`, `savedTrellisLayouts`), keeping `EspConfig` / Cloudflare KV payloads 100% unchanged.
+- **Motion 14 (`drag` swipe gestures & `LayoutGroup`):**
+  - `ToastNotification.tsx` supports upward swipe-to-dismiss (`drag="y"` with elastic constraints and reduced-motion guard).
+  - `components/motion/expandable-tabs.tsx` adds a drag grabber and downward swipe-to-dismiss (`drag="y"`) on open Mobile Dock panels.
+  - `WorkspaceGrid.tsx` wraps each `ConnectedGroup` inside `<LayoutGroup id="group-layout-...">` to isolate layout projections per group.
+- **`@danfessler/trellis` presets & saved layout snapshots:**
+  - `features/iot/components/trellis/trellisLayout.ts` adds the `"wall-panel"` preset (`buildWallPanelDocument`: 62%/38% split highlighting the primary room group for wall tablets) and `sanitizeTrellisDocument` (backed by `@danfessler/trellis`'s `sanitize`).
+  - `useTrellisWorkspaceController.ts` and `TrellisChromeBar.tsx` allow saving (`ws.getDocument()`), applying (`ws.setDocument(..., { animate: true })`), and deleting named custom workspace layouts persisted in `usePreferencesStore`.
+- **Tailwind CSS v4 (`@container` queries):**
+  - Named container queries (`@container/group`, `@container/trellis-group`, `@container/workspace`, `@container/settings-card`, `@container/segment`) adapt Grid group columns/headers, Trellis panel tile grids, and Settings/Workspace cards directly to container width rather than viewport width alone.
+- **Web Vibration API (`lib/haptics.ts`):**
+  - `lib/haptics.ts` provides safe semantic haptic patterns (`tap`, `toggleOn`, `toggleOff`, `push`, `macro`, `voice`, `success`, `error`) gated on browser support, `prefers-reduced-motion`, and the persisted `hapticsEnabled` preference exposed via `features/settings/components/stability-section/HapticsToggle.tsx`.
+- **File System Access API & Web Share API (`lib/fileTransfer.ts`, `configBackupService.ts`, `BackupRestoreSection.tsx`):**
+  - `lib/fileTransfer.ts` provides native `showSaveFilePicker` / `showOpenFilePicker` JSON file I/O (with automatic fallback to `<a download>` and `<input type="file">` inside restricted contexts) and `navigator.canShare` / `navigator.share` (`Web Share API` with File attachment or text/clipboard fallback).
+  - `features/iot/services/configBackupService.ts` and `features/settings/components/stability-section/BackupRestoreSection.tsx` allow exporting, sharing, and restoring full dashboard backup bundles (`home-control-backup-v1`: `EspConfig` + `usePreferencesStore` Trellis layouts/haptics + `WorkflowStudioState`) as well as standalone `EspConfig` JSON files.
+- **Workflow Studio Sub-flows/Grouping, Undo/Redo, Clipboard & JSON I/O (`features/iot/components/workflows/`):**
+  - **Sub-flows / Node Grouping (`parentGroupId`, `workflowSubflowHelpers.ts`):** Nodes can be grouped into a `kind === "group"` sub-flow container box via `Ctrl+G`, the header/footer `Boxes`/`Unlink` button, or by dragging and dropping a node inside a group container. Dragging a parent group moves all nested child nodes in lockstep.
+  - **Undo / Redo & Copy / Paste / Duplicate (`useWorkflowHistoryAndClipboard.ts`):** Per-workflow bounded undo/redo stack (40 snapshots) covering node/edge creation, deletion, property edits, drag moves, and resizes (`Ctrl+Z`, `Ctrl+Y`, `Ctrl+Shift+Z`), plus node/sub-flow clipboard Copy (`Ctrl+C`), Paste (`Ctrl+V`), Duplicate (`Ctrl+D`), and `Delete`/`Backspace` shortcuts alongside footer toolbar controls.
+  - **Workflow JSON Export / Share / Import:** `WorkflowHeaderBar.tsx` and `WorkflowEmptyState.tsx` support exporting individual workflows to `.workflow.json`, sharing via `Web Share API`, and importing workflow JSON files with automatic ID deduplication.
+
+

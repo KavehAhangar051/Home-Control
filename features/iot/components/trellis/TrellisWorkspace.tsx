@@ -46,9 +46,14 @@ export default function TrellisWorkspace({
   const {
     preset,
     defaultLayout,
+    savedLayouts,
+    activeSavedLayoutId,
     handleWorkspaceRef,
     handleChangePreset,
     handleResetLayout,
+    handleSaveCurrentLayout,
+    handleApplySavedLayout,
+    handleDeleteSavedLayout,
     segmentTitleLookup,
   } = useTrellisWorkspaceController({
     groupsOrder,
@@ -103,7 +108,7 @@ export default function TrellisWorkspace({
           id="segment"
           title={(view) => segmentTitleLookup(String(view.params.segmentId || ""))}
           icon={<Cpu className="size-3.5" aria-hidden="true" />}
-          closable={preset === "groups"}
+          closable={preset !== "segments"}
           minSize={{ width: 170, height: 120 }}
           placement="stage"
         >
@@ -149,8 +154,13 @@ export default function TrellisWorkspace({
         <Workspace.Chrome>
           <TrellisChromeBar
             preset={preset}
+            savedLayouts={savedLayouts}
+            activeSavedLayoutId={activeSavedLayoutId}
             onChangePreset={handleChangePreset}
             onResetLayout={handleResetLayout}
+            onSaveCurrentLayout={handleSaveCurrentLayout}
+            onApplySavedLayout={handleApplySavedLayout}
+            onDeleteSavedLayout={handleDeleteSavedLayout}
           />
         </Workspace.Chrome>
       </Workspace>

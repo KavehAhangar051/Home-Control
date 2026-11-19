@@ -208,3 +208,28 @@ The recent modernization work has established the following baseline:
 - **Keyboard & ARIA polish:** Added `Escape` dismissal and dialog ARIA semantics (`role="dialog"`, `aria-modal="true"`, `aria-labelledby`) to `AutomationsDrawer`, plus `Escape` dismissal with focus restoration and stable `ResizeObserver` observation (`isCompactRef`) to `useGroupHeaderLayout.ts`.
 - **On-demand segment icon registry (`iconRegistry.ts` / `icons.ts`):** Replaced the 55-icon eager static barrel in `features/iot/utils/icons.ts` with static `Cpu`/`Layers` defaults plus cached dynamic `import()` wrappers (`useSyncExternalStore` + `memo` bound wrapper) and `IconPicker` hover/focus preloading. Turbopack `analyze` confirms the shared `icons.ts` chunk dropped from bundling all 55 Animate-UI icon modules to bundling only `circuit-board.tsx` (`1045 B`) + `icons.ts` (`1894 B`).
 - **Tab-wake & network-online MQTT resume (`mqtt/init.ts` / `usePageVisibility.ts`):** Added `createMqttResumeController` with 3-second cooldown throttling to immediately publish `PRESENCE_ONLINE_FRAME` + `SYNC_REQUEST_FRAME` or reconnect disconnected sockets on `visibilitychange` wake and `window` `online` events; covered in `tests/mqtt-resilience.test.mjs`.
+
+### Execution log — 19 November 2026 (React 19.3, Zustand 5, Motion 14, Trellis presets, Tailwind v4 & Vibration API)
+
+- **React 19.3 capabilities adopted selectively:**
+  - `useOptimistic` + `useTransition` (`useOptimisticPinState.ts`) across Grid, Trellis, and Canvas segment tiles for zero-lag tactile toggling with automatic rollback on command failure.
+  - `useEffectEvent` in `useCloudflarePush.ts`, `ToastNotification.tsx`, `MacroSidebar/index.tsx`, `ExpandableTabs`, and `TrellisChromeBar.tsx` strictly inside `useEffect` lifecycles.
+  - `<Activity>` in `WorkspaceSection.tsx` for `ModulesWorkspace` (`add` ↔ `list`) and `AutomationsWorkspace` (`create` ↔ `manage`) so in-progress forms survive tab switches while heavy `WorkflowsCanvasSection` stays unmounted when hidden.
+- **Zustand 5 middleware & local preference separation:**
+  - Enabled `subscribeWithSelector` + dev-only `devtools` on `useIoTStore.ts`; upgraded `useCloudflarePush.ts` to use `subscribe(selectWatchedConfigSlice, ..., { equalityFn: shallow })`.
+  - Created `usePreferencesStore.ts` (`persist` + `subscribeWithSelector` + dev-only `devtools`) for strictly browser-local preferences (`hapticsEnabled`, `savedTrellisLayouts`) so ESP32/Cloudflare `EspConfig` remains untouched.
+- **Motion 14 gestures & layout isolation:**
+  - Added reduced-motion-aware `drag="y"` swipe-to-dismiss on `ToastNotification.tsx` (upward) and `ExpandableTabs` mobile dock panels (downward with drag grabber), and isolated per-group layout projections via `<LayoutGroup>` in `WorkspaceGrid.tsx`.
+- **`@danfessler/trellis` wall-panel preset & saved snapshots:**
+  - Added the `"wall-panel"` 62%/38% split preset (`buildWallPanelDocument`) and `sanitizeTrellisDocument` in `trellisLayout.ts`, plus save/apply/delete named layout management in `useTrellisWorkspaceController.ts` and `TrellisChromeBar.tsx`.
+- **Tailwind CSS v4 `@container` & Web Vibration API:**
+  - Expanded named container queries (`@container/group`, `@container/trellis-group`, `@container/workspace`, `@container/settings-card`, `@container/segment`).
+  - Added `lib/haptics.ts` and `HapticsToggle.tsx` in Stability settings, wired into segment switches/push buttons, macros, mobile dock actions, voice push-to-talk, and toasts.
+- **File System Access API & Web Share API (`lib/fileTransfer.ts`, `configBackupService.ts`, `BackupRestoreSection.tsx`):**
+  - Added native `showSaveFilePicker` / `showOpenFilePicker` and `navigator.share` JSON transfer helpers with automatic `<a download>`, `<input type="file">`, and clipboard fallbacks.
+  - Added full dashboard backup/restore/share in Stability settings (`home-control-backup-v1`: `EspConfig` + Trellis layouts/haptics + Workflow Studio state, plus backwards-compatible standalone `EspConfig` restore).
+- **Workflow Studio Sub-flows, Undo/Redo, Clipboard & JSON I/O (`workflowSubflowHelpers.ts`, `useWorkflowHistoryAndClipboard.ts`):**
+  - Added Sub-flow container grouping (`parentGroupId`, `Ctrl+G`, header/footer toggle button, and auto-nesting when dropping a node inside a `group` box, with synchronized child dragging when moving the parent group).
+  - Added bounded Undo/Redo history (`Ctrl+Z`, `Ctrl+Y`, `Ctrl+Shift+Z`), Copy/Paste/Duplicate (`Ctrl+C`, `Ctrl+V`, `Ctrl+D`, including sub-flow children and internal edges), `Delete`/`Backspace` removal, and `.workflow.json` Export/Share/Import in `WorkflowHeaderBar.tsx` and `WorkflowEmptyState.tsx`.
+
+

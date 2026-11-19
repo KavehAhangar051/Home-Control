@@ -10,6 +10,7 @@ import CardBody from "@/features/iot/components/sortable-segment-card/components
 import SegmentActions from "@/features/iot/components/sortable-segment-card/components/SegmentActions";
 import { useAutoOffTimer } from "@/features/iot/components/sortable-segment-card/hooks/useAutoOffTimer";
 import { useCardHeaderLayout } from "@/features/iot/components/sortable-segment-card/hooks/useCardHeaderLayout";
+import { useOptimisticPinState } from "@/features/iot/components/sortable-segment-card/hooks/useOptimisticPinState";
 import useSegmentButtonProps from "@/features/iot/components/sortable-segment-card/hooks/useSegmentButtonProps";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
@@ -61,15 +62,27 @@ export default function TrellisSegmentTile({
 
   const mode = segment.mode || "switch";
 
-  const buttonProps = useSegmentButtonProps({
-    mode,
-    pin: segment.pin,
+  const {
+    effectivePinOn,
+    isPending,
+    handleTogglePinOptimistic,
+    handleSetPinStateOptimistic,
+  } = useOptimisticPinState({
+    isPinOn,
     onTogglePin,
     onSetPinState,
   });
 
+  const buttonProps = useSegmentButtonProps({
+    mode,
+    pin: segment.pin,
+    isPinOn: effectivePinOn,
+    onTogglePin: handleTogglePinOptimistic,
+    onSetPinState: handleSetPinStateOptimistic,
+  });
+
   const { countdown } = useAutoOffTimer({
-    isPinOn,
+    isPinOn: effectivePinOn,
     autoOff: segment.auto_off,
     mode,
     pin: segment.pin,
@@ -109,7 +122,7 @@ export default function TrellisSegmentTile({
     );
   }
 
-  const activeSurfaceClass = isPinOn
+  const activeSurfaceClass = effectivePinOn
     ? "border-accent3 bg-card-bg shadow-xs"
     : "border-border-color bg-card-bg shadow-2xs";
 
@@ -123,7 +136,7 @@ export default function TrellisSegmentTile({
   return (
     <div className={`relative h-full ${isSettingsOpen ? "z-40" : ""}`}>
       <Card
-        className={`group relative flex h-full flex-col justify-between !gap-0 !overflow-visible !rounded-xl !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
+        className={`@container/segment group relative flex h-full flex-col justify-between !gap-0 !overflow-visible !rounded-xl !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
         style={CARD_SPACING_STYLE}
       >
         <div
@@ -155,7 +168,7 @@ export default function TrellisSegmentTile({
 
           <SegmentActions
             segment={segment}
-            isPinOn={isPinOn}
+            isPinOn={effectivePinOn}
             isUltraCompact={compact}
             isCompact={compact}
             onRemove={onRemoveSegment}
@@ -174,7 +187,8 @@ export default function TrellisSegmentTile({
 
         <CardBody
           segment={segment}
-          isPinOn={isPinOn}
+          isPinOn={effectivePinOn}
+          isPending={isPending}
           isCompact={compact}
           isUltraCompact={false}
           mode={mode}

@@ -3,6 +3,7 @@ import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useVoiceCommand } from "@/features/iot/hooks/useVoiceCommand";
 import { debugLog } from "@/lib/debug";
+import { triggerHaptic } from "@/lib/haptics";
 import { executeVoiceCommand } from "./utils";
 
 export interface UseVoiceCommandHandlerOptions {
@@ -24,6 +25,7 @@ export function useVoiceCommandHandler(options: UseVoiceCommandHandlerOptions = 
   const handlePointerDown = (e: PointerEvent) => {
     e.preventDefault();
     e.currentTarget.setPointerCapture?.(e.pointerId);
+    triggerHaptic("voice");
 
     if (openSettingsOnStart) {
       setIsMenuOpen(true);
@@ -52,6 +54,7 @@ export function useVoiceCommandHandler(options: UseVoiceCommandHandlerOptions = 
       debugLog.warn("VoiceCommand", "Pointer capture was already released.", error);
     }
 
+    triggerHaptic("tap");
     stopListening();
   };
 

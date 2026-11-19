@@ -13,6 +13,7 @@ import {
   type SegmentMenuPosition,
   useCardHeaderLayout,
 } from "@/features/iot/components/sortable-segment-card/hooks/useCardHeaderLayout";
+import { useOptimisticPinState } from "@/features/iot/components/sortable-segment-card/hooks/useOptimisticPinState";
 import useSegmentButtonProps from "@/features/iot/components/sortable-segment-card/hooks/useSegmentButtonProps";
 import type { TrellisSegmentHandlers } from "@/features/iot/components/trellis/TrellisSegmentTile";
 import type { Segment } from "@/features/iot/hooks/store/types";
@@ -256,6 +257,17 @@ export default React.memo(function CanvasSegmentNode({
   const isPinOn = useIoTStore((s) => Boolean(s.pinsState[segment.pin]));
 
   const {
+    effectivePinOn,
+    isPending,
+    handleTogglePinOptimistic,
+    handleSetPinStateOptimistic,
+  } = useOptimisticPinState({
+    isPinOn,
+    onTogglePin,
+    onSetPinState,
+  });
+
+  const {
     isSettingsOpen,
     setIsSettingsOpen,
     showAutoOffMenu,
@@ -272,12 +284,13 @@ export default React.memo(function CanvasSegmentNode({
   const buttonProps = useSegmentButtonProps({
     mode,
     pin: segment.pin,
-    onTogglePin,
-    onSetPinState,
+    isPinOn: effectivePinOn,
+    onTogglePin: handleTogglePinOptimistic,
+    onSetPinState: handleSetPinStateOptimistic,
   });
 
   const { countdown } = useAutoOffTimer({
-    isPinOn,
+    isPinOn: effectivePinOn,
     autoOff: segment.auto_off,
     mode,
     pin: segment.pin,
@@ -287,7 +300,7 @@ export default React.memo(function CanvasSegmentNode({
   const isUltraCompact = rect.width < 185 || rect.height < 118;
   const isCompact = rect.width < 235 || rect.height < 142;
   const isPlaceholder = segment.type === "placeholder";
-  const surfaceBorderClass = resolveSegmentBorderClass(isDragging, isSelected, isPinOn);
+  const surfaceBorderClass = resolveSegmentBorderClass(isDragging, isSelected, effectivePinOn);
   const zIndex = resolveSegmentZIndex(isSettingsOpen, isDragging, isSelected, rect.zIndex);
 
   const animateState = resolveCanvasNodeMotionState(
@@ -321,11 +334,14 @@ export default React.memo(function CanvasSegmentNode({
         className="relative size-full transition-[rotate] duration-150 ease-out"
       >
         {showPort && (
-          <CanvasSegmentGraphOverlay isPinOn={isPinOn} animationsEnabled={animationsEnabled} />
+          <CanvasSegmentGraphOverlay
+            isPinOn={effectivePinOn}
+            animationsEnabled={animationsEnabled}
+          />
         )}
 
         <Card
-          className={`relative flex size-full flex-col justify-between !gap-0 !overflow-visible !rounded-2xl !bg-card-bg-solid !p-0 !ring-0 border transition-[border-color,box-shadow] duration-150 ${surfaceBorderClass}`}
+          className={`@container/segment relative flex size-full flex-col justify-between !gap-0 !overflow-visible !rounded-2xl !bg-card-bg-solid !p-0 !ring-0 border transition-[border-color,box-shadow] duration-150 ${surfaceBorderClass}`}
           style={CARD_SPACING_STYLE}
         >
           <CanvasSegmentHeader
@@ -333,7 +349,7 @@ export default React.memo(function CanvasSegmentNode({
             segment={segment}
             isLocked={isLocked}
             isPlaceholder={isPlaceholder}
-            isPinOn={isPinOn}
+            isPinOn={effectivePinOn}
             isUltraCompact={isUltraCompact}
             isCompact={isCompact}
             mode={mode}
@@ -365,7 +381,8 @@ export default React.memo(function CanvasSegmentNode({
             ) : (
               <CardBody
                 segment={segment}
-                isPinOn={isPinOn}
+                isPinOn={effectivePinOn}
+                isPending={isPending}
                 isCompact={isCompact}
                 isUltraCompact={isUltraCompact}
                 hasExternalHeader

@@ -94,8 +94,11 @@ export default function TrellisGroupView({
   const isCompactPanel = view.size.width < 320;
 
   return (
-    <div dir="rtl" className="flex size-full flex-col overflow-hidden text-right">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border-color bg-card-hover-bg/60 px-3 py-2">
+    <div
+      dir="rtl"
+      className="@container/trellis-group flex size-full flex-col overflow-hidden text-right"
+    >
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border-color bg-card-hover-bg/60 px-2.5 py-2 @sm/trellis-group:px-3.5">
         <div className="flex min-w-0 items-center gap-2">
           <div
             aria-hidden="true"
@@ -116,7 +119,7 @@ export default function TrellisGroupView({
           </div>
 
           <div className="min-w-0">
-            <h3 className="truncate font-sans text-xs font-medium text-text-primary sm:text-sm">
+            <h3 className="truncate font-sans text-xs font-medium text-text-primary @sm/trellis-group:text-sm">
               {groupName}
             </h3>
             <span className="block text-[11px] font-normal tabular-nums text-text-muted">
@@ -136,7 +139,7 @@ export default function TrellisGroupView({
                   className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-border-color bg-card-bg px-2 text-xs font-medium text-text-primary transition-colors duration-150 md:hover:bg-accent3 md:hover:text-accent3-foreground"
                 >
                   <Plus className="size-3.5 shrink-0" strokeWidth={1.75} />
-                  {!isCompactPanel && <span>قطعه</span>}
+                  <span className="hidden @xs/trellis-group:inline">قطعه</span>
                 </button>
               }
             />
@@ -153,7 +156,7 @@ export default function TrellisGroupView({
         </div>
       </div>
 
-      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-2.5 @sm/trellis-group:p-3">
         {groupSegments.length === 0 ? (
           <div className="flex h-full min-h-[120px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-color p-4 text-center text-xs text-text-muted">
             <span>هنوز قطعه‌ای در این گروه نیست</span>
@@ -167,12 +170,7 @@ export default function TrellisGroupView({
             </button>
           </div>
         ) : (
-          <div
-            className="grid min-h-full auto-rows-fr gap-3"
-            style={{
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            }}
-          >
+          <div className="grid auto-rows-fr content-start grid-cols-1 gap-2.5 @md/trellis-group:grid-cols-2 @md/trellis-group:gap-3 @3xl/trellis-group:grid-cols-3 @5xl/trellis-group:grid-cols-4">
             {groupSegments.map((segment) => (
               <TrellisSegmentTile
                 key={segment.id}

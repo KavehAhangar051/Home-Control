@@ -30,7 +30,7 @@ export function normalizeWorkflowNodeLabel(node: WorkflowNode): string {
 
 let memoryWorkflowState: WorkflowStudioState | null = null;
 
-function hydrateStoredWorkflow(
+export function hydrateWorkflowDefinition(
   rawWorkflow: Partial<WorkflowDefinition>,
 ): WorkflowDefinition | null {
   if (
@@ -43,8 +43,8 @@ function hydrateStoredWorkflow(
   }
 
   return {
-    id: rawWorkflow.id,
-    name: rawWorkflow.name,
+    id: String(rawWorkflow.id),
+    name: String(rawWorkflow.name),
     enabled: Boolean(rawWorkflow.enabled),
     nodes: rawWorkflow.nodes.map((node) => ({
       ...node,
@@ -78,7 +78,7 @@ export function readStoredWorkflowState(): WorkflowStudioState {
     const validWorkflows: WorkflowDefinition[] = [];
 
     for (const rawWorkflow of parsed.workflows) {
-      const hydrated = hydrateStoredWorkflow(rawWorkflow);
+      const hydrated = hydrateWorkflowDefinition(rawWorkflow);
 
       if (hydrated) validWorkflows.push(hydrated);
     }
@@ -103,12 +103,30 @@ export function readStoredWorkflowState(): WorkflowStudioState {
 }
 
 export function writeStoredWorkflowState(state: WorkflowStudioState): void {
-  memoryWorkflowState = state;
+  const validWorkflows: WorkflowDefinition[] = [];
+
+  for (const rawWorkflow of state.workflows) {
+    const hydrated = hydrateWorkflowDefinition(rawWorkflow);
+
+    if (hydrated) validWorkflows.push(hydrated);
+  }
+
+  const activeId =
+    state.activeWorkflowId && validWorkflows.some((w) => w.id === state.activeWorkflowId)
+      ? state.activeWorkflowId
+      : (validWorkflows[0]?.id ?? null);
+
+  const normalizedState: WorkflowStudioState = {
+    workflows: validWorkflows,
+    activeWorkflowId: activeId,
+  };
+
+  memoryWorkflowState = normalizedState;
 
   if (globalThis.window === undefined) return;
 
   try {
-    globalThis.window.localStorage.setItem(WORKFLOWS_STORAGE_KEY, JSON.stringify(state));
+    globalThis.window.localStorage.setItem(WORKFLOWS_STORAGE_KEY, JSON.stringify(normalizedState));
   } catch {
     // Ignore storage write errors
   }

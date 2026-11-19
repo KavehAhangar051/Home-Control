@@ -1,6 +1,6 @@
 "use client";
 
-import { GripHorizontal, Minus, Plus, Trash2 } from "lucide-react";
+import { Boxes, GripHorizontal, Minus, Plus, Trash2, Unlink } from "lucide-react";
 import type React from "react";
 import { WorkflowSchematicSymbol } from "./WorkflowSchematicSymbols";
 import type { WorkflowNode } from "./workflowTypes";
@@ -14,14 +14,16 @@ interface WorkflowNodeHeaderProps {
   outputSignal: boolean;
   inputCount: number;
   minInputCount: number;
+  subflowChildCount?: number;
   onStartDrag: (nodeId: string, e: React.PointerEvent<HTMLElement>) => void;
   onChangeInputCount: (delta: number) => void;
+  onToggleSubflowGroup?: (nodeId: string) => void;
   onDeleteNode: (nodeId: string) => void;
 }
 
 /**
  * Draggable top bar of a workflow node showing its schematic icon, title,
- * input-count stepper (where applicable), and delete control.
+ * sub-flow membership/container control, input-count stepper, and delete control.
  */
 export default function WorkflowNodeHeader({
   node,
@@ -32,10 +34,15 @@ export default function WorkflowNodeHeader({
   outputSignal,
   inputCount,
   minInputCount,
+  subflowChildCount = 0,
   onStartDrag,
   onChangeInputCount,
+  onToggleSubflowGroup,
   onDeleteNode,
 }: WorkflowNodeHeaderProps) {
+  const isInsideSubflow = Boolean(node.parentGroupId);
+  const isSubflowContainer = node.kind === "group" && subflowChildCount > 0;
+
   return (
     <div
       onPointerDown={(e) => {
@@ -71,6 +78,11 @@ export default function WorkflowNodeHeader({
         >
           {node.label}
         </span>
+        {isSubflowContainer && (
+          <span className="shrink-0 font-mono text-[10px] tabular-nums text-accent3">
+            · {subflowChildCount} گره
+          </span>
+        )}
       </div>
 
       <div
@@ -79,6 +91,34 @@ export default function WorkflowNodeHeader({
           if (e.button !== 2) e.stopPropagation();
         }}
       >
+        {onToggleSubflowGroup && !isLocked && (
+          <button
+            type="button"
+            onClick={() => onToggleSubflowGroup(node.id)}
+            title={
+              isInsideSubflow || isSubflowContainer
+                ? "جداسازی از باکس زیرمدار (Ctrl+G)"
+                : "قرار دادن در باکس زیرمدار (Ctrl+G)"
+            }
+            aria-label={
+              isInsideSubflow || isSubflowContainer
+                ? `جداسازی ${node.label} از زیرمدار`
+                : `گروه‌بندی ${node.label} در زیرمدار`
+            }
+            className={`inline-flex size-5 cursor-pointer items-center justify-center rounded-md transition-colors ${
+              isInsideSubflow || isSubflowContainer
+                ? "text-accent3 hover:bg-accent3-transparent"
+                : "text-text-muted hover:bg-secondary hover:text-text-primary"
+            }`}
+          >
+            {isInsideSubflow || isSubflowContainer ? (
+              <Unlink className="size-3" />
+            ) : (
+              <Boxes className="size-3" />
+            )}
+          </button>
+        )}
+
         {hasInputPort && !isLogicGate && (
           <div
             dir="ltr"

@@ -8,10 +8,11 @@ Use ChatGPT and Cloudflare Dashboard as interaction references, not as assets or
 ## Navigation and header
 
 - On desktop (`md` and above), navigation uses a vertical rail on the right side of the viewport, consistent with the application's RTL direction, paired with a bottom desktop footer bar.
-- On mobile (`< md`), the right rail and desktop footer are hidden; navigation uses a centered floating bottom Dock with upward-expanding `ExpandableTabs` panels (`MobileDockNav`) and an integrated press-and-hold voice command trigger, while `ThemeToggle` lives cleanly in the mobile top breadcrumb bar.
+- On mobile (`< md`), the right rail and desktop footer are hidden; navigation uses a centered floating bottom Dock with upward-expanding `ExpandableTabs` panels (`MobileDockNav`) supporting downward swipe-to-dismiss and an integrated press-and-hold voice command trigger, while `ThemeToggle` lives cleanly in the mobile top breadcrumb bar.
 - Custom buttons / macros live cleanly inside the top `DashboardBreadcrumb` header (desktop next to `WorkspaceViewModeSelector`, mobile next to `ThemeToggle`) as a compact quick-run button or anchored dropdown selector so Grid, Trellis, and Canvas remain unobstructed.
 - Every submenu entry (`Modules`, `Automations`, `Settings`) pairs its Persian label with a semantic Lucide icon across desktop sidebar submenus, mobile Dock upward panels, mobile subsection tabs, and breadcrumbs.
-- Status notifications (`ToastNotification`) render as compact single-line pills anchored in the top header band inside a `pointer-events-none` wrapper so they never cover segment cards or block clicks on mobile or desktop.
+- Status notifications (`ToastNotification`) render as compact single-line pills anchored in the top header band inside a `pointer-events-none` wrapper with click and upward swipe-to-dismiss so they never cover segment cards or block clicks on mobile or desktop.
+- In Trellis workspace mode, `TrellisChromeBar` exposes three built-in presets (`نمای گروه‌ها`, `پنل دیواری`, `همه قطعات`) plus a `چیدمان‌ها` popover for saving, restoring, and deleting named custom panel arrangements locally.
 - Do not expose header-position switchers or controls that move desktop navigation to another edge.
 - Preserve existing application actions and behavior when adjusting navigation. Presentation changes must not alter MQTT topics, ESP32 payloads, Cloudflare synchronization, or automation logic.
 - The product title may remain editable, but it must not control header placement.
@@ -34,15 +35,17 @@ Use ChatGPT and Cloudflare Dashboard as interaction references, not as assets or
 
 - The root document uses Persian language and RTL direction.
 - Keep the right rail distinct from the workspace with spacing and a subtle border/surface difference rather than heavy shadows.
-- The workspace must remain usable at desktop, tablet, and mobile widths. On narrow screens, keep navigation reachable and compact; do not fall back to a top header.
+- The workspace must remain usable at desktop, tablet, and mobile widths. Group cards (`@container/group`), Trellis panels (`@container/trellis-group`), segment cards (`@container/segment`), and Settings/Workspace containers (`@container/workspace`, `@container/settings-card`) adapt directly to their own container width via Tailwind CSS v4 container queries. On narrow screens, keep navigation reachable and compact; do not fall back to a top header.
 - Prefer consistent spacing and a small set of corner radii. Use cards only when grouping content improves scanning or task completion.
 
 ## Interaction and accessibility
 
 - Use semantic buttons, accessible names for icon-only controls, visible keyboard focus, and appropriate disabled/pending states.
-- Distinguish a requested command from confirmed device state when MQTT, WebSocket, or Cloudflare communication may fail.
+- Distinguish a requested command from confirmed device state when MQTT, WebSocket, or Cloudflare communication may fail: segment tiles paint instant optimistic feedback via React 19 `useOptimistic` with a subtle pulsing indicator while awaiting confirmation and automatic rollback on failure.
+- Subtle mobile haptic feedback (`lib/haptics.ts` via Web Vibration API) reinforces segment toggles, push presses, macro execution, voice push-to-talk, and toast alerts, while remaining user-controllable in Stability settings (`HapticsToggle`) and automatically disabled under `prefers-reduced-motion`.
+- Stability settings (`BackupRestoreSection`) and Workflow Studio (`WorkflowHeaderBar`, `WorkflowFooterControls`) expose direct JSON backup/export, restore/import, and native sharing (`File System Access API` + `Web Share API` with graceful download/input/clipboard fallbacks), alongside Workflow Studio Undo/Redo (`Ctrl+Z`/`Ctrl+Y`), Copy/Paste/Duplicate (`Ctrl+C`/`Ctrl+V`/`Ctrl+D`), and Sub-flow container grouping (`Ctrl+G`).
 - Preserve rich Motion springs, transforms, opacity transitions, and View Transitions by default; adaptively step down GPU-heavy filters and continuous ambient loops on struggling devices while never blocking essential interaction feedback.
-- Respect both `animationsEnabled` and `prefers-reduced-motion` (`MotionConfig reducedMotion`). Sound must never be required to understand or complete an action.
+- Respect both `animationsEnabled` and `prefers-reduced-motion` (`MotionConfig reducedMotion`). Sound and haptics must never be required to understand or complete an action.
 
 ## Implementation boundaries
 

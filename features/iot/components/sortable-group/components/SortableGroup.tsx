@@ -13,7 +13,7 @@ type CustomGridTracksStyle = React.CSSProperties & { "--group-grid-tracks": numb
 function GroupGrid({ style, children }: { style: React.CSSProperties; children: React.ReactNode }) {
   return (
     <div
-      className="grid auto-rows-fr w-full min-w-0 grid-cols-1 gap-3 p-3 text-right relative z-10 sm:grid-cols-[repeat(var(--group-grid-tracks,1),minmax(0,1fr))] sm:gap-4 sm:p-4"
+      className="grid auto-rows-fr w-full min-w-0 grid-cols-1 gap-3 p-3 text-right relative z-10 @sm/group:grid-cols-2 @sm/group:gap-3.5 @md/group:grid-cols-[repeat(var(--group-grid-tracks,1),minmax(0,1fr))] @md/group:gap-4 @md/group:p-4"
       style={style}
     >
       <AnimatePresence initial={false} mode="popLayout">

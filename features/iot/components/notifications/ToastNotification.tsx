@@ -1,8 +1,8 @@
 "use client";
 
 import { CheckCircle2, X, XCircle } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
-import { useEffect } from "react";
+import { AnimatePresence, m, type PanInfo, useReducedMotion } from "motion/react";
+import { useEffect, useEffectEvent } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { soundManager } from "@/lib/audio";
 import {
@@ -12,33 +12,54 @@ import {
   TRANSITION_ENTER_STANDARD,
   TRANSITION_EXIT_STANDARD,
 } from "@/lib/ease";
+import { triggerHaptic } from "@/lib/haptics";
 
 const SUCCESS_DISMISS_MS = 2200;
 const ERROR_DISMISS_MS = 3600;
+const SWIPE_DISMISS_OFFSET_Y = -22;
+const SWIPE_DISMISS_VELOCITY_Y = -220;
 
 /**
  * Compact, non-blocking top-center status toast.
- * Anchored in the header band with a pointer-events-none outer wrapper so segment cards,
- * toolbar buttons, and mobile navigation remain clickable at all times.
+ * Supports click-to-dismiss and Motion 14 upward swipe-to-dismiss, anchored in the header band
+ * with a pointer-events-none outer wrapper so cards and controls stay clickable underneath.
  */
 export default function ToastNotification() {
   const toast = useIoTStore((s) => s.toast);
   const clearToast = useIoTStore((s) => s.clearToast);
+  const reduceMotion = useReducedMotion();
+
+  const onAnnounceToast = useEffectEvent((type: "success" | "error") => {
+    if (type === "success") {
+      soundManager.playSuccess();
+      triggerHaptic("success");
+    } else {
+      soundManager.playError();
+      triggerHaptic("error");
+    }
+  });
+
+  const onAutoDismiss = useEffectEvent(() => {
+    clearToast();
+  });
 
   useEffect(() => {
     if (!toast) return;
 
-    if (toast.type === "success") {
-      soundManager.playSuccess();
-    } else {
-      soundManager.playError();
-    }
+    onAnnounceToast(toast.type);
 
     const durationMs = toast.type === "success" ? SUCCESS_DISMISS_MS : ERROR_DISMISS_MS;
-    const timer = setTimeout(clearToast, durationMs);
+    const timer = setTimeout(onAutoDismiss, durationMs);
 
     return () => clearTimeout(timer);
-  }, [toast, clearToast]);
+  }, [toast]);
+
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (info.offset.y < SWIPE_DISMISS_OFFSET_Y || info.velocity.y < SWIPE_DISMISS_VELOCITY_Y) {
+      triggerHaptic("tap");
+      clearToast();
+    }
+  };
 
   const isError = toast?.type === "error";
 
@@ -52,16 +73,22 @@ export default function ToastNotification() {
             role={isError ? "alert" : "status"}
             aria-live={isError ? "assertive" : "polite"}
             aria-atomic="true"
+            drag={reduceMotion ? false : "y"}
+            dragDirectionLock
+            dragConstraints={{ top: -90, bottom: 0 }}
+            dragElastic={{ top: 0.35, bottom: 0.06 }}
+            dragSnapToOrigin
+            onDragEnd={handleDragEnd}
             initial={{ opacity: 0, y: -10, scale: 0.96 }}
             animate={{
               opacity: 1,
               y: 0,
               scale: 1,
-              x: isError ? [...ERROR_SHAKE_KEYFRAMES] : 0,
+              x: isError && !reduceMotion ? [...ERROR_SHAKE_KEYFRAMES] : 0,
             }}
             exit={{
               opacity: 0,
-              y: -8,
+              y: -12,
               scale: 0.96,
               transition: TRANSITION_EXIT_STANDARD,
             }}
@@ -72,7 +99,7 @@ export default function ToastNotification() {
                 : TRANSITION_ENTER_STANDARD,
             }}
             onClick={clearToast}
-            className={`pointer-events-auto inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] cursor-pointer items-center gap-2 rounded-full border bg-sidebar-bg py-1.5 ps-3 pe-2 text-right shadow-lg transition-colors ${
+            className={`pointer-events-auto inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] cursor-pointer touch-pan-x items-center gap-2 rounded-full border bg-sidebar-bg py-1.5 ps-3 pe-2 text-right shadow-lg transition-colors select-none ${
               isError
                 ? "border-destructive/60 text-text-primary"
                 : "border-success/55 text-text-primary"

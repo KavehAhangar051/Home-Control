@@ -12,8 +12,8 @@ import WorkflowFooterControls from "./WorkflowFooterControls";
 import WorkflowHeaderBar from "./WorkflowHeaderBar";
 import WorkflowNodeCard from "./WorkflowNodeCard";
 import WorkflowPalettePanel from "./WorkflowPalettePanel";
-import { WORKFLOW_PALETTE_MIME } from "./workflowPaletteData";
 import WorkflowWiresSvg from "./WorkflowWiresSvg";
+import { WORKFLOW_PALETTE_MIME } from "./workflowPaletteData";
 import type { WorkflowPaletteDragPayload } from "./workflowTypes";
 
 interface WorkflowStudioProps {
@@ -51,8 +51,27 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
     return map;
   }, [studio.activeWorkflow]);
 
+  const subflowChildCountByGroup = React.useMemo(() => {
+    const map = new Map<string, number>();
+
+    if (!studio.activeWorkflow) return map;
+
+    for (const node of studio.activeWorkflow.nodes) {
+      if (node.parentGroupId) {
+        map.set(node.parentGroupId, (map.get(node.parentGroupId) ?? 0) + 1);
+      }
+    }
+
+    return map;
+  }, [studio.activeWorkflow]);
+
   if (!studio.activeWorkflow) {
-    return <WorkflowEmptyState onStartDesigning={studio.handleStartDesigningFirstWorkflow} />;
+    return (
+      <WorkflowEmptyState
+        onStartDesigning={studio.handleStartDesigningFirstWorkflow}
+        onImportWorkflow={studio.handleImportWorkflow}
+      />
+    );
   }
 
   const wf = studio.activeWorkflow;
@@ -82,10 +101,20 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
       zoom={wf.viewport.zoom}
       snapToGrid={studio.snapToGrid}
       isLocked={studio.isLocked}
+      canUndo={studio.canUndo}
+      canRedo={studio.canRedo}
+      hasSelection={Boolean(studio.selectedNodeId)}
+      hasClipboard={studio.hasClipboard}
       onZoomBy={studio.handleZoomBy}
       onFitView={studio.handleFitView}
       onToggleSnap={() => studio.setSnapToGrid(!studio.snapToGrid)}
       onToggleLock={() => studio.setIsLocked(!studio.isLocked)}
+      onUndo={studio.handleUndo}
+      onRedo={studio.handleRedo}
+      onCopy={studio.handleCopySelectedNode}
+      onPaste={studio.handlePasteClipboard}
+      onDuplicate={studio.handleDuplicateSelectedNode}
+      onToggleSubflowGroup={() => studio.handleToggleSubflowGroup()}
     />
   );
 
@@ -104,6 +133,9 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
         onToggleEnabled={studio.handleToggleEnabled}
         onRunTest={studio.handleRunTest}
         onCancelConnect={() => studio.setConnectingFromId(null)}
+        onExportWorkflow={studio.handleExportWorkflow}
+        onShareWorkflow={studio.handleShareWorkflow}
+        onImportWorkflow={studio.handleImportWorkflow}
       />
 
       {/* Left-Side n8n Node Palette Panel */}
@@ -224,6 +256,7 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
                 isConnectTargetHighlight={
                   Boolean(studio.connectingFromId) && studio.connectingFromId !== node.id
                 }
+                subflowChildCount={subflowChildCountByGroup.get(node.id) ?? 0}
                 onSelect={studio.bringNodeToFront}
                 onStartDrag={studio.startNodeDrag}
                 onStartResize={studio.startNodeResize}
@@ -233,6 +266,7 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
                 onCompletePortConnect={studio.handleCompletePortConnect}
                 onTogglePin={onTogglePin}
                 onTriggerManualPulse={studio.handleTriggerManualPulse}
+                onToggleSubflowGroup={studio.handleToggleSubflowGroup}
               />
             </div>
           ))}

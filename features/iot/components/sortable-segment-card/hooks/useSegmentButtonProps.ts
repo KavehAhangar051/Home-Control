@@ -1,9 +1,11 @@
 import type React from "react";
 import { useRef } from "react";
+import { triggerHaptic } from "@/lib/haptics";
 
 interface UseSegmentButtonPropsParams {
   mode: "switch" | "push";
   pin: string;
+  isPinOn?: boolean;
   onTogglePin: (pin: string) => void;
   onSetPinState?: (pin: string, state: boolean) => void;
 }
@@ -11,6 +13,7 @@ interface UseSegmentButtonPropsParams {
 export default function useSegmentButtonProps({
   mode,
   pin,
+  isPinOn = false,
   onTogglePin,
   onSetPinState,
 }: UseSegmentButtonPropsParams) {
@@ -25,6 +28,7 @@ export default function useSegmentButtonProps({
       if (!isPressedRef.current) return;
 
       isPressedRef.current = false;
+      triggerHaptic("tap");
       onSetPinState?.(pin, false);
     };
 
@@ -34,6 +38,7 @@ export default function useSegmentButtonProps({
 
         e.stopPropagation();
         isPressedRef.current = true;
+        triggerHaptic("push");
         onSetPinState?.(pin, true);
       },
       onPointerUp: releasePushPin,
@@ -45,6 +50,7 @@ export default function useSegmentButtonProps({
   return {
     onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
+      triggerHaptic(isPinOn ? "toggleOff" : "toggleOn");
       onTogglePin(pin);
     },
     onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
