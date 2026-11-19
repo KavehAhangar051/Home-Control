@@ -2,7 +2,7 @@
 
 import { Power } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { RangeSlider } from "@/components/motion/range-slider";
+import { DashboardSlider } from "@/components/motion/dashboard-slider";
 import { useOptionalDashboard } from "@/features/dashboard/context/DashboardContext";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
@@ -10,6 +10,7 @@ import {
   clampAnalogValue,
   clampPwmResolution,
   getAnalogMaxDuty,
+  percentToAnalogDuty,
 } from "@/features/iot/utils/analogOutput";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
 import { getSegmentTileDensity } from "../core/segmentTileDensity";
@@ -231,19 +232,29 @@ function AnalogOutputBody({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="min-w-0 flex-1">
-          <RangeSlider
+          <DashboardSlider
+            defaultVariant="fluid"
+            size={isUltraCompact ? "ultra" : "compact"}
             min={0}
             max={maxDuty}
             step={1}
             value={displayDuty}
-            showTicks={false}
             onValueChange={dispatchThrottledDuty}
             onValueCommit={commitFinalDuty}
+            label="شدت"
+            format={(val) => `${analogDutyToPercent(val, resolution)}%`}
+            unit="%"
+            rulerScale={{
+              min: 0,
+              max: 100,
+              step: 1,
+              majorEvery: 10,
+              unit: "%",
+              toDisplay: (raw) => analogDutyToPercent(raw, resolution),
+              fromDisplay: (pct) => percentToAnalogDuty(pct, resolution),
+            }}
             aria-label={`تنظیم شدت ${segment.title}`}
             formatValueText={(val) => `${analogDutyToPercent(val, resolution)} درصد`}
-            className={`border border-border-color/75 bg-secondary ${
-              isUltraCompact ? "h-6.5" : isCompact ? "h-7.5" : "h-8.5"
-            }`}
           />
         </div>
 

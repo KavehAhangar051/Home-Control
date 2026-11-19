@@ -1,6 +1,6 @@
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import type React from "react";
-import { RangeSlider } from "@/components/motion/range-slider";
+import { DashboardSlider } from "@/components/motion/dashboard-slider";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -170,7 +170,7 @@ export default function SegmentControls({
                 : { opacity: 0, y: -4, scale: 0.96, transition: TRANSITION_EXIT_QUICK }
             }
             transition={reduceMotion ? { duration: 0 } : TRANSITION_ENTER_QUICK}
-            className="absolute top-[calc(100%+8px)] left-0 w-56 origin-top-left bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-xl shadow-xl p-3 z-[120] cursor-default text-right"
+            className="absolute top-[calc(100%+8px)] left-0 w-64 origin-top-left bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-xl shadow-xl p-3 z-[120] cursor-default text-right"
           >
             <div className="flex justify-between items-center mb-2.5">
               <span className="text-[11px] font-bold text-text-primary tabular-nums">
@@ -189,7 +189,8 @@ export default function SegmentControls({
             <span className="block text-[11px] text-text-secondary mb-2">
               زمان خاموشی خودکار (ثانیه)
             </span>
-            <RangeSlider
+            <DashboardSlider
+              defaultVariant="ruler"
               min={0}
               max={600}
               step={1}
@@ -199,9 +200,21 @@ export default function SegmentControls({
 
                 if (val > 0 && mode === "push") onUpdateSegmentMode(segment.id, "switch");
               }}
+              label="تایمر"
+              format={(val) => (val === 0 ? "0s" : `${val}s`)}
+              unit="s"
+              rulerScale={{
+                min: 0,
+                max: 600,
+                step: 5,
+                majorEvery: 12,
+                gap: 10,
+                unit: "ثانیه",
+                toDisplay: (raw) => Math.round(raw / 5) * 5,
+                fromDisplay: (display) => display,
+              }}
               aria-label="زمان خاموشی خودکار بر حسب ثانیه"
               formatValueText={formatTime}
-              className="h-9 border border-border-color/60"
             />
             <div
               dir="ltr"

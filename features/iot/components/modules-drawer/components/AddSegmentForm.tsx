@@ -1,6 +1,6 @@
 import { AnimatePresence, m } from "motion/react";
 import { useMemo } from "react";
-import { RangeSlider } from "@/components/motion/range-slider";
+import { DashboardSlider } from "@/components/motion/dashboard-slider";
 import { Card } from "@/components/ui/card";
 import { ChevronDown, Plus, Settings2 } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
@@ -254,16 +254,18 @@ export default function AddSegmentForm({
                         {initialPercent}% ({initialDuty}/{maxDuty})
                       </span>
                     </div>
-                    <RangeSlider
+                    <DashboardSlider
+                      defaultVariant="bubble"
                       min={0}
                       max={100}
                       step={1}
                       value={initialPercent}
-                      showTicks={false}
                       onValueChange={setInitialPercent}
+                      label="شدت اولیه"
+                      format={(val) => `${val}%`}
+                      unit="%"
                       aria-label="مقدار اولیه خروجی آنالوگ"
                       formatValueText={(val) => `${val} درصد`}
-                      className="h-8 border border-border-color/75 bg-card-bg-solid"
                     />
                   </div>
                 </div>

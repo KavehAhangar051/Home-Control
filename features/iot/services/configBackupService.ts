@@ -19,6 +19,7 @@ import {
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
+import { resolveSliderStyle, type SliderStylePreference } from "@/lib/sliderStyles";
 
 export const DASHBOARD_BACKUP_SCHEMA = "home-control-backup-v1";
 export const WORKFLOWS_UPDATED_EVENT = "iot-workflows-updated";
@@ -29,6 +30,7 @@ export interface DashboardBackupBundle {
   espConfig: EspConfig;
   preferences?: {
     hapticsEnabled?: boolean;
+    sliderStyle?: SliderStylePreference;
     savedTrellisLayouts?: SavedTrellisLayout[];
   };
   workflows?: WorkflowStudioState;
@@ -62,6 +64,7 @@ export function buildDashboardBackupBundle(): DashboardBackupBundle {
     espConfig: buildEspConfig(iotState),
     preferences: {
       hapticsEnabled: prefsState.hapticsEnabled,
+      sliderStyle: prefsState.sliderStyle,
       savedTrellisLayouts: prefsState.savedTrellisLayouts,
     },
     workflows: workflowsState,
@@ -90,6 +93,10 @@ export function parseDashboardBackupPayload(raw: unknown): DashboardBackupBundle
             hapticsEnabled:
               typeof raw.preferences.hapticsEnabled === "boolean"
                 ? raw.preferences.hapticsEnabled
+                : undefined,
+            sliderStyle:
+              typeof raw.preferences.sliderStyle === "string"
+                ? resolveSliderStyle(raw.preferences.sliderStyle)
                 : undefined,
             savedTrellisLayouts: Array.isArray(raw.preferences.savedTrellisLayouts)
               ? (raw.preferences.savedTrellisLayouts as SavedTrellisLayout[])
@@ -144,6 +151,10 @@ export async function restoreDashboardBackup(raw: unknown): Promise<RestoreDashb
 
     if (typeof bundle.preferences.hapticsEnabled === "boolean") {
       prefs.setHapticsEnabled(bundle.preferences.hapticsEnabled);
+    }
+
+    if (typeof bundle.preferences.sliderStyle === "string") {
+      prefs.setSliderStyle(bundle.preferences.sliderStyle);
     }
 
     if (Array.isArray(bundle.preferences.savedTrellisLayouts)) {

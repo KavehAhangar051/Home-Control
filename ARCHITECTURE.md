@@ -22,7 +22,7 @@ The application is configured for static export in its normal production mode. I
 - **Language/tooling:** TypeScript 7
 - **Package manager:** Bun (`bun.lock` is the committed dependency lockfile)
 - **Bundler:** Turbopack is used for development and production builds. The `dev:webpack` script remains available for the AI Studio workflow that disables file watching through the custom Webpack configuration.
-- **React optimization:** React Compiler is enabled in `next.config.ts`; avoid adding manual memoization without profiling or a specific correctness reason.
+- **React optimization:** React Compiler is enabled in `next.config.ts` for production builds (`!isDevServer`, skipped in `next dev` so Turbopack stays on native SWC and avoids multi-worker Babel cold-start timeouts); avoid adding manual memoization without profiling or a specific correctness reason.
 - **Package import optimization:** `next.config.ts` keeps only custom entries for installed packages (`@base-ui/react`, `motion`, `zustand`). Next.js already optimizes `lucide-react` by default; removed packages must not remain in this list.
 - **Native transitions:** Workspace switching uses Motion's `AnimateView` integration with React View Transitions, fed by a deferred Zustand workspace selection. Reduced-motion and the dashboard animation setting disable the transition.
 
@@ -329,7 +329,16 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
   - **Opcode `0x0B` (`UPDATE_RULE_ANALOG`, 13-byte action records, max 4/side):** automatically selected by `publishUpdateRuleCommand` whenever any rule action specifies an explicit `targetValue >= 0` (`-1` preserves boolean/last-non-zero mode); pure boolean rules continue using Opcode `0x05`.
   - **Incoming telemetry (`command_ack`, `pin_update`, `state_sync`):** parses optional `value`/`resolution` and `values`/`resolutions` maps cleanly (omitting absent keys to preserve legacy snapshot contracts) and preserves active Auto-Off countdowns on ON acknowledgments.
 - **UI controls across Grid, Trellis, Canvas, Modules, Conditions & Macros:**
-  - `AnalogOutputBody.tsx` (mounted via shared `CardBody.tsx`) pairs a boolean Power toggle (`0x01`, restoring `lastNonZeroValue` or `maxDuty`) with a `RangeSlider` throttled to `100ms` (`persistToCloud: false` during drag) and immediate final flush on release (`onValueCommit` with `persistToCloud: true`), plus `onPointerDown` propagation stopping so drag-and-drop and Canvas panning never conflict with slider dragging.
+  - `AnalogOutputBody.tsx` (mounted via shared `CardBody.tsx`) pairs a boolean Power toggle (`0x01`, restoring `lastNonZeroValue` or `maxDuty`) with a `DashboardSlider` (`defaultVariant="fluid"`, overridable via Settings) throttled to `100ms` (`persistToCloud: false` during drag) and immediate final flush on release (`onValueCommit` with `persistToCloud: true`), plus `onPointerDown` propagation stopping so drag-and-drop and Canvas panning never conflict with slider dragging.
   - `SegmentSettingsMenu.tsx` shows live PWM `% (duty/maxDuty)`, resolution, and frequency; `SegmentControls.tsx` hides the switch/push toggle while retaining Auto-Off timers.
   - `AddSegmentForm.tsx`, `PinSelector.tsx`, `SegmentList.tsx`, `ConditionActionItem.tsx`, `ConditionsSection.tsx`, and `MacrosSection.tsx` support adding `analog_output` modules (recommended PWM pin quick-picker, resolution/frequency/initial brightness), defining exact PWM duty or boolean rules (`0x0B`), and selecting PWM outputs in macros.
 
+## 22. Adaptive beUI Motion Slider Suite & Settings Switcher (19 November 2026)
+
+- **All 6 beUI motion slider primitives (`components/motion/range-slider*.tsx`):**
+  - `range-slider.tsx` (`RangeSlider`), `range-slider-inline.tsx` (`InlineSlider`), `range-slider-fluid.tsx` (`FluidSlider`), `range-slider-wave.tsx` (`WaveSlider`), `range-slider-bubble.tsx` (`BubbleSlider`), and `range-slider-ruler.tsx` (`RulerSlider`) all share `lib/hooks/use-slider.ts`, `lib/touch.ts`, and `lib/ease.ts`, adapted to `LazyMotion` (`m.*`), RTL-safe LTR track geometry (`dir="ltr"`), and `onValueCommit` release callbacks.
+- **Unified adaptive facade (`components/motion/dashboard-slider.tsx` & `lib/sliderStyles.ts`):**
+  - `DashboardSlider` reads `sliderStyle` (`"auto" | "inline" | "range" | "fluid" | "wave" | "bubble" | "ruler"`) from `usePreferencesStore` (persisted locally in `home-control-preferences-v1` and included in `configBackupService.ts` backups without altering `EspConfig` / Cloudflare KV payloads).
+  - In `"auto"` mode (default), each dashboard slot renders its best-fit UX variant: `FluidSlider` for PWM dimmer cards (`AnalogOutputBody`), `InlineSlider` for theme darkness/whiteness (`ColorsSection`), `RulerSlider` for Auto-Off timers (`SegmentControls`), `BubbleSlider` for initial PWM intensity (`AddSegmentForm`), and `RangeSlider` for exact PWM rule targets (`ConditionActionItem`). Large raw ranges (such as 12-bit PWM `0..4095` or `0..600s` timers) automatically use `rulerScale` adaptation in `RulerSlider` to cap DOM ticks cleanly.
+- **Appearance Settings switcher (`features/settings/components/colors-section/SliderStyleSection.tsx`):**
+  - Mounted inside `ColorsSection.tsx` alongside `FontSection`, exposing `"auto"` plus all 6 beUI slider designs with an interactive live preview and instant dashboard-wide switching.

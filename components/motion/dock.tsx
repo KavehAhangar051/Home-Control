@@ -7,7 +7,14 @@
  */
 
 import { m, useReducedMotion } from "motion/react";
-import { createContext, type PointerEvent, type ReactNode, useContext, useId, useMemo } from "react";
+import {
+  createContext,
+  type PointerEvent,
+  type ReactNode,
+  useContext,
+  useId,
+  useMemo,
+} from "react";
 import { SPRING_LAYOUT } from "@/lib/ease";
 import { cn } from "@/lib/utils";
 
@@ -140,6 +147,9 @@ export function DockItem({
  */
 export function DockSeparator({ className }: { className?: string }) {
   return (
-    <span aria-hidden className={cn("mx-0.5 h-5 w-px shrink-0 self-center bg-border-color", className)} />
+    <span
+      aria-hidden
+      className={cn("mx-0.5 h-5 w-px shrink-0 self-center bg-border-color", className)}
+    />
   );
 }

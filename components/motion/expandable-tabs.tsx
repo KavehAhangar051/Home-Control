@@ -471,9 +471,7 @@ export function ExpandableTabs({
                     "relative isolate flex h-10 min-w-10 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[18px] px-2 text-xs font-medium outline-none select-none",
                     "focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-1 focus-visible:ring-offset-card-bg-solid",
                     isOpenTab && "min-w-0 justify-start ps-3 pe-3.5",
-                    showPill
-                      ? "text-text-primary"
-                      : "text-text-muted hover:text-text-primary",
+                    showPill ? "text-text-primary" : "text-text-muted hover:text-text-primary",
                     classNames?.tab,
                     showPill && classNames?.activeTab,
                   )}
@@ -506,9 +504,7 @@ export function ExpandableTabs({
                       width: isOpenTab ? labelWidth : 0,
                       opacity: isOpenTab ? 1 : 0,
                     }}
-                    transition={
-                      reduce ? { duration: 0 } : isOpenTab ? LABEL_OPEN : LABEL_CLOSE
-                    }
+                    transition={reduce ? { duration: 0 } : isOpenTab ? LABEL_OPEN : LABEL_CLOSE}
                     className={cn(
                       "inline-block overflow-hidden whitespace-nowrap text-start",
                       classNames?.label,
