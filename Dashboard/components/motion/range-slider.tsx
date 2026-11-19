@@ -66,9 +66,11 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
   const steps = Math.floor(Number(((max - min) / step).toFixed(6)));
 
   const ticks =
-    showTicks && steps > 0 && steps <= 50
-      ? Array.from({ length: steps + 1 }, (_, i) => Number((min + i * step).toFixed(6)))
-      : [];
+    !showTicks || !(max > min)
+      ? []
+      : steps > 0 && steps <= 50
+        ? Array.from({ length: steps + 1 }, (_, i) => Number((min + i * step).toFixed(6)))
+        : Array.from({ length: 11 }, (_, i) => Number((min + (i / 10) * (max - min)).toFixed(6)));
 
   return (
     <div

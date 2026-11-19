@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { RangeSlider } from "@/components/motion/range-slider";
+import { DashboardSlider } from "@/components/motion/dashboard-slider";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -202,19 +202,30 @@ export function ConditionActionItem({
                     {exactPercent}% ({exactDuty}/{maxDuty})
                   </span>
                 </div>
-                <RangeSlider
+                <DashboardSlider
+                  defaultVariant="range"
                   min={0}
                   max={maxDuty}
                   step={1}
                   value={exactDuty}
-                  showTicks={false}
                   onValueChange={(nextDuty) => {
                     const clamped = clampAnalogValue(nextDuty, resolution);
                     onUpdate({ targetValue: clamped, actionOn: clamped > 0 });
                   }}
+                  label="شدت هدف"
+                  format={(val) => `${analogDutyToPercent(val, resolution)}%`}
+                  unit="%"
+                  rulerScale={{
+                    min: 0,
+                    max: 100,
+                    step: 1,
+                    majorEvery: 10,
+                    unit: "%",
+                    toDisplay: (raw) => analogDutyToPercent(raw, resolution),
+                    fromDisplay: (pct) => percentToAnalogDuty(pct, resolution),
+                  }}
                   aria-label="مقدار دقیق PWM هدف"
                   formatValueText={(val) => `${analogDutyToPercent(val, resolution)} درصد`}
-                  className="h-8 border border-border-color/75 bg-card-bg-solid"
                 />
                 <div className="flex flex-wrap items-center gap-1.5" dir="ltr">
                   {PWM_RULE_PERCENT_PRESETS.map((pct) => {

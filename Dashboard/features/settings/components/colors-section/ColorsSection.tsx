@@ -14,9 +14,11 @@ import {
   ColorPickerPresets,
   ColorPickerTrigger,
 } from "@/components/motion/color-picker";
-import { RangeSlider } from "@/components/motion/range-slider";
+import { DashboardSlider } from "@/components/motion/dashboard-slider";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import FontSection from "./FontSection";
+import SliderStyleSection from "./SliderStyleSection";
 
 const QUICK_SWATCHES = [
   "#E5E7EB",
@@ -40,11 +42,13 @@ export default function ColorsSection() {
   const setLightWhiteness = useIoTStore((state) => state.setLightWhiteness);
   const resetColors = useIoTStore((state) => state.resetColors);
   const resetFont = useIoTStore((state) => state.resetFont);
+  const resetSliderStyle = usePreferencesStore((state) => state.resetSliderStyle);
   const [openPicker, setOpenPicker] = useState<"accent3" | "accent4" | null>(null);
 
   const handleResetAppearance = () => {
     resetColors();
     resetFont();
+    resetSliderStyle();
   };
 
   return (
@@ -54,7 +58,7 @@ export default function ColorsSection() {
         <div>
           <h3 className="text-sm font-semibold text-text-primary">شخصی‌سازی ظاهر داشبورد</h3>
           <p className="text-xs text-text-muted mt-0.5">
-            تنظیم فونت داشبورد، رنگ‌های جانبی و درجه تیرگی و روشنایی تم
+            تنظیم فونت داشبورد، سبک اسلایدرها، رنگ‌های جانبی و درجه تیرگی و روشنایی تم
           </p>
         </div>
 
@@ -71,6 +75,11 @@ export default function ColorsSection() {
       {/* ۱. فونت داشبورد */}
       <div className="pb-4 border-b border-border-color">
         <FontSection />
+      </div>
+
+      {/* ۲. سبک اسلایدرهای داشبورد */}
+      <div className="pb-4 border-b border-border-color">
+        <SliderStyleSection />
       </div>
 
       {/* ۲. رنگ‌های جانبی */}
@@ -167,17 +176,22 @@ export default function ColorsSection() {
             <p className="text-[11px] text-text-muted mt-0.5">از مشکی خالص OLED تا خاکستری ذغالی</p>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-56">
-            <RangeSlider
-              min={0}
-              max={100}
-              step={1}
-              value={darkBlackness}
-              onValueChange={setDarkBlackness}
-              aria-label="مقدار سیاهی حالت شب"
-              formatValueText={(v) => `${v} درصد`}
-              className="h-9 border border-border-color/60"
-            />
+          <div className="flex items-center gap-3 w-full sm:w-64">
+            <div className="min-w-0 flex-1">
+              <DashboardSlider
+                defaultVariant="inline"
+                min={0}
+                max={100}
+                step={1}
+                value={darkBlackness}
+                onValueChange={setDarkBlackness}
+                label="سیاهی"
+                format={(v) => `${v}%`}
+                unit="%"
+                aria-label="مقدار سیاهی حالت شب"
+                formatValueText={(v) => `${v} درصد`}
+              />
+            </div>
             <span className="font-mono text-xs text-text-primary w-9 text-left tabular-nums shrink-0">
               {darkBlackness}٪
             </span>
@@ -191,17 +205,22 @@ export default function ColorsSection() {
             <p className="text-[11px] text-text-muted mt-0.5">از سفید خالص تا خاکستری روشن</p>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-56">
-            <RangeSlider
-              min={0}
-              max={100}
-              step={1}
-              value={lightWhiteness}
-              onValueChange={setLightWhiteness}
-              aria-label="مقدار سفیدی حالت روز"
-              formatValueText={(v) => `${v} درصد`}
-              className="h-9 border border-border-color/60"
-            />
+          <div className="flex items-center gap-3 w-full sm:w-64">
+            <div className="min-w-0 flex-1">
+              <DashboardSlider
+                defaultVariant="inline"
+                min={0}
+                max={100}
+                step={1}
+                value={lightWhiteness}
+                onValueChange={setLightWhiteness}
+                label="سفیدی"
+                format={(v) => `${v}%`}
+                unit="%"
+                aria-label="مقدار سفیدی حالت روز"
+                formatValueText={(v) => `${v} درصد`}
+              />
+            </div>
             <span className="font-mono text-xs text-text-primary w-9 text-left tabular-nums shrink-0">
               {lightWhiteness}٪
             </span>
