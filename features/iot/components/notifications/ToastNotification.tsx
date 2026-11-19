@@ -1,24 +1,25 @@
 "use client";
 
+import { CheckCircle2, X, XCircle } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect } from "react";
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, X, XCircle } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { soundManager } from "@/lib/audio";
 import {
   DURATION,
   EASE_IN_OUT,
   ERROR_SHAKE_KEYFRAMES,
-  SPRING_BOUNCE,
   TRANSITION_ENTER_STANDARD,
   TRANSITION_EXIT_STANDARD,
 } from "@/lib/ease";
 
+const SUCCESS_DISMISS_MS = 2200;
+const ERROR_DISMISS_MS = 3600;
+
 /**
- * Displays ESP32 acknowledgement feedback using the shared ReUI Alert styling.
- * Toasts remain transient and can also be dismissed manually.
+ * Compact, non-blocking top-center status toast.
+ * Anchored in the header band with a pointer-events-none outer wrapper so segment cards,
+ * toolbar buttons, and mobile navigation remain clickable at all times.
  */
 export default function ToastNotification() {
   const toast = useIoTStore((s) => s.toast);
@@ -33,86 +34,82 @@ export default function ToastNotification() {
       soundManager.playError();
     }
 
-    const timer = setTimeout(clearToast, 3500);
+    const durationMs = toast.type === "success" ? SUCCESS_DISMISS_MS : ERROR_DISMISS_MS;
+    const timer = setTimeout(clearToast, durationMs);
 
     return () => clearTimeout(timer);
   }, [toast, clearToast]);
 
+  const isError = toast?.type === "error";
+
   return (
-    <AnimatePresence>
-      {toast && (
-        <m.div
-          initial={{ opacity: 0, y: 12, scale: 0.96 }}
-          animate={{
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            x: toast.type === "error" ? [...ERROR_SHAKE_KEYFRAMES] : 0,
-          }}
-          exit={{
-            opacity: 0,
-            y: -10,
-            scale: 0.96,
-            transition: TRANSITION_EXIT_STANDARD,
-          }}
-          transition={{
-            ...TRANSITION_ENTER_STANDARD,
-            x:
-              toast.type === "error"
+    <div className="pointer-events-none fixed inset-x-0 top-1.5 z-[200] flex justify-center px-3 md:top-2">
+      <AnimatePresence mode="wait">
+        {toast && (
+          <m.div
+            key={`${toast.type}-${toast.message}`}
+            dir="rtl"
+            role={isError ? "alert" : "status"}
+            aria-live={isError ? "assertive" : "polite"}
+            aria-atomic="true"
+            initial={{ opacity: 0, y: -10, scale: 0.96 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              x: isError ? [...ERROR_SHAKE_KEYFRAMES] : 0,
+            }}
+            exit={{
+              opacity: 0,
+              y: -8,
+              scale: 0.96,
+              transition: TRANSITION_EXIT_STANDARD,
+            }}
+            transition={{
+              ...TRANSITION_ENTER_STANDARD,
+              x: isError
                 ? { duration: DURATION.slow, ease: EASE_IN_OUT }
                 : TRANSITION_ENTER_STANDARD,
-          }}
-          className="pointer-events-auto fixed right-4 bottom-22 left-4 z-[200] mx-auto max-w-sm md:right-auto md:bottom-6 md:left-6 md:mx-0 md:w-[calc(100vw-3rem)]"
-        >
-          <Alert
-            dir="rtl"
-            role={toast.type === "error" ? "alert" : "status"}
-            aria-live={toast.type === "error" ? "assertive" : "polite"}
-            aria-atomic="true"
-            variant={toast.type === "success" ? "success" : "destructive"}
-            className="!grid !grid-cols-[auto_minmax(0,1fr)_auto] !items-start !gap-x-3 !gap-y-1 !px-4 !py-3.5 text-right shadow-lg"
+            }}
+            onClick={clearToast}
+            className={`pointer-events-auto inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] cursor-pointer items-center gap-2 rounded-full border bg-sidebar-bg py-1.5 ps-3 pe-2 text-right shadow-lg transition-colors ${
+              isError
+                ? "border-destructive/60 text-text-primary"
+                : "border-success/55 text-text-primary"
+            }`}
           >
-            <div className="!col-start-2 !row-start-1 min-w-0 text-right">
-              <AlertTitle className="!col-start-1 !row-start-1 !m-0 !min-h-0 !line-clamp-none break-words text-right text-sm font-semibold leading-5">
-                {toast.type === "success" ? "عملیات موفق" : "خطا در انجام عملیات"}
-              </AlertTitle>
-            </div>
-            <div className="!col-start-2 !row-start-2 min-w-0 text-right">
-              <AlertDescription className="!col-start-1 !row-start-2 !m-0 min-w-0 break-words whitespace-normal text-right text-xs leading-6">
-                {toast.message}
-              </AlertDescription>
-            </div>
-            <AnimatePresence initial={false} mode="popLayout">
-              <m.span
-                key={toast.type}
-                initial={{ opacity: 0, scale: 0.4 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5, transition: TRANSITION_EXIT_STANDARD }}
-                transition={{ ...SPRING_BOUNCE, delay: 0.05 }}
-                className="!col-start-1 !row-start-1 !mt-0.5 inline-flex"
-              >
-                {toast.type === "success" ? (
-                  <CheckCircle aria-hidden="true" strokeWidth={2} className="!size-5" />
-                ) : (
-                  <XCircle aria-hidden="true" strokeWidth={2} className="!size-5" />
-                )}
-              </m.span>
-            </AnimatePresence>
-            <AlertAction className="!col-start-3 !row-start-1 !mt-0 !self-start">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={clearToast}
-                aria-label="بستن اعلان"
-                className="text-muted-foreground"
-              >
-                <X aria-hidden="true" className="size-4" strokeWidth={2} />
-              </Button>
-            </AlertAction>
-          </Alert>
-        </m.div>
-      )}
-    </AnimatePresence>
+            {isError ? (
+              <XCircle
+                aria-hidden="true"
+                strokeWidth={2}
+                className="size-4 shrink-0 text-destructive"
+              />
+            ) : (
+              <CheckCircle2
+                aria-hidden="true"
+                strokeWidth={2}
+                className="size-4 shrink-0 text-success"
+              />
+            )}
+
+            <span className="min-w-0 truncate text-xs font-medium leading-5 text-text-primary">
+              {toast.message}
+            </span>
+
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                clearToast();
+              }}
+              aria-label="بستن اعلان"
+              className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-full text-text-muted transition-colors hover:bg-secondary hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+            >
+              <X aria-hidden="true" className="size-3" strokeWidth={2.2} />
+            </button>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

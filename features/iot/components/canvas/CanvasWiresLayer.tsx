@@ -42,13 +42,7 @@ const CanvasWireItem = React.memo(function CanvasWireItem({
   const isHighlighted =
     selectedNodeId === connection.sourceId || selectedNodeId === connection.targetId;
 
-  const strokeColor = isActive
-    ? connection.isInput
-      ? "#10b981"
-      : "var(--accent3)"
-    : isHighlighted
-      ? "var(--accent3)"
-      : "var(--border-color)";
+  const strokeColor = isActive || isHighlighted ? "var(--accent3)" : "var(--border-color)";
 
   return (
     <g>
@@ -77,7 +71,7 @@ const CanvasWireItem = React.memo(function CanvasWireItem({
           <path
             d={path}
             fill="none"
-            stroke={connection.isInput ? "#34d399" : "var(--accent3)"}
+            stroke="var(--accent3)"
             strokeWidth={2.5}
             strokeDasharray="6 10"
             strokeLinecap="round"
@@ -85,14 +79,10 @@ const CanvasWireItem = React.memo(function CanvasWireItem({
           />
           {showParticles && (
             <>
-              <circle
-                r={4.2}
-                fill={connection.isInput ? "#10b981" : "var(--accent3)"}
-                fillOpacity={0.3}
-              >
+              <circle r={4.2} fill="var(--accent3)" fillOpacity={0.3}>
                 <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
               </circle>
-              <circle r={2.3} fill={connection.isInput ? "#a7f3d0" : "#ffffff"}>
+              <circle r={2.3} fill="#ffffff">
                 <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
               </circle>
             </>

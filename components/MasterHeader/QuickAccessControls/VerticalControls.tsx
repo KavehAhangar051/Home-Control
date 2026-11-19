@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, type LucideIcon } from "lucide-react";
 import { AnimatePresence, m, useReducedMotion, type Variants } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import type { QuickAccessControlsProps } from "./types";
 interface SubMenuItem {
   id: string;
   label: string;
+  icon: LucideIcon;
 }
 
 const SUBMENU_VARIANTS: Variants = {
@@ -66,11 +67,11 @@ const PRIMARY_NAV_VIEWS: readonly WorkspaceView[] = ["home", "modules", "automat
 function getSubItemsForView(view: WorkspaceView): readonly SubMenuItem[] | null {
   switch (view) {
     case "modules":
-      return MODULES_TABS.map((t) => ({ id: t.id, label: t.title }));
+      return MODULES_TABS.map((t) => ({ id: t.id, label: t.title, icon: t.icon }));
     case "automations":
-      return AUTOMATIONS_TABS.map((t) => ({ id: t.id, label: t.title }));
+      return AUTOMATIONS_TABS.map((t) => ({ id: t.id, label: t.title, icon: t.icon }));
     case "settings":
-      return SETTINGS_TABS.map((t) => ({ id: t.id, label: t.compactTitle }));
+      return SETTINGS_TABS.map((t) => ({ id: t.id, label: t.compactTitle, icon: t.icon }));
     default:
       return null;
   }
@@ -219,6 +220,7 @@ export default function VerticalControls({
             >
               {subItems.map((sub) => {
                 const isSubActive = activeSubId === sub.id;
+                const SubIcon = sub.icon;
 
                 return (
                   <m.li
@@ -230,7 +232,7 @@ export default function VerticalControls({
                       type="button"
                       onClick={() => handleSubItemClick(view, sub.id)}
                       aria-current={isSubActive ? "page" : undefined}
-                      className={`relative flex h-8 w-full cursor-pointer items-center rounded-md px-2.5 text-right text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+                      className={`group/sub relative flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-right text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
                         isSubActive
                           ? "font-medium text-sidebar-text"
                           : "font-normal text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text"
@@ -243,6 +245,15 @@ export default function VerticalControls({
                           className="absolute inset-0 rounded-md border border-sidebar-border bg-sidebar-hover shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
                         />
                       )}
+                      <SubIcon
+                        aria-hidden="true"
+                        strokeWidth={1.75}
+                        className={`relative z-10 size-3.5 shrink-0 transition-colors duration-150 ${
+                          isSubActive
+                            ? "text-accent3"
+                            : "text-sidebar-muted group-hover/sub:text-sidebar-text"
+                        }`}
+                      />
                       <span className="relative z-10 truncate leading-5">{sub.label}</span>
                     </button>
                   </m.li>

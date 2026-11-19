@@ -34,10 +34,10 @@ function getTrellisViewTitle(
     : segment.title;
 }
 
-function getTrellisSurfaceClass(isPinOn: boolean, isInput: boolean): string {
+function getTrellisSurfaceClass(isPinOn: boolean): string {
   if (!isPinOn) return "border-border-color bg-card-bg shadow-2xs";
 
-  return isInput ? "border-success bg-card-bg shadow-xs" : "border-accent3 bg-card-bg shadow-xs";
+  return "border-accent3 bg-card-bg shadow-xs";
 }
 
 function TrellisPlaceholderView({
@@ -157,7 +157,7 @@ export default function TrellisSegmentView({
     );
   }
 
-  const activeSurfaceClass = getTrellisSurfaceClass(isPinOn, segment.type === "input");
+  const activeSurfaceClass = getTrellisSurfaceClass(isPinOn);
 
   const autoOffMenuProps = {
     showAutoOffMenu,

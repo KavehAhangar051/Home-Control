@@ -64,12 +64,8 @@ function ActiveCard({
     onSetPinState,
   });
 
-  const isInput = segment.type === "input";
-
   const activeSurfaceClass = isPinOn
-    ? isInput
-      ? "border-success bg-card-bg shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)]"
-      : "border-accent3 bg-card-bg shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)]"
+    ? "border-accent3 bg-card-bg shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)]"
     : "border-border-color bg-card-bg shadow-[inset_0_1px_0_0_oklch(1_0_0/0.05)]";
 
   return (

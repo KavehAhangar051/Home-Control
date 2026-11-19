@@ -7,7 +7,14 @@
  * floating voice button on screens narrower than `md` (768px).
  */
 
-import { Check, ChevronLeft, LayoutGrid, PanelsTopLeft, Workflow } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  LayoutGrid,
+  type LucideIcon,
+  PanelsTopLeft,
+  Workflow,
+} from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { DockItem, DockSeparator } from "@/components/motion/dock";
 import { ExpandableTabs, type ExpandableTabsItem } from "@/components/motion/expandable-tabs";
@@ -41,11 +48,12 @@ const DIRECT_NAV_VIEWS: readonly WorkspaceView[] = ["home"];
 
 interface DockSubRowProps {
   label: string;
+  icon: LucideIcon;
   isActive: boolean;
   onClick: () => void;
 }
 
-function DockSubRow({ label, isActive, onClick }: DockSubRowProps) {
+function DockSubRow({ label, icon: Icon, isActive, onClick }: DockSubRowProps) {
   return (
     <button
       type="button"
@@ -58,7 +66,14 @@ function DockSubRow({ label, isActive, onClick }: DockSubRowProps) {
           : "text-text-secondary hover:bg-sidebar-hover/70 hover:text-text-primary",
       )}
     >
-      <span className="truncate">{label}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        <Icon
+          aria-hidden="true"
+          strokeWidth={1.75}
+          className={cn("size-3.5 shrink-0", isActive ? "text-accent3" : "text-text-muted")}
+        />
+        <span className="truncate">{label}</span>
+      </span>
       {isActive ? (
         <Check className="size-3.5 shrink-0 text-accent3" aria-hidden="true" />
       ) : (
@@ -251,6 +266,7 @@ export default function MobileDockNav() {
               <DockSubRow
                 key={tab.id}
                 label={tab.title}
+                icon={tab.icon}
                 isActive={activeWorkspaceView === "modules" && activeModulesTab === tab.id}
                 onClick={() => handleSelectModulesTab(tab.id)}
               />
@@ -268,6 +284,7 @@ export default function MobileDockNav() {
               <DockSubRow
                 key={tab.id}
                 label={tab.title}
+                icon={tab.icon}
                 isActive={activeWorkspaceView === "automations" && activeAutomationsTab === tab.id}
                 onClick={() => handleSelectAutomationsTab(tab.id)}
               />
@@ -280,12 +297,10 @@ export default function MobileDockNav() {
         label: "تنظیمات",
         icon: <Settings className="size-[18px]" strokeWidth={1.6} aria-hidden="true" />,
         content: (
-          <div
-            className="grid w-[min(20.5rem,calc(100vw-3rem))] grid-cols-2 gap-1 p-0.5"
-            dir="rtl"
-          >
+          <div className="grid w-[min(21rem,calc(100vw-3rem))] grid-cols-2 gap-1 p-0.5" dir="rtl">
             {SETTINGS_TABS.map((tab) => {
               const isActive = activeWorkspaceView === "settings" && activeSettingsTab === tab.id;
+              const TabIcon = tab.icon;
 
               return (
                 <button
@@ -300,7 +315,17 @@ export default function MobileDockNav() {
                       : "text-text-secondary hover:bg-sidebar-hover/70 hover:text-text-primary",
                   )}
                 >
-                  <span className="truncate">{tab.compactTitle}</span>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <TabIcon
+                      aria-hidden="true"
+                      strokeWidth={1.75}
+                      className={cn(
+                        "size-3.5 shrink-0",
+                        isActive ? "text-accent3" : "text-text-muted",
+                      )}
+                    />
+                    <span className="truncate">{tab.compactTitle}</span>
+                  </span>
                   {isActive && (
                     <Check className="size-3.5 shrink-0 text-accent3" aria-hidden="true" />
                   )}

@@ -50,7 +50,6 @@ function resolveSegmentBorderClass(
   isDragging: boolean,
   isSelected: boolean,
   isPinOn: boolean,
-  isInput: boolean,
 ): string {
   if (isDragging) return "border-accent3 ring-2 ring-accent3/40 shadow-2xl";
 
@@ -58,15 +57,13 @@ function resolveSegmentBorderClass(
 
   if (!isPinOn) return "border-border-color shadow-xs";
 
-  return isInput ? "border-success shadow-sm" : "border-accent3 shadow-sm";
+  return "border-accent3 shadow-sm";
 }
 
-function resolveSegmentPortClass(isPinOn: boolean, isInput: boolean): string {
+function resolveSegmentPortClass(isPinOn: boolean): string {
   if (!isPinOn) return "border-border-color bg-card-bg-solid";
 
-  return isInput
-    ? "border-success bg-success shadow-[0_0_8px_var(--success)]"
-    : "border-accent3 bg-accent3 shadow-[0_0_8px_var(--accent3)]";
+  return "border-accent3 bg-accent3 shadow-[0_0_8px_var(--accent3)]";
 }
 
 function resolveSegmentZIndex(
@@ -86,11 +83,9 @@ function resolveSegmentZIndex(
 
 function CanvasSegmentGraphOverlay({
   isPinOn,
-  isInput,
   animationsEnabled,
 }: {
   isPinOn: boolean;
-  isInput: boolean;
   animationsEnabled: boolean;
 }) {
   return (
@@ -99,14 +94,13 @@ function CanvasSegmentGraphOverlay({
         active={isPinOn}
         animationsEnabled={animationsEnabled}
         radius={16}
-        color={isInput ? "var(--success)" : "var(--accent3)"}
+        color="var(--accent3)"
         speed="flow"
       />
       <div
         aria-hidden="true"
         className={`pointer-events-none absolute top-1/2 -right-2 z-30 size-3.5 -translate-y-1/2 rounded-full border-2 transition-colors ${resolveSegmentPortClass(
           isPinOn,
-          isInput,
         )}`}
       />
     </>
@@ -292,9 +286,8 @@ export default React.memo(function CanvasSegmentNode({
 
   const isUltraCompact = rect.width < 185 || rect.height < 118;
   const isCompact = rect.width < 235 || rect.height < 142;
-  const isInput = segment.type === "input";
   const isPlaceholder = segment.type === "placeholder";
-  const surfaceBorderClass = resolveSegmentBorderClass(isDragging, isSelected, isPinOn, isInput);
+  const surfaceBorderClass = resolveSegmentBorderClass(isDragging, isSelected, isPinOn);
   const zIndex = resolveSegmentZIndex(isSettingsOpen, isDragging, isSelected, rect.zIndex);
 
   const animateState = resolveCanvasNodeMotionState(
@@ -328,11 +321,7 @@ export default React.memo(function CanvasSegmentNode({
         className="relative size-full transition-[rotate] duration-150 ease-out"
       >
         {showPort && (
-          <CanvasSegmentGraphOverlay
-            isPinOn={isPinOn}
-            isInput={isInput}
-            animationsEnabled={animationsEnabled}
-          />
+          <CanvasSegmentGraphOverlay isPinOn={isPinOn} animationsEnabled={animationsEnabled} />
         )}
 
         <Card

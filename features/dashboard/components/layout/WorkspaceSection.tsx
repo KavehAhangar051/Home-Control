@@ -1,5 +1,6 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Alert } from "@/components/reui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,31 +104,38 @@ const WifiSection = dynamic(
 
 type WorkspaceSectionView = "modules" | "automations" | "settings";
 
-function useActiveSubsectionLabel(view: WorkspaceSectionView): string {
+function useActiveSubsectionMeta(view: WorkspaceSectionView): {
+  title: string;
+  icon: LucideIcon;
+} {
   const activeModulesTab = useIoTStore((state) => state.activeModulesTab);
   const activeAutomationsTab = useIoTStore((state) => state.activeAutomationsTab);
   const rawActiveSettingsTab = useIoTStore((state) => state.activeSettingsTab);
 
   if (view === "modules") {
-    return MODULES_TABS.find((t) => t.id === activeModulesTab)?.title ?? MODULES_TABS[0].title;
+    const found = MODULES_TABS.find((t) => t.id === activeModulesTab) ?? MODULES_TABS[0];
+
+    return { title: found.title, icon: found.icon };
   }
 
   if (view === "automations") {
-    return (
-      AUTOMATIONS_TABS.find((t) => t.id === activeAutomationsTab)?.title ??
-      AUTOMATIONS_TABS[0].title
-    );
+    const found =
+      AUTOMATIONS_TABS.find((t) => t.id === activeAutomationsTab) ?? AUTOMATIONS_TABS[0];
+
+    return { title: found.title, icon: found.icon };
   }
 
   const resolvedSettingsTab = resolveSettingsTabId(rawActiveSettingsTab);
+  const found = SETTINGS_TABS.find((t) => t.id === resolvedSettingsTab) ?? SETTINGS_TABS[0];
 
-  return SETTINGS_TABS.find((t) => t.id === resolvedSettingsTab)?.title ?? SETTINGS_TABS[0].title;
+  return { title: found.title, icon: found.icon };
 }
 
 export default function WorkspaceSection({ view }: { view: WorkspaceSectionView }) {
   const meta = WORKSPACE_VIEW_META[view];
   const Icon = meta.sectionIcon;
-  const activeSubsectionTitle = useActiveSubsectionLabel(view);
+  const activeSubsection = useActiveSubsectionMeta(view);
+  const SubsectionIcon = activeSubsection.icon;
   const activeAutomationsTab = useIoTStore((state) => state.activeAutomationsTab);
 
   if (view === "automations" && activeAutomationsTab === "workflows") {
@@ -146,8 +154,9 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
             <Icon className="size-5" aria-hidden="true" />
           </div>
           <div className="min-w-0 space-y-1">
-            <span className="inline-flex items-center rounded-full border border-border-color bg-card-bg px-3 py-1 text-[10px] font-medium tracking-wider text-text-secondary">
-              {activeSubsectionTitle}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border-color bg-card-bg px-3 py-1 text-[10px] font-medium tracking-wider text-text-secondary">
+              <SubsectionIcon className="size-3 shrink-0 text-accent3" aria-hidden="true" />
+              <span>{activeSubsection.title}</span>
             </span>
             <h1 className="text-fluid-xl font-medium leading-7 text-balance text-text-primary">
               {meta.title}
@@ -170,7 +179,7 @@ function MobileSubsectionTabs<T extends string>({
   onSelect,
   ariaLabel,
 }: {
-  items: ReadonlyArray<{ id: T; compactTitle: string }>;
+  items: ReadonlyArray<{ id: T; compactTitle: string; icon: LucideIcon }>;
   activeId: T;
   onSelect: (id: T) => void;
   ariaLabel: string;
@@ -183,6 +192,7 @@ function MobileSubsectionTabs<T extends string>({
       <div className="flex min-w-max gap-1.5">
         {items.map((tab) => {
           const isActive = tab.id === activeId;
+          const TabIcon = tab.icon;
 
           return (
             <button
@@ -190,13 +200,18 @@ function MobileSubsectionTabs<T extends string>({
               type="button"
               onClick={() => onSelect(tab.id)}
               aria-current={isActive ? "page" : undefined}
-              className={`min-h-11 cursor-pointer rounded-lg border px-3.5 py-2 text-xs font-medium whitespace-nowrap transition-colors duration-200 ease-out ${
+              className={`inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors duration-200 ease-out ${
                 isActive
                   ? "border-accent3 bg-card-hover-bg text-text-primary"
                   : "border-transparent text-text-secondary hover:bg-card-hover-bg hover:text-text-primary"
               }`}
             >
-              {tab.compactTitle}
+              <TabIcon
+                aria-hidden="true"
+                strokeWidth={1.75}
+                className={`size-3.5 shrink-0 ${isActive ? "text-accent3" : "text-text-muted"}`}
+              />
+              <span>{tab.compactTitle}</span>
             </button>
           );
         })}
