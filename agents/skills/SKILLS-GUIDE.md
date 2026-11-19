@@ -11,11 +11,11 @@
 | دسته | شامل Skill ها |
 |------|--------------|
 | الف) پاک‌سازی و ساده‌سازی کد | deslop، anti-slop، simplify، refactor، refactoring-guru، refactoring، knip، configure-knip، optimize-javascript، ponytail (و زیرمجموعه‌هایش) |
-| ب) بازبینی و کیفیت کد | code-review، code-review-and-quality، requesting-code-review، receiving-code-review، verify-loop، verification-before-completion، dogfood |
+| ب) بازبینی و کیفیت کد | code-review، code-review-and-quality، requesting-code-review، receiving-code-review، verify-loop، verification-before-completion، dogfood، review-prose، humanizer، lieflat-less-ai-tone |
 | ج) معماری و طراحی نرم‌افزار (بر پایه کتاب) | a-philosophy-of-software-design، clean-architecture، clean-code، code-complete، designing-data-intensive-applications، domain-driven-design، domain-driven-design-distilled، implementing-domain-driven-design، patterns-of-enterprise-application-architecture، the-pragmatic-programmer، release-it، working-effectively-with-legacy-code |
 | د) کارایی (کد) | improve، improve-codebase-architecture، improve-code-quality، executing-plans، subagent-driven-development، codebase-design، codebase-memory، rtk |
 | ه) React / Next.js | react-doctor، react-best-practices، react-view-transitions، composition-patterns |
-| و) طراحی UI و فرانت‌اند | frontend-design، frontend-ui-engineering، web-artifacts-builder، web-design-guidelines، web-performance-auditor، rams، interface-review، better-* ، popular-web-designs، variant، break، explain-interface، blueprint-animation، scroll-craft |
+| و) طراحی UI و فرانت‌اند | impeccable، frontend-design، frontend-ui-engineering، web-artifacts-builder، web-design-guidelines، web-performance-auditor، rams، interface-review، better-* ، popular-web-designs، variant، break، explain-interface، blueprint-animation، dimensional-drawing، dimensional-drawing-motion، scroll-craft |
 | ز) استتیک و کیفیت بصری | soft-skill (high-end visual)، taste-skill، taste-skill-v1، stitch-skill، minimalist-skill، brutalist-skill، redesign-skill، output-skill، gpt-tasteskill |
 | ح) تولید تصویر و اثر | imagegen-frontend-mobile، imagegen-frontend-web، image-to-code-skill، brandkit، claude-design، design-mobile-apps |
 | ط) مهارت‌های توسعه‌ی workflow | brainstorming، writing-plans، writing-skills، break، variant، using-superpowers، dispatching-parallel-agents، finishing-a-development-branch، using-git-worktrees |
@@ -132,6 +132,11 @@
 **چیست:** متن تولیدشده توسط AI را انسانی می‌کند — حذف AI-ism ها و افزودن صدا/لحن واقعی.
 
 **کی استفاده:** برای محتوای مقابلمی (پست، ایمیل، کپی) که باید طبیعی و شبیه انسان خوانده شود.
+
+### lieflat-less-ai-tone
+**چیست:** سیستم سه‌لایهٔ حذف لحن AI از متن (`larashero3-dotcom/lieflat-less-ai-tone`): تشخیص اسکریپتی با گزارش سطح‌بندی‌شده (A/B/C/X/F)، قضاوت معنایی بر پایه معیارهای بسته (`references/semantic-criteria.md`) و بازنویسی کنترل‌شده همراه با گزارش مقایسه قبل/بعد.
+
+**کی استفاده:** پس از پایان نگارش متن/مقاله برای تشخیص دقیق ردپای نوشتاری AI، ارائه گزارش قابل‌خواندن و بازنویسی هدفمند با بازآزمایی (re-test).
 
 ---
 
@@ -286,6 +291,11 @@
 
 ## و) طراحی UI و فرانت‌اند
 
+### impeccable
+**چیست:** مجموعه جامع کارگردانی طراحی و مهندسی فرانت‌اند (`pbakaus/impeccable` نسخه `4.10.0`) شامل راهنماهای تخصصی برای طراحی از صفر، بازطراحی، نقد (`critique`)، ممیزی (`audit`)، پولیش، ساده‌سازی (`distill`)، مقاوم‌سازی (`harden`)، انیمیشن، تایپوگرافی، رنگ، دسترس‌پذیری و مستندسازی سیستم طراحی (`DESIGN.md` و توکن‌ها) برای وب و صفحات موبایل بومی.
+
+**کی استفاده:** هر زمان قصد طراحی، بازطراحی، نقد بصری/UX، پولیش دقیق، بولدتر یا آرام‌تر کردن یک رابط کاربری، داشبورد، لندینگ یا کامپوننت را دارید.
+
 ### frontend-design
 **چیست:** راهنمای طراحی بصری متمایز و عمدی برای UI جدید یا بازطراحی UI موجود — جهت استتیک، تایپوگرافی و انتخاب‌هایی که شبیه قالب آماده نیستند.
 
@@ -358,6 +368,16 @@
 **چیست:** انیمیشن blueprint که تصمیمات UX را قدم‌به‌قدم توضیح می‌دهد — Before/After، بازسازی ماژول‌های تغییرکرده و حاشیه‌نویسی برای case study.
 
 **کی استفاده:** برای case study و پست‌های توضیحی درباره تغییر طراحی.
+
+### dimensional-drawing
+**چیست:** ساخت نقشه ابعادی تک‌رنگ به سبک Apple Accessory Dimensional Drawings (`enesozturk/dimensional-drawing`) برای کامپوننت‌های UI یا محصولات فیزیکی — شامل شیت کامل، عنوان‌بلاک، اسلات‌های معماری بدون کپی واقعی و جدول متغیرهای ابعادی (`S#`, `H#`, `R#`, `B`, `W`) در یک فایل HTML خودکفا.
+
+**کی استفاده:** وقتی کاربر نقشه ابعادی، آناتومی کامپوننت، spec sheet یا redline مهندسی می‌خواهد.
+
+### dimensional-drawing-motion
+**چیست:** تبدیل نقشه ابعادی ساخته‌شده با `dimensional-drawing` به فیلم موشن حدوداً ۱۰ ثانیه‌ای به سبک اپل (رسم تدریجی خطوط، عقب‌رفتن دوربین، نمای منفجرشده لایه‌ها و ظاهر شدن کامل شیت) با تابع خالص زمانی `render(t)`.
+
+**کی استفاده:** بعد از `dimensional-drawing` یا هنگام درخواست انیمیت کردن spec sheet و نقشه آناتومی.
 
 ### scroll-craft
 **چیست:** لندینگ‌پیج‌هایِ scroll-driven و درجه‌یک برای برندهای خدماتی/محصول/غذا — قهرمان‌های dimensional با هواپیماهای مستقل، motion محدود و کامپوزیشن موبایل جداگانه. خروجی: HTML سمنتیک و verify بصری.
@@ -723,10 +743,11 @@
 | سلامت React | react-doctor، react-best-practices |
 | انیمیشن بین صفحات/state در React | react-view-transitions |
 | طراحی کامپوننت‌های React با prop زیاد | composition-patterns |
-| طراحی UI از صفر | frontend-design، frontend-ui-engineering، landing-page-design |
-| بازبینی UI/WCAG | rams، web-design-guidelines، better-accessibility، interface-review، better-interface |
-| ساخت سیستم رنگ | better-colors |
-| بهبود copy محصول | better-writing، review-prose، humanizer، copywriting |
+| طراحی UI از صفر | impeccable، frontend-design، frontend-ui-engineering، landing-page-design |
+| بازبینی UI/WCAG | impeccable، rams، web-design-guidelines، better-accessibility، interface-review، better-interface |
+| ساخت سیستم رنگ | better-colors، impeccable |
+| بهبود copy و حذف لحن AI از متن | better-writing، review-prose، humanizer، lieflat-less-ai-tone، copywriting |
+| نقشه ابعادی / Spec Sheet / آناتومی کامپوننت و انیمیشن آن | dimensional-drawing، dimensional-drawing-motion |
 | طراحی لندینگ با تبدیل بالا | landing-page-design، gpt-tasteskill، scroll-craft، popular-web-designs |
 | انتخاب بین چند ظاهر | variant |
 | تست استرس یک کامپوننت | break |
@@ -734,7 +755,7 @@
 | ساخت اپ موبایل | design-mobile-apps، appllama-app-design-skill، appllama-usage، imagegen-frontend-mobile |
 | ساخت وب‌سایت با رفرنس تصویری | image-to-code-skill، imagegen-frontend-web |
 | ساخت هویت برند | brandkit، claude-design |
-| طراحی/بازطراحی premium | soft-skill، taste-skill، redesign-skill، brutalist-skill، minimalist-skill، stitch-skill |
+| طراحی/بازطراحی premium | impeccable، soft-skill، taste-skill، redesign-skill، brutalist-skill، minimalist-skill، stitch-skill |
 | مشکل قراردادن در خروجی کامل | output-skill |
 | قبل از کار خلاقانه | brainstorming |
 | قبل از کدنویسی چندمرحله‌ای | writing-plans |
