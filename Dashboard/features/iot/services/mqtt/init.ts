@@ -235,20 +235,85 @@ export function createMqttMessageHandler(
       const parsedState = parseMqttStateMessage(payload);
 
       if (parsedState.kind === "pin_update") {
-        const label = parsedState.source === "binary" ? "state update" : "JSON state update";
+        const snapshot = deps.getSnapshot();
+        const label = parsedState.isAck
+          ? "command_ack"
+          : parsedState.source === "binary"
+            ? "state update"
+            : "JSON state update";
         logMqttDebug(
-          `[MQTT] Received ${label} from ESP32: pin=${parsedState.pinId} state=${parsedState.state}`,
+          `[MQTT] Received ${label} from ESP32: pin=${parsedState.pinId} state=${parsedState.state}${parsedState.value !== undefined ? ` value=${parsedState.value}` : ""}`,
         );
-        deps.getSnapshot().setAutoOffRemaining({
-          ...deps.getSnapshot().autoOffRemaining,
-          [parsedState.pinId]: 0,
-        });
+
+        if (!parsedState.isAck || !parsedState.state) {
+          snapshot.setAutoOffRemaining({
+            ...snapshot.autoOffRemaining,
+            [parsedState.pinId]: 0,
+          });
+        }
+
+        if (parsedState.value !== undefined) {
+          const confirmedVal = parsedState.value;
+          snapshot.setPinsAnalogValue((prev) =>
+            prev[parsedState.pinId] === confirmedVal
+              ? prev
+              : { ...prev, [parsedState.pinId]: confirmedVal },
+          );
+
+          if (confirmedVal > 0) {
+            snapshot.setPinsLastNonZeroValue((prev) =>
+              prev[parsedState.pinId] === confirmedVal
+                ? prev
+                : { ...prev, [parsedState.pinId]: confirmedVal },
+            );
+          }
+        } else if (
+          !parsedState.state &&
+          Object.hasOwn(snapshot.pinsAnalogValue, parsedState.pinId)
+        ) {
+          snapshot.setPinsAnalogValue((prev) =>
+            prev[parsedState.pinId] === 0 ? prev : { ...prev, [parsedState.pinId]: 0 },
+          );
+        }
+
+        if (parsedState.resolution !== undefined) {
+          const confirmedRes = parsedState.resolution;
+          snapshot.setPinsPwmResolution((prev) =>
+            prev[parsedState.pinId] === confirmedRes
+              ? prev
+              : { ...prev, [parsedState.pinId]: confirmedRes },
+          );
+        }
+
         deps.queueStateUpdate(parsedState.pinId, parsedState.state);
       } else if (parsedState.kind === "state_sync") {
+        const snapshot = deps.getSnapshot();
         logMqttDebug(`[MQTT] Received full state sync from ESP32:`, parsedState.states);
         deps.flushStateUpdates?.();
-        deps.getSnapshot().setPinsState(parsedState.states);
-        deps.getSnapshot().setAutoOffRemaining(parsedState.timers);
+        snapshot.setPinsState(parsedState.states);
+        snapshot.setAutoOffRemaining(parsedState.timers);
+
+        if (parsedState.values) {
+          const syncedValues = parsedState.values;
+          snapshot.setPinsAnalogValue(syncedValues);
+          snapshot.setPinsLastNonZeroValue((prev) => {
+            let changed = false;
+            const next = { ...prev };
+
+            for (const [pin, val] of Object.entries(syncedValues)) {
+              if (val > 0 && next[pin] !== val) {
+                next[pin] = val;
+                changed = true;
+              }
+            }
+
+            return changed ? next : prev;
+          });
+        }
+
+        if (parsedState.resolutions) {
+          snapshot.setPinsPwmResolution(parsedState.resolutions);
+        }
       } else if (parsedState.kind === "ping") {
         schedule(() => {
           if (!deps.isCurrentGeneration()) return;

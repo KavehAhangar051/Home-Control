@@ -1,5 +1,16 @@
 import type { GroupsSlice, Segment } from "@/features/iot/hooks/store/types";
 import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
+import {
+  ANALOG_OUTPUT_TYPE,
+  type AnalogSegmentOptions,
+  clampAnalogValue,
+  clampPwmFrequency,
+  clampPwmResolution,
+  getAnalogMaxDuty,
+  hasExplicitAnalogTargetValue,
+  isAnalogOutputType,
+  MAX_ANALOG_OUTPUT_VALUE,
+} from "@/features/iot/utils/analogOutput";
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 
 export interface AddSegmentInput {
@@ -11,6 +22,7 @@ export interface AddSegmentInput {
   auto_off?: number;
   icon?: string;
   groupIcon?: string;
+  analogConfig?: AnalogSegmentOptions;
 }
 
 export type AddSegmentDecision =
@@ -49,16 +61,43 @@ export function planAddSegment(params: {
   }
 
   const finalGroup = resolveSegmentGroup(input.group);
+  const isAnalog = isAnalogOutputType(input.type);
+
+  const analogResolution = isAnalog
+    ? clampPwmResolution(input.analogConfig?.pwmResolution)
+    : undefined;
+  const analogFrequency = isAnalog
+    ? clampPwmFrequency(input.analogConfig?.pwmFrequency)
+    : undefined;
+  const analogInitialValue = isAnalog
+    ? clampAnalogValue(input.analogConfig?.initialValue ?? 0, analogResolution)
+    : undefined;
 
   const newSegment: Segment = {
     id: createId(),
-    type: input.type,
+    type: isAnalog ? ANALOG_OUTPUT_TYPE : input.type,
     pin: input.pin,
-    title: input.title || `کنترل پایه دیجیتال (GPIO ${input.pin})`,
+    title:
+      input.title ||
+      (isAnalog
+        ? `خروجی آنالوگ PWM (GPIO ${input.pin})`
+        : `کنترل پایه دیجیتال (GPIO ${input.pin})`),
     group: finalGroup,
-    mode: input.mode || "switch",
+    mode: isAnalog ? "switch" : input.mode || "switch",
     auto_off: input.auto_off || 0,
     icon: input.icon,
+    ...(isAnalog && analogResolution !== undefined && analogFrequency !== undefined
+      ? {
+          pwmResolution: analogResolution,
+          pwmFrequency: analogFrequency,
+          analogValue: analogInitialValue ?? 0,
+          lastNonZeroValue:
+            analogInitialValue && analogInitialValue > 0
+              ? analogInitialValue
+              : getAnalogMaxDuty(analogResolution),
+          state: Boolean(analogInitialValue && analogInitialValue > 0),
+        }
+      : {}),
   };
 
   const nextSegments = [...segments];
@@ -131,6 +170,7 @@ export function validateRuleActionList(
     reqHold?: number;
     actionType?: number;
     delay?: number;
+    targetValue?: number | null;
   }>,
 ): string | null {
   if (!actions) return null;
@@ -168,6 +208,15 @@ export function validateRuleActionList(
       (!Number.isInteger(action.delay) || action.delay < 0 || action.delay > 60)
     ) {
       return "تأخیر عملیات باید بین ۰ تا ۶۰ ثانیه باشد.";
+    }
+
+    if (
+      hasExplicitAnalogTargetValue(action.targetValue) &&
+      (!Number.isInteger(action.targetValue) ||
+        action.targetValue < 0 ||
+        action.targetValue > MAX_ANALOG_OUTPUT_VALUE)
+    ) {
+      return "مقدار دقیق PWM باید عددی صحیح بین ۰ تا ۴۰۹۵ باشد.";
     }
   }
 

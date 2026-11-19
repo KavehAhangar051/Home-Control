@@ -1,5 +1,14 @@
 import { useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import {
+  type AnalogSegmentOptions,
+  clampPwmFrequency,
+  clampPwmResolution,
+  DEFAULT_PWM_FREQUENCY,
+  DEFAULT_PWM_RESOLUTION,
+  isAnalogOutputType,
+  percentToAnalogDuty,
+} from "@/features/iot/utils/analogOutput";
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 import type { Segment } from "../core/types";
 
@@ -12,6 +21,7 @@ export type OnAddSegmentFn = (
   auto_off?: number,
   icon?: string,
   groupIcon?: string,
+  analogConfig?: AnalogSegmentOptions,
 ) => void;
 
 export function useAddSegmentForm(
@@ -29,6 +39,9 @@ export function useAddSegmentForm(
   const [groupIcon, setGroupIcon] = useState("");
   const [errorText, setErrorText] = useState("");
   const [buttonMode, setButtonMode] = useState<"switch" | "push">("switch");
+  const [pwmResolution, setPwmResolution] = useState<number>(DEFAULT_PWM_RESOLUTION);
+  const [pwmFrequency, setPwmFrequency] = useState<number>(DEFAULT_PWM_FREQUENCY);
+  const [initialPercent, setInitialPercent] = useState<number>(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -55,21 +68,40 @@ export function useAddSegmentForm(
       showToast(validation.message, "success");
     }
 
-    if (segments.some((s) => s.type === selectedType && s.pin === finalPin)) {
+    if (segments.some((s) => s.type !== "placeholder" && s.pin === finalPin)) {
       setErrorText(`ماژولی برای پایه GPIO ${finalPin} قبلاً اضافه شده است.`);
 
       return;
     }
 
+    const isAnalog = isAnalogOutputType(selectedType);
+    const resolvedResolution = clampPwmResolution(pwmResolution);
+    const resolvedFrequency = clampPwmFrequency(pwmFrequency);
+    const analogConfig: AnalogSegmentOptions | undefined = isAnalog
+      ? {
+          pwmResolution: resolvedResolution,
+          pwmFrequency: resolvedFrequency,
+          initialValue: percentToAnalogDuty(initialPercent, resolvedResolution),
+        }
+      : undefined;
+
+    const defaultTitle =
+      selectedType === "input"
+        ? `ورودی دیجیتال (GPIO ${finalPin})`
+        : isAnalog
+          ? `خروجی آنالوگ PWM (GPIO ${finalPin})`
+          : `کنترل پایه دیجیتال (GPIO ${finalPin})`;
+
     onAddSegment(
       selectedType,
       finalPin,
-      customTitle.trim() || `کنترل پایه دیجیتال (GPIO ${finalPin})`,
+      customTitle.trim() || defaultTitle,
       groupName.trim() || "Test",
-      buttonMode,
+      isAnalog ? undefined : buttonMode,
       undefined,
       segmentIcon || undefined,
       groupIcon || undefined,
+      analogConfig,
     );
 
     setCustomTitle("");
@@ -78,6 +110,9 @@ export function useAddSegmentForm(
     setSegmentIcon("");
     setGroupIcon("");
     setButtonMode("switch");
+    setPwmResolution(DEFAULT_PWM_RESOLUTION);
+    setPwmFrequency(DEFAULT_PWM_FREQUENCY);
+    setInitialPercent(0);
     setErrorText("");
     onClose();
   };
@@ -98,6 +133,12 @@ export function useAddSegmentForm(
     errorText,
     buttonMode,
     setButtonMode,
+    pwmResolution,
+    setPwmResolution,
+    pwmFrequency,
+    setPwmFrequency,
+    initialPercent,
+    setInitialPercent,
     showAdvanced,
     setShowAdvanced,
     groupsOrder,

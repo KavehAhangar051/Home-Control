@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { Macro } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { isAnalogOutputSegment } from "@/features/iot/utils/analogOutput";
 import { EASE_OUT } from "@/lib/ease";
 
 type MacroAction = Macro["actions"][number];
@@ -21,7 +22,9 @@ export default function MacrosSection() {
   const reduceMotion = !animationsEnabled || Boolean(prefersReduced);
   const outputs = segments.filter(
     (segment) =>
-      (segment.type === "gpio_toggle" || segment.type === "output") &&
+      (segment.type === "gpio_toggle" ||
+        segment.type === "output" ||
+        isAnalogOutputSegment(segment)) &&
       segment.pin.trim().length > 0,
   );
   const [editingId, setEditingId] = useState<string | null>(null);

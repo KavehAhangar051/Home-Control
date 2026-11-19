@@ -5,6 +5,12 @@ import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { defaultDeviceSyncGateway } from "@/features/iot/services/deviceGatewayAdapter";
 import { onMqttStateChange } from "@/features/iot/services/mqtt/client";
 import type { IDeviceSyncPort } from "@/features/iot/services/ports";
+import {
+  clampAnalogValue,
+  clampPwmResolution,
+  getAnalogMaxDuty,
+  isAnalogOutputSegment,
+} from "@/features/iot/utils/analogOutput";
 import { soundManager } from "@/lib/audio";
 
 type SetPinsStateFn = (
@@ -90,6 +96,32 @@ export function rollbackBatchPinState(
   return next;
 }
 
+function resolveAnalogPinResolution(pin: string): number {
+  const store = useIoTStore.getState();
+  const liveRes = store.pinsPwmResolution[pin];
+  if (liveRes !== undefined) return clampPwmResolution(liveRes);
+
+  const segment = store.segments.find((s) => s.pin === pin);
+  return clampPwmResolution(segment?.pwmResolution);
+}
+
+function resolveRestoredAnalogDuty(pin: string): number {
+  const store = useIoTStore.getState();
+  const resolution = resolveAnalogPinResolution(pin);
+  const lastNonZero = store.pinsLastNonZeroValue[pin];
+
+  if (lastNonZero !== undefined && lastNonZero > 0) {
+    return clampAnalogValue(lastNonZero, resolution);
+  }
+
+  const segment = store.segments.find((s) => s.pin === pin);
+  if (segment?.lastNonZeroValue !== undefined && segment.lastNonZeroValue > 0) {
+    return clampAnalogValue(segment.lastNonZeroValue, resolution);
+  }
+
+  return getAnalogMaxDuty(resolution);
+}
+
 export async function executeSinglePinUpdate(
   pin: string,
   pinState: boolean,
@@ -104,11 +136,39 @@ export async function executeSinglePinUpdate(
   if (!pin) return false;
 
   beginLoading();
-  const prevState = useIoTStore.getState().pinsState[pin];
+  const initialStore = useIoTStore.getState();
+  const prevState = initialStore.pinsState[pin];
+  const segment = initialStore.segments.find((s) => s.pin === pin);
+  const isAnalog = isAnalogOutputSegment(segment);
+  const prevAnalogValue = initialStore.pinsAnalogValue[pin];
+
+  const restoreAnalogRollback = () => {
+    if (!isAnalog) return;
+
+    useIoTStore.getState().setPinsAnalogValue((prev) => {
+      if (prevAnalogValue === undefined) {
+        if (!Object.hasOwn(prev, pin)) return prev;
+        const next = { ...prev };
+        delete next[pin];
+        return next;
+      }
+
+      return prev[pin] === prevAnalogValue ? prev : { ...prev, [pin]: prevAnalogValue };
+    });
+  };
 
   try {
     setPinsState((prev) => (prev[pin] === pinState ? prev : { ...prev, [pin]: pinState }));
-    const segment = useIoTStore.getState().segments.find((s) => s.pin === pin);
+
+    if (isAnalog) {
+      const nextAnalogDuty = pinState ? resolveRestoredAnalogDuty(pin) : 0;
+      useIoTStore
+        .getState()
+        .setPinsAnalogValue((prev) =>
+          prev[pin] === nextAnalogDuty ? prev : { ...prev, [pin]: nextAnalogDuty },
+        );
+    }
+
     const effectiveTimer = timer !== undefined ? timer : segment?.auto_off;
 
     const delivered = await syncGateway.syncSinglePin(pin, pinState, {
@@ -120,6 +180,7 @@ export async function executeSinglePinUpdate(
 
     if (delivered === false) {
       setPinsState((prev) => rollbackSinglePinState(prev, pin, pinState, prevState));
+      restoreAnalogRollback();
 
       return false;
     }
@@ -129,10 +190,97 @@ export async function executeSinglePinUpdate(
   } catch (error) {
     console.error("Failed to update pin value:", error);
     setPinsState((prev) => rollbackSinglePinState(prev, pin, pinState, prevState));
+    restoreAnalogRollback();
 
     return false;
   } finally {
     endLoading();
+  }
+}
+
+export interface SetPinAnalogOptions {
+  persistToCloud?: boolean;
+  preventMqtt?: boolean;
+  timer?: number;
+}
+
+/**
+ * Updates an `analog_output` PWM pin optimistically (updating `pinsAnalogValue`,
+ * `pinsLastNonZeroValue` when > 0, and `pinsState`) and dispatches Opcode `0x0A` / Local WS.
+ */
+export async function executeAnalogPinUpdate(
+  pin: string,
+  value: number,
+  options: SetPinAnalogOptions | undefined,
+  setPinsState: SetPinsStateFn,
+  showToast: ShowToastFn,
+  beginLoading: () => void,
+  endLoading: () => void,
+  syncGateway: IDeviceSyncPort = defaultDeviceSyncGateway,
+): Promise<boolean> {
+  if (!pin) return false;
+
+  const store = useIoTStore.getState();
+  const segment = store.segments.find((s) => s.pin === pin);
+  const resolution = resolveAnalogPinResolution(pin);
+  const clampedValue = clampAnalogValue(value, resolution);
+  const nextBoolState = clampedValue > 0;
+  const persistToCloud = options?.persistToCloud !== false;
+
+  if (persistToCloud) beginLoading();
+
+  const prevState = store.pinsState[pin];
+  const prevAnalogValue = store.pinsAnalogValue[pin];
+
+  try {
+    store.setPinsAnalogValue((prev) =>
+      prev[pin] === clampedValue ? prev : { ...prev, [pin]: clampedValue },
+    );
+
+    if (clampedValue > 0) {
+      store.setPinsLastNonZeroValue((prev) =>
+        prev[pin] === clampedValue ? prev : { ...prev, [pin]: clampedValue },
+      );
+    }
+
+    setPinsState((prev) =>
+      prev[pin] === nextBoolState ? prev : { ...prev, [pin]: nextBoolState },
+    );
+
+    const effectiveTimer =
+      options?.timer !== undefined ? options.timer : nextBoolState ? segment?.auto_off : 0;
+
+    const delivered = await syncGateway.syncAnalogPin(pin, clampedValue, {
+      preventMqtt: options?.preventMqtt,
+      autoOff: effectiveTimer,
+      persistToCloud,
+      showToast,
+    });
+
+    if (delivered === false && persistToCloud) {
+      setPinsState((prev) => rollbackSinglePinState(prev, pin, nextBoolState, prevState));
+      useIoTStore.getState().setPinsAnalogValue((prev) => {
+        if (prevAnalogValue === undefined) {
+          if (!Object.hasOwn(prev, pin)) return prev;
+          const next = { ...prev };
+          delete next[pin];
+          return next;
+        }
+        return prev[pin] === prevAnalogValue ? prev : { ...prev, [pin]: prevAnalogValue };
+      });
+      return false;
+    }
+
+    if (persistToCloud || clampedValue === 0) {
+      clearTimerOverrides([pin]);
+    }
+
+    return delivered;
+  } catch (error) {
+    console.error("Failed to update analog pin value:", error);
+    return false;
+  } finally {
+    if (persistToCloud) endLoading();
   }
 }
 
@@ -146,9 +294,12 @@ export async function executeBatchPinUpdate(
   if (actions.length === 0) return false;
 
   beginLoading();
-  const initialPinsState = useIoTStore.getState().pinsState;
+  const initialStore = useIoTStore.getState();
+  const initialPinsState = initialStore.pinsState;
   const previousSnapshots = new Map<string, boolean | undefined>();
   const stateUpdates: Record<string, boolean> = {};
+  const analogUpdates: Record<string, number> = {};
+  let hasAnalogUpdates = false;
 
   try {
     let soundPlayed = false;
@@ -165,11 +316,23 @@ export async function executeBatchPinUpdate(
       }
 
       stateUpdates[action.targetPin] = action.actionOn;
+
+      const segment = initialStore.segments.find((s) => s.pin === action.targetPin);
+      if (isAnalogOutputSegment(segment)) {
+        analogUpdates[action.targetPin] = action.actionOn
+          ? resolveRestoredAnalogDuty(action.targetPin)
+          : 0;
+        hasAnalogUpdates = true;
+      }
     }
 
     if (soundPlayed) soundManager.playToggleOn();
 
     setPinsState((prev) => ({ ...prev, ...stateUpdates }));
+    if (hasAnalogUpdates) {
+      initialStore.setPinsAnalogValue((prev) => ({ ...prev, ...analogUpdates }));
+    }
+
     const delivered = await syncGateway.syncBatchPins(actions);
 
     if (delivered === false) {
@@ -289,6 +452,21 @@ export function usePinOperations() {
     [updatePinOnServer],
   );
 
+  const handleSetPinAnalogValue = useCallback(
+    async (pin: string, value: number, options?: SetPinAnalogOptions) => {
+      return executeAnalogPinUpdate(
+        pin,
+        value,
+        options,
+        setPinsState,
+        showToast,
+        beginLoading,
+        endLoading,
+      );
+    },
+    [setPinsState, showToast, beginLoading, endLoading],
+  );
+
   const handleBatchPinState = useCallback(
     async (actions: Array<{ targetPin: string; actionOn: boolean }>) => {
       return executeBatchPinUpdate(actions, setPinsState, beginLoading, endLoading);
@@ -301,6 +479,7 @@ export function usePinOperations() {
     updatePinOnServer,
     handleTogglePin,
     handleSetPinState,
+    handleSetPinAnalogValue,
     handleBatchPinState,
   };
 }

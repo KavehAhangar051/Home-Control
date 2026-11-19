@@ -1,8 +1,19 @@
 import { AnimatePresence, m } from "motion/react";
+import { useMemo } from "react";
+import { RangeSlider } from "@/components/motion/range-slider";
 import { Card } from "@/components/ui/card";
 import { ChevronDown, Plus, Settings2 } from "@/components/ui/hugeicons-groups/shell";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import {
+  type AnalogSegmentOptions,
+  getAnalogMaxDuty,
+  isAnalogOutputType,
+  MAX_PWM_FREQUENCY,
+  MIN_PWM_FREQUENCY,
+  percentToAnalogDuty,
+} from "@/features/iot/utils/analogOutput";
 import {
   DURATION,
   EASE_IN_OUT,
@@ -17,6 +28,8 @@ import ButtonModeSelector from "./ButtonModeSelector";
 import FormDetailsInput from "./FormDetailsInput";
 import PinSelector from "./PinSelector";
 
+const PWM_FREQUENCY_PRESETS = [1000, 5000, 20000] as const;
+
 interface AddSegmentFormProps {
   onAddSegment: (
     type: string,
@@ -27,6 +40,7 @@ interface AddSegmentFormProps {
     auto_off?: number,
     icon?: string,
     groupIcon?: string,
+    analogConfig?: AnalogSegmentOptions,
   ) => void;
   onClose: () => void;
   segments: Segment[];
@@ -55,11 +69,31 @@ export default function AddSegmentForm({
     errorText,
     buttonMode,
     setButtonMode,
+    pwmResolution,
+    setPwmResolution,
+    pwmFrequency,
+    setPwmFrequency,
+    initialPercent,
+    setInitialPercent,
     showAdvanced,
     setShowAdvanced,
     groupsOrder,
     handleSubmit,
   } = useAddSegmentForm(segments, onAddSegment, onClose);
+
+  const isAnalog = isAnalogOutputType(selectedType);
+  const maxDuty = getAnalogMaxDuty(pwmResolution);
+  const initialDuty = percentToAnalogDuty(initialPercent, pwmResolution);
+
+  const usedPins = useMemo(
+    () =>
+      new Set(
+        segments
+          .filter((s) => s.type !== "placeholder" && s.pin.trim().length > 0)
+          .map((s) => s.pin.trim()),
+      ),
+    [segments],
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -83,13 +117,21 @@ export default function AddSegmentForm({
               <option value="gpio_toggle" className="bg-card-bg-solid">
                 کلید کنترل پایه (خاموش و روشن)
               </option>
+              <option value="analog_output" className="bg-card-bg-solid">
+                خروجی آنالوگ (PWM / دیمر)
+              </option>
               <option value="input" className="bg-card-bg-solid">
                 ورودی دیجیتال (۰ و ۱)
               </option>
             </Select>
           </div>
 
-          <PinSelector customPin={targetPin} setCustomPin={setTargetPin} />
+          <PinSelector
+            customPin={targetPin}
+            setCustomPin={setTargetPin}
+            selectedType={selectedType}
+            usedPins={usedPins}
+          />
 
           <FormDetailsInput
             customTitle={customTitle}
@@ -103,61 +145,189 @@ export default function AddSegmentForm({
             existingGroups={groupsOrder}
           />
 
-          <div className="pt-2 border-t border-border-color">
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full flex items-center justify-between text-text-secondary hover:text-text-primary transition-colors py-2"
-            >
-              <div className="flex items-center gap-2">
-                <Settings2 strokeWidth={1.5} className="size-4" />
-                <span className="text-xs font-medium">تنظیمات جانبی</span>
-              </div>
-              <ChevronDown
-                strokeWidth={1.5}
-                className={`size-4 transition-transform duration-200 ${showAdvanced ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            <AnimatePresence initial={false}>
-              {showAdvanced && (
-                <m.div
-                  key="advanced-settings"
-                  initial={animationsEnabled ? { height: 0, opacity: 0 } : false}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={
-                    animationsEnabled
-                      ? { height: 0, opacity: 0 }
-                      : { opacity: 0, transition: { duration: 0 } }
-                  }
-                  transition={
-                    animationsEnabled
-                      ? {
-                          height: { duration: 0.22, ease: TRANSITION_ENTER_QUICK.ease },
-                          opacity: { duration: 0.16, ease: TRANSITION_EXIT_QUICK.ease },
-                        }
-                      : { duration: 0 }
-                  }
-                  className="overflow-hidden"
-                >
-                  <div className="pt-3 pb-1 space-y-4">
-                    {selectedType === "gpio_toggle" && (
-                      <ButtonModeSelector
-                        buttonMode={buttonMode}
-                        setButtonMode={setButtonMode}
-                        animationsEnabled={animationsEnabled}
-                      />
-                    )}
-                    {selectedType !== "gpio_toggle" && (
-                      <p className="text-xs text-text-muted text-center">
-                        تنظیمات جانبی برای این نوع سگمنت وجود ندارد
-                      </p>
-                    )}
+          <AnimatePresence initial={false}>
+            {isAnalog && (
+              <m.div
+                key="analog-pwm-settings"
+                initial={animationsEnabled ? { height: 0, opacity: 0 } : false}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={
+                  animationsEnabled
+                    ? { height: 0, opacity: 0 }
+                    : { opacity: 0, transition: { duration: 0 } }
+                }
+                transition={
+                  animationsEnabled
+                    ? {
+                        height: { duration: 0.22, ease: TRANSITION_ENTER_QUICK.ease },
+                        opacity: { duration: 0.16, ease: TRANSITION_EXIT_QUICK.ease },
+                      }
+                    : { duration: 0 }
+                }
+                className="overflow-hidden"
+              >
+                <div className="space-y-3.5 rounded-xl border border-border-color bg-secondary/40 p-3">
+                  <div className="flex items-center justify-between gap-2 border-b border-border-color/70 pb-2">
+                    <span className="text-xs font-medium text-text-primary">
+                      تنظیمات PWM (LEDC)
+                    </span>
+                    <span className="font-mono text-[11px] tabular-nums text-text-muted" dir="ltr">
+                      0..{maxDuty}
+                    </span>
                   </div>
-                </m.div>
-              )}
-            </AnimatePresence>
-          </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pwm-resolution-select" className="block text-xs">
+                        دقت (Resolution)
+                      </Label>
+                      <Select
+                        id="pwm-resolution-select"
+                        aria-label="دقت PWM"
+                        value={pwmResolution}
+                        onChange={(e) => setPwmResolution(Number.parseInt(e.target.value, 10))}
+                        className="text-xs rounded-lg font-sans"
+                      >
+                        <option value={8} className="bg-card-bg-solid">
+                          ۸ بیت (۰ تا ۲۵۵ — پیش‌فرض)
+                        </option>
+                        <option value={9} className="bg-card-bg-solid">
+                          ۹ بیت (۰ تا ۵۱۱)
+                        </option>
+                        <option value={10} className="bg-card-bg-solid">
+                          ۱۰ بیت (۰ تا ۱۰۲۳)
+                        </option>
+                        <option value={11} className="bg-card-bg-solid">
+                          ۱۱ بیت (۰ تا ۲۰۴۷)
+                        </option>
+                        <option value={12} className="bg-card-bg-solid">
+                          ۱۲ بیت (۰ تا ۴۰۹۵)
+                        </option>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pwm-frequency-input" className="block text-xs">
+                        فرکانس (Hz)
+                      </Label>
+                      <Input
+                        id="pwm-frequency-input"
+                        aria-label="فرکانس PWM بر حسب هرتز"
+                        type="number"
+                        min={MIN_PWM_FREQUENCY}
+                        max={MAX_PWM_FREQUENCY}
+                        step={100}
+                        value={pwmFrequency}
+                        onChange={(e) => {
+                          const parsed = Number.parseInt(e.target.value, 10);
+                          if (!Number.isNaN(parsed)) setPwmFrequency(parsed);
+                        }}
+                        className="text-xs font-mono tabular-nums rounded-lg text-right"
+                        dir="ltr"
+                      />
+                      <div className="flex items-center gap-1" dir="ltr">
+                        {PWM_FREQUENCY_PRESETS.map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setPwmFrequency(preset)}
+                            className={`rounded border px-1.5 py-0.5 font-mono text-[10px] tabular-nums transition-colors cursor-pointer ${
+                              pwmFrequency === preset
+                                ? "border-accent3 bg-accent3 text-bg-main font-semibold"
+                                : "border-border-color bg-card-bg-solid text-text-muted hover:text-text-primary"
+                            }`}
+                          >
+                            {preset >= 1000 ? `${preset / 1000}kHz` : `${preset}Hz`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-text-secondary">مقدار اولیه هنگام ساخت</span>
+                      <span
+                        className="font-mono text-[11px] tabular-nums text-text-primary"
+                        dir="ltr"
+                      >
+                        {initialPercent}% ({initialDuty}/{maxDuty})
+                      </span>
+                    </div>
+                    <RangeSlider
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={initialPercent}
+                      showTicks={false}
+                      onValueChange={setInitialPercent}
+                      aria-label="مقدار اولیه خروجی آنالوگ"
+                      formatValueText={(val) => `${val} درصد`}
+                      className="h-8 border border-border-color/75 bg-card-bg-solid"
+                    />
+                  </div>
+                </div>
+              </m.div>
+            )}
+          </AnimatePresence>
+
+          {!isAnalog && (
+            <div className="pt-2 border-t border-border-color">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="w-full flex items-center justify-between text-text-secondary hover:text-text-primary transition-colors py-2"
+              >
+                <div className="flex items-center gap-2">
+                  <Settings2 strokeWidth={1.5} className="size-4" />
+                  <span className="text-xs font-medium">تنظیمات جانبی</span>
+                </div>
+                <ChevronDown
+                  strokeWidth={1.5}
+                  className={`size-4 transition-transform duration-200 ${showAdvanced ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              <AnimatePresence initial={false}>
+                {showAdvanced && (
+                  <m.div
+                    key="advanced-settings"
+                    initial={animationsEnabled ? { height: 0, opacity: 0 } : false}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={
+                      animationsEnabled
+                        ? { height: 0, opacity: 0 }
+                        : { opacity: 0, transition: { duration: 0 } }
+                    }
+                    transition={
+                      animationsEnabled
+                        ? {
+                            height: { duration: 0.22, ease: TRANSITION_ENTER_QUICK.ease },
+                            opacity: { duration: 0.16, ease: TRANSITION_EXIT_QUICK.ease },
+                          }
+                        : { duration: 0 }
+                    }
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-3 pb-1 space-y-4">
+                      {selectedType === "gpio_toggle" && (
+                        <ButtonModeSelector
+                          buttonMode={buttonMode}
+                          setButtonMode={setButtonMode}
+                          animationsEnabled={animationsEnabled}
+                        />
+                      )}
+                      {selectedType !== "gpio_toggle" && (
+                        <p className="text-xs text-text-muted text-center">
+                          تنظیمات جانبی برای این نوع سگمنت وجود ندارد
+                        </p>
+                      )}
+                    </div>
+                  </m.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
 
           <AnimatePresence mode="wait">
             {errorText && (

@@ -8,12 +8,14 @@ import {
   fetchConfigFromCloudflare,
   isCloudflareEnabled,
   saveConfigToCloudflare,
+  updateAnalogPinOnCloudflare,
   updateBatchPinsOnCloudflare,
   updatePinOnCloudflare,
 } from "./cloudflareService";
 import type { EspConfig } from "./config/types";
 import { getLocalWs } from "./localWs/client";
 import {
+  publishAnalogOutputCommand as mqttPublishAnalog,
   publishBatchPinCommand as mqttPublishBatch,
   publishPinCommand as mqttPublishPin,
 } from "./mqtt/pinPublishers";
@@ -24,6 +26,7 @@ import {
 import { publishPresence as mqttPublishPresence } from "./mqtt/systemPublishers";
 import type {
   AckResponse,
+  AnalogPinSyncOptions,
   BatchPinSyncOptions,
   IConfigStoragePort,
   IDeviceCommandPort,
@@ -32,6 +35,7 @@ import type {
   SinglePinSyncOptions,
 } from "./ports";
 import { getIoTStoreSnapshot } from "./storeBridge";
+import type { AnalogSegmentOptions } from "@/features/iot/utils/analogOutput";
 
 interface PartitionedBatchActions {
   mqttActions: PinAction[];
@@ -43,12 +47,22 @@ export class DeviceCommandAdapter implements IDeviceCommandPort {
     return mqttPublishPin(pinId, value, timer);
   }
 
+  publishAnalogOutputCommand(pinId: string, value: number, timer?: number): boolean {
+    return mqttPublishAnalog(pinId, value, timer);
+  }
+
   publishBatchPinCommand(actions: PinAction[]): boolean {
     return mqttPublishBatch(actions);
   }
 
-  publishAddSegment(id: string, type: string, pin: number, value: boolean): void {
-    mqttAddSegment(id, type, pin, value);
+  publishAddSegment(
+    id: string,
+    type: string,
+    pin: number,
+    value: boolean,
+    analogOptions?: AnalogSegmentOptions,
+  ): void {
+    mqttAddSegment(id, type, pin, value, analogOptions);
   }
 
   publishDeleteSegment(id: string): void {
@@ -77,6 +91,10 @@ export class CloudflareStorageAdapter implements IConfigStoragePort {
     return updatePinOnCloudflare(pin, value);
   }
 
+  updateAnalogPin(pin: string, analogValue: number): Promise<AckResponse> {
+    return updateAnalogPinOnCloudflare(pin, analogValue);
+  }
+
   updateBatchPins(actions: Array<{ pin: string; state: boolean }>): Promise<AckResponse> {
     return updateBatchPinsOnCloudflare(actions);
   }
@@ -93,9 +111,11 @@ export interface LiveDeviceSyncDependencies {
   getShowToast?: () => ((message: string, type: "success" | "error") => void) | undefined;
   getLocalWs?: () => LocalWsSocketLike | null;
   publishPinCommand?: (pinId: string, value: boolean, timer?: number) => boolean;
+  publishAnalogOutputCommand?: (pinId: string, value: number, timer?: number) => boolean;
   publishBatchPinCommand?: (actions: PinAction[]) => boolean;
   isCloudflareEnabled?: () => boolean;
   updatePinOnCloudflare?: (pin: string, value: boolean) => Promise<AckResponse>;
+  updateAnalogPinOnCloudflare?: (pin: string, analogValue: number) => Promise<AckResponse>;
   updateBatchPinsOnCloudflare?: (
     actions: Array<{ pin: string; state: boolean }>,
   ) => Promise<AckResponse>;
@@ -117,9 +137,12 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
       getShowToast: dependencies.getShowToast ?? (() => getIoTStoreSnapshot().showToast),
       getLocalWs: dependencies.getLocalWs ?? (() => getLocalWs()),
       publishPinCommand: dependencies.publishPinCommand ?? mqttPublishPin,
+      publishAnalogOutputCommand: dependencies.publishAnalogOutputCommand ?? mqttPublishAnalog,
       publishBatchPinCommand: dependencies.publishBatchPinCommand ?? mqttPublishBatch,
       isCloudflareEnabled: dependencies.isCloudflareEnabled ?? isCloudflareEnabled,
       updatePinOnCloudflare: dependencies.updatePinOnCloudflare ?? updatePinOnCloudflare,
+      updateAnalogPinOnCloudflare:
+        dependencies.updateAnalogPinOnCloudflare ?? updateAnalogPinOnCloudflare,
       updateBatchPinsOnCloudflare:
         dependencies.updateBatchPinsOnCloudflare ?? updateBatchPinsOnCloudflare,
     };
@@ -130,6 +153,7 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
       command: string;
       pin?: number;
       state?: number;
+      value?: number;
       timer?: number;
       actions?: PinAction[];
     },
@@ -266,6 +290,63 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
     return delivered;
   }
 
+  async syncAnalogPin(
+    pin: string,
+    value: number,
+    options?: AnalogPinSyncOptions,
+  ): Promise<boolean> {
+    const clampedValue = Math.min(4095, Math.max(0, Math.round(value)));
+    const wsPayload = {
+      command: "set_state",
+      pin: Number(pin) | 0,
+      value: clampedValue,
+      ...(options?.autoOff !== undefined ? { timer: options.autoOff } : {}),
+    };
+
+    const hardwareSent = this.dispatchHardwareCommand(
+      wsPayload,
+      () =>
+        !options?.preventMqtt &&
+        this.deps.publishAnalogOutputCommand(pin, clampedValue, options?.autoOff),
+    );
+
+    const shouldPersist = options?.persistToCloud !== false;
+    const toast = options?.showToast || this.deps.getShowToast();
+    let cfSucceeded = false;
+    let cfAttempted = false;
+    let cfShowedToast = false;
+
+    if (shouldPersist && this.deps.isCloudflareEnabled()) {
+      cfAttempted = true;
+
+      const cfOutcome = await this.persistToCloudflareWithToast(
+        toast,
+        () => this.deps.updateAnalogPinOnCloudflare(pin, clampedValue),
+        `Failed to sync analog pin ${pin} value to Cloudflare:`,
+      );
+
+      cfSucceeded = cfOutcome.succeeded;
+      cfShowedToast = cfOutcome.showedToast;
+    }
+
+    if (options?.preventMqtt) {
+      return !cfAttempted || cfSucceeded;
+    }
+
+    const delivered = hardwareSent || cfSucceeded;
+
+    if (shouldPersist) {
+      this.notifyIfOffline(
+        delivered,
+        cfShowedToast,
+        toast,
+        "ارتباط با دستگاه (MQTT/سرور) برقرار نیست؛ مقدار PWM ارسال نشد.",
+      );
+    }
+
+    return delivered;
+  }
+
   async syncBatchPins(
     actions: Array<{ targetPin: string; actionOn: boolean }>,
     options?: BatchPinSyncOptions,
@@ -321,10 +402,15 @@ const MAX_DISPATCH_LOG_ENTRIES = 500;
  */
 export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
   public pinsState = new Map<string, boolean>();
-  public dispatchLog: Array<{ type: "single" | "batch"; payload: unknown; timestamp: number }> = [];
+  public pinsAnalogValue = new Map<string, number>();
+  public dispatchLog: Array<{
+    type: "single" | "analog" | "batch";
+    payload: unknown;
+    timestamp: number;
+  }> = [];
 
   private appendDispatchLog(entry: {
-    type: "single" | "batch";
+    type: "single" | "analog" | "batch";
     payload: unknown;
     timestamp: number;
   }): void {
@@ -354,6 +440,27 @@ export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
     return true;
   }
 
+  async syncAnalogPin(
+    pin: string,
+    value: number,
+    options?: AnalogPinSyncOptions,
+  ): Promise<boolean> {
+    const clamped = Math.min(4095, Math.max(0, Math.round(value)));
+    this.pinsAnalogValue.set(pin, clamped);
+    this.pinsState.set(pin, clamped > 0);
+    this.appendDispatchLog({
+      type: "analog",
+      payload: { pin, value: clamped, options },
+      timestamp: Date.now(),
+    });
+
+    if (options?.showToast && options?.persistToCloud !== false) {
+      options.showToast(`[Simulation] Analog pin ${pin} synced to ${clamped}`, "success");
+    }
+
+    return true;
+  }
+
   async syncBatchPins(
     actions: Array<{ targetPin: string; actionOn: boolean }>,
     options?: BatchPinSyncOptions,
@@ -377,6 +484,7 @@ export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
 
   reset(): void {
     this.pinsState.clear();
+    this.pinsAnalogValue.clear();
     this.dispatchLog = [];
   }
 }

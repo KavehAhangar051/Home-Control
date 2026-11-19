@@ -37,6 +37,7 @@ export function useAchaemenidState() {
     updatePinOnServer,
     handleTogglePin,
     handleSetPinState,
+    handleSetPinAnalogValue,
     handleBatchPinState,
   } = usePinOperations();
 
@@ -77,6 +78,7 @@ export function useAchaemenidState() {
     handleRemoveGroup,
     handleTogglePin,
     handleSetPinState,
+    handleSetPinAnalogValue,
     handleBatchPinState,
     handleBypassSync,
     workerUrl,

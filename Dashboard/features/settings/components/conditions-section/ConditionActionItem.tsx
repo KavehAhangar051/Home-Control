@@ -1,8 +1,19 @@
 import { useId } from "react";
+import { RangeSlider } from "@/components/motion/range-slider";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import {
+  analogDutyToPercent,
+  clampAnalogValue,
+  clampPwmResolution,
+  getAnalogMaxDuty,
+  hasExplicitAnalogTargetValue,
+  isAnalogOutputSegment,
+  percentToAnalogDuty,
+} from "@/features/iot/utils/analogOutput";
 
 export interface ConditionAction {
   reqHold: number;
@@ -10,7 +21,11 @@ export interface ConditionAction {
   actionOn: boolean;
   actionType?: number;
   delay?: number;
+  /** Optional explicit PWM duty cycle (`0..4095`). `-1` / null preserves boolean mode. */
+  targetValue?: number | null;
 }
+
+const PWM_RULE_PERCENT_PRESETS = [0, 25, 50, 75, 100] as const;
 
 interface Props {
   action: ConditionAction;
@@ -35,6 +50,24 @@ export function ConditionActionItem({
   const stateId = `${baseId}-state`;
   const typeId = `${baseId}-type`;
   const delayId = `${baseId}-delay`;
+
+  const segments = useIoTStore((state) => state.segments);
+  const pinsPwmResolution = useIoTStore((state) => state.pinsPwmResolution);
+
+  const normalizedPin = action.targetPin.trim();
+  const matchedSegment = normalizedPin
+    ? segments.find((s) => s.type !== "placeholder" && s.pin.trim() === normalizedPin)
+    : undefined;
+
+  const isAnalogTarget =
+    isAnalogOutputSegment(matchedSegment) || hasExplicitAnalogTargetValue(action.targetValue);
+  const resolution = clampPwmResolution(
+    pinsPwmResolution[normalizedPin] ?? matchedSegment?.pwmResolution,
+  );
+  const maxDuty = getAnalogMaxDuty(resolution);
+  const isExactPwmMode = hasExplicitAnalogTargetValue(action.targetValue);
+  const exactDuty = isExactPwmMode ? clampAnalogValue(action.targetValue, resolution) : 0;
+  const exactPercent = analogDutyToPercent(exactDuty, resolution);
 
   return (
     <div className="bg-card-bg-solid p-4 rounded-xl border border-border-color relative shadow-sm">
@@ -84,27 +117,133 @@ export function ConditionActionItem({
               type="text"
               placeholder="مثال: 4"
               value={action.targetPin}
-              onChange={(e) => onUpdate({ targetPin: e.target.value })}
-              className="bg-bg-primary p-2.5 rounded-lg text-xs text-left"
+              onChange={(e) => onUpdate({ targetPin: e.target.value.replace(/[^0-9]/g, "") })}
+              className="bg-bg-primary p-2.5 rounded-lg text-xs text-left font-mono tabular-nums"
               dir="ltr"
             />
+            {matchedSegment && (
+              <p className="mt-1 text-[11px] text-text-muted truncate">
+                متصل به: <span className="text-text-secondary">{matchedSegment.title}</span>
+                {isAnalogOutputSegment(matchedSegment) && (
+                  <span className="ms-1 text-accent3 font-medium">(PWM {resolution}-bit)</span>
+                )}
+              </p>
+            )}
           </div>
-          <div className="flex-1">
-            <Label htmlFor={stateId} className="block font-semibold mb-1.5">
-              وضعیت:
-            </Label>
-            <Select
-              id={stateId}
-              aria-label="وضعیت خروجی"
-              value={action.actionOn ? "1" : "0"}
-              onChange={(e) => onUpdate({ actionOn: e.target.value === "1" })}
-              className="bg-bg-primary p-2.5 rounded-lg text-xs"
-            >
-              <option value="1">روشن (HIGH)</option>
-              <option value="0">خاموش (LOW)</option>
-            </Select>
-          </div>
+          {!isExactPwmMode && (
+            <div className="flex-1">
+              <Label htmlFor={stateId} className="block font-semibold mb-1.5">
+                وضعیت:
+              </Label>
+              <Select
+                id={stateId}
+                aria-label="وضعیت خروجی"
+                value={action.actionOn ? "1" : "0"}
+                onChange={(e) =>
+                  onUpdate({
+                    actionOn: e.target.value === "1",
+                    ...(isAnalogTarget ? { targetValue: -1 } : {}),
+                  })
+                }
+                className="bg-bg-primary p-2.5 rounded-lg text-xs"
+              >
+                <option value="1">
+                  {isAnalogTarget ? "روشن (بازیابی آخرین شدت)" : "روشن (HIGH)"}
+                </option>
+                <option value="0">خاموش (LOW)</option>
+              </Select>
+            </div>
+          )}
         </div>
+
+        {isAnalogTarget && (
+          <div className="space-y-2.5 rounded-xl border border-border-color bg-bg-primary/60 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-semibold text-text-secondary">حالت فرمان PWM:</span>
+              <div className="inline-flex rounded-lg border border-border-color bg-card-bg-solid p-0.5">
+                <button
+                  type="button"
+                  aria-pressed={!isExactPwmMode}
+                  onClick={() => onUpdate({ targetValue: -1 })}
+                  className={`rounded-md px-2.5 py-1 text-[11px] transition-colors cursor-pointer ${
+                    !isExactPwmMode
+                      ? "bg-accent3 text-bg-main font-semibold"
+                      : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  کلید (حفظ شدت)
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={isExactPwmMode}
+                  onClick={() => {
+                    const fallbackDuty = action.actionOn ? percentToAnalogDuty(50, resolution) : 0;
+                    onUpdate({
+                      targetValue: isExactPwmMode ? exactDuty : fallbackDuty,
+                      actionOn: (isExactPwmMode ? exactDuty : fallbackDuty) > 0,
+                    });
+                  }}
+                  className={`rounded-md px-2.5 py-1 text-[11px] transition-colors cursor-pointer ${
+                    isExactPwmMode
+                      ? "bg-accent3 text-bg-main font-semibold"
+                      : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  مقدار دقیق PWM
+                </button>
+              </div>
+            </div>
+
+            {isExactPwmMode && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-text-muted">شدت هدف ({resolution} بیت)</span>
+                  <span className="font-mono font-semibold tabular-nums text-accent3" dir="ltr">
+                    {exactPercent}% ({exactDuty}/{maxDuty})
+                  </span>
+                </div>
+                <RangeSlider
+                  min={0}
+                  max={maxDuty}
+                  step={1}
+                  value={exactDuty}
+                  showTicks={false}
+                  onValueChange={(nextDuty) => {
+                    const clamped = clampAnalogValue(nextDuty, resolution);
+                    onUpdate({ targetValue: clamped, actionOn: clamped > 0 });
+                  }}
+                  aria-label="مقدار دقیق PWM هدف"
+                  formatValueText={(val) => `${analogDutyToPercent(val, resolution)} درصد`}
+                  className="h-8 border border-border-color/75 bg-card-bg-solid"
+                />
+                <div className="flex flex-wrap items-center gap-1.5" dir="ltr">
+                  {PWM_RULE_PERCENT_PRESETS.map((pct) => {
+                    const presetDuty = percentToAnalogDuty(pct, resolution);
+                    const isSelected = exactPercent === pct;
+
+                    return (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() =>
+                          onUpdate({ targetValue: presetDuty, actionOn: presetDuty > 0 })
+                        }
+                        className={`rounded-md border px-2 py-0.5 font-mono text-[10px] tabular-nums transition-colors cursor-pointer ${
+                          isSelected
+                            ? "border-accent3 bg-accent3 text-bg-main font-semibold"
+                            : "border-border-color bg-card-bg-solid text-text-muted hover:text-text-primary"
+                        }`}
+                      >
+                        {pct}%
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div>
           <Label htmlFor={typeId} className="block font-semibold mb-1.5">
             نوع عملیات:

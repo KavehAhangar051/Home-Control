@@ -5,10 +5,14 @@ export interface MqttStateSyncPayload {
   command?: string;
   id?: string | number;
   value?: RawPinStateValue;
+  resolution?: RawPinStateValue;
   states?: Record<string, RawPinStateValue>;
+  values?: Record<string, RawPinStateValue>;
+  resolutions?: Record<string, RawPinStateValue>;
   timers?: Record<string, RawPinStateValue>;
   pin?: string | number;
   state?: RawPinStateValue;
+  source?: string;
 }
 
 export type ParsedMqttStatusMessage =
@@ -18,8 +22,22 @@ export type ParsedMqttStatusMessage =
   | { kind: "error"; error: unknown };
 
 export type ParsedMqttStateMessage =
-  | { kind: "pin_update"; pinId: string; state: boolean; source: "binary" | "json" }
-  | { kind: "state_sync"; states: Record<string, boolean>; timers: Record<string, number> }
+  | {
+      kind: "pin_update";
+      pinId: string;
+      state: boolean;
+      source: "binary" | "json";
+      value?: number;
+      resolution?: number;
+      isAck?: boolean;
+    }
+  | {
+      kind: "state_sync";
+      states: Record<string, boolean>;
+      timers: Record<string, number>;
+      values?: Record<string, number>;
+      resolutions?: Record<string, number>;
+    }
   | { kind: "ping" }
   | { kind: "ignored" }
   | { kind: "error"; error: unknown };
@@ -102,7 +120,11 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
       // SAFETY: cmdType === 123 ('{') guarantees JSON object text parsed with field guards below
       const data = JSON.parse(decodePayloadText(payload)) as MqttStateSyncPayload;
 
-      if (data.type === "pin_update" && data.pin !== undefined && data.state !== undefined) {
+      if (
+        (data.type === "pin_update" || data.type === "command_ack") &&
+        data.pin !== undefined &&
+        (data.state !== undefined || data.value !== undefined)
+      ) {
         const rawPin = data.pin;
 
         const pinId =
@@ -110,11 +132,34 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
             ? PIN_ID_STRINGS[Number(rawPin)]
             : String(rawPin);
 
+        const parsedNumericValue =
+          typeof data.value === "number" && Number.isFinite(data.value)
+            ? Math.min(4095, Math.max(0, Math.round(data.value)))
+            : undefined;
+
+        const parsedResolution =
+          typeof data.resolution === "number" &&
+          Number.isFinite(data.resolution) &&
+          data.resolution >= 8 &&
+          data.resolution <= 12
+            ? Math.round(data.resolution)
+            : undefined;
+
+        const resolvedState =
+          data.state !== undefined
+            ? toBooleanPinState(data.state)
+            : parsedNumericValue !== undefined
+              ? parsedNumericValue > 0
+              : false;
+
         return {
           kind: "pin_update",
           pinId,
-          state: toBooleanPinState(data.state),
+          state: resolvedState,
           source: "json",
+          ...(parsedNumericValue !== undefined ? { value: parsedNumericValue } : {}),
+          ...(parsedResolution !== undefined ? { resolution: parsedResolution } : {}),
+          ...(data.type === "command_ack" ? { isAck: true } : {}),
         };
       }
 
@@ -145,7 +190,39 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
           }
         }
 
-        return { kind: "state_sync", states: normalizedStates, timers: normalizedTimers };
+        let normalizedValues: Record<string, number> | undefined;
+        if (data.values && !Array.isArray(data.values)) {
+          normalizedValues = {};
+          for (const key in data.values) {
+            if (Object.hasOwn(data.values, key)) {
+              const num = Number(data.values[key]);
+              if (Number.isFinite(num)) {
+                normalizedValues[key] = Math.min(4095, Math.max(0, Math.round(num)));
+              }
+            }
+          }
+        }
+
+        let normalizedResolutions: Record<string, number> | undefined;
+        if (data.resolutions && !Array.isArray(data.resolutions)) {
+          normalizedResolutions = {};
+          for (const key in data.resolutions) {
+            if (Object.hasOwn(data.resolutions, key)) {
+              const res = Number(data.resolutions[key]);
+              if (Number.isFinite(res) && res >= 8 && res <= 12) {
+                normalizedResolutions[key] = Math.round(res);
+              }
+            }
+          }
+        }
+
+        return {
+          kind: "state_sync",
+          states: normalizedStates,
+          timers: normalizedTimers,
+          ...(normalizedValues !== undefined ? { values: normalizedValues } : {}),
+          ...(normalizedResolutions !== undefined ? { resolutions: normalizedResolutions } : {}),
+        };
       }
 
       if (data.command === "ping") {

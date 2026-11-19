@@ -5,7 +5,13 @@ import { Info } from "@/components/ui/hugeicons-groups/controls";
 import { Settings2 } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { publishUpdateRuleCommand } from "@/features/iot/services/mqttService";
+import {
+  hasExplicitAnalogTargetValue,
+  isAnalogOutputSegment,
+  MAX_ANALOG_OUTPUT_VALUE,
+} from "@/features/iot/utils/analogOutput";
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
+import type { ConditionAction } from "./ConditionActionItem";
 import { ConditionSegment } from "./ConditionSegment";
 
 export default function ConditionsSection() {
@@ -17,20 +23,8 @@ export default function ConditionsSection() {
     Record<
       string,
       {
-        highActions: Array<{
-          reqHold: number;
-          targetPin: string;
-          actionOn: boolean;
-          actionType?: number;
-          delay?: number;
-        }>;
-        lowActions: Array<{
-          reqHold: number;
-          targetPin: string;
-          actionOn: boolean;
-          actionType?: number;
-          delay?: number;
-        }>;
+        highActions: ConditionAction[];
+        lowActions: ConditionAction[];
       }
     >
   >({});
@@ -73,14 +67,33 @@ export default function ConditionsSection() {
               const allActions = [...(rule.highActions || []), ...(rule.lowActions || [])];
 
               for (const action of allActions) {
-                if (action.targetPin) {
-                  const val = validateEsp32Pin(action.targetPin, "output");
+                const pin = action.targetPin.trim();
+                if (pin) {
+                  const matchedSeg = segments.find(
+                    (s) => s.type !== "placeholder" && s.pin.trim() === pin,
+                  );
+                  const val = validateEsp32Pin(
+                    pin,
+                    isAnalogOutputSegment(matchedSeg) ? "analog_output" : "output",
+                  );
 
                   if (!val.isValid) {
                     showToast(`خطا در پایه: ${val.message}`, "error");
 
                     return;
                   }
+                }
+
+                if (
+                  hasExplicitAnalogTargetValue(action.targetValue) &&
+                  action.targetValue > MAX_ANALOG_OUTPUT_VALUE
+                ) {
+                  showToast(
+                    `مقدار PWM هدف باید بین ۰ تا ${MAX_ANALOG_OUTPUT_VALUE} باشد.`,
+                    "error",
+                  );
+
+                  return;
                 }
               }
 
@@ -89,16 +102,7 @@ export default function ConditionsSection() {
               showToast("شرط‌ها با موفقیت ثبت و به دستگاه ارسال شدند.", "success");
             };
 
-            const updateLocalRule = (
-              type: "high" | "low",
-              newActions: Array<{
-                reqHold: number;
-                targetPin: string;
-                actionOn: boolean;
-                actionType?: number;
-                delay?: number;
-              }>,
-            ) => {
+            const updateLocalRule = (type: "high" | "low", newActions: ConditionAction[]) => {
               setLocalRules((prev) => ({
                 ...prev,
                 [segment.id]: {

@@ -7,6 +7,11 @@ import {
   publishAddSegmentCommand,
   publishDeleteSegmentCommand,
 } from "@/features/iot/services/mqtt/segmentPublishers";
+import {
+  type AnalogSegmentOptions,
+  getAnalogMaxDuty,
+  isAnalogOutputSegment,
+} from "@/features/iot/utils/analogOutput";
 
 import {
   createSegmentId,
@@ -51,9 +56,10 @@ export function useSegmentManagement({
       auto_off?: number,
       icon?: string,
       groupIcon?: string,
+      analogConfig?: AnalogSegmentOptions,
     ) => {
       const decision = planAddSegment({
-        input: { type, pin, title, group, mode, auto_off, icon, groupIcon },
+        input: { type, pin, title, group, mode, auto_off, icon, groupIcon, analogConfig },
         segments: useIoTStore.getState().segments,
         targetPlaceholderId,
       });
@@ -72,18 +78,41 @@ export function useSegmentManagement({
 
       setSegments(decision.nextSegments);
 
-      const pinsState = useIoTStore.getState().pinsState;
+      const storeSnapshot = useIoTStore.getState();
+      const created = decision.newSegment;
+      const isAnalog = isAnalogOutputSegment(created);
 
-      if (pin && type !== "placeholder" && type !== "input" && pinsState[pin] === undefined) {
+      if (isAnalog && created.pin) {
+        const initVal = created.analogValue ?? 0;
+        const res = created.pwmResolution ?? 8;
+        const lastNonZero = created.lastNonZeroValue ?? getAnalogMaxDuty(res);
+
+        storeSnapshot.setPinsPwmResolution((prev) => ({ ...prev, [created.pin]: res }));
+        storeSnapshot.setPinsAnalogValue((prev) => ({ ...prev, [created.pin]: initVal }));
+        storeSnapshot.setPinsLastNonZeroValue((prev) => ({ ...prev, [created.pin]: lastNonZero }));
+        storeSnapshot.setPinsState((prev) => ({ ...prev, [created.pin]: initVal > 0 }));
+      } else if (
+        pin &&
+        type !== "placeholder" &&
+        type !== "input" &&
+        storeSnapshot.pinsState[pin] === undefined
+      ) {
         void updatePinOnServer(pin, false);
       }
 
       if (type !== "placeholder") {
         publishAddSegmentCommand(
-          decision.newSegment.id,
-          decision.newSegment.type,
-          Number(decision.newSegment.pin) | 0,
+          created.id,
+          created.type,
+          Number(created.pin) | 0,
           false,
+          isAnalog
+            ? {
+                pwmResolution: created.pwmResolution,
+                pwmFrequency: created.pwmFrequency,
+                initialValue: created.analogValue ?? 0,
+              }
+            : undefined,
         );
       }
     },

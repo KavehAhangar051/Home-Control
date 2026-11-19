@@ -2,6 +2,11 @@ import { AnimatePresence, m } from "motion/react";
 import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Sliders } from "@/components/ui/hugeicons-groups/shell";
+import {
+  clampPwmFrequency,
+  clampPwmResolution,
+  isAnalogOutputSegment,
+} from "@/features/iot/utils/analogOutput";
 import { getStaggerDelay, TRANSITION_ENTER_STANDARD, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 import type { Segment } from "../core/types";
 
@@ -35,7 +40,7 @@ export default function SegmentList({ segments, onRemoveSegment }: SegmentListPr
           >
             <p className="text-xs font-medium text-text-secondary">هنوز قطعه‌ای اضافه نشده است</p>
             <p className="text-xs text-text-muted leading-relaxed">
-              از فرم کناری اولین کلید کنترل یا ورودی دیجیتال خانه را ایجاد کنید
+              از فرم کناری اولین کلید کنترل، خروجی آنالوگ یا ورودی دیجیتال خانه را ایجاد کنید
             </p>
           </m.div>
         ) : (
@@ -75,9 +80,11 @@ export default function SegmentList({ segments, onRemoveSegment }: SegmentListPr
                     ·{" "}
                     {seg.type === "input"
                       ? "ورودی دیجیتال"
-                      : seg.mode === "push"
-                        ? "شستی لحظه‌ای"
-                        : "کلید دوحالته"}
+                      : isAnalogOutputSegment(seg)
+                        ? `خروجی آنالوگ PWM · ${clampPwmResolution(seg.pwmResolution)} بیت · ${clampPwmFrequency(seg.pwmFrequency)}Hz`
+                        : seg.mode === "push"
+                          ? "شستی لحظه‌ای"
+                          : "کلید دوحالته"}
                   </span>
                 </div>
               </MotionCard>
