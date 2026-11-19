@@ -1,3 +1,4 @@
+import { scheduleIdleStorageWrite } from "@/lib/asyncScheduler";
 import type {
   WorkflowDefinition,
   WorkflowNode,
@@ -125,9 +126,5 @@ export function writeStoredWorkflowState(state: WorkflowStudioState): void {
 
   if (globalThis.window === undefined) return;
 
-  try {
-    globalThis.window.localStorage.setItem(WORKFLOWS_STORAGE_KEY, JSON.stringify(normalizedState));
-  } catch {
-    // Ignore storage write errors
-  }
+  scheduleIdleStorageWrite(WORKFLOWS_STORAGE_KEY, () => JSON.stringify(normalizedState));
 }

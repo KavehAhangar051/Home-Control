@@ -3,6 +3,7 @@ import React from "react";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
+import { scheduleIdleStorageWrite } from "@/lib/asyncScheduler";
 import { triggerHaptic } from "@/lib/haptics";
 import {
   buildGroupDockDocument,
@@ -254,11 +255,7 @@ export function useTrellisWorkspaceController({
     setWorkspaceMounted(false);
     setPresetOverride(nextPreset);
 
-    try {
-      window.localStorage.setItem(getTrellisPresetStorageKey(), nextPreset);
-    } catch {
-      // Ignore storage write failures in restricted contexts
-    }
+    scheduleIdleStorageWrite(getTrellisPresetStorageKey(), () => nextPreset);
   }, []);
 
   const defaultLayout = React.useMemo(

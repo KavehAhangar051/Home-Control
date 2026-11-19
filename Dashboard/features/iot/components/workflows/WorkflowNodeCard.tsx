@@ -408,6 +408,7 @@ export default React.memo(function WorkflowNodeCard({
         width: node.width,
         height: node.height,
         zIndex: isDragging ? 950 : isSelected ? 900 : node.zIndex,
+        willChange: isDragging ? "transform" : undefined,
         transition:
           shouldAnimateMotion && !isDragging
             ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), width 220ms cubic-bezier(0.22, 1, 0.36, 1), height 220ms cubic-bezier(0.22, 1, 0.36, 1)"

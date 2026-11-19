@@ -9,6 +9,7 @@ import {
   setCloudflareWorkerUrl,
 } from "@/features/iot/services/cloudflareService";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
+import { cancelIdleStorageWrite, scheduleIdleStorageWrite } from "@/lib/asyncScheduler";
 import { debugLog } from "@/lib/debug";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
 
@@ -99,14 +100,16 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
       writeLocalCache: (cfConfig) => {
         if (globalThis.window === undefined) return;
 
-        try {
-          localStorage.setItem("cached_esp_config", JSON.stringify(cfConfig));
-        } catch (error) {
-          debugLog.error("ConfigSync", "Could not write optional configuration cache.", error);
-        }
+        scheduleIdleStorageWrite("cached_esp_config", () => JSON.stringify(cfConfig), {
+          onError: (error) => {
+            debugLog.error("ConfigSync", "Could not write optional configuration cache.", error);
+          },
+        });
       },
       clearLocalCache: () => {
         if (globalThis.window === undefined) return;
+
+        cancelIdleStorageWrite("cached_esp_config");
 
         try {
           localStorage.removeItem("cached_esp_config");

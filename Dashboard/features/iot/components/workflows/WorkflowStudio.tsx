@@ -21,6 +21,8 @@ interface WorkflowStudioProps {
   onSetPinState: (pin: string, state: boolean, preventMqtt?: boolean) => void;
 }
 
+const EMPTY_PINS_STATE: Record<string, boolean> = {};
+
 export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowStudioProps) {
   const segments = useIoTStore((s) => s.segments);
   const groupsOrder = useIoTStore((s) => s.groupsOrder);
@@ -249,7 +251,9 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
               <WorkflowNodeCard
                 node={node}
                 segments={segments}
-                pinsState={pinsState}
+                pinsState={
+                  node.kind === "segment" || node.kind === "group" ? pinsState : EMPTY_PINS_STATE
+                }
                 outputSignal={Boolean(studio.evaluation.nodeOutputs.get(node.id))}
                 incomingCount={incomingCountByNode.get(node.id) ?? 0}
                 timerCountdown={studio.timerCountdowns.get(node.id) ?? null}

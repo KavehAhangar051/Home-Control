@@ -1,3 +1,4 @@
+import { cancelIdleStorageWrite, scheduleIdleStorageWrite } from "@/lib/asyncScheduler";
 import {
   clampCanvasZoom,
   getCanvasSettingsStorageKey,
@@ -90,12 +91,20 @@ export function writeStoredCanvasSettings(
   settings: StoredCanvasSettings,
   storage?: CanvasStorageLike | null,
 ): void {
+  const key = getCanvasSettingsStorageKey(scope);
+
+  if (storage === undefined) {
+    scheduleIdleStorageWrite(key, () => JSON.stringify(settings));
+
+    return;
+  }
+
   const resolvedStorage = resolveCanvasStorage(storage);
 
   if (!resolvedStorage) return;
 
   try {
-    resolvedStorage.setItem(getCanvasSettingsStorageKey(scope), JSON.stringify(settings));
+    resolvedStorage.setItem(key, JSON.stringify(settings));
   } catch {
     // Ignore storage write failures
   }
@@ -143,12 +152,20 @@ export function replaceStoredCanvasNodes(
   const snapshot = { ...nextNodes };
   memoryNodesCache.set(subMode, snapshot);
 
+  const key = getCanvasStorageKey(subMode);
+
+  if (storage === undefined) {
+    scheduleIdleStorageWrite(key, () => JSON.stringify(snapshot));
+
+    return;
+  }
+
   const resolvedStorage = resolveCanvasStorage(storage);
 
   if (!resolvedStorage) return;
 
   try {
-    resolvedStorage.setItem(getCanvasStorageKey(subMode), JSON.stringify(snapshot));
+    resolvedStorage.setItem(key, JSON.stringify(snapshot));
   } catch {
     // Ignore storage write errors
   }
@@ -305,12 +322,20 @@ export function writeStoredCanvasViewport(
 ): void {
   memoryViewportCache.set(subMode, vp);
 
+  const key = getCanvasViewportStorageKey(subMode);
+
+  if (storage === undefined) {
+    scheduleIdleStorageWrite(key, () => JSON.stringify(vp));
+
+    return;
+  }
+
   const resolvedStorage = resolveCanvasStorage(storage);
 
   if (!resolvedStorage) return;
 
   try {
-    resolvedStorage.setItem(getCanvasViewportStorageKey(subMode), JSON.stringify(vp));
+    resolvedStorage.setItem(key, JSON.stringify(vp));
   } catch {
     // Ignore storage write errors
   }
@@ -323,13 +348,21 @@ export function clearStoredCanvasMode(
   memoryNodesCache.delete(subMode);
   memoryViewportCache.delete(subMode);
 
+  const nodesKey = getCanvasStorageKey(subMode);
+  const viewportKey = getCanvasViewportStorageKey(subMode);
+
+  if (storage === undefined) {
+    cancelIdleStorageWrite(nodesKey);
+    cancelIdleStorageWrite(viewportKey);
+  }
+
   const resolvedStorage = resolveCanvasStorage(storage);
 
   if (!resolvedStorage) return;
 
   try {
-    resolvedStorage.removeItem(getCanvasStorageKey(subMode));
-    resolvedStorage.removeItem(getCanvasViewportStorageKey(subMode));
+    resolvedStorage.removeItem(nodesKey);
+    resolvedStorage.removeItem(viewportKey);
   } catch {
     // Ignore storage remove errors
   }

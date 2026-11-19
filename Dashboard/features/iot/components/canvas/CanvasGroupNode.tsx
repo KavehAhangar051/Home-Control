@@ -261,6 +261,7 @@ export default React.memo(function CanvasGroupNode({
         width: rect.width,
         height: rect.height,
         zIndex,
+        willChange: isDragging ? "transform" : undefined,
         transition:
           animationsEnabled && !isDragging
             ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), width 220ms cubic-bezier(0.22, 1, 0.36, 1), height 220ms cubic-bezier(0.22, 1, 0.36, 1)"

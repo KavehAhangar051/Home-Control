@@ -101,6 +101,7 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
           resetKeys={[workspaceDisplayMode, selectedGroupFilter]}
         >
           <IoTWorkspace
+            workspaceDisplayMode={workspaceDisplayMode}
             groupsOrder={groupsOrder}
             groupsCols={groupsCols}
             groupConfigs={groupConfigs}
@@ -146,6 +147,8 @@ export default function DashboardWorkspace() {
   const groupsOrder = useIoTStore((s) => s.groupsOrder);
   const groupsCols = useIoTStore((s) => s.groupsCols);
   const workspaceDisplayMode = useIoTStore((s) => s.workspaceDisplayMode);
+  const deferredDisplayMode = useDeferredValue(workspaceDisplayMode);
+  const displayedDisplayMode = shouldAnimateWorkspace ? deferredDisplayMode : workspaceDisplayMode;
 
   const { onTouchStart, onTouchMove, onTouchEnd } = useWorkspaceSwipe(
     selectedGroupFilter,
@@ -171,7 +174,7 @@ export default function DashboardWorkspace() {
   }
 
   const isTrellisMode =
-    (workspaceDisplayMode === "trellis" || workspaceDisplayMode === "canvas") &&
+    (displayedDisplayMode === "trellis" || displayedDisplayMode === "canvas") &&
     (!isFullyReady || segmentsLength > 0);
 
   return (
@@ -191,7 +194,7 @@ export default function DashboardWorkspace() {
           <HomeWorkspaceMainContent
             isFullyReady={isFullyReady}
             isTrellisMode={isTrellisMode}
-            workspaceDisplayMode={workspaceDisplayMode}
+            workspaceDisplayMode={displayedDisplayMode}
             segmentsLength={segmentsLength}
             groupsCols={groupsCols}
             groupsOrder={groupsOrder}
