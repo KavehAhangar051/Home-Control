@@ -351,6 +351,7 @@ export function useWorkflowStudio({
   const {
     containerSize,
     isPanning,
+    animateToViewport,
     handleZoomBy,
     handleCanvasPointerDown,
     handleCanvasContextMenu,
@@ -577,8 +578,8 @@ export function useWorkflowStudio({
     const el = containerRef.current;
     const w = el ? el.clientWidth : containerSize.width;
     const h = el ? el.clientHeight : containerSize.height;
-    setViewport(computeFitWorkflowViewport(activeWorkflow.nodes, w, h));
-  }, [activeWorkflow, containerRef, containerSize.height, containerSize.width, setViewport]);
+    animateToViewport(computeFitWorkflowViewport(activeWorkflow.nodes, w, h));
+  }, [activeWorkflow, animateToViewport, containerRef, containerSize.height, containerSize.width]);
 
   const backgroundGridStyle = React.useMemo(() => {
     const vp = activeWorkflow?.viewport ?? { x: 0, y: 0, zoom: 1 };

@@ -212,7 +212,7 @@ The recent modernization work has established the following baseline:
 ### Execution log — 19 November 2026 (React 19.3, Zustand 5, Motion 14, Trellis presets, Tailwind v4 & Vibration API)
 
 - **React 19.3 capabilities adopted selectively:**
-  - `useOptimistic` + `useTransition` (`useOptimisticPinState.ts`) across Grid, Trellis, and Canvas segment tiles for zero-lag tactile toggling with automatic rollback on command failure.
+  - `useOptimisticPinState.ts` across Grid, Trellis, and Canvas segment tiles tracks per-card in-flight `isPending` state while relying on `executeSinglePinUpdate`'s synchronous `useIoTStore` optimistic update and rollback—deliberately avoiding `startTransition` around external-store pin writes so completing a Cloudflare pin save never triggers a full-workspace `<AnimateView>` (`<React.ViewTransition>`) snapshot or global `isLoadingIoT` grid re-render.
   - `useEffectEvent` in `useCloudflarePush.ts`, `ToastNotification.tsx`, `MacroSidebar/index.tsx`, `ExpandableTabs`, and `TrellisChromeBar.tsx` strictly inside `useEffect` lifecycles.
   - `<Activity>` in `WorkspaceSection.tsx` for `ModulesWorkspace` (`add` ↔ `list`) and `AutomationsWorkspace` (`create` ↔ `manage`) so in-progress forms survive tab switches while heavy `WorkflowsCanvasSection` stays unmounted when hidden.
 - **Zustand 5 middleware & local preference separation:**

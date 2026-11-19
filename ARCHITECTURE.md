@@ -191,6 +191,8 @@ Available scripts in `package.json`:
 - `bun run format` — format those source directories in place; review the resulting diff before committing.
 - `bun run typecheck` — run TypeScript compiler check (`tsc --noEmit`).
 - `bun run test` — run core domain, hardware/MQTT protocol, and Cloudflare/workflow sync tests (`tests/*.test.mjs`). UI, CSS, layout, and throwaway tests are intentionally excluded.
+- `bun run cbm <tool> [flags]` (`./tools/cbm.sh`) — execute any of the 17 `codebase-memory-mcp` knowledge-graph tools (`get_architecture`, `search_graph`, `query_graph`, `trace_path`, `get_file_outline`, `get_code_snippet`, `detect_changes`, `check_index_coverage`, `manage_adr`, etc.) against the indexed project (`app-applet`).
+- `bun run cbm:index` — re-index the repository (respecting `.cbmignore`) and persist the compressed knowledge graph artifact at `.codebase-memory/graph.db.zst`.
 - `bun run lint && bun run typecheck && bun run test` — run lint, TypeScript typecheck, and existing core domain tests together.
 - `bun run clean` — remove local Next.js/export/build-metadata outputs.
 
@@ -261,8 +263,8 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 
 ## 18. Platform capability upgrades (19 November 2026)
 
-- **React 19.3 (`useOptimistic`, `useEffectEvent`, `<Activity>`):**
-  - `features/iot/components/sortable-segment-card/hooks/useOptimisticPinState.ts` wraps `onTogglePin` and `onSetPinState` inside React 19 `useOptimistic` + `useTransition`, providing instant optimistic tile feedback (`ActiveCard`, `TrellisSegmentTile`, `TrellisSegmentView`, `CanvasSegmentNode`) with subtle pending indicator (`CardFooter`) and automatic rollback on command failure.
+- **React 19.3 (`useEffectEvent`, `<Activity>`, and `ViewTransition` / external-store discipline):**
+  - `features/iot/components/sortable-segment-card/hooks/useOptimisticPinState.ts` tracks per-card in-flight command state (`isPending`) with local state while delegating zero-lag optimistic pin updates and automatic failure rollback directly to `executeSinglePinUpdate` on `useIoTStore`. **Invariant:** Never wrap external Zustand store pin mutations (`onTogglePin` / `onSetPinState`) in React's `startTransition`; `DashboardWorkspace` is wrapped in Motion's `<AnimateView>` (React 19.3 `<ViewTransition>`), which triggers a full-workspace `document.startViewTransition()` snapshot whenever a `TransitionLane` commits inside its subtree (such as when a Cloudflare pin-save request completes and displays its toast). Similarly, `WorkspaceGrid` and `SortableSegmentCard` do not re-render on global `isLoadingIoT` transitions.
   - `useEffectEvent` decouples non-reactive callbacks from `useEffect` subscriptions in `useCloudflarePush.ts`, `ToastNotification.tsx`, `MacroSidebar/index.tsx`, `ExpandableTabs`, and `TrellisChromeBar.tsx` (strictly invoked inside `useEffect`, never inside event handlers).
   - `<Activity mode="visible" | "hidden">` in `WorkspaceSection.tsx` preserves in-progress form state when switching between `AddSegmentForm` ↔ `SegmentList` and `AutomationForm` ↔ `AutomationList`, while keeping `WorkflowsCanvasSection` conditionally unmounted when hidden.
 - **Zustand 5 (`subscribeWithSelector`, dev-only `devtools`, `persist`):**
@@ -288,4 +290,20 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
   - **Undo / Redo & Copy / Paste / Duplicate (`useWorkflowHistoryAndClipboard.ts`):** Per-workflow bounded undo/redo stack (40 snapshots) covering node/edge creation, deletion, property edits, drag moves, and resizes (`Ctrl+Z`, `Ctrl+Y`, `Ctrl+Shift+Z`), plus node/sub-flow clipboard Copy (`Ctrl+C`), Paste (`Ctrl+V`), Duplicate (`Ctrl+D`), and `Delete`/`Backspace` shortcuts alongside footer toolbar controls.
   - **Workflow JSON Export / Share / Import:** `WorkflowHeaderBar.tsx` and `WorkflowEmptyState.tsx` support exporting individual workflows to `.workflow.json`, sharing via `Web Share API`, and importing workflow JSON files with automatic ID deduplication.
 
+## 19. Codebase Knowledge Graph (`codebase-memory-mcp`) Hybrid Mastery Workflow
 
+- **`codebase-memory-mcp` (`v0.12.1+`)** is permanently configured via `./tools/cbm.sh` (which automatically keeps the warm background daemon active via `codebase-memory-mcp daemon start`), `.cbmignore`, and the portable graph artifact `.codebase-memory/graph.db.zst` (project identifier: `app-applet`).
+- **Empirical performance & Hybrid Mastery Rule:**
+  - Without a warm daemon, each CLI call spawns a temporary daemon (`~5.5s`). With the warm daemon (`./tools/cbm.sh`), each CLI invocation via `run_command` takes `~2.0s`, whereas native `view_file` takes `~2ms` and executes 4–8 reads in parallel.
+  - **Use `bun run cbm <tool> --project app-applet`** (`search_graph`, `trace_path`, `query_graph`, `search_code`, `get_architecture`, `detect_changes`) for **structural discovery**: when target file paths are unknown, when tracing multi-hop callers/callees (`inbound`/`outbound`/`both`), or when auditing architecture and dead code. Keep invocations to 1–2 focused commands per shell step so they never exceed synchronous timeout thresholds.
+  - **Switch immediately to parallel native `view_file`** as soon as file paths are identified or when reading exact 1-indexed line ranges before `replace_file_content`. Do not use `get_code_snippet` via shell to read files you already know and plan to edit.
+  - Re-run `bun run cbm:index` after structural or code changes to keep `.codebase-memory/graph.db.zst` synchronized.
+
+## 20. Canvas Sheet Kinetic & Spatial Motion (`sheetViewportAnimator.ts`, 19 November 2026)
+
+- **Unified Sheet Viewport Physics (`features/iot/components/canvas/sheetViewportAnimator.ts` & `useSheetViewportGestures.ts`):**
+  - Both `CanvasWorkspace` (`free` and `graph` modes) and `WorkflowStudio` share a single 60 FPS `requestAnimationFrame` viewport physics engine (`createSheetViewportAnimator`) that respects `areSheetAnimationsAllowed()` (`animationsEnabled`, `prefers-reduced-motion`, and `html[data-perf-tier="lite"]`).
+  - **Effortless Panning + Momentum Inertia Coasting:** Users can pan by dragging on empty sheet background with **Left-Click** (after a `3.5px` movement threshold so simple background clicks still clear selection), **Middle-Click**, **Right-Click**, or **single-finger Touch**. Pointer velocity is tracked with an exponential moving average (`vx`, `vy` in px/ms); releasing a pan gesture with sufficient speed launches smooth friction-decayed momentum coasting (`0.915` per 16.67ms frame).
+  - **Smooth Exponential Spring Focal Zoom (`queueSmoothFocalZoom`):** Mouse-wheel zooming and toolbar `+`/`-` zoom controls accumulate into a continuous target scale anchored at the cursor or viewport center and interpolate smoothly via frame-rate-independent exponential decay (`1 - Math.pow(0.001, dt / 170)`) instead of stepping in discrete rigid jumps.
+  - **Smooth Camera Flight (`animateToViewport`):** `Fit View`, `Reset Layout` (`handleResetLayout`), and `Pan to Node` (`handlePanToWorldPoint`) fly the camera smoothly over `260ms` with a cubic-out easing curve (`1 - (1 - t)^3`).
+  - **Velocity-Driven Card Tilt & Inertial Parallax (`nodeMotion.ts`):** During active panning and inertia coasting, `setSheetPanMotionCssVars` updates `--sheet-pan-tilt` (`±1.6deg`), `--sheet-pan-shift-x` (`±4.5px`), and `--sheet-pan-shift-y` (`±4.5px`) directly on the sheet container DOM node without React re-renders. `CanvasGroupNode`, `CanvasSegmentNode`, and `WorkflowNodeCard` bind `rotate: "var(--drag-tilt, var(--sheet-pan-tilt, 0deg))"` and `translate: "var(--sheet-pan-shift-x, 0px) var(--sheet-pan-shift-y, 0px)"`, giving cards a subtle physical sway against the grid during sheet travel while smoothly transitioning `(transform, width, height)` during layout resets and snaps (and disabling outer `transform` transitions whenever a node or its parent group is actively dragged).

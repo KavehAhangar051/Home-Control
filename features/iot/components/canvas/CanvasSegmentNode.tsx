@@ -256,16 +256,12 @@ export default React.memo(function CanvasSegmentNode({
 }: CanvasSegmentNodeProps) {
   const isPinOn = useIoTStore((s) => Boolean(s.pinsState[segment.pin]));
 
-  const {
-    effectivePinOn,
-    isPending,
-    handleTogglePinOptimistic,
-    handleSetPinStateOptimistic,
-  } = useOptimisticPinState({
-    isPinOn,
-    onTogglePin,
-    onSetPinState,
-  });
+  const { effectivePinOn, isPending, handleTogglePinOptimistic, handleSetPinStateOptimistic } =
+    useOptimisticPinState({
+      isPinOn,
+      onTogglePin,
+      onSetPinState,
+    });
 
   const {
     isSettingsOpen,
@@ -323,6 +319,10 @@ export default React.memo(function CanvasSegmentNode({
         width: rect.width,
         height: rect.height,
         zIndex,
+        transition:
+          animationsEnabled && !isDragging
+            ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), width 220ms cubic-bezier(0.22, 1, 0.36, 1), height 220ms cubic-bezier(0.22, 1, 0.36, 1)"
+            : undefined,
       }}
       className="absolute top-0 left-0 flex flex-col select-none"
     >
@@ -330,8 +330,17 @@ export default React.memo(function CanvasSegmentNode({
         initial={animationsEnabled ? { opacity: 0, scale: 0.94, y: 8 } : false}
         animate={animateState}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        style={animationsEnabled ? { rotate: "var(--drag-tilt, 0deg)" } : undefined}
-        className="relative size-full transition-[rotate] duration-150 ease-out"
+        style={
+          animationsEnabled
+            ? {
+                rotate: "var(--drag-tilt, var(--sheet-pan-tilt, 0deg))",
+                translate: isDragging
+                  ? undefined
+                  : "var(--sheet-pan-shift-x, 0px) var(--sheet-pan-shift-y, 0px)",
+              }
+            : undefined
+        }
+        className="relative size-full transition-[rotate,translate] duration-150 ease-out"
       >
         {showPort && (
           <CanvasSegmentGraphOverlay

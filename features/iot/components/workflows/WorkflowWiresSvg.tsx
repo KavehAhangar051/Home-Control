@@ -2,8 +2,8 @@
 
 import React from "react";
 import type { ConnectingWireDraft } from "./useWorkflowStudio";
-import { getNodeInputCount, getPortAnchor } from "./workflowEngine";
 import { WorkflowDraftWire, WorkflowEdgeItem } from "./WorkflowEdgeItem";
+import { getNodeInputCount, getPortAnchor } from "./workflowEngine";
 import type { WorkflowEdge, WorkflowNode } from "./workflowTypes";
 
 interface WorkflowWiresSvgProps {
