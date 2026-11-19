@@ -9,6 +9,7 @@ import CardBody from "@/features/iot/components/sortable-segment-card/components
 import SegmentActions from "@/features/iot/components/sortable-segment-card/components/SegmentActions";
 import { useAutoOffTimer } from "@/features/iot/components/sortable-segment-card/hooks/useAutoOffTimer";
 import { useCardHeaderLayout } from "@/features/iot/components/sortable-segment-card/hooks/useCardHeaderLayout";
+import { useOptimisticPinState } from "@/features/iot/components/sortable-segment-card/hooks/useOptimisticPinState";
 import useSegmentButtonProps from "@/features/iot/components/sortable-segment-card/hooks/useSegmentButtonProps";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import type { TrellisSegmentHandlers } from "./TrellisSegmentTile";
@@ -99,8 +100,19 @@ export default function TrellisSegmentView({
 
   const isPinOn = useIoTStore((s) => (segment ? Boolean(s.pinsState[segment.pin]) : false));
 
+  const {
+    effectivePinOn,
+    isPending,
+    handleTogglePinOptimistic,
+    handleSetPinStateOptimistic,
+  } = useOptimisticPinState({
+    isPinOn,
+    onTogglePin,
+    onSetPinState,
+  });
+
   useViewTitle(getTrellisViewTitle(segment));
-  useViewBadge(segment && isPinOn ? true : null);
+  useViewBadge(segment && effectivePinOn ? true : null);
 
   const {
     isSettingsOpen,
@@ -120,12 +132,13 @@ export default function TrellisSegmentView({
   const buttonProps = useSegmentButtonProps({
     mode,
     pin,
-    onTogglePin,
-    onSetPinState,
+    isPinOn: effectivePinOn,
+    onTogglePin: handleTogglePinOptimistic,
+    onSetPinState: handleSetPinStateOptimistic,
   });
 
   const { countdown } = useAutoOffTimer({
-    isPinOn,
+    isPinOn: effectivePinOn,
     autoOff: segment?.auto_off,
     mode,
     pin,
@@ -157,7 +170,7 @@ export default function TrellisSegmentView({
     );
   }
 
-  const activeSurfaceClass = getTrellisSurfaceClass(isPinOn);
+  const activeSurfaceClass = getTrellisSurfaceClass(effectivePinOn);
 
   const autoOffMenuProps = {
     showAutoOffMenu,
@@ -169,7 +182,7 @@ export default function TrellisSegmentView({
   return (
     <div dir="rtl" className="relative flex size-full flex-col p-2">
       <Card
-        className={`relative flex size-full flex-col justify-between !gap-0 !overflow-visible !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
+        className={`@container/segment relative flex size-full flex-col justify-between !gap-0 !overflow-visible !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
         style={CARD_SPACING_STYLE}
       >
         <div
@@ -178,7 +191,7 @@ export default function TrellisSegmentView({
         >
           <SegmentActions
             segment={segment}
-            isPinOn={isPinOn}
+            isPinOn={effectivePinOn}
             isUltraCompact={isUltraCompact}
             isCompact={isCompact}
             onRemove={onRemoveSegment}
@@ -197,7 +210,8 @@ export default function TrellisSegmentView({
 
         <CardBody
           segment={segment}
-          isPinOn={isPinOn}
+          isPinOn={effectivePinOn}
+          isPending={isPending}
           isCompact={isCompact}
           isUltraCompact={isUltraCompact}
           mode={mode}

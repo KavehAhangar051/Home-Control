@@ -2,6 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import dynamic from "next/dynamic";
+import { Activity } from "react";
 import { Alert } from "@/components/reui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/grid";
@@ -145,10 +146,10 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
   return (
     <Container
       size="lg"
-      className="max-w-5xl space-y-6 py-6 text-right sm:py-10 lg:py-12"
+      className="@container/workspace max-w-5xl space-y-6 py-6 text-right @sm/workspace:py-8 @lg/workspace:py-12"
       dir="rtl"
     >
-      <header className="flex flex-col gap-3 border-b border-border-color pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-3 border-b border-border-color pb-5 @sm/workspace:flex-row @sm/workspace:items-end @sm/workspace:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border-color bg-card-bg text-accent3 shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)]">
             <Icon className="size-5" aria-hidden="true" />
@@ -265,7 +266,8 @@ function ModulesWorkspace() {
         </Alert>
       )}
 
-      {activeModulesTab === "add" ? (
+      {/* React 19.3 Activity preserves in-progress AddSegmentForm inputs while checking SegmentList */}
+      <Activity mode={activeModulesTab === "add" ? "visible" : "hidden"}>
         <div className="min-w-0">
           <AddSegmentForm
             onAddSegment={handleAddSegment}
@@ -278,13 +280,15 @@ function ModulesWorkspace() {
             animationsEnabled={animationsEnabled}
           />
         </div>
-      ) : (
+      </Activity>
+
+      <Activity mode={activeModulesTab === "list" ? "visible" : "hidden"}>
         <div className="bezel-shell min-w-0">
-          <div className="bezel-core min-w-0 p-4 sm:p-5">
+          <div className="bezel-core min-w-0 p-4 @md/workspace:p-5">
             <SegmentList segments={segments} onRemoveSegment={handleRemoveSegment} />
           </div>
         </div>
-      )}
+      </Activity>
     </div>
   );
 }
@@ -316,7 +320,13 @@ function AutomationsWorkspace() {
 
       <AutomationProvider>
         <div className="min-w-0">
-          {activeAutomationsTab === "create" ? <AutomationForm /> : <AutomationList />}
+          {/* React 19.3 Activity preserves in-progress AutomationForm state when browsing existing rules */}
+          <Activity mode={activeAutomationsTab === "create" ? "visible" : "hidden"}>
+            <AutomationForm />
+          </Activity>
+          <Activity mode={activeAutomationsTab === "manage" ? "visible" : "hidden"}>
+            <AutomationList />
+          </Activity>
         </div>
       </AutomationProvider>
     </div>
@@ -391,9 +401,9 @@ function SettingsWorkspace() {
       <div className="bezel-shell min-w-0">
         <Card
           aria-labelledby="active-settings-heading"
-          className="bezel-core min-w-0 !gap-0 !overflow-visible !py-0 !ring-0"
+          className="@container/settings-card bezel-core min-w-0 !gap-0 !overflow-visible !py-0 !ring-0"
         >
-          <CardHeader className="border-b border-border-color px-4 py-4 sm:px-6">
+          <CardHeader className="border-b border-border-color px-4 py-4 @md/settings-card:px-6">
             <CardTitle
               id="active-settings-heading"
               className="text-base font-medium leading-6 text-text-primary"
@@ -404,7 +414,7 @@ function SettingsWorkspace() {
               تنظیمات این بخش را از همین‌جا مدیریت کنید
             </CardDescription>
           </CardHeader>
-          <CardContent className="min-w-0 p-4 sm:p-6">
+          <CardContent className="min-w-0 p-4 @md/settings-card:p-6">
             <ActiveSettingsPanel activeTab={activeTab} />
           </CardContent>
         </Card>

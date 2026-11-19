@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { SPRING_LAYOUT, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 import type { SortableSegmentCardProps } from "../core/types";
 import { useAutoOffTimer } from "../hooks/useAutoOffTimer";
+import { useOptimisticPinState } from "../hooks/useOptimisticPinState";
 import useSegmentButtonProps from "../hooks/useSegmentButtonProps";
 import CardBody from "./CardBody";
 import CardHeader from "./CardHeader";
@@ -49,22 +50,34 @@ function ActiveCard({
 }: ActiveCardProps) {
   const mode = segment.mode || "switch";
 
-  const buttonProps = useSegmentButtonProps({
-    mode,
-    pin: segment.pin,
+  const {
+    effectivePinOn,
+    isPending,
+    handleTogglePinOptimistic,
+    handleSetPinStateOptimistic,
+  } = useOptimisticPinState({
+    isPinOn,
     onTogglePin,
     onSetPinState,
   });
 
+  const buttonProps = useSegmentButtonProps({
+    mode,
+    pin: segment.pin,
+    isPinOn: effectivePinOn,
+    onTogglePin: handleTogglePinOptimistic,
+    onSetPinState: handleSetPinStateOptimistic,
+  });
+
   const { countdown } = useAutoOffTimer({
-    isPinOn,
+    isPinOn: effectivePinOn,
     autoOff: segment.auto_off,
     mode,
     pin: segment.pin,
     onSetPinState,
   });
 
-  const activeSurfaceClass = isPinOn
+  const activeSurfaceClass = effectivePinOn
     ? "border-accent3 bg-card-bg shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)]"
     : "border-border-color bg-card-bg shadow-[inset_0_1px_0_0_oklch(1_0_0/0.05)]";
 
@@ -83,7 +96,7 @@ function ActiveCard({
       >
         <CardHeader
           segment={segment}
-          isPinOn={isPinOn}
+          isPinOn={effectivePinOn}
           isUltraCompact={isUltraCompact}
           isCompact={isCompact}
           mode={mode}
@@ -97,7 +110,8 @@ function ActiveCard({
 
         <CardBody
           segment={segment}
-          isPinOn={isPinOn}
+          isPinOn={effectivePinOn}
+          isPending={isPending}
           isCompact={isCompact}
           isUltraCompact={isUltraCompact}
           isMobileTwoCol={isMobileTwoCol}

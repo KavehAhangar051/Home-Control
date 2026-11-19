@@ -1,6 +1,19 @@
 "use client";
 
-import { Grid, Lock, Maximize, Minus, Plus, Unlock } from "lucide-react";
+import {
+  Boxes,
+  ClipboardPaste,
+  Copy,
+  Files,
+  Grid,
+  Lock,
+  Maximize,
+  Minus,
+  Plus,
+  Redo2,
+  Undo2,
+  Unlock,
+} from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface WorkflowFooterControlsProps {
@@ -8,10 +21,20 @@ interface WorkflowFooterControlsProps {
   zoom: number;
   snapToGrid: boolean;
   isLocked: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  hasSelection: boolean;
+  hasClipboard: boolean;
   onZoomBy: (delta: number) => void;
   onFitView: () => void;
   onToggleSnap: () => void;
   onToggleLock: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  onCopy: () => void;
+  onPaste: () => void;
+  onDuplicate: () => void;
+  onToggleSubflowGroup: () => void;
 }
 
 export default function WorkflowFooterControls({
@@ -19,10 +42,20 @@ export default function WorkflowFooterControls({
   zoom,
   snapToGrid,
   isLocked,
+  canUndo,
+  canRedo,
+  hasSelection,
+  hasClipboard,
   onZoomBy,
   onFitView,
   onToggleSnap,
   onToggleLock,
+  onUndo,
+  onRedo,
+  onCopy,
+  onPaste,
+  onDuplicate,
+  onToggleSubflowGroup,
 }: WorkflowFooterControlsProps) {
   return (
     <div
@@ -34,7 +67,116 @@ export default function WorkflowFooterControls({
           : "pointer-events-none absolute inset-x-0 top-2.5 z-30 flex items-center justify-center px-2"
       }
     >
-      <div className="pointer-events-auto flex max-w-full items-center gap-1 rounded-2xl border border-border-color bg-card-bg-solid/95 px-2 py-1 text-xs shadow-lg backdrop-blur-xl">
+      <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl border border-border-color bg-card-bg-solid/95 px-2 py-1 text-xs shadow-lg backdrop-blur-xl">
+        {/* Undo / Redo */}
+        <div className="flex items-center gap-0.5 border-l border-border-color pl-1">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  disabled={!canUndo || isLocked}
+                  onClick={onUndo}
+                  aria-label="واگرد (Ctrl+Z)"
+                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <Undo2 className="size-3.5" aria-hidden="true" />
+                </button>
+              }
+            />
+            <TooltipContent>واگرد (Ctrl+Z)</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  disabled={!canRedo || isLocked}
+                  onClick={onRedo}
+                  aria-label="ازنو (Ctrl+Y)"
+                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <Redo2 className="size-3.5" aria-hidden="true" />
+                </button>
+              }
+            />
+            <TooltipContent>ازنو (Ctrl+Y)</TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Clipboard & Sub-flow Grouping */}
+        <div className="flex items-center gap-0.5 border-l border-border-color pl-1">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  disabled={!hasSelection}
+                  onClick={onCopy}
+                  aria-label="کپی گره (Ctrl+C)"
+                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <Copy className="size-3.5" aria-hidden="true" />
+                </button>
+              }
+            />
+            <TooltipContent>کپی گره (Ctrl+C)</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  disabled={!hasClipboard || isLocked}
+                  onClick={onPaste}
+                  aria-label="چسباندن گره (Ctrl+V)"
+                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <ClipboardPaste className="size-3.5" aria-hidden="true" />
+                </button>
+              }
+            />
+            <TooltipContent>چسباندن (Ctrl+V)</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  disabled={!hasSelection || isLocked}
+                  onClick={onDuplicate}
+                  aria-label="تکثیر گره (Ctrl+D)"
+                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <Files className="size-3.5" aria-hidden="true" />
+                </button>
+              }
+            />
+            <TooltipContent>تکثیر گره (Ctrl+D)</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  disabled={!hasSelection || isLocked}
+                  onClick={onToggleSubflowGroup}
+                  aria-label="گروه‌بندی در باکس زیرمدار (Ctrl+G)"
+                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-accent3 disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <Boxes className="size-3.5" aria-hidden="true" />
+                </button>
+              }
+            />
+            <TooltipContent>گروه‌بندی زیرمدار (Ctrl+G)</TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Zoom Controls */}
         <Tooltip>
           <TooltipTrigger
             render={

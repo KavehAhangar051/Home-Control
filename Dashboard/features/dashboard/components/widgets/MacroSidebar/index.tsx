@@ -2,13 +2,14 @@
 
 import { ChevronDown, Play, Settings2, Zap } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import type { Macro } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
 import { DURATION, EASE_OUT } from "@/lib/ease";
+import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 interface MacroSidebarProps {
@@ -88,18 +89,22 @@ export default function MacroSidebar({ compact = false, className = "" }: MacroS
   const [recentMacroId, setRecentMacroId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const onCloseMenu = useEffectEvent(() => {
+    setIsOpen(false);
+  });
+
   useEffect(() => {
     if (!isOpen) return;
 
     const handlePointerDown = (event: PointerEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        onCloseMenu();
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsOpen(false);
+        onCloseMenu();
       }
     };
 
@@ -122,6 +127,7 @@ export default function MacroSidebar({ compact = false, className = "" }: MacroS
 
   const executeMacro = useCallback(
     (macro: Macro) => {
+      triggerHaptic("macro");
       handleBatchPinState(macro.actions);
       setRecentMacroId(macro.id);
       setIsOpen(false);

@@ -34,6 +34,7 @@ export interface WorkflowNode {
   scheduleTime?: string;
   scheduleDays?: number[];
   inputCount?: number;
+  parentGroupId?: string;
 }
 
 export interface WorkflowEdge {

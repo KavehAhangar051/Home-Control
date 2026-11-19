@@ -8,6 +8,7 @@ import CardFooter from "./CardFooter";
 interface PinToggleProps {
   segment: SegmentData;
   isPinOn: boolean;
+  isPending?: boolean;
   buttonProps: Omit<ComponentPropsWithoutRef<typeof Toggle>, "pressed" | "className">;
   animationsEnabled?: boolean;
   isCompact?: boolean;
@@ -33,6 +34,7 @@ function getPinToggleAriaLabel(title: string, isPinOn: boolean, mode: "switch" |
 function PinToggle({
   segment,
   isPinOn,
+  isPending = false,
   buttonProps,
   animationsEnabled = true,
   isCompact = false,
@@ -62,6 +64,7 @@ function PinToggle({
       pressed={isPinOn}
       {...buttonProps}
       aria-label={ariaLabel}
+      aria-busy={isPending || undefined}
       className={`switch-toggle group/tile relative flex flex-col items-stretch justify-between size-full text-right whitespace-normal font-sans transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] cursor-pointer select-none ${radiusClass} ${density.container} ${surfaceTone}`}
     >
       {/* Top Row: Device Icon Badge & Title */}
@@ -92,6 +95,7 @@ function PinToggle({
       <CardFooter
         segment={segment}
         isPinOn={isPinOn}
+        isPending={isPending}
         mode={mode}
         countdown={countdown}
         animationsEnabled={animationsEnabled}

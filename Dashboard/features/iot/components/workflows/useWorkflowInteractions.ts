@@ -10,6 +10,7 @@ import {
   setNodeDragTiltCssVar,
 } from "@/features/iot/components/canvas/nodeMotion";
 import { canConnectWorkflowPorts, clampWorkflowNodeSize, createWorkflowId } from "./workflowEngine";
+import { expandGroupBoundsToFitChild, findContainingGroupNode } from "./workflowSubflowHelpers";
 import type { WorkflowDefinition, WorkflowEdge, WorkflowNode } from "./workflowTypes";
 
 export interface ConnectingWireDraft {
@@ -25,8 +26,12 @@ export interface UseWorkflowInteractionsOptions {
   activeWorkflowRef: React.RefObject<WorkflowDefinition | null>;
   isLocked: boolean;
   snapToGrid: boolean;
-  updateActiveWorkflow: (updater: (wf: WorkflowDefinition) => WorkflowDefinition) => void;
+  updateActiveWorkflow: (
+    updater: (wf: WorkflowDefinition) => WorkflowDefinition,
+    options?: { transient?: boolean },
+  ) => void;
   handleUpdateNodeTransient: (nodeId: string, patch: Partial<WorkflowNode>) => void;
+  onRecordUndoSnapshot?: () => void;
   onCommitInteraction: () => void;
   setSelectedNodeId: React.Dispatch<React.SetStateAction<string | null>>;
   setSelectedEdgeId: React.Dispatch<React.SetStateAction<string | null>>;
@@ -36,6 +41,7 @@ export interface UseWorkflowInteractionsOptions {
 /**
  * Deep workflow node & port interaction controller.
  * Encapsulates z-order promotion, rAF-coalesced node drag with CSS-variable tilt,
+ * synchronized sub-flow container dragging, drop-into-group auto-nesting,
  * concentric node resize, and rAF-coalesced magnetic port wiring.
  */
 export function useWorkflowInteractions({
@@ -46,6 +52,7 @@ export function useWorkflowInteractions({
   snapToGrid,
   updateActiveWorkflow,
   handleUpdateNodeTransient,
+  onRecordUndoSnapshot,
   onCommitInteraction,
   setSelectedNodeId,
   setSelectedEdgeId,
@@ -60,19 +67,36 @@ export function useWorkflowInteractions({
       setSelectedNodeId(nodeId);
       setSelectedEdgeId(null);
       updateActiveWorkflow((wf) => {
+        const clicked = wf.nodes.find((n) => n.id === nodeId);
+
+        if (!clicked) return wf;
+
         let maxZ = 1;
 
         for (const n of wf.nodes) {
           maxZ = Math.max(maxZ, n.zIndex);
         }
 
-        const nextNodes: WorkflowNode[] = [];
+        // If a sub-flow group container is selected, keep its child nodes above the container frame
+        if (clicked.kind === "group") {
+          const groupZ = maxZ + 1;
 
-        for (const n of wf.nodes) {
-          nextNodes.push(n.id === nodeId ? { ...n, zIndex: maxZ + 1 } : n);
+          return {
+            ...wf,
+            nodes: wf.nodes.map((n, idx) => {
+              if (n.id === nodeId) return { ...n, zIndex: groupZ };
+
+              if (n.parentGroupId === nodeId) return { ...n, zIndex: groupZ + 1 + idx };
+
+              return n;
+            }),
+          };
         }
 
-        return { ...wf, nodes: nextNodes };
+        return {
+          ...wf,
+          nodes: wf.nodes.map((n) => (n.id === nodeId ? { ...n, zIndex: maxZ + 1 } : n)),
+        };
       });
     },
     [setSelectedEdgeId, setSelectedNodeId, updateActiveWorkflow],
@@ -83,11 +107,23 @@ export function useWorkflowInteractions({
       if (e.button !== 0 || isLocked || !activeWorkflow) return;
 
       e.stopPropagation();
-      bringNodeToFront(nodeId);
-
       const startNode = activeWorkflow.nodes.find((n) => n.id === nodeId);
 
       if (!startNode) return;
+
+      onRecordUndoSnapshot?.();
+      bringNodeToFront(nodeId);
+
+      // Capture any sub-flow child nodes belonging to this group container at drag start
+      const childStartPositions = new Map<string, { x: number; y: number }>();
+
+      if (startNode.kind === "group") {
+        for (const n of activeWorkflow.nodes) {
+          if (n.parentGroupId === nodeId) {
+            childStartPositions.set(n.id, { x: n.x, y: n.y });
+          }
+        }
+      }
 
       const startClientX = e.clientX;
       const startClientY = e.clientY;
@@ -102,10 +138,39 @@ export function useWorkflowInteractions({
         const dy = (moveEvent.clientY - startClientY) / zoom;
         const nextX = snapCanvasCoordinate(startNode.x + dx, snapToGrid);
         const nextY = snapCanvasCoordinate(startNode.y + dy, snapToGrid);
+        const snappedDx = nextX - startNode.x;
+        const snappedDy = nextY - startNode.y;
 
         setNodeDragTiltCssVar(tiltEl, computeDragTiltDeg(moveEvent.clientX - lastClientX));
         lastClientX = moveEvent.clientX;
-        handleUpdateNodeTransient(nodeId, { x: nextX, y: nextY });
+
+        if (childStartPositions.size > 0) {
+          updateActiveWorkflow(
+            (wf) => ({
+              ...wf,
+              nodes: wf.nodes.map((n) => {
+                if (n.id === nodeId) {
+                  return { ...n, x: nextX, y: nextY };
+                }
+
+                const childStart = childStartPositions.get(n.id);
+
+                if (childStart) {
+                  return {
+                    ...n,
+                    x: snapCanvasCoordinate(childStart.x + snappedDx, snapToGrid),
+                    y: snapCanvasCoordinate(childStart.y + snappedDy, snapToGrid),
+                  };
+                }
+
+                return n;
+              }),
+            }),
+            { transient: true },
+          );
+        } else {
+          handleUpdateNodeTransient(nodeId, { x: nextX, y: nextY });
+        }
       };
 
       let pendingMove: PointerEvent | null = null;
@@ -141,6 +206,45 @@ export function useWorkflowInteractions({
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onCancel);
+
+        // Auto-parent non-group nodes dropped inside a sub-flow group container
+        if (startNode.kind !== "group") {
+          updateActiveWorkflow((wf) => {
+            const latestNode = wf.nodes.find((n) => n.id === nodeId);
+
+            if (!latestNode) return wf;
+
+            const containerGroup = findContainingGroupNode(latestNode, wf.nodes);
+
+            if (containerGroup && latestNode.parentGroupId !== containerGroup.id) {
+              const expandedGroup = expandGroupBoundsToFitChild(
+                containerGroup,
+                latestNode,
+                snapToGrid,
+              );
+
+              return {
+                ...wf,
+                nodes: wf.nodes.map((n) => {
+                  if (n.id === containerGroup.id) return expandedGroup;
+
+                  if (n.id === nodeId) {
+                    return {
+                      ...n,
+                      parentGroupId: containerGroup.id,
+                      zIndex: Math.max(n.zIndex, expandedGroup.zIndex + 1),
+                    };
+                  }
+
+                  return n;
+                }),
+              };
+            }
+
+            return wf;
+          });
+        }
+
         onCommitInteraction();
       };
 
@@ -165,7 +269,9 @@ export function useWorkflowInteractions({
       handleUpdateNodeTransient,
       isLocked,
       onCommitInteraction,
+      onRecordUndoSnapshot,
       snapToGrid,
+      updateActiveWorkflow,
     ],
   );
 
@@ -175,11 +281,13 @@ export function useWorkflowInteractions({
 
       e.stopPropagation();
       e.preventDefault();
-      bringNodeToFront(nodeId);
 
       const startNode = activeWorkflow.nodes.find((n) => n.id === nodeId);
 
       if (!startNode) return;
+
+      onRecordUndoSnapshot?.();
+      bringNodeToFront(nodeId);
 
       const startClientX = e.clientX;
       const startClientY = e.clientY;
@@ -261,6 +369,7 @@ export function useWorkflowInteractions({
       handleUpdateNodeTransient,
       isLocked,
       onCommitInteraction,
+      onRecordUndoSnapshot,
       snapToGrid,
     ],
   );
@@ -277,6 +386,8 @@ export function useWorkflowInteractions({
         return;
       }
 
+      onRecordUndoSnapshot?.();
+
       const newEdge: WorkflowEdge = {
         id: createWorkflowId("edge"),
         sourceId,
@@ -289,7 +400,7 @@ export function useWorkflowInteractions({
         edges: [...wf.edges, newEdge],
       }));
     },
-    [activeWorkflow, showToast, updateActiveWorkflow],
+    [activeWorkflow, onRecordUndoSnapshot, showToast, updateActiveWorkflow],
   );
 
   const handleStartPortConnect = React.useCallback(

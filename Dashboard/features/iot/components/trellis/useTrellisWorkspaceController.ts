@@ -1,12 +1,18 @@
-import type { WorkspaceHandle } from "@danfessler/trellis-react";
+import type { LayoutDocument, WorkspaceHandle } from "@danfessler/trellis-react";
 import React from "react";
 import type { Segment } from "@/features/iot/hooks/store/types";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
+import { triggerHaptic } from "@/lib/haptics";
 import {
   buildGroupDockDocument,
   buildSegmentFractalDocument,
+  buildWallPanelDocument,
   getTrellisPresetStorageKey,
   getTrellisStorageKey,
   groupViewId,
+  isTrellisLayoutPreset,
+  sanitizeTrellisDocument,
   segmentViewId,
   type TrellisLayoutPreset,
 } from "./trellisLayout";
@@ -40,7 +46,7 @@ function getStoredPreset(): TrellisLayoutPreset {
   try {
     const saved = window.localStorage.getItem(getTrellisPresetStorageKey());
 
-    if (saved === "segments" || saved === "groups") {
+    if (isTrellisLayoutPreset(saved)) {
       return saved;
     }
   } catch {
@@ -122,9 +128,15 @@ function buildTrellisPresetDocument(
   groupsOrder: string[],
   segments: Segment[],
 ) {
-  return preset === "segments"
-    ? buildSegmentFractalDocument(groupsOrder, segments)
-    : buildGroupDockDocument(groupsOrder);
+  if (preset === "segments") {
+    return buildSegmentFractalDocument(groupsOrder, segments);
+  }
+
+  if (preset === "wall-panel") {
+    return buildWallPanelDocument(groupsOrder, segments);
+  }
+
+  return buildGroupDockDocument(groupsOrder);
 }
 
 function syncSegmentPresetViews(
@@ -173,7 +185,7 @@ function frameWorkspaceByGroupFilter(
     return;
   }
 
-  if (preset === "groups") {
+  if (preset !== "segments") {
     const groupView = ws.view(groupViewId(selectedGroupFilter));
 
     if (groupView) {
@@ -212,6 +224,12 @@ export function useTrellisWorkspaceController({
   selectedGroupFilter,
 }: UseTrellisWorkspaceControllerProps) {
   const wsRef = React.useRef<WorkspaceHandle | null>(null);
+  const pendingDocumentRef = React.useRef<LayoutDocument | null>(null);
+
+  const savedLayouts = usePreferencesStore((s) => s.savedTrellisLayouts);
+  const saveTrellisLayout = usePreferencesStore((s) => s.saveTrellisLayout);
+  const deleteTrellisLayout = usePreferencesStore((s) => s.deleteTrellisLayout);
+  const showToast = useIoTStore((s) => s.showToast);
 
   const storedPreset = React.useSyncExternalStore(
     subscribePreset,
@@ -222,6 +240,7 @@ export function useTrellisWorkspaceController({
   const [presetOverride, setPresetOverride] = React.useState<TrellisLayoutPreset | null>(null);
   const preset = presetOverride ?? storedPreset;
   const [workspaceMounted, setWorkspaceMounted] = React.useState(false);
+  const [activeSavedLayoutId, setActiveSavedLayoutId] = React.useState<string | null>(null);
 
   const handleWorkspaceRef = React.useCallback((instance: WorkspaceHandle | null) => {
     wsRef.current = instance;
@@ -229,6 +248,9 @@ export function useTrellisWorkspaceController({
   }, []);
 
   const handleChangePreset = React.useCallback((nextPreset: TrellisLayoutPreset) => {
+    triggerHaptic("tap");
+    setActiveSavedLayoutId(null);
+    pendingDocumentRef.current = null;
     setWorkspaceMounted(false);
     setPresetOverride(nextPreset);
 
@@ -249,9 +271,15 @@ export function useTrellisWorkspaceController({
 
     if (!ws || !workspaceMounted) return;
 
+    if (pendingDocumentRef.current) {
+      const docToApply = sanitizeTrellisDocument(pendingDocumentRef.current);
+      pendingDocumentRef.current = null;
+      ws.setDocument(docToApply, { animate: true });
+    }
+
     const existingIds = getAllWorkspaceViewIds(ws);
 
-    if (preset === "groups") {
+    if (preset !== "segments") {
       syncGroupPresetViews(ws, existingIds, groupsOrder, segments);
 
       return;
@@ -273,6 +301,9 @@ export function useTrellisWorkspaceController({
 
     if (!ws) return;
 
+    triggerHaptic("tap");
+    setActiveSavedLayoutId(null);
+
     try {
       window.localStorage.removeItem(getTrellisStorageKey(preset));
     } catch {
@@ -282,6 +313,64 @@ export function useTrellisWorkspaceController({
     const freshDoc = buildTrellisPresetDocument(preset, groupsOrder, segments);
     ws.setDocument(freshDoc, { animate: true });
   }, [preset, groupsOrder, segments]);
+
+  const handleSaveCurrentLayout = React.useCallback(
+    (name: string) => {
+      const ws = wsRef.current;
+
+      if (!ws) return;
+
+      const snapshot = sanitizeTrellisDocument(ws.getDocument());
+      const saved = saveTrellisLayout({
+        name,
+        preset,
+        document: snapshot,
+      });
+
+      setActiveSavedLayoutId(saved.id);
+      triggerHaptic("success");
+      showToast(`چیدمان «${saved.name}» ذخیره شد`, "success");
+    },
+    [preset, saveTrellisLayout, showToast],
+  );
+
+  const handleApplySavedLayout = React.useCallback(
+    (id: string) => {
+      const found = savedLayouts.find((item) => item.id === id);
+
+      if (!found) return;
+
+      triggerHaptic("tap");
+      setActiveSavedLayoutId(found.id);
+      const sanitized = sanitizeTrellisDocument(found.document);
+
+      if (found.preset !== preset) {
+        pendingDocumentRef.current = sanitized;
+        setWorkspaceMounted(false);
+        setPresetOverride(found.preset);
+
+        try {
+          window.localStorage.setItem(getTrellisPresetStorageKey(), found.preset);
+        } catch {
+          // Ignore storage write failures
+        }
+      } else if (wsRef.current) {
+        wsRef.current.setDocument(sanitized, { animate: true });
+      }
+
+      showToast(`چیدمان «${found.name}» اعمال شد`, "success");
+    },
+    [preset, savedLayouts, showToast],
+  );
+
+  const handleDeleteSavedLayout = React.useCallback(
+    (id: string) => {
+      triggerHaptic("tap");
+      deleteTrellisLayout(id);
+      setActiveSavedLayoutId((current) => (current === id ? null : current));
+    },
+    [deleteTrellisLayout],
+  );
 
   const segmentById = React.useMemo(() => {
     const map = new Map<string, Segment>();
@@ -306,9 +395,14 @@ export function useTrellisWorkspaceController({
   return {
     preset,
     defaultLayout,
+    savedLayouts,
+    activeSavedLayoutId,
     handleWorkspaceRef,
     handleChangePreset,
     handleResetLayout,
+    handleSaveCurrentLayout,
+    handleApplySavedLayout,
+    handleDeleteSavedLayout,
     segmentTitleLookup,
   };
 }

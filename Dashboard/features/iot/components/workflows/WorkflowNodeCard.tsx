@@ -53,6 +53,8 @@ interface WorkflowNodeCardProps {
   ) => void;
   onTogglePin: (pin: string) => void;
   onTriggerManualPulse: (nodeId: string) => void;
+  subflowChildCount?: number;
+  onToggleSubflowGroup?: (nodeId: string) => void;
 }
 
 function resolveNodeBorderClass(

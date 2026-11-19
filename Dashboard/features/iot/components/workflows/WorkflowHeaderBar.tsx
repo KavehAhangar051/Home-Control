@@ -1,6 +1,17 @@
 "use client";
 
-import { Check, Edit3, PanelLeft, Play, Plus, Trash2, X } from "lucide-react";
+import {
+  Check,
+  Download,
+  Edit3,
+  FolderOpen,
+  PanelLeft,
+  Play,
+  Plus,
+  Share2,
+  Trash2,
+  X,
+} from "lucide-react";
 import React from "react";
 import type { WorkflowDefinition } from "./workflowTypes";
 
@@ -17,6 +28,9 @@ interface WorkflowHeaderBarProps {
   onToggleEnabled: (id: string, enabled: boolean) => void;
   onRunTest: () => void;
   onCancelConnect: () => void;
+  onExportWorkflow: () => void;
+  onShareWorkflow: () => void;
+  onImportWorkflow: () => void;
 }
 
 export default function WorkflowHeaderBar({
@@ -32,6 +46,9 @@ export default function WorkflowHeaderBar({
   onToggleEnabled,
   onRunTest,
   onCancelConnect,
+  onExportWorkflow,
+  onShareWorkflow,
+  onImportWorkflow,
 }: WorkflowHeaderBarProps) {
   const [editingWorkflowId, setEditingWorkflowId] = React.useState<string | null>(null);
   const [draftName, setDraftName] = React.useState(activeWorkflow.name);
@@ -53,7 +70,7 @@ export default function WorkflowHeaderBar({
       onPointerDown={(e) => e.stopPropagation()}
       className="custom-scrollbar relative z-40 flex h-12 w-full shrink-0 items-center justify-between gap-2 overflow-x-auto border-b border-border-color bg-card-bg-solid/95 px-2.5 backdrop-blur-md sm:px-3"
     >
-      {/* Right side in RTL: Workflow Selector + CRUD + Run + Active Toggle */}
+      {/* Right side in RTL: Workflow Selector + CRUD + Export/Import/Share */}
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
         {isEditingName ? (
           <div className="flex items-center gap-1">
@@ -128,6 +145,40 @@ export default function WorkflowHeaderBar({
         >
           <Trash2 className="size-3.5" />
         </button>
+
+        <div className="flex items-center gap-1 border-r border-border-color pr-1.5">
+          <button
+            type="button"
+            onClick={onExportWorkflow}
+            title="خروجی فایل JSON گردش کار (File System Access)"
+            aria-label="خروجی JSON گردش کار"
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-border-color bg-bg-main px-2 text-[11px] font-semibold text-text-secondary transition-colors hover:border-accent3 hover:text-text-primary"
+          >
+            <Download className="size-3.5 shrink-0" aria-hidden="true" />
+            <span className="hidden xl:inline">خروجی JSON</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onShareWorkflow}
+            title="اشتراک‌گذاری گردش کار (Web Share API)"
+            aria-label="اشتراک‌گذاری گردش کار"
+            className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-border-color bg-bg-main text-text-secondary transition-colors hover:border-accent3 hover:text-text-primary"
+          >
+            <Share2 className="size-3.5" aria-hidden="true" />
+          </button>
+
+          <button
+            type="button"
+            onClick={onImportWorkflow}
+            title="وارد کردن سناریوی گردش کار از فایل JSON"
+            aria-label="ورود JSON گردش کار"
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-border-color bg-bg-main px-2 text-[11px] font-semibold text-text-secondary transition-colors hover:border-accent3 hover:text-text-primary"
+          >
+            <FolderOpen className="size-3.5 shrink-0" aria-hidden="true" />
+            <span className="hidden xl:inline">ورود JSON</span>
+          </button>
+        </div>
       </div>
 
       {/* Center Status Hint while Connecting Ports */}

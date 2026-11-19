@@ -81,7 +81,7 @@ export default function GroupHeader({
       {/* RTL Right: Drag Handle + Group Icon + Title & Count */}
       <div
         ref={titleContainerRef}
-        className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 relative"
+        className="flex items-center gap-2 @sm/group:gap-2.5 min-w-0 flex-1 relative"
       >
         <Tooltip>
           <TooltipTrigger
@@ -96,7 +96,7 @@ export default function GroupHeader({
               >
                 <GripVertical
                   strokeWidth={1.5}
-                  className={isDenseHeader ? "size-4" : "size-4 sm:size-4.5"}
+                  className={isDenseHeader ? "size-4" : "size-4 @md/group:size-4.5"}
                 />
               </button>
             }
@@ -104,18 +104,21 @@ export default function GroupHeader({
           <TooltipContent>کشیدن کل گروه برای جابه‌جایی</TooltipContent>
         </Tooltip>
 
-        <div data-animate-icon-parent className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+        <div
+          data-animate-icon-parent
+          className="flex items-center gap-2 @sm/group:gap-2.5 min-w-0 flex-1"
+        >
           <div
             aria-hidden="true"
             className={`flex items-center justify-center rounded-lg bg-card-bg text-text-secondary border border-border-color shrink-0 ${
-              isDenseHeader ? "size-7" : "size-8"
+              isDenseHeader ? "size-7" : "size-7 @sm/group:size-8"
             }`}
           >
             <GroupAvatar icon={icon} isDenseHeader={isDenseHeader} />
           </div>
 
           <div className="min-w-0 flex-1 text-right leading-tight">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 @sm/group:gap-2 min-w-0">
               <h2
                 ref={titleTextRef}
                 className={`font-sans font-medium text-text-primary truncate ${
@@ -124,7 +127,7 @@ export default function GroupHeader({
               >
                 {id}
               </h2>
-              <span className="inline-flex items-center text-xs font-normal tabular-nums text-text-muted shrink-0">
+              <span className="hidden @xs/group:inline-flex items-center text-xs font-normal tabular-nums text-text-muted shrink-0">
                 · {segmentCount} قطعه
               </span>
             </div>

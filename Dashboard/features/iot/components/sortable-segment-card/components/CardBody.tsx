@@ -10,6 +10,7 @@ type PinToggleButtonProps = Omit<ComponentPropsWithoutRef<typeof Toggle>, "press
 interface CardBodyProps {
   segment: SegmentData;
   isPinOn: boolean;
+  isPending?: boolean;
   isCompact: boolean;
   isUltraCompact: boolean;
   hasExternalHeader?: boolean;
@@ -124,6 +125,7 @@ export function InputSegmentBody({
 function CardBody({
   segment,
   isPinOn,
+  isPending = false,
   isCompact,
   isUltraCompact,
   hasExternalHeader = false,
@@ -146,6 +148,7 @@ function CardBody({
         <PinToggle
           segment={segment}
           isPinOn={isPinOn}
+          isPending={isPending}
           mode={mode}
           buttonProps={buttonProps}
           animationsEnabled={animationsEnabled}

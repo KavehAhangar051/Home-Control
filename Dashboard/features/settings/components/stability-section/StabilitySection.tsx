@@ -7,7 +7,9 @@ import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import { ACCORDION_CLIP } from "@/lib/presets";
 import AnimationsToggle from "./AnimationsToggle";
+import BackupRestoreSection from "./BackupRestoreSection";
 import CloudflareIntegration from "./CloudflareIntegration";
+import HapticsToggle from "./HapticsToggle";
 import LowDataToggle from "./LowDataToggle";
 import type { StabilitySectionProps } from "./types";
 
@@ -39,6 +41,8 @@ export function StabilitySectionContent({
         animationsEnabled={animationsEnabled}
         isDark={isDark}
       />
+      <HapticsToggle animationsEnabled={animationsEnabled} />
+      <BackupRestoreSection />
       <CloudflareIntegration isDark={isDark} />
     </div>
   );

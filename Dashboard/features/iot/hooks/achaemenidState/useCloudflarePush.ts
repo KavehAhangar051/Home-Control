@@ -1,46 +1,40 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef } from "react";
+import { shallow } from "zustand/shallow";
 import type { IoTStoreState } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
 import { buildEspConfig, persistStoreConfigToCloudflare } from "./core/buildEspConfig";
 import { evaluateCloudflarePushTransition } from "./core/cloudflareSyncCoordinator";
 
-const CONFIG_WATCHED_KEYS = [
-  "isDark",
-  "accent3",
-  "accent4",
-  "animationsEnabled",
-  "animationsFps",
-  "headerTitle",
-  "selectedFont",
-  "manualSaveMode",
-  "segments",
-  "groupsOrder",
-  "groupConfigs",
-  "groupsCols",
-  "automations",
-  "macros",
-  "voiceCommands",
-  "wifiNetworks",
-  "wifiNetworksConfigured",
-  "wifiApConfig",
-  "mqttConfig",
-] as const satisfies ReadonlyArray<keyof IoTStoreState>;
-
-function hasWatchedConfigFieldsChanged(prev: IoTStoreState | null, next: IoTStoreState): boolean {
-  if (!prev) return true;
-
-  for (let i = 0; i < CONFIG_WATCHED_KEYS.length; i++) {
-    const key = CONFIG_WATCHED_KEYS[i];
-
-    if (prev[key] !== next[key]) {
-      return true;
-    }
-  }
-
-  return false;
+/**
+ * Projects only the ESP32/Cloudflare-persisted fields from `useIoTStore`.
+ * Combined with Zustand 5 `subscribeWithSelector` + `shallow`, transient UI/pin updates
+ * never wake the Cloudflare config serializer.
+ */
+function selectWatchedConfigSlice(state: IoTStoreState) {
+  return {
+    isDark: state.isDark,
+    accent3: state.accent3,
+    accent4: state.accent4,
+    animationsEnabled: state.animationsEnabled,
+    animationsFps: state.animationsFps,
+    headerTitle: state.headerTitle,
+    selectedFont: state.selectedFont,
+    manualSaveMode: state.manualSaveMode,
+    segments: state.segments,
+    groupsOrder: state.groupsOrder,
+    groupConfigs: state.groupConfigs,
+    groupsCols: state.groupsCols,
+    automations: state.automations,
+    macros: state.macros,
+    voiceCommands: state.voiceCommands,
+    wifiNetworks: state.wifiNetworks,
+    wifiNetworksConfigured: state.wifiNetworksConfigured,
+    wifiApConfig: state.wifiApConfig,
+    mqttConfig: state.mqttConfig,
+  };
 }
 
 export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
@@ -57,6 +51,17 @@ export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
     }
   }, [isFullyReady]);
 
+  const onFlushDebouncedPush = useEffectEvent((configSignature: string) => {
+    const latestState = useIoTStore.getState();
+
+    if (latestState.manualSaveMode) {
+      lastSyncedSignatureRef.current = configSignature;
+      latestState.incrementUnsavedChanges();
+    } else {
+      void triggerCloudflarePush();
+    }
+  });
+
   useEffect(() => {
     if (!isFullyReady) {
       lastSyncedSignatureRef.current = null;
@@ -66,14 +71,8 @@ export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
     }
 
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    let lastObservedState: IoTStoreState | null = null;
 
-    const evaluateState = (state: IoTStoreState, forceCheck: boolean) => {
-      if (!forceCheck && !hasWatchedConfigFieldsChanged(lastObservedState, state)) {
-        return;
-      }
-
-      lastObservedState = state;
+    const evaluateState = (state: IoTStoreState) => {
       const configSignature = JSON.stringify(buildEspConfig(state));
 
       const decision = evaluateCloudflarePushTransition({
@@ -108,22 +107,19 @@ export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
 
       debounceTimer = setTimeout(() => {
         debounceTimer = null;
-        const latestState = useIoTStore.getState();
-
-        if (latestState.manualSaveMode) {
-          lastSyncedSignatureRef.current = configSignature;
-          latestState.incrementUnsavedChanges();
-        } else {
-          void triggerCloudflarePush();
-        }
+        onFlushDebouncedPush(configSignature);
       }, 1200);
     };
 
-    evaluateState(useIoTStore.getState(), true);
+    evaluateState(useIoTStore.getState());
 
-    const unsubscribe = useIoTStore.subscribe((nextState) => {
-      evaluateState(nextState, false);
-    });
+    const unsubscribe = useIoTStore.subscribe(
+      selectWatchedConfigSlice,
+      () => {
+        evaluateState(useIoTStore.getState());
+      },
+      { equalityFn: shallow },
+    );
 
     return () => {
       unsubscribe();
@@ -132,7 +128,7 @@ export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
         clearTimeout(debounceTimer);
       }
     };
-  }, [isFullyReady, remoteSyncEpoch, triggerCloudflarePush]);
+  }, [isFullyReady, remoteSyncEpoch]);
 
   return { triggerCloudflarePush };
 }

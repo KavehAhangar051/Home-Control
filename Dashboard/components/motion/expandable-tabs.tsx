@@ -7,17 +7,19 @@
  * for RTL, LazyMotion (`m.*`), lite-tier performance stepping, and viewport clamping.
  */
 
-import { AnimatePresence, m, useReducedMotion, type Variants } from "motion/react";
+import { AnimatePresence, m, type PanInfo, useReducedMotion, type Variants } from "motion/react";
 import {
   type ReactNode,
   useCallback,
   useEffect,
+  useEffectEvent,
   useId,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
 import { EASE_OUT, SPRING_LAYOUT } from "@/lib/ease";
+import { triggerHaptic } from "@/lib/haptics";
 import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
 import { useMessages } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -294,19 +296,23 @@ export function ExpandableTabs({
     [controlled, onValueChange],
   );
 
+  const onDismissPanel = useEffectEvent(() => {
+    setActive(null);
+  });
+
   // Outside pointer tap or Escape closes the open panel back down to the Dock bar.
   useEffect(() => {
     if (!visualOpenId) return;
 
     const onPointer = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
-        setActive(null);
+        onDismissPanel();
       }
     };
 
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setActive(null);
+        onDismissPanel();
       }
     };
 
@@ -317,7 +323,17 @@ export function ExpandableTabs({
       document.removeEventListener("pointerdown", onPointer);
       document.removeEventListener("keydown", onKey);
     };
-  }, [setActive, visualOpenId]);
+  }, [visualOpenId]);
+
+  const handlePanelDragEnd = useCallback(
+    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      if (info.offset.y > 40 || info.velocity.y > 260) {
+        triggerHaptic("tap");
+        setActive(null);
+      }
+    },
+    [setActive],
+  );
 
   const { barHeight, tabWidth, panelDockGap } = EXPANDABLE_TABS_METRICS;
   const closedSize = computeClosedShellSize(items.length, trailing ? trailingWidth : 0);
@@ -355,18 +371,23 @@ export function ExpandableTabs({
           ref={sizerRef}
           aria-hidden="true"
           className={cn(
-            "pointer-events-none invisible absolute start-0 top-0 w-max max-w-[calc(100vw-1.5rem-2px)] px-2.5 pt-2.5",
+            "pointer-events-none invisible absolute start-0 top-0 w-max max-w-[calc(100vw-1.5rem-2px)] px-2.5 pt-2",
             classNames?.panel,
           )}
           style={{ paddingBottom: barHeight + panelDockGap }}
         >
-          {active ? <div className="w-max max-w-full">{active.content}</div> : null}
+          {active ? (
+            <div className="w-max max-w-full">
+              <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-border-color/80" />
+              {active.content}
+            </div>
+          ) : null}
         </div>
 
         {/* Animated content viewport clipped cleanly above the bottom dock bar */}
         <div
           className={cn(
-            "absolute inset-x-0 top-0 z-10 overflow-hidden px-2.5 pt-2.5",
+            "absolute inset-x-0 top-0 z-10 overflow-hidden px-2.5 pt-2",
             classNames?.panel,
           )}
           style={{ bottom: barHeight + panelDockGap }}
@@ -375,17 +396,27 @@ export function ExpandableTabs({
             {active ? (
               <m.div
                 key={active.id}
+                drag={reduce ? false : "y"}
+                dragDirectionLock
+                dragConstraints={{ top: 0, bottom: 110 }}
+                dragElastic={{ top: 0.05, bottom: 0.25 }}
+                dragSnapToOrigin
+                onDragEnd={handlePanelDragEnd}
                 variants={contentVariants}
                 initial="enter"
                 animate="center"
                 exit="exit"
                 transition={reduce ? { duration: 0.14, ease: EASE_OUT } : CONTENT_SPRING}
-                className="w-full"
+                className="w-full touch-pan-x"
                 style={{
                   transformOrigin: "top center",
                   willChange: "transform, opacity",
                 }}
               >
+                <div
+                  aria-hidden="true"
+                  className="mx-auto mb-2 h-1 w-9 cursor-grab rounded-full bg-border-color/80 active:cursor-grabbing"
+                />
                 {active.content}
               </m.div>
             ) : null}

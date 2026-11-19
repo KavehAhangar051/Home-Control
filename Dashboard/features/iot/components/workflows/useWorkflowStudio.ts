@@ -4,6 +4,8 @@ import React from "react";
 import { useSheetViewportGestures } from "@/features/iot/components/canvas/useSheetViewportGestures";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { useMediaQuery } from "@/features/iot/hooks/useMediaQuery";
+import { WORKFLOWS_UPDATED_EVENT } from "@/features/iot/services/configBackupService";
+import { useWorkflowHistoryAndClipboard } from "./useWorkflowHistoryAndClipboard";
 import { type ConnectingWireDraft, useWorkflowInteractions } from "./useWorkflowInteractions";
 import { useWorkflowRuntime } from "./useWorkflowRuntime";
 import {
@@ -17,6 +19,7 @@ import {
   snapWorkflowNodeToGrid,
   writeStoredWorkflowState,
 } from "./workflowEngine";
+import { expandGroupBoundsToFitChild, findContainingGroupNode } from "./workflowSubflowHelpers";
 import type {
   WorkflowDefinition,
   WorkflowEdge,
@@ -291,8 +294,23 @@ export function useWorkflowStudio({
     [updateActiveWorkflow],
   );
 
+  React.useEffect(() => {
+    const handleExternalUpdate = () => {
+      setStudioState(normalizeStoredStudioState(readStoredWorkflowState()));
+    };
+
+    window.addEventListener(WORKFLOWS_UPDATED_EVENT, handleExternalUpdate);
+
+    return () => {
+      window.removeEventListener(WORKFLOWS_UPDATED_EVENT, handleExternalUpdate);
+    };
+  }, []);
+
+  const recordUndoRef = React.useRef<(wf: WorkflowDefinition | null) => void>(() => undefined);
+
   const handleUpdateNode = React.useCallback(
     (nodeId: string, patch: Partial<WorkflowNode>) => {
+      recordUndoRef.current(activeWorkflowRef.current);
       patchNode(nodeId, patch, false);
     },
     [patchNode],
@@ -323,6 +341,7 @@ export function useWorkflowStudio({
     snapToGrid,
     updateActiveWorkflow,
     handleUpdateNodeTransient,
+    onRecordUndoSnapshot: () => recordUndoRef.current(activeWorkflowRef.current),
     onCommitInteraction: commitWorkflowPersistence,
     setSelectedNodeId,
     setSelectedEdgeId,
@@ -432,6 +451,8 @@ export function useWorkflowStudio({
     (payload: WorkflowPaletteDragPayload, dropWorldX?: number, dropWorldY?: number) => {
       if (!activeWorkflow) return;
 
+      recordUndoRef.current(activeWorkflow);
+
       const vp = activeWorkflow.viewport;
       const offset = (activeWorkflow.nodes.length % 5) * 32;
       const fallbackWorldX = Math.round((containerSize.width / 2 - vp.x) / vp.zoom) - 112 + offset;
@@ -443,7 +464,7 @@ export function useWorkflowStudio({
         maxZ = Math.max(maxZ, n.zIndex + 1);
       }
 
-      const newNode = createWorkflowNode({
+      const rawNewNode = createWorkflowNode({
         payload,
         x: dropWorldX ?? fallbackWorldX,
         y: dropWorldY ?? fallbackWorldY,
@@ -452,10 +473,23 @@ export function useWorkflowStudio({
         snapToGrid,
       });
 
-      updateActiveWorkflow((wf) => ({
-        ...wf,
-        nodes: [...wf.nodes, newNode],
-      }));
+      const containerGroup = findContainingGroupNode(rawNewNode, activeWorkflow.nodes);
+      const newNode: WorkflowNode = containerGroup
+        ? { ...rawNewNode, parentGroupId: containerGroup.id }
+        : rawNewNode;
+
+      updateActiveWorkflow((wf) => {
+        const baseNodes = containerGroup
+          ? wf.nodes.map((n) =>
+              n.id === containerGroup.id ? expandGroupBoundsToFitChild(n, newNode, snapToGrid) : n,
+            )
+          : wf.nodes;
+
+        return {
+          ...wf,
+          nodes: [...baseNodes, newNode],
+        };
+      });
       setSelectedNodeId(newNode.id);
 
       if (!isDesktop) {
@@ -467,11 +501,19 @@ export function useWorkflowStudio({
 
   const handleDeleteNode = React.useCallback(
     (nodeId: string) => {
+      recordUndoRef.current(activeWorkflowRef.current);
+
       updateActiveWorkflow((wf) => {
         const nextNodes: WorkflowNode[] = [];
 
         for (const n of wf.nodes) {
-          if (n.id !== nodeId) nextNodes.push(n);
+          if (n.id === nodeId) continue;
+
+          if (n.parentGroupId === nodeId) {
+            nextNodes.push({ ...n, parentGroupId: undefined });
+          } else {
+            nextNodes.push(n);
+          }
         }
 
         const nextEdges: WorkflowEdge[] = [];
@@ -494,6 +536,8 @@ export function useWorkflowStudio({
 
   const handleDeleteEdge = React.useCallback(
     (edgeId: string) => {
+      recordUndoRef.current(activeWorkflowRef.current);
+
       updateActiveWorkflow((wf) => {
         const nextEdges: WorkflowEdge[] = [];
 
@@ -507,6 +551,25 @@ export function useWorkflowStudio({
     },
     [updateActiveWorkflow],
   );
+
+  const historyAndClipboard = useWorkflowHistoryAndClipboard({
+    activeWorkflow,
+    selectedNodeId,
+    selectedEdgeId,
+    isLocked,
+    snapToGrid,
+    setSelectedNodeId,
+    setSelectedEdgeId,
+    updateActiveWorkflow,
+    setStudioState,
+    onDeleteNode: handleDeleteNode,
+    onDeleteEdge: handleDeleteEdge,
+    showToast,
+  });
+
+  React.useEffect(() => {
+    recordUndoRef.current = historyAndClipboard.recordUndoSnapshot;
+  }, [historyAndClipboard.recordUndoSnapshot]);
 
   const handleFitView = React.useCallback(() => {
     if (!activeWorkflow) return;
@@ -543,6 +606,18 @@ export function useWorkflowStudio({
     evaluation,
     timerCountdowns,
     backgroundGridStyle,
+    canUndo: historyAndClipboard.canUndo,
+    canRedo: historyAndClipboard.canRedo,
+    hasClipboard: historyAndClipboard.hasClipboard,
+    handleUndo: historyAndClipboard.handleUndo,
+    handleRedo: historyAndClipboard.handleRedo,
+    handleCopySelectedNode: historyAndClipboard.handleCopySelectedNode,
+    handlePasteClipboard: historyAndClipboard.handlePasteClipboard,
+    handleDuplicateSelectedNode: historyAndClipboard.handleDuplicateSelectedNode,
+    handleToggleSubflowGroup: historyAndClipboard.handleToggleSubflowGroup,
+    handleExportWorkflow: historyAndClipboard.handleExportWorkflow,
+    handleShareWorkflow: historyAndClipboard.handleShareWorkflow,
+    handleImportWorkflow: historyAndClipboard.handleImportWorkflow,
     handleStartDesigningFirstWorkflow,
     handleCreateWorkflow,
     handleSelectWorkflow,
