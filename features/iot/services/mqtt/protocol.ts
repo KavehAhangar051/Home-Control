@@ -12,19 +12,28 @@ export const MQTT_OPCODES = {
   DELETE_SEGMENT: 0x03,
   /** Client presence ping */
   PRESENCE: 0x04,
-  /** Update automation rule for a segment */
+  /** Update automation rule for a segment (11-byte boolean actions) */
   UPDATE_RULE: 0x05,
   /** Batch update multiple pins in a single frame */
   BATCH_PINS: 0x08,
+  /** Set PWM duty cycle for an analog_output pin */
+  SET_ANALOG_OUTPUT: 0x0a,
+  /** Update automation rule with 13-byte analog targetValue actions */
+  UPDATE_RULE_ANALOG: 0x0b,
 } as const;
 
 /** Binary byte sizes for protocol framing */
 export const PIN_COMMAND_BUFFER_SIZE = 7;
+export const ANALOG_COMMAND_BUFFER_SIZE = 8;
+export const ANALOG_SEGMENT_EXT_SIZE = 5;
 export const DEFAULT_TIMER_DISABLED = -1;
 export const MAX_BATCH_ACTIONS = 255;
 export const BATCH_HEADER_SIZE = 2;
 export const BATCH_ACTION_SIZE = 6;
 export const RULE_ACTION_SIZE = 11;
+export const RULE_ANALOG_ACTION_SIZE = 13;
+export const RULE_TARGET_VALUE_BOOLEAN = -1;
+export const MAX_RULE_ACTIONS_PER_SIDE = 4;
 
 /** Binary state encodings */
 export const PIN_STATE_HIGH = 0x01;

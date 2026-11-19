@@ -5,6 +5,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { isAnalogOutputSegment } from "@/features/iot/utils/analogOutput";
 import { DURATION, EASE_IN_OUT, TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import type { SegmentData } from "../core/types";
 
@@ -44,55 +45,60 @@ export default function SegmentControls({
   const prefersReduced = useReducedMotion();
   const reduceMotion = !animationsEnabled || Boolean(prefersReduced);
   const autoOffValue = segment.auto_off || 0;
+  const isAnalog = isAnalogOutputSegment(segment);
 
   return (
     <div className="flex items-center gap-1.5 relative" onPointerDown={(e) => e.stopPropagation()}>
-      <ToggleGroup
-        variant="outline"
-        size="sm"
-        spacing={0}
-        value={[mode]}
-        onValueChange={(vals) => {
-          const val = vals[0];
+      {!isAnalog && (
+        <ToggleGroup
+          variant="outline"
+          size="sm"
+          spacing={0}
+          value={[mode]}
+          onValueChange={(vals) => {
+            const val = vals[0];
 
-          if (val === "switch" || val === "push") {
-            onUpdateSegmentMode(segment.id, val);
-          }
-        }}
-      >
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <ToggleGroupItem
-                value="switch"
-                className="h-6 px-2.5 text-[10px] font-sans font-bold cursor-pointer select-none aria-pressed:bg-accent3 aria-pressed:text-bg-main"
-              >
-                سوئیچ
-              </ToggleGroupItem>
+            if (val === "switch" || val === "push") {
+              onUpdateSegmentMode(segment.id, val);
             }
-          />
-          <TooltipContent>حالت کلید دائمی (روشن/خاموش)</TooltipContent>
-        </Tooltip>
-
-        {(!segment.auto_off || segment.auto_off === 0) && (
+          }}
+        >
           <Tooltip>
             <TooltipTrigger
               render={
                 <ToggleGroupItem
-                  value="push"
+                  value="switch"
                   className="h-6 px-2.5 text-[10px] font-sans font-bold cursor-pointer select-none aria-pressed:bg-accent3 aria-pressed:text-bg-main"
                 >
-                  شستی
+                  سوئیچ
                 </ToggleGroupItem>
               }
             />
-            <TooltipContent>حالت شستی لحظه‌ای (فشاری)</TooltipContent>
+            <TooltipContent>حالت کلید دائمی (روشن/خاموش)</TooltipContent>
           </Tooltip>
-        )}
-      </ToggleGroup>
+
+          {(!segment.auto_off || segment.auto_off === 0) && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <ToggleGroupItem
+                    value="push"
+                    className="h-6 px-2.5 text-[10px] font-sans font-bold cursor-pointer select-none aria-pressed:bg-accent3 aria-pressed:text-bg-main"
+                  >
+                    شستی
+                  </ToggleGroupItem>
+                }
+              />
+              <TooltipContent>حالت شستی لحظه‌ای (فشاری)</TooltipContent>
+            </Tooltip>
+          )}
+        </ToggleGroup>
+      )}
 
       {onUpdateSegmentAutoOff && (
-        <div className="relative flex items-center pr-1.5 border-r border-border">
+        <div
+          className={`relative flex items-center ${isAnalog ? "" : "pr-1.5 border-r border-border"}`}
+        >
           <Tooltip>
             <TooltipTrigger
               render={

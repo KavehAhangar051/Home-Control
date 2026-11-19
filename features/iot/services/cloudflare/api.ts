@@ -153,7 +153,7 @@ interface WorkerAckResponse {
 
 type WorkerPayload =
   | ReturnType<typeof serializeToCloudflare>
-  | { value: boolean }
+  | { value: boolean; analogValue?: number; state?: boolean }
   | { actions: Array<{ pin: string; state: boolean }> };
 
 async function parseWorkerErrorMessage(res: Response, fallbackMessage: string): Promise<string> {
@@ -304,6 +304,26 @@ export async function updatePinOnCloudflare(
     `/pins/${pin}`,
     { value },
     `وضعیت پین ${pin} ذخیره شد.`,
+    `پین ${pin}`,
+    options,
+  );
+}
+
+/**
+ * Update analog PWM duty value on Durable Objects via Cloudflare Worker.
+ * Includes boolean `value`/`state` alongside numeric `analogValue` for Worker backwards-compatibility.
+ */
+export async function updateAnalogPinOnCloudflare(
+  pin: string,
+  analogValue: number,
+  options?: CloudflareRequestOptions,
+): Promise<AckResult> {
+  const isOn = analogValue > 0;
+
+  return postWorkerJson(
+    `/pins/${pin}`,
+    { value: isOn, state: isOn, analogValue },
+    `مقدار آنالوگ پین ${pin} ذخیره شد.`,
     `پین ${pin}`,
     options,
   );

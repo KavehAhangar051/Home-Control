@@ -1,6 +1,8 @@
+import { MAX_ANALOG_OUTPUT_VALUE } from "@/features/iot/utils/analogOutput";
 import { getIoTStoreSnapshot } from "../storeBridge";
 import { publishMqttCommand } from "./client";
 import {
+  ANALOG_COMMAND_BUFFER_SIZE,
   BATCH_ACTION_SIZE,
   BATCH_HEADER_SIZE,
   DEFAULT_TIMER_DISABLED,
@@ -34,6 +36,44 @@ export const publishPinCommand = (pinId: string, value: boolean, timer?: number)
   const published = publishMqttCommand(
     buf,
     `Published toggle command: pin=${buf[1]} state=${value} timer=${timer}`,
+  );
+
+  if (published) clearSynchronizedTimer(pinId);
+  return published;
+};
+
+/**
+ * Builds the 8-byte Little-Endian Opcode `0x0A` (`SET_ANALOG_OUTPUT`) binary frame:
+ * `[0x0A][pin:u8][value:u16LE (0..4095)][timerSeconds:i32LE (-1 = disabled)]`.
+ */
+export const buildAnalogOutputCommandFrame = (
+  pinId: string,
+  value: number,
+  timer?: number,
+): Uint8Array => {
+  const buf = new Uint8Array(ANALOG_COMMAND_BUFFER_SIZE);
+  const view = new DataView(buf.buffer);
+  const clampedValue = Number.isFinite(value)
+    ? Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.max(0, Math.round(value)))
+    : 0;
+
+  buf[0] = MQTT_OPCODES.SET_ANALOG_OUTPUT;
+  buf[1] = (Number(pinId) | 0) & 0xff;
+  view.setUint16(2, clampedValue, true);
+  view.setInt32(4, timer !== undefined ? timer : DEFAULT_TIMER_DISABLED, true);
+
+  return buf;
+};
+
+export const publishAnalogOutputCommand = (
+  pinId: string,
+  value: number,
+  timer?: number,
+): boolean => {
+  const buf = buildAnalogOutputCommandFrame(pinId, value, timer);
+  const published = publishMqttCommand(
+    buf,
+    `Published analog_output command: pin=${buf[1]} value=${value} timer=${timer}`,
   );
 
   if (published) clearSynchronizedTimer(pinId);

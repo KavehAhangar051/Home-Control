@@ -8,6 +8,10 @@ export interface SegmentData {
   state?: boolean;
   mode?: "switch" | "push";
   auto_off?: number;
+  analogValue?: number;
+  lastNonZeroValue?: number;
+  pwmResolution?: number;
+  pwmFrequency?: number;
   rule?: {
     highActions?: Array<{
       reqHold: number;
@@ -15,6 +19,7 @@ export interface SegmentData {
       actionOn: boolean;
       actionType?: number;
       delay?: number;
+      targetValue?: number | null;
     }>;
     lowActions?: Array<{
       reqHold: number;
@@ -22,6 +27,7 @@ export interface SegmentData {
       actionOn: boolean;
       actionType?: number;
       delay?: number;
+      targetValue?: number | null;
     }>;
   };
 }

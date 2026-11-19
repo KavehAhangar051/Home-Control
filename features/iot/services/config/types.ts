@@ -47,6 +47,10 @@ export interface EspConfig {
     state?: boolean;
     mode?: "switch" | "push";
     auto_off?: number;
+    analogValue?: number;
+    lastNonZeroValue?: number;
+    pwmResolution?: number;
+    pwmFrequency?: number;
     rule?: {
       highActions?: Array<{
         reqHold: number;
@@ -54,6 +58,8 @@ export interface EspConfig {
         actionOn: boolean;
         actionType?: number;
         delay?: number;
+        targetValue?: number | null;
+        aval?: number;
       }>;
       lowActions?: Array<{
         reqHold: number;
@@ -61,6 +67,8 @@ export interface EspConfig {
         actionOn: boolean;
         actionType?: number;
         delay?: number;
+        targetValue?: number | null;
+        aval?: number;
       }>;
       targetPinHigh?: string;
       actionOnHigh?: boolean;

@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import type { SegmentRule } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { publishUpdateRuleCommand } from "@/features/iot/services/mqttService";
 import { validateRuleActionList } from "./core/segmentOperations";
@@ -33,25 +34,7 @@ export function useSegmentUpdates() {
   );
 
   const handleUpdateSegmentRule = useCallback(
-    (
-      id: string,
-      rule: {
-        highActions?: Array<{
-          reqHold: number;
-          targetPin: string;
-          actionOn: boolean;
-          actionType?: number;
-          delay?: number;
-        }>;
-        lowActions?: Array<{
-          reqHold: number;
-          targetPin: string;
-          actionOn: boolean;
-          actionType?: number;
-          delay?: number;
-        }>;
-      },
-    ) => {
+    (id: string, rule: SegmentRule) => {
       const errorMessage =
         validateRuleActionList(rule.highActions) ?? validateRuleActionList(rule.lowActions);
 

@@ -3,6 +3,14 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import {
+  analogDutyToPercent,
+  clampAnalogValue,
+  clampPwmFrequency,
+  clampPwmResolution,
+  getAnalogMaxDuty,
+  isAnalogOutputSegment,
+} from "@/features/iot/utils/analogOutput";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
 import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import type { SegmentData } from "../core/types";
@@ -51,8 +59,21 @@ export default function SegmentSettingsMenu({
   autoOffMenuProps,
 }: SegmentSettingsMenuProps) {
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const liveAnalogValue = useIoTStore((s) => s.pinsAnalogValue[segment.pin]);
+  const livePwmResolution = useIoTStore((s) => s.pinsPwmResolution[segment.pin]);
   const prefersReduced = useReducedMotion();
   const reduceMotion = !animationsEnabled || Boolean(prefersReduced);
+  const isAnalog = isAnalogOutputSegment(segment);
+  const pwmRes = clampPwmResolution(livePwmResolution ?? segment.pwmResolution);
+  const pwmFreq = clampPwmFrequency(segment.pwmFrequency);
+  const maxDuty = getAnalogMaxDuty(pwmRes);
+  const currentDuty =
+    liveAnalogValue !== undefined
+      ? clampAnalogValue(liveAnalogValue, pwmRes)
+      : isPinOn
+        ? clampAnalogValue(segment.analogValue ?? maxDuty, pwmRes)
+        : 0;
+  const currentPercent = analogDutyToPercent(currentDuty, pwmRes);
 
   if (typeof document === "undefined") return null;
 
@@ -103,17 +124,40 @@ export default function SegmentSettingsMenu({
                 {segment.title}
               </span>
               <span className="block text-[10px] tabular-nums text-text-muted">
-                پایه {segment.pin} · {isPinOn ? "روشن" : "خاموش"}
+                پایه {segment.pin} ·{" "}
+                {isAnalog
+                  ? `${currentPercent}% (${currentDuty}/${maxDuty})`
+                  : isPinOn
+                    ? "روشن"
+                    : "خاموش"}
               </span>
             </div>
           </div>
         </div>
 
+        {/* PWM Hardware Metadata for analog_output */}
+        {isAnalog && (
+          <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-border-color bg-secondary px-2.5 py-2 text-[11px] tabular-nums">
+            <div className="flex flex-col">
+              <span className="text-[10px] text-text-muted">رزولوشن PWM</span>
+              <span className="font-mono font-semibold text-text-primary" dir="ltr">
+                {pwmRes}-bit (0..{maxDuty})
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] text-text-muted">فرکانس LEDC</span>
+              <span className="font-mono font-semibold text-text-primary" dir="ltr">
+                {pwmFreq} Hz
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Mode & Auto-Off Timer Controls */}
         {onUpdateSegmentMode && segment.type !== "input" && (
           <div className="flex flex-col gap-1.5">
             <span className="text-[11px] font-semibold text-text-secondary">
-              حالت کلید و تایمر خودکار
+              {isAnalog ? "تایمر خاموشی خودکار" : "حالت کلید و تایمر خودکار"}
             </span>
             <div className="flex items-center justify-between bg-secondary rounded-xl p-2 border border-border-color">
               <SegmentControls

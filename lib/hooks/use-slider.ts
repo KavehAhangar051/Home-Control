@@ -28,6 +28,8 @@ export interface SliderOptions {
   value?: number;
   defaultValue?: number;
   onValueChange?: (value: number) => void;
+  /** Fired once when a drag finishes or a keyboard step commits a final value. */
+  onValueCommit?: (value: number) => void;
   min?: number;
   max?: number;
   step?: number;
@@ -47,6 +49,7 @@ export function useSlider({
   value,
   defaultValue = 0,
   onValueChange,
+  onValueCommit,
   min = 0,
   max = 100,
   step = 1,
@@ -70,14 +73,19 @@ export function useSlider({
   const hi = max > min ? max : min;
   const stride = step > 0 ? step : 1;
   const current = clamp(controlled ? value : internal, lo, hi);
+  const latestValueRef = useRef(current);
+  latestValueRef.current = current;
   const percent = hi > lo ? ((current - lo) / (hi - lo)) * 100 : 0;
 
   const commit = useCallback(
     (next: number) => {
       const clean = snapSliderValue(next, lo, hi, stride);
+      latestValueRef.current = clean;
 
       if (!controlled) setInternal(clean);
       onValueChange?.(clean);
+
+      return clean;
     },
     [controlled, onValueChange, lo, hi, stride],
   );
@@ -120,11 +128,17 @@ export function useSlider({
     [disabled, commitFromX],
   );
 
-  const endDrag = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    releasePointer(event.currentTarget, event.pointerId);
-    draggingRef.current = false;
-    setDragging(false);
-  }, []);
+  const endDrag = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (!draggingRef.current) return;
+
+      releasePointer(event.currentTarget, event.pointerId);
+      draggingRef.current = false;
+      setDragging(false);
+      onValueCommit?.(latestValueRef.current);
+    },
+    [onValueCommit],
+  );
 
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLElement>) => {
@@ -157,10 +171,11 @@ export function useSlider({
 
       if (next !== undefined) {
         event.preventDefault();
-        commit(next);
+        const committed = commit(next);
+        onValueCommit?.(committed);
       }
     },
-    [disabled, current, stride, lo, hi, commit],
+    [disabled, current, stride, lo, hi, commit, onValueCommit],
   );
 
   return {

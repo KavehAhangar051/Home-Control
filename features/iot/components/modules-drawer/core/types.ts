@@ -7,4 +7,8 @@ export interface Segment {
   icon?: string;
   mode?: "switch" | "push";
   auto_off?: number;
+  analogValue?: number;
+  lastNonZeroValue?: number;
+  pwmResolution?: number;
+  pwmFrequency?: number;
 }

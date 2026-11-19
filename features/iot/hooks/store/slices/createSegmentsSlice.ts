@@ -4,6 +4,9 @@ import type { IoTStoreState, SegmentsSlice } from "../types";
 export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSlice> = (set) => ({
   segments: [],
   pinsState: {},
+  pinsAnalogValue: {},
+  pinsLastNonZeroValue: {},
+  pinsPwmResolution: {},
   autoOffRemaining: {},
 
   setAutoOffRemaining: (timers) => set({ autoOffRemaining: timers }),
@@ -21,6 +24,31 @@ export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSl
       const nextPins = pins instanceof Function ? pins(state.pinsState) : pins;
 
       return { pinsState: nextPins };
+    });
+  },
+
+  setPinsAnalogValue: (values) => {
+    set((state) => {
+      const nextValues = values instanceof Function ? values(state.pinsAnalogValue) : values;
+
+      return { pinsAnalogValue: nextValues };
+    });
+  },
+
+  setPinsLastNonZeroValue: (values) => {
+    set((state) => {
+      const nextValues = values instanceof Function ? values(state.pinsLastNonZeroValue) : values;
+
+      return { pinsLastNonZeroValue: nextValues };
+    });
+  },
+
+  setPinsPwmResolution: (resolutions) => {
+    set((state) => {
+      const nextResolutions =
+        resolutions instanceof Function ? resolutions(state.pinsPwmResolution) : resolutions;
+
+      return { pinsPwmResolution: nextResolutions };
     });
   },
 

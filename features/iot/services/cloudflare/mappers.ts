@@ -1,5 +1,14 @@
-import type { Segment, SegmentRule } from "@/features/iot/hooks/store/types";
+import type { RuleAction, Segment, SegmentRule } from "@/features/iot/hooks/store/types";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
+import {
+  ANALOG_OUTPUT_TYPE,
+  clampAnalogValue,
+  clampPwmFrequency,
+  clampPwmResolution,
+  hasExplicitAnalogTargetValue,
+  isAnalogOutputType,
+  MAX_ANALOG_OUTPUT_VALUE,
+} from "@/features/iot/utils/analogOutput";
 import { CANONICAL_CONFIG_VERSION, createDefaultDeviceInfo } from "../config/defaults";
 import { getCloudflareWorkerUrl } from "./config";
 
@@ -116,15 +125,36 @@ export function normalizeSegmentRule(
     };
   }
 
+  const normalizeAction = (action: RuleAction & { aval?: number }): RuleAction => {
+    const rawTargetValue = action.targetValue ?? action.aval;
+    const normalizedAction: RuleAction = {
+      reqHold: action.reqHold,
+      targetPin: action.targetPin,
+      actionOn: action.actionOn,
+      ...(action.actionType !== undefined ? { actionType: action.actionType } : {}),
+      ...(action.delay !== undefined ? { delay: action.delay } : {}),
+    };
+
+    if (hasExplicitAnalogTargetValue(rawTargetValue)) {
+      const clampedVal = Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.max(0, Math.round(rawTargetValue)));
+      normalizedAction.targetValue = clampedVal;
+      normalizedAction.actionOn = clampedVal > 0;
+    } else if (rawTargetValue === -1) {
+      normalizedAction.targetValue = -1;
+    }
+
+    return normalizedAction;
+  };
+
   return {
-    highActions: rule.highActions ? [...rule.highActions] : [],
-    lowActions: rule.lowActions ? [...rule.lowActions] : [],
+    highActions: rule.highActions ? rule.highActions.map(normalizeAction) : [],
+    lowActions: rule.lowActions ? rule.lowActions.map(normalizeAction) : [],
   };
 }
 
 /**
  * Normalizes a segment record at the boundary so callers never have to handle
- * legacy rule schemas or missing group names.
+ * legacy rule schemas, alias types (`pwm_output`), or missing group names.
  */
 export function normalizeSegmentRecord(segment: Segment): Segment {
   const normalizedRule = normalizeSegmentRule(segment.rule);
@@ -133,6 +163,26 @@ export function normalizeSegmentRecord(segment: Segment): Segment {
     ...segment,
     group: resolveSegmentGroup(segment.group),
   };
+
+  if (isAnalogOutputType(segment.type)) {
+    const pwmResolution = clampPwmResolution(segment.pwmResolution);
+    const pwmFrequency = clampPwmFrequency(segment.pwmFrequency);
+    normalized.type = ANALOG_OUTPUT_TYPE;
+    normalized.pwmResolution = pwmResolution;
+    normalized.pwmFrequency = pwmFrequency;
+
+    if (segment.analogValue !== undefined) {
+      normalized.analogValue = clampAnalogValue(segment.analogValue, pwmResolution);
+      normalized.state = normalized.analogValue > 0;
+    }
+
+    if (segment.lastNonZeroValue !== undefined && segment.lastNonZeroValue > 0) {
+      normalized.lastNonZeroValue = Math.max(
+        1,
+        clampAnalogValue(segment.lastNonZeroValue, pwmResolution),
+      );
+    }
+  }
 
   if (normalizedRule !== undefined) {
     normalized.rule = normalizedRule;

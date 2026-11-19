@@ -6,10 +6,15 @@ export interface PinValidationResult {
 
 const FLAG_FLASH_RESERVED = 1;
 const FLAG_INPUT_ONLY = 2;
+const FLAG_BOOT_UART = 4;
 
 // Bit-packed lookup table for GPIO 0..39 capabilities
 const PIN_FLAGS = (() => {
   const table = new Uint8Array(40);
+
+  table[0] = FLAG_BOOT_UART;
+  table[1] = FLAG_BOOT_UART;
+  table[3] = FLAG_BOOT_UART;
 
   for (let p = 6; p <= 11; p++) {
     table[p] = FLAG_FLASH_RESERVED;
@@ -55,6 +60,13 @@ const RESULT_INPUT_ONLY_WARNING: PinValidationResult = {
   isWarning: true,
 };
 
+const RESULT_PWM_BOOT_UART_WARNING: PinValidationResult = {
+  isValid: true,
+  message:
+    "توجه: پایه‌های ۰، ۱ و ۳ مربوط به Boot/UART هستند؛ برای خروجی PWM استفاده از پایه‌های پیشنهادی ایمن‌تر است.",
+  isWarning: true,
+};
+
 function parsePinIndex(pinStr: string): number {
   const len = pinStr.length;
 
@@ -91,6 +103,10 @@ export const validateEsp32Pin = (pinStr: string, type: string): PinValidationRes
 
   if ((flags & FLAG_INPUT_ONLY) !== 0) {
     return type === "input" ? RESULT_INPUT_ONLY_WARNING : RESULT_INPUT_ONLY_ERROR;
+  }
+
+  if ((flags & FLAG_BOOT_UART) !== 0 && (type === "analog_output" || type === "pwm_output")) {
+    return RESULT_PWM_BOOT_UART_WARNING;
   }
 
   return RESULT_VALID;

@@ -27,6 +27,7 @@ export interface DashboardContextInterface {
     | "handleRemoveGroup"
     | "handleTogglePin"
     | "handleSetPinState"
+    | "handleSetPinAnalogValue"
     | "handleBatchPinState"
     | "handleBypassSync"
     | "setWorkerUrl"
@@ -86,6 +87,7 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       handleRemoveGroup: resolved.handleRemoveGroup,
       handleTogglePin: resolved.handleTogglePin,
       handleSetPinState: resolved.handleSetPinState,
+      handleSetPinAnalogValue: resolved.handleSetPinAnalogValue,
       handleBatchPinState: resolved.handleBatchPinState,
       handleBypassSync: resolved.handleBypassSync,
       setWorkerUrl: resolved.setWorkerUrl,
@@ -108,6 +110,7 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       resolved.handleRemoveGroup,
       resolved.handleTogglePin,
       resolved.handleSetPinState,
+      resolved.handleSetPinAnalogValue,
       resolved.handleBatchPinState,
       resolved.handleBypassSync,
       resolved.setWorkerUrl,
@@ -141,4 +144,8 @@ export function useDashboard() {
   }
 
   return context;
+}
+
+export function useOptionalDashboard(): DashboardContextValue | null {
+  return use(DashboardContext);
 }

@@ -29,6 +29,15 @@ export interface LocalWebSocketControllerDeps {
     updater: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>),
   ) => void;
   setAutoOffRemaining?: (timers: Record<string, number>) => void;
+  setPinsAnalogValue?: (
+    updater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>),
+  ) => void;
+  setPinsLastNonZeroValue?: (
+    updater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>),
+  ) => void;
+  setPinsPwmResolution?: (
+    updater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>),
+  ) => void;
   isNativeRuntime?: () => boolean;
   createWebSocket?: (url: string) => LocalWebSocketLike;
   setLocalWs?: (ws: MinimalLocalSocket | null) => void;
@@ -112,19 +121,95 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
             for (const [pin, value] of Object.entries(data.timers)) {
               const seconds = Number(value);
               const pinState = data.states[pin];
-              const isPinOn = pinState === true || pinState === 1 || pinState === "1" || pinState === "true";
+              const isPinOn =
+                pinState === true || pinState === 1 || pinState === "1" || pinState === "true";
               synchronizedTimers[pin] =
                 isPinOn && Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
             }
           }
           deps.setAutoOffRemaining?.(synchronizedTimers);
+
+          if (data.values && typeof data.values === "object" && !Array.isArray(data.values)) {
+            const syncedValues: Record<string, number> = {};
+            for (const [pin, val] of Object.entries(data.values)) {
+              const num = Number(val);
+              if (Number.isFinite(num)) {
+                syncedValues[pin] = Math.min(4095, Math.max(0, Math.round(num)));
+              }
+            }
+            deps.setPinsAnalogValue?.(syncedValues);
+            deps.setPinsLastNonZeroValue?.((prev) => {
+              const next = { ...prev };
+              let changed = false;
+              for (const [pin, val] of Object.entries(syncedValues)) {
+                if (val > 0 && next[pin] !== val) {
+                  next[pin] = val;
+                  changed = true;
+                }
+              }
+              return changed ? next : prev;
+            });
+          }
+
+          if (
+            data.resolutions &&
+            typeof data.resolutions === "object" &&
+            !Array.isArray(data.resolutions)
+          ) {
+            const syncedResolutions: Record<string, number> = {};
+            for (const [pin, res] of Object.entries(data.resolutions)) {
+              const num = Number(res);
+              if (Number.isFinite(num) && num >= 8 && num <= 12) {
+                syncedResolutions[pin] = Math.round(num);
+              }
+            }
+            deps.setPinsPwmResolution?.(syncedResolutions);
+          }
+
           console.log("[LocalWS] Received full state sync:", data.states, synchronizedTimers);
-        } else if (data.pin !== undefined && data.state !== undefined) {
+        } else if (
+          data.pin !== undefined &&
+          (data.state !== undefined || data.value !== undefined)
+        ) {
           const pinKey = data.pin.toString();
-          const pinBool = data.state === 1 || data.state === true;
+          const hasAnalogVal = typeof data.value === "number" && Number.isFinite(data.value);
+          const analogVal = hasAnalogVal
+            ? Math.min(4095, Math.max(0, Math.round(data.value)))
+            : undefined;
+          const pinBool =
+            data.state !== undefined
+              ? data.state === 1 || data.state === true
+              : analogVal !== undefined
+                ? analogVal > 0
+                : false;
+
           deps.setPinsState((prev) => ({ ...prev, [pinKey]: pinBool }));
-          synchronizedTimers = { ...synchronizedTimers, [pinKey]: 0 };
-          deps.setAutoOffRemaining?.(synchronizedTimers);
+
+          if (analogVal !== undefined) {
+            deps.setPinsAnalogValue?.((prev) => ({ ...prev, [pinKey]: analogVal }));
+            if (analogVal > 0) {
+              deps.setPinsLastNonZeroValue?.((prev) => ({ ...prev, [pinKey]: analogVal }));
+            }
+          } else if (!pinBool) {
+            deps.setPinsAnalogValue?.((prev) =>
+              Object.hasOwn(prev, pinKey) ? { ...prev, [pinKey]: 0 } : prev,
+            );
+          }
+
+          if (
+            typeof data.resolution === "number" &&
+            Number.isFinite(data.resolution) &&
+            data.resolution >= 8 &&
+            data.resolution <= 12
+          ) {
+            const res = Math.round(data.resolution);
+            deps.setPinsPwmResolution?.((prev) => ({ ...prev, [pinKey]: res }));
+          }
+
+          if (data.type !== "command_ack" || !pinBool) {
+            synchronizedTimers = { ...synchronizedTimers, [pinKey]: 0 };
+            deps.setAutoOffRemaining?.(synchronizedTimers);
+          }
           dispatchLocalStateFn(pinKey, pinBool);
         }
       } catch (e) {
@@ -186,6 +271,9 @@ export function useConnectionStrategy() {
   const setIsLocal = useIoTStore((state) => state.setIsLocal);
   const setPinsState = useIoTStore((state) => state.setPinsState);
   const setAutoOffRemaining = useIoTStore((state) => state.setAutoOffRemaining);
+  const setPinsAnalogValue = useIoTStore((state) => state.setPinsAnalogValue);
+  const setPinsLastNonZeroValue = useIoTStore((state) => state.setPinsLastNonZeroValue);
+  const setPinsPwmResolution = useIoTStore((state) => state.setPinsPwmResolution);
 
   useEffect(() => {
     if (!localIp) return;
@@ -195,6 +283,17 @@ export function useConnectionStrategy() {
       setIsLocal,
       setPinsState,
       setAutoOffRemaining,
+      setPinsAnalogValue,
+      setPinsLastNonZeroValue,
+      setPinsPwmResolution,
     });
-  }, [localIp, setIsLocal, setPinsState, setAutoOffRemaining]);
+  }, [
+    localIp,
+    setIsLocal,
+    setPinsState,
+    setAutoOffRemaining,
+    setPinsAnalogValue,
+    setPinsLastNonZeroValue,
+    setPinsPwmResolution,
+  ]);
 }

@@ -1,6 +1,12 @@
 import type { StateCreator } from "zustand";
 import { normalizeSegmentRecord } from "@/features/iot/services/cloudflare/mappers";
 import {
+  clampAnalogValue,
+  clampPwmResolution,
+  getAnalogMaxDuty,
+  isAnalogOutputSegment,
+} from "@/features/iot/utils/analogOutput";
+import {
   applyDashboardFontToDocument,
   persistDashboardFont,
   resolveDashboardFontId,
@@ -23,11 +29,38 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
     const normalizedSegments = (config.segments || []).map(normalizeSegmentRecord);
 
     const importedPins: Record<string, boolean> = {};
+    const importedAnalogValues: Record<string, number> = {};
+    const importedLastNonZero: Record<string, number> = {};
+    const importedResolutions: Record<string, number> = {};
 
     for (let i = 0; i < normalizedSegments.length; i++) {
       const seg = normalizedSegments[i];
 
-      if (seg.pin && seg.state !== undefined) {
+      if (!seg.pin) continue;
+
+      if (isAnalogOutputSegment(seg)) {
+        const res = clampPwmResolution(seg.pwmResolution);
+        const maxDuty = getAnalogMaxDuty(res);
+        importedResolutions[seg.pin] = res;
+
+        if (seg.analogValue !== undefined) {
+          const duty = clampAnalogValue(seg.analogValue, res);
+          importedAnalogValues[seg.pin] = duty;
+          importedPins[seg.pin] = seg.state !== undefined ? seg.state : duty > 0;
+
+          if (duty > 0) {
+            importedLastNonZero[seg.pin] = duty;
+          }
+        } else if (seg.state !== undefined) {
+          importedPins[seg.pin] = seg.state;
+        }
+
+        if (seg.lastNonZeroValue !== undefined && seg.lastNonZeroValue > 0) {
+          importedLastNonZero[seg.pin] = Math.max(1, clampAnalogValue(seg.lastNonZeroValue, res));
+        } else if (importedLastNonZero[seg.pin] === undefined) {
+          importedLastNonZero[seg.pin] = maxDuty;
+        }
+      } else if (seg.state !== undefined) {
         importedPins[seg.pin] = seg.state;
       }
     }
@@ -41,6 +74,36 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
         if (mergedPinsState[pin] === undefined) {
           mergedPinsState[pin] = kvValue;
           hasSeededPin = true;
+        }
+      }
+
+      const mergedAnalog = { ...state.pinsAnalogValue };
+      let hasSeededAnalog = false;
+
+      for (const [pin, kvAnalog] of Object.entries(importedAnalogValues)) {
+        if (mergedAnalog[pin] === undefined) {
+          mergedAnalog[pin] = kvAnalog;
+          hasSeededAnalog = true;
+        }
+      }
+
+      const mergedLastNonZero = { ...state.pinsLastNonZeroValue };
+      let hasSeededLastNonZero = false;
+
+      for (const [pin, kvLast] of Object.entries(importedLastNonZero)) {
+        if (mergedLastNonZero[pin] === undefined) {
+          mergedLastNonZero[pin] = kvLast;
+          hasSeededLastNonZero = true;
+        }
+      }
+
+      const mergedResolutions = { ...state.pinsPwmResolution };
+      let hasSeededResolutions = false;
+
+      for (const [pin, kvRes] of Object.entries(importedResolutions)) {
+        if (mergedResolutions[pin] === undefined) {
+          mergedResolutions[pin] = kvRes;
+          hasSeededResolutions = true;
         }
       }
 
@@ -78,6 +141,9 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
         accent4: config.preferences?.accent_color_4 || state.accent4,
         unsavedChangesCount: 0,
         pinsState: hasSeededPin ? mergedPinsState : state.pinsState,
+        pinsAnalogValue: hasSeededAnalog ? mergedAnalog : state.pinsAnalogValue,
+        pinsLastNonZeroValue: hasSeededLastNonZero ? mergedLastNonZero : state.pinsLastNonZeroValue,
+        pinsPwmResolution: hasSeededResolutions ? mergedResolutions : state.pinsPwmResolution,
       };
     });
 

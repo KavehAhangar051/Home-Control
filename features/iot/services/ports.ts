@@ -5,6 +5,7 @@
  */
 
 import type { EspConfig } from "@/features/iot/services/config/types";
+import type { AnalogSegmentOptions } from "@/features/iot/utils/analogOutput";
 
 export interface PinAction {
   pin: string;
@@ -22,8 +23,15 @@ export interface AckResponse {
  */
 export interface IDeviceCommandPort {
   publishPinCommand(pinId: string, value: boolean, timer?: number): boolean;
+  publishAnalogOutputCommand(pinId: string, value: number, timer?: number): boolean;
   publishBatchPinCommand(actions: PinAction[]): boolean;
-  publishAddSegment(id: string, type: string, pin: number, value: boolean): void;
+  publishAddSegment(
+    id: string,
+    type: string,
+    pin: number,
+    value: boolean,
+    analogOptions?: AnalogSegmentOptions,
+  ): void;
   publishDeleteSegment(id: string): void;
   publishPresence(isVisible: boolean): void;
 }
@@ -36,6 +44,7 @@ export interface IConfigStoragePort {
   fetchConfig(): Promise<EspConfig | null>;
   saveConfig(config: EspConfig): Promise<AckResponse>;
   updatePin(pin: string, value: boolean): Promise<AckResponse>;
+  updateAnalogPin(pin: string, analogValue: number): Promise<AckResponse>;
   updateBatchPins(actions: Array<{ pin: string; state: boolean }>): Promise<AckResponse>;
 }
 
@@ -43,6 +52,14 @@ export interface SinglePinSyncOptions {
   preventMqtt?: boolean;
   autoOff?: number;
   isPushMode?: boolean;
+  showToast?: (message: string, type: "success" | "error") => void;
+}
+
+export interface AnalogPinSyncOptions {
+  preventMqtt?: boolean;
+  autoOff?: number;
+  /** When false (e.g. during live slider drag), skips Cloudflare HTTP write until commit. */
+  persistToCloud?: boolean;
   showToast?: (message: string, type: "success" | "error") => void;
 }
 
@@ -59,6 +76,7 @@ export interface BatchPinSyncOptions {
  */
 export interface IDeviceSyncPort {
   syncSinglePin(pin: string, state: boolean, options?: SinglePinSyncOptions): Promise<boolean>;
+  syncAnalogPin(pin: string, value: number, options?: AnalogPinSyncOptions): Promise<boolean>;
   syncBatchPins(
     actions: Array<{ targetPin: string; actionOn: boolean }>,
     options?: BatchPinSyncOptions,

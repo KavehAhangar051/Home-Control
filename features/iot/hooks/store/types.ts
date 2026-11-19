@@ -7,6 +7,8 @@ export interface RuleAction {
   actionOn: boolean;
   actionType?: number;
   delay?: number;
+  /** Explicit PWM duty (`0..4095`) for `analog_output` targets; `-1` or null preserves boolean ON/OFF semantics. */
+  targetValue?: number | null;
 }
 
 export interface SegmentRule {
@@ -24,6 +26,10 @@ export interface Segment {
   state?: boolean;
   mode?: "switch" | "push";
   auto_off?: number;
+  analogValue?: number;
+  lastNonZeroValue?: number;
+  pwmResolution?: number;
+  pwmFrequency?: number;
   rule?: SegmentRule;
 }
 
@@ -86,11 +92,25 @@ export interface MqttConfig {
 export interface SegmentsSlice {
   segments: Segment[];
   pinsState: Record<string, boolean>;
+  pinsAnalogValue: Record<string, number>;
+  pinsLastNonZeroValue: Record<string, number>;
+  pinsPwmResolution: Record<string, number>;
   autoOffRemaining: Record<string, number>;
   setAutoOffRemaining: (timers: Record<string, number>) => void;
   setSegments: (segments: Segment[] | ((prev: Segment[]) => Segment[])) => void;
   setPinsState: (
     pins: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>),
+  ) => void;
+  setPinsAnalogValue: (
+    values: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>),
+  ) => void;
+  setPinsLastNonZeroValue: (
+    values: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>),
+  ) => void;
+  setPinsPwmResolution: (
+    resolutions:
+      | Record<string, number>
+      | ((prev: Record<string, number>) => Record<string, number>),
   ) => void;
   updateSegmentMode: (id: string, mode: "switch" | "push") => void;
   updateSegmentRule: (id: string, rule: SegmentRule) => void;
