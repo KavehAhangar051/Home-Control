@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
     "commit": "",
-    "indexed_at": "2026-11-19T12:59:43Z",
+    "indexed_at": "2026-11-19T13:13:34Z",
     "project": "app-applet",
     "nodes": 4279,
-    "edges": 12932,
+    "edges": 12937,
     "original_size": 12451840,
-    "compressed_size": 2798401,
+    "compressed_size": 2799241,
     "compression_level": 9
 }
