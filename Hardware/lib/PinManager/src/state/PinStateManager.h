@@ -24,15 +24,49 @@ public:
 
     bool setPinState(int pin, bool state);
     bool setStateById(const char* id, bool state);
+    bool setPinAnalogValue(int pin, uint16_t value);
+    bool setAnalogValueById(const char* id, uint16_t value);
 
     HOT_PATH FORCE_INLINE bool getPinState(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        if (!entry) return false;
+        if (!entry || !entry->active) return false;
         if (entry->type == SegmentType::Input) {
             return entry->lastInputState;
         }
+        if (entry->type == SegmentType::AnalogOutput) {
+            return entry->hasPwm ? entry->pwm.getState() : false;
+        }
         if (!entry->hasGpio) return false;
         return entry->gpio.getState();
+    }
+
+    HOT_PATH FORCE_INLINE int16_t getPinAnalogValue(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        if (!entry || !entry->active || !entry->hasPwm) return RULE_ANALOG_VALUE_UNSET;
+        return static_cast<int16_t>(entry->pwm.getValue());
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinLastNonZeroValue(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        if (!entry || !entry->active || !entry->hasPwm) return 0;
+        return entry->pwm.getLastNonZeroValue();
+    }
+
+    HOT_PATH FORCE_INLINE uint8_t getPinPwmResolution(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        if (!entry || !entry->active || !entry->hasPwm) return 0;
+        return entry->pwm.getResolution();
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinPwmFrequency(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        if (!entry || !entry->active || !entry->hasPwm) return 0;
+        return entry->pwm.getFrequency();
+    }
+
+    HOT_PATH FORCE_INLINE bool isAnalogOutputPin(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        return entry != nullptr && entry->active && entry->type == SegmentType::AnalogOutput && entry->hasPwm;
     }
 
     /**
@@ -89,6 +123,16 @@ public:
     HOT_PATH FORCE_INLINE void setPendingRuleActionState(int pin, bool state) {
         PinEntry* entry = _registry.getEntryByPin(pin);
         if (entry) entry->pendingRuleActionState = state;
+    }
+
+    HOT_PATH FORCE_INLINE int16_t getPendingRuleActionAnalogValue(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        return entry ? entry->pendingRuleActionAnalogValue : RULE_ANALOG_VALUE_UNSET;
+    }
+
+    HOT_PATH FORCE_INLINE void setPendingRuleActionAnalogValue(int pin, int16_t value) {
+        PinEntry* entry = _registry.getEntryByPin(pin);
+        if (entry) entry->pendingRuleActionAnalogValue = value;
     }
 
     HOT_PATH FORCE_INLINE RuleAction getPendingHoldAction(int pin) const {

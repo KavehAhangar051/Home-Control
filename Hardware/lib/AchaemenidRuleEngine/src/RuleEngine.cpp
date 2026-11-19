@@ -20,16 +20,35 @@ void RuleEngine::onTimerExpired(uniuno::TimerExpiredEvent* evt) {
     const int targetPin = _ctx.pinManager->findPinByRuleActionTimerId(expiredId);
     if (targetPin >= 0) {
         const bool stateToApply = _ctx.pinManager->getPendingRuleActionState(targetPin);
+        const int16_t analogToApply = _ctx.pinManager->getPendingRuleActionAnalogValue(targetPin);
         _ctx.pinManager->setRuleActionTimerIdByPin(targetPin, uniuno::TimerHandle());
+        _ctx.pinManager->setPendingRuleActionAnalogValue(targetPin, RULE_ANALOG_VALUE_UNSET);
 
         // Rule execution supersedes any active Dashboard auto-off timer.
         uniuno::TimerHandle autoOff = _ctx.pinManager->getTimerIdByPin(targetPin);
         if (autoOff.isActive()) autoOff.cancel();
         _ctx.pinManager->setTimerIdByPin(targetPin, uniuno::TimerHandle());
 
-        const bool success = _ctx.pinManager->setPinState(targetPin, stateToApply);
+        bool success = false;
+        if (analogToApply >= 0 && _ctx.pinManager->isAnalogOutputPin(targetPin)) {
+            success = _ctx.pinManager->setPinAnalogValue(targetPin, static_cast<uint16_t>(analogToApply));
+        } else {
+            const bool effectiveState = (analogToApply >= 0) ? (analogToApply > 0) : stateToApply;
+            success = _ctx.pinManager->setPinState(targetPin, effectiveState);
+        }
+
         if (success && _ctx.eventBus != nullptr) {
-            PinStateChangedEvent changed{targetPin, stateToApply, true, PinStateChangeOrigin::Automation};
+            const bool actualState = _ctx.pinManager->getPinState(targetPin);
+            const int16_t actualAnalog = _ctx.pinManager->getPinAnalogValue(targetPin);
+            const uint8_t actualRes = _ctx.pinManager->getPinPwmResolution(targetPin);
+            PinStateChangedEvent changed{
+                targetPin,
+                actualState,
+                true,
+                PinStateChangeOrigin::Automation,
+                actualAnalog,
+                actualRes
+            };
             _ctx.eventBus->dispatch(changed);
         }
         return;

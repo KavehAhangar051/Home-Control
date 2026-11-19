@@ -4,6 +4,14 @@
 #include <Arduino.h>
 
 static const int MAX_SEGMENTS = 16;
+static constexpr uint8_t DEFAULT_PWM_RESOLUTION = 8;
+static constexpr uint8_t MIN_PWM_RESOLUTION = 8;
+static constexpr uint8_t MAX_PWM_RESOLUTION = 12;
+static constexpr uint16_t DEFAULT_PWM_FREQUENCY = 5000;
+static constexpr uint16_t MIN_PWM_FREQUENCY = 100;
+static constexpr uint16_t MAX_PWM_FREQUENCY = 40000;
+static constexpr int16_t RULE_ANALOG_VALUE_UNSET = -1;
+static constexpr uint16_t MAX_ANALOG_OUTPUT_VALUE = 4095;
 
 enum RuleActionType : uint8_t {
     ACTION_IMMEDIATE = 0,
@@ -15,10 +23,17 @@ struct RuleAction {
     int requiredHoldTime; // 0, 3, 5, 10
     int targetPin;
     int delay;
+    int16_t targetValue;  // -1 = boolean actionState mode, 0..4095 = explicit PWM duty
     RuleActionType actionType;
     bool actionState : 1;
 
-    RuleAction() : requiredHoldTime(0), targetPin(-1), delay(0), actionType(ACTION_IMMEDIATE), actionState(false) {}
+    RuleAction()
+        : requiredHoldTime(0),
+          targetPin(-1),
+          delay(0),
+          targetValue(RULE_ANALOG_VALUE_UNSET),
+          actionType(ACTION_IMMEDIATE),
+          actionState(false) {}
 };
 
 struct RuleConfig {
@@ -40,11 +55,21 @@ struct SegmentConfig {
     
     int pin;
     int autoOffDelay;
+    uint16_t analogValue;
+    uint16_t pwmFrequency;
+    uint8_t pwmResolution;
     
     bool value : 1;
     bool valid : 1;
 
-    SegmentConfig() : pin(-1), autoOffDelay(0), value(false), valid(false) {
+    SegmentConfig()
+        : pin(-1),
+          autoOffDelay(0),
+          analogValue(0),
+          pwmFrequency(DEFAULT_PWM_FREQUENCY),
+          pwmResolution(DEFAULT_PWM_RESOLUTION),
+          value(false),
+          valid(false) {
         id[0] = '\0';
         type[0] = '\0';
     }

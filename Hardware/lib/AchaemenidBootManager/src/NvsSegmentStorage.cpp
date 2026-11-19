@@ -5,22 +5,44 @@
 
 namespace uniuno {
 namespace {
-static constexpr uint8_t STORAGE_VERSION = 2;
+static constexpr uint8_t STORAGE_VERSION_V2 = 2;
+static constexpr uint8_t STORAGE_VERSION = 3;
 static constexpr char NVS_NAMESPACE[] = "AchaemenidSeg";
 
 #pragma pack(push, 1)
-struct StoredRuleAction {
+struct StoredRuleActionV2 {
     int32_t requiredHoldTime;
     int8_t targetPin;
     uint8_t actionState;
     uint8_t actionType;
     int32_t delay;
 };
+struct StoredSegmentV2 {
+    char id[32];
+    char type[16];
+    int16_t pin;
+    uint16_t autoOffDelay;
+    uint8_t highActionCount;
+    uint8_t lowActionCount;
+    uint8_t ruleActive;
+    StoredRuleActionV2 highActions[4];
+    StoredRuleActionV2 lowActions[4];
+};
+struct StoredRuleAction {
+    int32_t requiredHoldTime;
+    int8_t targetPin;
+    uint8_t actionState;
+    uint8_t actionType;
+    int32_t delay;
+    int16_t targetValue; // -1 = boolean actionState mode, 0..4095 = explicit PWM duty
+};
 struct StoredSegment {
     char id[32];
     char type[16];
     int16_t pin;
     uint16_t autoOffDelay;
+    uint8_t pwmResolution;
+    uint16_t pwmFrequency;
     uint8_t highActionCount;
     uint8_t lowActionCount;
     uint8_t ruleActive;
@@ -29,7 +51,8 @@ struct StoredSegment {
 };
 #pragma pack(pop)
 
-static_assert(sizeof(StoredRuleAction) == 11, "Unexpected stored RuleAction layout");
+static_assert(sizeof(StoredRuleActionV2) == 11, "Unexpected stored RuleActionV2 layout");
+static_assert(sizeof(StoredRuleAction) == 13, "Unexpected stored RuleAction layout");
 
 void copyActionToStorage(const RuleAction& source, StoredRuleAction& target) {
     target.requiredHoldTime = source.requiredHoldTime;
@@ -37,9 +60,10 @@ void copyActionToStorage(const RuleAction& source, StoredRuleAction& target) {
     target.actionState = source.actionState ? 1 : 0;
     target.actionType = static_cast<uint8_t>(source.actionType);
     target.delay = source.delay;
+    target.targetValue = source.targetValue;
 }
 
-bool copyActionFromStorage(const StoredRuleAction& source, RuleAction& target) {
+bool copyActionFromStorageV2(const StoredRuleActionV2& source, RuleAction& target) {
     if (source.targetPin < 0 || source.targetPin > 39 ||
         source.actionState > 1 ||
         source.actionType > ACTION_FOR_DURATION ||
@@ -52,6 +76,26 @@ bool copyActionFromStorage(const StoredRuleAction& source, RuleAction& target) {
     target.actionState = source.actionState != 0;
     target.actionType = static_cast<RuleActionType>(source.actionType);
     target.delay = source.delay;
+    target.targetValue = RULE_ANALOG_VALUE_UNSET;
+    return true;
+}
+
+bool copyActionFromStorage(const StoredRuleAction& source, RuleAction& target) {
+    if (source.targetPin < 0 || source.targetPin > 39 ||
+        source.actionState > 1 ||
+        source.actionType > ACTION_FOR_DURATION ||
+        source.delay < 0 || source.delay > 60) return false;
+    if (source.requiredHoldTime != 0 && source.requiredHoldTime != 3 &&
+        source.requiredHoldTime != 5 && source.requiredHoldTime != 10) return false;
+    if (source.targetValue != RULE_ANALOG_VALUE_UNSET &&
+        (source.targetValue < 0 || source.targetValue > MAX_ANALOG_OUTPUT_VALUE)) return false;
+
+    target.requiredHoldTime = source.requiredHoldTime;
+    target.targetPin = source.targetPin;
+    target.actionState = source.actionState != 0;
+    target.actionType = static_cast<RuleActionType>(source.actionType);
+    target.delay = source.delay;
+    target.targetValue = source.targetValue;
     return true;
 }
 
@@ -65,13 +109,81 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
 
     const int count = prefs.getInt(countKey, -1);
     const uint8_t version = prefs.getUChar(versionKey, 0);
-    if (version != STORAGE_VERSION || count < 0 || count > MAX_SEGMENTS) {
+    if ((version != STORAGE_VERSION && version != STORAGE_VERSION_V2) ||
+        count < 0 || count > MAX_SEGMENTS) {
         return false;
     }
 
     char key[16];
     for (int i = 0; i < count; ++i) {
         snprintf(key, sizeof(key), "%c%d", bank, i);
+
+        if (version == STORAGE_VERSION_V2) {
+            if (prefs.getBytesLength(key) != sizeof(StoredSegmentV2)) {
+                Serial.printf("[SegStorage] Bank %c (v2) rejected: invalid record size for %s\n", bank, key);
+                return false;
+            }
+
+            StoredSegmentV2 record{};
+            if (prefs.getBytes(key, &record, sizeof(record)) != sizeof(record)) {
+                Serial.printf("[SegStorage] Bank %c (v2) rejected: failed reading %s\n", bank, key);
+                return false;
+            }
+
+            const bool idTerminated = memchr(record.id, '\0', sizeof(record.id)) != nullptr;
+            const bool typeTerminated = memchr(record.type, '\0', sizeof(record.type)) != nullptr;
+            if (!idTerminated || !typeTerminated || record.id[0] == '\0' ||
+                record.type[0] == '\0' || record.pin < 0 || record.pin > 39 ||
+                record.highActionCount > 4 || record.lowActionCount > 4 ||
+                record.ruleActive > 1) {
+                Serial.printf("[SegStorage] Bank %c (v2) rejected: invalid segment record %s\n", bank, key);
+                return false;
+            }
+
+            for (int previous = 0; previous < out.count; ++previous) {
+                if (out.segments[previous].pin == record.pin ||
+                    strcmp(out.segments[previous].id, record.id) == 0) {
+                    Serial.printf("[SegStorage] Bank %c (v2) rejected: duplicate ID or GPIO in %s\n", bank, key);
+                    return false;
+                }
+            }
+
+            SegmentConfig& segment = out.segments[out.count];
+            strlcpy(segment.id, record.id, sizeof(segment.id));
+            strlcpy(segment.type, record.type, sizeof(segment.type));
+            segment.pin = record.pin;
+            segment.autoOffDelay = record.autoOffDelay;
+            segment.pwmResolution = DEFAULT_PWM_RESOLUTION;
+            segment.pwmFrequency = DEFAULT_PWM_FREQUENCY;
+            segment.analogValue = 0;
+            segment.value = false;
+            segment.valid = true;
+            segment.rule.active = record.ruleActive != 0;
+
+            for (int a = 0; a < record.highActionCount; ++a) {
+                RuleAction action;
+                if (!copyActionFromStorageV2(record.highActions[a], action)) {
+                    Serial.printf("[SegStorage] Bank %c (v2) rejected: invalid HIGH action in %s\n", bank, key);
+                    return false;
+                }
+                segment.rule.highActions[segment.rule.highActionCount++] = action;
+            }
+            for (int a = 0; a < record.lowActionCount; ++a) {
+                RuleAction action;
+                if (!copyActionFromStorageV2(record.lowActions[a], action)) {
+                    Serial.printf("[SegStorage] Bank %c (v2) rejected: invalid LOW action in %s\n", bank, key);
+                    return false;
+                }
+                segment.rule.lowActions[segment.rule.lowActionCount++] = action;
+            }
+
+            if (segment.rule.highActionCount == 0 && segment.rule.lowActionCount == 0) {
+                segment.rule.active = false;
+            }
+            ++out.count;
+            continue;
+        }
+
         if (prefs.getBytesLength(key) != sizeof(StoredSegment)) {
             Serial.printf("[SegStorage] Bank %c rejected: invalid record size for %s\n", bank, key);
             return false;
@@ -87,6 +199,8 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
         const bool typeTerminated = memchr(record.type, '\0', sizeof(record.type)) != nullptr;
         if (!idTerminated || !typeTerminated || record.id[0] == '\0' ||
             record.type[0] == '\0' || record.pin < 0 || record.pin > 39 ||
+            record.pwmResolution < MIN_PWM_RESOLUTION || record.pwmResolution > MAX_PWM_RESOLUTION ||
+            record.pwmFrequency < MIN_PWM_FREQUENCY || record.pwmFrequency > MAX_PWM_FREQUENCY ||
             record.highActionCount > 4 || record.lowActionCount > 4 ||
             record.ruleActive > 1) {
             Serial.printf("[SegStorage] Bank %c rejected: invalid segment record %s\n", bank, key);
@@ -107,6 +221,9 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
         strlcpy(segment.type, record.type, sizeof(segment.type));
         segment.pin = record.pin;
         segment.autoOffDelay = record.autoOffDelay;
+        segment.pwmResolution = record.pwmResolution;
+        segment.pwmFrequency = record.pwmFrequency;
+        segment.analogValue = 0;
         segment.value = false;
         segment.valid = true;
         segment.rule.active = record.ruleActive != 0;
@@ -172,6 +289,9 @@ bool loadLegacyConfig(Preferences& prefs, ParseResult& out) {
         strlcpy(segment.type, type.c_str(), sizeof(segment.type));
         segment.pin = pin;
         segment.autoOffDelay = autoOff < 0 ? 0 : autoOff;
+        segment.pwmResolution = DEFAULT_PWM_RESOLUTION;
+        segment.pwmFrequency = DEFAULT_PWM_FREQUENCY;
+        segment.analogValue = 0;
         segment.value = false;
         segment.valid = true;
     }
@@ -221,6 +341,14 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
         strlcpy(record.type, segment.type, sizeof(record.type));
         record.pin = static_cast<int16_t>(segment.pin);
         record.autoOffDelay = static_cast<uint16_t>(segment.autoOffDelay < 0 ? 0 : segment.autoOffDelay);
+        const uint8_t res = (segment.pwmResolution < MIN_PWM_RESOLUTION)
+            ? MIN_PWM_RESOLUTION
+            : ((segment.pwmResolution > MAX_PWM_RESOLUTION) ? MAX_PWM_RESOLUTION : segment.pwmResolution);
+        const uint16_t freq = (segment.pwmFrequency < MIN_PWM_FREQUENCY)
+            ? MIN_PWM_FREQUENCY
+            : ((segment.pwmFrequency > MAX_PWM_FREQUENCY) ? MAX_PWM_FREQUENCY : segment.pwmFrequency);
+        record.pwmResolution = res;
+        record.pwmFrequency = freq;
         record.highActionCount = segment.rule.highActionCount;
         record.lowActionCount = segment.rule.lowActionCount;
         record.ruleActive = segment.rule.active ? 1 : 0;

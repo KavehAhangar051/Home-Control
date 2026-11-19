@@ -46,23 +46,48 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
         return;
     }
 
-    if (pinManager.setPinState(evt->pin, evt->state)) {
+    bool changed = false;
+    if (evt->analogValue >= 0 && pinManager.isAnalogOutputPin(evt->pin)) {
+        changed = pinManager.setPinAnalogValue(evt->pin, static_cast<uint16_t>(evt->analogValue));
+    } else {
+        const bool targetState = (evt->analogValue >= 0) ? (evt->analogValue > 0) : evt->state;
+        changed = pinManager.setPinState(evt->pin, targetState);
+    }
+
+    if (changed) {
         // Every newer command supersedes the previous auto-off deadline, including OFF
         // and ON commands without a timer.
         uniuno::TimerHandle existing = pinManager.getTimerIdByPin(evt->pin);
         if (existing.isActive()) existing.cancel();
         pinManager.setTimerIdByPin(evt->pin, uniuno::TimerHandle());
 
-        INFOF("[Event] Pin %d state changed to %s via Request", evt->pin, evt->state ? "ON" : "OFF");
+        const bool actualState = pinManager.getPinState(evt->pin);
+        const int16_t actualAnalog = pinManager.getPinAnalogValue(evt->pin);
+        const uint8_t actualRes = pinManager.getPinPwmResolution(evt->pin);
+
+        if (actualAnalog >= 0) {
+            INFOF("[Event] Pin %d PWM changed to %d (%u-bit, %s) via Request",
+                  evt->pin, static_cast<int>(actualAnalog), static_cast<unsigned int>(actualRes),
+                  actualState ? "ON" : "OFF");
+        } else {
+            INFOF("[Event] Pin %d state changed to %s via Request", evt->pin, actualState ? "ON" : "OFF");
+        }
         
         // Only suppress Cloudflare sync for commands that originated from Cloudflare.
         // MQTT and local WebSocket changes must be reported to the durable state owner.
         const bool syncCloudflare = (evt->origin != PinStateChangeOrigin::Cloudflare);
-        PinStateChangedEvent changedEvt{evt->pin, evt->state, syncCloudflare, evt->origin};
+        PinStateChangedEvent changedEvt{
+            evt->pin,
+            actualState,
+            syncCloudflare,
+            evt->origin,
+            actualAnalog,
+            actualRes
+        };
         eventBus.dispatch(changedEvt);
         
-        // Handle Auto-Off if requested
-        if (evt->state && evt->auto_off > 0) {
+        // Handle Auto-Off if requested (works for both digital outputs and PWM analog_output)
+        if (actualState && evt->auto_off > 0) {
             int delay = evt->auto_off;
             int pin = evt->pin;
             
@@ -70,7 +95,7 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
                 // Check if still handled
                 if (pinManager.getIsHandledByPin(pin)) return;
                 
-                // Turn off locally
+                // Turn off locally (for PWM, sets duty=0 while keeping lastNonZeroValue)
                 if (pinManager.setPinState(pin, false)) {
                     INFOF("[AutoOff] Pin %d turned OFF automatically", pin);
                     
@@ -83,7 +108,7 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
             INFOF("[AutoOff] Scheduled auto-off for pin %d in %ds", evt->pin, delay);
         }
     } else {
-        WARNINGF("[Event] Failed to set pin %d (not found)", evt->pin);
+        WARNINGF("[Event] Failed to set pin %d (not found or incompatible segment type)", evt->pin);
     }
 };
 
@@ -92,14 +117,21 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
  */
 auto onSegmentAdd = [](SegmentAddRequestEvent* evt) {
     if (evt == nullptr || evt->id == nullptr || evt->type == nullptr) return;
-    SegmentType sType = SegmentType::Output;
-    if (strcmp(evt->type, "input") == 0) {
-        sType = SegmentType::Input;
-    }
-    bool success = pinManager.addSegment(
-        evt->id, sType, evt->pin);
+    const SegmentType sType = parseSegmentType(evt->type);
+    const bool success = pinManager.addSegment(
+        evt->id,
+        sType,
+        evt->pin,
+        0,
+        RuleConfig(),
+        evt->pwmResolution,
+        evt->pwmFrequency
+    );
     if (success) {
-        INFOF("[Event] Segment '%s' added on pin %d", evt->id, evt->pin);
+        if (sType == SegmentType::AnalogOutput && evt->initialValue > 0) {
+            pinManager.setPinAnalogValue(evt->pin, evt->initialValue);
+        }
+        INFOF("[Event] Segment '%s' (%s) added on pin %d", evt->id, segmentTypeToString(sType), evt->pin);
         persistCurrentSegmentConfig("segment add");
     }
 };
@@ -135,10 +167,17 @@ auto onPinChanged = [](PinStateChangedEvent* evt) {
 
     // A command ACK must never be interpreted as a new pin state.
     if (evt->origin == PinStateChangeOrigin::DashboardCommand) {
-        char ackBuf[96];
-        snprintf(ackBuf, sizeof(ackBuf),
-                 "{\"type\":\"command_ack\",\"pin\":%d,\"state\":%s}",
-                 evt->pin, evt->state ? "true" : "false");
+        char ackBuf[128];
+        if (evt->analogValue >= 0) {
+            snprintf(ackBuf, sizeof(ackBuf),
+                     "{\"type\":\"command_ack\",\"pin\":%d,\"state\":%s,\"value\":%d,\"resolution\":%u}",
+                     evt->pin, evt->state ? "true" : "false",
+                     static_cast<int>(evt->analogValue), static_cast<unsigned int>(evt->resolution));
+        } else {
+            snprintf(ackBuf, sizeof(ackBuf),
+                     "{\"type\":\"command_ack\",\"pin\":%d,\"state\":%s}",
+                     evt->pin, evt->state ? "true" : "false");
+        }
         mqttClient.publish(mqttClient.getBaseTopic() + "/State", ackBuf);
         return;
     }
@@ -152,17 +191,26 @@ auto onPinChanged = [](PinStateChangedEvent* evt) {
         case PinStateChangeOrigin::DashboardCommand: return;
     }
 
-    char stateBuf[128];
-    snprintf(stateBuf, sizeof(stateBuf),
-             "{\"type\":\"pin_update\",\"pin\":%d,\"state\":%s,\"source\":\"%s\"}",
-             evt->pin, evt->state ? "true" : "false", source);
+    char stateBuf[160];
+    if (evt->analogValue >= 0) {
+        snprintf(stateBuf, sizeof(stateBuf),
+                 "{\"type\":\"pin_update\",\"pin\":%d,\"state\":%s,\"value\":%d,\"resolution\":%u,\"source\":\"%s\"}",
+                 evt->pin, evt->state ? "true" : "false",
+                 static_cast<int>(evt->analogValue), static_cast<unsigned int>(evt->resolution), source);
+    } else {
+        snprintf(stateBuf, sizeof(stateBuf),
+                 "{\"type\":\"pin_update\",\"pin\":%d,\"state\":%s,\"source\":\"%s\"}",
+                 evt->pin, evt->state ? "true" : "false", source);
+    }
 
     if (wsServer) wsServer->broadcastState(stateBuf);
     const bool mqttPublished = mqttClient.publish(mqttClient.getBaseTopic() + "/State", stateBuf);
     if (!mqttPublished) {
         WARNINGF("[StateSync] MQTT publish failed for pin %d (source=%s); dashboard may remain stale", evt->pin, source);
     }
-    if (evt->syncCloudflare && wsClient) wsClient->syncPinState(evt->pin, evt->state);
+    if (evt->syncCloudflare && wsClient) {
+        wsClient->syncPinState(evt->pin, evt->state, evt->analogValue, evt->resolution);
+    }
 };
 
 /**
@@ -232,7 +280,7 @@ auto onStateSyncRequest = [](StateSyncRequestEvent* evt) {
 auto onCloudSyncRequest = [](CloudSyncRequestEvent* evt) {
     if (evt == nullptr) return;
     if (wsClient) {
-        wsClient->syncPinState(evt->pin, evt->state);
+        wsClient->syncPinState(evt->pin, evt->state, evt->analogValue, evt->resolution);
     }
 };
 

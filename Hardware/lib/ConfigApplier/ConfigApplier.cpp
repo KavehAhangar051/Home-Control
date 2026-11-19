@@ -18,16 +18,29 @@ int apply(const ParseResult& config, PinManager* pinManager) {
         const SegmentConfig& seg = config.segments[i];
         if (!seg.valid) continue;
 
-        SegmentType sType = SegmentType::Output;
-        if (strcmp(seg.type, "input") == 0) {
-            sType = SegmentType::Input;
-        }
+        const SegmentType sType = parseSegmentType(seg.type);
 
-        bool added = pinManager->addSegment(seg.id, sType, seg.pin, seg.autoOffDelay, seg.rule);
+        bool added = pinManager->addSegment(
+            seg.id,
+            sType,
+            seg.pin,
+            seg.autoOffDelay,
+            seg.rule,
+            seg.pwmResolution,
+            seg.pwmFrequency
+        );
         if (added) {
-            pinManager->setStateById(seg.id, seg.value);
+            if (sType == SegmentType::AnalogOutput) {
+                if (seg.analogValue > 0) {
+                    pinManager->setAnalogValueById(seg.id, seg.analogValue);
+                }
+                INFOF("[ConfigApplier] Pin %d registered (id=%s, type=analog_output, duty=%u, %u-bit @ %uHz)",
+                      seg.pin, seg.id, seg.analogValue, seg.pwmResolution, seg.pwmFrequency);
+            } else {
+                pinManager->setStateById(seg.id, seg.value);
+                INFOF("[ConfigApplier] Pin %d registered (id=%s, value=%d)", seg.pin, seg.id, seg.value);
+            }
             applied++;
-            INFOF("[ConfigApplier] Pin %d registered (id=%s, value=%d)", seg.pin, seg.id, seg.value);
         } else {
             WARNINGF("[ConfigApplier] Failed to register pin %d (id=%s)", seg.pin, seg.id);
         }

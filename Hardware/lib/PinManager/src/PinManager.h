@@ -15,7 +15,15 @@ public:
     PinManager();
     ~PinManager();
 
-    bool addSegment(const char* id, SegmentType type, int pin, int autoOffDelay = 0, RuleConfig rule = RuleConfig());
+    bool addSegment(
+        const char* id,
+        SegmentType type,
+        int pin,
+        int autoOffDelay = 0,
+        RuleConfig rule = RuleConfig(),
+        uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION,
+        uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY
+    );
     bool removeSegment(const char* id);
     bool updateSegmentRule(const char* id, const RuleConfig& rule);
     bool updateSegmentRuleByPin(int pin, const RuleConfig& rule);
@@ -34,8 +42,36 @@ public:
         return _stateManager.setStateById(id, state);
     }
 
+    HOT_PATH FORCE_INLINE bool setPinAnalogValue(int pin, uint16_t value) {
+        return _stateManager.setPinAnalogValue(pin, value);
+    }
+
+    HOT_PATH FORCE_INLINE bool setAnalogValueById(const char* id, uint16_t value) {
+        return _stateManager.setAnalogValueById(id, value);
+    }
+
     HOT_PATH FORCE_INLINE bool getPinState(int pin) const {
         return _stateManager.getPinState(pin);
+    }
+
+    HOT_PATH FORCE_INLINE int16_t getPinAnalogValue(int pin) const {
+        return _stateManager.getPinAnalogValue(pin);
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinLastNonZeroValue(int pin) const {
+        return _stateManager.getPinLastNonZeroValue(pin);
+    }
+
+    HOT_PATH FORCE_INLINE uint8_t getPinPwmResolution(int pin) const {
+        return _stateManager.getPinPwmResolution(pin);
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinPwmFrequency(int pin) const {
+        return _stateManager.getPinPwmFrequency(pin);
+    }
+
+    HOT_PATH FORCE_INLINE bool isAnalogOutputPin(int pin) const {
+        return _stateManager.isAnalogOutputPin(pin);
     }
 
     template <typename Callback>
@@ -65,6 +101,14 @@ public:
 
     HOT_PATH FORCE_INLINE void setPendingRuleActionState(int pin, bool state) {
         _stateManager.setPendingRuleActionState(pin, state);
+    }
+
+    HOT_PATH FORCE_INLINE int16_t getPendingRuleActionAnalogValue(int pin) const {
+        return _stateManager.getPendingRuleActionAnalogValue(pin);
+    }
+
+    HOT_PATH FORCE_INLINE void setPendingRuleActionAnalogValue(int pin, int16_t value) {
+        _stateManager.setPendingRuleActionAnalogValue(pin, value);
     }
 
     HOT_PATH FORCE_INLINE RuleAction getPendingHoldAction(int pin) const {

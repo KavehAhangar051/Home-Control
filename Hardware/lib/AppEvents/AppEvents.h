@@ -46,13 +46,31 @@ struct PinStateChangeRequestEvent {
     bool state;    /**< Desired state (true=ON, false=OFF) */
     int auto_off;  /**< Time in seconds to auto-off, -1 for none */
     PinStateChangeOrigin origin; /**< Prevent echoing Cloudflare commands back to Cloudflare */
+    int16_t analogValue; /**< -1 = boolean toggle/restore mode; 0..4095 = explicit PWM duty */
 
     PinStateChangeRequestEvent(
         int p,
         bool s,
         int a = -1,
+        PinStateChangeOrigin source = PinStateChangeOrigin::Local,
+        int16_t analogVal = RULE_ANALOG_VALUE_UNSET
+    ) : pin(p), state(s), auto_off(a), origin(source), analogValue(analogVal) {}
+
+    static PinStateChangeRequestEvent analog(
+        int p,
+        uint16_t duty,
+        int a = -1,
         PinStateChangeOrigin source = PinStateChangeOrigin::Local
-    ) : pin(p), state(s), auto_off(a), origin(source) {}
+    ) {
+        const uint16_t clamped = duty > MAX_ANALOG_OUTPUT_VALUE ? MAX_ANALOG_OUTPUT_VALUE : duty;
+        return PinStateChangeRequestEvent(
+            p,
+            clamped > 0,
+            a,
+            source,
+            static_cast<int16_t>(clamped)
+        );
+    }
 };
 
 /**
@@ -62,8 +80,11 @@ struct PinStateChangeRequestEvent {
 struct SegmentAddRequestEvent {
     static constexpr const char* Name = "segment.add_request";
     const char* id;    /**< Segment unique identifier */
-    const char* type;  /**< Segment type (e.g., "gpio_toggle") */
+    const char* type;  /**< Segment type (e.g., "gpio_toggle", "input", "analog_output") */
     int pin;           /**< Physical GPIO pin number */
+    uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION; /**< PWM resolution bits (8..12) for analog_output */
+    uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY;  /**< PWM carrier frequency Hz for analog_output */
+    uint16_t initialValue = 0;                      /**< Initial PWM duty cycle (0..4095) */
 };
 
 /**
@@ -97,13 +118,17 @@ struct PinStateChangedEvent {
     bool state;    /**< New state (true=ON, false=OFF) */
     bool syncCloudflare;
     PinStateChangeOrigin origin;
+    int16_t analogValue; /**< -1 for digital segments, 0..4095 for analog_output */
+    uint8_t resolution;  /**< 0 for digital segments, 8..12 for analog_output */
 
     PinStateChangedEvent(
         int p,
         bool s,
         bool sync = true,
-        PinStateChangeOrigin source = PinStateChangeOrigin::Local
-    ) : pin(p), state(s), syncCloudflare(sync), origin(source) {}
+        PinStateChangeOrigin source = PinStateChangeOrigin::Local,
+        int16_t analogVal = RULE_ANALOG_VALUE_UNSET,
+        uint8_t res = 0
+    ) : pin(p), state(s), syncCloudflare(sync), origin(source), analogValue(analogVal), resolution(res) {}
 };
 
 /**
@@ -155,7 +180,10 @@ struct CloudSyncRequestEvent {
     static constexpr const char* Name = "cloud.sync_request";
     int pin;
     bool state;
-    CloudSyncRequestEvent(int p, bool s) : pin(p), state(s) {}
+    int16_t analogValue;
+    uint8_t resolution;
+    CloudSyncRequestEvent(int p, bool s, int16_t analogVal = RULE_ANALOG_VALUE_UNSET, uint8_t res = 0)
+        : pin(p), state(s), analogValue(analogVal), resolution(res) {}
 };
 
 #endif // APP_EVENTS_H

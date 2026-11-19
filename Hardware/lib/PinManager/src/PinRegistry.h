@@ -17,9 +17,12 @@ public:
         for (int i = 0; i < MAX_PINS; i++) {
             _entries[i].active = false;
             _entries[i].hasGpio = false;
+            _entries[i].hasPwm = false;
             _entries[i].segmentId[0] = '\0';
             _entries[i].pinNumber = -1;
+            _entries[i].type = SegmentType::Output;
             _entries[i].autoOffDelay = 0;
+            _entries[i].pendingRuleActionAnalogValue = RULE_ANALOG_VALUE_UNSET;
             _entries[i].lastInputState = false;
             _entries[i].pendingRuleActionState = false;
             _entries[i].pendingHoldAction = RuleAction();
