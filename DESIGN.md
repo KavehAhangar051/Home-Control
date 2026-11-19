@@ -7,11 +7,10 @@ Use ChatGPT and Cloudflare Dashboard as interaction references, not as assets or
 
 ## Navigation and header
 
-- There is exactly one application header: a vertical navigation rail on the right side of the viewport, consistent with the application's RTL direction.
-- The right rail is the only header/navigation layout on desktop and mobile. Do not add a top header or a left-side navigation variant.
-- Do not expose header-position switchers, header-layout presets, or controls that can move navigation to another edge.
-- Keep the rail compact on narrow screens: prioritize icon-based actions, accessible names, and no horizontal workspace overflow.
-- Preserve existing application actions and behavior when adjusting the rail. Presentation changes must not alter MQTT topics, ESP32 payloads, Cloudflare synchronization, or automation logic.
+- On desktop (`md` and above), navigation uses a vertical rail on the right side of the viewport, consistent with the application's RTL direction, paired with a bottom desktop footer bar.
+- On mobile (`< md`), the right rail and desktop footer are hidden; navigation uses a centered floating bottom Dock with upward-expanding `ExpandableTabs` panels (`MobileDockNav`) and an integrated press-and-hold voice command trigger, while `ThemeToggle` lives cleanly in the mobile top breadcrumb bar.
+- Do not expose header-position switchers or controls that move desktop navigation to another edge.
+- Preserve existing application actions and behavior when adjusting navigation. Presentation changes must not alter MQTT topics, ESP32 payloads, Cloudflare synchronization, or automation logic.
 - The product title may remain editable, but it must not control header placement.
 
 ## Color and appearance
@@ -43,11 +42,12 @@ Use ChatGPT and Cloudflare Dashboard as interaction references, not as assets or
 
 ## Implementation boundaries
 
-- Root layout and global font loading: app/layout.tsx and app/globals.css.
-- Header/navigation: components/MasterHeader.tsx and components/MasterHeader/.
-- Dashboard composition: features/dashboard/components/layout/.
-- Shared dynamic CSS: features/iot/components/DashboardStyles.tsx and features/iot/components/styles/.
-- Settings UI: features/settings/components/SettingsDrawer/.
+- Root layout and global font loading: `app/layout.tsx` and `app/globals.css`.
+- Desktop right-rail header/navigation (`md:`+): `components/MasterHeader.tsx` and `components/MasterHeader/`.
+- Mobile floating Dock navigation (`< md`): `components/motion/{dock.tsx,expandable-tabs.tsx,expandable-tabs-layout.ts}` and `features/dashboard/components/layout/MobileDockNav.tsx`.
+- Dashboard composition: `features/dashboard/components/layout/` (`DashboardHeader.tsx`, `DashboardBreadcrumb.tsx`, `DashboardMain.tsx`, `MobileDockNav.tsx`).
+- Shared dynamic CSS: `features/iot/components/DashboardStyles.tsx` and `features/iot/components/styles/`.
+- Settings UI: `features/settings/components/SettingsDrawer/`.
 - Keep styling local to the owning component unless it is a genuine shared token.
-- Make surgical changes: redesign the header and appearance controls without refactoring unrelated dashboard, device, or automation features.
-- Treat the implementation as the source of truth if this guide and the UI diverge; update this guide when the established design rules change.
+- Make surgical changes: redesign navigation or appearance controls without refactoring unrelated dashboard, device, or automation features.
+- **Documentation & verification discipline:** Update `DESIGN.md` (and `ARCHITECTURE.md`) immediately after any UI, layout, or token change so this guide stays accurate and trustworthy. Do not write unit tests for UI styling, Tailwind classes, pixel layouts, or animations.

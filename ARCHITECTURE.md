@@ -38,12 +38,13 @@ app/
   not-found.tsx          Not-found UI
   globals.css            Global styles and design tokens
 components/
-  MasterHeader.tsx       Header/layout dispatcher
-  MasterHeader/          Header subcomponents
+  MasterHeader.tsx       Desktop right-rail header/layout dispatcher
+  MasterHeader/          Desktop header & shared theme/voice/clock subcomponents
+  motion/                Shared Motion primitives (`dock.tsx`, `expandable-tabs.tsx`, `expandable-tabs-layout.ts`)
   AudioInitializer.tsx   Audio initialization integration
 features/
   dashboard/
-    components/          Dashboard/workspace UI
+    components/          Dashboard/workspace UI (`layout/MobileDockNav.tsx`, `DashboardHeader.tsx`, `DashboardBreadcrumb.tsx`, `DashboardMain.tsx`)
     context/             Dashboard-scoped context
     hooks/               Dashboard hooks
     index.ts             Feature entry point
@@ -75,7 +76,8 @@ This is a high-level map, not an exhaustive listing. Inspect the relevant direct
 - `app/layout.tsx` is the root layout. Global CSS belongs in `app/globals.css`; route-level composition belongs in the App Router files.
 - `app/page.tsx` is the root route and should stay focused on composing the application rather than accumulating feature implementation.
 - `components/` contains UI or providers shared by multiple features. Keep feature-specific behavior inside the owning `features/<feature>/` directory.
-- `components/MasterHeader.tsx` and `components/MasterHeader/` implement the shared header system. Before changing navigation or header positioning, inspect both the dispatcher and its subcomponents.
+- `components/MasterHeader.tsx` and `components/MasterHeader/` implement the desktop right-rail header system (`md:` and above).
+- `components/motion/{dock.tsx,expandable-tabs.tsx,expandable-tabs-layout.ts}` and `features/dashboard/components/layout/MobileDockNav.tsx` implement the mobile-only (`< md`) floating bottom Dock with upward-expanding panels and integrated press-and-hold voice control. Before changing navigation or header positioning, inspect both desktop and mobile layout owners.
 - `components/AudioInitializer.tsx` integrates audio initialization with the UI lifecycle.
 
 Avoid introducing duplicate global providers or parallel implementations of existing shared components.
@@ -188,11 +190,11 @@ Available scripts in `package.json`:
 - `bun run lint:ox` — run Oxlint and the repository's custom Anti-Slop rules as a diagnostic report; current legacy findings are not yet a blocking gate.
 - `bun run format` — format those source directories in place; review the resulting diff before committing.
 - `bun run typecheck` — run TypeScript compiler check (`tsc --noEmit`).
-- `bun run test` — run deterministic domain, edge-case, and boundary integration tests (`tests/*.test.mjs`).
-- `bun run lint && bun run typecheck && bun run test` — run lint, TypeScript typecheck, and deterministic contract tests together.
+- `bun run test` — run core domain, hardware/MQTT protocol, and Cloudflare/workflow sync tests (`tests/*.test.mjs`). UI, CSS, layout, and throwaway tests are intentionally excluded.
+- `bun run lint && bun run typecheck && bun run test` — run lint, TypeScript typecheck, and existing core domain tests together.
 - `bun run clean` — remove local Next.js/export/build-metadata outputs.
 
-Before submitting a change, run `bun run lint` and `bun run typecheck`; report existing deterministic tests and build results separately when they are run. New test authoring is not part of routine work unless the project owner requests it. Run `bun run build` when requested or when a change needs export validation. The repository owner has asked that tests remain available as a report/diagnostic suite rather than becoming a mandatory production-build gate. Do not wait for GitHub Pages deployment to finish development verification. CI workflows should use the latest Ubuntu runner available to the project (`ubuntu-26.04` at the time of this update). Avoid formatting unrelated files or committing generated output.
+Before submitting a change, run `bun run lint` and `bun run typecheck`; report existing core tests and build results separately when they are run. **Do not write temporary, throwaway, or UI-detail unit tests** (e.g., Tailwind classes, pixel geometry, animation timings, icon loaders, or visual layout assertions). New tests should only be authored when explicitly requested by the project owner for critical domain or hardware protocol logic. Always clean up temporary artifacts (such as `.playwright-cli/` captures) before finishing. **Always update relevant documentation (`ARCHITECTURE.md`, `DESIGN.md`, `README.md`, `docs/*`) immediately after code changes** so repository docs remain accurate and trustworthy for future sessions. Run `bun run build` when requested or when a change needs export validation. The repository owner has asked that tests remain available as a report/diagnostic suite rather than becoming a mandatory production-build gate. Do not wait for GitHub Pages deployment to finish development verification. CI workflows should use the latest Ubuntu runner available to the project (`ubuntu-26.04` at the time of this update). Avoid formatting unrelated files or committing generated output.
 
 ## 12. Safe change procedure for coding agents (AI-First Engineering)
 
@@ -200,11 +202,11 @@ Before submitting a change, run `bun run lint` and `bun run typecheck`; report e
 2. Inspect the actual source, package scripts, and current GitHub Actions workflow; do not rely on outdated assumptions.
 3. Make the smallest cohesive change within the owning feature, keeping module boundaries explicit and contracts strongly typed (no `any` across domain, service, hook, or component boundaries).
 4. Preserve TypeScript types, existing public exports, persisted configuration formats, and ESP32 message compatibility.
-5. Add or update deterministic tests (`tests/*.test.mjs`) for touched domain logic, edge cases, and port/adapter boundary contracts.
-6. Check responsive layouts, loading/error states, keyboard access, and transport failure behavior for UI changes.
-7. Run `bun run check` (`lint` + `typecheck` + `test`) and production build checks where available.
+5. Do **not** author temporary, pointless, or UI-detail tests. Only touch `tests/*.test.mjs` when updating existing core domain/protocol logic or when explicitly requested by the project owner.
+6. Check responsive layouts (desktop `md:`+ and mobile `< md`), loading/error states, keyboard access, and transport failure behavior for UI changes.
+7. Run `bun run lint`, `bun run typecheck`, and production build checks where available (and clean up any temporary verification directories like `.playwright-cli/`).
 8. Review the diff for unrelated formatting, secrets, logs, generated files, or temporary scripts.
-9. Update this document when architecture, scripts, deployment behavior, or protocol ownership changes.
+9. **Mandatory documentation sync:** Immediately update `ARCHITECTURE.md`, `DESIGN.md`, `README.md`, `docs/TESTING.md`, or protocol docs whenever code changes alter architecture, navigation, scripts, test inventory, or behavior so documentation stays trustworthy.
 
 When uncertain, prefer inspecting existing patterns and protocol documents over inventing new conventions.
 
@@ -248,3 +250,9 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 - **Scoped HugeIcon chunk splitting & lazy segment icon loading:** `components/ui/hugeicon-factory.tsx` isolates the shared delegated pointer hover factory while `components/ui/hugeicons-groups/{shell,media,welcome,controls}.tsx` separate eager shell/workspace icons from dynamic-view icons (`WelcomePortal`, `AudioSection`, `StabilitySection`, `MqttSection`, `WifiSection`, `AutomationsDrawer`). In addition, `features/iot/utils/icons.ts` and `iconRegistry.ts` keep only `Cpu` (`CircuitBoard`) and `Layers` (`Layers01`) static while loading the remaining 53 segment icons on demand and preloading the full catalog when opening `IconPicker`.
 - **Tab-wake & network-online MQTT resume:** `features/iot/services/mqtt/init.ts` (`createMqttResumeController`) and `usePageVisibility.ts` trigger immediate reconnect when disconnected or throttled `PRESENCE_ONLINE_FRAME` + `SYNC_REQUEST_FRAME` synchronization (3s cooldown) on tab wake (`visibilitychange`) and `online` recovery.
 - **Dialog/menu keyboard polish:** `AutomationsDrawer` (`role="dialog"`, `aria-modal="true"`) and `GroupSettingsMenu` (`useGroupHeaderLayout.ts`) support `Escape` dismissal with focus restoration.
+
+## 17. Mobile floating Dock navigation & test/doc hygiene (19 November 2026)
+
+- **Mobile-only floating Dock (`< md`):** Desktop (`md:`+) preserves the right-side vertical rail (`DashboardHeader` / `MasterHeader`) and bottom footer unchanged. On mobile (`< md`), the right rail, desktop footer, `#dashboard-footer-center` portal target, header `WorkspaceViewModeSelector`, and standalone floating voice button are replaced by `features/dashboard/components/layout/MobileDockNav.tsx` built on `components/motion/{dock.tsx,expandable-tabs.tsx,expandable-tabs-layout.ts}` (RTL, `LazyMotion` `m.*`, lite-tier aware).
+- **Mobile chrome coordination:** `ThemeToggle` mounts in `DashboardBreadcrumb` on mobile (`!isDesktop`) and in the desktop footer on desktop (`isDesktop`) so `#header-theme-toggle` remains unique in the DOM. Non-portaled mobile toolbars (`CanvasChromeBar`, `TrellisChromeBar`, `WorkflowFooterControls`) anchor cleanly at `top-2.5` while `ToastNotification` and `ScrollToTopButton` offset above the bottom Dock (`bottom-22`).
+- **Test & documentation hygiene:** Removed UI-focused and temporary tests (`mobile-dock.test.mjs`, `lazy-icons.test.mjs`, `performance-tier.test.mjs`, `dynamic-retry.test.mjs`, plus UI/CSS/layout/motion/DnD blocks inside `domain-contracts.test.mjs` and `legacy-seams.test.mjs`) and `.playwright-cli/` artifacts. Repository policy now strictly prohibits UI/throwaway tests and requires updating docs immediately after code changes.

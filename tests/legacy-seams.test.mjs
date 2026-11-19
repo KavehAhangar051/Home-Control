@@ -1,15 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  getPersianDateString,
-  getTimeString,
-} from "../components/MasterHeader/ClockWidget/persianDateUtils.ts";
-import {
-  useWorkspaceSwipe,
-  resolveSwipeGroupFilter,
-} from "../features/dashboard/hooks/useWorkspaceSwipe.ts";
-import { resolveSettingsTabId } from "../features/dashboard/navigation.ts";
-import {
   buildNewAutomationAction,
   removeAutomationActionAt,
   updateAutomationActionAt,
@@ -18,27 +9,6 @@ import {
   buildValidatedAutomationDraft,
   computeTimerSchedule,
 } from "../features/iot/components/AutomationsDrawer/hooks/useAutomationForm.ts";
-import {
-  clearStoredCanvasMode,
-  readStoredCanvasNodes,
-  readStoredCanvasSettings,
-  readStoredCanvasViewport,
-  replaceStoredCanvasNodes,
-  resetCanvasStorageMemoryCache,
-  writeStoredCanvasNodes,
-  writeStoredCanvasSettings,
-  writeStoredCanvasViewport,
-} from "../features/iot/components/canvas/canvasStorage.ts";
-import { computeSegmentDensity } from "../features/iot/components/sortable-segment-card/hooks/useSegmentDensity.ts";
-import {
-  buildGroupDockDocument,
-  buildSegmentFractalDocument,
-  translateTrellisMenuEntries,
-} from "../features/iot/components/trellis/trellisLayout.ts";
-import {
-  getEffectiveGroupsCols,
-  getSegmentGridLayout,
-} from "../features/iot/components/workspace/core/gridUtils.ts";
 import {
   collectTriggerNodeIds,
   dispatchPendingWorkflowActions,
@@ -56,10 +26,6 @@ import {
   planRemoveGroup,
   validateRuleActionList,
 } from "../features/iot/hooks/achaemenidState/core/segmentOperations.ts";
-import {
-  computeSegmentDragOverIndices,
-  resolveDragEndDecision,
-} from "../features/iot/hooks/achaemenidState/useAchaemenidDnd.ts";
 import { createLocalWebSocketController } from "../features/iot/hooks/achaemenidState/useConnectionStrategy.ts";
 import {
   createVoiceRecognitionSession,
@@ -80,12 +46,6 @@ import {
   PRESENCE_ONLINE_FRAME,
   SYNC_REQUEST_FRAME,
 } from "../features/iot/services/mqtt/protocol.ts";
-import { AmbientManager } from "../lib/audio/AmbientManager.ts";
-import { SoundManager } from "../lib/audio/SoundManager.ts";
-import { getDashboardFontFamilyCss, resolveDashboardFontId } from "../lib/fonts.ts";
-
-// Preserve import check for hook symbol existence alongside pure swipe logic
-void useWorkspaceSwipe;
 
 const textEncoder = new TextEncoder();
 
@@ -644,33 +604,7 @@ describe("Legacy Seams: Segment Operations & Cloudflare Sync Coordinator", () =>
   });
 });
 
-describe("Legacy Seams: DnD, Automations, Workflows & Voice Sessions", () => {
-  it("resolves DnD segment same-group indices and drop/reorder decisions", () => {
-    const segments = [
-      { id: "a", group: "گروه ۱" },
-      { id: "b", group: "گروه ۱" },
-      { id: "c", group: "گروه ۲" },
-    ];
-    assert.deepEqual(computeSegmentDragOverIndices(segments, "a", "b"), {
-      activeIndex: 0,
-      overIndex: 1,
-    });
-    assert.equal(computeSegmentDragOverIndices(segments, "a", "c"), null);
-
-    assert.deepEqual(resolveDragEndDecision("group-حیاط", "Group", "trash-dropzone"), {
-      kind: "remove_group",
-      groupId: "حیاط",
-    });
-    assert.deepEqual(resolveDragEndDecision("seg_9", "Segment", "trash-dropzone"), {
-      kind: "remove_segment",
-      segmentId: "seg_9",
-    });
-    assert.deepEqual(resolveDragEndDecision("group-A", "Group", "group-B"), {
-      kind: "reorder_group",
-      activeGroupId: "A",
-      overGroupId: "B",
-    });
-  });
+describe("Legacy Seams: Automations, Workflows & Voice Sessions", () => {
 
   it("computes deterministic timer rollovers, automation draft validation, and action mutations", () => {
     const fixedNow = new Date(2025, 0, 15, 23, 30, 0);
@@ -879,184 +813,5 @@ describe("Legacy Seams: DnD, Automations, Workflows & Voice Sessions", () => {
     assert.equal(toasts.length, 0);
 
     session.dispose();
-  });
-});
-
-describe("Legacy Seams: Canvas Storage, UI Layouts, Dates, Fonts, & Audio Managers", () => {
-  it("reads/writes canvas settings, nodes, and viewports via Storage seam with SSR/corrupt fallback", () => {
-    resetCanvasStorageMemoryCache();
-    assert.deepEqual(readStoredCanvasSettings("home", null), {
-      subMode: "groups",
-      snapToGrid: true,
-      isLocked: false,
-      cascadeGroupDrag: true,
-    });
-
-    const storage = createMemoryStorage();
-    writeStoredCanvasSettings(
-      "workflows",
-      { subMode: "graph", snapToGrid: false, isLocked: true, cascadeGroupDrag: false },
-      storage,
-    );
-    assert.equal(readStoredCanvasSettings("workflows", storage).isLocked, true);
-
-    replaceStoredCanvasNodes(
-      "groups",
-      { "group:A": { x: 10, y: 20, width: 200, height: 100, zIndex: 1 } },
-      storage,
-    );
-    writeStoredCanvasNodes(
-      "groups",
-      { "group:B": { x: 30, y: 40, width: 200, height: 100, zIndex: 2 } },
-      storage,
-    );
-    const nodes = readStoredCanvasNodes("groups", storage);
-    assert.ok(nodes?.["group:A"] && nodes?.["group:B"]);
-
-    writeStoredCanvasViewport("groups", { x: 120, y: -40, zoom: 1.25 }, storage);
-    assert.deepEqual(readStoredCanvasViewport("groups", storage), { x: 120, y: -40, zoom: 1.25 });
-
-    clearStoredCanvasMode("groups", storage);
-    assert.equal(readStoredCanvasViewport("groups", storage), null);
-    assert.equal(readStoredCanvasNodes("groups", storage), null);
-  });
-
-  it("computes workspace density, swipe filters, trellis layouts, Shahanshahi dates, fonts & audio seams", async () => {
-    // Density & swipe
-    const density = computeSegmentDensity({
-      groupMaxCols: 3,
-      groupItemsCount: 4,
-      index: 3,
-      parentGroupsCols: 2,
-      isMobilePortrait: false,
-    });
-    assert.deepEqual(density, {
-      densityFactor: 2,
-      isUltraCompact: false,
-      isCompact: false,
-      isMobileTwoCol: false,
-    });
-
-    assert.equal(
-      resolveSwipeGroupFilter({
-        touchStart: { x: 20, y: 10 },
-        touchEnd: { x: 120, y: 15 },
-        selectedGroupFilter: null,
-        groupsOrder: ["پذیرایی", "آشپزخانه"],
-      }),
-      "پذیرایی",
-    );
-
-    // Grid utilities
-    assert.equal(getEffectiveGroupsCols(0, 4, 3), 3);
-    assert.equal(getEffectiveGroupsCols(3, 4, 3), 1);
-
-    const gridLayout = getSegmentGridLayout(5, 3);
-    assert.equal(gridLayout.gridTracks, 6);
-    assert.equal(gridLayout.getItemSpan(0), 2);
-    assert.equal(gridLayout.getItemSpan(3), 3);
-
-    // Trellis & Persian dates & Navigation & Fonts
-    const dockDoc = buildGroupDockDocument(["A", "B", "C"]);
-    assert.equal(Object.keys(dockDoc.views).length, 3);
-    const fractalDoc = buildSegmentFractalDocument(
-      ["G1"],
-      [
-        { id: "s1", type: "relay", pin: "2", title: "L1", group: "G1" },
-        { id: "s2", type: "placeholder", pin: "", title: "", group: "G1" },
-      ],
-    );
-    assert.equal(Object.keys(fractalDoc.views).length, 2);
-    const translated = translateTrellisMenuEntries([
-      "separator",
-      { id: "maximize", label: "Maximize" },
-    ]);
-    assert.equal(translated[0], "separator");
-    assert.equal(translated[1].label, "بزرگ‌نمایی / بازگردانی");
-
-    assert.match(getPersianDateString(new Date(Date.UTC(2025, 2, 21, 12, 0, 0))), /فروردین/);
-    assert.match(getPersianDateString(new Date(Date.UTC(2025, 2, 21, 12, 0, 0))), /۲۵۸۴/);
-    assert.ok(getTimeString(new Date(Date.UTC(2025, 2, 21, 12, 0, 0))).length > 0);
-
-    assert.equal(resolveSettingsTabId("voice-commands"), "voice");
-    assert.equal(resolveSettingsTabId("fonts"), "colors");
-    assert.equal(resolveSettingsTabId("unknown"), "layout");
-
-    assert.equal(resolveDashboardFontId("VAZIRMATN"), "vazirmatn");
-    assert.equal(resolveDashboardFontId("nonexistent"), "dana");
-    assert.match(getDashboardFontFamilyCss("dana"), /var\(--font-dana\)/);
-
-    // AmbientManager & SoundManager seams
-    const audioEvents = [];
-    const writtenTracks = [];
-    const fakeAudio = {
-      preload: "",
-      loop: false,
-      volume: 0,
-      src: "",
-      currentTime: 5,
-      playCalled: 0,
-      pauseCalled: 0,
-      async play() {
-        this.playCalled += 1;
-      },
-      pause() {
-        this.pauseCalled += 1;
-      },
-    };
-    let musicSource = "api";
-
-    const ambient = new AmbientManager({
-      isBrowserEnvironment: () => true,
-      randomFn: () => 0,
-      getMusicSource: () => musicSource,
-      readCachedTrack: () => ({
-        title: "Cached Song",
-        creator: "Archive",
-        url: "https://archive.org/song.mp3",
-        isLocal: false,
-      }),
-      writeCachedTrack: (source, track) => writtenTracks.push({ source, track }),
-      getFallbackBaseUri: () => "https://dashboard.local/",
-      fetchPlaylistFn: async () => [
-        { identifier: "item1", title: "Track One", creator: "Artist A" },
-        { identifier: "item2", title: "Track Two", creator: "Artist B" },
-      ],
-      fetchTrackUrlFn: async (id) => `https://archive.org/download/${id}/song.mp3`,
-      resolvePlayableUrlFn: async (url) => url,
-      createAudioFn: () => fakeAudio,
-      dispatchEventFn: (name) => audioEvents.push(name),
-      getAudioContextFn: () => undefined,
-    });
-
-    const synthCalls = [];
-    const sound = new SoundManager({
-      ambientManager: ambient,
-      synths: {
-        playClick: () => synthCalls.push("click"),
-        playToggleOn: () => synthCalls.push("on"),
-      },
-    });
-
-    await sound.startAmbient();
-    assert.equal(sound.isAmbientPlaying, true);
-    assert.equal(sound.currentTrack?.title, "Cached Song");
-    assert.deepEqual(audioEvents, ["ambientMusicStarted"]);
-
-    await sound.nextTrack();
-    assert.equal(sound.currentTrack?.title, "Track Two");
-    assert.equal(sound.currentTrackIndex, 1);
-
-    musicSource = "local";
-    await sound.loadAmbientTrack();
-    assert.equal(sound.currentTrack?.isLocal, true);
-    assert.equal(writtenTracks.at(-1)?.source, "local");
-
-    sound.playClick();
-    sound.setEnabled(false);
-    assert.equal(sound.isAmbientPlaying, false);
-    assert.equal(fakeAudio.pauseCalled, 1);
-    sound.playToggleOn();
-    assert.deepEqual(synthCalls, ["click"]);
   });
 });

@@ -74,7 +74,7 @@ export default function ScrollToTopButton() {
                 transition={{ duration: DURATION.standard, ease: EASE_OUT }}
                 whileTap={{ scale: 0.96 }}
                 onClick={scrollToTop}
-                className="fixed bottom-6 right-6 z-50 p-3 rounded-xl border border-border-color bg-card-hover-bg text-text-secondary hover:text-text-primary hover:bg-accent transition-[background-color,color,border-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] focus-ring group"
+                className="fixed bottom-22 right-4 z-30 p-3 rounded-xl border border-border-color bg-card-hover-bg text-text-secondary hover:text-text-primary hover:bg-accent transition-[background-color,color,border-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] focus-ring group md:bottom-6 md:right-6 md:z-50"
                 aria-label="بازگشت به بالا"
               >
                 <ArrowUp

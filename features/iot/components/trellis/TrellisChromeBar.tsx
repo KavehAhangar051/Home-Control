@@ -31,7 +31,7 @@ export default function TrellisChromeBar({
       className={
         footerSlot
           ? "pointer-events-auto flex items-center justify-center"
-          : "pointer-events-none absolute inset-x-0 bottom-3 z-50 flex items-center justify-center px-3"
+          : "pointer-events-none absolute inset-x-0 top-2.5 z-30 flex items-center justify-center px-2"
       }
     >
       <div className="pointer-events-auto relative flex flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-border-color bg-card-bg-solid px-2.5 py-1.5 text-xs shadow-lg">
@@ -116,7 +116,11 @@ export default function TrellisChromeBar({
             </button>
 
             {showHiddenMenu && (
-              <div className="absolute bottom-[calc(100%+8px)] left-0 min-w-[180px] rounded-xl border border-border-color bg-card-bg-solid p-1.5 shadow-xl">
+              <div
+                className={`absolute left-0 min-w-[180px] rounded-xl border border-border-color bg-card-bg-solid p-1.5 shadow-xl ${
+                  footerSlot ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]"
+                }`}
+              >
                 <span className="block px-2 py-1 text-[10px] font-semibold text-text-muted">
                   بازگردانی پنل‌های پنهان
                 </span>

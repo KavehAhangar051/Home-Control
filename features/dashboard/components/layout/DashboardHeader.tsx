@@ -12,7 +12,7 @@ export default function DashboardHeader() {
 
   return (
     <aside
-      className={`sticky top-0 z-20 flex h-dvh shrink-0 flex-col overflow-hidden border-l border-sidebar-border bg-sidebar-bg transition-[width] duration-200 ease-out [&::-webkit-scrollbar]:hidden [scrollbar-width:none] ${isSidebarCollapsed ? "w-16 md:w-16" : "w-16 md:w-64"}`}
+      className={`sticky top-0 z-20 hidden h-dvh shrink-0 flex-col overflow-hidden border-l border-sidebar-border bg-sidebar-bg transition-[width] duration-200 ease-out md:flex [&::-webkit-scrollbar]:hidden [scrollbar-width:none] ${isSidebarCollapsed ? "w-16 md:w-16" : "w-16 md:w-64"}`}
       aria-label="ناوبری اصلی"
     >
       <MasterHeader

@@ -55,7 +55,7 @@ export default function CanvasChromeBar({
       className={
         footerSlot
           ? "pointer-events-auto flex max-w-full items-center justify-center"
-          : "pointer-events-none absolute inset-x-0 bottom-2.5 z-40 flex items-center justify-center px-2"
+          : "pointer-events-none absolute inset-x-0 top-2.5 z-30 flex items-center justify-center px-2"
       }
     >
       <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-border-color bg-card-bg-solid/95 px-2 py-1 text-xs shadow-lg backdrop-blur-xl [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
