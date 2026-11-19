@@ -408,6 +408,10 @@ export default React.memo(function WorkflowNodeCard({
         width: node.width,
         height: node.height,
         zIndex: isDragging ? 950 : isSelected ? 900 : node.zIndex,
+        transition:
+          shouldAnimateMotion && !isDragging
+            ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), width 220ms cubic-bezier(0.22, 1, 0.36, 1), height 220ms cubic-bezier(0.22, 1, 0.36, 1)"
+            : undefined,
       }}
       className="absolute top-0 left-0 select-none"
     >
@@ -415,8 +419,17 @@ export default React.memo(function WorkflowNodeCard({
         initial={shouldAnimateMotion ? { opacity: 0, scale: 0.95, y: 6 } : false}
         animate={resolveCanvasNodeMotionState(shouldAnimateMotion, isDragging, 0, 1.018)}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        style={shouldAnimateMotion ? { rotate: "var(--drag-tilt, 0deg)" } : undefined}
-        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-[border-color,box-shadow,rotate] duration-150 ease-out ${borderClass}`}
+        style={
+          shouldAnimateMotion
+            ? {
+                rotate: "var(--drag-tilt, var(--sheet-pan-tilt, 0deg))",
+                translate: isDragging
+                  ? undefined
+                  : "var(--sheet-pan-shift-x, 0px) var(--sheet-pan-shift-y, 0px)",
+              }
+            : undefined
+        }
+        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-[border-color,box-shadow,rotate,translate] duration-150 ease-out ${borderClass}`}
       >
         <NodePerimeterSpark
           active={outputSignal}

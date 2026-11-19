@@ -1,6 +1,5 @@
 "use client";
 
-import type { WorkflowNodeKind } from "./workflowTypes";
 import {
   AndGateSymbolSvg,
   GroupSymbolSvg,
@@ -11,6 +10,7 @@ import {
   TriggerManualSymbolSvg,
   TriggerScheduleSymbolSvg,
 } from "./WorkflowSymbolArt";
+import type { WorkflowNodeKind } from "./workflowTypes";
 
 export interface SchematicSymbolProps {
   kind: WorkflowNodeKind;

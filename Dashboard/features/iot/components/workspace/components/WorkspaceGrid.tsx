@@ -159,7 +159,6 @@ export default function WorkspaceGrid({
   groupsOrder,
   groupsCols: initialGroupsCols,
   groupConfigs,
-  isLoadingIoT,
   animationsEnabled,
   selectedGroupFilter,
   handleGroupColsChange,
@@ -187,7 +186,7 @@ export default function WorkspaceGrid({
       onUpdateSegmentMode: handleUpdateSegmentMode,
       onUpdateSegmentAutoOff: handleUpdateSegmentAutoOff,
       onUpdateSegmentRule: handleUpdateSegmentRule,
-      isLoadingIoT,
+      isLoadingIoT: false,
       onSetupPlaceholder: handleSetupPlaceholder,
     }),
     [
@@ -197,7 +196,6 @@ export default function WorkspaceGrid({
       handleUpdateSegmentMode,
       handleUpdateSegmentAutoOff,
       handleUpdateSegmentRule,
-      isLoadingIoT,
       handleSetupPlaceholder,
     ],
   );

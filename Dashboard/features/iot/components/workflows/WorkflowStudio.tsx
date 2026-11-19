@@ -248,7 +248,10 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
                 incomingCount={incomingCountByNode.get(node.id) ?? 0}
                 timerCountdown={studio.timerCountdowns.get(node.id) ?? null}
                 isSelected={studio.selectedNodeId === node.id}
-                isDragging={studio.draggingNodeId === node.id}
+                isDragging={
+                  studio.draggingNodeId === node.id ||
+                  (Boolean(node.parentGroupId) && studio.draggingNodeId === node.parentGroupId)
+                }
                 isLocked={studio.isLocked}
                 animationsEnabled={animationsEnabled}
                 isConnectingSource={studio.connectingFromId === node.id}

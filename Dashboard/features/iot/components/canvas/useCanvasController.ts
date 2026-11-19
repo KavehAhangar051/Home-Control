@@ -136,6 +136,7 @@ export function useCanvasController({
   const {
     containerSize,
     isPanning,
+    animateToViewport,
     handleZoomBy,
     handleCanvasPointerDown,
     handleCanvasContextMenu,
@@ -277,8 +278,8 @@ export function useCanvasController({
       fitPadding,
     );
 
-    setViewport(nextViewport);
-  }, [visibleNodeIds, containerSize, setViewport]);
+    animateToViewport(nextViewport);
+  }, [animateToViewport, visibleNodeIds, containerSize]);
 
   // Fit view automatically ONLY if no stored viewport exists for this subMode yet
   React.useEffect(() => {
@@ -310,13 +311,14 @@ export function useCanvasController({
 
   const handlePanToWorldPoint = React.useCallback(
     (worldX: number, worldY: number) => {
-      setViewport((prev) => ({
-        ...prev,
-        x: Math.round(containerSize.width / 2 - worldX * prev.zoom),
-        y: Math.round(containerSize.height / 2 - worldY * prev.zoom),
-      }));
+      const curr = viewportRef.current;
+      animateToViewport({
+        ...curr,
+        x: Math.round(containerSize.width / 2 - worldX * curr.zoom),
+        y: Math.round(containerSize.height / 2 - worldY * curr.zoom),
+      });
     },
-    [containerSize, setViewport],
+    [animateToViewport, containerSize],
   );
 
   const handleResetLayout = React.useCallback(() => {
@@ -338,8 +340,8 @@ export function useCanvasController({
       containerSize,
     );
 
-    setViewport(computeFitCanvasViewport(fresh, visibleNodeIds, width, height, fitPadding));
-  }, [activeSubMode, groupsOrder, segments, containerSize, visibleNodeIds, setViewport]);
+    animateToViewport(computeFitCanvasViewport(fresh, visibleNodeIds, width, height, fitPadding));
+  }, [activeSubMode, animateToViewport, groupsOrder, segments, containerSize, visibleNodeIds]);
 
   const handleChangeSubMode = React.useCallback(
     (nextMode: CanvasSubMode) => {

@@ -107,6 +107,59 @@ export function clearNodeDragTiltCssVar(element: HTMLElement | null): void {
 }
 
 /**
+ * Checks whether canvas/sheet motion animations are enabled both in user preferences
+ * (`document.documentElement.dataset.animationsEnabled`) and OS `prefers-reduced-motion`.
+ */
+export function areSheetAnimationsAllowed(): boolean {
+  if (typeof document === "undefined" || typeof window === "undefined") return false;
+
+  if (document.documentElement.dataset.animationsEnabled === "false") {
+    return false;
+  }
+
+  if (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Imperatively updates sheet-level pan velocity CSS custom properties on the canvas container
+ * so all visible cards respond with subtle physical inertia tilt and parallax at 0 React re-render cost.
+ */
+export function setSheetPanMotionCssVars(
+  container: HTMLElement | null,
+  frameDeltaX: number,
+  frameDeltaY: number,
+): void {
+  if (!container) return;
+
+  if (!areSheetAnimationsAllowed()) {
+    clearSheetPanMotionCssVars(container);
+    return;
+  }
+
+  const tiltDeg = computeDragTiltDeg(frameDeltaX * 0.65, 1.5);
+  const shiftX = Math.max(-4.5, Math.min(4.5, Math.round(frameDeltaX * 0.14 * 10) / 10));
+  const shiftY = Math.max(-4.5, Math.min(4.5, Math.round(frameDeltaY * 0.14 * 10) / 10));
+
+  container.style.setProperty("--sheet-pan-tilt", `${tiltDeg}deg`);
+  container.style.setProperty("--sheet-pan-shift-x", `${shiftX}px`);
+  container.style.setProperty("--sheet-pan-shift-y", `${shiftY}px`);
+}
+
+export function clearSheetPanMotionCssVars(container: HTMLElement | null): void {
+  if (!container) return;
+  container.style.removeProperty("--sheet-pan-tilt");
+  container.style.removeProperty("--sheet-pan-shift-x");
+  container.style.removeProperty("--sheet-pan-shift-y");
+}
+
+/**
  * Finds the closest eligible workflow target input port within `snapRadius` world pixels
  * of the pointer during wire drafting, enforcing cycle/self-loop validation.
  */

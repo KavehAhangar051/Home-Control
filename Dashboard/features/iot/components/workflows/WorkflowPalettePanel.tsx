@@ -6,15 +6,15 @@ import React from "react";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { DURATION, EASE_DRAWER, EASE_IN, EXIT_DURATION, SPRING_LAYOUT } from "@/lib/ease";
 import {
-  CONTROL_ENTRIES,
-  LOGIC_GATE_ENTRIES,
-  type PaletteCategoryFilter,
-} from "./workflowPaletteData";
-import {
   PaletteGroupsSection,
   PaletteSegmentsSection,
   PaletteSymbolSection,
 } from "./WorkflowPaletteSections";
+import {
+  CONTROL_ENTRIES,
+  LOGIC_GATE_ENTRIES,
+  type PaletteCategoryFilter,
+} from "./workflowPaletteData";
 import type { WorkflowPaletteDragPayload } from "./workflowTypes";
 
 interface WorkflowPalettePanelProps {

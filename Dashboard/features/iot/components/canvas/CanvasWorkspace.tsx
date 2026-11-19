@@ -173,7 +173,11 @@ export default function CanvasWorkspace({
                   segment={segment}
                   rect={rect}
                   isSelected={selectedNodeId === nodeId}
-                  isDragging={draggingNodeId === nodeId}
+                  isDragging={
+                    draggingNodeId === nodeId ||
+                    (settings.subMode === "graph" &&
+                      draggingNodeId === canvasGroupNodeId(resolveSegmentGroup(segment.group)))
+                  }
                   isLocked={settings.isLocked}
                   showPort={settings.subMode === "graph"}
                   animationsEnabled={animationsEnabled}

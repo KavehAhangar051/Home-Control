@@ -62,7 +62,7 @@ export function useSegmentUpdates() {
       }
 
       const targetSegment = useIoTStore.getState().segments.find((segment) => segment.id === id);
-      if (!targetSegment || targetSegment.type !== "input") {
+      if (targetSegment?.type !== "input") {
         useIoTStore.getState().showToast("سگمنت ورودی موردنظر در داشبورد پیدا نشد.", "error");
         return;
       }
