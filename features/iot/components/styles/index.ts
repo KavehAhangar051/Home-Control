@@ -2,6 +2,6 @@ export { getAnimationStyles } from "./animationStyles";
 
 export { getBaseStyles } from "./baseStyles";
 
-export { getThemeStyles } from "./themeStyles";
+export { computeThemeCssVariables, getStaticThemeRules, getThemeStyles } from "./themeStyles";
 
 export { getUtilityStyles } from "./utilityStyles";

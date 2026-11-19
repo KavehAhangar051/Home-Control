@@ -7,7 +7,7 @@ import { Alert } from "@/components/reui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/grid";
 import { Clock3 } from "@/components/ui/hugeicons-groups/shell";
-import { useDashboard } from "@/features/dashboard/context/DashboardContext";
+import { useDashboard, useDashboardActions } from "@/features/dashboard/context/DashboardContext";
 import {
   AUTOMATIONS_TABS,
   MODULES_TABS,
@@ -336,7 +336,7 @@ function AutomationsWorkspace() {
 }
 
 function WorkflowsCanvasSection() {
-  const { handleTogglePin, handleSetPinState } = useDashboard();
+  const { handleTogglePin, handleSetPinState } = useDashboardActions();
 
   return (
     <div className="relative flex size-full min-h-0 flex-1 flex-col overflow-hidden">

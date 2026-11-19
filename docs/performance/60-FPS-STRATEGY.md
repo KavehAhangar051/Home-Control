@@ -4,7 +4,7 @@
 
 The dashboard's motion-quality target is **stable 60 FPS on 60 Hz displays**, including during normal device-state updates and common interactions. On displays with higher refresh rates, animations should follow the browser/display cadence rather than being artificially capped at 60 FPS.
 
-A universal 60 FPS guarantee on every device is not technically possible: CPU/GPU capability, memory pressure, browser scheduling, thermal throttling, power-saving modes, display refresh rate, and background-tab throttling are outside the application's control. The engineering goal is therefore to maximize the number of devices that sustain their display's refresh rate, and to degrade nonessential visual work gracefully when the runtime cannot keep up.
+A universal 60 FPS guarantee on every device is not technically possible: CPU/GPU capability, memory pressure, browser scheduling, thermal throttling, power-saving modes, display refresh rate, and background-tab throttling are outside the application's control. The engineering goal is therefore to eliminate avoidable main-thread, React, Zustand, and CSSOM work so even constrained devices sustain 60 FPS with **zero visual degradation**—keeping all animations and transitions active unless the user explicitly disables or lowers them in Dashboard Settings (پایداری).
 
 ## Frame budgets
 
@@ -35,13 +35,15 @@ Average FPS alone is insufficient. Review dropped/partially presented frames, fr
 ## Existing motion & rendering inventory
 
 - `components/MotionProvider.tsx`: async `LazyMotion` with `domMax`; all 134 Motion calls already use `m.*` rather than monolithic `motion.*`. Retain `domMax` because layout and drag features are active.
-- `lib/performanceTier.ts` & `lib/hooks/use-performance-tier.ts`: pure adaptive performance controller combining hardware hints (`hardwareConcurrency`, `deviceMemory`, `saveData`), Zustand `animationsFps` (`30 | 60`), a 1.5 s post-mount warmup grace window, and a sliding-window rAF frame-drop detector to manage `html[data-perf-tier="full" | "lite"]`.
-- `components/motion/action-swap-variants.ts` & `action-swap.tsx`: `"full"` tier uses the expressive blur/roll/cascade variants; `"lite"` tier shifts to compositor-only transform + opacity variants with zero CSS `filter: blur()`.
+- `lib/performanceTier.ts` & `lib/hooks/use-performance-tier.ts`: zero-idle-CPU tier controller mapping explicit user Settings (`animationsEnabled === false` or `animationsFps <= 30`) directly to `html[data-perf-tier="full" | "lite"]` with no continuous background rAF polling and no automatic visual downgrade on weak hardware.
+- `features/iot/components/DashboardStyles.tsx` & `styles/themeStyles.ts`: static CSS rules stay memoized on `(isDark, animationsEnabled)` while dynamic theme/accent custom properties diff and apply directly via `document.documentElement.style.setProperty(...)` (`requestAnimationFrame`-coalesced on slider drags), eliminating full `<style>` tag re-parsing at 60 FPS.
+- `features/iot/services/mqtt/init.ts`, `createSegmentsSlice.ts`, `useAutoOffTimer.ts`, `usePinOperations.ts` & `DashboardContext.tsx`: MQTT `pin_update` digital/PWM/timer telemetry coalesces into a single `requestAnimationFrame` `useIoTStore.setState` commit; `useAutoOffTimer` uses a single-pin selector (`state.autoOffRemaining[pin]`); slice setters short-circuit on reference equality; `usePinOperations` avoids global `useState` churn on clicks/PWM ticks; and `DashboardActionsContext` isolates stable callbacks from readiness state updates.
+- `components/motion/action-swap-variants.ts` & `action-swap.tsx`: `"full"` tier uses the expressive blur/roll/cascade variants; `"lite"` tier shifts to compositor-only transform + opacity variants when explicitly enabled in Settings.
 - `components/motion/color-picker.tsx`: uses `useSpring`/`useTransform`/`MotionValue` for cursor thumb and pendulum loupe without React state loops on drag; panel reveal avoids blur in `"lite"` tier.
-- `components/motion/range-slider.tsx`: drives fill and thumb transforms via `MotionValue` + `useSpring`.
+- `components/motion/range-slider*.tsx`: drives fill and thumb transforms via `MotionValue` + `useSpring`.
 - `components/motion/theme-toggle.tsx` & `styles/view-transitions.css`: theme changes use native View Transitions without synchronous `document.body.offsetHeight` forced reflow; `"lite"` tier skips root `filter: blur(8px)`.
-- Canvas & Workflow gestures (`useSheetViewportGestures.ts`, `useCanvasNodeInteractions.ts`, `useWorkflowInteractions.ts`, `useWorkflowStudio.ts`): pointer move, resize, wheel zoom, and 2-finger pinch zoom are coalesced to `requestAnimationFrame`; transient viewport changes avoid per-frame `localStorage` serialization; node drag tilt updates `--drag-tilt` without forcing React parent re-renders.
-- Infinite background loops (`usePageVisibility.ts`, `app/globals.css`, `CanvasWiresLayer.tsx`, `WorkflowEdgeItem.tsx`): hidden tabs (`html[data-page-hidden="true"]`) pause infinite CSS keyframes, and `"lite"` tier replaces dual SVG SMIL `<animateMotion>` wire particles with lightweight dash feedback.
+- Canvas & Workflow gestures (`useSheetViewportGestures.ts`, `useCanvasNodeInteractions.ts`, `useWorkflowInteractions.ts`, `useWorkflowStudio.ts`): pointer move, resize, wheel zoom, and 2-finger pinch zoom are coalesced to `requestAnimationFrame`; transient viewport changes avoid per-frame `localStorage` serialization; node drag tilt updates non-inherited `rotate`/`translate` without forcing React parent re-renders.
+- Infinite background loops (`usePageVisibility.ts`, `app/globals.css`, `CanvasWiresLayer.tsx`, `WorkflowEdgeItem.tsx`): hidden tabs (`html[data-page-hidden="true"]`) pause infinite CSS keyframes, and `"lite"` tier (when enabled by the user) replaces dual SVG SMIL `<animateMotion>` wire particles with lightweight dash feedback.
 
 ## Verification protocol
 
@@ -57,7 +59,7 @@ Use equivalent Chromium desktop (`1440x900`) and mobile (`390x844`, 4x/6x CPU th
 
 - On a 60 Hz target device, common interaction scenarios sustain smooth ~60 FPS with minimal dropped-frame bursts, and high-frequency gestures trigger zero per-frame `localStorage` writes or forced full-DOM reflows.
 - On higher-refresh displays (`90/120/144 Hz`), the dashboard imposes no artificial 60 FPS cap.
-- Adaptive tiering never disables essential device-state feedback, card transitions, touch affordances, or accessibility (`animationsEnabled` / `prefers-reduced-motion`).
+- Performance tiering never silently disables animations, transitions, or visual fidelity on low-end devices; `"lite"` mode activates strictly when the user disables animations or selects `30 FPS` in Settings (`animationsEnabled` / `animationsFps`), while always honoring `prefers-reduced-motion`.
 
 ## Current measurement status
 

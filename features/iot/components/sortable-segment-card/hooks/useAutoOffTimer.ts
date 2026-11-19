@@ -16,14 +16,13 @@ export function useAutoOffTimer({
   pin,
   onSetPinState,
 }: UseAutoOffTimerProps) {
-  const synchronizedTimers = useIoTStore((state) => state.autoOffRemaining);
-  const hasSynchronizedTimer = Object.hasOwn(synchronizedTimers, pin);
-  const initialRemaining = hasSynchronizedTimer ? synchronizedTimers[pin] : autoOff;
+  const synchronizedTimer = useIoTStore((state) => state.autoOffRemaining[pin]);
+  const initialRemaining = synchronizedTimer !== undefined ? synchronizedTimer : autoOff;
   const isTimerActive = Boolean(isPinOn && initialRemaining && initialRemaining > 0);
   const triggerKey = isTimerActive ? `${pin}:${autoOff}:${initialRemaining}:on` : `${pin}:off`;
 
   const [timerState, setTimerState] = useState<{ key: string; remaining: number | null }>({
-    key: "",
+    key: `${pin}:off`,
     remaining: null,
   });
 
@@ -34,8 +33,14 @@ export function useAutoOffTimer({
         ? (initialRemaining ?? null)
         : null;
 
+  const isResetState = timerState.key === `${pin}:off` && timerState.remaining === null;
+
   useEffect(() => {
     if (!isTimerActive) {
+      if (isResetState) {
+        return;
+      }
+
       const resetId = setTimeout(() => {
         setTimerState((prev) =>
           prev.key === `${pin}:off` && prev.remaining === null
@@ -64,7 +69,7 @@ export function useAutoOffTimer({
     }, 1000);
 
     return () => clearTimeout(timerId);
-  }, [isTimerActive, countdown, triggerKey, pin, onSetPinState, mode]);
+  }, [isTimerActive, isResetState, countdown, triggerKey, pin, onSetPinState, mode]);
 
   return { countdown };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { defaultDeviceSyncGateway } from "@/features/iot/services/deviceGatewayAdapter";
 import { onMqttStateChange } from "@/features/iot/services/mqtt/client";
@@ -356,14 +356,16 @@ export async function executeBatchPinUpdate(
 export function usePinOperations() {
   const setPinsState = useIoTStore((state) => state.setPinsState);
   const showToast = useIoTStore((state) => state.showToast);
-  const [inFlightCount, setInFlightCount] = useState(0);
+  // Keep in-flight tracking off React state so rapid relay clicks and PWM slider drags
+  // never recreate DashboardContext and re-render the entire workspace tree twice per command.
+  const inFlightCountRef = useRef(0);
 
   const beginLoading = useCallback(() => {
-    setInFlightCount((c) => c + 1);
+    inFlightCountRef.current += 1;
   }, []);
 
   const endLoading = useCallback(() => {
-    setInFlightCount((c) => Math.max(0, c - 1));
+    inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
   }, []);
 
   useEffect(() => {
@@ -475,7 +477,7 @@ export function usePinOperations() {
   );
 
   return {
-    isLoadingIoT: inFlightCount > 0,
+    isLoadingIoT: false,
     updatePinOnServer,
     handleTogglePin,
     handleSetPinState,

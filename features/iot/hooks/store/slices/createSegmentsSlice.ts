@@ -9,13 +9,14 @@ export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSl
   pinsPwmResolution: {},
   autoOffRemaining: {},
 
-  setAutoOffRemaining: (timers) => set({ autoOffRemaining: timers }),
+  setAutoOffRemaining: (timers) =>
+    set((state) => (state.autoOffRemaining === timers ? state : { autoOffRemaining: timers })),
 
   setSegments: (segments) => {
     set((state) => {
       const next = segments instanceof Function ? segments(state.segments) : segments;
 
-      return { segments: next };
+      return next === state.segments ? state : { segments: next };
     });
   },
 
@@ -23,7 +24,7 @@ export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSl
     set((state) => {
       const nextPins = pins instanceof Function ? pins(state.pinsState) : pins;
 
-      return { pinsState: nextPins };
+      return nextPins === state.pinsState ? state : { pinsState: nextPins };
     });
   },
 
@@ -31,7 +32,7 @@ export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSl
     set((state) => {
       const nextValues = values instanceof Function ? values(state.pinsAnalogValue) : values;
 
-      return { pinsAnalogValue: nextValues };
+      return nextValues === state.pinsAnalogValue ? state : { pinsAnalogValue: nextValues };
     });
   },
 
@@ -39,7 +40,9 @@ export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSl
     set((state) => {
       const nextValues = values instanceof Function ? values(state.pinsLastNonZeroValue) : values;
 
-      return { pinsLastNonZeroValue: nextValues };
+      return nextValues === state.pinsLastNonZeroValue
+        ? state
+        : { pinsLastNonZeroValue: nextValues };
     });
   },
 
@@ -48,7 +51,9 @@ export const createSegmentsSlice: StateCreator<IoTStoreState, [], [], SegmentsSl
       const nextResolutions =
         resolutions instanceof Function ? resolutions(state.pinsPwmResolution) : resolutions;
 
-      return { pinsPwmResolution: nextResolutions };
+      return nextResolutions === state.pinsPwmResolution
+        ? state
+        : { pinsPwmResolution: nextResolutions };
     });
   },
 

@@ -37,9 +37,11 @@ export interface DashboardContextInterface {
   meta: Record<string, never>;
 }
 
+export type DashboardActions = DashboardContextInterface["actions"];
 export type DashboardContextValue = DashboardState & DashboardContextInterface;
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
+const DashboardActionsContext = createContext<DashboardActions | null>(null);
 
 interface DashboardProviderProps {
   children: ReactNode;
@@ -48,6 +50,8 @@ interface DashboardProviderProps {
 
 /**
  * Provides dashboard IoT state and actions to workspace and widget components.
+ * Action handlers are exposed on a separate `DashboardActionsContext` so action-only
+ * subtrees stay isolated from transient sync/readiness state updates.
  */
 export function DashboardProvider({ children, value }: DashboardProviderProps) {
   const internalState = useDashboardState();
@@ -70,7 +74,7 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
     ],
   );
 
-  const actions = useMemo(
+  const actions = useMemo<DashboardActions>(
     () => ({
       refetchIot: resolved.refetchIot,
       setIsFullyReady: resolved.setIsFullyReady,
@@ -133,7 +137,11 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
     [state, actions, meta],
   );
 
-  return <DashboardContext value={contextValue}>{children}</DashboardContext>;
+  return (
+    <DashboardActionsContext value={actions}>
+      <DashboardContext value={contextValue}>{children}</DashboardContext>
+    </DashboardActionsContext>
+  );
 }
 
 export function useDashboard() {
@@ -144,6 +152,20 @@ export function useDashboard() {
   }
 
   return context;
+}
+
+/**
+ * Subscribes only to stable dashboard action handlers without re-rendering on
+ * transient dashboard state changes (`mounted`, `isFullyReady`, `workerUrl`, `targetPlaceholderId`).
+ */
+export function useDashboardActions(): DashboardActions {
+  const actions = use(DashboardActionsContext);
+
+  if (!actions) {
+    throw new Error("useDashboardActions must be used within a DashboardProvider");
+  }
+
+  return actions;
 }
 
 export function useOptionalDashboard(): DashboardContextValue | null {
