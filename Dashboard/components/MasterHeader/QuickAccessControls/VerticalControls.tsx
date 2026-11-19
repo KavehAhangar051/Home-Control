@@ -13,7 +13,7 @@ import {
 } from "@/features/dashboard/navigation";
 import type { WorkspaceView } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { EASE_OUT, SPRING_LAYOUT } from "@/lib/ease";
+import { EASE_IN, EASE_IN_OUT, EASE_OUT, SPRING_LAYOUT } from "@/lib/ease";
 import SidebarTooltip from "../SidebarTooltip";
 import VoiceCommandButton from "../VoiceCommandButton";
 import type { QuickAccessControlsProps } from "./types";
@@ -26,18 +26,14 @@ interface SubMenuItem {
 
 const SUBMENU_VARIANTS: Variants = {
   closed: {
-    opacity: 0,
     transition: {
-      duration: 0.14,
-      ease: EASE_OUT,
+      staggerChildren: 0.015,
+      staggerDirection: -1,
     },
   },
   open: {
-    opacity: 1,
     transition: {
-      duration: 0.18,
       delayChildren: 0.03,
-      ease: EASE_OUT,
       staggerChildren: 0.035,
     },
   },
@@ -46,10 +42,10 @@ const SUBMENU_VARIANTS: Variants = {
 const SUBMENU_ITEM_VARIANTS: Variants = {
   closed: {
     opacity: 0,
-    y: -4,
+    y: -6,
     transition: {
-      duration: 0.12,
-      ease: EASE_OUT,
+      duration: 0.16,
+      ease: EASE_IN,
     },
   },
   open: {
@@ -198,7 +194,7 @@ export default function VerticalControls({
               <ChevronLeft
                 aria-hidden="true"
                 strokeWidth={1.5}
-                className={`hidden size-3.5 shrink-0 text-sidebar-muted transition-transform duration-150 md:block ${
+                className={`hidden size-3.5 shrink-0 text-sidebar-muted transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] md:block ${
                   isExpanded ? "-rotate-90 text-sidebar-text" : "rotate-0"
                 }`}
               />
@@ -211,14 +207,26 @@ export default function VerticalControls({
             <m.div
               key={`${view}-submenu`}
               initial={reduceMotion ? false : { height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
-              transition={
-                reduceMotion
+              animate={{
+                height: "auto",
+                opacity: 1,
+                transition: reduceMotion
                   ? { duration: 0 }
                   : {
-                      height: { duration: 0.22, ease: EASE_OUT },
+                      height: { duration: 0.24, ease: EASE_OUT },
                       opacity: { duration: 0.18, ease: EASE_OUT },
+                    },
+              }}
+              exit={
+                reduceMotion
+                  ? { opacity: 0, transition: { duration: 0 } }
+                  : {
+                      height: 0,
+                      opacity: 0,
+                      transition: {
+                        height: { duration: 0.24, ease: EASE_IN_OUT },
+                        opacity: { duration: 0.2, ease: EASE_IN },
+                      },
                     }
               }
               className="hidden overflow-hidden md:block"
