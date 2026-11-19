@@ -4,9 +4,10 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import LowDataModeBanner from "@/features/iot/components/notifications/LowDataModeBanner";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import MobileVoiceCommandButton from "../widgets/MobileVoiceCommandButton";
+import { useMediaQuery } from "@/features/iot/hooks/useMediaQuery";
 import DashboardBreadcrumb from "./DashboardBreadcrumb";
 import DashboardWorkspace from "./DashboardWorkspace";
+import MobileDockNav from "./MobileDockNav";
 
 function resolveScrollContainerClass(params: {
   activeWorkspaceView: string;
@@ -31,10 +32,10 @@ function resolveScrollContainerClass(params: {
     activeWorkspaceView === "home" && workspaceDisplayMode === "trellis" && hasOrLoadingContent;
 
   if (isTrellisActive) {
-    return "overflow-hidden gap-3 p-2 md:p-4";
+    return "overflow-hidden gap-3 p-2 pb-20 md:p-4";
   }
 
-  return "overflow-y-auto gap-fluid-md p-fluid-sm md:p-6 md:pb-8 md:px-8";
+  return "overflow-y-auto gap-fluid-md p-fluid-sm pb-24 md:p-6 md:pb-8 md:px-8";
 }
 
 function shouldDisplayHomeBanner(params: {
@@ -53,6 +54,7 @@ function shouldDisplayHomeBanner(params: {
 
 export default function DashboardMain() {
   const { isFullyReady, refetchIot, triggerCloudflarePush } = useDashboard();
+  const isDesktop = useMediaQuery("(min-width: 768px)");
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const activeWorkspaceView = useIoTStore((s) => s.activeWorkspaceView);
 
@@ -105,16 +107,20 @@ export default function DashboardMain() {
 
       <footer
         dir="rtl"
-        className="relative z-30 flex h-14 w-full shrink-0 items-center justify-end border-t border-sidebar-border bg-sidebar-bg px-4 md:px-8"
+        className="relative z-30 hidden h-14 w-full shrink-0 items-center justify-end border-t border-sidebar-border bg-sidebar-bg px-4 md:flex md:px-8"
       >
-        <div
-          id="dashboard-footer-center"
-          className="pointer-events-none absolute inset-0 flex items-center justify-center px-14"
-        />
-        <ThemeToggle />
+        {isDesktop && (
+          <>
+            <div
+              id="dashboard-footer-center"
+              className="pointer-events-none absolute inset-0 flex items-center justify-center px-14"
+            />
+            <ThemeToggle />
+          </>
+        )}
       </footer>
 
-      {activeWorkspaceView === "home" && <MobileVoiceCommandButton />}
+      <MobileDockNav />
     </>
   );
 }

@@ -2,6 +2,7 @@
 
 import GroupFilterSelector from "@/components/MasterHeader/GroupFilterSelector";
 import WorkspaceViewModeSelector from "@/components/MasterHeader/WorkspaceViewModeSelector";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,8 +20,10 @@ import {
   WORKSPACE_VIEW_META,
 } from "@/features/dashboard/navigation";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { useMediaQuery } from "@/features/iot/hooks/useMediaQuery";
 
 export default function DashboardBreadcrumb() {
+  const isDesktop = useMediaQuery("(min-width: 768px)");
   const activeView = useIoTStore((s) => s.activeWorkspaceView);
   const setActiveWorkspaceView = useIoTStore((s) => s.setActiveWorkspaceView);
   const activeModulesTab = useIoTStore((s) => s.activeModulesTab);
@@ -45,9 +48,9 @@ export default function DashboardBreadcrumb() {
   return (
     <header
       dir="rtl"
-      className="relative flex h-14 w-full shrink-0 items-center justify-between gap-3 border-b border-sidebar-border bg-sidebar-bg px-3 sm:px-4 md:px-8"
+      className="relative flex h-12 w-full shrink-0 items-center justify-between gap-3 border-b border-sidebar-border bg-sidebar-bg px-3 sm:px-4 md:h-14 md:px-8"
     >
-      <Breadcrumb dir="rtl" className="relative z-10 min-w-0 shrink-0">
+      <Breadcrumb dir="rtl" className="relative z-10 min-w-0 shrink">
         <BreadcrumbList className="gap-1.5 text-sm text-sidebar-muted sm:gap-2">
           <BreadcrumbItem className="hidden sm:inline-flex">
             <BreadcrumbLink
@@ -64,16 +67,16 @@ export default function DashboardBreadcrumb() {
           </BreadcrumbItem>
           <BreadcrumbSeparator className="hidden text-sidebar-muted opacity-60 sm:inline-flex" />
           <BreadcrumbItem className="min-w-0">
-            <BreadcrumbPage className="inline-flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 font-semibold text-sidebar-text">
+            <BreadcrumbPage className="inline-flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1.5 font-semibold text-sidebar-text sm:px-2">
               <ActiveIcon className="size-4 shrink-0 text-accent3" aria-hidden="true" />
               <span className="truncate">{activeMeta.title}</span>
             </BreadcrumbPage>
           </BreadcrumbItem>
           {subSectionTitle && (
             <>
-              <BreadcrumbSeparator className="hidden text-sidebar-muted opacity-60 sm:inline-flex" />
-              <BreadcrumbItem className="hidden min-w-0 sm:inline-flex">
-                <BreadcrumbPage className="truncate rounded-md px-1.5 py-1 text-xs font-medium text-sidebar-muted">
+              <BreadcrumbSeparator className="inline-flex text-sidebar-muted opacity-60" />
+              <BreadcrumbItem className="inline-flex min-w-0">
+                <BreadcrumbPage className="truncate rounded-md px-1 py-1 text-xs font-medium text-sidebar-muted sm:px-1.5">
                   {subSectionTitle}
                 </BreadcrumbPage>
               </BreadcrumbItem>
@@ -93,10 +96,16 @@ export default function DashboardBreadcrumb() {
               isCompact
             />
           </div>
-          <div className="relative z-10 flex shrink-0 items-center">
+          <div className="relative z-10 hidden shrink-0 items-center md:flex">
             <WorkspaceViewModeSelector compact />
           </div>
         </>
+      )}
+
+      {!isDesktop && (
+        <div className="relative z-10 flex shrink-0 items-center md:hidden">
+          <ThemeToggle />
+        </div>
       )}
     </header>
   );

@@ -62,7 +62,7 @@ export default function ToastNotification() {
                 ? { duration: DURATION.slow, ease: EASE_IN_OUT }
                 : TRANSITION_ENTER_STANDARD,
           }}
-          className="pointer-events-auto fixed bottom-6 left-6 z-[200] w-[calc(100vw-3rem)] max-w-sm"
+          className="pointer-events-auto fixed right-4 bottom-22 left-4 z-[200] mx-auto max-w-sm md:right-auto md:bottom-6 md:left-6 md:mx-0 md:w-[calc(100vw-3rem)]"
         >
           <Alert
             dir="rtl"

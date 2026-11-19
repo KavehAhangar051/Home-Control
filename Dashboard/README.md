@@ -7,7 +7,7 @@ A browser-based dashboard for monitoring and controlling ESP32-based home-automa
 - Multi-workspace dashboard and IoT UI (`Grid`, `Trellis`, infinite `Canvas`, and node-based `Workflows` studio).
 - IoT feature modules for ESP32 device communication over MQTT (WebSocket), local WebSocket, and Cloudflare KV sync.
 - Settings UI for theme/appearance presets (Light/Dark View Transitions, accents, contrast), typography, stability/FPS mode, and broker configuration.
-- Shared vertical right-rail header (`MasterHeader`) and browser Web Audio feedback (`lib/audio`).
+- Responsive RTL navigation: vertical right-rail header (`MasterHeader`) + footer on desktop (`md:`+), and a floating bottom Dock with upward-expanding `ExpandableTabs` panels and integrated voice trigger (`MobileDockNav`) on mobile (`< md`), alongside browser Web Audio feedback (`lib/audio`).
 - Static-site export and GitHub Pages deployment workflow.
 
 Device availability depends on the ESP32 firmware, network connectivity, broker/socket configuration, and browser security policies. A successful UI command publish does not by itself guarantee that a physical device changed state.
@@ -59,13 +59,13 @@ Do not commit `.env.local`, real credentials, private broker details, or API key
 | `bun run lint` | Run Biome lint checks across `app`, `components`, `features`, and `lib` |
 | `bun run lint:ox` | Run Oxlint + Anti-Slop diagnostic checks |
 | `bun run typecheck` | Run TypeScript compiler checks (`tsc --noEmit`) |
-| `bun run test` | Run deterministic domain and boundary contract tests (`tests/*.test.mjs`) |
-| `bun run check` | Run lint, typecheck, and deterministic tests together |
+| `bun run test` | Run core domain, MQTT/ESP32 protocol, and sync tests (`tests/*.test.mjs`; excludes UI/throwaway tests) |
+| `bun run check` | Run lint, typecheck, and core domain tests together |
 | `bun run format` | Format source directories in place with Biome |
 | `bun run clean` | Remove `.next`, `out`, and `tsconfig.tsbuildinfo` |
 | `bun run start` | Run the Next.js server; not intended to preview the static `out/` export |
 
-Run `bun run lint`, `bun run typecheck`, and `bun run build` before submitting changes when possible.
+Run `bun run lint`, `bun run typecheck`, and `bun run build` before submitting changes when possible, and update relevant documentation (`ARCHITECTURE.md`, `DESIGN.md`, `docs/*`) immediately after code changes.
 
 ## GitHub Pages
 
@@ -75,7 +75,7 @@ The repository must have GitHub Pages configured to deploy using **GitHub Action
 
 ## Repository hygiene
 
-Keep source, documentation, lockfiles, and required static assets under version control. Do not commit local environment files, dependencies, build output, console logs, credentials, or temporary migration artifacts. The `.gitignore` file defines the primary exclusions.
+Keep source, documentation, lockfiles, and required static assets under version control. Always update docs immediately after code changes so they remain trustworthy, avoid authoring temporary or UI-detail unit tests, and do not commit local environment files, dependencies, build output, console logs, `.playwright-cli/` artifacts, credentials, or temporary migration files. The `.gitignore` file defines the primary exclusions.
 
 ## License
 

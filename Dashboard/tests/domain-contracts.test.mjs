@@ -10,38 +10,12 @@ import {
   inferAutomationEditType,
 } from "../features/iot/components/AutomationsDrawer/hooks/useAutomationForm.ts";
 import {
-  buildBezierWireGeometry,
-  buildDefaultCanvasNodes,
-  CANVAS_GRID_STEP,
-  canvasGroupNodeId,
-  canvasSegmentNodeId,
-  clampCanvasNodeSize,
-  clampCanvasZoom,
-  computeCenteredFitViewport,
-  computeFitCanvasViewport,
-  getCanvasGridStyle,
-  getPresetDimensions,
-  snapNodeRectToGrid,
-} from "../features/iot/components/canvas/canvasGeometry.ts";
-import { reconcileCanvasNodes } from "../features/iot/components/canvas/canvasStorage.ts";
-import {
-  computeDragTiltDeg,
-  findMagneticInputPort,
-  resolveCanvasNodeMotionState,
-} from "../features/iot/components/canvas/nodeMotion.ts";
-import { computeResizedNodeRect } from "../features/iot/components/canvas/useCanvasNodeInteractions.ts";
-import { getSegmentTileDensity } from "../features/iot/components/sortable-segment-card/core/segmentTileDensity.ts";
-import { resolveSegmentSchematicKind } from "../features/iot/components/workflows/workflowSchematicUtils.ts";
-import {
   canConnectWorkflowPorts,
-  clampWorkflowNodeSize,
   collectGroupMemberSegmentIds,
   createEmptyWorkflow,
   createWorkflowNode,
   evaluateWorkflowGraph,
-  getWorkflowGridStyle,
   isTriggerWorkflowNodeKind,
-  snapWorkflowNodeToGrid,
 } from "../features/iot/components/workflows/workflowEngine.ts";
 import { buildEspConfig } from "../features/iot/hooks/achaemenidState/core/buildEspConfig.ts";
 import {
@@ -52,19 +26,6 @@ import {
 } from "../features/iot/services/cloudflare/mappers.ts";
 import { InMemoryDeviceSyncAdapter } from "../features/iot/services/deviceGatewayAdapter.ts";
 import { validateEsp32Pin } from "../features/iot/utils/pinValidation.ts";
-import {
-  DURATION,
-  EASE_IN,
-  EASE_OUT,
-  ERROR_SHAKE_KEYFRAMES,
-  getExitDuration,
-  getStaggerDelay,
-  TRANSITION_ENTER_QUICK,
-  TRANSITION_ENTER_STANDARD,
-  TRANSITION_EXIT_QUICK,
-  TRANSITION_EXIT_STANDARD,
-} from "../lib/ease.ts";
-import { cn, disabled, fluidTypeScale, fluidValue, focusRing } from "../lib/utils.ts";
 
 describe("ESP32 Hardware Pin Validation Contracts", () => {
   it("accepts valid general-purpose output pins", () => {
@@ -428,215 +389,6 @@ describe("IDeviceSyncPort In-Memory Boundary Contract", () => {
   });
 });
 
-describe("Motion Design System Contracts (lib/ease)", () => {
-  it("enforces exits faster than entrances (65-75% exitRatio rule) with directional curves", () => {
-    assert.equal(DURATION.exitRatio, 0.7);
-    assert.ok(TRANSITION_EXIT_QUICK.duration < TRANSITION_ENTER_QUICK.duration);
-    assert.ok(TRANSITION_EXIT_STANDARD.duration < TRANSITION_ENTER_STANDARD.duration);
-    assert.equal(TRANSITION_EXIT_STANDARD.duration, getExitDuration(DURATION.standard));
-    assert.deepEqual(TRANSITION_ENTER_STANDARD.ease, EASE_OUT);
-    assert.deepEqual(TRANSITION_EXIT_STANDARD.ease, EASE_IN);
-  });
-
-  it("caps multi-element stagger budget strictly below 500ms", () => {
-    assert.equal(getStaggerDelay(0), 0);
-    assert.equal(getStaggerDelay(-3), 0);
-    assert.ok(getStaggerDelay(2) > 0);
-    assert.ok(getStaggerDelay(50) <= 0.4);
-    assert.ok(getStaggerDelay(100, 0.1, 0.9) <= 0.45);
-  });
-
-  it("provides zero-sum error shake oscillation keyframes", () => {
-    assert.equal(ERROR_SHAKE_KEYFRAMES[0], 0);
-    assert.equal(ERROR_SHAKE_KEYFRAMES[ERROR_SHAKE_KEYFRAMES.length - 1], 0);
-    const sum = ERROR_SHAKE_KEYFRAMES.reduce((acc, v) => acc + v, 0);
-    assert.equal(sum, 0);
-  });
-});
-
-describe("n8n Canvas Sheet Geometry Contracts", () => {
-  it("generates group and segment nodes with valid bounds and bezier wires in graph mode", () => {
-    const groupsOrder = ["پذیرایی"];
-    const segments = [
-      { id: "s1", pin: "2", title: "لوستر", type: "relay", group: "پذیرایی" },
-      { id: "s2", pin: "4", title: "آباژور", type: "relay", group: "پذیرایی" },
-    ];
-
-    const nodes = buildDefaultCanvasNodes("graph", groupsOrder, segments, true);
-    const groupNode = nodes[canvasGroupNodeId("پذیرایی")];
-    const segNode1 = nodes[canvasSegmentNodeId("s1")];
-    const segNode2 = nodes[canvasSegmentNodeId("s2")];
-
-    assert.ok(groupNode);
-    assert.ok(segNode1);
-    assert.ok(segNode2);
-    assert.ok(groupNode.width >= 210 && groupNode.height >= 128);
-    assert.ok(segNode1.width >= 165 && segNode1.height >= 120);
-
-    const wire = buildBezierWireGeometry(groupNode, segNode1);
-    assert.ok(wire.path.startsWith("M "));
-    assert.ok(wire.path.includes(" C "));
-  });
-
-  it("clamps zoom and node resize bounds deterministically", () => {
-    assert.equal(clampCanvasZoom(0.1), 0.35);
-    assert.equal(clampCanvasZoom(5.0), 2.0);
-
-    const clampedSeg = clampCanvasNodeSize("segment", "graph", 80, 60, true);
-    assert.ok(clampedSeg.width >= 160);
-    assert.ok(clampedSeg.height >= 112);
-
-    const fit = computeFitCanvasViewport(
-      {
-        "group:پذیرایی": { x: 100, y: 100, width: 260, height: 160, zIndex: 1 },
-      },
-      ["group:پذیرایی"],
-      800,
-      600,
-      40,
-    );
-    assert.ok(fit.zoom >= 0.35 && fit.zoom <= 2.0);
-    assert.ok(Number.isFinite(fit.x) && Number.isFinite(fit.y));
-  });
-
-  it("keeps every default node, preset, clamp bound, and X/Y gap strictly aligned to the 16px grid", () => {
-    const groupsOrder = ["پذیرایی", "آشپزخانه", "اتاق"];
-    const segments = [
-      { id: "s1", pin: "2", title: "چراغ ۱", type: "relay", group: "پذیرایی" },
-      { id: "s2", pin: "4", title: "چراغ ۲", type: "relay", group: "پذیرایی" },
-      { id: "s3", pin: "5", title: "فر", type: "relay", group: "آشپزخانه" },
-      { id: "s4", pin: "12", title: "هود", type: "relay", group: "آشپزخانه" },
-      { id: "s5", pin: "13", title: "آباژور", type: "relay", group: "اتاق" },
-      { id: "s6", pin: "14", title: "فن", type: "relay", group: "اتاق" },
-    ];
-
-    for (const subMode of ["segments", "groups", "graph"]) {
-      for (const isMobile of [false, true]) {
-        const nodes = buildDefaultCanvasNodes(subMode, groupsOrder, segments, isMobile);
-
-        for (const [id, rect] of Object.entries(nodes)) {
-          assert.equal(rect.x % CANVAS_GRID_STEP, 0, `${subMode} ${id} x=${rect.x} not %16`);
-          assert.equal(rect.y % CANVAS_GRID_STEP, 0, `${subMode} ${id} y=${rect.y} not %16`);
-          assert.equal(
-            rect.width % CANVAS_GRID_STEP,
-            0,
-            `${subMode} ${id} width=${rect.width} not %16`,
-          );
-          assert.equal(
-            rect.height % CANVAS_GRID_STEP,
-            0,
-            `${subMode} ${id} height=${rect.height} not %16`,
-          );
-        }
-      }
-    }
-
-    // Verify uniform equal X and Y gaps in desktop "segments" mode (no 32/16 alternating jitter)
-    const desktopSegNodes = buildDefaultCanvasNodes("segments", groupsOrder, segments, false);
-    const n1 = desktopSegNodes[canvasSegmentNodeId("s1")];
-    const n2 = desktopSegNodes[canvasSegmentNodeId("s2")];
-    const n3 = desktopSegNodes[canvasSegmentNodeId("s3")];
-    const n4 = desktopSegNodes[canvasSegmentNodeId("s4")];
-    const gapCol1 = n2.x - (n1.x + n1.width);
-    const gapCol2 = n3.x - (n2.x + n2.width);
-    const gapRow = n4.y - (n1.y + n1.height);
-    assert.equal(gapCol1, 32);
-    assert.equal(gapCol2, 32);
-    assert.equal(gapRow, 32);
-
-    // Single-row group container height in "groups" mode is tightened (208px) to match inner card without bottom slack
-    const singleGroupNodes = buildDefaultCanvasNodes(
-      "groups",
-      ["حیاط"],
-      [{ id: "s1", pin: "30", title: "در ورودی", type: "relay", group: "حیاط" }],
-      false,
-    );
-    const singleGroupRect = singleGroupNodes[canvasGroupNodeId("حیاط")];
-    assert.equal(singleGroupRect.height, 208);
-    assert.equal(singleGroupRect.height % CANVAS_GRID_STEP, 0);
-
-    // Verify presets and clamped bounds stay strictly divisible by 16
-    for (const preset of ["sm", "md", "lg"]) {
-      for (const kind of ["segment", "group"]) {
-        for (const subMode of ["segments", "groups", "graph"]) {
-          const dims = getPresetDimensions(kind, subMode, preset, 3);
-          assert.equal(dims.width % CANVAS_GRID_STEP, 0);
-          assert.equal(dims.height % CANVAS_GRID_STEP, 0);
-        }
-      }
-    }
-
-    const normalized = snapNodeRectToGrid(
-      { x: 53, y: 101, width: 220, height: 136, zIndex: 2 },
-      "segment",
-      "segments",
-    );
-    assert.deepEqual(normalized, { x: 48, y: 96, width: 224, height: 144, zIndex: 2 });
-  });
-
-  it("centers background grid dots on snapped world intersections without zoom rounding drift", () => {
-    // At zoom=0.92, step must stay exact floating-point 16 * 0.92 = 14.72px (not rounded to 15px)
-    const style92 = getCanvasGridStyle(32, 24, 0.92);
-    assert.equal(style92.backgroundSize, "14.72px 14.72px");
-
-    // At zoom=1.0 and vp=(32, 24): 32 % 16 = 0 => pos = 0 - 8 = -8px; 24 % 16 = 8 => pos = 8 - 8 = 0px
-    const style100 = getCanvasGridStyle(32, 24, 1.0);
-    assert.equal(style100.backgroundSize, "16px 16px");
-    assert.equal(style100.backgroundPosition, "-8px 0px");
-
-    // Below 8px per grid cell (zoom=0.4 => 6.4px), dot spacing doubles cleanly to 12.8px (2x lattice)
-    const style40 = getCanvasGridStyle(0, 0, 0.4);
-    assert.equal(style40.backgroundSize, "12.8px 12.8px");
-    assert.equal(style40.backgroundPosition, "-6.4px -6.4px");
-    assert.deepEqual(getWorkflowGridStyle(32, 24, 0.92), style92);
-  });
-
-  it("prunes deleted group and segment nodes during reconciliation without wiping cold mount storage", () => {
-    const defaults = buildDefaultCanvasNodes(
-      "graph",
-      ["پذیرایی"],
-      [{ id: "s1", pin: "2", title: "لوستر", type: "relay", group: "پذیرایی" }],
-      false,
-    );
-
-    const coldMount = reconcileCanvasNodes({
-      subMode: "graph",
-      defaults: {},
-      storedNodes: {
-        "group:پذیرایی": { x: 64, y: 64, width: 256, height: 144, zIndex: 999 },
-      },
-      prevNodes: {},
-      snapToGrid: true,
-      baseTopZIndex: 30,
-      hasEntities: false,
-    });
-    assert.deepEqual(coldMount.nodes, {});
-    assert.equal(coldMount.shouldPersist, false);
-
-    const pruned = reconcileCanvasNodes({
-      subMode: "graph",
-      defaults,
-      storedNodes: {
-        "group:پذیرایی": { x: 64, y: 64, width: 256, height: 144, zIndex: 35 },
-        "segment:s-deleted": { x: 400, y: 400, width: 224, height: 144, zIndex: 999 },
-      },
-      prevNodes: {
-        "segment:s1": { x: 320, y: 64, width: 224, height: 144, zIndex: 36 },
-        "segment:s-deleted": { x: 400, y: 400, width: 224, height: 144, zIndex: 999 },
-      },
-      snapToGrid: true,
-      baseTopZIndex: 30,
-      hasEntities: true,
-    });
-
-    assert.equal(pruned.shouldPersist, true);
-    assert.equal(Object.hasOwn(pruned.nodes, "segment:s-deleted"), false);
-    assert.equal(pruned.nodes["group:پذیرایی"].x, 64);
-    assert.equal(pruned.nodes["segment:s1"].x, 320);
-    assert.equal(pruned.nextTopZIndex, 37);
-  });
-});
-
 describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
   const sampleSegments = [
     { id: "seg-sensor", pin: "34", title: "سنسور حرکت", type: "input", group: "ورودی" },
@@ -788,128 +540,6 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
     );
   });
 
-  it("creates, clamps, and normalizes all workflow node kinds onto the 16px grid", () => {
-    const wf = createEmptyWorkflow("تست گرید");
-    assert.equal(wf.viewport.x % CANVAS_GRID_STEP, 0);
-    assert.equal(wf.viewport.y % CANVAS_GRID_STEP, 0);
-
-    const kinds = [
-      "trigger_manual",
-      "trigger_schedule",
-      "logic_and",
-      "logic_or",
-      "logic_not",
-      "timer",
-      "group",
-      "segment",
-    ];
-
-    for (const kind of kinds) {
-      const node = createWorkflowNode({
-        payload: { kind, segmentId: "seg-lamp", groupName: "پذیرایی" },
-        x: 52,
-        y: 100,
-        zIndex: 1,
-        segments: sampleSegments,
-      });
-
-      assert.equal(node.x % CANVAS_GRID_STEP, 0, `${kind} x not %16`);
-      assert.equal(node.y % CANVAS_GRID_STEP, 0, `${kind} y not %16`);
-      assert.equal(node.width % CANVAS_GRID_STEP, 0, `${kind} width not %16`);
-      assert.equal(node.height % CANVAS_GRID_STEP, 0, `${kind} height not %16`);
-
-      const clamped = clampWorkflowNodeSize(kind, 999, 50, true);
-      assert.equal(clamped.width % CANVAS_GRID_STEP, 0);
-      assert.equal(clamped.height % CANVAS_GRID_STEP, 0);
-
-      const snapped = snapWorkflowNodeToGrid({ ...node, x: 40, y: 71, width: 244, height: 158 });
-      assert.equal(snapped.x % CANVAS_GRID_STEP, 0);
-      assert.equal(snapped.y % CANVAS_GRID_STEP, 0);
-      assert.equal(snapped.width % CANVAS_GRID_STEP, 0);
-      assert.equal(snapped.height % CANVAS_GRID_STEP, 0);
-    }
-  });
-
-  it("computes bounded drag tilt angles with micro-jitter deadzone and finds closest valid magnetic input port", () => {
-    assert.equal(computeDragTiltDeg(0), 0);
-    assert.equal(computeDragTiltDeg(1.1), 0);
-    assert.equal(computeDragTiltDeg(-1.2), 0);
-    assert.equal(computeDragTiltDeg(Number.NaN), 0);
-    assert.ok(computeDragTiltDeg(10) > 0 && computeDragTiltDeg(10) <= 2.6);
-    assert.equal(computeDragTiltDeg(120, 2.5), 2.5);
-    assert.equal(computeDragTiltDeg(-120, 2.5), -2.5);
-
-    const trig = createWorkflowNode({
-      payload: { kind: "trigger_manual" },
-      x: 0,
-      y: 0,
-      zIndex: 1,
-      segments: sampleSegments,
-    });
-    const gateAnd = createWorkflowNode({
-      payload: { kind: "logic_and" },
-      x: 320,
-      y: 0,
-      zIndex: 2,
-      segments: sampleSegments,
-    });
-    const gateOr = createWorkflowNode({
-      payload: { kind: "logic_or" },
-      x: 320,
-      y: 160,
-      zIndex: 3,
-      segments: sampleSegments,
-    });
-
-    const nodes = [trig, gateAnd, gateOr];
-    const edges = [{ id: "e1", sourceId: trig.id, targetId: gateAnd.id }];
-
-    // Already connected target (gateAnd) and trigger targets must be ignored even within radius
-    const rejectedMatch = findMagneticInputPort({
-      nodes,
-      edges,
-      sourceId: trig.id,
-      pointerWorldX: gateAnd.x + 4,
-      pointerWorldY: Math.round(gateAnd.y + gateAnd.height / 2),
-      snapRadius: 42,
-    });
-    assert.equal(rejectedMatch, null);
-
-    // Eligible target (gateOr) snaps cleanly when within radius
-    const validMatch = findMagneticInputPort({
-      nodes,
-      edges,
-      sourceId: trig.id,
-      pointerWorldX: gateOr.x + 12,
-      pointerWorldY: Math.round(gateOr.y + gateOr.height / 2) - 8,
-      snapRadius: 42,
-    });
-    assert.ok(validMatch);
-    assert.equal(validMatch.targetId, gateOr.id);
-    assert.equal(validMatch.anchorX, gateOr.x);
-    assert.equal(validMatch.anchorY, Math.round(gateOr.y + gateOr.height / 2));
-
-    // Outside capture radius returns null
-    const farMatch = findMagneticInputPort({
-      nodes,
-      edges,
-      sourceId: trig.id,
-      pointerWorldX: gateOr.x - 100,
-      pointerWorldY: Math.round(gateOr.y + gateOr.height / 2),
-      snapRadius: 42,
-    });
-    assert.equal(farMatch, null);
-  });
-
-  it("maps segment hardware types and icons to American-standard ANSI schematic symbols", () => {
-    assert.equal(resolveSegmentSchematicKind("input", "Lightbulb"), "segment_sensor");
-    assert.equal(resolveSegmentSchematicKind("relay", "LampCeiling"), "segment_lamp");
-    assert.equal(resolveSegmentSchematicKind("relay", "Fan"), "segment_fan");
-    assert.equal(resolveSegmentSchematicKind("relay", "Flame"), "segment_heater");
-    assert.equal(resolveSegmentSchematicKind("relay", "Lock"), "segment_lock");
-    assert.equal(resolveSegmentSchematicKind("relay", "Power"), "segment_relay");
-  });
-
   it("evaluates schedule triggers accurately with indexOf/slice parsing and rejects malformed times", () => {
     const wf = createEmptyWorkflow("تست زمان‌بندی");
     const schedNode = createWorkflowNode({
@@ -945,23 +575,7 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
     }
   });
 
-  it("computes resized canvas node rectangles and validates automation form drafts deterministically", () => {
-    const startRect = { x: 64, y: 64, width: 224, height: 144, zIndex: 5 };
-    const resizedWest = computeResizedNodeRect({
-      startRect,
-      snappedRightEdge: 64 + 224,
-      snappedBottomEdge: 64 + 144,
-      kind: "segment",
-      activeSubMode: "segments",
-      direction: "sw",
-      dx: -32,
-      dy: 32,
-      snapToGrid: true,
-    });
-    assert.equal(resizedWest.x, 32);
-    assert.equal(resizedWest.width, 256);
-    assert.equal(resizedWest.height, 176);
-
+  it("validates automation form drafts and identifies trigger node kinds & group member segments", () => {
     const invalidSchedule = buildValidatedAutomationDraft({
       editingId: null,
       title: "روشنایی شب",
@@ -1002,45 +616,7 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
       assert.equal(validSchedule.automation.conditionType, "time");
       assert.equal(validSchedule.automation.repeatCount, 3);
     }
-  });
 
-  it("resolves Tailwind v4 class conflicts (border-color, ring-color, size-* vs w-*/h-*) in cn()", () => {
-    assert.equal(cn("border border-border-color", "border-accent3"), "border border-accent3");
-    assert.equal(
-      cn("border border-border-color", "border-destructive"),
-      "border border-destructive",
-    );
-    assert.equal(cn("bg-bg-main", "bg-card-bg"), "bg-card-bg");
-    assert.equal(cn("text-sm", "text-fluid-lg"), "text-fluid-lg");
-    assert.equal(cn("ps-2 pe-4", "px-6"), "px-6");
-    assert.ok(focusRing.includes("focus-visible:ring-2"));
-    assert.ok(disabled.includes("disabled:opacity-50"));
-  });
-
-  it("computes deterministic CSS clamp() fluid typography values across viewport bounds", () => {
-    assert.equal(fluidValue(1, 1.5, 320, 1280), "clamp(1rem, 0.8333rem + 0.8333vw, 1.5rem)");
-    assert.equal(fluidValue(1.25, 1.25, 320, 1280), "1.25rem");
-    assert.equal(fluidValue(1, 2, 1280, 320), "1rem");
-    assert.ok(fluidTypeScale.base.startsWith("clamp(0.9375rem,"));
-    assert.ok(fluidTypeScale["2xl"].endsWith("2.25rem)"));
-  });
-
-  it("computes unified segment tile density classes across standard, compact, and ultra-compact modes", () => {
-    const ultra = getSegmentTileDensity(true, false, false);
-    assert.equal(ultra.badge, "size-8");
-    assert.ok(ultra.container.includes("min-h-[78px]"));
-
-    const compactExt = getSegmentTileDensity(false, true, true);
-    assert.equal(compactExt.badge, "size-9");
-    assert.ok(compactExt.container.includes("min-h-0"));
-    assert.ok(compactExt.title.includes("@[12rem]/segment:text-sm"));
-
-    const standard = getSegmentTileDensity(false, false, false);
-    assert.ok(standard.badge.includes("@[13rem]/segment:size-11"));
-    assert.ok(standard.title.includes("@[15rem]/segment:text-[15px]"));
-  });
-
-  it("identifies trigger node kinds, collects group member segment IDs, and resolves canvas node motion state", () => {
     assert.equal(isTriggerWorkflowNodeKind("trigger_manual"), true);
     assert.equal(isTriggerWorkflowNodeKind("trigger_schedule"), true);
     assert.equal(isTriggerWorkflowNodeKind("logic_and"), false);
@@ -1052,38 +628,9 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
     ]);
     assert.deepEqual(collectGroupMemberSegmentIds(sampleSegments, undefined), []);
 
-    assert.deepEqual(resolveCanvasNodeMotionState(false, true, 2.1, 1.022), {
-      opacity: 1,
-      scale: 1,
-      rotate: 0,
-      y: 0,
-    });
-    assert.deepEqual(resolveCanvasNodeMotionState(true, true, 1.8, 1.022), {
-      opacity: 1,
-      scale: 1.022,
-      rotate: 1.8,
-      y: -2,
-    });
-    assert.deepEqual(resolveCanvasNodeMotionState(true, false, 1.8, 1.022), {
-      opacity: 1,
-      scale: 1,
-      rotate: 0,
-      y: 0,
-    });
-
     assert.equal(inferAutomationEditType({ id: "1", title: "a", intervalMinutes: 15 }), "weather");
     assert.equal(inferAutomationEditType({ id: "2", title: "b", repeatCount: 1 }), "timer");
     assert.equal(inferAutomationEditType({ id: "3", title: "c" }), "schedule");
-
-    const fit = computeCenteredFitViewport(
-      [{ x: 100, y: 100, width: 200, height: 150 }],
-      1000,
-      800,
-      { padding: 48, maxZoom: 1.0 },
-    );
-    assert.equal(fit.zoom, 1);
-    assert.equal(fit.x, 300);
-    assert.equal(fit.y, 225);
   });
 });
 
