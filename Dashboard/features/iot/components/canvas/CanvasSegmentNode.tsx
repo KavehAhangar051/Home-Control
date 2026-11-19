@@ -327,20 +327,11 @@ export default React.memo(function CanvasSegmentNode({
       className="absolute top-0 left-0 flex flex-col select-none"
     >
       <m.div
+        data-canvas-node-motion="true"
         initial={animationsEnabled ? { opacity: 0, scale: 0.94, y: 8 } : false}
         animate={animateState}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        style={
-          animationsEnabled
-            ? {
-                rotate: "var(--drag-tilt, var(--sheet-pan-tilt, 0deg))",
-                translate: isDragging
-                  ? undefined
-                  : "var(--sheet-pan-shift-x, 0px) var(--sheet-pan-shift-y, 0px)",
-              }
-            : undefined
-        }
-        className="relative size-full transition-[rotate,translate] duration-150 ease-out"
+        className="relative size-full"
       >
         {showPort && (
           <CanvasSegmentGraphOverlay

@@ -97,10 +97,7 @@ export function buildGroupDockDocument(groupsOrder: string[]): LayoutDocument {
  * Builds a wall-mounted tablet preset: places the busiest primary room group on the right (62%)
  * and stacks secondary room groups vertically on the left (38%) for quick glanceable control.
  */
-export function buildWallPanelDocument(
-  groupsOrder: string[],
-  segments: Segment[],
-): LayoutDocument {
+export function buildWallPanelDocument(groupsOrder: string[], segments: Segment[]): LayoutDocument {
   if (groupsOrder.length === 0) {
     return emptyDocument();
   }
@@ -146,8 +143,7 @@ export function buildWallPanelDocument(
       }),
     );
 
-  const secondaryStack =
-    secondaryViews.length === 1 ? secondaryViews[0] : L.column(secondaryViews);
+  const secondaryStack = secondaryViews.length === 1 ? secondaryViews[0] : L.column(secondaryViews);
 
   // Trellis workspace host is dir="ltr", so index 1 sits on the RTL visual start (right side).
   const rootTree = L.row([secondaryStack, primaryView], [0.38, 0.62]);

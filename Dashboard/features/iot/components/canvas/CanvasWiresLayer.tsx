@@ -15,16 +15,18 @@ interface CanvasWiresLayerProps {
 
 interface CanvasWireItemProps {
   connection: CanvasWireConnection;
-  nodes: Record<string, CanvasNodeRect>;
-  selectedNodeId: string | null;
+  sourceRect: CanvasNodeRect | undefined;
+  targetRect: CanvasNodeRect | undefined;
+  isHighlighted: boolean;
   animationsEnabled: boolean;
   showParticles: boolean;
 }
 
 const CanvasWireItem = React.memo(function CanvasWireItem({
   connection,
-  nodes,
-  selectedNodeId,
+  sourceRect,
+  targetRect,
+  isHighlighted,
   animationsEnabled,
   showParticles,
 }: CanvasWireItemProps) {
@@ -32,15 +34,9 @@ const CanvasWireItem = React.memo(function CanvasWireItem({
     Boolean(connection.pin && state.pinsState[connection.pin]),
   );
 
-  const sourceRect = nodes[connection.sourceId];
-  const targetRect = nodes[connection.targetId];
-
   if (!sourceRect || !targetRect) return null;
 
   const { path, startX, startY, endX, endY } = buildBezierWireGeometry(sourceRect, targetRect);
-
-  const isHighlighted =
-    selectedNodeId === connection.sourceId || selectedNodeId === connection.targetId;
 
   const strokeColor = isActive || isHighlighted ? "var(--accent3)" : "var(--border-color)";
 
@@ -132,8 +128,11 @@ export default React.memo(function CanvasWiresLayer({
         <CanvasWireItem
           key={connection.id}
           connection={connection}
-          nodes={nodes}
-          selectedNodeId={selectedNodeId}
+          sourceRect={nodes[connection.sourceId]}
+          targetRect={nodes[connection.targetId]}
+          isHighlighted={
+            selectedNodeId === connection.sourceId || selectedNodeId === connection.targetId
+          }
           animationsEnabled={animationsEnabled}
           showParticles={showParticles}
         />

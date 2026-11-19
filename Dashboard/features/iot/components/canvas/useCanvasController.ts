@@ -134,6 +134,7 @@ export function useCanvasController({
   );
 
   const {
+    worldPlaneRef,
     containerSize,
     isPanning,
     animateToViewport,
@@ -375,6 +376,7 @@ export function useCanvasController({
 
   return {
     containerRef,
+    worldPlaneRef,
     containerSize,
     settings: {
       ...settings,

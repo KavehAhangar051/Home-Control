@@ -140,16 +140,16 @@ export function useCanvasNodeInteractions({
   const [draggingNodeId, setDraggingNodeId] = React.useState<string | null>(null);
 
   const bringNodeToFront = React.useCallback(
-    (nodeId: string) => {
+    (nodeId: string, options?: { skipPersist?: boolean }) => {
       setSelectedNodeId(nodeId);
       const prev = nodesRef.current;
       const current = prev[nodeId];
 
       if (!current) return;
 
-      const nextZ = ++topZIndexRef.current;
+      if (current.zIndex >= topZIndexRef.current) return;
 
-      if (current.zIndex === nextZ) return;
+      const nextZ = ++topZIndexRef.current;
 
       const updated = {
         ...prev,
@@ -158,7 +158,9 @@ export function useCanvasNodeInteractions({
 
       nodesRef.current = updated;
       setNodes(updated);
-      replaceStoredCanvasNodes(activeSubMode, updated);
+      if (!options?.skipPersist) {
+        replaceStoredCanvasNodes(activeSubMode, updated);
+      }
     },
     [activeSubMode, nodesRef, setNodes, setSelectedNodeId, topZIndexRef],
   );
@@ -168,7 +170,7 @@ export function useCanvasNodeInteractions({
       if (e.button !== 0 || isLocked) return;
 
       e.stopPropagation();
-      bringNodeToFront(nodeId);
+      bringNodeToFront(nodeId, { skipPersist: true });
 
       const startRect = nodesRef.current[nodeId];
 
@@ -203,6 +205,10 @@ export function useCanvasNodeInteractions({
 
         const prev = nodesRef.current;
         const current = prev[nodeId] ?? startRect;
+
+        if (current.x === nextX && current.y === nextY) {
+          return;
+        }
 
         const updated = {
           ...prev,
@@ -298,11 +304,13 @@ export function useCanvasNodeInteractions({
 
       e.stopPropagation();
       e.preventDefault();
-      bringNodeToFront(nodeId);
+      bringNodeToFront(nodeId, { skipPersist: true });
 
       const startRect = nodesRef.current[nodeId];
 
       if (!startRect) return;
+
+      setDraggingNodeId(nodeId);
 
       const startClientX = e.clientX;
       const startClientY = e.clientY;
@@ -327,6 +335,15 @@ export function useCanvasNodeInteractions({
           dy,
           snapToGrid,
         });
+
+        if (
+          current.x === resized.x &&
+          current.y === resized.y &&
+          current.width === resized.width &&
+          current.height === resized.height
+        ) {
+          return;
+        }
 
         const updated = {
           ...prev,
@@ -365,6 +382,7 @@ export function useCanvasNodeInteractions({
       };
 
       const finishResize = () => {
+        setDraggingNodeId(null);
         window.removeEventListener("pointermove", handlePointerMove);
         window.removeEventListener("pointerup", handlePointerUp);
         window.removeEventListener("pointercancel", handlePointerCancel);

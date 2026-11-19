@@ -100,16 +100,12 @@ export default function TrellisSegmentView({
 
   const isPinOn = useIoTStore((s) => (segment ? Boolean(s.pinsState[segment.pin]) : false));
 
-  const {
-    effectivePinOn,
-    isPending,
-    handleTogglePinOptimistic,
-    handleSetPinStateOptimistic,
-  } = useOptimisticPinState({
-    isPinOn,
-    onTogglePin,
-    onSetPinState,
-  });
+  const { effectivePinOn, isPending, handleTogglePinOptimistic, handleSetPinStateOptimistic } =
+    useOptimisticPinState({
+      isPinOn,
+      onTogglePin,
+      onSetPinState,
+    });
 
   useViewTitle(getTrellisViewTitle(segment));
   useViewBadge(segment && effectivePinOn ? true : null);

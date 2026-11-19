@@ -71,7 +71,7 @@ export function computeDragTiltDeg(deltaClientX: number, maxDeg = 2.6): number {
 }
 
 /**
- * Resolves the outer DOM element for a dragged node once at gesture start.
+ * Resolves the inner motion DOM element (`[data-canvas-node-motion="true"]`) for a dragged node once at gesture start.
  */
 export function findNodeTiltElement(nodeId: string): HTMLElement | null {
   if (typeof document === "undefined") return null;
@@ -79,31 +79,30 @@ export function findNodeTiltElement(nodeId: string): HTMLElement | null {
   const escapedId =
     typeof CSS !== "undefined" && CSS.escape instanceof Function ? CSS.escape(nodeId) : nodeId;
 
-  return document.querySelector<HTMLElement>(`[data-canvas-node-id="${escapedId}"]`);
+  const nodeRoot = document.querySelector<HTMLElement>(`[data-canvas-node-id="${escapedId}"]`);
+  if (!nodeRoot) return null;
+
+  return nodeRoot.querySelector<HTMLElement>('[data-canvas-node-motion="true"]') ?? nodeRoot;
 }
 
 /**
- * Updates `--drag-tilt` imperatively on the dragged element so pointer velocity
- * animates smoothly on the compositor thread without triggering React re-renders.
+ * Updates `style.rotate` imperatively on the dragged card's motion element so pointer velocity
+ * animates smoothly on the compositor thread without triggering React re-renders or inherited style recalculation.
  */
 export function setNodeDragTiltCssVar(element: HTMLElement | null, tiltDeg: number): void {
   if (!element) return;
 
-  if (
-    typeof document !== "undefined" &&
-    document.documentElement.dataset.animationsEnabled === "false"
-  ) {
-    element.style.removeProperty("--drag-tilt");
-
+  if (!areSheetAnimationsAllowed()) {
+    element.style.removeProperty("rotate");
     return;
   }
 
-  element.style.setProperty("--drag-tilt", `${tiltDeg}deg`);
+  element.style.rotate = `${tiltDeg}deg`;
 }
 
 export function clearNodeDragTiltCssVar(element: HTMLElement | null): void {
   if (!element) return;
-  element.style.removeProperty("--drag-tilt");
+  element.style.removeProperty("rotate");
 }
 
 /**
@@ -127,9 +126,39 @@ export function areSheetAnimationsAllowed(): boolean {
   return true;
 }
 
+const cachedMotionNodesByContainer = new WeakMap<HTMLElement, HTMLElement[]>();
+const panMotionStateByContainer = new WeakMap<
+  HTMLElement,
+  { tilt: number; shiftX: number; shiftY: number }
+>();
+
+function getContainerMotionNodes(container: HTMLElement): HTMLElement[] {
+  let cached = cachedMotionNodesByContainer.get(container);
+  if (!cached || cached.length === 0 || !cached[0]?.isConnected) {
+    cached = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-canvas-node-motion="true"]'),
+    );
+    cachedMotionNodesByContainer.set(container, cached);
+  }
+  return cached;
+}
+
 /**
- * Imperatively updates sheet-level pan velocity CSS custom properties on the canvas container
- * so all visible cards respond with subtle physical inertia tilt and parallax at 0 React re-render cost.
+ * Refreshes the cached list of card motion elements inside `container` at the start of a pan gesture.
+ */
+export function primeSheetPanMotionNodes(container: HTMLElement | null): void {
+  if (!container) return;
+  cachedMotionNodesByContainer.set(
+    container,
+    Array.from(container.querySelectorAll<HTMLElement>('[data-canvas-node-motion="true"]')),
+  );
+}
+
+/**
+ * Imperatively updates non-inherited `rotate` and `translate` compositor properties directly
+ * on the cached card motion elements inside `container` with built-in exponential smoothing.
+ * Avoids mutating inherited CSS custom properties on the root container (which would force
+ * Recalculate Style across 1,000+ inner DOM nodes every frame) and avoids CSS transition thrashing.
  */
 export function setSheetPanMotionCssVars(
   container: HTMLElement | null,
@@ -143,20 +172,51 @@ export function setSheetPanMotionCssVars(
     return;
   }
 
-  const tiltDeg = computeDragTiltDeg(frameDeltaX * 0.65, 1.5);
-  const shiftX = Math.max(-4.5, Math.min(4.5, Math.round(frameDeltaX * 0.14 * 10) / 10));
-  const shiftY = Math.max(-4.5, Math.min(4.5, Math.round(frameDeltaY * 0.14 * 10) / 10));
+  const targetTilt = computeDragTiltDeg(frameDeltaX * 0.65, 1.5);
+  const targetShiftX = Math.max(-4.5, Math.min(4.5, frameDeltaX * 0.14));
+  const targetShiftY = Math.max(-4.5, Math.min(4.5, frameDeltaY * 0.14));
 
-  container.style.setProperty("--sheet-pan-tilt", `${tiltDeg}deg`);
-  container.style.setProperty("--sheet-pan-shift-x", `${shiftX}px`);
-  container.style.setProperty("--sheet-pan-shift-y", `${shiftY}px`);
+  const prev = panMotionStateByContainer.get(container) ?? { tilt: 0, shiftX: 0, shiftY: 0 };
+  const nextTilt = Math.round((prev.tilt * 0.62 + targetTilt * 0.38) * 100) / 100;
+  const nextShiftX = Math.round((prev.shiftX * 0.62 + targetShiftX * 0.38) * 10) / 10;
+  const nextShiftY = Math.round((prev.shiftY * 0.62 + targetShiftY * 0.38) * 10) / 10;
+
+  if (
+    Math.abs(nextTilt - prev.tilt) < 0.03 &&
+    Math.abs(nextShiftX - prev.shiftX) < 0.08 &&
+    Math.abs(nextShiftY - prev.shiftY) < 0.08
+  ) {
+    return;
+  }
+
+  panMotionStateByContainer.set(container, {
+    tilt: nextTilt,
+    shiftX: nextShiftX,
+    shiftY: nextShiftY,
+  });
+
+  const rotateValue = `${nextTilt}deg`;
+  const translateValue = `${nextShiftX}px ${nextShiftY}px`;
+  const nodes = getContainerMotionNodes(container);
+
+  for (let i = 0; i < nodes.length; i++) {
+    const el = nodes[i];
+    el.style.rotate = rotateValue;
+    el.style.translate = translateValue;
+  }
 }
 
 export function clearSheetPanMotionCssVars(container: HTMLElement | null): void {
   if (!container) return;
-  container.style.removeProperty("--sheet-pan-tilt");
-  container.style.removeProperty("--sheet-pan-shift-x");
-  container.style.removeProperty("--sheet-pan-shift-y");
+  panMotionStateByContainer.delete(container);
+  const nodes = getContainerMotionNodes(container);
+  cachedMotionNodesByContainer.delete(container);
+
+  for (let i = 0; i < nodes.length; i++) {
+    const el = nodes[i];
+    el.style.removeProperty("rotate");
+    el.style.removeProperty("translate");
+  }
 }
 
 /**

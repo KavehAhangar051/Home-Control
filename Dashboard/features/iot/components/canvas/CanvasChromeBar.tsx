@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Unlock,
 } from "lucide-react";
+import React from "react";
 import { createPortal } from "react-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePortalTarget } from "@/lib/hooks/use-portal-target";
@@ -32,7 +33,7 @@ interface CanvasChromeBarProps {
   onResetLayout: () => void;
 }
 
-export default function CanvasChromeBar({
+export default React.memo(function CanvasChromeBar({
   workspaceScope = "home",
   subMode,
   zoom,
@@ -119,6 +120,7 @@ export default function CanvasChromeBar({
 
           <button
             type="button"
+            data-sheet-zoom-readout="true"
             onClick={onFitView}
             aria-label="تنظیم بزرگ‌نمایی روی نمای کلی"
             className="inline-flex h-7 min-w-[44px] cursor-pointer items-center justify-center rounded-lg px-1.5 text-[11px] font-bold tabular-nums text-text-primary transition-colors hover:bg-secondary"
@@ -237,4 +239,4 @@ export default function CanvasChromeBar({
   );
 
   return footerSlot ? createPortal(barContent, footerSlot) : barContent;
-}
+});
