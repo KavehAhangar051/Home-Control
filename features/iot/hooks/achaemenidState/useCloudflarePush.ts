@@ -5,6 +5,7 @@ import { shallow } from "zustand/shallow";
 import type { IoTStoreState } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
+import { scheduleIdleTask } from "@/lib/asyncScheduler";
 import { buildEspConfig, persistStoreConfigToCloudflare } from "./core/buildEspConfig";
 import { evaluateCloudflarePushTransition } from "./core/cloudflareSyncCoordinator";
 
@@ -71,61 +72,106 @@ export function useCloudflarePush(isFullyReady: boolean, remoteSyncEpoch = 0) {
     }
 
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let cancelIdleEvaluation: (() => void) | null = null;
 
-    const evaluateState = (state: IoTStoreState) => {
-      const configSignature = JSON.stringify(buildEspConfig(state));
+    // Capture a lightweight config snapshot for baseline establishment without blocking
+    // the boot/epoch commit frame with synchronous JSON.stringify.
+    let pendingBaselineConfig: ReturnType<typeof buildEspConfig> | null =
+      lastSyncedSignatureRef.current === null || lastRemoteEpochRef.current !== remoteSyncEpoch
+        ? buildEspConfig(useIoTStore.getState())
+        : null;
+
+    const ensureBaselineSignature = () => {
+      if (!pendingBaselineConfig) return;
+
+      const baselineSignature = JSON.stringify(pendingBaselineConfig);
+      pendingBaselineConfig = null;
 
       const decision = evaluateCloudflarePushTransition({
         isFullyReady,
         remoteSyncEpoch,
         lastRemoteEpoch: lastRemoteEpochRef.current,
         lastSyncedSignature: lastSyncedSignatureRef.current,
-        configSignature,
+        configSignature: baselineSignature,
       });
-
-      if (decision === "reset") {
-        lastSyncedSignatureRef.current = null;
-        lastRemoteEpochRef.current = remoteSyncEpoch;
-
-        return;
-      }
 
       if (decision === "baseline") {
         lastRemoteEpochRef.current = remoteSyncEpoch;
-        lastSyncedSignatureRef.current = configSignature;
-
-        return;
+        lastSyncedSignatureRef.current = baselineSignature;
+      } else if (decision === "reset") {
+        lastSyncedSignatureRef.current = null;
+        lastRemoteEpochRef.current = remoteSyncEpoch;
       }
+    };
 
-      if (decision === "noop") {
-        return;
-      }
+    const cancelBaselineIdle = pendingBaselineConfig
+      ? scheduleIdleTask(ensureBaselineSignature, 1000)
+      : null;
 
+    const scheduleDebouncedEvaluation = () => {
       if (debounceTimer) {
         clearTimeout(debounceTimer);
       }
 
+      if (cancelIdleEvaluation) {
+        cancelIdleEvaluation();
+        cancelIdleEvaluation = null;
+      }
+
       debounceTimer = setTimeout(() => {
         debounceTimer = null;
-        onFlushDebouncedPush(configSignature);
+
+        cancelIdleEvaluation = scheduleIdleTask(() => {
+          cancelIdleEvaluation = null;
+          ensureBaselineSignature();
+
+          const configSignature = JSON.stringify(buildEspConfig(useIoTStore.getState()));
+
+          const decision = evaluateCloudflarePushTransition({
+            isFullyReady,
+            remoteSyncEpoch,
+            lastRemoteEpoch: lastRemoteEpochRef.current,
+            lastSyncedSignature: lastSyncedSignatureRef.current,
+            configSignature,
+          });
+
+          if (decision === "reset") {
+            lastSyncedSignatureRef.current = null;
+            lastRemoteEpochRef.current = remoteSyncEpoch;
+
+            return;
+          }
+
+          if (decision === "baseline") {
+            lastRemoteEpochRef.current = remoteSyncEpoch;
+            lastSyncedSignatureRef.current = configSignature;
+
+            return;
+          }
+
+          if (decision === "schedule") {
+            onFlushDebouncedPush(configSignature);
+          }
+        }, 800);
       }, 1200);
     };
 
-    evaluateState(useIoTStore.getState());
-
     const unsubscribe = useIoTStore.subscribe(
       selectWatchedConfigSlice,
-      () => {
-        evaluateState(useIoTStore.getState());
-      },
+      scheduleDebouncedEvaluation,
       { equalityFn: shallow },
     );
 
     return () => {
       unsubscribe();
+      cancelBaselineIdle?.();
 
       if (debounceTimer) {
         clearTimeout(debounceTimer);
+      }
+
+      if (cancelIdleEvaluation) {
+        cancelIdleEvaluation();
       }
     };
   }, [isFullyReady, remoteSyncEpoch]);

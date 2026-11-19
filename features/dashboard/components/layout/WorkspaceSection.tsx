@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import dynamic from "next/dynamic";
-import { Activity } from "react";
+import { Activity, useDeferredValue } from "react";
 import { Alert } from "@/components/reui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/grid";
@@ -388,6 +388,7 @@ function SettingsWorkspace() {
   const rawActiveTab = useIoTStore((state) => state.activeSettingsTab);
   const setActiveTab = useIoTStore((state) => state.setActiveSettingsTab);
   const activeTab = resolveSettingsTabId(rawActiveTab);
+  const deferredActiveTab = useDeferredValue(activeTab);
 
   const activeSettings = SETTINGS_TABS.find((tab) => tab.id === activeTab) ?? SETTINGS_TABS[0];
 
@@ -417,7 +418,7 @@ function SettingsWorkspace() {
             </CardDescription>
           </CardHeader>
           <CardContent className="min-w-0 p-3 sm:p-4 @md/settings-card:p-6">
-            <ActiveSettingsPanel activeTab={activeTab} />
+            <ActiveSettingsPanel activeTab={deferredActiveTab} />
           </CardContent>
         </Card>
       </div>

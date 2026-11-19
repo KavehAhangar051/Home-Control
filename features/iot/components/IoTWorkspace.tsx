@@ -32,8 +32,12 @@ const CanvasWorkspace = dynamic(
   },
 );
 
-export default function IoTWorkspace(props: IoTWorkspaceProps) {
-  const workspaceDisplayMode = useIoTStore((s) => s.workspaceDisplayMode);
+export default function IoTWorkspace({
+  workspaceDisplayMode: propDisplayMode,
+  ...props
+}: IoTWorkspaceProps & { workspaceDisplayMode?: "grid" | "trellis" | "canvas" }) {
+  const storeDisplayMode = useIoTStore((s) => s.workspaceDisplayMode);
+  const workspaceDisplayMode = propDisplayMode ?? storeDisplayMode;
 
   if (workspaceDisplayMode === "trellis") {
     return <TrellisWorkspace {...props} />;
