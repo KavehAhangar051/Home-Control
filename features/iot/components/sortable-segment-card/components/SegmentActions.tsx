@@ -1,4 +1,3 @@
-import { AnimatePresence } from "motion/react";
 import type React from "react";
 import { Settings } from "@/components/ui/hugeicons-groups/shell";
 import { Toggle } from "@/components/ui/toggle";
@@ -83,26 +82,22 @@ export default function SegmentActions({
         <TooltipContent>تنظیمات و مدیریت قطعه</TooltipContent>
       </Tooltip>
 
-      <AnimatePresence>
-        {isSettingsOpen && (
-          <SegmentSettingsMenu
-            segment={segment}
-            isSettingsOpen={isSettingsOpen}
-            onCloseMenu={() => setIsSettingsOpen(false)}
-            menuPosition={menuPosition}
-            menuRef={menuRef}
-            showIconInMenu={true}
-            isPinOn={isPinOn}
-            isUltraCompact={isUltraCompact}
-            onRemove={onRemove}
-            onUpdateSegmentMode={onUpdateSegmentMode}
-            onUpdateSegmentAutoOff={onUpdateSegmentAutoOff}
-            mode={mode}
-            countdown={countdown}
-            autoOffMenuProps={autoOffMenuProps}
-          />
-        )}
-      </AnimatePresence>
+      <SegmentSettingsMenu
+        segment={segment}
+        isSettingsOpen={isSettingsOpen}
+        onCloseMenu={() => setIsSettingsOpen(false)}
+        menuPosition={menuPosition}
+        menuRef={menuRef}
+        showIconInMenu={true}
+        isPinOn={isPinOn}
+        isUltraCompact={isUltraCompact}
+        onRemove={onRemove}
+        onUpdateSegmentMode={onUpdateSegmentMode}
+        onUpdateSegmentAutoOff={onUpdateSegmentAutoOff}
+        mode={mode}
+        countdown={countdown}
+        autoOffMenuProps={autoOffMenuProps}
+      />
     </div>
   );
 }

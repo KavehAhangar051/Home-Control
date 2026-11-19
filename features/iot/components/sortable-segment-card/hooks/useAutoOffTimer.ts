@@ -20,9 +20,7 @@ export function useAutoOffTimer({
   const hasSynchronizedTimer = Object.hasOwn(synchronizedTimers, pin);
   const initialRemaining = hasSynchronizedTimer ? synchronizedTimers[pin] : autoOff;
   const isTimerActive = Boolean(isPinOn && initialRemaining && initialRemaining > 0);
-  const triggerKey = isTimerActive
-    ? `${pin}:${autoOff}:${initialRemaining}:on`
-    : `${pin}:off`;
+  const triggerKey = isTimerActive ? `${pin}:${autoOff}:${initialRemaining}:on` : `${pin}:off`;
 
   const [timerState, setTimerState] = useState<{ key: string; remaining: number | null }>({
     key: "",
@@ -30,7 +28,11 @@ export function useAutoOffTimer({
   });
 
   const countdown =
-    timerState.key === triggerKey ? timerState.remaining : isTimerActive ? (initialRemaining ?? null) : null;
+    timerState.key === triggerKey
+      ? timerState.remaining
+      : isTimerActive
+        ? (initialRemaining ?? null)
+        : null;
 
   useEffect(() => {
     if (!isTimerActive) {

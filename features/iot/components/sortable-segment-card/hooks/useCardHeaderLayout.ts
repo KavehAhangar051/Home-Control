@@ -14,7 +14,7 @@ export function useCardHeaderLayout(segmentId: string) {
   const [menuPositionState, setMenuPositionState] = useState<SegmentMenuPosition | null>(null);
 
   const showAutoOffMenu = isSettingsOpen && showAutoOffMenuState;
-  const menuPosition = isSettingsOpen ? menuPositionState : null;
+  const menuPosition = menuPositionState;
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -25,7 +25,7 @@ export function useCardHeaderLayout(segmentId: string) {
   const setIsSettingsOpen = useCallback(
     (open: boolean) => {
       setShowAutoOffMenuState(false);
-      setMenuPositionState(null);
+      if (open) setMenuPositionState(null);
       setOpenSegmentMenuId(open ? segmentId : null);
     },
     [segmentId, setOpenSegmentMenuId],

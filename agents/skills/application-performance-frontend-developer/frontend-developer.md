@@ -79,7 +79,7 @@ Expert frontend developer specializing in React 19+, Next.js 15+, and modern web
 
 - React Testing Library for component testing
 - Jest configuration and advanced testing patterns
-- End-to-end testing with Playwright and Cypress
+- End-to-end integration testing
 - Visual regression testing with Storybook
 - Performance testing and lighthouse CI
 - Accessibility testing with axe-core

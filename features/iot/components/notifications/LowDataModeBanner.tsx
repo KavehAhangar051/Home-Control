@@ -1,6 +1,6 @@
 "use client";
 
-import { m } from "motion/react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import type React from "react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
 import { CloudUpload, WifiOff } from "@/components/ui/hugeicons-groups/shell";
@@ -28,7 +28,7 @@ interface WarningBannerCardProps {
   actionLabel: string;
   onAction?: () => void;
   disabled?: boolean;
-  animationsEnabled: boolean;
+  reduceMotion: boolean;
 }
 
 function WarningBannerCard({
@@ -38,14 +38,27 @@ function WarningBannerCard({
   actionLabel,
   onAction,
   disabled = false,
-  animationsEnabled,
+  reduceMotion,
 }: WarningBannerCardProps) {
   return (
     <m.div
-      initial={animationsEnabled ? { opacity: 0, y: -8, scale: 0.98 } : {}}
-      animate={animationsEnabled ? { opacity: 1, y: 0, scale: 1 } : {}}
-      transition={animationsEnabled ? { duration: DURATION.standard, ease: EASE_OUT } : undefined}
-      className="w-full"
+      initial={reduceMotion ? false : { opacity: 0, height: 0, y: -6 }}
+      animate={{ opacity: 1, height: "auto", y: 0 }}
+      exit={
+        reduceMotion
+          ? { opacity: 0, transition: { duration: 0 } }
+          : { opacity: 0, height: 0, y: -6 }
+      }
+      transition={
+        reduceMotion
+          ? { duration: 0 }
+          : {
+              height: { duration: DURATION.standard, ease: EASE_OUT },
+              opacity: { duration: DURATION.quick, ease: EASE_OUT },
+              y: { duration: DURATION.quick, ease: EASE_OUT },
+            }
+      }
+      className="w-full overflow-hidden"
     >
       <Alert dir="rtl" variant="warning" className={ALERT_LAYOUT}>
         {icon}
@@ -60,8 +73,8 @@ function WarningBannerCard({
             type="button"
             onClick={onAction}
             disabled={disabled}
-            whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-            transition={animationsEnabled ? SPRING_PRESS : undefined}
+            whileTap={reduceMotion ? undefined : { scale: 0.97 }}
+            transition={reduceMotion ? undefined : SPRING_PRESS}
             className={ACTION_BUTTON_CLASS}
           >
             {actionLabel}
@@ -80,38 +93,60 @@ export default function LowDataModeBanner({
   unsavedChangesCount = 0,
   triggerCloudflarePush,
 }: LowDataModeBannerProps) {
+  const prefersReduced = useReducedMotion();
+  const reduceMotion = !animationsEnabled || Boolean(prefersReduced);
   const showUnsavedBanner = manualSaveMode && unsavedChangesCount > 0;
-
-  if (!lowDataMode && !showUnsavedBanner) return null;
+  const hasAnyBanner = lowDataMode || showUnsavedBanner;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 max-md:mt-6 md:mt-0">
-      {lowDataMode && (
-        <WarningBannerCard
-          icon={
-            <WifiOff aria-hidden="true" className="!col-start-1 !row-start-1 !mt-0.5 !size-5" />
-          }
-          title="حالت صرفه‌جویی در مصرف اینترنت فعال است"
-          description="دریافت خودکار داده‌ها متوقف شده است"
-          actionLabel="به‌روزرسانی کنونی"
-          onAction={refetchIot}
-          animationsEnabled={animationsEnabled}
-        />
-      )}
+    <AnimatePresence initial={false}>
+      {hasAnyBanner && (
+        <m.div
+          key="low-data-banner-stack"
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={reduceMotion ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0 }}
+          transition={{ duration: reduceMotion ? 0 : DURATION.quick, ease: EASE_OUT }}
+          className="mx-auto flex w-full max-w-5xl flex-col gap-2 max-md:mt-6 md:mt-0"
+        >
+          <AnimatePresence initial={false}>
+            {lowDataMode && (
+              <WarningBannerCard
+                key="low-data-warning"
+                icon={
+                  <WifiOff
+                    aria-hidden="true"
+                    className="!col-start-1 !row-start-1 !mt-0.5 !size-5"
+                  />
+                }
+                title="حالت صرفه‌جویی در مصرف اینترنت فعال است"
+                description="دریافت خودکار داده‌ها متوقف شده است"
+                actionLabel="به‌روزرسانی کنونی"
+                onAction={refetchIot}
+                reduceMotion={reduceMotion}
+              />
+            )}
 
-      {showUnsavedBanner && (
-        <WarningBannerCard
-          icon={
-            <CloudUpload aria-hidden="true" className="!col-start-1 !row-start-1 !mt-0.5 !size-5" />
-          }
-          title="تغییرات ذخیره‌نشده"
-          description={`${unsavedChangesCount} تغییر هنوز در حافظه ابری کلودفلر ذخیره نشده است`}
-          actionLabel="ذخیره‌سازی تغییرات"
-          onAction={triggerCloudflarePush}
-          disabled={!triggerCloudflarePush}
-          animationsEnabled={animationsEnabled}
-        />
+            {showUnsavedBanner && (
+              <WarningBannerCard
+                key="unsaved-warning"
+                icon={
+                  <CloudUpload
+                    aria-hidden="true"
+                    className="!col-start-1 !row-start-1 !mt-0.5 !size-5"
+                  />
+                }
+                title="تغییرات ذخیره‌نشده"
+                description={`${unsavedChangesCount} تغییر هنوز در حافظه ابری کلودفلر ذخیره نشده است`}
+                actionLabel="ذخیره‌سازی تغییرات"
+                onAction={triggerCloudflarePush}
+                disabled={!triggerCloudflarePush}
+                reduceMotion={reduceMotion}
+              />
+            )}
+          </AnimatePresence>
+        </m.div>
       )}
-    </div>
+    </AnimatePresence>
   );
 }

@@ -6,7 +6,7 @@
 - **What is strictly prohibited:** Do **not** write or keep temporary, throwaway, or UI-detail unit tests (such as Tailwind/CSS class merging, pixel-grid geometry, animation easing/FPS tiers, icon chunk loaders, DnD layout indices, or component visual layout assertions).
 - **When to author new tests:** Do not add new tests as routine work unless the project owner explicitly requests them for critical domain or protocol logic.
 - **Mandatory doc sync:** Whenever code or tests change, update `docs/TESTING.md` (along with `ARCHITECTURE.md` / `DESIGN.md`) immediately so documentation stays accurate and trustworthy.
-- **Temp cleanup:** Delete temporary verification outputs (such as `.playwright-cli/` screenshots and logs) before completing a task.
+- **Temp cleanup:** Delete temporary verification outputs (such as temporary screenshots and logs) before completing a task.
 
 ## Tooling & Verification Policy
 
@@ -30,7 +30,7 @@
 
 The following UI-focused and temporary tests were removed to keep the suite lean and meaningful:
 
-- Deleted files: `tests/mobile-dock.test.mjs`, `tests/lazy-icons.test.mjs`, `tests/performance-tier.test.mjs`, `tests/dynamic-retry.test.mjs`, and temporary `.playwright-cli/` captures.
+- Deleted files: `tests/mobile-dock.test.mjs`, `tests/lazy-icons.test.mjs`, `tests/performance-tier.test.mjs`, `tests/dynamic-retry.test.mjs`, and temporary capture artifacts.
 - Removed UI-only test blocks from `tests/domain-contracts.test.mjs` and `tests/legacy-seams.test.mjs` (Motion easing, Canvas 16px pixel geometry/storage, drag-tilt/magnetic snapping, ANSI icon mapping, Tailwind `cn()`, CSS `clamp()` typography, tile density, DnD drag-over indices, Trellis layout/menus, Persian date/font strings, and Audio UI mocks).
 
 ## Current Diagnostic Status (19 November 2026)

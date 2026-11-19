@@ -1,9 +1,10 @@
-import { AnimatePresence, m } from "motion/react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import type React from "react";
 import { RangeSlider } from "@/components/motion/range-slider";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { DURATION, EASE_IN_OUT, TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import type { SegmentData } from "../core/types";
 
@@ -39,6 +40,9 @@ export default function SegmentControls({
   autoOffButtonRef,
   autoOffMenuRef,
 }: SegmentControlsProps) {
+  const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const prefersReduced = useReducedMotion();
+  const reduceMotion = !animationsEnabled || Boolean(prefersReduced);
   const autoOffValue = segment.auto_off || 0;
 
   return (
@@ -152,11 +156,15 @@ export default function SegmentControls({
         {onUpdateSegmentAutoOff && showAutoOffMenu && (
           <m.div
             ref={autoOffMenuRef}
-            initial={{ opacity: 0, y: -4, scale: 0.96 }}
+            initial={reduceMotion ? false : { opacity: 0, y: -4, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.96, transition: TRANSITION_EXIT_QUICK }}
-            transition={TRANSITION_ENTER_QUICK}
-            className="absolute top-[calc(100%+8px)] left-0 w-56 bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-xl shadow-xl p-3 z-[120] cursor-default text-right"
+            exit={
+              reduceMotion
+                ? { opacity: 0, transition: { duration: 0 } }
+                : { opacity: 0, y: -4, scale: 0.96, transition: TRANSITION_EXIT_QUICK }
+            }
+            transition={reduceMotion ? { duration: 0 } : TRANSITION_ENTER_QUICK}
+            className="absolute top-[calc(100%+8px)] left-0 w-56 origin-top-left bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-xl shadow-xl p-3 z-[120] cursor-default text-right"
           >
             <div className="flex justify-between items-center mb-2.5">
               <span className="text-[11px] font-bold text-text-primary tabular-nums">

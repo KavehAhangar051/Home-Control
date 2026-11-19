@@ -27,22 +27,18 @@ interface SubMenuItem {
 const SUBMENU_VARIANTS: Variants = {
   closed: {
     opacity: 0,
-    clipPath: "inset(0 0 100% 0 round 8px)",
     transition: {
       duration: 0.14,
       ease: EASE_OUT,
-      staggerChildren: 0.025,
-      staggerDirection: -1,
     },
   },
   open: {
     opacity: 1,
-    clipPath: "inset(0 0 0% 0 round 8px)",
     transition: {
-      duration: 0.2,
-      delayChildren: 0.035,
+      duration: 0.18,
+      delayChildren: 0.03,
       ease: EASE_OUT,
-      staggerChildren: 0.045,
+      staggerChildren: 0.035,
     },
   },
 };
@@ -50,13 +46,17 @@ const SUBMENU_VARIANTS: Variants = {
 const SUBMENU_ITEM_VARIANTS: Variants = {
   closed: {
     opacity: 0,
-    y: -6,
+    y: -4,
+    transition: {
+      duration: 0.12,
+      ease: EASE_OUT,
+    },
   },
   open: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.18,
+      duration: 0.16,
       ease: EASE_OUT,
     },
   },
@@ -206,60 +206,74 @@ export default function VerticalControls({
           </Button>
         </SidebarTooltip>
 
-        <AnimatePresence initial={false} mode="popLayout">
+        <AnimatePresence initial={false}>
           {isExpanded && subItems && (
-            <m.ul
+            <m.div
               key={`${view}-submenu`}
-              variants={reduceMotion ? undefined : SUBMENU_VARIANTS}
-              initial={reduceMotion ? false : "closed"}
-              animate={reduceMotion ? { opacity: 1 } : "open"}
-              exit={reduceMotion ? { opacity: 0 } : "closed"}
-              transition={reduceMotion ? { duration: 0.12 } : undefined}
-              aria-label={`زیرمنوی ${meta.title}`}
-              className="relative mt-1 mr-4 hidden min-w-0 flex-col gap-0.5 border-r border-sidebar-border pr-2 md:flex"
+              initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+              transition={
+                reduceMotion
+                  ? { duration: 0 }
+                  : {
+                      height: { duration: 0.22, ease: EASE_OUT },
+                      opacity: { duration: 0.18, ease: EASE_OUT },
+                    }
+              }
+              className="hidden overflow-hidden md:block"
             >
-              {subItems.map((sub) => {
-                const isSubActive = activeSubId === sub.id;
-                const SubIcon = sub.icon;
+              <m.ul
+                variants={reduceMotion ? undefined : SUBMENU_VARIANTS}
+                initial={reduceMotion ? false : "closed"}
+                animate={reduceMotion ? { opacity: 1 } : "open"}
+                exit={reduceMotion ? { opacity: 0 } : "closed"}
+                aria-label={`زیرمنوی ${meta.title}`}
+                className="relative mt-1 mr-4 flex min-w-0 flex-col gap-0.5 border-r border-sidebar-border pr-2"
+              >
+                {subItems.map((sub) => {
+                  const isSubActive = activeSubId === sub.id;
+                  const SubIcon = sub.icon;
 
-                return (
-                  <m.li
-                    key={sub.id}
-                    variants={reduceMotion ? undefined : SUBMENU_ITEM_VARIANTS}
-                    className="relative min-w-0"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleSubItemClick(view, sub.id)}
-                      aria-current={isSubActive ? "page" : undefined}
-                      className={`group/sub relative flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-right text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
-                        isSubActive
-                          ? "font-medium text-sidebar-text"
-                          : "font-normal text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text"
-                      }`}
+                  return (
+                    <m.li
+                      key={sub.id}
+                      variants={reduceMotion ? undefined : SUBMENU_ITEM_VARIANTS}
+                      className="relative min-w-0"
                     >
-                      {isSubActive && (
-                        <m.div
-                          layoutId="sidebar-submenu-active-bg"
-                          transition={reduceMotion ? { duration: 0 } : SPRING_LAYOUT}
-                          className="absolute inset-0 rounded-md border border-sidebar-border bg-sidebar-hover shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
-                        />
-                      )}
-                      <SubIcon
-                        aria-hidden="true"
-                        strokeWidth={1.75}
-                        className={`relative z-10 size-3.5 shrink-0 transition-colors duration-150 ${
+                      <button
+                        type="button"
+                        onClick={() => handleSubItemClick(view, sub.id)}
+                        aria-current={isSubActive ? "page" : undefined}
+                        className={`group/sub relative flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-right text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
                           isSubActive
-                            ? "text-accent3"
-                            : "text-sidebar-muted group-hover/sub:text-sidebar-text"
+                            ? "font-medium text-sidebar-text"
+                            : "font-normal text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text"
                         }`}
-                      />
-                      <span className="relative z-10 truncate leading-5">{sub.label}</span>
-                    </button>
-                  </m.li>
-                );
-              })}
-            </m.ul>
+                      >
+                        {isSubActive && (
+                          <m.div
+                            layoutId="sidebar-submenu-active-bg"
+                            transition={reduceMotion ? { duration: 0 } : SPRING_LAYOUT}
+                            className="absolute inset-0 rounded-md border border-sidebar-border bg-sidebar-hover shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                          />
+                        )}
+                        <SubIcon
+                          aria-hidden="true"
+                          strokeWidth={1.75}
+                          className={`relative z-10 size-3.5 shrink-0 transition-colors duration-150 ${
+                            isSubActive
+                              ? "text-accent3"
+                              : "text-sidebar-muted group-hover/sub:text-sidebar-text"
+                          }`}
+                        />
+                        <span className="relative z-10 truncate leading-5">{sub.label}</span>
+                      </button>
+                    </m.li>
+                  );
+                })}
+              </m.ul>
+            </m.div>
           )}
         </AnimatePresence>
       </div>

@@ -146,23 +146,25 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
   return (
     <Container
       size="lg"
-      className="@container/workspace max-w-5xl space-y-6 py-6 text-right @sm/workspace:py-8 @lg/workspace:py-12"
+      className="@container/workspace max-w-5xl space-y-3.5 px-0 py-1.5 text-right sm:space-y-6 sm:px-4 sm:py-6 lg:px-6 @lg/workspace:py-8"
       dir="rtl"
     >
-      <header className="flex flex-col gap-3 border-b border-border-color pb-5 @sm/workspace:flex-row @sm/workspace:items-end @sm/workspace:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border-color bg-card-bg text-accent3 shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)]">
-            <Icon className="size-5" aria-hidden="true" />
+      <header className="flex flex-col gap-2.5 border-b border-border-color pb-3.5 sm:pb-5 @sm/workspace:flex-row @sm/workspace:items-end @sm/workspace:justify-between">
+        <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border-color bg-card-bg text-accent3 shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)] sm:size-10">
+            <Icon className="size-4.5 sm:size-5" aria-hidden="true" />
           </div>
           <div className="min-w-0 space-y-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border-color bg-card-bg px-3 py-1 text-[10px] font-medium tracking-wider text-text-secondary">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border-color bg-card-bg px-2.5 py-0.5 text-[10px] font-medium tracking-wider text-text-secondary sm:px-3 sm:py-1">
               <SubsectionIcon className="size-3 shrink-0 text-accent3" aria-hidden="true" />
               <span>{activeSubsection.title}</span>
             </span>
             <h1 className="text-fluid-xl font-medium leading-7 text-balance text-text-primary">
               {meta.title}
             </h1>
-            <p className="text-sm leading-6 text-text-secondary">{meta.description}</p>
+            <p className="text-xs leading-5 text-text-secondary sm:text-sm sm:leading-6">
+              {meta.description}
+            </p>
           </div>
         </div>
       </header>
@@ -188,9 +190,9 @@ function MobileSubsectionTabs<T extends string>({
   return (
     <nav
       aria-label={ariaLabel}
-      className="min-w-0 overflow-x-auto rounded-xl border border-border-color bg-card-bg p-1.5 md:hidden"
+      className="min-w-0 overflow-x-auto rounded-xl border border-border-color/85 bg-card-bg-solid p-1 shadow-xs [&::-webkit-scrollbar]:hidden [scrollbar-width:none] md:hidden"
     >
-      <div className="flex min-w-max gap-1.5">
+      <div className="flex min-w-max snap-x snap-mandatory items-center gap-1">
         {items.map((tab) => {
           const isActive = tab.id === activeId;
           const TabIcon = tab.icon;
@@ -201,9 +203,9 @@ function MobileSubsectionTabs<T extends string>({
               type="button"
               onClick={() => onSelect(tab.id)}
               aria-current={isActive ? "page" : undefined}
-              className={`inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors duration-200 ease-out ${
+              className={`inline-flex min-h-9 shrink-0 snap-start cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ease-out sm:text-xs ${
                 isActive
-                  ? "border-accent3 bg-card-hover-bg text-text-primary"
+                  ? "border-accent3 bg-accent3/12 text-text-primary shadow-2xs"
                   : "border-transparent text-text-secondary hover:bg-card-hover-bg hover:text-text-primary"
               }`}
             >
@@ -283,8 +285,8 @@ function ModulesWorkspace() {
       </Activity>
 
       <Activity mode={activeModulesTab === "list" ? "visible" : "hidden"}>
-        <div className="bezel-shell min-w-0">
-          <div className="bezel-core min-w-0 p-4 @md/workspace:p-5">
+        <div className="min-w-0 sm:bezel-shell">
+          <div className="bezel-core min-w-0 p-3 sm:p-4 @md/workspace:p-5">
             <SegmentList segments={segments} onRemoveSegment={handleRemoveSegment} />
           </div>
         </div>
@@ -390,7 +392,7 @@ function SettingsWorkspace() {
   const activeSettings = SETTINGS_TABS.find((tab) => tab.id === activeTab) ?? SETTINGS_TABS[0];
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-3 sm:space-y-4">
       <MobileSubsectionTabs
         items={SETTINGS_TABS}
         activeId={activeTab}
@@ -398,23 +400,23 @@ function SettingsWorkspace() {
         ariaLabel="دسته‌بندی تنظیمات"
       />
 
-      <div className="bezel-shell min-w-0">
+      <div className="min-w-0 sm:bezel-shell">
         <Card
           aria-labelledby="active-settings-heading"
           className="@container/settings-card bezel-core min-w-0 !gap-0 !overflow-visible !py-0 !ring-0"
         >
-          <CardHeader className="border-b border-border-color px-4 py-4 @md/settings-card:px-6">
+          <CardHeader className="border-b border-border-color px-3 py-3 sm:px-4 sm:py-4 @md/settings-card:px-6">
             <CardTitle
               id="active-settings-heading"
-              className="text-base font-medium leading-6 text-text-primary"
+              className="text-sm font-medium leading-6 text-text-primary sm:text-base"
             >
               {activeSettings.title}
             </CardTitle>
-            <CardDescription className="mt-1 text-sm leading-6 text-text-secondary">
+            <CardDescription className="mt-0.5 text-xs leading-5 text-text-secondary sm:mt-1 sm:text-sm sm:leading-6">
               تنظیمات این بخش را از همین‌جا مدیریت کنید
             </CardDescription>
           </CardHeader>
-          <CardContent className="min-w-0 p-4 @md/settings-card:p-6">
+          <CardContent className="min-w-0 p-3 sm:p-4 @md/settings-card:p-6">
             <ActiveSettingsPanel activeTab={activeTab} />
           </CardContent>
         </Card>

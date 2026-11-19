@@ -56,21 +56,21 @@ export default React.memo(function CanvasChromeBar({
       className={
         footerSlot
           ? "pointer-events-auto flex max-w-full items-center justify-center"
-          : "pointer-events-none absolute inset-x-0 top-2.5 z-30 flex items-center justify-center px-2"
+          : "pointer-events-none absolute inset-x-0 top-2 z-30 flex items-center justify-center px-3 md:top-2.5 md:px-2"
       }
     >
-      <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-border-color bg-card-bg-solid/95 px-2 py-1 text-xs shadow-lg backdrop-blur-xl [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+      <div className="pointer-events-auto inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-border-color/85 bg-card-bg-solid/90 px-1.5 py-1 text-xs shadow-md backdrop-blur-md md:rounded-2xl md:bg-card-bg-solid/95 md:px-2 md:shadow-lg md:backdrop-blur-xl [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
         {/* Home Dashboard Sub-mode switcher: Group Sheets | Segment Nodes */}
         {workspaceScope === "home" && (
           <fieldset
             aria-label="حالت نمایش شیت بوم"
-            className="m-0 inline-flex shrink-0 items-center gap-0.5 rounded-xl border-0 bg-secondary p-0.5"
+            className="m-0 inline-flex shrink-0 items-center gap-0.5 rounded-full border-0 bg-secondary/90 p-0.5 md:rounded-xl md:bg-secondary"
           >
             <button
               type="button"
               aria-pressed={subMode === "groups"}
               onClick={() => onChangeSubMode("groups")}
-              className={`inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-colors ${
+              className={`inline-flex h-7 cursor-pointer items-center gap-1 rounded-full px-2.5 text-[11px] font-semibold transition-colors md:rounded-lg ${
                 subMode === "groups"
                   ? "bg-accent3 text-accent3-foreground shadow-2xs"
                   : "text-text-muted hover:text-text-primary"
@@ -84,7 +84,7 @@ export default React.memo(function CanvasChromeBar({
               type="button"
               aria-pressed={subMode === "segments"}
               onClick={() => onChangeSubMode("segments")}
-              className={`inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-colors ${
+              className={`inline-flex h-7 cursor-pointer items-center gap-1 rounded-full px-2.5 text-[11px] font-semibold transition-colors md:rounded-lg ${
                 subMode === "segments"
                   ? "bg-accent3 text-accent3-foreground shadow-2xs"
                   : "text-text-muted hover:text-text-primary"
@@ -96,10 +96,10 @@ export default React.memo(function CanvasChromeBar({
           </fieldset>
         )}
 
-        {/* Zoom & Fit Controls */}
+        {/* Zoom & Fit Controls (Zoom +/-/% hidden on mobile where pinch-to-zoom is native) */}
         <div
           className={`flex shrink-0 items-center gap-0.5 ${
-            workspaceScope === "home" ? "border-r border-border-color pr-1" : ""
+            workspaceScope === "home" ? "border-r border-border-color/75 pr-1" : ""
           }`}
         >
           <Tooltip>
@@ -109,7 +109,7 @@ export default React.memo(function CanvasChromeBar({
                   type="button"
                   onClick={onZoomOut}
                   aria-label="کوچک‌نمایی شیت"
-                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary"
+                  className="hidden size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary md:inline-flex"
                 >
                   <Minus className="size-3.5" aria-hidden="true" />
                 </button>
@@ -123,7 +123,7 @@ export default React.memo(function CanvasChromeBar({
             data-sheet-zoom-readout="true"
             onClick={onFitView}
             aria-label="تنظیم بزرگ‌نمایی روی نمای کلی"
-            className="inline-flex h-7 min-w-[44px] cursor-pointer items-center justify-center rounded-lg px-1.5 text-[11px] font-bold tabular-nums text-text-primary transition-colors hover:bg-secondary"
+            className="hidden h-7 min-w-[44px] cursor-pointer items-center justify-center rounded-lg px-1.5 text-[11px] font-bold tabular-nums text-text-primary transition-colors hover:bg-secondary md:inline-flex"
           >
             {Math.round(zoom * 100)}%
           </button>
@@ -135,7 +135,7 @@ export default React.memo(function CanvasChromeBar({
                   type="button"
                   onClick={onZoomIn}
                   aria-label="بزرگ‌نمایی شیت"
-                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary"
+                  className="hidden size-7 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-secondary hover:text-text-primary md:inline-flex"
                 >
                   <Plus className="size-3.5" aria-hidden="true" />
                 </button>
@@ -151,7 +151,7 @@ export default React.memo(function CanvasChromeBar({
                   type="button"
                   onClick={onFitView}
                   aria-label="نمای کلی شیت"
-                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-border-color bg-secondary px-2 text-[11px] font-semibold text-text-primary transition-colors hover:border-accent3"
+                  className="inline-flex size-7 cursor-pointer items-center justify-center gap-1 rounded-full border border-border-color/80 bg-secondary/90 text-[11px] font-semibold text-text-primary transition-colors hover:border-accent3 md:h-7 md:w-auto md:rounded-lg md:bg-secondary md:px-2"
                 >
                   <Maximize className="size-3.5 shrink-0" aria-hidden="true" />
                   <span className="hidden md:inline">نمای کلی</span>
@@ -162,8 +162,8 @@ export default React.memo(function CanvasChromeBar({
           </Tooltip>
         </div>
 
-        {/* Snap, Lock, and Reset Layout */}
-        <div className="flex shrink-0 items-center gap-0.5 border-r border-border-color pr-1">
+        {/* Snap, Lock, and Reset Layout (Snap & Reset hidden on mobile to prevent clutter/accidental reset) */}
+        <div className="flex shrink-0 items-center gap-0.5 md:border-r md:border-border-color/75 md:pr-1">
           <Tooltip>
             <TooltipTrigger
               render={
@@ -172,7 +172,7 @@ export default React.memo(function CanvasChromeBar({
                   aria-pressed={snapToGrid}
                   onClick={onToggleSnap}
                   aria-label="چسبندگی به شبکه شیت"
-                  className={`inline-flex size-7 cursor-pointer items-center justify-center rounded-lg transition-colors ${
+                  className={`hidden size-7 cursor-pointer items-center justify-center rounded-lg transition-colors md:inline-flex ${
                     snapToGrid
                       ? "bg-accent3-transparent text-accent3"
                       : "text-text-muted hover:bg-secondary hover:text-text-primary"
@@ -195,10 +195,10 @@ export default React.memo(function CanvasChromeBar({
                   aria-pressed={isLocked}
                   onClick={onToggleLock}
                   aria-label={isLocked ? "باز کردن قفل جابه‌جایی" : "قفل کردن جابه‌جایی و تغییر سایز"}
-                  className={`inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg px-2 text-[11px] font-semibold transition-colors ${
+                  className={`inline-flex size-7 cursor-pointer items-center justify-center gap-1 rounded-full text-[11px] font-semibold transition-colors md:h-7 md:w-auto md:rounded-lg md:px-2 ${
                     isLocked
-                      ? "bg-warning-soft text-warning"
-                      : "text-text-muted hover:bg-secondary hover:text-text-primary"
+                      ? "border border-warning/35 bg-warning-soft text-warning"
+                      : "border border-border-color/80 bg-secondary/90 text-text-muted hover:bg-secondary hover:text-text-primary md:border-transparent md:bg-transparent"
                   }`}
                 >
                   {isLocked ? (
@@ -224,7 +224,7 @@ export default React.memo(function CanvasChromeBar({
                   type="button"
                   onClick={onResetLayout}
                   aria-label="چیدمان خودکار شیت"
-                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg px-2 text-[11px] font-medium text-text-muted transition-colors hover:bg-secondary hover:text-text-primary"
+                  className="hidden h-7 cursor-pointer items-center gap-1 rounded-lg px-2 text-[11px] font-medium text-text-muted transition-colors hover:bg-secondary hover:text-text-primary md:inline-flex"
                 >
                   <RotateCcw className="size-3.5 shrink-0" aria-hidden="true" />
                   <span className="hidden xl:inline">مرتب‌سازی</span>

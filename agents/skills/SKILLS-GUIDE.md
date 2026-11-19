@@ -13,7 +13,7 @@
 | الف) پاک‌سازی و ساده‌سازی کد | deslop، anti-slop، simplify، refactor، refactoring-guru، refactoring، knip، configure-knip، optimize-javascript، ponytail (و زیرمجموعه‌هایش) |
 | ب) بازبینی و کیفیت کد | code-review، code-review-and-quality، requesting-code-review، receiving-code-review، verify-loop، verification-before-completion، dogfood |
 | ج) معماری و طراحی نرم‌افزار (بر پایه کتاب) | a-philosophy-of-software-design، clean-architecture، clean-code، code-complete، designing-data-intensive-applications، domain-driven-design، domain-driven-design-distilled، implementing-domain-driven-design، patterns-of-enterprise-application-architecture، the-pragmatic-programmer، release-it، working-effectively-with-legacy-code |
-| د) کارایی (کد) | improve، improve-codebase-architecture، improve-code-quality، executing-plans، subagent-driven-development، codebase-design، codebase-memory |
+| د) کارایی (کد) | improve، improve-codebase-architecture، improve-code-quality، executing-plans، subagent-driven-development، codebase-design، codebase-memory، rtk |
 | ه) React / Next.js | react-doctor، react-best-practices، react-view-transitions، composition-patterns |
 | و) طراحی UI و فرانت‌اند | frontend-design، frontend-ui-engineering، web-artifacts-builder، web-design-guidelines، web-performance-auditor، rams، interface-review، better-* ، popular-web-designs، variant، break، explain-interface، blueprint-animation، scroll-craft |
 | ز) استتیک و کیفیت بصری | soft-skill (high-end visual)، taste-skill، taste-skill-v1، stitch-skill، minimalist-skill، brutalist-skill، redesign-skill، output-skill، gpt-tasteskill |
@@ -237,6 +237,11 @@
 **چیست:** گراف دانش کدبیس برای پرسش‌های ساختاری — درخت فراخوان‌ها، callers، dependencies، impact analysis، dead code، high fan-out، کاندیدای refactor.
 
 **کی استفاده:** وقتی می‌خواهید بدانید چه تابعی چیست، چه کسی چه چیزی را می‌خواند یا impact یک تغییر چیست.
+
+### rtk
+**چیست:** پراکسی CLI فوق‌سریع نوشته شده با Rust (`rtk-ai/rtk` در حالت `mode Lite`) برای فشرده‌سازی ۶۰ تا ۹۰ درصدی خروجی دستورات شل (`rtk git`، `rtk tsc`، `rtk bun`، `rtk next`، `rtk grep`، `rtk ls`، `rtk diff`، `rtk test`، `rtk err`) در کمتر از ۱۰ میلی‌ثانیه قبل از ورود به کانتکست LLM، همراه با بازیابی بدون افت با `rtk recall <hash>`.
+
+**کی استفاده:** در تمام دستورات ترمینال (`run_command`) برای کاهش مصرف توکن و حذف نویز خروجی‌های شل.
 
 ### improve-app / improve-business / improve-retention / improve-website
 این چهار، «سفرهای هدایت‌شده» هستند که هر کدام یک وضعیت محصول/کسب‌وکار را مرحله‌به‌مرحله (با سؤال از کاربر در هر نقطه تصمیم و ثبت نتیجه در docs/) بهبود می‌دهند:

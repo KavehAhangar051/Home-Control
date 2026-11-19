@@ -117,9 +117,9 @@ export default function BackupRestoreSection() {
   };
 
   return (
-    <div className="space-y-3 rounded-xl border border-border-color bg-card-hover-bg p-3.5 text-right">
+    <div className="space-y-3 rounded-xl border border-border-color bg-card-hover-bg p-3 sm:p-3.5 text-right">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="space-y-0.5">
+        <div className="min-w-0 flex-1 space-y-0.5">
           <div className="text-xs font-bold text-text-primary">
             پشتیبان‌گیری و انتقال مستقیم فایل (Backup & Restore)
           </div>
@@ -129,7 +129,7 @@ export default function BackupRestoreSection() {
           </p>
         </div>
 
-        <span className="font-mono text-[10px] tabular-nums text-text-muted">
+        <span className="hidden sm:inline font-mono text-[10px] tabular-nums text-text-muted shrink-0">
           {fsSupported ? "File System API" : "Direct JSON"}
           {shareSupported ? " · Web Share" : ""}
         </span>

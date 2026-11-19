@@ -17,7 +17,10 @@
     "lint:ox": "oxlint app components features lib",
     "analyze:export": "next analyze export",
     "cbm": "bash ./tools/cbm.sh cli",
-    "cbm:index": "bash ./tools/cbm.sh index"
+    "cbm:index": "bash ./tools/cbm.sh index",
+    "rtk": "bash ./tools/rtk.sh",
+    "rtk:gain": "bash ./tools/rtk.sh gain",
+    "rtk:setup": "bash ./tools/rtk.sh setup"
   },
   "dependencies": {
     "@animate-ui/react": "^2.4.3",

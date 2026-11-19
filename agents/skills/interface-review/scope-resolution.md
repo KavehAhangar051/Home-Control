@@ -61,7 +61,7 @@ Exclude these and name what you excluded in the scope block. They are machine-au
 | Category | Patterns |
 | --- | --- |
 | Lockfiles | `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, `bun.lockb`, `Cargo.lock`, `composer.lock`, `Gemfile.lock`, `poetry.lock`, `uv.lock` |
-| Snapshots and fixtures | `__snapshots__/`, `*.snap`, `*.approved.*`, `test-results/`, `playwright-report/` |
+| Snapshots and fixtures | `__snapshots__/`, `*.snap`, `*.approved.*`, `test-results/` |
 | Generated output | `dist/`, `build/`, `out/`, `.next/`, `.turbo/`, `.svelte-kit/`, `coverage/`, `storybook-static/`, `*.min.js`, `*.min.css`, `*.map` |
 | Generated sources | `*.gen.ts`, `*.generated.*`, `*.d.ts` emitted by a build, GraphQL and Prisma client output |
 | Vendored code | `vendor/`, `third_party/`, `node_modules/` |

@@ -75,7 +75,7 @@ The repository must have GitHub Pages configured to deploy using **GitHub Action
 
 ## Repository hygiene
 
-Keep source, documentation, lockfiles, and required static assets under version control. Always update docs immediately after code changes so they remain trustworthy, avoid authoring temporary or UI-detail unit tests, and do not commit local environment files, dependencies, build output, console logs, `.playwright-cli/` artifacts, credentials, or temporary migration files. The `.gitignore` file defines the primary exclusions.
+Keep source, documentation, lockfiles, and required static assets under version control. Always update docs immediately after code changes so they remain trustworthy, avoid authoring temporary or UI-detail unit tests, and do not commit local environment files, dependencies, build output, console logs, temporary verification artifacts, credentials, or temporary migration files. The `.gitignore` file defines the primary exclusions.
 
 ## License
 

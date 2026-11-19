@@ -1,0 +1,14 @@
+# RTK Lite Mode Pipeline (.rtk/pipeline.toml)
+# Zero-latency deterministic CLI token compression (<10ms per command)
+# Extends rtk:default (PreToolUse shell command rewrite + ANSI/progress/dedup normalization)
+# and rtk:terse (concise prose directive without abbreviating code, paths, commands, or errors).
+
+schema_version = 1
+
+[pipeline]
+name = "home-control-lite"
+extends = ["rtk:default", "rtk:terse"]
+
+[guards]
+never_worse = true
+min_size = 256

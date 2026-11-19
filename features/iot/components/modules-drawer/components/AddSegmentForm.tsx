@@ -63,8 +63,8 @@ export default function AddSegmentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="bezel-shell">
-        <Card className="bezel-core !gap-4 !p-4">
+      <div className="min-w-0 sm:bezel-shell">
+        <Card className="bezel-core !gap-4 !p-3 sm:!p-4">
           <div className="flex items-center gap-2 text-text-primary border-b border-border-color pb-3">
             <Plus strokeWidth={1.5} className="size-4 text-accent3" />
             <span className="text-sm font-medium font-sans">افزودن سگمنت جدید</span>
@@ -119,17 +119,25 @@ export default function AddSegmentForm({
               />
             </button>
 
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {showAdvanced && (
                 <m.div
-                  initial={animationsEnabled ? { opacity: 0, y: -6 } : false}
-                  animate={{ opacity: 1, y: 0 }}
+                  key="advanced-settings"
+                  initial={animationsEnabled ? { height: 0, opacity: 0 } : false}
+                  animate={{ height: "auto", opacity: 1 }}
                   exit={
                     animationsEnabled
-                      ? { opacity: 0, y: -6, transition: TRANSITION_EXIT_QUICK }
-                      : undefined
+                      ? { height: 0, opacity: 0 }
+                      : { opacity: 0, transition: { duration: 0 } }
                   }
-                  transition={animationsEnabled ? TRANSITION_ENTER_QUICK : { duration: 0 }}
+                  transition={
+                    animationsEnabled
+                      ? {
+                          height: { duration: 0.22, ease: TRANSITION_ENTER_QUICK.ease },
+                          opacity: { duration: 0.16, ease: TRANSITION_EXIT_QUICK.ease },
+                        }
+                      : { duration: 0 }
+                  }
                   className="overflow-hidden"
                 >
                   <div className="pt-3 pb-1 space-y-4">
