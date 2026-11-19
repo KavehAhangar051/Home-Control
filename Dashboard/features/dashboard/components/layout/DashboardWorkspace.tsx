@@ -5,7 +5,7 @@ import { AnimateView } from "motion/react-animate-view";
 import dynamic from "next/dynamic";
 import React, { useDeferredValue } from "react";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { useDashboard } from "@/features/dashboard/context/DashboardContext";
+import { useDashboard, useDashboardActions } from "@/features/dashboard/context/DashboardContext";
 import IoTWorkspace from "@/features/iot/components/IoTWorkspace";
 import { WorkspaceSkeleton } from "@/features/iot/components/workspace";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
@@ -53,7 +53,6 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
   animationsEnabled,
 }: HomeWorkspaceMainContentProps) {
   const {
-    isLoadingIoT,
     handleGroupColsChange,
     handleAddPlaceholder,
     handleRemoveGroup,
@@ -64,7 +63,7 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
     handleUpdateSegmentAutoOff,
     handleUpdateSegmentRule,
     handleSetupPlaceholder,
-  } = useDashboard();
+  } = useDashboardActions();
 
   const activeSegmentId = useIoTStore((s) => s.activeSegmentId);
   const activeGroupId = useIoTStore((s) => s.activeGroupId);
@@ -105,7 +104,7 @@ const HomeWorkspaceMainContent = React.memo(function HomeWorkspaceMainContent({
             groupsOrder={groupsOrder}
             groupsCols={groupsCols}
             groupConfigs={groupConfigs}
-            isLoadingIoT={isLoadingIoT}
+            isLoadingIoT={false}
             activeSegmentId={activeSegmentId}
             activeGroupId={activeGroupId}
             animationsEnabled={animationsEnabled}

@@ -8,13 +8,7 @@
  */
 
 import { useEffect, useSyncExternalStore } from "react";
-import {
-  evaluateHardwareBaseline,
-  FrameDropMonitor,
-  type PerformanceTier,
-  readBrowserHardwareHints,
-  resolveEffectivePerformanceTier,
-} from "@/lib/performanceTier";
+import { type PerformanceTier, resolveEffectivePerformanceTier } from "@/lib/performanceTier";
 
 let currentTier: PerformanceTier = "full";
 const listeners = new Set<() => void>();
@@ -49,8 +43,8 @@ const getSnapshot = (): PerformanceTier => currentTier;
 const getServerSnapshot = (): PerformanceTier => "full";
 
 /**
- * Subscribes to the active adaptive performance tier (`"full" | "lite"`).
- * Only re-renders consumers when the session crosses between tiers.
+ * Subscribes to the active performance tier (`"full" | "lite"`).
+ * Only re-renders consumers when the user changes animation/FPS settings.
  */
 export function usePerformanceTier(): PerformanceTier {
   return useSyncExternalStore(subscribePerformanceTier, getSnapshot, getServerSnapshot);
@@ -64,15 +58,15 @@ export function useIsLitePerformanceTier(): boolean {
 }
 
 /**
- * Observes `animationsEnabled`, `animationsFps`, `isPageVisible`, hardware capability hints,
- * and passive frame deltas to manage `html[data-perf-tier]` without background wakeups.
+ * Synchronizes explicit user animation settings (`animationsEnabled`, `animationsFps`)
+ * to `html[data-perf-tier]` with zero continuous background `requestAnimationFrame` polling.
  */
 export function usePerformanceTierObserver(params: {
   animationsEnabled: boolean;
   animationsFps: number;
   isPageVisible: boolean;
 }): void {
-  const { animationsEnabled, animationsFps, isPageVisible } = params;
+  const { animationsEnabled, animationsFps } = params;
 
   useEffect(() => {
     if (typeof document !== "undefined") {
@@ -80,55 +74,11 @@ export function usePerformanceTierObserver(params: {
       document.documentElement.dataset.animationsEnabled = animationsEnabled ? "true" : "false";
     }
 
-    const hardwareTier = evaluateHardwareBaseline(readBrowserHardwareHints());
-
-    // Skip passive rAF polling entirely when hidden, disabled, locked to 30 FPS, or already lite hardware
-    if (!animationsEnabled || animationsFps <= 30 || hardwareTier === "lite" || !isPageVisible) {
-      setSharedPerformanceTier(
-        resolveEffectivePerformanceTier({
-          animationsFps,
-          hardwareTier,
-          runtimeTier: "full",
-        }),
-      );
-
-      return;
-    }
-
-    setSharedPerformanceTier("full");
-
-    const monitor = new FrameDropMonitor();
-    let rafId: number | null = null;
-    let lastTimestamp = 0;
-
-    const tick = (timestamp: number) => {
-      if (lastTimestamp > 0) {
-        const nextRuntimeTier = monitor.recordFrame(timestamp - lastTimestamp);
-
-        setSharedPerformanceTier(
-          resolveEffectivePerformanceTier({
-            animationsFps,
-            hardwareTier,
-            runtimeTier: nextRuntimeTier,
-          }),
-        );
-      }
-
-      lastTimestamp = timestamp;
-      rafId = requestAnimationFrame(tick);
-    };
-
-    // Wait briefly for initial hydration and chunk settle before sampling runtime frame drops
-    const warmupTimer = globalThis.setTimeout(() => {
-      rafId = requestAnimationFrame(tick);
-    }, 1500);
-
-    return () => {
-      globalThis.clearTimeout(warmupTimer);
-
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-      }
-    };
-  }, [animationsEnabled, animationsFps, isPageVisible]);
+    setSharedPerformanceTier(
+      resolveEffectivePerformanceTier({
+        animationsEnabled,
+        animationsFps,
+      }),
+    );
+  }, [animationsEnabled, animationsFps]);
 }

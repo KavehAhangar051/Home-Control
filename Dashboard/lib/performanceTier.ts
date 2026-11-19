@@ -91,23 +91,21 @@ export function readBrowserHardwareHints(): HardwareHints {
 }
 
 /**
- * Combines explicit FPS stability preference (`30 | 60`), static hardware baseline,
- * and live runtime frame-drop telemetry into the active document tier.
+ * Resolves the active document performance tier strictly from explicit user settings
+ * (`animationsEnabled` and `animationsFps`). Visual fidelity and animations stay at `"full"`
+ * on all hardware unless the user explicitly enables reduced-motion or 30 FPS mode in Settings.
  */
 export function resolveEffectivePerformanceTier(params: {
+  animationsEnabled?: boolean;
   animationsFps: number;
-  hardwareTier: PerformanceTier;
-  runtimeTier: PerformanceTier;
+  hardwareTier?: PerformanceTier;
+  runtimeTier?: PerformanceTier;
 }): PerformanceTier {
-  if (params.animationsFps <= 30) {
+  if (params.animationsEnabled === false || params.animationsFps <= 30) {
     return "lite";
   }
 
-  if (params.hardwareTier === "lite") {
-    return "lite";
-  }
-
-  return params.runtimeTier;
+  return "full";
 }
 
 /**

@@ -18,24 +18,38 @@ const logMqttDebug = (...args: Parameters<typeof console.log>) => {
   if (process.env.NODE_ENV !== "production") console.log(...args);
 };
 
+export interface PinTelemetryPatch {
+  state: boolean;
+  analogValue?: number;
+  clearAnalogOnOff?: boolean;
+  resolution?: number;
+  clearAutoOffTimer?: boolean;
+}
+
 export interface StateUpdateQueueDeps {
   maxPending?: number;
   scheduleFrame?: (cb: () => void) => number;
   cancelFrame?: (id: number) => void;
   applyPinsState?: IoTStoreBridge["setPinsState"];
+  getSnapshot?: () => IoTStoreBridge;
   getCallbacks?: () => readonly StateChangeCallback[];
 }
 
 export interface StateUpdateQueue {
-  queueStateUpdate: (pinId: string, state: boolean) => void;
+  queueStateUpdate: (
+    pinId: string,
+    state: boolean,
+    telemetry?: Omit<PinTelemetryPatch, "state">,
+  ) => void;
   flushStateUpdates: () => void;
   clear: () => void;
   getPendingCount: () => number;
 }
 
 /**
- * Bounded double-buffered pin state update queue.
- * Coalesces bursts into a single frame flush while capping memory under pathological broker traffic.
+ * Bounded double-buffered pin state & telemetry update queue.
+ * Coalesces high-frequency MQTT digital, analog PWM, resolution, and timer clears
+ * into a single animation-frame flush while capping memory under pathological broker traffic.
  */
 export function createStateUpdateQueue(deps: StateUpdateQueueDeps = {}): StateUpdateQueue {
   const maxPending = Math.max(1, deps.maxPending ?? MAX_PENDING_PIN_UPDATES);
@@ -52,35 +66,33 @@ export function createStateUpdateQueue(deps: StateUpdateQueueDeps = {}): StateUp
       }
     });
 
-  const applyPinsState =
-    deps.applyPinsState ?? ((updater) => getIoTStoreSnapshot().setPinsState(updater));
+  const getSnapshot = deps.getSnapshot ?? getIoTStoreSnapshot;
+
+  const applyPinsState = deps.applyPinsState ?? ((updater) => getSnapshot().setPinsState(updater));
 
   const getCallbacks = deps.getCallbacks ?? (() => stateCallbacks);
 
-  let pendingStateUpdates = new Map<string, boolean>();
-  let processingStateUpdates = new Map<string, boolean>();
+  let pendingStateUpdates = new Map<string, PinTelemetryPatch>();
+  let processingStateUpdates = new Map<string, PinTelemetryPatch>();
   let updateRafId: number | null = null;
 
   const flushStateUpdates = () => {
-    if (updateRafId !== null) {
-      cancelFrame(updateRafId);
-      updateRafId = null;
-    }
+    updateRafId = null;
 
     if (pendingStateUpdates.size === 0) return;
 
-    // Swap buffers: zero allocation per frame
+    // Swap buffers: zero Map allocation per frame
     const temp = pendingStateUpdates;
     pendingStateUpdates = processingStateUpdates;
     processingStateUpdates = temp;
     pendingStateUpdates.clear();
 
-    // Batch update store (short-circuit if all incoming states match existing state)
+    // 1. Batch digital pin states (short-circuit when unchanged)
     applyPinsState((prev) => {
       let hasChange = false;
 
-      for (const [pinId, state] of processingStateUpdates) {
-        if (prev[pinId] !== state) {
+      for (const [pinId, patch] of processingStateUpdates) {
+        if (prev[pinId] !== patch.state) {
           hasChange = true;
           break;
         }
@@ -90,20 +102,140 @@ export function createStateUpdateQueue(deps: StateUpdateQueueDeps = {}): StateUp
 
       const next = { ...prev };
 
-      for (const [pinId, state] of processingStateUpdates) {
-        next[pinId] = state;
+      for (const [pinId, patch] of processingStateUpdates) {
+        next[pinId] = patch.state;
       }
 
       return next;
     });
 
+    // 2. Batch analog PWM, last non-zero, resolution, and timer clears in the same frame
+    let needsSnapshot = false;
+
+    for (const [, patch] of processingStateUpdates) {
+      if (
+        patch.analogValue !== undefined ||
+        patch.clearAnalogOnOff ||
+        patch.resolution !== undefined ||
+        patch.clearAutoOffTimer
+      ) {
+        needsSnapshot = true;
+        break;
+      }
+    }
+
+    if (needsSnapshot) {
+      const snapshot = getSnapshot();
+      let hasAnalogPatches = false;
+      let hasNonZeroPatches = false;
+      let hasResolutionPatches = false;
+      let hasTimerClears = false;
+
+      for (const [pinId, patch] of processingStateUpdates) {
+        if (patch.analogValue !== undefined) {
+          hasAnalogPatches = true;
+          if (patch.analogValue > 0) hasNonZeroPatches = true;
+        } else if (patch.clearAnalogOnOff && Object.hasOwn(snapshot.pinsAnalogValue, pinId)) {
+          hasAnalogPatches = true;
+        }
+
+        if (patch.resolution !== undefined) {
+          hasResolutionPatches = true;
+        }
+
+        if (patch.clearAutoOffTimer && (snapshot.autoOffRemaining[pinId] ?? 0) !== 0) {
+          hasTimerClears = true;
+        }
+      }
+
+      if (hasTimerClears) {
+        const nextTimers = { ...snapshot.autoOffRemaining };
+
+        for (const [pinId, patch] of processingStateUpdates) {
+          if (patch.clearAutoOffTimer && (nextTimers[pinId] ?? 0) !== 0) {
+            nextTimers[pinId] = 0;
+          }
+        }
+
+        snapshot.setAutoOffRemaining(nextTimers);
+      }
+
+      if (hasAnalogPatches) {
+        snapshot.setPinsAnalogValue((prev) => {
+          let changed = false;
+          let next = prev;
+
+          for (const [pinId, patch] of processingStateUpdates) {
+            const targetVal =
+              patch.analogValue !== undefined
+                ? patch.analogValue
+                : patch.clearAnalogOnOff && Object.hasOwn(prev, pinId)
+                  ? 0
+                  : undefined;
+
+            if (targetVal !== undefined && prev[pinId] !== targetVal) {
+              if (!changed) {
+                next = { ...prev };
+                changed = true;
+              }
+              next[pinId] = targetVal;
+            }
+          }
+
+          return changed ? next : prev;
+        });
+      }
+
+      if (hasNonZeroPatches) {
+        snapshot.setPinsLastNonZeroValue((prev) => {
+          let changed = false;
+          let next = prev;
+
+          for (const [pinId, patch] of processingStateUpdates) {
+            if (
+              patch.analogValue !== undefined &&
+              patch.analogValue > 0 &&
+              prev[pinId] !== patch.analogValue
+            ) {
+              if (!changed) {
+                next = { ...prev };
+                changed = true;
+              }
+              next[pinId] = patch.analogValue;
+            }
+          }
+
+          return changed ? next : prev;
+        });
+      }
+
+      if (hasResolutionPatches) {
+        snapshot.setPinsPwmResolution((prev) => {
+          let changed = false;
+          let next = prev;
+
+          for (const [pinId, patch] of processingStateUpdates) {
+            if (patch.resolution !== undefined && prev[pinId] !== patch.resolution) {
+              if (!changed) {
+                next = { ...prev };
+                changed = true;
+              }
+              next[pinId] = patch.resolution;
+            }
+          }
+
+          return changed ? next : prev;
+        });
+      }
+    }
+
     const callbacks = getCallbacks();
     const cbLen = callbacks.length;
 
     if (cbLen > 0) {
-      for (const [pinId, state] of processingStateUpdates) {
+      for (const [pinId, patch] of processingStateUpdates) {
         for (let i = 0; i < cbLen; i++) {
-          callbacks[i](pinId, state);
+          callbacks[i](pinId, patch.state);
         }
       }
     }
@@ -111,8 +243,14 @@ export function createStateUpdateQueue(deps: StateUpdateQueueDeps = {}): StateUp
     processingStateUpdates.clear();
   };
 
-  const queueStateUpdate = (pinId: string, state: boolean) => {
-    if (pendingStateUpdates.size >= maxPending && !pendingStateUpdates.has(pinId)) {
+  const queueStateUpdate = (
+    pinId: string,
+    state: boolean,
+    telemetry?: Omit<PinTelemetryPatch, "state">,
+  ) => {
+    const existing = pendingStateUpdates.get(pinId);
+
+    if (!existing && pendingStateUpdates.size >= maxPending) {
       const oldestKey = pendingStateUpdates.keys().next().value;
 
       if (oldestKey !== undefined) {
@@ -120,7 +258,16 @@ export function createStateUpdateQueue(deps: StateUpdateQueueDeps = {}): StateUp
       }
     }
 
-    pendingStateUpdates.set(pinId, state);
+    pendingStateUpdates.set(pinId, {
+      state,
+      analogValue: telemetry?.analogValue ?? existing?.analogValue,
+      clearAnalogOnOff:
+        telemetry?.analogValue !== undefined
+          ? false
+          : (telemetry?.clearAnalogOnOff ?? existing?.clearAnalogOnOff),
+      resolution: telemetry?.resolution ?? existing?.resolution,
+      clearAutoOffTimer: Boolean(telemetry?.clearAutoOffTimer || existing?.clearAutoOffTimer),
+    });
 
     if (updateRafId === null && (deps.scheduleFrame || typeof window !== "undefined")) {
       updateRafId = scheduleFrame(flushStateUpdates);
@@ -159,7 +306,11 @@ export interface MqttMessageHandlerDeps {
   qos: 0 | 1 | 2;
   isCurrentGeneration: () => boolean;
   getSnapshot: () => IoTStoreBridge;
-  queueStateUpdate: (pinId: string, state: boolean) => void;
+  queueStateUpdate: (
+    pinId: string,
+    state: boolean,
+    telemetry?: Omit<PinTelemetryPatch, "state">,
+  ) => void;
   flushStateUpdates?: () => void;
   publishFrame: (topic: string, buf: Uint8Array, qos: 0 | 1 | 2) => void;
   scheduleMicrotask?: (fn: () => void) => void;
@@ -235,7 +386,6 @@ export function createMqttMessageHandler(
       const parsedState = parseMqttStateMessage(payload);
 
       if (parsedState.kind === "pin_update") {
-        const snapshot = deps.getSnapshot();
         const label = parsedState.isAck
           ? "command_ack"
           : parsedState.source === "binary"
@@ -245,47 +395,12 @@ export function createMqttMessageHandler(
           `[MQTT] Received ${label} from ESP32: pin=${parsedState.pinId} state=${parsedState.state}${parsedState.value !== undefined ? ` value=${parsedState.value}` : ""}`,
         );
 
-        if (!parsedState.isAck || !parsedState.state) {
-          snapshot.setAutoOffRemaining({
-            ...snapshot.autoOffRemaining,
-            [parsedState.pinId]: 0,
-          });
-        }
-
-        if (parsedState.value !== undefined) {
-          const confirmedVal = parsedState.value;
-          snapshot.setPinsAnalogValue((prev) =>
-            prev[parsedState.pinId] === confirmedVal
-              ? prev
-              : { ...prev, [parsedState.pinId]: confirmedVal },
-          );
-
-          if (confirmedVal > 0) {
-            snapshot.setPinsLastNonZeroValue((prev) =>
-              prev[parsedState.pinId] === confirmedVal
-                ? prev
-                : { ...prev, [parsedState.pinId]: confirmedVal },
-            );
-          }
-        } else if (
-          !parsedState.state &&
-          Object.hasOwn(snapshot.pinsAnalogValue, parsedState.pinId)
-        ) {
-          snapshot.setPinsAnalogValue((prev) =>
-            prev[parsedState.pinId] === 0 ? prev : { ...prev, [parsedState.pinId]: 0 },
-          );
-        }
-
-        if (parsedState.resolution !== undefined) {
-          const confirmedRes = parsedState.resolution;
-          snapshot.setPinsPwmResolution((prev) =>
-            prev[parsedState.pinId] === confirmedRes
-              ? prev
-              : { ...prev, [parsedState.pinId]: confirmedRes },
-          );
-        }
-
-        deps.queueStateUpdate(parsedState.pinId, parsedState.state);
+        deps.queueStateUpdate(parsedState.pinId, parsedState.state, {
+          analogValue: parsedState.value,
+          clearAnalogOnOff: parsedState.value === undefined && !parsedState.state,
+          resolution: parsedState.resolution,
+          clearAutoOffTimer: !parsedState.isAck || !parsedState.state,
+        });
       } else if (parsedState.kind === "state_sync") {
         const snapshot = deps.getSnapshot();
         logMqttDebug(`[MQTT] Received full state sync from ESP32:`, parsedState.states);
