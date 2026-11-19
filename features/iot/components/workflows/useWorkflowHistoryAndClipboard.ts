@@ -276,16 +276,22 @@ export function useWorkflowHistoryAndClipboard({
     updateActiveWorkflow,
   ]);
 
+  const activeWorkflowRef = React.useRef(activeWorkflow);
+  React.useEffect(() => {
+    activeWorkflowRef.current = activeWorkflow;
+  }, [activeWorkflow]);
+
   const handleToggleSubflowGroup = React.useCallback(
     (targetNodeId?: string) => {
+      const currentWorkflow = activeWorkflowRef.current;
       const resolvedId = targetNodeId ?? selectedNodeId;
 
-      if (!activeWorkflow || isLocked || !resolvedId) return;
+      if (!currentWorkflow || isLocked || !resolvedId) return;
 
-      recordUndoSnapshot(activeWorkflow);
+      recordUndoSnapshot(currentWorkflow);
 
       const result = toggleNodeSubflowGroup({
-        workflow: activeWorkflow,
+        workflow: currentWorkflow,
         targetNodeId: resolvedId,
         snapToGrid,
       });
@@ -301,15 +307,7 @@ export function useWorkflowHistoryAndClipboard({
         showToast?.("گره از باکس زیرمدار جدا شد.", "success");
       }
     },
-    [
-      activeWorkflow,
-      isLocked,
-      recordUndoSnapshot,
-      selectedNodeId,
-      showToast,
-      snapToGrid,
-      updateActiveWorkflow,
-    ],
+    [isLocked, recordUndoSnapshot, selectedNodeId, showToast, snapToGrid, updateActiveWorkflow],
   );
 
   const handleExportWorkflow = React.useCallback(async () => {

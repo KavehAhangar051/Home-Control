@@ -1,10 +1,46 @@
-import { clampCanvasZoom, computeFocalZoomViewport } from "./canvasGeometry";
+import {
+  type CanvasGridStyle,
+  clampCanvasZoom,
+  computeFocalZoomViewport,
+  getCanvasGridStyle,
+} from "./canvasGeometry";
 import type { CanvasViewport } from "./canvasTypes";
 import {
   areSheetAnimationsAllowed,
   clearSheetPanMotionCssVars,
   setSheetPanMotionCssVars,
 } from "./nodeMotion";
+
+/**
+ * Directly updates the GPU-composited world plane transform, the container's dot-grid
+ * background position/size, and any zoom percentage badge in the DOM without a React render pass.
+ */
+export function applyViewportToDom(
+  container: HTMLElement | null,
+  worldPlane: HTMLElement | null,
+  viewport: CanvasViewport,
+  computeGridStyle: (x: number, y: number, zoom: number) => CanvasGridStyle = getCanvasGridStyle,
+): void {
+  if (worldPlane) {
+    worldPlane.style.transform = `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`;
+  }
+
+  if (container) {
+    const grid = computeGridStyle(viewport.x, viewport.y, viewport.zoom);
+    container.style.backgroundSize = grid.backgroundSize;
+    container.style.backgroundPosition = grid.backgroundPosition;
+  }
+
+  if (typeof document !== "undefined") {
+    const zoomText = `${Math.round(viewport.zoom * 100)}%`;
+    const badges = document.querySelectorAll<HTMLElement>('[data-sheet-zoom-readout="true"]');
+    for (let i = 0; i < badges.length; i++) {
+      if (badges[i].textContent !== zoomText) {
+        badges[i].textContent = zoomText;
+      }
+    }
+  }
+}
 
 export interface SheetViewportAnimatorDeps {
   getContainer: () => HTMLDivElement | null;
@@ -20,8 +56,8 @@ export interface SheetViewportAnimator {
   startPanInertia: (velocityXPerMs: number, velocityYPerMs: number) => void;
 }
 
-const MIN_INERTIA_SPEED_PX_PER_MS = 0.08;
-const STOP_INERTIA_SPEED_PX_PER_MS = 0.022;
+const MIN_INERTIA_SPEED_PX_PER_MS = 0.06;
+const STOP_INERTIA_SPEED_PX_PER_MS = 0.018;
 const INERTIA_FRICTION_PER_FRAME = 0.915;
 const MAX_INERTIA_SPEED_PX_PER_MS = 3.2;
 
@@ -33,12 +69,6 @@ function easeOutCubic(t: number): number {
 /**
  * Creates a frame-rate-independent imperative viewport camera & inertia engine
  * for infinite sheets (Home Canvas & Workflow Studio).
- *
- * Provides:
- * 1. `animateToViewport`: smooth cubic-out camera flight for Fit View, Reset Layout, and center-on-node.
- * 2. `queueSmoothFocalZoom`: continuous critically damped focal zoom for mouse-wheel and +/- buttons.
- * 3. `startPanInertia`: physical momentum coasting after releasing a pan gesture, paired with
- *    zero-re-render CSS custom property spatial parallax/tilt on the sheet container.
  */
 export function createSheetViewportAnimator(
   deps: SheetViewportAnimatorDeps,

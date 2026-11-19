@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink } from "lucide-react";
-import type React from "react";
+import React from "react";
 import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus } from "@/components/ui/hugeicons-groups/shell";
@@ -34,7 +34,7 @@ interface TrellisSegmentTileProps extends TrellisSegmentHandlers {
 // SAFETY: React CSSProperties supports CSS custom properties
 const CARD_SPACING_STYLE: React.CSSProperties = { "--card-spacing": "0px" } as React.CSSProperties;
 
-export default function TrellisSegmentTile({
+export default React.memo(function TrellisSegmentTile({
   segment,
   compact,
   animationsEnabled,
@@ -62,16 +62,12 @@ export default function TrellisSegmentTile({
 
   const mode = segment.mode || "switch";
 
-  const {
-    effectivePinOn,
-    isPending,
-    handleTogglePinOptimistic,
-    handleSetPinStateOptimistic,
-  } = useOptimisticPinState({
-    isPinOn,
-    onTogglePin,
-    onSetPinState,
-  });
+  const { effectivePinOn, isPending, handleTogglePinOptimistic, handleSetPinStateOptimistic } =
+    useOptimisticPinState({
+      isPinOn,
+      onTogglePin,
+      onSetPinState,
+    });
 
   const buttonProps = useSegmentButtonProps({
     mode,
@@ -199,4 +195,4 @@ export default function TrellisSegmentTile({
       </Card>
     </div>
   );
-}
+});

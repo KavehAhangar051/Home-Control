@@ -24,6 +24,8 @@ export type CanvasWorkspaceProps = Omit<
   workspaceScope?: CanvasWorkspaceScope;
 };
 
+const EMPTY_GROUP_SEGMENTS: Segment[] = [];
+
 export default function CanvasWorkspace({
   workspaceScope = "home",
   groupsOrder,
@@ -42,6 +44,7 @@ export default function CanvasWorkspace({
 
   const {
     containerRef,
+    worldPlaneRef,
     settings,
     updateSettings,
     nodes,
@@ -68,6 +71,17 @@ export default function CanvasWorkspace({
     segments,
     selectedGroupFilter,
   });
+
+  const handleZoomIn = React.useCallback(() => handleZoomBy(0.15), [handleZoomBy]);
+  const handleZoomOut = React.useCallback(() => handleZoomBy(-0.15), [handleZoomBy]);
+  const handleToggleSnap = React.useCallback(
+    () => updateSettings({ snapToGrid: !settings.snapToGrid }),
+    [settings.snapToGrid, updateSettings],
+  );
+  const handleToggleLock = React.useCallback(
+    () => updateSettings({ isLocked: !settings.isLocked }),
+    [settings.isLocked, updateSettings],
+  );
 
   const segmentsByGroup = React.useMemo(() => {
     const map = new Map<string, Segment[]>();
@@ -111,9 +125,12 @@ export default function CanvasWorkspace({
     >
       {/* Infinite Transformed World Plane */}
       <div
+        ref={worldPlaneRef}
         style={{
           transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`,
           transformOrigin: "0 0",
+          willChange: "transform",
+          backfaceVisibility: "hidden",
         }}
         className="pointer-events-none absolute top-0 left-0 size-0 overflow-visible"
       >
@@ -136,7 +153,7 @@ export default function CanvasWorkspace({
                 <CanvasGroupNode
                   nodeId={nodeId}
                   groupName={groupName}
-                  groupSegments={segmentsByGroup.get(groupName) ?? []}
+                  groupSegments={segmentsByGroup.get(groupName) ?? EMPTY_GROUP_SEGMENTS}
                   rect={rect}
                   subMode={settings.subMode}
                   isSelected={selectedNodeId === nodeId}
@@ -204,11 +221,11 @@ export default function CanvasWorkspace({
         snapToGrid={settings.snapToGrid}
         isLocked={settings.isLocked}
         onChangeSubMode={handleChangeSubMode}
-        onZoomIn={() => handleZoomBy(0.15)}
-        onZoomOut={() => handleZoomBy(-0.15)}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
         onFitView={handleFitView}
-        onToggleSnap={() => updateSettings({ snapToGrid: !settings.snapToGrid })}
-        onToggleLock={() => updateSettings({ isLocked: !settings.isLocked })}
+        onToggleSnap={handleToggleSnap}
+        onToggleLock={handleToggleLock}
         onResetLayout={handleResetLayout}
       />
     </section>

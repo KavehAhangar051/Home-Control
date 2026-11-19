@@ -1,18 +1,28 @@
 "use client";
 
 import React from "react";
-import { clampCanvasZoom } from "./canvasGeometry";
+import { type CanvasGridStyle, clampCanvasZoom, getCanvasGridStyle } from "./canvasGeometry";
 import type { CanvasViewport } from "./canvasTypes";
-import { clearSheetPanMotionCssVars, setSheetPanMotionCssVars } from "./nodeMotion";
-import { createSheetViewportAnimator, type SheetViewportAnimator } from "./sheetViewportAnimator";
+import {
+  clearSheetPanMotionCssVars,
+  primeSheetPanMotionNodes,
+  setSheetPanMotionCssVars,
+} from "./nodeMotion";
+import {
+  applyViewportToDom,
+  createSheetViewportAnimator,
+  type SheetViewportAnimator,
+} from "./sheetViewportAnimator";
 
 export interface UseSheetViewportGesturesOptions {
   containerRef: React.RefObject<HTMLDivElement | null>;
+  worldPlaneRef?: React.RefObject<HTMLDivElement | null>;
   viewportRef: React.RefObject<CanvasViewport>;
   setViewport: (updater: CanvasViewport | ((prev: CanvasViewport) => CanvasViewport)) => void;
   setViewportTransient: (
     updater: CanvasViewport | ((prev: CanvasViewport) => CanvasViewport),
   ) => void;
+  computeGridStyle?: (x: number, y: number, zoom: number) => CanvasGridStyle;
   onBackgroundClick?: () => void;
   onPanEnd?: (finalViewport: CanvasViewport) => void;
   isAttached?: boolean;
@@ -32,19 +42,24 @@ function isInteractiveCanvasOverlayTarget(target: HTMLElement | null): boolean {
 
 /**
  * Deep, reusable infinite-sheet viewport & kinetic gesture controller.
- * Encapsulates ResizeObserver container sizing, smooth focal-point zoom (`handleZoomBy`),
- * non-passive wheel zoom interpolation, 2-finger pinch-to-zoom, left/middle/right-click & touch
- * panning with physical momentum inertia coasting, and camera flight (`animateToViewport`).
+ * Drives transient pan, momentum inertia, wheel zoom, pinch-to-zoom, and camera flight
+ * imperatively on the GPU compositor layer (`worldPlaneRef`) with zero React re-renders
+ * during active frames, committing once to React state when the gesture settles.
  */
 export function useSheetViewportGestures({
   containerRef,
+  worldPlaneRef: externalWorldPlaneRef,
   viewportRef,
   setViewport,
   setViewportTransient,
+  computeGridStyle = getCanvasGridStyle,
   onBackgroundClick,
   onPanEnd,
   isAttached = true,
 }: UseSheetViewportGesturesOptions) {
+  const internalWorldPlaneRef = React.useRef<HTMLDivElement | null>(null);
+  const worldPlaneRef = externalWorldPlaneRef ?? internalWorldPlaneRef;
+
   const [containerSize, setContainerSize] = React.useState({ width: 960, height: 600 });
   const [isPanning, setIsPanning] = React.useState(false);
 
@@ -52,13 +67,47 @@ export function useSheetViewportGestures({
   const onPanEndRef = React.useRef(onPanEnd);
   const setViewportRef = React.useRef(setViewport);
   const setViewportTransientRef = React.useRef(setViewportTransient);
+  const computeGridStyleRef = React.useRef(computeGridStyle);
 
   React.useEffect(() => {
     onBackgroundClickRef.current = onBackgroundClick;
     onPanEndRef.current = onPanEnd;
     setViewportRef.current = setViewport;
     setViewportTransientRef.current = setViewportTransient;
-  }, [onBackgroundClick, onPanEnd, setViewport, setViewportTransient]);
+    computeGridStyleRef.current = computeGridStyle;
+  }, [onBackgroundClick, onPanEnd, setViewport, setViewportTransient, computeGridStyle]);
+
+  const applyFastTransientViewport = React.useCallback(
+    (next: CanvasViewport) => {
+      viewportRef.current = next;
+      const plane = worldPlaneRef.current;
+      const container = containerRef.current;
+
+      if (plane) {
+        applyViewportToDom(container, plane, next, computeGridStyleRef.current);
+      } else {
+        setViewportTransientRef.current(next);
+      }
+    },
+    [containerRef, viewportRef, worldPlaneRef],
+  );
+
+  const commitFinalViewport = React.useCallback(
+    (finalVp: CanvasViewport) => {
+      viewportRef.current = finalVp;
+      if (worldPlaneRef.current) {
+        applyViewportToDom(
+          containerRef.current,
+          worldPlaneRef.current,
+          finalVp,
+          computeGridStyleRef.current,
+        );
+      }
+      setViewportRef.current(finalVp);
+      onPanEndRef.current?.(finalVp);
+    },
+    [containerRef, viewportRef, worldPlaneRef],
+  );
 
   const animatorRef = React.useRef<SheetViewportAnimator | null>(null);
   if (!animatorRef.current) {
@@ -66,11 +115,10 @@ export function useSheetViewportGestures({
       getContainer: () => containerRef.current,
       getCurrentViewport: () => viewportRef.current,
       applyTransientViewport: (next) => {
-        setViewportTransientRef.current(next);
+        applyFastTransientViewport(next);
       },
       commitViewport: (finalVp) => {
-        setViewportRef.current(finalVp);
-        onPanEndRef.current?.(finalVp);
+        commitFinalViewport(finalVp);
       },
     });
   }
@@ -158,7 +206,7 @@ export function useSheetViewportGestures({
 
       if (!target) return;
 
-      setViewportTransient({
+      applyFastTransientViewport({
         x: Math.round(target.midX - pinchWorldX * target.nextZoom),
         y: Math.round(target.midY - pinchWorldY * target.nextZoom),
         zoom: target.nextZoom,
@@ -215,7 +263,7 @@ export function useSheetViewportGestures({
         applyPendingPinch();
       }
 
-      onPanEndRef.current?.(viewportRef.current);
+      commitFinalViewport(viewportRef.current);
     };
 
     el.addEventListener("wheel", onWheel, { passive: false });
@@ -235,7 +283,7 @@ export function useSheetViewportGestures({
         cancelAnimationFrame(pinchFrameId);
       }
     };
-  }, [containerRef, isAttached, setViewportTransient, viewportRef]);
+  }, [applyFastTransientViewport, commitFinalViewport, containerRef, isAttached, viewportRef]);
 
   const handleCanvasPointerDown = React.useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -262,6 +310,7 @@ export function useSheetViewportGestures({
 
       let hasExceededThreshold = isRightOrMiddle || e.pointerType === "touch";
       if (hasExceededThreshold) {
+        primeSheetPanMotionNodes(containerRef.current);
         setIsPanning(true);
         if (!isRightOrMiddle) {
           onBackgroundClickRef.current?.();
@@ -283,6 +332,7 @@ export function useSheetViewportGestures({
             return;
           }
           hasExceededThreshold = true;
+          primeSheetPanMotionNodes(containerRef.current);
           setIsPanning(true);
           onBackgroundClickRef.current?.();
         }
@@ -303,11 +353,11 @@ export function useSheetViewportGestures({
 
         setSheetPanMotionCssVars(containerRef.current, frameDx, frameDy);
 
-        setViewportTransient((prev) => ({
-          ...prev,
+        applyFastTransientViewport({
+          zoom: viewportRef.current.zoom,
           x: Math.round(initialVpX + dx),
           y: Math.round(initialVpY + dy),
-        }));
+        });
       };
 
       let pendingMove: PointerEvent | null = null;
@@ -360,7 +410,7 @@ export function useSheetViewportGestures({
           animatorRef.current?.startPanInertia(velocityX, velocityY);
         } else {
           clearSheetPanMotionCssVars(containerRef.current);
-          onPanEndRef.current?.(viewportRef.current);
+          commitFinalViewport(viewportRef.current);
         }
       };
 
@@ -370,7 +420,7 @@ export function useSheetViewportGestures({
         setIsPanning(false);
         clearSheetPanMotionCssVars(containerRef.current);
         if (hasExceededThreshold) {
-          onPanEndRef.current?.(viewportRef.current);
+          commitFinalViewport(viewportRef.current);
         }
       };
 
@@ -378,7 +428,7 @@ export function useSheetViewportGestures({
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onCancel);
     },
-    [containerRef, setViewportTransient, viewportRef],
+    [applyFastTransientViewport, commitFinalViewport, containerRef, viewportRef],
   );
 
   const handleCanvasContextMenu = React.useCallback((e: React.MouseEvent<HTMLElement>) => {
@@ -391,6 +441,7 @@ export function useSheetViewportGestures({
   }, []);
 
   return {
+    worldPlaneRef,
     containerSize,
     isPanning,
     animateToViewport,

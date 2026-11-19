@@ -349,6 +349,7 @@ export function useWorkflowStudio({
   });
 
   const {
+    worldPlaneRef,
     containerSize,
     isPanning,
     animateToViewport,
@@ -360,6 +361,7 @@ export function useWorkflowStudio({
     viewportRef,
     setViewport,
     setViewportTransient,
+    computeGridStyle: getWorkflowGridStyle,
     isAttached: Boolean(activeWorkflow),
     onPanEnd: commitWorkflowPersistence,
     onBackgroundClick: () => {
@@ -588,6 +590,7 @@ export function useWorkflowStudio({
   }, [activeWorkflow?.viewport]);
 
   return {
+    worldPlaneRef,
     workflows: studioState.workflows,
     activeWorkflow,
     isPaletteOpen,

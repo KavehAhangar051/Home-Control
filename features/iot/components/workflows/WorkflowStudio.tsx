@@ -39,31 +39,34 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
     showToast,
   });
 
+  const activeEdges = studio.activeWorkflow?.edges;
+  const activeNodes = studio.activeWorkflow?.nodes;
+
   const incomingCountByNode = React.useMemo(() => {
     const map = new Map<string, number>();
 
-    if (!studio.activeWorkflow) return map;
+    if (!activeEdges) return map;
 
-    for (const edge of studio.activeWorkflow.edges) {
+    for (const edge of activeEdges) {
       map.set(edge.targetId, (map.get(edge.targetId) ?? 0) + 1);
     }
 
     return map;
-  }, [studio.activeWorkflow]);
+  }, [activeEdges]);
 
   const subflowChildCountByGroup = React.useMemo(() => {
     const map = new Map<string, number>();
 
-    if (!studio.activeWorkflow) return map;
+    if (!activeNodes) return map;
 
-    for (const node of studio.activeWorkflow.nodes) {
+    for (const node of activeNodes) {
       if (node.parentGroupId) {
         map.set(node.parentGroupId, (map.get(node.parentGroupId) ?? 0) + 1);
       }
     }
 
     return map;
-  }, [studio.activeWorkflow]);
+  }, [activeNodes]);
 
   if (!studio.activeWorkflow) {
     return (
@@ -221,9 +224,12 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
 
         {/* Transformed Infinite Plane */}
         <div
+          ref={studio.worldPlaneRef}
           style={{
             transform: `translate3d(${wf.viewport.x}px, ${wf.viewport.y}px, 0) scale(${wf.viewport.zoom})`,
             transformOrigin: "0 0",
+            willChange: "transform",
+            backfaceVisibility: "hidden",
           }}
           className="pointer-events-none absolute top-0 left-0 size-0 overflow-visible"
         >

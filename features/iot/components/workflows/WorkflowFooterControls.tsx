@@ -195,6 +195,7 @@ export default function WorkflowFooterControls({
 
         <button
           type="button"
+          data-sheet-zoom-readout="true"
           onClick={onFitView}
           aria-label="بازنشانی بزرگ‌نمایی"
           className="inline-flex h-7 min-w-[44px] cursor-pointer items-center justify-center rounded-lg px-1.5 text-[11px] font-bold tabular-nums text-text-primary transition-colors hover:bg-secondary"

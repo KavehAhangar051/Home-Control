@@ -46,7 +46,7 @@ export interface UseWorkflowInteractionsOptions {
  */
 export function useWorkflowInteractions({
   containerRef,
-  activeWorkflow,
+  activeWorkflow: _activeWorkflow,
   activeWorkflowRef,
   isLocked,
   snapToGrid,
@@ -63,62 +63,76 @@ export function useWorkflowInteractions({
   const [connectingDraft, setConnectingDraft] = React.useState<ConnectingWireDraft | null>(null);
 
   const bringNodeToFront = React.useCallback(
-    (nodeId: string) => {
+    (nodeId: string, options?: { transient?: boolean }) => {
       setSelectedNodeId(nodeId);
       setSelectedEdgeId(null);
-      updateActiveWorkflow((wf) => {
-        const clicked = wf.nodes.find((n) => n.id === nodeId);
+      updateActiveWorkflow(
+        (wf) => {
+          const clicked = wf.nodes.find((n) => n.id === nodeId);
 
-        if (!clicked) return wf;
+          if (!clicked) return wf;
 
-        let maxZ = 1;
+          let maxZ = 1;
+          let countAtMaxZ = 0;
 
-        for (const n of wf.nodes) {
-          maxZ = Math.max(maxZ, n.zIndex);
-        }
+          for (const n of wf.nodes) {
+            if (n.zIndex > maxZ) {
+              maxZ = n.zIndex;
+              countAtMaxZ = 1;
+            } else if (n.zIndex === maxZ) {
+              countAtMaxZ += 1;
+            }
+          }
 
-        // If a sub-flow group container is selected, keep its child nodes above the container frame
-        if (clicked.kind === "group") {
-          const groupZ = maxZ + 1;
+          if (clicked.kind !== "group" && clicked.zIndex === maxZ && countAtMaxZ === 1) {
+            return wf;
+          }
+
+          // If a sub-flow group container is selected, keep its child nodes above the container frame
+          if (clicked.kind === "group") {
+            const groupZ = maxZ + 1;
+
+            return {
+              ...wf,
+              nodes: wf.nodes.map((n, idx) => {
+                if (n.id === nodeId) return { ...n, zIndex: groupZ };
+
+                if (n.parentGroupId === nodeId) return { ...n, zIndex: groupZ + 1 + idx };
+
+                return n;
+              }),
+            };
+          }
 
           return {
             ...wf,
-            nodes: wf.nodes.map((n, idx) => {
-              if (n.id === nodeId) return { ...n, zIndex: groupZ };
-
-              if (n.parentGroupId === nodeId) return { ...n, zIndex: groupZ + 1 + idx };
-
-              return n;
-            }),
+            nodes: wf.nodes.map((n) => (n.id === nodeId ? { ...n, zIndex: maxZ + 1 } : n)),
           };
-        }
-
-        return {
-          ...wf,
-          nodes: wf.nodes.map((n) => (n.id === nodeId ? { ...n, zIndex: maxZ + 1 } : n)),
-        };
-      });
+        },
+        options?.transient ? { transient: true } : undefined,
+      );
     },
     [setSelectedEdgeId, setSelectedNodeId, updateActiveWorkflow],
   );
 
   const startNodeDrag = React.useCallback(
     (nodeId: string, e: React.PointerEvent<HTMLElement>) => {
-      if (e.button !== 0 || isLocked || !activeWorkflow) return;
+      const currentWorkflow = activeWorkflowRef.current;
+      if (e.button !== 0 || isLocked || !currentWorkflow) return;
 
       e.stopPropagation();
-      const startNode = activeWorkflow.nodes.find((n) => n.id === nodeId);
+      const startNode = currentWorkflow.nodes.find((n) => n.id === nodeId);
 
       if (!startNode) return;
 
       onRecordUndoSnapshot?.();
-      bringNodeToFront(nodeId);
+      bringNodeToFront(nodeId, { transient: true });
 
       // Capture any sub-flow child nodes belonging to this group container at drag start
       const childStartPositions = new Map<string, { x: number; y: number }>();
 
       if (startNode.kind === "group") {
-        for (const n of activeWorkflow.nodes) {
+        for (const n of currentWorkflow.nodes) {
           if (n.parentGroupId === nodeId) {
             childStartPositions.set(n.id, { x: n.x, y: n.y });
           }
@@ -128,7 +142,9 @@ export function useWorkflowInteractions({
       const startClientX = e.clientX;
       const startClientY = e.clientY;
       let lastClientX = e.clientX;
-      const zoom = activeWorkflow.viewport.zoom;
+      let lastAppliedX = startNode.x;
+      let lastAppliedY = startNode.y;
+      const zoom = currentWorkflow.viewport.zoom;
       const tiltEl = findNodeTiltElement(nodeId);
       setDraggingNodeId(nodeId);
       setNodeDragTiltCssVar(tiltEl, 0);
@@ -143,6 +159,12 @@ export function useWorkflowInteractions({
 
         setNodeDragTiltCssVar(tiltEl, computeDragTiltDeg(moveEvent.clientX - lastClientX));
         lastClientX = moveEvent.clientX;
+
+        if (nextX === lastAppliedX && nextY === lastAppliedY) {
+          return;
+        }
+        lastAppliedX = nextX;
+        lastAppliedY = nextY;
 
         if (childStartPositions.size > 0) {
           updateActiveWorkflow(
@@ -264,7 +286,7 @@ export function useWorkflowInteractions({
       window.addEventListener("pointercancel", onCancel);
     },
     [
-      activeWorkflow,
+      activeWorkflowRef,
       bringNodeToFront,
       handleUpdateNodeTransient,
       isLocked,
@@ -277,21 +299,26 @@ export function useWorkflowInteractions({
 
   const startNodeResize = React.useCallback(
     (nodeId: string, e: React.PointerEvent<HTMLElement>) => {
-      if (e.button !== 0 || isLocked || !activeWorkflow) return;
+      const currentWorkflow = activeWorkflowRef.current;
+      if (e.button !== 0 || isLocked || !currentWorkflow) return;
 
       e.stopPropagation();
       e.preventDefault();
 
-      const startNode = activeWorkflow.nodes.find((n) => n.id === nodeId);
+      const startNode = currentWorkflow.nodes.find((n) => n.id === nodeId);
 
       if (!startNode) return;
 
       onRecordUndoSnapshot?.();
-      bringNodeToFront(nodeId);
+      bringNodeToFront(nodeId, { transient: true });
+      setDraggingNodeId(nodeId);
 
       const startClientX = e.clientX;
       const startClientY = e.clientY;
-      const zoom = activeWorkflow.viewport.zoom;
+      let lastAppliedX = startNode.x;
+      let lastAppliedWidth = startNode.width;
+      let lastAppliedHeight = startNode.height;
+      const zoom = currentWorkflow.viewport.zoom;
       const snappedRightEdge = snapCanvasCoordinate(startNode.x + startNode.width, snapToGrid);
 
       const applyPointerMove = (moveEvent: PointerEvent) => {
@@ -306,6 +333,17 @@ export function useWorkflowInteractions({
         );
 
         const nextX = snapCanvasCoordinate(snappedRightEdge - clamped.width, snapToGrid);
+
+        if (
+          nextX === lastAppliedX &&
+          clamped.width === lastAppliedWidth &&
+          clamped.height === lastAppliedHeight
+        ) {
+          return;
+        }
+        lastAppliedX = nextX;
+        lastAppliedWidth = clamped.width;
+        lastAppliedHeight = clamped.height;
 
         handleUpdateNodeTransient(nodeId, {
           x: nextX,
@@ -342,6 +380,7 @@ export function useWorkflowInteractions({
       };
 
       const finishResize = () => {
+        setDraggingNodeId(null);
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onCancel);
@@ -364,7 +403,7 @@ export function useWorkflowInteractions({
       window.addEventListener("pointercancel", onCancel);
     },
     [
-      activeWorkflow,
+      activeWorkflowRef,
       bringNodeToFront,
       handleUpdateNodeTransient,
       isLocked,
@@ -376,10 +415,11 @@ export function useWorkflowInteractions({
 
   const connectNodes = React.useCallback(
     (sourceId: string, targetId: string, targetPortIndex?: number) => {
-      if (!activeWorkflow) return;
+      const currentWorkflow = activeWorkflowRef.current;
+      if (!currentWorkflow) return;
 
       if (
-        !canConnectWorkflowPorts(activeWorkflow.edges, activeWorkflow.nodes, sourceId, targetId)
+        !canConnectWorkflowPorts(currentWorkflow.edges, currentWorkflow.nodes, sourceId, targetId)
       ) {
         showToast?.("این اتصال مجاز نیست (حلقه یا تکراری است).", "error");
 
@@ -400,12 +440,13 @@ export function useWorkflowInteractions({
         edges: [...wf.edges, newEdge],
       }));
     },
-    [activeWorkflow, onRecordUndoSnapshot, showToast, updateActiveWorkflow],
+    [activeWorkflowRef, onRecordUndoSnapshot, showToast, updateActiveWorkflow],
   );
 
   const handleStartPortConnect = React.useCallback(
     (sourceNodeId: string, e: React.PointerEvent<HTMLButtonElement>) => {
-      if (e.button !== 0 || !activeWorkflow) return;
+      const currentWorkflow = activeWorkflowRef.current;
+      if (e.button !== 0 || !currentWorkflow) return;
 
       e.stopPropagation();
       e.preventDefault();
@@ -418,7 +459,7 @@ export function useWorkflowInteractions({
       const startY = e.clientY;
       let hasDragged = false;
       let lastMagneticTargetId: string | null = null;
-      const vp = activeWorkflow.viewport;
+      const vp = currentWorkflow.viewport;
       const rect = el.getBoundingClientRect();
 
       const applyPointerMove = (moveEvent: PointerEvent) => {
@@ -428,7 +469,7 @@ export function useWorkflowInteractions({
 
         const rawWorldX = (moveEvent.clientX - rect.left - vp.x) / vp.zoom;
         const rawWorldY = (moveEvent.clientY - rect.top - vp.y) / vp.zoom;
-        const currentWf = activeWorkflowRef.current ?? activeWorkflow;
+        const currentWf = activeWorkflowRef.current ?? currentWorkflow;
 
         const magneticMatch = findMagneticInputPort({
           nodes: currentWf.nodes,
@@ -509,7 +550,7 @@ export function useWorkflowInteractions({
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onUp);
     },
-    [activeWorkflow, activeWorkflowRef, connectNodes, containerRef],
+    [activeWorkflowRef, connectNodes, containerRef],
   );
 
   const handleCompletePortConnect = React.useCallback(
