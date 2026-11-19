@@ -61,9 +61,16 @@ void AchaemenidWebSocketClient::requestConfig() {
     sendText("{\"type\":\"get_config\"}");
 }
 
-void AchaemenidWebSocketClient::syncPinState(int pin, bool state) {
-    char payload[64];
-    snprintf(payload, sizeof(payload), "{\"type\":\"sync_pin\",\"pin\":%d,\"state\":%s}", pin, state ? "true" : "false");
+void AchaemenidWebSocketClient::syncPinState(int pin, bool state, int16_t analogValue, uint8_t resolution) {
+    char payload[96];
+    if (analogValue >= 0) {
+        snprintf(payload, sizeof(payload),
+                 "{\"type\":\"sync_pin\",\"pin\":%d,\"state\":%s,\"value\":%d,\"resolution\":%u}",
+                 pin, state ? "true" : "false", static_cast<int>(analogValue), static_cast<unsigned int>(resolution));
+    } else {
+        snprintf(payload, sizeof(payload), "{\"type\":\"sync_pin\",\"pin\":%d,\"state\":%s}",
+                 pin, state ? "true" : "false");
+    }
     sendText(payload);
 }
 

@@ -13,7 +13,7 @@ public:
     void handle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) override;
 
 private:
-    void parseUpdateRule(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+    void parseUpdateRule(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher, bool withAnalogTarget);
 };
 
 } // namespace uniuno

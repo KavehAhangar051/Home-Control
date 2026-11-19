@@ -11,24 +11,71 @@ static constexpr unsigned long DEBOUNCE_THRESHOLD_MS = 35;
 
 bool PinStateManager::setPinState(int pin, bool state) {
     PinEntry* entry = _registry.getEntryByPin(pin);
-    if (!entry || !entry->hasGpio) {
+    if (!entry || !entry->active) {
         return false;
     }
 
-    entry->gpio.setState(state);
-    INFOF("[PinManager] Pin %d -> %s", pin, state ? "ON" : "OFF");
-    return true;
+    if (entry->hasGpio) {
+        entry->gpio.setState(state);
+        INFOF("[PinManager] Pin %d -> %s", pin, state ? "ON" : "OFF");
+        return true;
+    }
+
+    if (entry->hasPwm) {
+        entry->pwm.setState(state);
+        INFOF("[PinManager] Pin %d (PWM) -> %s (duty=%u/%u)",
+              pin, state ? "ON" : "OFF", entry->pwm.getValue(), entry->pwm.getMaxDuty());
+        return true;
+    }
+
+    return false;
 }
 
 bool PinStateManager::setStateById(const char* id, bool state) {
     const int idx = _registry.findById(id);
     PinEntry* entry = _registry.getEntryByIndex(idx);
-    if (!entry || !entry->hasGpio) {
+    if (!entry || !entry->active) {
         return false;
     }
 
-    entry->gpio.setState(state);
-    INFOF("[PinManager] '%s' (pin %d) -> %s", id, entry->pinNumber, state ? "ON" : "OFF");
+    if (entry->hasGpio) {
+        entry->gpio.setState(state);
+        INFOF("[PinManager] '%s' (pin %d) -> %s", id, entry->pinNumber, state ? "ON" : "OFF");
+        return true;
+    }
+
+    if (entry->hasPwm) {
+        entry->pwm.setState(state);
+        INFOF("[PinManager] '%s' (pin %d, PWM) -> %s (duty=%u/%u)",
+              id, entry->pinNumber, state ? "ON" : "OFF", entry->pwm.getValue(), entry->pwm.getMaxDuty());
+        return true;
+    }
+
+    return false;
+}
+
+bool PinStateManager::setPinAnalogValue(int pin, uint16_t value) {
+    PinEntry* entry = _registry.getEntryByPin(pin);
+    if (!entry || !entry->active || !entry->hasPwm) {
+        return false;
+    }
+
+    entry->pwm.setValue(value);
+    INFOF("[PinManager] Pin %d PWM -> %u/%u (%u-bit)",
+          pin, entry->pwm.getValue(), entry->pwm.getMaxDuty(), entry->pwm.getResolution());
+    return true;
+}
+
+bool PinStateManager::setAnalogValueById(const char* id, uint16_t value) {
+    const int idx = _registry.findById(id);
+    PinEntry* entry = _registry.getEntryByIndex(idx);
+    if (!entry || !entry->active || !entry->hasPwm) {
+        return false;
+    }
+
+    entry->pwm.setValue(value);
+    INFOF("[PinManager] '%s' (pin %d) PWM -> %u/%u (%u-bit)",
+          id, entry->pinNumber, entry->pwm.getValue(), entry->pwm.getMaxDuty(), entry->pwm.getResolution());
     return true;
 }
 

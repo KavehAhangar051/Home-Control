@@ -23,7 +23,7 @@ public:
     void stop();
     void sendText(const String& payload);
     void requestConfig();
-    void syncPinState(int pin, bool state);
+    void syncPinState(int pin, bool state, int16_t analogValue = -1, uint8_t resolution = 0);
 
     FORCE_INLINE void setNetworkAvailable(bool available) { isNetworkAvailable_ = available; }
     FORCE_INLINE bool isNetworkAvailable() const { return isNetworkAvailable_; }

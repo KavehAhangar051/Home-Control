@@ -31,9 +31,15 @@ void SegmentParsers::handle(const uint8_t* payload, size_t len, IEventDispatcher
     }
 }
 
+FORCE_INLINE static uint16_t readUint16LE(const uint8_t* buf, size_t offset) {
+    return static_cast<uint16_t>(buf[offset]) |
+        (static_cast<uint16_t>(buf[offset + 1]) << 8);
+}
+
 HOT_PATH IRAM_ATTR void SegmentParsers::parseAddSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (LIKELY(len >= 6)) {
-        int pinNum = payload[1];
+        const int pinNum = payload[1];
+        const uint8_t legacyVal = payload[2];
         size_t offset = 3;
         
         StaticString<32> idStr;
@@ -42,9 +48,42 @@ HOT_PATH IRAM_ATTR void SegmentParsers::parseAddSegment(const uint8_t* payload, 
         readIntoStaticString(payload, offset, len, idStr);
         readIntoStaticString(payload, offset, len, typeStr);
 
-        SegmentAddRequestEvent evt{idStr.c_str(), typeStr.c_str(), pinNum};
+        uint8_t resolution = DEFAULT_PWM_RESOLUTION;
+        uint16_t frequency = DEFAULT_PWM_FREQUENCY;
+        uint16_t initialValue = legacyVal;
+
+        // Backward-compatible optional trailing PWM metadata:
+        // [res:u8] or [res:u8][freq:u16LE] or [res:u8][freq:u16LE][initVal:u16LE]
+        if (offset < len) {
+            const uint8_t rawRes = payload[offset++];
+            if (rawRes >= MIN_PWM_RESOLUTION && rawRes <= MAX_PWM_RESOLUTION) {
+                resolution = rawRes;
+            }
+        }
+        if (offset + 2 <= len) {
+            const uint16_t rawFreq = readUint16LE(payload, offset);
+            offset += 2;
+            if (rawFreq >= MIN_PWM_FREQUENCY && rawFreq <= MAX_PWM_FREQUENCY) {
+                frequency = rawFreq;
+            }
+        }
+        if (offset + 2 <= len) {
+            const uint16_t rawInit = readUint16LE(payload, offset);
+            offset += 2;
+            initialValue = rawInit > MAX_ANALOG_OUTPUT_VALUE ? MAX_ANALOG_OUTPUT_VALUE : rawInit;
+        }
+
+        SegmentAddRequestEvent evt{
+            idStr.c_str(),
+            typeStr.c_str(),
+            pinNum,
+            resolution,
+            frequency,
+            initialValue
+        };
         dispatcher->dispatch(evt);
-        INFOF("[MQTT Handler] Binary Add: id=%s pin=%d", idStr.c_str(), pinNum);
+        INFOF("[MQTT Handler] Binary Add: id=%s type=%s pin=%d (res=%u freq=%uHz init=%u)",
+              idStr.c_str(), typeStr.c_str(), pinNum, resolution, frequency, initialValue);
     }
 }
 

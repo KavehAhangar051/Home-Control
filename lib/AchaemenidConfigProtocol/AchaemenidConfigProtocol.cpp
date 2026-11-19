@@ -67,11 +67,14 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
     for (int i = 0; i < MAX_SEGMENTS; i++) {
         outResult.segments[i].valid = false;
         outResult.segments[i].pin = -1;
+        outResult.segments[i].autoOffDelay = 0;
+        outResult.segments[i].analogValue = 0;
+        outResult.segments[i].pwmFrequency = DEFAULT_PWM_FREQUENCY;
+        outResult.segments[i].pwmResolution = DEFAULT_PWM_RESOLUTION;
+        outResult.segments[i].value = false;
         outResult.segments[i].id[0] = '\0';
         outResult.segments[i].type[0] = '\0';
-        outResult.segments[i].rule.active = false;
-        outResult.segments[i].rule.highActionCount = 0;
-        outResult.segments[i].rule.lowActionCount = 0;
+        outResult.segments[i].rule = RuleConfig();
     }
 
     if (!payload || payload[0] == '\0') {
@@ -125,8 +128,24 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                 strncpy(outResult.segments[segIndex].id, idBuf, sizeof(outResult.segments[segIndex].id) - 1);
                 strncpy(outResult.segments[segIndex].type, typeBuf, sizeof(outResult.segments[segIndex].type) - 1);
                 
+                int rawRes = kvp.getInt("res", DEFAULT_PWM_RESOLUTION);
+                if (rawRes < MIN_PWM_RESOLUTION) rawRes = MIN_PWM_RESOLUTION;
+                if (rawRes > MAX_PWM_RESOLUTION) rawRes = MAX_PWM_RESOLUTION;
+
+                int rawFreq = kvp.getInt("freq", DEFAULT_PWM_FREQUENCY);
+                if (rawFreq < MIN_PWM_FREQUENCY) rawFreq = MIN_PWM_FREQUENCY;
+                if (rawFreq > MAX_PWM_FREQUENCY) rawFreq = MAX_PWM_FREQUENCY;
+
+                const uint16_t maxDuty = static_cast<uint16_t>((1UL << rawRes) - 1UL);
+                int rawVal = kvp.getInt("val", 0);
+                if (rawVal < 0) rawVal = 0;
+                if (rawVal > static_cast<int>(maxDuty)) rawVal = static_cast<int>(maxDuty);
+
                 outResult.segments[segIndex].pin = pinNum;
-                outResult.segments[segIndex].value = (kvp.getInt("val", 0) > 0);
+                outResult.segments[segIndex].pwmResolution = static_cast<uint8_t>(rawRes);
+                outResult.segments[segIndex].pwmFrequency = static_cast<uint16_t>(rawFreq);
+                outResult.segments[segIndex].analogValue = static_cast<uint16_t>(rawVal);
+                outResult.segments[segIndex].value = (rawVal > 0);
                 outResult.segments[segIndex].autoOffDelay = kvp.getInt("ao", 0);
                 outResult.segments[segIndex].valid = valid;
                 if (valid) {
@@ -145,13 +164,20 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                 if (kvp.getValue("tgt", tgtBuf, sizeof(tgtBuf))) {
                     int targetPin = parsePinNumber(tgtBuf);
                     if (targetPin >= 0) {
+                        const int rawAval = kvp.getInt("aval", RULE_ANALOG_VALUE_UNSET);
+                        const bool hasAnalogVal = (rawAval >= 0 && rawAval <= MAX_ANALOG_OUTPUT_VALUE);
+                        const int16_t targetVal = hasAnalogVal ? static_cast<int16_t>(rawAval) : RULE_ANALOG_VALUE_UNSET;
+
                         outResult.segments[segIndex].rule.active = true;
                         if (isHigh) {
                             int c = outResult.segments[segIndex].rule.highActionCount;
                             if (c < 4) {
                                 outResult.segments[segIndex].rule.highActions[c].targetPin = targetPin;
                                 outResult.segments[segIndex].rule.highActions[c].requiredHoldTime = kvp.getInt("hld", 0);
-                                outResult.segments[segIndex].rule.highActions[c].actionState = kvp.getInt("ast", 1) > 0;
+                                outResult.segments[segIndex].rule.highActions[c].targetValue = targetVal;
+                                outResult.segments[segIndex].rule.highActions[c].actionState = hasAnalogVal
+                                    ? (targetVal > 0)
+                                    : (kvp.getInt("ast", 1) > 0);
                                 outResult.segments[segIndex].rule.highActions[c].actionType = static_cast<RuleActionType>(kvp.getInt("atp", 0));
                                 outResult.segments[segIndex].rule.highActions[c].delay = kvp.getInt("dly", 0);
                                 outResult.segments[segIndex].rule.highActionCount++;
@@ -161,7 +187,10 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                             if (c < 4) {
                                 outResult.segments[segIndex].rule.lowActions[c].targetPin = targetPin;
                                 outResult.segments[segIndex].rule.lowActions[c].requiredHoldTime = kvp.getInt("hld", 0);
-                                outResult.segments[segIndex].rule.lowActions[c].actionState = kvp.getInt("ast", 0) > 0;
+                                outResult.segments[segIndex].rule.lowActions[c].targetValue = targetVal;
+                                outResult.segments[segIndex].rule.lowActions[c].actionState = hasAnalogVal
+                                    ? (targetVal > 0)
+                                    : (kvp.getInt("ast", 0) > 0);
                                 outResult.segments[segIndex].rule.lowActions[c].actionType = static_cast<RuleActionType>(kvp.getInt("atp", 0));
                                 outResult.segments[segIndex].rule.lowActions[c].delay = kvp.getInt("dly", 0);
                                 outResult.segments[segIndex].rule.lowActionCount++;
@@ -249,12 +278,24 @@ void AchaemenidConfigProtocol::printResult(const ParseResult* result) {
     for (int i = 0; i < MAX_SEGMENTS; i++) {
         if (!result->segments[i].valid) continue;
 
-        Serial.printf("  [%d] id=%s  type=%s  pin=%d  val=%s\n",
-            i,
-            result->segments[i].id,
-            result->segments[i].type,
-            result->segments[i].pin,
-            result->segments[i].value ? "ON" : "OFF");
+        if (strcmp(result->segments[i].type, "analog_output") == 0 ||
+            strcmp(result->segments[i].type, "pwm_output") == 0) {
+            Serial.printf("  [%d] id=%s  type=%s  pin=%d  val=%u (%u-bit @ %uHz)\n",
+                i,
+                result->segments[i].id,
+                result->segments[i].type,
+                result->segments[i].pin,
+                result->segments[i].analogValue,
+                result->segments[i].pwmResolution,
+                result->segments[i].pwmFrequency);
+        } else {
+            Serial.printf("  [%d] id=%s  type=%s  pin=%d  val=%s\n",
+                i,
+                result->segments[i].id,
+                result->segments[i].type,
+                result->segments[i].pin,
+                result->segments[i].value ? "ON" : "OFF");
+        }
     }
 
     Serial.println("=======================================");

@@ -42,6 +42,16 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
                 }
             }
         }
+        // Single analog PWM binary format: [0x0A][pin:u8][value:u16LE]
+        else if (LIKELY(len >= 4) && static_cast<uint8_t>(data[0]) == 0x0A) {
+            const uint8_t pin = static_cast<uint8_t>(data[1]);
+            const uint16_t val = static_cast<uint16_t>(static_cast<uint8_t>(data[2])) |
+                (static_cast<uint16_t>(static_cast<uint8_t>(data[3])) << 8);
+            Serial.printf("[WebSocket] Analog Automation Triggered! Pin: %u, Value: %u\n", pin, val);
+            PinStateChangeRequestEvent event = PinStateChangeRequestEvent::analog(
+                pin, val, 0, PinStateChangeOrigin::Cloudflare);
+            _dispatcher->dispatch(event);
+        }
     } else {
         // Text message
         const String text = message.data();
@@ -64,16 +74,30 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
             }
         } else if (text.indexOf("\"state_sync\"") >= 0) {
             Serial.println("[WebSocket] Received state_sync payload from Cloudflare");
-            StaticJsonDocument<1024> doc; 
+            StaticJsonDocument<1536> doc;
             DeserializationError error = deserializeJson(doc, text);
-            if (!error && doc.containsKey("states")) {
-                JsonObject states = doc["states"].as<JsonObject>();
-                for (JsonPair kv : states) {
-                    // Zero-heap integer parsing directly via standard atoi
-                    const int pin   = atoi(kv.key().c_str());
-                    const bool state = kv.value().as<bool>();
-                    PinStateChangeRequestEvent event{pin, state, 0, PinStateChangeOrigin::Cloudflare};
-                    _dispatcher->dispatch(event);
+            if (!error) {
+                if (doc.containsKey("states")) {
+                    JsonObject states = doc["states"].as<JsonObject>();
+                    for (JsonPair kv : states) {
+                        // Zero-heap integer parsing directly via standard atoi
+                        const int pin   = atoi(kv.key().c_str());
+                        const bool state = kv.value().as<bool>();
+                        PinStateChangeRequestEvent event{pin, state, 0, PinStateChangeOrigin::Cloudflare};
+                        _dispatcher->dispatch(event);
+                    }
+                }
+                if (doc.containsKey("values")) {
+                    JsonObject values = doc["values"].as<JsonObject>();
+                    for (JsonPair kv : values) {
+                        const int pin = atoi(kv.key().c_str());
+                        const int rawVal = kv.value().as<int>();
+                        const uint16_t clamped = rawVal <= 0 ? 0 :
+                            (rawVal > MAX_ANALOG_OUTPUT_VALUE ? MAX_ANALOG_OUTPUT_VALUE : static_cast<uint16_t>(rawVal));
+                        PinStateChangeRequestEvent event = PinStateChangeRequestEvent::analog(
+                            pin, clamped, 0, PinStateChangeOrigin::Cloudflare);
+                        _dispatcher->dispatch(event);
+                    }
                 }
                 Serial.println("[WebSocket] Initial states applied successfully.");
             }

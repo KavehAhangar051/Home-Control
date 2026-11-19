@@ -1,0 +1,8 @@
+{
+  "name": "Achaemenid IoT Node Console",
+  "description": "Industrial hardware simulator, GPIO pin manager, binary MQTT protocol debugger, and stack telemetry console for the Achaemenid ESP32 Modular Async IoT Firmware.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
