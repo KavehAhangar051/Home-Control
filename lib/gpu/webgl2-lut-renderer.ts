@@ -47,14 +47,19 @@ void main() {
   out_color = vec4(mix(source.rgb, graded, u_intensity), source.a);
 }`;
 
-function compileShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
+function compileShader(
+  gl: WebGL2RenderingContext,
+  type: number,
+  source: string,
+  deferStatusCheck: boolean,
+): WebGLShader {
   const shader = gl.createShader(type);
   if (!shader) throw new Error("Unable to allocate a WebGL shader.");
 
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
 
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+  if (!deferStatusCheck && !gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     const message = gl.getShaderInfoLog(shader) ?? "Unknown shader compilation error.";
     gl.deleteShader(shader);
     throw new Error(message);
@@ -63,36 +68,77 @@ function compileShader(gl: WebGL2RenderingContext, type: number, source: string)
   return shader;
 }
 
-function createProgram(gl: WebGL2RenderingContext): WebGLProgram {
-  const vertexShader = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
-  let fragmentShader: WebGLShader;
+function waitForProgramCompletion(
+  gl: WebGL2RenderingContext,
+  program: WebGLProgram,
+  extension: { COMPLETION_STATUS_KHR: number },
+): Promise<void> {
+  return new Promise((resolve) => {
+    const poll = () => {
+      if (
+        gl.isContextLost() ||
+        gl.getProgramParameter(program, extension.COMPLETION_STATUS_KHR)
+      ) {
+        resolve();
+        return;
+      }
+
+      requestAnimationFrame(poll);
+    };
+
+    requestAnimationFrame(poll);
+  });
+}
+
+async function createProgram(gl: WebGL2RenderingContext): Promise<WebGLProgram> {
+  const parallelCompile = gl.getExtension("KHR_parallel_shader_compile");
+  const vertexShader = compileShader(
+    gl,
+    gl.VERTEX_SHADER,
+    VERTEX_SHADER,
+    parallelCompile !== null,
+  );
+  let fragmentShader: WebGLShader | null = null;
+  let program: WebGLProgram | null = null;
+
   try {
-    fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
+    fragmentShader = compileShader(
+      gl,
+      gl.FRAGMENT_SHADER,
+      FRAGMENT_SHADER,
+      parallelCompile !== null,
+    );
+    program = gl.createProgram();
+    if (!program) throw new Error("Unable to allocate a WebGL program.");
+
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+
+    if (parallelCompile) {
+      await waitForProgramCompletion(gl, program, parallelCompile);
+      if (gl.isContextLost()) {
+        throw new Error("WebGL context was lost during shader compilation.");
+      }
+    }
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      const message =
+        gl.getProgramInfoLog(program) ??
+        gl.getShaderInfoLog(vertexShader) ??
+        gl.getShaderInfoLog(fragmentShader) ??
+        "Unknown shader link error.";
+      throw new Error(message);
+    }
+
+    return program;
   } catch (error) {
-    gl.deleteShader(vertexShader);
+    if (program) gl.deleteProgram(program);
     throw error;
-  }
-  const program = gl.createProgram();
-
-  if (!program) {
+  } finally {
     gl.deleteShader(vertexShader);
-    gl.deleteShader(fragmentShader);
-    throw new Error("Unable to allocate a WebGL program.");
+    if (fragmentShader) gl.deleteShader(fragmentShader);
   }
-
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-  gl.deleteShader(vertexShader);
-  gl.deleteShader(fragmentShader);
-
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    const message = gl.getProgramInfoLog(program) ?? "Unknown shader link error.";
-    gl.deleteProgram(program);
-    throw new Error(message);
-  }
-
-  return program;
 }
 
 /**
@@ -117,7 +163,7 @@ export class WebGL2LutRenderer {
   private uploadedSource: TexImageSource | null = null;
   private disposed = false;
 
-  constructor(canvas: HTMLCanvasElement) {
+  static async create(canvas: HTMLCanvasElement): Promise<WebGL2LutRenderer> {
     const gl = canvas.getContext("webgl2", {
       alpha: true,
       antialias: false,
@@ -131,6 +177,20 @@ export class WebGL2LutRenderer {
 
     if (!gl) throw new Error("WebGL 2 hardware acceleration is unavailable.");
 
+    const program = await createProgram(gl);
+    try {
+      return new WebGL2LutRenderer(canvas, gl, program);
+    } catch (error) {
+      gl.deleteProgram(program);
+      throw error;
+    }
+  }
+
+  private constructor(
+    canvas: HTMLCanvasElement,
+    gl: WebGL2RenderingContext,
+    program: WebGLProgram,
+  ) {
     this.gl = gl;
 
     const maxViewportDimensions = gl.getParameter(gl.MAX_VIEWPORT_DIMS) as Int32Array;
@@ -144,7 +204,7 @@ export class WebGL2LutRenderer {
       Math.min(maxRenderbufferSize, maxViewportDimensions[1] ?? maxRenderbufferSize),
     );
 
-    this.program = createProgram(gl);
+    this.program = program;
 
     const vertexArray = gl.createVertexArray();
     const sourceTexture = gl.createTexture();
