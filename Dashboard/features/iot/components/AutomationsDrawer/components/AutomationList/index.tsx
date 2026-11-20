@@ -85,7 +85,9 @@ export default function AutomationList({
                       aria-label={`وضعیت اتوماسیون ${auto.title}`}
                       className={`relative inline-flex h-6 w-11 min-w-11 shrink-0 items-center rounded-[8px] border p-0.5 transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent3 motion-reduce:transition-none ${auto.enabled ? "justify-end border-accent4 bg-accent4 hover:bg-accent4 aria-pressed:bg-accent4 data-[state=on]:bg-accent4" : "justify-start border-border-color bg-card-hover-bg hover:bg-card-hover-bg"}`}
                     >
-                      <span className="pointer-events-none block size-4 rounded-[5px] bg-white shadow-sm ring-1 ring-black/10" />
+                      <span
+                        className={`pointer-events-none block size-4 rounded-[5px] shadow-sm ring-1 ring-black/10 ${auto.enabled ? "bg-accent4-foreground" : "bg-card-bg-solid dark:bg-foreground"}`}
+                      />
                     </Toggle>
                   </div>
                 </div>

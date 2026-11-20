@@ -86,7 +86,7 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
               animationsEnabled
                 ? "transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 : ""
-            } ${hapticsEnabled ? "bg-white -translate-x-5" : "bg-text-secondary translate-x-0"}`}
+            } ${hapticsEnabled ? "bg-accent4-foreground -translate-x-5" : "bg-text-secondary translate-x-0"}`}
           />
         </div>
       </Toggle>

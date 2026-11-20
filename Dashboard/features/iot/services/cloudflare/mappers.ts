@@ -196,8 +196,8 @@ function buildNormalizedPreferences(
 ): EspConfig["preferences"] {
   return {
     theme_mode: prefs?.theme_mode || "dark",
-    accent_color_3: prefs?.accent_color_3 || "#D4AF37",
-    accent_color_4: prefs?.accent_color_4 || "#10B981",
+    accent_color_3: prefs?.accent_color_3 || "#E5E7EB",
+    accent_color_4: prefs?.accent_color_4 || "#3B82F6",
     font_family: prefs?.font_family || "dana",
     animations_enabled: prefs?.animations_enabled ?? true,
     animations_fps: prefs?.animations_fps ?? 60,
@@ -206,7 +206,7 @@ function buildNormalizedPreferences(
     matrix_density: prefs?.matrix_density ?? 40,
     matrix_size: prefs?.matrix_size ?? 4,
     matrix_hover_size: prefs?.matrix_hover_size ?? 3,
-    matrix_color: prefs?.matrix_color || "#D4AF37",
+    matrix_color: prefs?.matrix_color || "#E5E7EB",
     matrix_moving: prefs?.matrix_moving ?? true,
     matrix_mouse_effect: prefs?.matrix_mouse_effect ?? true,
     matrix_twinkle_effect: prefs?.matrix_twinkle_effect ?? false,

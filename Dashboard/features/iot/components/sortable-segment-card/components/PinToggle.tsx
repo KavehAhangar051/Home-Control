@@ -48,11 +48,11 @@ function PinToggle({
   const ariaLabel = getPinToggleAriaLabel(segment.title, isPinOn, mode);
 
   const surfaceTone = isPinOn
-    ? "bg-accent3-transparent hover:bg-accent3-transparent aria-pressed:bg-accent3-transparent data-[state=on]:bg-accent3-transparent text-text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+    ? "bg-accent3-transparent hover:bg-accent3-transparent aria-pressed:bg-accent3-transparent data-[state=on]:bg-accent3-transparent text-text-primary dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
     : "bg-transparent hover:bg-card-hover-bg aria-pressed:bg-transparent data-[state=on]:bg-transparent text-text-primary";
 
   const badgeTone = isPinOn
-    ? "bg-accent3 text-accent3-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+    ? "bg-accent3 text-accent3-foreground dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
     : "bg-secondary text-text-secondary border border-border-color";
 
   const showEmojiIcon = Boolean(segment.icon) && !hasIcon(segment.icon);

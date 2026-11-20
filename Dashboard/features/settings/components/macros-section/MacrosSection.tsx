@@ -81,8 +81,8 @@ export default function MacrosSection() {
         <div className="space-y-1">
           <h3 className="text-base font-semibold text-text-primary">مدیریت دکمه‌های سفارشی</h3>
           <p className="text-xs leading-6 text-text-secondary">
-            برای هر دکمه چند خروجی تعریف کنید تا با یک کلیک، عملیات آن‌ها اجرا شود. تغییرات از مسیر
-            ذخیره‌سازی فعلی داشبورد به‌صورت خودکار همگام می‌شوند.
+            برای هر دکمه چند خروجی تعریف کنید تا با یک کلیک اجرا شوند. تغییرات با مسیر ذخیره‌سازی
+            فعلی داشبورد همگام می‌ماند.
           </p>
         </div>
         <button
@@ -93,7 +93,7 @@ export default function MacrosSection() {
             setIcon("");
             setActions([]);
           }}
-          className="min-h-10 rounded-xl bg-accent3 px-4 py-2 text-xs font-semibold text-bg-main"
+          className="min-h-10 rounded-xl bg-accent3 px-4 py-2 text-xs font-semibold text-accent3-foreground"
         >
           + افزودن دکمه
         </button>
@@ -101,7 +101,7 @@ export default function MacrosSection() {
 
       {!outputs.length && (
         <p className="rounded-xl border border-dashed border-border-color p-4 text-xs leading-6 text-text-secondary">
-          ابتدا از بخش «پالایه و ماژول‌ها» حداقل یک سگمنت خروجی اضافه کنید.
+          ابتدا از بخش «پالایه و ماژول‌ها» حداقل یک قطعه خروجی اضافه کنید.
         </p>
       )}
 
@@ -203,7 +203,7 @@ export default function MacrosSection() {
                         ),
                       )
                     }
-                    className={`rounded-lg px-3 py-2 text-xs ${action.actionOn ? "bg-accent3 text-bg-main" : "border border-border-color text-text-secondary"}`}
+                    className={`rounded-lg px-3 py-2 text-xs ${action.actionOn ? "bg-accent3 text-accent3-foreground" : "border border-border-color text-text-secondary"}`}
                   >
                     روشن
                   </button>
@@ -217,7 +217,7 @@ export default function MacrosSection() {
                         ),
                       )
                     }
-                    className={`rounded-lg px-3 py-2 text-xs ${!action.actionOn ? "bg-destructive text-white" : "border border-border-color text-text-secondary"}`}
+                    className={`rounded-lg px-3 py-2 text-xs ${!action.actionOn ? "bg-destructive text-destructive-foreground" : "border border-border-color text-text-secondary"}`}
                   >
                     خاموش
                   </button>
@@ -236,7 +236,7 @@ export default function MacrosSection() {
                 <button
                   type="button"
                   onClick={saveMacro}
-                  className="min-h-10 rounded-xl bg-accent3 px-4 py-2 text-xs font-semibold text-bg-main"
+                  className="min-h-10 rounded-xl bg-accent3 px-4 py-2 text-xs font-semibold text-accent3-foreground"
                 >
                   ذخیره دکمه
                 </button>

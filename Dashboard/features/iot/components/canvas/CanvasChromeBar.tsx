@@ -231,7 +231,7 @@ export default React.memo(function CanvasChromeBar({
                 </button>
               }
             />
-            <TooltipContent>چیدن مجدد و منظم سگمنت‌ها و گروه‌ها روی شیت</TooltipContent>
+            <TooltipContent>چیدن منظم قطعات و گروه‌ها روی شیت</TooltipContent>
           </Tooltip>
         </div>
       </div>

@@ -74,8 +74,8 @@ function ActiveCard({
   });
 
   const activeSurfaceClass = effectivePinOn
-    ? "border-accent3 bg-card-bg shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)]"
-    : "border-border-color bg-card-bg shadow-[inset_0_1px_0_0_oklch(1_0_0/0.05)]";
+    ? "border-accent3 bg-card-bg dark:shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)]"
+    : "border-border-color bg-card-bg dark:shadow-[inset_0_1px_0_0_oklch(1_0_0/0.05)]";
 
   return (
     <m.div

@@ -151,7 +151,7 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
     >
       <header className="flex flex-col gap-2.5 border-b border-border-color pb-3.5 sm:pb-5 @sm/workspace:flex-row @sm/workspace:items-end @sm/workspace:justify-between">
         <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border-color bg-card-bg text-accent3 shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)] sm:size-10">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border-color bg-card-bg text-accent3 dark:shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)] sm:size-10">
             <Icon className="size-4.5 sm:size-5" aria-hidden="true" />
           </div>
           <div className="min-w-0 space-y-1">

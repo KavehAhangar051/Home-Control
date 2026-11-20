@@ -127,7 +127,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fa" dir="rtl" className={FONT_VARIABLES}>
+    <html lang="fa" dir="rtl" suppressHydrationWarning className={`${FONT_VARIABLES} dark`}>
       <head>
         <link
           rel="preconnect"

@@ -30,7 +30,7 @@ export default function MobileVoiceCommandButton() {
             aria-label="فرمان صوتی (نگه دارید)"
             className={`sm:hidden fixed bottom-6 left-6 z-50 p-3.5 rounded-xl flex justify-center items-center select-none transition-[background-color,border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] focus-ring ${
               isListening
-                ? "bg-accent4 border border-accent4 text-white"
+                ? "bg-accent4 border border-accent4 text-accent4-foreground"
                 : "bg-card-hover-bg border border-border-color text-text-secondary hover:text-text-primary"
             }`}
           >

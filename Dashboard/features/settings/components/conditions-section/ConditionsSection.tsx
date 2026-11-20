@@ -36,9 +36,8 @@ export default function ConditionsSection() {
       <div className="bg-accent3-transparent border border-accent3 text-accent3 p-4 rounded-xl text-xs flex gap-3 items-start">
         <Info className="size-5 shrink-0 mt-0.5" />
         <p className="leading-relaxed font-medium">
-          در این بخش می‌توانید برای زمان‌های مختلف نگه‌داشتن کلید (مثلاً 0، 3، 5 یا 10 ثانیه) عملیات
-          متفاوتی تعریف کنید. شما می‌توانید برای هر وضعیت چندین عملیات بسازید تا هرکدام روی یک پایه‌ی
-          مجزا تاثیر بگذارند.
+          برای زمان‌های مختلف نگه‌داشتن کلید (مثلاً 0، 3، 5 یا 10 ثانیه) عملیات جداگانه تعریف کنید. هر
+          وضعیت می‌تواند چند عملیات روی پایه‌های مجزا داشته باشد.
         </p>
       </div>
 

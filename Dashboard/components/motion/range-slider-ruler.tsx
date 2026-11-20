@@ -125,16 +125,16 @@ export function RulerSlider({
         "relative w-full touch-none overflow-hidden",
         TOUCH_GESTURE_CLASS,
         options.disabled ? "pointer-events-none opacity-50" : "cursor-grab active:cursor-grabbing",
-        "rounded-2xl outline-none ring-foreground/30 focus-visible:ring-4",
+        "rounded-2xl outline-none ring-accent3/30 focus-visible:ring-4",
         className,
       )}
     >
       {!compact && (
         <div className="pointer-events-none flex items-baseline justify-center gap-1 pt-1 pb-3">
-          <span className="text-2xl sm:text-3xl font-semibold tabular-nums text-foreground">
+          <span className="text-2xl sm:text-3xl font-semibold tabular-nums text-text-primary">
             {readout(current)}
           </span>
-          {unit ? <span className="text-xs sm:text-sm text-muted-foreground">{unit}</span> : null}
+          {unit ? <span className="text-xs sm:text-sm text-text-muted">{unit}</span> : null}
         </div>
       )}
       {/* masked, not overlaid with background-coloured gradients — the fade has
@@ -182,15 +182,15 @@ export function RulerSlider({
                   "w-px rounded-full",
                   tick.major
                     ? compact
-                      ? "h-5 bg-foreground/70"
-                      : "h-7 bg-foreground/70"
+                      ? "h-5 bg-text-primary/70"
+                      : "h-7 bg-text-primary/70"
                     : compact
-                      ? "h-2.5 bg-foreground/45"
-                      : "h-3.5 bg-foreground/45",
+                      ? "h-2.5 bg-text-muted/45"
+                      : "h-3.5 bg-text-muted/45",
                 )}
               />
               {tick.major ? (
-                <span className="absolute bottom-0 text-[9px] sm:text-[10px] tabular-nums text-muted-foreground">
+                <span className="absolute bottom-0 text-[9px] sm:text-[10px] tabular-nums text-text-muted">
                   {tick.value}
                 </span>
               ) : null}
@@ -204,9 +204,7 @@ export function RulerSlider({
             compact ? "bottom-3.5" : "bottom-5",
           )}
         >
-          <span
-            className={cn("block w-[3px] rounded-full bg-foreground", compact ? "h-6" : "h-9")}
-          />
+          <span className={cn("block w-[3px] rounded-full bg-accent3", compact ? "h-6" : "h-9")} />
         </div>
       </div>
     </div>

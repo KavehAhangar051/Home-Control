@@ -77,22 +77,22 @@ export function FluidSlider({
       animate={reduce ? undefined : { scale: dragging ? 1.03 : 1 }}
       transition={SPRING_PRESS}
       className={cn(
-        "relative flex h-12 w-full touch-none overflow-hidden rounded-full bg-muted",
+        "relative flex h-12 w-full touch-none overflow-hidden rounded-full bg-secondary border border-border-color/60",
         TOUCH_GESTURE_CLASS,
         options.disabled ? "pointer-events-none opacity-50" : "cursor-grab active:cursor-grabbing",
         className,
       )}
     >
       {/* uncovered label — sits on the muted track */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-between gap-2 px-4 sm:px-5 text-xs sm:text-sm font-medium text-foreground">
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-between gap-2 px-4 sm:px-5 text-xs sm:text-sm font-medium text-text-primary">
         {row}
       </div>
       {/* fill + the same label, both clipped to the value, so the text inverts
           as the fill covers it and lines up glyph for glyph with the copy
           underneath. The clip's rounded right edge is the liquid cap. */}
       <m.div className="absolute inset-0" style={{ clipPath }}>
-        <div className="absolute inset-0 bg-foreground" />
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-between gap-2 px-4 sm:px-5 text-xs sm:text-sm font-medium text-background">
+        <div className="absolute inset-0 bg-accent3" />
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-between gap-2 px-4 sm:px-5 text-xs sm:text-sm font-medium text-accent3-foreground">
           {row}
         </div>
       </m.div>
@@ -101,7 +101,7 @@ export function FluidSlider({
       <button
         type="button"
         {...sliderProps}
-        className="absolute inset-0 touch-none rounded-full outline-none ring-inset ring-foreground/40 focus-visible:ring-4"
+        className="absolute inset-0 touch-none rounded-full outline-none ring-inset ring-accent3/40 focus-visible:ring-4"
       />
     </m.div>
   );

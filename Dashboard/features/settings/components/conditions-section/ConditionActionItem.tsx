@@ -167,7 +167,7 @@ export function ConditionActionItem({
                   onClick={() => onUpdate({ targetValue: -1 })}
                   className={`rounded-md px-2.5 py-1 text-[11px] transition-colors cursor-pointer ${
                     !isExactPwmMode
-                      ? "bg-accent3 text-bg-main font-semibold"
+                      ? "bg-accent3 text-accent3-foreground font-semibold"
                       : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
@@ -185,7 +185,7 @@ export function ConditionActionItem({
                   }}
                   className={`rounded-md px-2.5 py-1 text-[11px] transition-colors cursor-pointer ${
                     isExactPwmMode
-                      ? "bg-accent3 text-bg-main font-semibold"
+                      ? "bg-accent3 text-accent3-foreground font-semibold"
                       : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
@@ -241,7 +241,7 @@ export function ConditionActionItem({
                         }
                         className={`rounded-md border px-2 py-0.5 font-mono text-[10px] tabular-nums transition-colors cursor-pointer ${
                           isSelected
-                            ? "border-accent3 bg-accent3 text-bg-main font-semibold"
+                            ? "border-accent3 bg-accent3 text-accent3-foreground font-semibold"
                             : "border-border-color bg-card-bg-solid text-text-muted hover:text-text-primary"
                         }`}
                       >

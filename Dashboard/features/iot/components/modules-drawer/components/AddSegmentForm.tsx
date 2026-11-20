@@ -101,15 +101,15 @@ export default function AddSegmentForm({
         <Card className="bezel-core !gap-4 !p-3 sm:!p-4">
           <div className="flex items-center gap-2 text-text-primary border-b border-border-color pb-3">
             <Plus strokeWidth={1.5} className="size-4 text-accent3" />
-            <span className="text-sm font-medium font-sans">افزودن سگمنت جدید</span>
+            <span className="text-sm font-medium font-sans">افزودن قطعه جدید</span>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="segment-monitoring-type" className="block">
-              نوع سگمنت مانیتورینگ
+              نوع قطعه
             </Label>
             <Select
               id="segment-monitoring-type"
-              aria-label="نوع سگمنت مانیتورینگ"
+              aria-label="نوع قطعه"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
               className="text-xs rounded-lg font-sans"
@@ -233,7 +233,7 @@ export default function AddSegmentForm({
                             onClick={() => setPwmFrequency(preset)}
                             className={`rounded border px-1.5 py-0.5 font-mono text-[10px] tabular-nums transition-colors cursor-pointer ${
                               pwmFrequency === preset
-                                ? "border-accent3 bg-accent3 text-bg-main font-semibold"
+                                ? "border-accent3 bg-accent3 text-accent3-foreground font-semibold"
                                 : "border-border-color bg-card-bg-solid text-text-muted hover:text-text-primary"
                             }`}
                           >
@@ -321,7 +321,7 @@ export default function AddSegmentForm({
                       )}
                       {selectedType !== "gpio_toggle" && (
                         <p className="text-xs text-text-muted text-center">
-                          تنظیمات جانبی برای این نوع سگمنت وجود ندارد
+                          تنظیمات جانبی برای این نوع قطعه وجود ندارد
                         </p>
                       )}
                     </div>
@@ -360,10 +360,10 @@ export default function AddSegmentForm({
             type="submit"
             whileTap={animationsEnabled ? { scale: 0.98 } : undefined}
             transition={SPRING_PRESS}
-            className="group mt-4 flex min-h-11 w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl bg-accent3 py-2 pr-4 pl-2 font-sans text-sm font-medium text-bg-main transition-opacity duration-150 hover:opacity-90"
+            className="group mt-4 flex min-h-11 w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl bg-accent3 py-2 pr-4 pl-2 font-sans text-sm font-medium text-accent3-foreground transition-opacity duration-150 hover:opacity-90"
           >
-            <span>ایجاد سگمنت</span>
-            <span className="flex size-7 items-center justify-center rounded-lg bg-bg-main/15 transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-[1px] group-hover:scale-105">
+            <span>ایجاد قطعه</span>
+            <span className="flex size-7 items-center justify-center rounded-lg bg-accent3-foreground/15 transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-[1px] group-hover:scale-105">
               <Plus strokeWidth={2} className="size-3.5" aria-hidden="true" />
             </span>
           </m.button>

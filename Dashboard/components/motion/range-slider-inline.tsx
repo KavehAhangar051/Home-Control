@@ -354,7 +354,7 @@ export function InlineSlider({
       onPointerCancel={endGesture}
       onLostPointerCapture={endGesture}
       className={cn(
-        "relative h-10 w-full touch-none select-none overflow-hidden rounded-lg bg-muted",
+        "relative h-10 w-full touch-none select-none overflow-hidden rounded-lg bg-secondary border border-border-color/60",
         TOUCH_GESTURE_CLASS,
         options.disabled ? "pointer-events-none opacity-50" : "cursor-grab active:cursor-grabbing",
         className,
@@ -364,9 +364,9 @@ export function InlineSlider({
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-[2px] inset-y-0 overflow-hidden rounded-lg"
       >
-        <m.div className="absolute inset-0 rounded-lg bg-foreground/15" style={{ x: fillX }} />
+        <m.div className="absolute inset-0 rounded-lg bg-accent3-medium" style={{ x: fillX }} />
       </div>
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 text-foreground">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 text-text-primary">
         <span
           ref={labelRef}
           dir="auto"
@@ -383,7 +383,7 @@ export function InlineSlider({
         {ticks.map((left) => (
           <span
             key={left}
-            className="absolute top-1/2 size-1 -translate-y-1/2 rounded-full bg-foreground/25"
+            className="absolute top-1/2 size-1 -translate-y-1/2 rounded-full bg-text-muted/40"
             style={{ left }}
           />
         ))}
@@ -392,7 +392,7 @@ export function InlineSlider({
         aria-hidden="true"
         animate={reduce ? undefined : { scaleY: dragging ? 1.35 : 1 }}
         transition={SPRING_BOUNCY}
-        className="pointer-events-none absolute left-0 top-1/2 h-6 w-1 text-foreground"
+        className="pointer-events-none absolute left-0 top-1/2 h-6 w-1 text-accent3"
         style={{ x: handleX, y: "-50%" }}
       >
         <m.span

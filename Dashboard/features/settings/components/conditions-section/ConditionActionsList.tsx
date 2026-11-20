@@ -59,7 +59,7 @@ export function ConditionActionsList({ type, actions, onUpdate }: Props) {
           type="button"
           onClick={addAction}
           disabled={actions.length >= 4}
-          className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors disabled:opacity-50 ${isHigh ? "border-accent4 text-accent4 hover:bg-accent4 hover:text-white" : "border-accent3 text-accent3 hover:bg-accent3 hover:text-bg-main"}`}
+          className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors disabled:opacity-50 ${isHigh ? "border-accent4 text-accent4 hover:bg-accent4 hover:text-accent4-foreground" : "border-accent3 text-accent3 hover:bg-accent3 hover:text-accent3-foreground"}`}
         >
           <Plus aria-hidden="true" className="size-3" /> افزودن
         </button>

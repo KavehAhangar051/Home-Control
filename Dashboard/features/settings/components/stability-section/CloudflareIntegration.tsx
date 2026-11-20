@@ -71,7 +71,7 @@ export default function CloudflareIntegration({
           type="button"
           onClick={handleSaveUrl}
           disabled={isSavingUrl}
-          className="min-h-10 sm:min-h-0 px-4 py-2.5 bg-accent3/20 text-accent3 hover:bg-accent3 hover:text-bg-main border border-accent3/30 rounded-xl text-xs font-bold transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] disabled:opacity-50 shrink-0"
+          className="min-h-10 sm:min-h-0 px-4 py-2.5 bg-accent3/20 text-accent3 hover:bg-accent3 hover:text-accent3-foreground border border-accent3/30 rounded-xl text-xs font-bold transition-[background-color,color,scale] duration-150 ease-out active:scale-[0.96] disabled:opacity-50 shrink-0"
         >
           {isSavingUrl ? "در حال ذخیره..." : "ذخیره آدرس"}
         </button>
@@ -109,7 +109,7 @@ export default function CloudflareIntegration({
             />
             <span
               aria-hidden="true"
-              className={`dot absolute top-1 left-1 size-4 rounded-[5px] transition-transform ${manualSaveMode ? "bg-bg-main transform translate-x-4" : "bg-text-secondary"}`}
+              className={`dot absolute top-1 left-1 size-4 rounded-[5px] transition-transform ${manualSaveMode ? "bg-accent3-foreground transform translate-x-4" : "bg-text-secondary"}`}
             />
           </span>
           <span className="flex flex-col flex-1 min-w-0 text-right">

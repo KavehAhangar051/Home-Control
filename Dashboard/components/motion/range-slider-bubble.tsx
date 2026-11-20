@@ -80,19 +80,19 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
       <div
         {...trackProps}
         className={cn(
-          "relative h-2 w-full touch-none rounded-full bg-muted",
+          "relative h-2 w-full touch-none rounded-full bg-secondary",
           TOUCH_GESTURE_CLASS,
           options.disabled ? undefined : "cursor-grab active:cursor-grabbing",
         )}
       >
         <m.div
-          className="absolute inset-y-0 left-0 rounded-full bg-foreground"
+          className="absolute inset-y-0 left-0 rounded-full bg-accent3"
           style={{ width: left }}
         />
         {/* thumb — overhangs the track by half its width at both ends, which the
             wrapper's padding leaves room for */}
         <m.div
-          className="absolute top-1/2 size-5 rounded-full border-2 border-foreground bg-background shadow-sm"
+          className="absolute top-1/2 size-5 rounded-full border-2 border-accent3 bg-card-bg-solid shadow-sm"
           style={{ left, x: "-50%", y: "-50%" }}
           animate={reduce ? undefined : { scale: dragging ? 1.25 : 1 }}
           transition={SPRING_PRESS}
@@ -113,10 +113,10 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
                 style={
                   reduce ? undefined : { rotate: tilt, scaleX: squash, scaleY: stretch, originY: 1 }
                 }
-                className="relative whitespace-nowrap rounded-xl bg-foreground px-2.5 py-1 text-sm font-medium tabular-nums text-background shadow-md"
+                className="relative whitespace-nowrap rounded-xl bg-accent3 px-2.5 py-1 text-sm font-medium tabular-nums text-accent3-foreground shadow-md"
               >
                 {readout}
-                <span className="absolute -bottom-1 left-1/2 size-2.5 -translate-x-1/2 rotate-45 rounded-[3px] bg-foreground" />
+                <span className="absolute -bottom-1 left-1/2 size-2.5 -translate-x-1/2 rotate-45 rounded-[3px] bg-accent3" />
               </m.div>
             ) : null}
           </AnimatePresence>
@@ -125,7 +125,7 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
         <button
           type="button"
           {...sliderProps}
-          className="absolute -inset-y-5 inset-x-0 touch-none rounded-full outline-none ring-foreground/30 focus-visible:ring-4"
+          className="absolute -inset-y-5 inset-x-0 touch-none rounded-full outline-none ring-accent3/30 focus-visible:ring-4"
         />
       </div>
     </div>

@@ -82,7 +82,7 @@ export default function AnimationsToggle({
           className={`relative inline-flex h-6 w-11 rounded-[8px] p-0.5 items-center transition-colors duration-150 shrink-0 select-none ${trackBgClass}`}
         >
           <span
-            className={`pointer-events-none inline-block h-[18px] w-[18px] rounded-[5px] shadow-sm transform ${animationsEnabled ? "bg-white transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] -translate-x-5" : "bg-text-secondary translate-x-0"}`}
+            className={`pointer-events-none inline-block h-[18px] w-[18px] rounded-[5px] shadow-sm transform ${animationsEnabled ? "bg-accent4-foreground transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] -translate-x-5" : "bg-text-secondary translate-x-0"}`}
           />
         </span>
       </Toggle>
@@ -106,7 +106,7 @@ export default function AnimationsToggle({
               <ToggleGroupItem
                 key={fps}
                 value={String(fps)}
-                className="px-3 text-xs font-mono font-medium tabular-nums rounded-lg aria-pressed:bg-accent4 aria-pressed:text-white aria-pressed:border-accent4"
+                className="px-3 text-xs font-mono font-medium tabular-nums rounded-lg aria-pressed:bg-accent4 aria-pressed:text-accent4-foreground aria-pressed:border-accent4"
               >
                 {fps} FPS
               </ToggleGroupItem>

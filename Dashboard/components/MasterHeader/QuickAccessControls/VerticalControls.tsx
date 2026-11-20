@@ -179,7 +179,7 @@ export default function VerticalControls({
             onClick={() => handleParentClick(view, hasChildren)}
             className={`${itemClass} ${
               isParentActive
-                ? "border-sidebar-border bg-sidebar-hover font-medium text-sidebar-text shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                ? "border-sidebar-border bg-sidebar-hover font-medium text-sidebar-text dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
                 : ""
             }`}
             aria-current={isParentActive && !hasChildren ? "page" : undefined}
@@ -263,7 +263,7 @@ export default function VerticalControls({
                           <m.div
                             layoutId="sidebar-submenu-active-bg"
                             transition={reduceMotion ? { duration: 0 } : SPRING_LAYOUT}
-                            className="absolute inset-0 rounded-md border border-sidebar-border bg-sidebar-hover shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                            className="absolute inset-0 rounded-md border border-sidebar-border bg-sidebar-hover dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
                           />
                         )}
                         <SubIcon
