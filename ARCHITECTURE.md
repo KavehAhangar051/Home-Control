@@ -487,3 +487,8 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 ### Newton loader compositor hints (20 November 2026)
 
 `components/motion/loader-shapes.tsx` applies `will-change: transform` only to the two Newton balls that actually animate, and only when normal motion is enabled. The three stationary balls and reduced-motion rendering do not request transform layers. The loader's five-ball geometry, animation timing, and visible behavior remain unchanged. This is a layer-allocation hint cleanup, not a measured GPU-memory or frame-rate result.
+
+
+### Helix loader reduced-motion compositor hints (20 November 2026)
+
+`components/motion/loader-shapes.tsx` applies `will-change: transform` to Helix particles only in normal-motion mode, where their `x` and `scale` values animate. Reduced-motion mode animates opacity only and no longer requests transform layers for those particles. Particle count, layout, timing, and both motion modes' visible behavior remain unchanged. This is a rendering-hint cleanup, not a measured GPU-memory or frame-rate result.
