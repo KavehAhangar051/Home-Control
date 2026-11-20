@@ -154,3 +154,5 @@ Stop and report instead of improvising if:
 - A WebGL context, texture budget, or output size exceeds the measured device budget.
 - A verification command fails twice or exposes an unrelated baseline failure.
 - A planned source file has drifted from the current-state description.
+
+- The Canvas viewport source audit is documented in `docs/performance/GPU-RENDERING.md`: finite camera flights are a potential WAAPI candidate, while dynamic focal zoom and velocity-based inertia remain rAF-driven until a behavior-preserving migration is demonstrated. Source comments now describe transform layers as compositor candidates rather than claiming guaranteed GPU execution.
