@@ -119,7 +119,7 @@ bool copyActionFromStorage(const StoredRuleAction& source, RuleAction& target) {
 }
 
 bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
-    out = ParseResult();
+    out.reset();
 
     char countKey[8];
     char versionKey[8];
@@ -133,6 +133,12 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
         return false;
     }
 
+    union {
+        StoredSegmentV2 v2;
+        StoredSegmentV3 v3;
+        StoredSegment v4;
+    } recordBuf;
+
     char key[16];
     for (int i = 0; i < count; ++i) {
         snprintf(key, sizeof(key), "%c%d", bank, i);
@@ -143,7 +149,8 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
                 return false;
             }
 
-            StoredSegmentV2 record{};
+            StoredSegmentV2& record = recordBuf.v2;
+            memset(&record, 0, sizeof(record));
             if (prefs.getBytes(key, &record, sizeof(record)) != sizeof(record)) {
                 Serial.printf("[SegStorage] Bank %c (v2) rejected: failed reading %s\n", bank, key);
                 return false;
@@ -214,7 +221,8 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
                 return false;
             }
 
-            StoredSegmentV3 record{};
+            StoredSegmentV3& record = recordBuf.v3;
+            memset(&record, 0, sizeof(record));
             if (prefs.getBytes(key, &record, sizeof(record)) != sizeof(record)) {
                 Serial.printf("[SegStorage] Bank %c (v3) rejected: failed reading %s\n", bank, key);
                 return false;
@@ -286,7 +294,8 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             return false;
         }
 
-        StoredSegment record{};
+        StoredSegment& record = recordBuf.v4;
+        memset(&record, 0, sizeof(record));
         if (prefs.getBytes(key, &record, sizeof(record)) != sizeof(record)) {
             Serial.printf("[SegStorage] Bank %c rejected: failed reading %s\n", bank, key);
             return false;
@@ -373,7 +382,7 @@ bool loadLegacyConfig(Preferences& prefs, ParseResult& out) {
     if (count <= 0 || count > MAX_SEGMENTS) return false;
 
     char key[16];
-    out = ParseResult();
+    out.reset();
     for (int i = 0; i < count; ++i) {
         snprintf(key, sizeof(key), "s%did", i);
         String id = prefs.getString(key, "");
@@ -541,7 +550,7 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
  * zero-record bank is an intentional empty configuration, not a cache miss.
  */
 bool NvsSegmentStorage::loadSegmentConfig(ParseResult& out) {
-    out = ParseResult();
+    out.reset();
     Preferences prefs;
     if (!prefs.begin(NVS_NAMESPACE, true)) {
         Serial.println("[SegStorage] No segment config in NVS");
@@ -567,7 +576,7 @@ bool NvsSegmentStorage::loadSegmentConfig(ParseResult& out) {
         }
 
         prefs.end();
-        out = ParseResult();
+        out.reset();
         Serial.println("[SegStorage] Both versioned NVS banks are invalid; refusing stale legacy fallback");
         return false;
     }
