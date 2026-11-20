@@ -1,36 +1,44 @@
-export function getBaseStyles(isDark: boolean): string {
+export function getBaseStyles(_isDark: boolean): string {
   return `
-
-    /* Custom cursor personalizations */
+    /* Cursor semantics: interactive buttons/controls get pointer, text fields stay text */
     html, body {
       cursor: auto;
     }
-    a, button, select, input, [role="button"], .cursor-pointer, [draggable="true"] {
+    a, button, select, input[type="checkbox"], input[type="radio"], input[type="button"], input[type="submit"], input[type="reset"], input[type="range"], input[type="color"], [role="button"], .cursor-pointer, [draggable="true"] {
       cursor: pointer;
     }
-
-    /* Dropdown, Input, & Form Controls */
-    select, input, textarea {
-      transition: border-color 0.15s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.15s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    input[type="text"], input[type="search"], input[type="url"], input[type="password"], input[type="email"], input[type="number"], textarea {
+      cursor: text;
     }
-    select:focus, input:focus, textarea:focus {
-      border-color: var(--accent3) !important;
-      box-shadow: none !important;
-      outline: none;
+
+    /* Dropdown, Input, & Form Controls — preserve visible WCAG focus rings and invalid states */
+    select, input, textarea {
+      transition: border-color 0.15s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    select:focus-visible:not([aria-invalid="true"]),
+    input:focus-visible:not([aria-invalid="true"]),
+    textarea:focus-visible:not([aria-invalid="true"]) {
+      border-color: var(--accent3);
+      outline: 2px solid color-mix(in oklab, var(--accent3) 30%, transparent);
+      outline-offset: 0px;
     }
     @media (min-width: 768px) {
-      select:hover, input:hover {
-        border-color: var(--accent3-medium) !important;
+      select:hover:not(:disabled), input:hover:not(:disabled), textarea:hover:not(:disabled) {
+        border-color: var(--accent3-medium);
       }
     }
     select option {
-      background-color: ${isDark ? "#19191b" : "#ffffff"} !important;
-      color: ${isDark ? "var(--text-primary)" : "#171717"} !important;
-      padding: 12px !important;
-      font-size: 13px !important;
+      background-color: var(--card-bg-solid);
+      color: var(--text-primary);
+      padding: 12px;
+      font-size: 13px;
     }
 
-    /* Custom Royal scrollbar styling */
+    /* Standard & WebKit scrollbar styling synced to theme tokens */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent3-medium) transparent;
+    }
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;

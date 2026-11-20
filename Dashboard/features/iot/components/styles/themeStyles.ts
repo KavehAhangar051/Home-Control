@@ -98,6 +98,26 @@ function toSixDigitHex(color: string, fallback: string): string {
 }
 
 /**
+ * Picks `#0f0f10` or `#ffffff` against a 6-digit hex background using WCAG 2.1
+ * relative luminance so user-customized accents always preserve legible contrast.
+ */
+function getContrastingForeground(hexColor: string, fallback: string): string {
+  const match = HEX_6_OR_8_REGEX.exec(hexColor.trim());
+
+  if (!match) return fallback;
+
+  const hex = match[1];
+  const channels = [0, 2, 4].map((offset) => {
+    const c = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+
+  return luminance > 0.36 ? "#0f0f10" : "#ffffff";
+}
+
+/**
  * Computes all `:root` CSS custom properties for the active theme palette, accents, and font.
  * Returned as a flat key/value map so `DashboardStyles` can diff and apply only changed
  * properties via `document.documentElement.style.setProperty` inside a single `rAF` frame.
@@ -120,7 +140,12 @@ export function computeThemeCssVariables({
   const opaqueAccent3 = toSixDigitHex(resolvedAccent3, isDark ? "#ededed" : "#171717");
   const opaqueAccent4 = toSixDigitHex(accent4, "#3b82f6");
   const resolvedAccent3Dark = isDark ? "#d4d4d8" : "#262626";
-  const resolvedAccent3Foreground = isDark ? "#0f0f10" : "#ffffff";
+  const resolvedAccent3Foreground = getContrastingForeground(
+    opaqueAccent3,
+    isDark ? "#0f0f10" : "#ffffff",
+  );
+  const resolvedAccent4Foreground = getContrastingForeground(opaqueAccent4, "#ffffff");
+  const mutedTextColor = isDark ? "#96969d" : "#636369";
 
   return {
     "--font-vazir": "var(--font-dana), sans-serif",
@@ -129,6 +154,7 @@ export function computeThemeCssVariables({
     "--accent3-dark": resolvedAccent3Dark,
     "--accent3-foreground": resolvedAccent3Foreground,
     "--accent4": accent4,
+    "--accent4-foreground": resolvedAccent4Foreground,
     "--accent3-transparent":
       isDark || !isDefaultAccent3 ? `${opaqueAccent3}14` : "rgba(23, 23, 23, 0.06)",
     "--accent4-transparent": `${opaqueAccent4}16`,
@@ -149,14 +175,14 @@ export function computeThemeCssVariables({
     "--text-primary": isDark ? "#ededed" : "#171717",
     "--text-secondary": isDark ? "#a1a1a6" : "#525252",
     "--text-tertiary": isDark ? "#a1a1a6" : "#525252",
-    "--text-muted": isDark ? "#85858b" : "#737373",
+    "--text-muted": mutedTextColor,
     "--border-color": palette.border,
     "--drawer-gradient-from": palette.bg,
     "--drawer-gradient-to": palette.bg,
     "--sidebar-bg": palette.deepest,
     "--sidebar-border": palette.border,
     "--sidebar-text": isDark ? "#ededed" : "#171717",
-    "--sidebar-muted": isDark ? "#85858b" : "#737373",
+    "--sidebar-muted": mutedTextColor,
     "--sidebar-hover": palette.cardHover,
     "--sidebar-active": palette.cardHover,
     "--sidebar-control-bg": palette.cardSolid,
@@ -166,7 +192,7 @@ export function computeThemeCssVariables({
     "--sidebar-primary-foreground": palette.bg,
     "--sidebar-accent": palette.cardHover,
     "--sidebar-accent-foreground": isDark ? "#ededed" : "#171717",
-    "--sidebar-ring": isDark ? "#85858b" : "#737373",
+    "--sidebar-ring": mutedTextColor,
     "--background": palette.bg,
     "--foreground": isDark ? "#ededed" : "#171717",
     "--card": palette.cardSolid,
@@ -178,14 +204,14 @@ export function computeThemeCssVariables({
     "--secondary": palette.cardHover,
     "--secondary-foreground": isDark ? "#ededed" : "#171717",
     "--muted": palette.cardHover,
-    "--muted-foreground": isDark ? "#85858b" : "#737373",
+    "--muted-foreground": mutedTextColor,
     "--accent": palette.cardHover,
     "--accent-foreground": isDark ? "#ededed" : "#171717",
     "--destructive": isDark ? "oklch(62.8% 0.225 25.3)" : "oklch(57.7% 0.245 27.3)",
     "--destructive-foreground": isDark ? "#ededed" : "#ffffff",
     "--border": palette.border,
     "--input": palette.border,
-    "--ring": isDark ? "#85858b" : "#737373",
+    "--ring": mutedTextColor,
     "--ring-offset": palette.bg,
     "--radius": "0.5rem",
     "--success": isDark ? "oklch(72.3% 0.16 160)" : "oklch(62.7% 0.194 149.2)",

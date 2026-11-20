@@ -10,6 +10,7 @@
 
 :root,
 .dark {
+  color-scheme: dark;
   --radius: 0.625rem;
   --background: oklch(14.5% 0.008 264);
   --foreground: oklch(98% 0.004 264);
@@ -58,7 +59,7 @@
   --text-primary: #ededed;
   --text-secondary: #a1a1a6;
   --text-tertiary: #a1a1a6;
-  --text-muted: #85858b;
+  --text-muted: #96969d;
   --accent3: #ededed;
   --accent3-dark: #d4d4d8;
   --accent3-foreground: #0f0f10;
@@ -66,6 +67,7 @@
   --accent3-medium: rgba(237, 237, 237, 0.18);
   --accent3-heavy: rgba(237, 237, 237, 0.53);
   --accent4: #3b82f6;
+  --accent4-foreground: #ffffff;
   --accent4-transparent: rgba(59, 130, 246, 0.1);
   --accent4-medium: rgba(59, 130, 246, 0.22);
   --accent4-heavy: rgba(59, 130, 246, 0.53);
@@ -73,7 +75,7 @@
   /* Sidebar semantic surface and text tokens */
   --sidebar-bg: #0f0f10;
   --sidebar-text: #ededed;
-  --sidebar-muted: #85858b;
+  --sidebar-muted: #96969d;
   --sidebar-hover: #232325;
   --sidebar-active: #232325;
   --sidebar-control-bg: #19191b;
@@ -98,6 +100,7 @@
 }
 
 .light {
+  color-scheme: light;
   --background: oklch(98.5% 0.002 264);
   --foreground: oklch(14.5% 0.012 264);
   --card: oklch(100% 0 0);
@@ -109,7 +112,7 @@
   --secondary: oklch(96% 0.004 264);
   --secondary-foreground: oklch(20.5% 0.01 264);
   --muted: oklch(96% 0.004 264);
-  --muted-foreground: oklch(52% 0.01 264);
+  --muted-foreground: oklch(48% 0.01 264);
   --accent: oklch(96% 0.004 264);
   --accent-foreground: oklch(20.5% 0.01 264);
   --destructive: oklch(57.7% 0.245 27.3);
@@ -136,7 +139,7 @@
   --sidebar-ring: oklch(65% 0.01 264);
   --sidebar-bg: #f8f8f9;
   --sidebar-text: #171717;
-  --sidebar-muted: #737373;
+  --sidebar-muted: #636369;
   --sidebar-hover: #eff0f1;
   --sidebar-active: #eff0f1;
   --sidebar-control-bg: #ffffff;
@@ -356,6 +359,7 @@
   --color-accent3-heavy: var(--accent3-heavy);
   --color-accent3-soft: color-mix(in oklab, var(--accent3) 10%, transparent);
   --color-accent4: var(--accent4);
+  --color-accent4-foreground: var(--accent4-foreground);
   --color-accent4-transparent: var(--accent4-transparent);
   --color-accent4-medium: var(--accent4-medium);
   --color-accent4-heavy: var(--accent4-heavy);
@@ -374,6 +378,32 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  input,
+  textarea,
+  [contenteditable] {
+    caret-color: var(--accent4);
+  }
+
+  a {
+    text-underline-offset: 0.22em;
+  }
+
+  ::selection {
+    background-color: var(--accent3-medium);
+    color: var(--text-primary);
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent3-medium) transparent;
   }
 }
 

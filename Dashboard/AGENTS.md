@@ -90,6 +90,14 @@
   - هنگام اجرای دستورات ترمینال و CLI در `run_command` (مانند `git`، `tsc`، `bun`، `npm`، `next`، `grep`، `rg`، `ls`، `tree`، `diff`، `test`، `err`)، از پیشوند **`rtk`** استفاده کن (مثلاً `rtk tsc --noEmit`، `rtk git status`، `rtk git diff`، `rtk grep -rn ...`، `rtk ls -la`، `rtk err ...`).
   - اگر خروجی دستوری خلاصه شد و به متن کامل نیاز بود، از دستور `rtk recall <hash>` یا `rtk bypass <cmd>` استفاده کن. برای مشاهده آمار صرفه‌جویی توکن، `rtk gain` (یا `bun run rtk:gain`) را اجرا کن.
 
+### استراتژی کاهش توکن بین‌جلسه‌ای با `TokenEconomizer` (`microsoft/TokenEconomizer`)
+- ابزار **`TokenEconomizer`** (`microsoft/TokenEconomizer`، کاملاً مبتنی بر Python 3.10+ stdlib بدون وابستگی PyPI) به‌صورت دائمی در پروژه نصب و خودنصب‌شونده پیکربندی شده است (`/usr/local/bin/te`، `/usr/local/bin/te-hook`، `~/.tokeneconomizer/plugin`، اسکریپت خودنصب‌شونده `./tools/te.sh`، اسکریپت‌های `bun run te` / `te:status` / `te:doctor` / `te:setup`، مانیفست پلاگین `.agents/plugins/tokeneconomizer` و مهارت `agents/skills/tokeneconomizer`).
+- **سه مکانیزم اصلی و تنظیمات پیش‌فرض پروژه:**
+  - `microskills=envfacts`: یادگیری بدون هزینه مدل (LLM-free) از فکت‌ها و دستورات موفق مخزن در طول جلسات و تزریق خودکار آن‌ها در ابتدای جلسه.
+  - `toolprune=propose`: ردیابی ابزارهای بلااستفاده و ارائه پیشنهاد قابل‌بررسی برای حذف آن‌ها (`te toolprune show` / `apply` / `restore`).
+  - `loopguard=nudge`: تشخیص حلقه‌های خطای تکراری و تزریق یادآور تغییر مسیر در میزبان‌های دارای هوک فعال.
+- **همزیستی با `rtk` و `codebase-memory-mcp`:** `rtk` خروجی ترمینال را فشرده می‌کند، `codebase-memory-mcp` کشف ساختاری AST را انجام می‌دهد و `TokenEconomizer` دانش بین‌جلسه‌ای، هرس ابزار و جلوگیری از لوپ خطا را مدیریت می‌کند (دستورات با پیشوند `rtk` نیز به‌درستی توسط `TokenEconomizer` شناسایی می‌شوند).
+
 ## Goal-Driven Execution
 
 قبل از کار، نتیجه قابل‌بررسی را مشخص کن (برای تغییرات UI با بررسی واقعی و دقیق، و برای تغییرات منطق/پروتکل با چک‌های مرتبط بدون ساخت تست‌های موقت یا بی‌فایده).

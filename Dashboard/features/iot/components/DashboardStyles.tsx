@@ -114,6 +114,7 @@ function DashboardStyles({
     // coalesce rapid slider/color-picker drags to a single animation frame.
     if (!hasHydratedVarsRef.current || polarityChanged) {
       hasHydratedVarsRef.current = true;
+      document.documentElement.style.colorScheme = isDark ? "dark" : "light";
       if (pendingRafRef.current !== null) {
         cancelAnimationFrame(pendingRafRef.current);
         pendingRafRef.current = null;
