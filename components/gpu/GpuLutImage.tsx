@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { WebGL2LutRenderer } from "@/lib/gpu/webgl2-lut-renderer";
 import { isIdentityLut, type Lut3D } from "@/lib/gpu/lut3d";
 
@@ -33,7 +33,8 @@ export function GpuLutImage({
   const lutRef = useRef(lut);
   const intensityRef = useRef(intensity);
   const [ready, setReady] = useState(false);
-  const passThroughRef = useRef(intensity <= 0 || isIdentityLut(lut));
+  const isPassThrough = useMemo(() => intensity <= 0 || isIdentityLut(lut), [intensity, lut]);
+  const passThroughRef = useRef(isPassThrough);
   const isNearViewportRef = useRef(false);
 
   useEffect(() => {
@@ -192,10 +193,10 @@ export function GpuLutImage({
   useEffect(() => {
     lutRef.current = lut;
     intensityRef.current = intensity;
-    passThroughRef.current = intensity <= 0 || isIdentityLut(lut);
+    passThroughRef.current = isPassThrough;
     if (passThroughRef.current) drawRef.current();
     else if (isNearViewportRef.current) initializeRef.current();
-  }, [lut, intensity]);
+  }, [isPassThrough, lut, intensity]);
 
   return (
     <div ref={containerRef} className={`relative isolate overflow-hidden ${className}`}>
