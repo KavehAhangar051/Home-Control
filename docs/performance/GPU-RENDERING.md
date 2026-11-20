@@ -454,3 +454,11 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - The Helix loader's fourteen particles animate `transform` only in normal-motion mode. In reduced-motion mode they animate opacity only, so the two particle elements per row no longer request `will-change: transform` in that mode.
 - Particle count, positions, opacity timing, normal-motion transforms, and reduced-motion visuals are unchanged. This avoids unnecessary transform-layer hints when no transform animation is active. Browser layer allocation is implementation-dependent; no runtime GPU-memory or FPS measurement is claimed.
 - Reference: [MDN `will-change`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change).
+
+
+### Avoid inactive compositor hints in Comet and Bubble Slider (2026-11-20)
+
+- The Comet loader now requests a transform layer only in normal-motion mode; reduced-motion mode animates opacity and no longer requests a transform hint for its wrapper.
+- The Bubble Slider thumb no longer forces an additional `will-change: transform` layer. Its horizontal movement remains on the existing parent Motion transform, while the thumb's scale interaction remains an ordinary transform animation that the browser can promote when appropriate.
+- Visible animation values, timing, geometry, pointer behavior, and reduced-motion behavior are unchanged. This is a source-level reduction in explicit layer requests, not a measured GPU-memory/FPS improvement. Browser layer promotion is implementation-dependent.
+- References: [web.dev animation guide](https://web.dev/articles/animations-guide), [MDN `will-change`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change).
