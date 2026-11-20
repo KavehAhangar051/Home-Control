@@ -87,13 +87,13 @@
 - **چرا `mode Lite` همیشه فعال است؟**
   - بدون تزریق جداول سنگین ۱۳۷ خطی به پرامپت (صرفاً ۱۰ خط قانون فشرده در `.agents/plugins/rtk/rules/AGENTS.md`)، بدون نیاز به پراکسی پس‌زمینه یا فراخوانی مدل‌های بیرونی، و با حذف کامل کدهای ANSI/اسپینر/ایموجی، خروجی دستورات شل را در کمتر از `10 میلی‌ثانیه` بین **۶۰٪ تا ۹۰٪** فشرده می‌کند.
 - **قانون استفاده در `run_command`:**
-  - هنگام اجرای دستورات ترمینال و CLI در `run_command` (مانند `git`، `tsc`، `bun`، `npm`، `next`، `grep`، `rg`، `ls`، `tree`، `diff`، `test`، `err`)، از پیشوند **`rtk`** استفاده کن (مثلاً `rtk tsc --noEmit`، `rtk git status`، `rtk git diff`، `rtk grep -rn ...`، `rtk ls -la`، `rtk err ...`).
-  - اگر خروجی دستوری خلاصه شد و به متن کامل نیاز بود، از دستور `rtk recall <hash>` یا `rtk bypass <cmd>` استفاده کن. برای مشاهده آمار صرفه‌جویی توکن، `rtk gain` (یا `bun run rtk:gain`) را اجرا کن.
+  - تمام دستورات ترمینال و CLI در `run_command` (مانند `git`، `tsc`، `bun run lint/typecheck/test/build`، `grep`، `rg`، `ls`، `tree`، `diff`، `err`) را از طریق **`./tools/r <cmd>`** اجرا کن تا هم‌زمان با `rtk` فشرده و در `history.db` ثبت شوند و هم به `TokenEconomizer` ارسال گردند (دستورات `bun run typecheck/lint/test/build/format/lint:ox` خودکار به فیلترهای بومی `rtk` نگاشت می‌شوند و `bun run cbm*` بدون `rtk:passthrough` اجرا می‌شود).
+  - اگر خروجی دستوری خلاصه شد و به متن کامل نیاز بود، از دستور `rtk recall <hash>` یا `./tools/r --raw <cmd>` استفاده کن. برای مشاهده آمار صرفه‌جویی توکن، `rtk gain` (یا `bun run rtk:gain`) را اجرا کن.
 
 ### استراتژی کاهش توکن بین‌جلسه‌ای با `TokenEconomizer` (`microsoft/TokenEconomizer`)
 - **ذخیره‌سازی ماندگار در `.agent-state/` (ضد ریست کانتینر):** باینری، پیکربندی و پایگاه‌داده SQLite ابزار `rtk` (`.agent-state/rtk`) و باندل/حافظه آموخته‌شده `TokenEconomizer` (`.agent-state/tokeneconomizer`) داخل ریشه پروژه نگه‌داری و به `/usr/local/bin` و `~/` لینک می‌شوند تا پس از ریست کانتینر در چند میلی‌ثانیه بدون نیاز به دانلود مجدد بازیابی شوند.
-- **پل اجرای یکپارچه (`./tools/r` و `./tools/agent-bridge.py`):** چون محیط AI Studio هوک‌های پلاگین را خودکار صدا نمی‌زند، اجرای دستورات شل از طریق **`./tools/r <cmd>`** (یا `bun run r -- <cmd>`) خروجی دستور را خودکار با `rtk` فشرده می‌کند **و هم‌زمان** رویدادهای `PostToolUse` / `PostToolUseFailure` و رونوشت استاندارد را به `TokenEconomizer` (`--host claude`) می‌فرستد تا `envfacts`، `toolprune` و هشدارهای `loopguard` واقعاً فعال بمانند.
-- **چرخه نشست:** شروع کار با `python3 ./tools/agent-bridge.py start` (یا خودکار با اولین `./tools/r`) و پایان/ثبت یادگیری با `python3 ./tools/agent-bridge.py end` (`te fold`).
+- **پل اجرای یکپارچه (`./tools/r` و `./tools/agent-bridge.py`):** چون محیط AI Studio هوک‌های پلاگین را خودکار صدا نمی‌زند، اجرای دستورات شل از طریق **`./tools/r <cmd>`** (یا `bun run r -- <cmd>`) خروجی دستور را خودکار با `rtk` فشرده می‌کند **و هم‌زمان** مجوز اجرایی ابزارهای `./tools/*` را حفظ کرده و رویدادهای `PostToolUse` / `PostToolUseFailure` و رونوشت استاندارد را به `TokenEconomizer` (`--host claude`) می‌فرستد تا `envfacts`، `toolprune` و هشدارهای `loopguard` واقعاً فعال بمانند.
+- **چرخه نشست:** شروع کار با `python3 ./tools/agent-bridge.py start` (یا خودکار با اولین `./tools/r`؛ در شروع چت جدید نشست قبلی با سابقه بالای ۶۰ ثانیه خودکار `fold` می‌شود) و پایان/ثبت یادگیری با `python3 ./tools/agent-bridge.py end` (`te fold`).
 - **سه مکانیزم اصلی و تنظیمات پیش‌فرض پروژه:** `microskills=envfacts` (یادگیری بدون هزینه مدل)، `toolprune=propose` و `loopguard=nudge`.
 
 ## Goal-Driven Execution

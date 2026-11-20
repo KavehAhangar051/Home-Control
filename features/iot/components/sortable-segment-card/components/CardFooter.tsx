@@ -68,7 +68,7 @@ function SwitchModeTrack({
     ? "bg-accent3 border border-transparent dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
     : "bg-input border border-border-color";
 
-  const thumbSize = isSmallTrack ? "size-[14px] rounded-[4px]" : "size-[18px] rounded-[5px]";
+  const thumbSize = isSmallTrack ? "size-[14px] rounded-[3px]" : "size-[18px] rounded-[4px]";
 
   const thumbTone = isPinOn ? "bg-accent3-foreground" : "bg-card-bg-solid dark:bg-foreground";
 

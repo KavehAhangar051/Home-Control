@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI Component Reference · Dimensional Drawing Index</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:wght@400;600;700&display=swap">
+<style>
+:root{--paper:#ececec;--sheet:#ffffff;--ink:#111;--ink2:#444;--ink3:#7a7a7a;--fill:#f3f3f3;--f:'Arimo','Helvetica Neue',Helvetica,Arial,sans-serif;color-scheme:light}
+body{background:var(--paper);color:var(--ink);font-family:var(--f);margin:0}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 48px}
+.tb{background:var(--sheet);border:1.2px solid var(--ink);border-radius:16px;overflow:hidden;display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr;margin-bottom:24px}
+.tb>div{border-right:.8px solid var(--ink);border-bottom:.8px solid var(--ink);padding:12px 16px;min-width:0}
+.tb>div:nth-child(4),.tb>div:nth-child(7){border-right:0}
+.tb .big{grid-row:span 2;display:flex;flex-direction:column;justify-content:space-between;gap:12px}
+.tb h1{font-size:clamp(26px,3.6vw,40px);line-height:1;margin:4px 0 0;font-weight:400;letter-spacing:.1em;text-transform:uppercase}
+.lbl{text-transform:uppercase;letter-spacing:.06em;font-size:9.5px;color:var(--ink2)}
+.v{font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink);margin-top:3px;font-variant-numeric:tabular-nums}
+.big .v{font-size:11px;color:var(--ink2);line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.card{display:flex;flex-direction:column;justify-content:space-between;gap:14px;background:var(--sheet);border:1.2px solid var(--ink);border-radius:14px;padding:18px;text-decoration:none;color:var(--ink);transition:background-color .15s ease}
+.card:hover{background:var(--fill)}
+.card h2{margin:4px 0 0;font-size:20px;font-weight:400;letter-spacing:.08em;text-transform:uppercase}
+.meta{display:flex;justify-content:space-between;gap:12px;border-top:.8px solid var(--ink);padding-top:10px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.scope{font-size:12px;line-height:1.6;color:var(--ink2);margin:0}
+.foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);padding:18px 2px 0}
+.foot b{font-weight:700;color:var(--ink)}
+@media (max-width:640px){.tb{grid-template-columns:1fr 1fr}.tb .big{grid-column:1/-1;grid-row:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="tb">
+    <div class="big">
+      <div><div class="lbl">UI component reference · drawing set</div><h1>Dimensional Drawings</h1></div>
+      <div class="v">Monochrome engineering reference sheets derived directly from component source geometry. Architecture only; content and color are out of scope.</div>
+    </div>
+    <div><div class="lbl">Set</div><div class="v">UI-REF-SET</div></div>
+    <div><div class="lbl">Rev</div><div class="v">A · 2026-11-20</div></div>
+    <div><div class="lbl">Sheets</div><div class="v">3</div></div>
+    <div><div class="lbl">Units</div><div class="v">CSS px @ 1×</div></div>
+    <div><div class="lbl">Theme</div><div class="v">Monochrome light</div></div>
+    <div><div class="lbl">Direction</div><div class="v">RTL primary</div></div>
+  </header>
+
+  <main class="grid">
+    <a class="card" href="./segment-card-sheet.html">
+      <div>
+        <div class="lbl">UI-SEG-001 · Sheet 1 of 1</div>
+        <h2>Segment Card</h2>
+      </div>
+      <p class="scope">Full-card RTL control tile, floating utility cluster reserve, 3 container-query density tiers, concentric switch track/thumb geometry (R6 = R5 − B − S9 = 4), and push badge mode.</p>
+      <div class="meta"><span>ActiveCard · PinToggle · CardFooter</span><span>Open sheet →</span></div>
+    </a>
+
+    <a class="card" href="./mobile-dock-sheet.html">
+      <div>
+        <div class="lbl">UI-DOCK-001 · Sheet 1 of 1</div>
+        <h2>Mobile Dock</h2>
+      </div>
+      <p class="scope">Floating bottom morphing shell (R1 = 26, R2 = 18), upward panel with grabber and swipe-to-dismiss thresholds, active tab width formula, closed bar formula, and viewport safe-area clamping.</p>
+      <div class="meta"><span>ExpandableTabs · MobileDockNav</span><span>Open sheet →</span></div>
+    </a>
+
+    <a class="card" href="./group-bezel-sheet.html">
+      <div>
+        <div class="lbl">UI-GRP-001 · Sheet 1 of 1</div>
+        <h2>Group Bezel</h2>
+      </div>
+      <p class="scope">Double-framed bezel shell and concentric core card (R2 = R1 − B − S6 = 13), RTL header toolbar with dense 3-column stepping, @container/group breakpoints, and LCM orphan-free grid tracks.</p>
+      <div class="meta"><span>SortableGroup · GroupHeader · bezel-shell</span><span>Open sheet →</span></div>
+    </a>
+  </main>
+
+  <footer class="foot">
+    <span>2026-11-20 &nbsp;|&nbsp; UI component reference</span>
+    <span><b>Dimensional drawing index</b> &nbsp;|&nbsp; 3 sheets</span>
+  </footer>
+</div>
+</body>
+</html>

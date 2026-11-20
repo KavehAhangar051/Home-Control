@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Floating Mobile Dock · Dimensional Drawing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:wght@400;600;700&display=swap">
+<style>
+/* Layout: one Apple-style dimensional drawing sheet (notes · exploded · plan · viewport · details · tables · title block), black on white, single light theme by design. */
+:root{--paper:#ececec;--sheet:#ffffff;--ink:#111;--ink2:#444;--ink3:#7a7a7a;--fill:#f3f3f3;--fill2:#e6e6e6;--f:'Arimo','Helvetica Neue',Helvetica,Arial,sans-serif;color-scheme:light}
+body{background:var(--paper);color:var(--ink);font-family:var(--f);margin:0}
+.wrap{max-width:1760px;margin:0 auto;padding-block:24px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.scroll{overflow-x:auto;background:var(--sheet);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+svg{display:block;width:100%;min-width:1100px;height:auto}
+.tb{background:var(--sheet);border:1.2px solid var(--ink);border-radius:16px;overflow:hidden;display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr;margin-bottom:24px}
+.tb>div{border-right:.8px solid var(--ink);border-bottom:.8px solid var(--ink);padding:10px 14px;min-width:0}
+.tb>div:nth-child(4),.tb>div:nth-child(7){border-right:0}
+.tb .big{grid-row:span 2;display:flex;flex-direction:column;justify-content:space-between;gap:12px}
+.tb h1{font-size:clamp(28px,4vw,44px);line-height:1;margin:4px 0 0;font-weight:400;letter-spacing:.1em;text-transform:uppercase}
+.tb .lbl{text-transform:uppercase;letter-spacing:.06em;font-size:9.5px;color:var(--ink2);font-weight:400}
+.tb .v{font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink);margin-top:2px;font-variant-numeric:tabular-nums}
+.tb .big .v{font-size:11px;color:var(--ink2);line-height:1.6}
+.tb .notes{grid-column:1/-1;border-right:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:6px 24px;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink);line-height:1.9}
+.tb .notes ol{margin:4px 0 0;padding-left:20px}
+.tb .nh{font-weight:700;font-size:13px;letter-spacing:.06em}
+.tb .nh span{font-weight:400;font-size:11.5px;margin-left:6px}
+.tb .figs{grid-column:1/-1;border-right:0;border-bottom:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 18px}
+.tb .figs>div{border-left:.8px solid var(--ink);padding-left:14px}
+.tb .figs>div:first-child{border-left:0;padding-left:0}
+.tb .figs .v{font-size:18px;letter-spacing:.06em;text-transform:none;margin-top:4px}
+@media (max-width:640px){.tb{grid-template-columns:1fr 1fr}.tb .big{grid-column:1/-1;grid-row:auto}.tb .figs>div{border-left:0;padding-left:0}}
+.sheetwrap{margin-bottom:28px}
+.foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);padding:10px 2px 0}
+.foot b{font-weight:700;color:var(--ink)}
+/* drawing */
+.border{fill:none;stroke:var(--ink);stroke-width:1.2}
+.obj{fill:var(--sheet);stroke:var(--ink);stroke-width:1.6;stroke-linejoin:round}
+.well{fill:var(--fill);stroke:var(--ink);stroke-width:1}
+.slot{fill:none;stroke:var(--ink2);stroke-width:.8;stroke-dasharray:4 3}
+.hug{fill:var(--fill2);stroke:var(--ink);stroke-width:1}
+.thin{fill:none;stroke:var(--ink);stroke-width:.8}
+.ph{fill:none;stroke:var(--ink3);stroke-width:.8;stroke-dasharray:14 3 3 3}
+.cl{fill:none;stroke:var(--ink3);stroke-width:.7;stroke-dasharray:16 3 2 3}
+.dl{stroke:var(--ink);stroke-width:.7;fill:none}
+.ext{stroke:var(--ink);stroke-width:.55;fill:none}
+.arrow{fill:var(--ink)}
+.hl{stroke:var(--ink2);stroke-width:.7}
+.hs{stroke:var(--ink);stroke-width:.8}
+.env{fill:none;stroke:var(--ink);stroke-width:.8;stroke-dasharray:10 3 2 3}
+.dt{font:400 11px var(--f);fill:var(--ink);paint-order:stroke;stroke:var(--sheet);stroke-width:4px;stroke-linejoin:round}
+.dts{font:400 9.5px var(--f);fill:var(--ink2);letter-spacing:.06em;text-transform:uppercase;paint-order:stroke;stroke:var(--sheet);stroke-width:3px}
+.sl{font:400 9px var(--f);fill:var(--ink2);letter-spacing:.08em;text-transform:uppercase}
+.nt{font:400 11.5px var(--f);fill:var(--ink);letter-spacing:.06em;text-transform:uppercase}
+.nth{font:700 13px var(--f);fill:var(--ink);letter-spacing:.06em}
+.vt{font:400 12px var(--f);fill:var(--ink);letter-spacing:.1em;text-transform:uppercase}
+.nb{fill:var(--sheet);stroke:var(--ink);stroke-width:.9}
+.nbt{font:400 9.5px var(--f);fill:var(--ink)}
+.lead{stroke:var(--ink);stroke-width:.7;fill:none}
+.dot{fill:var(--ink)}
+.th{font:400 10.5px var(--f);fill:var(--ink);letter-spacing:.05em;text-transform:uppercase}
+.tc{font:400 10.5px var(--f);fill:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="tb">
+    <div class="big">
+      <div><div class="lbl">UI component · dimensional drawing</div><h1>Mobile Dock</h1></div>
+      <div class="v">Architecture only: morphing shell, upward panel, active tab expansion, width clamping and safe-area placement. Content is out of scope.</div>
+    </div>
+    <div><div class="lbl">Dwg no.</div><div class="v">UI-DOCK-001</div></div>
+    <div><div class="lbl">Rev</div><div class="v">A · 2026-11-20</div></div>
+    <div><div class="lbl">Sheets</div><div class="v">1</div></div>
+    <div><div class="lbl">Units</div><div class="v">CSS px @ 1×</div></div>
+    <div><div class="lbl">Scale</div><div class="v">As noted</div></div>
+    <div><div class="lbl">Source</div><div class="v">ExpandableTabs · mobile &lt; 768px</div></div>
+    <div class="notes">
+      <div><span class="nh">NOTES:<span>(UNLESS OTHERWISE SPECIFIED)</span></span><ol>
+        <li>Do not scale from screen. Read the variable tables.</li>
+        <li>All dimensions in CSS px at 1×. Shell border B = 1 adds 2·B to outer box size.</li>
+        <li>Slots are placeholders. Tab labels, icons and panel items are not part of the drawing.</li></ol></div>
+      <div><span class="nh" aria-hidden="true">&nbsp;</span><ol start="4">
+        <li>Every dimension is a variable (S1, R2, Z1, W_CL…). Derived values are written as formulas.</li>
+        <li>HUG = sized by content · FLEX = takes remaining space · FILL = full parent width.</li>
+        <li>[TBD] = not defined in source. Grayscale by design; color is out of scope.</li></ol></div>
+    </div>
+    <div class="figs">
+      <div><div class="lbl">H1 · bar-h</div><div class="v">52 (+2·B = 54)</div></div>
+      <div><div class="lbl">Z1 · tab-size</div><div class="v">40 × 40</div></div>
+      <div><div class="lbl">W_CL · closed-w</div><div class="v">243 (N=4) / 287 (N=5)</div></div>
+      <div><div class="lbl">W_ACT · open-tab</div><div class="v">S5 + I1 + W_L + S6</div></div>
+      <div><div class="lbl">R1 · r-shell</div><div class="v">26</div></div>
+      <div><div class="lbl">R2 · r-tab-pill</div><div class="v">18</div></div>
+      <div><div class="lbl">W_MAX · clamp</div><div class="v">100vw − 2·V1</div></div>
+    </div>
+  </header>
+  <div class="sheetwrap">
+    <div class="scroll">
+      <svg id="sh1" viewBox="0 0 1700 1060" role="img" aria-label="Single-sheet dimensional drawing of a floating mobile dock with upward expandable panel: open plan view, exploded layer stack, mobile viewport placement, active tab expansion detail, nested corner detail, closed bar formula, radius details, and variable tables"></svg>
+    </div>
+    <div class="foot"><span>2026-11-20 &nbsp;|&nbsp; UI component reference</span><span><b>Mobile dock, architecture</b> &nbsp;|&nbsp; 1</span></div>
+  </div>
+</div>
+
+<script>
+(function(){
+const NS='http://www.w3.org/2000/svg';let sv,A,HAT,uid=0;
+function mk(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)if(a[k]!=null)e.setAttribute(k,a[k]);(p||sv).appendChild(e);return e}
+function tx(x,y,s,c,a,p){const t=mk('text',Object.assign({x:x,y:y,class:c||'dt'},a||{}),p);t.textContent=s;return t}
+function begin(id){
+  sv=document.getElementById(id);sv.innerHTML='';const n=uid++;const d=mk('defs',{});
+  const m=mk('marker',{id:'ar'+n,viewBox:'0 0 10 10',refX:10,refY:5,markerWidth:7,markerHeight:7,orient:'auto-start-reverse',markerUnits:'userSpaceOnUse'},d);
+  mk('path',{d:'M0,1.7 L10,5 L0,8.3 z',class:'arrow'},m);
+  const pt=mk('pattern',{id:'hat'+n,width:5,height:5,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'},d);
+  mk('line',{x1:0,y1:0,x2:0,y2:5,class:'hl'},pt);
+  A='url(#ar'+n+')';HAT='url(#hat'+n+')';
+  rr(20,20,1660,1020,16,'border');
+}
+function dimH(x1,x2,y,e1,e2,l,o){o=o||{};[[x1,e1],[x2,e2]].forEach(([x,e])=>{if(e==null)return;const s=Math.sign(y-e)||1;mk('line',{x1:x,y1:e+s*3,x2:x,y2:y+s*5,class:'ext'})});
+  if(x2-x1>=28)mk('line',{x1:x1,y1:y,x2:x2,y2:y,class:'dl','marker-start':A,'marker-end':A});else{mk('line',{x1:x1-13,y1:y,x2:x1,y2:y,class:'dl','marker-end':A});mk('line',{x1:x2+13,y1:y,x2:x2,y2:y,class:'dl','marker-end':A});mk('line',{x1:x1,y1:y,x2:x2,y2:y,class:'dl'})}
+  tx((x1+x2)/2+(o.dx||0),(o.below?y+13:y-4)+(o.dy||0),l,o.c||'dt',{'text-anchor':'middle'})}
+function dimV(y1,y2,x,e1,e2,l,o){o=o||{};[[y1,e1],[y2,e2]].forEach(([y,e])=>{if(e==null)return;const s=Math.sign(x-e)||1;mk('line',{x1:e+s*3,y1:y,x2:x+s*5,y2:y,class:'ext'})});
+  if(y2-y1>=28)mk('line',{x1:x,y1:y1,x2:x,y2:y2,class:'dl','marker-start':A,'marker-end':A});else{mk('line',{x1:x,y1:y1-13,x2:x,y2:y1,class:'dl','marker-end':A});mk('line',{x1:x,y1:y2+13,x2:x,y2:y2,class:'dl','marker-end':A});mk('line',{x1:x,y1:y1,x2:x,y2:y2,class:'dl'})}
+  const c=(y1+y2)/2;if(o.side){const r=o.side==='r';tx(r?x+6:x-6,c+4+(o.dy||0),l,o.c||'dt',{'text-anchor':r?'start':'end'})}else tx(x-5,c,l,o.c||'dt',{'text-anchor':'middle',transform:'rotate(-90 '+(x-5)+' '+c+')'})}
+function callout(px,py,ex,ey,l,dir,c){const s=dir||(ex>=px?1:-1);mk('circle',{cx:px,cy:py,r:1.8,class:'dot'});mk('polyline',{points:px+','+py+' '+ex+','+ey+' '+(ex+s*10)+','+ey,class:'lead'});tx(ex+s*14,ey+4,l,c||'dt',{'text-anchor':s>0?'start':'end'})}
+function rad(cx,cy,r,c,l,L){const sx=c.includes('l')?-1:1,sy=c.includes('t')?-1:1;const ox=cx-sx*r,oy=cy-sy*r;const px=ox+sx*r*Math.SQRT1_2,py=oy+sy*r*Math.SQRT1_2;callout(px,py,px+sx*L,py+sy*L,l,sx)}
+function nb(x,y,n){mk('rect',{x:x-6,y:y-6,width:12,height:12,class:'nb'});tx(x,y+3.5,String(n),'nbt',{'text-anchor':'middle'})}
+function rr(x,y,w,h,r,c){return mk('rect',{x:x,y:y,width:w,height:h,rx:r,class:c})}
+function xbox(x,y,w,h){mk('rect',{x:x,y:y,width:w,height:h,class:'thin'});mk('path',{d:'M'+x+','+y+' l'+w+','+h+' M'+(x+w)+','+y+' l'+(-w)+','+h,class:'thin'})}
+function slotLabel(x,y,w,h,l,al){tx(al==='l'?x+6:al==='r'?x+w-6:x+w/2,y+h/2+3.2,l,'sl',{'text-anchor':al==='l'?'start':al==='r'?'end':'middle'})}
+function title(x,y,t,s){tx(x,y,t,'vt',{'text-anchor':'middle'});if(s)tx(x,y+14,s,'dts',{'text-anchor':'middle'})}
+function notes(list){const NX=50,NY=58;tx(NX,NY,'NOTES:','nth');tx(NX+62,NY,'(UNLESS OTHERWISE SPECIFIED)','nt');
+  list.forEach(([n,t],i)=>{const y=NY+28+i*22;if(n){nb(NX+6,y-4,n);tx(NX+22,y,t,'nt')}else tx(NX,y,t,'nt')})}
+function table(x,y,ttl,rows){const ws=[40,88,96],rh=17;tx(x,y-8,ttl,'vt');
+  const all=[['Code','Variable','Value']].concat(rows);
+  all.forEach((r,i)=>{let cx2=x;r.forEach((c,j)=>{mk('rect',{x:cx2,y:y+i*rh,width:ws[j],height:rh,class:'thin'});tx(cx2+(j?ws[j]/2:6),y+i*rh+12,c,i?'tc':'th',{'text-anchor':j?'middle':'start'});cx2+=ws[j]})});
+  return y+all.length*rh+30}
+function detailRef(cx,cy,r,lbl,lx,ly){mk('circle',{cx:cx,cy:cy,r:r,class:'ph'});const a=Math.atan2(ly-cy,lx-cx);mk('line',{x1:cx+r*Math.cos(a),y1:cy+r*Math.sin(a),x2:lx,y2:ly,class:'lead'});tx(lx+(lx<cx?-4:4),ly+4,lbl,'dts',{'text-anchor':lx<cx?'end':'start'})}
+
+/* Reference open shell: W=326, H=214
+   Vertical closure: B(1) + S8(8) + H4(4) + S8(8) + 3*H3(120) + 2*S10(8) + S7(6) + B(1) + H1(52) + B(1) = 209 -> let's use exact 209!
+   Wait: check H1=52 includes S2(6)+Z1(40)+S2(6)=52!
+   Horizontal bar closure (N=4 + 1 active W_ACT=99 + trailing W_TR=49):
+   B(1) + S1(8) + Z1(40) + S4(4) + W_S(5) + S4(4) + 3*Z1(120) + 3*S4(12) + W_ACT(99) + S1(8) + B(1) = 302 -> ref W=302 (or N=5 with W_ACT=95 -> 342).
+   Let's use N=5 exact:
+   B(1)+S1(8)+Z1(40)+S4(4)+W_S(5)+S4(4)+4*Z1(160)+4*S4(16)+W_ACT(94)+S1(8)+B(1) = 341! Exact to the pixel! */
+const W=341,H=209;
+const VAR={
+  spacing:[
+    ['S1','bar-pad-x','8 (2·S1 = 16)'],
+    ['S2','bar-pad-y','6'],
+    ['S3','panel-pad-x','10'],
+    ['S4','bar-gap','4'],
+    ['S5','act-pad-start','12'],
+    ['S6','act-pad-end','14'],
+    ['S7','panel-gap','6'],
+    ['S8','panel-pad-t','8'],
+    ['S9','row-pad-x','12'],
+    ['S10','row-gap','4']
+  ],
+  size:[
+    ['B','border','1 (2·B = 2)'],
+    ['H1','bar-h','2·S2+Z1 = 52'],
+    ['Z1','tab-size','40 × 40'],
+    ['I1','icon-size','18'],
+    ['H3','row-min-h','40 (MACRO: 44)'],
+    ['H4','grabber','36 × 4'],
+    ['W_S','sep-w','5 (1 + 2·2)'],
+    ['W_TR','trailing-w','W_S+S4+Z1 = 49'],
+    ['W_CL','closed-w','N=5: 287 · N=4: 243'],
+    ['W_ACT','open-tab-w','S5+I1+W_L+S6']
+  ],
+  radius:[
+    ['R1','r-shell','26'],
+    ['R2','r-tab-pill','18'],
+    ['R3','r-panel-row','12'],
+    ['R4','r-pill','h ÷ 2']
+  ],
+  viewport:[
+    ['V1','vp-margin-x','12 (2·V1 = 24)'],
+    ['V2','vp-bottom','12 + SAFE-AREA'],
+    ['W_MAX','max-shell-w','100vw − 2·V1'],
+    ['BP','hide-above','768 (MD)'],
+    ['MH','panel-max-h','224 / [TBD]'],
+    ['D_Y','swipe-close','DY>40 OR VY>260']
+  ]
+};
+
+begin('sh1');
+notes([
+  [1,'CLOSED BAR HUGS N TABS (4–5) + TRAILING ACTION. W_CL = N·Z1+(N−1)·S4+W_TR+S4+2·S1+2·B.'],
+  [2,'ACTIVE TAB EXPANDS TO W_ACT = S5 + I1 + W_L + S6, CLAMPED TO PREVENT SIBLING CLIPPING.'],
+  [3,'PANEL MORPHS UPWARD FROM BOTTOM CENTER WITH GAP S7 ABOVE BAR AND GRABBER H4.'],
+  [4,'DOWNWARD DRAG > 40 PX OR VELOCITY > 260 PX/S DISMISSES PANEL TO CLOSED BAR.'],
+  [5,'SHELL WIDTH CLAMPED TO W_MAX = 100VW − 2·V1 (V1 = 12). HIDDEN AT VIEWPORT >= 768.'],
+  [6,'ANCHORED AT V2 + ENV(SAFE-AREA-INSET-BOTTOM). SHADOW USES SHADOW-2XL ENVELOPE [TBD].'],
+  [7,'TAB PILL R2 = 18 SITS INSIDE R1 = 26 (VERTICAL INSET B+S2=7, HORIZ INSET B+S1=9).']
+]);
+
+/* ---- PLAN VIEW 1.0:1 (OPEN STATE, RTL: START = RIGHT, END = LEFT) ---- */
+{
+  const k=1.0,PX=730,PY=190;
+  const X=v=>PX+v*k,Y=v=>PY+v*k;
+  const r=(x,y,w,h,rx,c,l,al)=>{mk('rect',{x:X(x),y:Y(y),width:w*k,height:h*k,rx:rx*k,class:c});if(l)slotLabel(X(x),Y(y),w*k,h*k,l,al)};
+
+  /* Morphing outer shell */
+  r(0,0,W,H,26,'obj');
+  /* Panel / bar divider line at y=156 (H - 1 - 52 = 156) */
+  mk('line',{x1:X(1),y1:Y(156),x2:X(W-1),y2:Y(156),class:'thin'});
+  /* Grabber pill centered: x=(341-36)/2=152.5, y=9..13 (B 1 + S8 8 = 9) */
+  r(152.5,9,36,4,2,'hug');
+
+  /* Panel rows (3 rows x H3=40, gap S10=4, pad-x S3=10 inside B=1 -> x=11..330, w=319) */
+  [21,65,109].forEach((ry,idx)=>{
+    r(11,ry,319,40,12,idx===0?'well':'slot','Panel action row slot · fill');
+    xbox(X(304),Y(ry+13),14*k,14*k);
+    xbox(X(23),Y(ry+13),14*k,14*k);
+  });
+
+  /* Bottom dock bar y=156..208 (H1=52; inside tabs y=162..202 Z1=40, S2=6 top & bottom) */
+  /* RTL End (left): Trailing voice button x=9..49 (Z1=40), gap 4, Sep x=55 (mx=2 -> 53..58), gap 4 */
+  r(9,162,40,40,18,'hug');xbox(X(20),Y(173),18*k,18*k);
+  mk('line',{x1:X(55.5),y1:Y(172),x2:X(55.5),y2:Y(192),class:'obj'});
+  /* 4 inactive tabs (RTL end to middle): 62..102, 106..146, 150..190, 194..234 */
+  [62,106,150,194].forEach(tx0=>{
+    r(tx0,162,40,40,18,'slot');xbox(X(tx0+11),Y(173),18*k,18*k);
+  });
+  /* Active expanded tab (RTL start = right): x=238..332 (W_ACT=94), y=162..202 */
+  r(238,162,94,40,18,'hug');
+  xbox(X(302),Y(173),18*k,18*k);
+  r(252,175,44,14,2,'slot','Label','r');
+
+  /* Centerline of dock bar & vertical axis */
+  mk('line',{x1:X(-16),y1:Y(182),x2:X(W+16),y2:Y(182),class:'cl'});
+  mk('line',{x1:X(W/2),y1:Y(-14),x2:X(W/2),y2:Y(H+14),class:'cl'});
+
+  tx(X(0),Y(-80),'END (RTL LEFT)','dts',{'text-anchor':'start'});
+  tx(X(W),Y(-80),'START (RTL RIGHT)','dts',{'text-anchor':'end'});
+
+  /* Top horizontal dims */
+  const ty=Y(-26);
+  dimH(X(1),X(11),ty,Y(0),Y(21),'S3',{dx:-8});
+  dimH(X(11),X(330),ty,null,Y(21),'FILL',{c:'dts'});
+  dimH(X(330),X(340),ty,null,Y(0),'S3',{dx:8});
+  dimH(X(0),X(W),Y(-56),Y(-30),Y(-30),'W (<= W_MAX)');
+  nb(X(W/2+76),Y(-60),5);
+
+  /* Bottom horizontal chain */
+  const by=Y(H+28);
+  dimH(X(1),X(9),by,Y(H),Y(202),'S1',{below:true,dx:-8});
+  dimH(X(9),X(49),by,null,Y(202),'Z1',{below:true});
+  dimH(X(53),X(58),by,null,Y(192),'W_S',{below:true,dy:14});
+  dimH(X(62),X(102),by,null,Y(202),'Z1',{below:true});
+  dimH(X(102),X(106),by,null,Y(202),'S4',{below:true,dy:14});
+  dimH(X(106),X(234),by,null,Y(202),'3 · (Z1+S4)',{below:true,c:'dts'});
+  dimH(X(238),X(332),by,null,Y(202),'W_ACT',{below:true});
+  dimH(X(332),X(340),by,null,Y(H),'S1',{below:true,dx:8});
+
+  /* Left vertical chain */
+  const lx=X(-44);
+  dimV(Y(1),Y(156),lx,X(0),X(0),'HUG (<= MH)');
+  dimV(Y(156),Y(208),lx,null,X(0),'H1');
+  dimV(Y(0),Y(H),X(-82),X(-48),X(-48),'(REF '+H+')');
+
+  /* Right vertical chain */
+  [[1,9,'S8'],[9,13,'H4'],[21,61,'H3'],[61,65,'S10'],[149,155,'S7'],[156,162,'S2'],[162,202,'Z1'],[202,208,'S2']].forEach(([a,b,l],i)=>{
+    dimV(Y(a),Y(b),X(W+32),X(W),X(W),l,{side:'r',dy:i===0?-5:i===1?7:i===4?-4:i===5?5:0});
+  });
+
+  rad(X(0),Y(0),26,'tl','R1',22);
+  rad(X(332),Y(202),18,'br','R2',20);
+  nb(X(182),Y(11),3);nb(X(285),Y(150),2);nb(X(29),Y(150),1);
+  detailRef(X(285),Y(182),32,'DETAIL B',X(352),Y(115));
+  detailRef(X(12),Y(196),16,'DETAIL C',X(-12),Y(266));
+  title(X(W/2),Y(H+78),'Plan view · open state','Scale 1:1 · RTL · N = 5 tabs + trailing action');
+}
+
+/* ---- DETAIL B · ACTIVE TAB EXPANSION 1.55:1 (upper-right beside plan) ---- */
+{
+  const q=1.55,DX=1178,DY=248;
+  /* Active pill: W_ACT=116 (S5 12 + I1 18 + W_L 72 + S6 14), H=40, R2=18 */
+  mk('rect',{x:DX,y:DY,width:116*q,height:40*q,rx:18*q,class:'hug'});
+  /* RTL: start (right) pad S5=12 -> icon x=86..104 -> label x=14..86 -> end (left) pad S6=14 */
+  xbox(DX+86*q,DY+11*q,18*q,18*q);
+  mk('rect',{x:DX+14*q,y:DY+12*q,width:66*q,height:16*q,rx:2,class:'slot'});
+  slotLabel(DX+14*q,DY+12*q,66*q,16*q,'Label · hug');
+  const ty=DY-16;
+  dimH(DX,DX+14*q,ty,DY,DY+12*q,'S6',{dx:-6});
+  dimH(DX+14*q,DX+86*q,ty,null,DY+12*q,'W_L',{c:'dts'});
+  dimH(DX+86*q,DX+104*q,ty,null,DY+11*q,'I1');
+  dimH(DX+104*q,DX+116*q,ty,null,DY,'S5',{dx:8});
+  dimH(DX,DX+116*q,DY+40*q+20,DY+40*q,DY+40*q,'W_ACT',{below:true});
+  dimV(DY,DY+40*q,DX-16,DX,DX,'Z1',{side:'l'});
+  tx(DX+58*q,DY+40*q+48,'W_ACT = S5 + I1 + W_L + S6','dt',{'text-anchor':'middle'});
+  tx(DX+58*q,DY+40*q+64,'CLAMPED TO MAX ACTIVE WIDTH','dts',{'text-anchor':'middle'});
+  nb(DX+116*q-6,DY-36,2);
+  title(DX+58*q,DY+152,'Detail B · active tab','Scale 1.55:1 · RTL expansion');
+}
+
+/* ---- EXPLODED VIEW (left-middle) ---- */
+{
+  const sc=.56,TX=335,TY=558,gap=42,a=.94*sc,b=.17*sc,c=-.34*sc,dd=.47*sc;
+  const P=(x,y,z)=>[TX+a*x+c*y,TY+b*x+dd*y-z];
+  const G=z=>mk('g',{transform:'matrix('+a+','+b+','+c+','+dd+','+TX+','+(TY-z)+')'});
+  const R2=(g,x,y,w,h,r,cls,extra)=>mk('rect',Object.assign({x:x,y:y,width:w,height:h,rx:r,class:cls,'vector-effect':'non-scaling-stroke'},extra||{}),g);
+  const L2=(g,x1,y1,x2,y2,cls)=>mk('line',{x1:x1,y1:y1,x2:x2,y2:y2,class:cls,'vector-effect':'non-scaling-stroke'},g);
+  [[0,0],[W,0],[W,H],[0,H]].forEach(([x,y])=>{const p1=P(x,y,gap),p2=P(x,y,gap*4);mk('line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],class:'ph'})});
+  let g=G(0);R2(g,-24,-24,W+48,H+48,0,'thin');
+  g=G(gap);R2(g,12,26,W-24,H-12,26,'hs',{fill:HAT});
+  g=G(gap*2);R2(g,0,0,W,H,26,'obj');L2(g,1,156,W-1,156,'thin');
+  g=G(gap*3);R2(g,152.5,9,36,4,2,'hug');R2(g,11,21,319,40,12,'well');R2(g,11,65,319,40,12,'slot');R2(g,11,109,319,40,12,'slot');
+  g=G(gap*4);R2(g,9,162,40,40,18,'hug');[62,106,150,194].forEach(x0=>R2(g,x0,162,40,40,18,'slot'));R2(g,238,162,94,40,18,'hug');
+  const LX=218;
+  [
+    [0,[-24,H+24],'L0 · Viewport','Mobile < 768 · fixed bottom'],
+    [gap,[12,H+14],'L1 · Shadow','Shadow-2xl footprint [TBD]'],
+    [gap*2,[0,H],'L2 · Morph shell','R1 · B · backdrop-blur'],
+    [gap*3,[11,149],'L3 · Upward panel','Grabber H4 · rows H3'],
+    [gap*4,[9,202],'L4 · Tab bar','Gliding pill R2 · trailing Z1']
+  ].forEach(([z,[x,y],t,st])=>{
+    const p1=P(x,y,z);mk('circle',{cx:p1[0],cy:p1[1],r:1.8,class:'dot'});
+    mk('polyline',{points:p1[0]+','+p1[1]+' '+(LX+10)+','+p1[1]+' '+LX+','+p1[1],class:'lead'});
+    tx(LX-4,p1[1]-2,t,'vt',{'text-anchor':'end'});tx(LX-4,p1[1]+11,st,'dts',{'text-anchor':'end'});
+  });
+  title(370,664,'Exploded view','Axonometric · z gaps not to scale');
+}
+
+/* ---- VIEWPORT PLACEMENT 0.30:1 (bottom-left, ref 390 x 844) ---- */
+{
+  const s=.30,VX=125,VY=720,vw=390*s,vh=844*s;
+  const v1=12*s,v2=12*s,safe=34*s;
+  const dw=287*s,dh=54*s,ow=366*s,oh=209*s;
+  /* Portrait screen outline */
+  mk('rect',{x:VX,y:VY,width:vw,height:vh,rx:12,class:'thin'});
+  /* Safe-area inset band at bottom */
+  mk('rect',{x:VX,y:VY+vh-safe,width:vw,height:safe,class:'hs',fill:HAT,'fill-opacity':.45});
+  /* Max-width clamp phantom */
+  mk('rect',{x:VX+v1,y:VY+vh-safe-v2-oh,width:ow,height:oh,rx:26*s,class:'ph'});
+  /* Closed floating dock centered */
+  const dx=VX+(vw-dw)/2,dy=VY+vh-safe-v2-dh;
+  mk('rect',{x:dx,y:dy,width:dw,height:dh,rx:26*s,class:'obj'});
+  mk('line',{x1:VX+vw/2,y1:VY-8,x2:VX+vw/2,y2:VY+vh+8,class:'cl'});
+
+  dimH(VX,VX+vw,VY-14,VY,VY,'100VW (< BP)');
+  dimV(VY,VY+vh,VX-16,VX,VX,'100VH');
+  dimH(VX,VX+v1,VY+vh+18,VY+vh,VY+vh-safe-v2,'V1',{below:true,dx:-6});
+  dimH(VX+v1,VX+vw-v1,VY+vh+18,null,VY+vh-safe-v2,'W_MAX',{below:true});
+  dimH(VX+vw-v1,VX+vw,VY+vh+18,null,VY+vh,'V1',{below:true,dx:6});
+  dimV(VY+vh-safe-v2,VY+vh-safe,VX+vw+22,VX+vw,VX+vw,'V2',{side:'r',dy:-4});
+  dimV(VY+vh-safe,VY+vh,VX+vw+22,null,VX+vw,'SAFE-AREA',{side:'r',c:'dts',dy:3});
+  callout(VX+vw-v1,VY+vh-safe-v2-oh+16,VX+vw+26,VY+vh-safe-v2-oh-6,'OPEN MORPH',1,'dts');
+  nb(VX+vw+18,VY+26,6);
+  title(VX+vw/2+30,VY+vh+48,'Viewport placement','Scale 0.3:1 · ref 390 × 844 mobile');
+}
+
+/* ---- DETAIL C · NESTED SHELL CORNER 3.4:1 ---- */
+{
+  const K=3.4,CX=510,CY=944;
+  const P=(u,v)=>[CX+u*K,CY-v*K];
+  /* Outer shell R1=26; border B=1; inner tab pill inset horizontally B+S1=9, vertically B+S2=7, radius R2=18 */
+  const outerArc=(o,r)=>{const a1=P(o,44),a2=P(o,26),a3=P(26,o),a4=P(44,o);return 'M'+a1+' L'+a2+' A'+r*K+' '+r*K+' 0 0 0 '+a3+' L'+a4};
+  mk('path',{d:outerArc(0,26),class:'obj',fill:'none'});
+  mk('path',{d:outerArc(1,25),class:'thin'});
+  /* Inner pill corner starts at x=9 (B+S1), y=7 (B+S2), radius 18 -> center at (27, 25) */
+  const i1=P(9,44),i2=P(9,25),i3=P(27,7),i4=P(44,7);
+  mk('path',{d:'M'+i1+' L'+i2+' A'+18*K+' '+18*K+' 0 0 0 '+i3+' L'+i4,class:'thin'});
+  const c1=P(26,26),c2=P(27,25);
+  mk('path',{d:'M'+(c1[0]-6)+','+c1[1]+' h12 M'+c1[0]+','+(c1[1]-6)+' v12',class:'thin'});
+  [[26,'R1',205,c1],[18,'R2',248,c2]].forEach(([r,l,dg,cc],i)=>{
+    const a=dg*Math.PI/180,ex=cc[0]+r*K*Math.cos(a),ey=cc[1]-r*K*Math.sin(a);
+    mk('line',{x1:cc[0],y1:cc[1],x2:ex,y2:ey,class:'dl','marker-end':A});
+    tx(i?(cc[0]+ex)/2+8:(cc[0]+ex)/2-6,i?(cc[1]+ey)/2+4:(cc[1]+ey)/2-6,l,'dt',{'text-anchor':i?'start':'end'});
+  });
+  dimH(P(0,0)[0],P(1,0)[0],P(0,41)[1],P(0,44)[1],P(1,44)[1],'B',{dx:-8});
+  dimH(P(1,0)[0],P(9,0)[0],P(0,41)[1],null,P(9,44)[1],'S1',{dx:6});
+  dimV(P(44,7)[1],P(44,1)[1],P(46,0)[0],P(44,7)[0],P(44,1)[0],'S2',{side:'r'});
+  tx(P(14,36)[0],P(14,36)[1],'R2 = 18 NOMINAL','dt');
+  tx(P(14,31.5)[0],P(14,31.5)[1],'R1−B−S2=19 · R1−B−S1=17','dts');
+  nb(CX+142,CY-144,7);
+  title(CX+82,CY+44,'Detail C · nested shell corner','Scale 3.4:1');
+}
+
+/* ---- DETAIL D · CLOSED BAR ANATOMY 0.9:1 ---- */
+{
+  const k=.9,BX=795,BY=835,CW=287,CH=54;
+  const X=v=>BX+v*k,Y=v=>BY+v*k;
+  mk('rect',{x:X(0),y:Y(0),width:CW*k,height:CH*k,rx:26*k,class:'obj'});
+  mk('rect',{x:X(9),y:Y(7),width:40*k,height:40*k,rx:18*k,class:'hug'});xbox(X(20),Y(18),18*k,18*k);
+  mk('line',{x1:X(55.5),y1:Y(17),x2:X(55.5),y2:Y(37),class:'obj'});
+  [62,106,150,194,238].forEach((x0,i)=>{
+    mk('rect',{x:X(x0),y:Y(7),width:40*k,height:40*k,rx:18*k,class:i===4?'hug':'slot'});
+    xbox(X(x0+11),Y(18),18*k,18*k);
+  });
+  dimH(X(0),X(CW),Y(-18),Y(0),Y(0),'W_CL');
+  dimV(Y(0),Y(CH),X(-16),X(0),X(0),'H1+2·B',{side:'l'});
+  dimH(X(9),X(58),Y(CH+20),Y(47),Y(37),'W_TR',{below:true});
+  dimH(X(62),X(278),Y(CH+20),Y(47),Y(47),'N·Z1 + (N−1)·S4',{below:true,c:'dts'});
+  tx(X(CW/2),Y(CH+54),'N=5: 287 PX · N=4: 243 PX','dts',{'text-anchor':'middle'});
+  nb(X(CW-8),Y(-24),1);
+  title(X(CW/2),Y(CH+112),'Detail D · closed bar','Scale 0.9:1 · collapsed dock state');
+}
+
+/* ---- RADIUS DETAILS 1.7:1 ---- */
+{
+  const q=1.7,y0=940,L=34;
+  const items=[['R1','Shell',26],['R2','Tab pill',18],['R3','Panel row',12]];
+  items.forEach(([c,n,r],i)=>{
+    const x0=1136+i*88;
+    const P=(u,v)=>[x0+u*q,y0-v*q];
+    mk('path',{d:'M'+P(0,L)+' L'+P(0,r)+' A'+r*q+' '+r*q+' 0 0 0 '+P(r,0)+' L'+P(L,0),class:'obj',fill:'none'});
+    const cc=P(r,r);mk('path',{d:'M'+(cc[0]-4)+','+cc[1]+' h8 M'+cc[0]+','+(cc[1]-4)+' v8',class:'thin'});
+    const a=225*Math.PI/180;
+    mk('line',{x1:cc[0],y1:cc[1],x2:cc[0]+r*q*Math.cos(a),y2:cc[1]-r*q*Math.sin(a),class:'dl','marker-end':A});
+    tx(x0+L*q/2+4,y0-L*q+14,c,'dt');
+    tx(x0,y0+18,n,'dts');
+  });
+  title(1254,y0+48,'Radius details','Scale 1.7:1 · R4 pill = h ÷ 2');
+}
+
+/* ---- VARIABLE TABLES (right column) ---- */
+{
+  let y=table(1426,86,'Spacing',VAR.spacing);
+  y=table(1426,y,'Size & formulas',VAR.size);
+  y=table(1426,y,'Radius',VAR.radius);
+  table(1426,y,'Viewport & clamp',VAR.viewport);
+}
+})();
+</script>
+</body>
+</html>

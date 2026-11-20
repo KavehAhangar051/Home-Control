@@ -21,7 +21,7 @@ Device availability depends on the ESP32 firmware, network connectivity, broker/
 - Motion 14 (`LazyMotion` + async `domMax` + `AnimateView`), `@dnd-kit/react` / `@dnd-kit/dom`, Base UI, and `@danfessler/trellis-react`
 - Biome (lint/format), Oxlint diagnostic audit, and `node:test` deterministic suite
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the current source layout, module responsibilities, communication constraints, and contributor guidance. See [DESIGN.md](DESIGN.md) for verified UI conventions, and [docs/TECHNOLOGY-ROADMAP.md](docs/TECHNOLOGY-ROADMAP.md) / [docs/performance/60-FPS-STRATEGY.md](docs/performance/60-FPS-STRATEGY.md) for the active optimization direction.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the current source layout, module responsibilities, communication constraints, and contributor guidance. See [DESIGN.md](DESIGN.md) for verified UI conventions, [docs/dimensional-drawings/index.html](docs/dimensional-drawings/index.html) for source-derived monochrome UI dimensional drawings (`UI-SEG-001`, `UI-DOCK-001`, `UI-GRP-001`), and [docs/TECHNOLOGY-ROADMAP.md](docs/TECHNOLOGY-ROADMAP.md) / [docs/performance/60-FPS-STRATEGY.md](docs/performance/60-FPS-STRATEGY.md) for the active optimization direction.
 
 ## Requirements
 
