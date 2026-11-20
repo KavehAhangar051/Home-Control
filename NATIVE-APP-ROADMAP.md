@@ -1518,12 +1518,12 @@ Hook فعلی Page Visibility از `visibilitychange` و `online` استفاده
 - [x] طرح APK-only توسط مالک تأیید شد.
 - [x] پیکربندی Capacitor و اسکریپت‌های Build ثبت شدند.
 - [x] GitHub Actions workflow ثبت شد.
-- [ ] اولین GitHub Actions build موفق
-- [ ] APK به‌عنوان Artifact تولید و دریافت شد
+- [x] اولین GitHub Actions build موفق (Run: `44773873021`)
+- [x] APK به‌عنوان Artifact تولید و قابل دریافت شد (`home-control-debug-apk-6`)
 - [ ] نصب و اجرای دستی روی گوشی Android
 - [ ] بررسی MQTT و Local WebSocket روی گوشی واقعی
 
-**وضعیت:** پیکربندی و Workflow ثبت شده‌اند؛ تا پایان موفق Workflow، وجود APK قابل دریافت‌شده تأیید نشده است.
+**وضعیت:** اولین APK debug ساخته و آپلود شده است؛ نصب و اجرای واقعی روی گوشی همچنان نیازمند بررسی مالک پروژه است.
 
 
 ---
