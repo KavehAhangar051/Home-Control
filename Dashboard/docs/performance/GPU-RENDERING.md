@@ -514,3 +514,10 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - The Scramble, Percent, and ASCII loader variants now stop their interval timers while the document is hidden and resume from their existing progress/frame state when it becomes visible. This avoids background timer callbacks and React state updates; the visible cadence and rendered states are unchanged.
 - The WebGL2 LUT image renderer now checks its existing near-viewport state before both context initialization and drawing. Context restoration, resize, or device-pixel-ratio notifications cannot allocate a renderer or trigger a WebGL upload/draw for an image outside the observer's 160px visibility margin; re-entry still initializes or redraws through the existing observer path.
 - These are source-level background-work reductions. No FPS, GPU utilization, battery, or VRAM measurements are claimed.
+
+## Custom cursor and reduced-motion compositing
+
+- The custom cursor's requestAnimationFrame loop now pauses while the document is hidden and resumes from its existing interpolation state when the tab becomes visible. This avoids retaining cursor work in background tabs without changing the visible easing or pointer response.
+- Cursor transform writes are skipped when the rounded pixel position has not changed, avoiding repeated style invalidation during sub-pixel settling. RAF cancellation uses an explicit null check so a valid frame identifier of zero is handled.
+- ActionSwap text and icon elements no longer request persistent transform layers when reduced motion is enabled; their existing reduced-motion transition behavior remains unchanged.
+

@@ -10,8 +10,8 @@ export interface CursorElementsRef {
 }
 
 /**
- * Attaches a high-precision 60/120+ FPS kinematic LERP animation loop for the custom cursor.
- * Optimized with V8 fast paths, dirty checking, and zero-allocation RAF execution.
+ * Attaches a requestAnimationFrame-driven kinematic LERP loop for the custom cursor.
+ * Cached transforms avoid redundant style writes while the cursor settles.
  *
  * @param {CursorElementsRef} refs - Direct DOM references to cursor container and inner 3D shell.
  */
@@ -117,12 +117,9 @@ export function useHardwareCursorListeners({
     const startLoop = () => {
       if (document.hidden || isLoopRunning) return;
 
-      if (!isLoopRunning) {
-        isLoopRunning = true;
-
-        if (rafId !== null) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(animate);
-      }
+      isLoopRunning = true;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(animate);
     };
 
     const onPointerMove = (e: PointerEvent) => {
