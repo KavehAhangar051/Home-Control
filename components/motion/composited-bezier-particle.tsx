@@ -160,7 +160,10 @@ export function CompositedBezierParticle({
   useEffect(() => {
     const element = elementRef.current;
 
-    if (!element || prefersReducedMotion !== false || typeof element.animate !== "function") {
+    if (!element || prefersReducedMotion !== false) return;
+
+    if (typeof element.animate !== "function") {
+      element.style.opacity = "1";
       return;
     }
 
