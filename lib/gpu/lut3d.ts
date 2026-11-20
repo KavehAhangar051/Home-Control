@@ -1,6 +1,6 @@
 export interface Lut3D {
   size: number;
-  data: Uint8Array;
+  data: Float32Array;
   domainMin: [number, number, number];
   domainMax: [number, number, number];
 }
@@ -71,17 +71,17 @@ export function parseCubeLut(source: string): Lut3D {
     );
   }
 
-  const data = new Uint8Array(expectedValues * 4);
+  const data = new Float32Array(expectedValues * 4);
   for (let index = 0; index < expectedValues; index++) {
     const valueOffset = index * 3;
     const red = values[valueOffset];
     const green = values[valueOffset + 1];
     const blue = values[valueOffset + 2];
     const offset = index * 4;
-    data[offset] = Math.round(Math.max(0, Math.min(1, red)) * 255);
-    data[offset + 1] = Math.round(Math.max(0, Math.min(1, green)) * 255);
-    data[offset + 2] = Math.round(Math.max(0, Math.min(1, blue)) * 255);
-    data[offset + 3] = 255;
+    data[offset] = Math.max(0, Math.min(1, red));
+    data[offset + 1] = Math.max(0, Math.min(1, green));
+    data[offset + 2] = Math.max(0, Math.min(1, blue));
+    data[offset + 3] = 1;
   }
 
   return { size, data, domainMin, domainMax };
@@ -89,16 +89,16 @@ export function parseCubeLut(source: string): Lut3D {
 
 export function createIdentityLut(size = 17): Lut3D {
   validateSize(size);
-  const data = new Uint8Array(size ** 3 * 4);
+  const data = new Float32Array(size ** 3 * 4);
 
   for (let blue = 0; blue < size; blue++) {
     for (let green = 0; green < size; green++) {
       for (let red = 0; red < size; red++) {
         const offset = ((blue * size + green) * size + red) * 4;
-        data[offset] = Math.round((red / (size - 1)) * 255);
-        data[offset + 1] = Math.round((green / (size - 1)) * 255);
-        data[offset + 2] = Math.round((blue / (size - 1)) * 255);
-        data[offset + 3] = 255;
+        data[offset] = red / (size - 1);
+        data[offset + 1] = green / (size - 1);
+        data[offset + 2] = blue / (size - 1);
+        data[offset + 3] = 1;
       }
     }
   }
