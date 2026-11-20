@@ -88,6 +88,12 @@ The dashboard uses a GPU-first strategy for visual work, not a claim that every 
 - Source-level change only: no browser performance trace or compositor-layer inspection has been captured for this branch.
 - Confirm actual compositor promotion, frame-time distribution, and GPU memory in Chromium DevTools before describing the new particle animation as verified GPU execution.
 
+## Workflow edge hover transitions
+
+- Workflow edge hover previously transitioned SVG `stroke` and `stroke-opacity` on the main Bezier path and endpoint circles, which can trigger repeated SVG paint work.
+- The edge now keeps its base stroke stable and cross-fades a destructive-color overlay using `opacity`. This is compositor-friendly, but SVG layer promotion and GPU execution remain browser-dependent; verify with paint flashing and a performance trace on target browsers.
+- The selected edge retains its existing visual state. The hover treatment is not a guarantee that the entire SVG scene is GPU-only.
+
 ## WebGL 2 LUT surfaces
 
 - The opt-in WebGL 2 3D LUT foundation is documented in `GPU-RENDERING.md`. It is intended for decorative image surfaces only and is not mounted in the dashboard shell.

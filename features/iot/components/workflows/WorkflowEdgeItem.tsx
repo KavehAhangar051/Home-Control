@@ -143,12 +143,22 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         strokeWidth={highlighted ? 2.75 : 2}
         strokeOpacity={highlighted ? 0.96 : 0.72}
         strokeLinecap="round"
-        className={`pointer-events-none transition-[stroke,stroke-opacity] duration-150 ${
-          isSelected
-            ? ""
-            : "group-hover/edge:stroke-destructive group-hover/edge:[stroke-dasharray:6_4]"
+        className={`pointer-events-none transition-opacity duration-150 ${
+          isSelected ? "" : "group-hover/edge:opacity-0"
         }`}
       />
+      {!isSelected && (
+        <path
+          d={path}
+          fill="none"
+          stroke="var(--destructive)"
+          strokeWidth={highlighted ? 2.75 : 2}
+          strokeOpacity={highlighted ? 0.96 : 0.72}
+          strokeDasharray="6 4"
+          strokeLinecap="round"
+          className="pointer-events-none opacity-0 transition-opacity duration-150 group-hover/edge:opacity-100"
+        />
+      )}
 
       {isActive && (
         <path
@@ -170,7 +180,7 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         fill={endpointFill}
         stroke={strokeColor}
         strokeWidth={2}
-        className="pointer-events-none transition-colors group-hover/edge:stroke-destructive"
+        className="pointer-events-none"
       />
       <circle
         cx={end.x}
@@ -179,7 +189,25 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         fill={endpointFill}
         stroke={strokeColor}
         strokeWidth={2}
-        className="pointer-events-none transition-colors group-hover/edge:stroke-destructive"
+        className="pointer-events-none"
+      />
+      <circle
+        cx={start.x}
+        cy={start.y}
+        r={3.8}
+        fill="none"
+        stroke="var(--destructive)"
+        strokeWidth={2}
+        className="pointer-events-none opacity-0 transition-opacity duration-150 group-hover/edge:opacity-100"
+      />
+      <circle
+        cx={end.x}
+        cy={end.y}
+        r={3.8}
+        fill="none"
+        stroke="var(--destructive)"
+        strokeWidth={2}
+        className="pointer-events-none opacity-0 transition-opacity duration-150 group-hover/edge:opacity-100"
       />
 
       <WorkflowEdgeCutBadge
