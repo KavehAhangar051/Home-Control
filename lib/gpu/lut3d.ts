@@ -105,3 +105,36 @@ export function createIdentityLut(size = 17): Lut3D {
 
   return { size, data, domainMin: [0, 0, 0], domainMax: [1, 1, 1] };
 }
+
+/**
+ * Returns true only when the LUT is an exact identity mapping. This lets image
+ * surfaces retain the browser's original image path without allocating WebGL
+ * resources or introducing texture quantization for a no-op color transform.
+ */
+export function isIdentityLut(lut: Lut3D): boolean {
+  if (
+    lut.domainMin[0] !== 0 || lut.domainMin[1] !== 0 || lut.domainMin[2] !== 0 ||
+    lut.domainMax[0] !== 1 || lut.domainMax[1] !== 1 || lut.domainMax[2] !== 1 ||
+    lut.data.length !== lut.size ** 3 * 4
+  ) {
+    return false;
+  }
+
+  for (let blue = 0; blue < lut.size; blue++) {
+    for (let green = 0; green < lut.size; green++) {
+      for (let red = 0; red < lut.size; red++) {
+        const offset = ((blue * lut.size + green) * lut.size + red) * 4;
+        if (
+          lut.data[offset] !== red / (lut.size - 1) ||
+          lut.data[offset + 1] !== green / (lut.size - 1) ||
+          lut.data[offset + 2] !== blue / (lut.size - 1) ||
+          lut.data[offset + 3] !== 1
+        ) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
