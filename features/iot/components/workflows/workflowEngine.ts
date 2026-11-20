@@ -310,6 +310,14 @@ interface BezierPathGeometry {
   path: string;
   midX: number;
   midY: number;
+  startX: number;
+  startY: number;
+  control1X: number;
+  control1Y: number;
+  control2X: number;
+  control2Y: number;
+  endX: number;
+  endY: number;
 }
 
 export function buildWorkflowBezierPath(
@@ -332,6 +340,14 @@ export function buildWorkflowBezierPath(
     path: `M ${startX} ${startY} C ${cp1X} ${startY}, ${cp2X} ${endY}, ${endX} ${endY}`,
     midX: Math.round((startX + endX) / 2),
     midY: Math.round((startY + endY) / 2),
+    startX,
+    startY,
+    control1X: cp1X,
+    control1Y: startY,
+    control2X: cp2X,
+    control2Y: endY,
+    endX,
+    endY,
   };
 }
 
