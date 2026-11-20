@@ -383,3 +383,10 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - Removed the static `will-change: transform` declaration from the continuously animated header marquee track. The active CSS animation already identifies `transform` as an animated property to the browser, so the explicit permanent hint is redundant.
 - Kept the existing keyframes, 10-second duration, linear timing, infinite iteration, and backface-visibility declaration unchanged.
 - This avoids explicitly requesting long-lived layer preparation; actual compositor promotion and GPU memory allocation remain browser/device decisions and are not guaranteed by CSS.
+
+
+### Native Popover entry/exit transition audit (2026-11-20)
+
+- The shared `[popover]` rule transitions `opacity` and `transform` over 200ms and uses `display 200ms allow-discrete` for the native open/close lifecycle. The `@starting-style` rule supplies the existing closed-to-open starting values.
+- Keep this native CSS transition rather than replacing it with a JavaScript animation loop: opacity/transform are compositor-friendly candidates and avoid per-frame React/DOM writes. Actual off-main-thread execution remains browser- and element-dependent.
+- Do not add permanent `will-change` to all popovers. They can be numerous and short-lived; MDN warns that broad or persistent hints increase memory use and can worsen rendering. Preserve the current 200ms duration, easing token, scale (0.96 → 1), opacity, discrete display behavior, and reduced-motion override.
