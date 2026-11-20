@@ -85,8 +85,8 @@ export default React.memo(function WorkflowWiresSvg({
   const draftAnchor = draftSource ? getPortAnchor(draftSource, "out") : null;
   const showParticles = animationsEnabled && !isLiteTier;
 
-  const draftBezierCurve =
-    showParticles && draftAnchor && connectingDraft?.magneticTargetId
+  const draftGeometry =
+    draftAnchor && connectingDraft
       ? buildWorkflowBezierPath(
           draftAnchor.x,
           draftAnchor.y,
@@ -94,6 +94,8 @@ export default React.memo(function WorkflowWiresSvg({
           connectingDraft.pointerWorldY,
         )
       : null;
+  const draftBezierCurve =
+    showParticles && connectingDraft?.magneticTargetId ? draftGeometry : null;
 
   return (
     <>
@@ -122,7 +124,11 @@ export default React.memo(function WorkflowWiresSvg({
         })}
 
         {draftAnchor && connectingDraft && (
-          <WorkflowDraftWire draftAnchor={draftAnchor} connectingDraft={connectingDraft} />
+          <WorkflowDraftWire
+            draftAnchor={draftAnchor}
+            connectingDraft={connectingDraft}
+            geometry={draftGeometry}
+          />
         )}
       </svg>
 
