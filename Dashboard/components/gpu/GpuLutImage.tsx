@@ -53,7 +53,11 @@ export function GpuLutImage({
     isNearViewportRef.current = false;
     setReady(false);
 
-    const draw = () => {
+    let scheduledDrawFrame = 0;
+
+    const renderFrame = () => {
+      scheduledDrawFrame = 0;
+
       if (passThroughRef.current) {
         renderer?.dispose();
         renderer = null;
@@ -92,6 +96,11 @@ export function GpuLutImage({
         renderer = null;
         setReady(false);
       }
+    };
+
+    const draw = () => {
+      if (scheduledDrawFrame || disposed) return;
+      scheduledDrawFrame = window.requestAnimationFrame(renderFrame);
     };
 
     const initialize = () => {
@@ -199,6 +208,10 @@ export function GpuLutImage({
     return () => {
       disposed = true;
       initializationVersion++;
+      if (scheduledDrawFrame) {
+        window.cancelAnimationFrame(scheduledDrawFrame);
+        scheduledDrawFrame = 0;
+      }
       drawRef.current = () => {};
       initializeRef.current = () => {};
       resizeObserver?.disconnect();

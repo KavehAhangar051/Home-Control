@@ -472,3 +472,8 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 
 
 - **Exact identity-LUT bypass (`lib/gpu/lut3d.ts`, `components/gpu/GpuLutImage.tsx`):** `isIdentityLut()` recognizes an exact Float32 identity grid and standard domain. `GpuLutImage` keeps the original browser image visible and skips WebGL context/resource allocation for identity LUTs or non-positive intensity; a live transition back to identity disposes its renderer and hides the overlay. Creative LUTs continue through the existing WebGL2 shader. This is a no-op fast path, not a global LUT filter or a claim that browser image decode/DOM work uses VRAM exclusively.
+
+
+### Demand-driven LUT redraw scheduling (20 November 2026)
+
+`components/gpu/GpuLutImage.tsx` coalesces image, resize, device-pixel-ratio, visibility, and LUT-state redraw requests into a single animation-frame callback. The callback is cancelled on unmount. This keeps the WebGL2 LUT surface demand-driven without adding a continuous render loop or changing shader output, image fit, transition, or fallback behavior. This is a source-level scheduling optimization; it does not guarantee GPU-only execution, dedicated VRAM placement, or a measured FPS improvement.

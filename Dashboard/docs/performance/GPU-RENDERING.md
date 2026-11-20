@@ -425,3 +425,10 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - This preserves the exact shader inputs and output while avoiding redundant JavaScript-to-WebGL uniform submissions on repeated redraws (for example, ResizeObserver callbacks where dimensions and LUT parameters are unchanged).
 - The cache is renderer-instance-local and starts with sentinel values, so the first draw always initializes every uniform. A recreated renderer after context loss also initializes all uniforms on its first draw.
 - This reduces redundant API calls, not shader work or guaranteed CPU time; the renderer remains demand-driven and no runtime benchmark or trace was available.
+
+
+### Coalesce demand-driven LUT redraws (20 November 2026)
+
+- `GpuLutImage` now coalesces redraw triggers from image load, ResizeObserver, viewport visibility, window resize, DPR changes, visibility restoration, and LUT/intensity updates into one `requestAnimationFrame` callback. This prevents multiple synchronous WebGL resize/render submissions when several browser notifications arrive in the same frame.
+- The renderer remains demand-driven: there is no permanent animation loop, and no additional frames are requested after the queued draw completes. A pending callback is cancelled during unmount; the original image remains the fallback during initialization and context loss.
+- The shader, LUT data, texture formats, output resolution policy, image fit, transition, and visible UI are unchanged. This is a source-level scheduling optimization; runtime CPU, GPU, FPS, and VRAM gains have not been measured.
