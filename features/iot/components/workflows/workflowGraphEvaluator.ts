@@ -37,7 +37,16 @@ function hasDuplicateEdge(edges: WorkflowEdge[], sourceId: string, targetId: str
 }
 
 function wouldIntroduceCycle(edges: WorkflowEdge[], sourceId: string, targetId: string): boolean {
-  // BFS from targetId along outgoing edges using a cursor index (avoids O(n) queue.shift() re-indexing)
+  const outgoingByNode = new Map<string, string[]>();
+
+  for (let i = 0; i < edges.length; i++) {
+    const edge = edges[i];
+    const outgoing = outgoingByNode.get(edge.sourceId);
+
+    if (outgoing) outgoing.push(edge.targetId);
+    else outgoingByNode.set(edge.sourceId, [edge.targetId]);
+  }
+
   const visited = new Set<string>();
   const queue: string[] = [targetId];
   let head = 0;
@@ -45,18 +54,17 @@ function wouldIntroduceCycle(edges: WorkflowEdge[], sourceId: string, targetId: 
   while (head < queue.length) {
     const currentId = queue[head++];
 
-    if (!currentId || visited.has(currentId)) continue;
-
+    if (visited.has(currentId)) continue;
     if (currentId === sourceId) return true;
 
     visited.add(currentId);
 
-    for (let i = 0; i < edges.length; i++) {
-      const edge = edges[i];
+    const outgoing = outgoingByNode.get(currentId);
+    if (!outgoing) continue;
 
-      if (edge.sourceId === currentId && !visited.has(edge.targetId)) {
-        queue.push(edge.targetId);
-      }
+    for (let i = 0; i < outgoing.length; i++) {
+      const nextId = outgoing[i];
+      if (!visited.has(nextId)) queue.push(nextId);
     }
   }
 
