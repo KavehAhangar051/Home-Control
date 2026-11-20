@@ -880,3 +880,192 @@ Build واقعی باید ثابت کند:
 | Bun 1.4.4 و bun.lock | از package.json و lockfile تأیید شد |
 | Lifecycle scripts | نیازمند بررسی dependencyهای Native پس از انتخاب نسخه |
 | Build و cap sync | هنوز اجرا نشده |
+
+
+---
+
+## ۱۶. ممیزی نهایی سازگاری Android پیش از اولین APK — ۲۰۲۶-۱۱-۲۰
+
+این بخش نتایج ممیزی چهارمحوره Browser API، وابستگی Backend، تعاملات لمسی و امنیت شبکه را ثبت می‌کند. یافته‌های سورس از فایل‌های جاری Dashboard استخراج شده‌اند؛ مواردی که به اجرای APK یا گوشی نیاز دارند صریحاً «تأییدنشده» باقی می‌مانند. در این مرحله هیچ فایل اجرایی تغییر نکرده و Build یا تست دستگاه اجرا نشده است.
+
+### ۱۶.۱ Browser APIها و تفاوت‌های احتمالی Android WebView
+
+فایل‌های بررسی‌شده:
+- `lib/haptics.ts`
+- `features/iot/hooks/usePageVisibility.ts`
+- `features/iot/hooks/useVoiceCommand.ts`
+- `features/iot/hooks/voiceRecognitionHelpers.ts`
+- `features/iot/hooks/achaemenidState/useConnectionStrategy.ts`
+- `features/iot/services/localWs/client.ts`
+
+| API / قابلیت | کاربرد فعلی | وضعیت مهاجرت |
+|---|---|---|
+| `localStorage` | Preferences و داده‌های محلی | در WebView قابل استفاده؛ ماندگاری و Upgrade باید روی دستگاه تست شود |
+| `WebSocket` | اتصال مستقیم به ESP32 | نیازمند تست شبکه محلی، Origin و سیاست‌های Android |
+| `navigator.vibrate` | بازخورد لرزشی | پیاده‌سازی فعلی graceful fallback دارد؛ برای Native، Adapter مبتنی بر Haptics قابل بررسی است |
+| `SpeechRecognition` / `webkitSpeechRecognition` | فرمان صوتی | Feature Detection و تست واقعی fa-IR الزامی است |
+| `visibilitychange` | تشخیص مخفی/نمایان شدن صفحه | حفظ شود و با Capacitor App Lifecycle هماهنگ شود |
+| `online` | تشخیص تغییر وضعیت اتصال شبکه | سیگنال کمکی است؛ سلامت MQTT یا ESP32 را به‌تنهایی ثابت نمی‌کند |
+| Pointer / Touch Events | تعاملات لمسی و Drag | پشتیبانی پایه وجود دارد؛ Gestureها باید روی گوشی تست شوند |
+| `requestAnimationFrame` و Timerها | زمان‌بندی UI و منطق تعاملی | در Background ممکن است محدود یا متوقف شوند؛ منطق اتصال نباید به اجرای دقیق Timer در Background وابسته باشد |
+
+#### Voice Recognition
+کد فعلی در `voiceRecognitionHelpers.ts` از تنظیمات `continuous = true`، `interimResults = true` و زبان `fa-IR` استفاده می‌کند. بنابراین تست Native باید موارد زیر را پوشش دهد:
+- وجود API در System WebView گوشی و امکان ساخت Recognition instance؛
+- شروع و توقف Session؛
+- دریافت Interim و Final transcript؛
+- مجوز میکروفون و رفتار در صورت رد یا لغو مجوز؛
+- پشتیبانی عملی زبان فارسی و رفتار در نبود شبکه یا سرویس تشخیص گفتار؛
+- عدم اجرای callbackهای Session قدیمی پس از توقف یا شروع Session جدید.
+
+**تصمیم:** در اولین APK پلاگین Speech جداگانه اضافه نشود مگر آنکه تست Web Speech در گوشی واقعی شکست بخورد یا کیفیت فارسی کافی نباشد. در صورت نیاز، Native Speech Adapter با قرارداد فعلی Voice جایگزین شود؛ نه اینکه منطق فرمان‌های فارسی بازنویسی شود.
+
+#### Haptics
+`lib/haptics.ts` الگوهای لرزش فعلی را از طریق Web Vibration API اجرا می‌کند. در صورت افزودن `@capacitor/haptics`، API عمومی فعلی و الگوهای تجربه کاربری حفظ شوند و فقط Transport پشت Adapter تغییر کند. رفتار Web و تنظیمات کاهش حرکت نیز نباید خراب شوند.
+
+#### Lifecycle
+`usePageVisibility.ts` از `visibilitychange` و `online` استفاده می‌کند. این رویدادها برای Native lifecycle کافی نیستند. در فاز پیاده‌سازی، رویدادهای `@capacitor/app` به یک مسیر Resume مشترک متصل شوند تا رویداد Native و document visibility باعث Resume تکراری MQTT نشوند.
+
+### ۱۶.۲ وابستگی‌های Backend و سرویس‌های خارجی
+
+داشبورد خروجی Static دارد، اما برای تمام قابلیت‌های IoT مستقل از سرویس‌های بیرونی نیست. مسیرهای ارتباطی شناسایی‌شده:
+
+| سرویس | آدرس/پروتکل پیش‌فرض مشاهده‌شده | نقش |
+|---|---|---|
+| Cloudflare Worker | `https://home-control-db.kamyarahangar157.workers.dev` | API پیکربندی و داده‌های ابری |
+| MQTT Broker | `wss://broker.emqx.io:8084/mqtt` | پیام‌رسانی و کنترل از راه دور |
+| ESP32 Local WebSocket | `ws://<localIp>:81` | ارتباط مستقیم در شبکه محلی |
+
+فایل‌های بررسی‌شده:
+- `features/iot/services/cloudflare/config.ts`
+- `features/iot/services/cloudflare/api.ts`
+- `features/iot/services/mqtt/client.ts`
+- `features/iot/hooks/achaemenidState/useConnectionStrategy.ts`
+
+در Cloudflare API مدیریت Timeout، Retry و Circuit Breaker وجود دارد. وجود این کنترل‌ها جایگزین تست واقعی قطع اینترنت یا در دسترس نبودن Worker نیست.
+
+**نتیجه معماری:** برای بسته Native به Next.js Runtime Server جدید نیاز نداریم؛ ولی قابلیت‌های Cloudflare و MQTT همچنان به اینترنت وابسته‌اند. Local WebSocket باید در صورت باقی بودن اتصال Wi-Fi، بدون وابستگی به اینترنت قابل استفاده باشد.
+
+چک‌لیست تست:
+1. اینترنت فعال و ESP32 در دسترس؛
+2. اینترنت قطع، Wi-Fi محلی و ESP32 در دسترس؛
+3. اینترنت فعال ولی Cloudflare Worker موقتاً در دسترس نیست؛
+4. MQTT Broker در دسترس نیست؛
+5. ESP32 خاموش یا IP آن تغییر کرده است؛
+6. بازگشت اینترنت و همگام‌سازی مجدد؛
+7. جلوگیری از نمایش State قدیمی به‌عنوان State قطعی پس از قطع ارتباط.
+
+هیچ Endpoint جدید یا Backend جدیدی برای Native در این مرحله لازم تشخیص داده نشده است؛ این نتیجه باید با تست Runtime تأیید شود.
+
+### ۱۶.۳ Drag & Drop، Canvas، Trellis و Animation
+
+سه دسته تعامل متمایز در داشبورد وجود دارند:
+
+#### Sortable UI
+در manifest وابستگی‌های `@dnd-kit/dom` و `@dnd-kit/react` وجود دارند. این کتابخانه برای مرتب‌سازی عناصر استفاده می‌شود. سازگاری API با Pointer/Touch به معنی اثبات UX مناسب در گوشی نیست.
+
+موارد تست:
+- Drag کارت با انگشت و حفظ ترتیب؛
+- اسکرول عمودی بدون شروع ناخواسته Drag؛
+- رفتار Drag Handle در برابر دکمه‌ها و کنترل‌های داخل کارت؛
+- جلوگیری از انتخاب متن یا فعال شدن ناخواسته کنترل‌ها؛
+- ذخیره و بازیابی ترتیب بعد از خروج از صفحه.
+
+#### Canvas
+در `features/iot/components/canvas/CanvasWorkspace.tsx`، ناحیه تعاملی از `touchAction: "none"` استفاده می‌کند. این انتخاب می‌تواند برای کنترل کامل Gestureهای Canvas لازم باشد، اما باید بررسی شود که اسکرول صفحه و Gestureهای سیستم در اطراف Canvas مختل نشوند.
+
+موارد تست:
+- Pan، Zoom و Drag با یک و چند انگشت؛
+- انتخاب و جابه‌جایی Node؛
+- Resize و تعامل با کنترل‌های Node؛
+- مرز Canvas و اسکرول صفحه؛
+- عملکرد در نمایشگر کوچک و چرخش صفحه.
+
+#### Trellis و Motion
+در Controller مربوط به Trellis، تغییر سند با گزینه Animation انجام می‌شود. تعویض Layout، تغییر اندازه، جابه‌جایی پنل‌ها و انیمیشن‌ها باید روی دستگاه واقعی از نظر لمس، نرخ فریم و مصرف حافظه ارزیابی شوند.
+
+**تصمیم:** در فاز اول هیچ کتابخانه Drag/Animation جایگزین نشود. ابتدا تست دستگاه انجام شود و فقط برای ایراد بازتولیدپذیر، تغییر محدود پیشنهاد شود.
+
+### ۱۶.۴ امنیت WebSocket و Local Network
+
+اتصال محلی فعلی به شکل `ws://<localIp>:81` رمزنگاری نشده است. این موضوع باید از سه مفهوم مستقل تفکیک شود:
+1. Cleartext network traffic؛
+2. Mixed Content در WebView؛
+3. مجوز و حفاظت دسترسی به شبکه محلی در Android.
+
+فعال‌کردن سراسری Cleartext یا Mixed Content برای رفع احتمالی مشکل، بدون تحلیل ریسک، مجاز نیست. Cleartext امکان مشاهده و دستکاری ترافیک در مسیر شبکه را افزایش می‌دهد؛ اگر پروتکل شامل فرمان‌های حساس یا اطلاعات قابل سوءاستفاده باشد، ریسک بالاتر است.
+
+#### مجوز شبکه محلی در Android 17
+طبق مستند رسمی Android:
+- حفاظت اجباری Local Network از Android 17، برای برنامه‌هایی اعمال می‌شود که Target SDK 37 یا بالاتر دارند.
+- برای Target SDK 36 یا پایین‌تر، دسترسی شبکه محلی از طریق مجوز INTERNET به‌صورت ضمنی مجاز است؛ در این Targetها نباید ACCESS_LOCAL_NETWORK را اضافه یا در Runtime درخواست کرد.
+- WebView از وضعیت مجوز شبکه محلی برنامه میزبان تبعیت می‌کند.
+- برای برنامه IoT که به دسترسی مستقیم و گسترده LAN نیاز دارد، در Target SDK 37+ باید ACCESS_LOCAL_NETWORK در Manifest تعریف و پیش از دسترسی محلی در Runtime درخواست شود؛ رد یا لغو مجوز باید graceful مدیریت شود.
+
+برای Home-Control این مجوز با توجه به ماهیت اصلی کنترل دستگاه‌های IoT می‌تواند توجیه عملکردی داشته باشد؛ اما هنگام ارتقای Target SDK باید سیاست جاری Google Play و الزامات Declaration نیز دوباره بررسی شود.
+
+**تصمیم فعلی:** Target SDK نسخه اول طبق برنامه روی 36 باقی بماند، مشروط به تأیید نسخه واقعی Capacitor و الزامات انتشار در زمان Build. هیچ Permission یا Network Security استثنایی پیش از تست اضافه نشود.
+
+#### برنامه تست شبکه روی گوشی
+1. نصب APK و اتصال گوشی به همان Wi-Fi شبکه ESP32؛
+2. تلاش اتصال به IP محلی و ثبت نتیجه WebSocket؛
+3. بررسی Logcat و WebView console برای تفکیک Mixed Content، Cleartext، Permission و خطای شبکه؛
+4. قطع اینترنت موبایل/ WAN در حالی که Wi-Fi محلی برقرار است؛
+5. تغییر Wi-Fi یا IP و بررسی reconnect؛
+6. خاموش کردن ESP32 و بررسی Timeout و fallback به MQTT؛
+7. بررسی اینکه هیچ تنظیم امنیتی گسترده‌تر از نیاز واقعی فعال نشده باشد.
+
+**راه‌حل نهایی هنوز انتخاب نشده است.** گزینه‌های قابل ارزیابی پس از مشاهده خطا: WSS با مدل گواهی قابل‌مدیریت، تنظیم Network Security محدود و مستند، یا Native Transport. انتخاب Native Transport فقط پس از اثبات محدودیت WebView بررسی شود.
+
+منابع رسمی به‌روز:
+- [Android Local Network Permission](https://developer.android.com/privacy-and-security/local-network-permission)
+- [Android Cleartext Communication Risks](https://developer.android.com/privacy-and-security/risks/cleartext-communications)
+- [Android Network Security Configuration](https://developer.android.com/privacy-and-security/security-config)
+- [Capacitor App API](https://capacitorjs.com/docs/apis/app)
+- [Capacitor Haptics API](https://capacitorjs.com/docs/apis/haptics)
+- [dnd-kit Documentation](https://dndkit.com/)
+- [Next.js Static Export](https://nextjs.org/docs/app/guides/static-exports)
+
+### ۱۶.۵ چک‌لیست پذیرش اولین APK
+
+اولین APK فقط زمانی برای ادامه توسعه پذیرفته شود که حداقل موارد زیر روی گوشی واقعی ثبت و تأیید شوند:
+
+- [ ] Build تولیدی Static موفق و وجود `out/index.html`
+- [ ] بارگذاری تمام CSS، JavaScript، تصاویر و فونت‌های محلی
+- [ ] نمایش RTL و Safe Area بدون بریدگی
+- [ ] اجرای مسیرهای اصلی داشبورد و Android Back
+- [ ] ذخیره و بازیابی Preferences و Workflow پس از بستن و باز کردن اپ
+- [ ] اتصال MQTT، دریافت State و انتشار فرمان
+- [ ] اتصال Local WebSocket به ESP32 و دریافت `state_sync`
+- [ ] عملکرد Local Control در زمان قطع اینترنت، در حالی که Wi-Fi محلی برقرار است
+- [ ] Reconnect پس از تغییر Wi-Fi، خاموش/روشن شدن ESP32 و Resume اپ
+- [ ] عدم ایجاد اتصال یا Listener تکراری
+- [ ] Voice Recognition فارسی، مجوز میکروفون و رفتار خطا
+- [ ] Haptic feedback یا fallback بی‌خطا
+- [ ] Sortable، Canvas و Trellis با لمس واقعی
+- [ ] بررسی Logcat و WebView console برای خطاهای امنیتی و Runtime
+- [ ] اجرای مجدد typecheck، lint و test موجود
+
+### ۱۶.۶ وضعیت این ممیزی
+
+| محور | نتیجه سورس | نتیجه دستگاه |
+|---|---|---|
+| Browser APIs | مسیرها و APIهای اصلی شناسایی شدند | هنوز تست نشده |
+| Backend dependencies | Cloudflare، MQTT و ESP32 محلی شناسایی شدند | Offline/online هنوز تست نشده |
+| Drag & Drop / Animation | Sortable، Canvas و Trellis شناسایی شدند | هنوز تست لمسی نشده |
+| Local WebSocket security | ریسک ws:// و چارچوب مجوز Android مستند شد | علت/رفتار WebView هنوز آزمایش نشده |
+| Static Build | تنظیمات خروجی بررسی شده | Build واقعی هنوز اجرا نشده |
+| APK | هنوز ساخته نشده | تست گوشی هنوز شروع نشده |
+
+**وضعیت کلی:** ممیزی سورس چهار محور این مرحله تکمیل شده است؛ تأیید Runtime و Build همچنان باقی است. این مرحله مجوز تغییر کد اجرایی محسوب نمی‌شود.
+
+### ۱۶.۷ گام بعدی
+
+گام بعدی، ممیزی نهایی اجرایی و Baseline بدون تغییر سورس است:
+1. بررسی کامل `.gitignore` و وضعیت فایل‌های تولیدی؛
+2. بررسی نهایی Routeها، importهای وابسته به Browser و اسکریپت‌های Build؛
+3. اجرای `bun run check` و `bun run build` فقط پس از فراهم بودن محیط و بدون تغییر فایل؛
+4. ثبت خطاهای Baseline و عدم نسبت دادن خطاهای قبلی به Capacitor؛
+5. تهیه فهرست دقیق فایل‌ها و پکیج‌های لازم برای اولین APK و گرفتن تأیید مالک پروژه پیش از هر تغییر.
+
+پس از تأیید مرحله پیاده‌سازی، فقط فایل‌های اعلام‌شده و تأییدشده تغییر می‌کنند. Git workflow باید Commit و Push باشد و از Pull استفاده نشود.
