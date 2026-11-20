@@ -148,6 +148,8 @@ export function clearNodeDragTiltCssVar(element: HTMLElement | null): void {
  * Checks whether canvas/sheet motion animations are enabled both in user preferences
  * (`document.documentElement.dataset.animationsEnabled`) and OS `prefers-reduced-motion`.
  */
+let reducedMotionQuery: MediaQueryList | null = null;
+
 export function areSheetAnimationsAllowed(): boolean {
   if (typeof document === "undefined" || typeof window === "undefined") return false;
 
@@ -155,11 +157,9 @@ export function areSheetAnimationsAllowed(): boolean {
     return false;
   }
 
-  if (
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  ) {
-    return false;
+  if (typeof window.matchMedia === "function") {
+    reducedMotionQuery ??= window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reducedMotionQuery.matches) return false;
   }
 
   return true;
@@ -243,8 +243,12 @@ export function setSheetPanMotionCssVars(
 
   for (let i = 0; i < nodes.length; i++) {
     const el = nodes[i];
-    el.style.rotate = rotateValue;
-    el.style.translate = translateValue;
+    if (el.style.rotate !== rotateValue) {
+      el.style.rotate = rotateValue;
+    }
+    if (el.style.translate !== translateValue) {
+      el.style.translate = translateValue;
+    }
   }
 }
 
@@ -256,8 +260,8 @@ export function clearSheetPanMotionCssVars(container: HTMLElement | null): void 
 
   for (let i = 0; i < nodes.length; i++) {
     const el = nodes[i];
-    el.style.removeProperty("rotate");
-    el.style.removeProperty("translate");
+    if (el.style.rotate) el.style.removeProperty("rotate");
+    if (el.style.translate) el.style.removeProperty("translate");
   }
 }
 
