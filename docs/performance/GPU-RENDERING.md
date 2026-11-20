@@ -50,6 +50,7 @@ The source image must be same-origin or served with CORS permission. The compone
 - Uses a device-pixel-ratio cap of 2 and a 4096-pixel maximum output edge to bound framebuffer allocation. A 4096×4096 RGBA8 source texture can still consume up to 64 MiB, so avoid mounting multiple large surfaces concurrently.
 - Reuses the source texture when only LUT intensity or surface dimensions change; LUT data is re-uploaded only when its typed-array reference changes. Output dimensions are capped at 4096 pixels per edge.
 - Creates the context only when the surface approaches the viewport; it does not keep an animation loop alive.
+- Re-arms a resolution media-query listener after each `devicePixelRatio` change so moving the browser between displays with different pixel densities redraws the backing buffer even when the CSS box size is unchanged. `ResizeObserver` alone does not guarantee notification for DPR-only changes.
 - Releases textures, vertex array, and program on unmount. Recreates resources after `webglcontextrestored`.
 - If WebGL 2 is unavailable, context creation fails, or rendering throws, the original image remains visible.
 
