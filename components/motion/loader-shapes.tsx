@@ -352,7 +352,7 @@ export function Percent({ size, speed, reduce }: PartProps): React.JSX.Element {
       >
         <span
           className="block h-full w-full origin-left rounded-full bg-current will-change-transform"
-          style={{ transform: `scaleX(${p / 100}) translateZ(0)` }}
+          style={{ transform: `scaleX(${p / 100})` }}
         />
       </span>
     </span>
