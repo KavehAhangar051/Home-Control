@@ -79,7 +79,7 @@ jobs:
       - name: Upload installable APK artifact
         uses: actions/upload-artifact@v6
         with:
-          name: home-control-debug-apk-${{ github.run_number }}
+          name: home-control-debug-apk-${{ github.run_number }}-${{ github.run_attempt }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
@@ -100,4 +100,5 @@ jobs:
             --title "$TITLE" \
             --notes "$NOTES" \
             --prerelease \
+            --latest=false \
             --target "$GITHUB_SHA"
