@@ -276,7 +276,7 @@ export function Helix({ size, speed, reduce }: PartProps): React.JSX.Element {
         return (
           <span key={`row-${top}`}>
             <m.span
-              className="absolute rounded-full bg-current will-change-transform"
+              className={`absolute rounded-full bg-current ${reduce ? "" : "will-change-transform"}`}
               style={{ width: dot, height: dot, left: size / 2 - dot / 2, top }}
               animate={
                 reduce
@@ -295,7 +295,7 @@ export function Helix({ size, speed, reduce }: PartProps): React.JSX.Element {
               }}
             />
             <m.span
-              className="absolute rounded-full bg-current will-change-transform"
+              className={`absolute rounded-full bg-current ${reduce ? "" : "will-change-transform"}`}
               style={{ width: dot, height: dot, left: size / 2 - dot / 2, top }}
               animate={
                 reduce
