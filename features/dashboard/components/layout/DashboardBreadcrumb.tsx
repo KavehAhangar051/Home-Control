@@ -1,6 +1,5 @@
 "use client";
 
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import GroupFilterSelector from "@/components/MasterHeader/GroupFilterSelector";
 import WorkspaceViewModeSelector from "@/components/MasterHeader/WorkspaceViewModeSelector";
 import {
@@ -118,13 +117,6 @@ export default function DashboardBreadcrumb() {
             <WorkspaceViewModeSelector compact />
           </div>
         </>
-      )}
-
-      {!isDesktop && (
-        <div className="relative z-10 flex shrink-0 items-center gap-1.5 md:hidden">
-          {activeView === "home" && <MacroSidebar compact />}
-          <ThemeToggle />
-        </div>
       )}
     </header>
   );

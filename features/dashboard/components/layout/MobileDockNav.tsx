@@ -13,13 +13,22 @@ import {
   LayoutGrid,
   type LucideIcon,
   PanelsTopLeft,
+  Play,
+  Settings2,
   Workflow,
+  Zap,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DockItem, DockSeparator } from "@/components/motion/dock";
 import { ExpandableTabs, type ExpandableTabsItem } from "@/components/motion/expandable-tabs";
 import { resolveMobileDockTabAction } from "@/components/motion/expandable-tabs-layout";
 import { Clock3, House, Layers, Mic, Settings } from "@/components/ui/hugeicons-groups/shell";
+import {
+  filterVisibleMacros,
+  isMultiCharTextIcon,
+  MacroGlyph,
+} from "@/features/dashboard/components/widgets/MacroSidebar";
+import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import { useMobileVoiceCommand } from "@/features/dashboard/hooks/useMobileVoiceCommand";
 import {
   AUTOMATIONS_TABS,
@@ -30,10 +39,12 @@ import {
   SETTINGS_TABS,
   type SettingsTabId,
 } from "@/features/dashboard/navigation";
-import type { WorkspaceDisplayMode, WorkspaceView } from "@/features/iot/hooks/store/types";
+import type { Macro, WorkspaceDisplayMode, WorkspaceView } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+
+type MobileDockTabId = WorkspaceView | "macros";
 
 const DISPLAY_MODE_OPTIONS: ReadonlyArray<{
   id: WorkspaceDisplayMode;
@@ -45,7 +56,7 @@ const DISPLAY_MODE_OPTIONS: ReadonlyArray<{
   { id: "canvas", label: "شیت بوم", icon: Workflow },
 ];
 
-const DIRECT_NAV_VIEWS: readonly WorkspaceView[] = ["home"];
+const DIRECT_NAV_VIEWS: readonly MobileDockTabId[] = ["home"];
 
 interface DockSubRowProps {
   label: string;
@@ -85,9 +96,11 @@ function DockSubRow({ label, icon: Icon, isActive, onClick }: DockSubRowProps) {
 }
 
 /**
- * Floating mobile bottom Dock with upward-morphing ExpandableTabs panels and integrated Voice Command.
+ * Floating mobile bottom Dock with upward-morphing ExpandableTabs panels,
+ * custom buttons (macros) launcher, and integrated Voice Command.
  */
 export default function MobileDockNav() {
+  const { handleBatchPinState } = useDashboard();
   const activeWorkspaceView = useIoTStore((s) => s.activeWorkspaceView);
   const setActiveWorkspaceView = useIoTStore((s) => s.setActiveWorkspaceView);
   const activeModulesTab = useIoTStore((s) => s.activeModulesTab);
@@ -101,15 +114,43 @@ export default function MobileDockNav() {
   const groupsOrder = useIoTStore((s) => s.groupsOrder);
   const selectedGroupFilter = useIoTStore((s) => s.selectedGroupFilter);
   const setSelectedGroupFilter = useIoTStore((s) => s.setSelectedGroupFilter);
+  const macros = useIoTStore((s) => s.macros);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const activeGroupId = useIoTStore((s) => s.activeGroupId);
   const activeSegmentId = useIoTStore((s) => s.activeSegmentId);
 
+  const visibleMacros = useMemo(() => filterVisibleMacros(macros), [macros]);
   const activeSettingsTab = resolveSettingsTabId(rawSettingsTab);
-  const [openPanel, setOpenPanel] = useState<WorkspaceView | null>(null);
+  const [openPanel, setOpenPanel] = useState<MobileDockTabId | null>(null);
+  const [recentMacroId, setRecentMacroId] = useState<string | null>(null);
 
   const { isListening, handlePointerDown, handlePointerUp, handlePointerCancel } =
     useMobileVoiceCommand();
+
+  useEffect(() => {
+    if (!recentMacroId) return;
+
+    const timer = setTimeout(() => setRecentMacroId(null), 900);
+
+    return () => clearTimeout(timer);
+  }, [recentMacroId]);
+
+  const handleExecuteMacro = useCallback(
+    (macro: Macro) => {
+      triggerHaptic("macro");
+      handleBatchPinState(macro.actions);
+      setRecentMacroId(macro.id);
+      setOpenPanel(null);
+    },
+    [handleBatchPinState],
+  );
+
+  const handleManageMacros = useCallback(() => {
+    triggerHaptic("tap");
+    setActiveSettingsTab("macros");
+    setActiveWorkspaceView("settings");
+    setOpenPanel(null);
+  }, [setActiveSettingsTab, setActiveWorkspaceView]);
 
   const handleSelectModulesTab = useCallback(
     (tabId: ModulesTabId) => {
@@ -163,15 +204,22 @@ export default function MobileDockNav() {
   const handleTabClick = useCallback(
     (id: string) => {
       triggerHaptic("tap");
-      const clicked = id as WorkspaceView;
-      const result = resolveMobileDockTabAction({
+      const clicked = id as MobileDockTabId;
+
+      if (clicked === "macros") {
+        setOpenPanel((current) => (current === "macros" ? null : "macros"));
+
+        return;
+      }
+
+      const result = resolveMobileDockTabAction<MobileDockTabId>({
         clickedTabId: clicked,
         activeWorkspaceView,
         openPanelId: openPanel,
         directNavigateViews: DIRECT_NAV_VIEWS,
       });
 
-      if (result.navigateToView) {
+      if (result.navigateToView && result.navigateToView !== "macros") {
         setActiveWorkspaceView(result.navigateToView);
       }
 
@@ -180,8 +228,8 @@ export default function MobileDockNav() {
     [activeWorkspaceView, openPanel, setActiveWorkspaceView],
   );
 
-  const items = useMemo<ExpandableTabsItem[]>(
-    () => [
+  const items = useMemo<ExpandableTabsItem[]>(() => {
+    const baseItems: ExpandableTabsItem[] = [
       {
         id: "home",
         label: "خانه",
@@ -342,22 +390,101 @@ export default function MobileDockNav() {
           </div>
         ),
       },
-    ],
-    [
-      activeAutomationsTab,
-      activeModulesTab,
-      activeSettingsTab,
-      activeWorkspaceView,
-      groupsOrder,
-      handleSelectAutomationsTab,
-      handleSelectDisplayMode,
-      handleSelectGroupFilter,
-      handleSelectModulesTab,
-      handleSelectSettingsTab,
-      selectedGroupFilter,
-      workspaceDisplayMode,
-    ],
-  );
+    ];
+
+    if (visibleMacros.length > 0) {
+      baseItems.push({
+        id: "macros",
+        label: "سفارشی",
+        icon: <Zap className="size-[18px]" strokeWidth={1.75} aria-hidden="true" />,
+        content: (
+          <div className="flex w-[min(19rem,calc(100vw-3rem))] flex-col gap-1.5 p-0.5" dir="rtl">
+            <div className="flex items-center justify-between border-b border-border-color/70 px-2 pb-1.5">
+              <span className="text-[11px] font-medium text-text-muted">دکمه‌های سفارشی</span>
+              <span className="font-mono text-[10px] tabular-nums text-text-muted">
+                {visibleMacros.length} مورد
+              </span>
+            </div>
+
+            <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
+              {visibleMacros.map((macro) => {
+                const isRecent = recentMacroId === macro.id;
+
+                return (
+                  <button
+                    key={macro.id}
+                    type="button"
+                    onClick={() => handleExecuteMacro(macro)}
+                    aria-label={`اجرای دکمه سفارشی ${macro.title}`}
+                    className={cn(
+                      "group flex min-h-11 w-full cursor-pointer items-center justify-between gap-2.5 rounded-xl px-2.5 py-2 text-right transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 active:scale-[0.99]",
+                      isRecent
+                        ? "bg-accent3/15 text-text-primary"
+                        : "bg-bg-main/60 text-text-primary hover:bg-sidebar-hover",
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <span
+                        className={cn(
+                          "flex h-8 shrink-0 items-center justify-center rounded-lg border border-border-color bg-secondary text-accent3 transition-colors group-hover:border-accent3/50 group-hover:bg-accent3 group-hover:text-accent3-foreground",
+                          isMultiCharTextIcon(macro.icon) ? "min-w-8 px-1" : "w-8",
+                        )}
+                      >
+                        <MacroGlyph icon={macro.icon} className="size-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-medium text-text-primary">
+                          {macro.title}
+                        </span>
+                        <span className="block text-[11px] text-text-muted">
+                          {macro.actions.length} فرمان هم‌زمان
+                        </span>
+                      </span>
+                    </span>
+                    <Play
+                      aria-hidden="true"
+                      strokeWidth={2}
+                      className="size-3.5 shrink-0 text-text-muted opacity-80 transition-colors group-hover:text-accent3"
+                    />
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="border-t border-border-color/70 pt-1">
+              <button
+                type="button"
+                onClick={handleManageMacros}
+                className="flex min-h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-sidebar-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+              >
+                <Settings2 aria-hidden="true" className="size-3.5 shrink-0" />
+                <span>مدیریت دکمه‌های سفارشی</span>
+              </button>
+            </div>
+          </div>
+        ),
+      });
+    }
+
+    return baseItems;
+  }, [
+    activeAutomationsTab,
+    activeModulesTab,
+    activeSettingsTab,
+    activeWorkspaceView,
+    groupsOrder,
+    handleExecuteMacro,
+    handleManageMacros,
+    handleSelectAutomationsTab,
+    handleSelectDisplayMode,
+    handleSelectGroupFilter,
+    handleSelectModulesTab,
+    handleSelectSettingsTab,
+    recentMacroId,
+    selectedGroupFilter,
+    visibleMacros,
+    workspaceDisplayMode,
+  ]);
 
   const isDragging = Boolean(activeGroupId || activeSegmentId);
 
@@ -374,7 +501,7 @@ export default function MobileDockNav() {
         <ExpandableTabs
           items={items}
           value={openPanel}
-          onValueChange={(next) => setOpenPanel(next as WorkspaceView | null)}
+          onValueChange={(next) => setOpenPanel(next as MobileDockTabId | null)}
           onTabClick={handleTabClick}
           activeNavId={activeWorkspaceView}
           dir="rtl"

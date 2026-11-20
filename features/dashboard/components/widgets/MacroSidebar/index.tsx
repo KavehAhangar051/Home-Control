@@ -20,7 +20,15 @@ interface MacroSidebarProps {
 const BIDI_CHARS_REGEX = /[\u200c\u200f\u202a-\u202e]/g;
 const MULTI_SPACE_REGEX = /\s+/g;
 
-function isMultiCharTextIcon(icon?: string): boolean {
+export function filterVisibleMacros(macros: readonly Macro[]): Macro[] {
+  return macros.filter(
+    (macro) =>
+      macro.title.replace(BIDI_CHARS_REGEX, "").replace(MULTI_SPACE_REGEX, " ").trim() !==
+      "تمام سگمنت ها روشن",
+  );
+}
+
+export function isMultiCharTextIcon(icon?: string): boolean {
   if (!icon || hasIcon(icon)) return false;
 
   const trimmed = icon.trim();
@@ -28,7 +36,13 @@ function isMultiCharTextIcon(icon?: string): boolean {
   return trimmed.length > 2 && /^[\w.-]+$/.test(trimmed);
 }
 
-function MacroGlyph({ icon, className = "size-3.5" }: { icon?: string; className?: string }) {
+export function MacroGlyph({
+  icon,
+  className = "size-3.5",
+}: {
+  icon?: string;
+  className?: string;
+}) {
   if (icon) {
     if (hasIcon(icon)) {
       return React.createElement(getSegmentIcon(icon), {
@@ -64,8 +78,8 @@ function MacroGlyph({ icon, className = "size-3.5" }: { icon?: string; className
 }
 
 /**
- * Compact header-anchored custom buttons (macros) selector.
- * Renders uniformly across Grid, Trellis, and Canvas display modes on both desktop and mobile
+ * Compact header-anchored custom buttons (macros) selector for desktop.
+ * Renders uniformly across Grid, Trellis, and Canvas display modes on desktop
  * without consuming vertical workspace space or overlapping cards.
  */
 export default function MacroSidebar({ compact = false, className = "" }: MacroSidebarProps) {
@@ -75,15 +89,7 @@ export default function MacroSidebar({ compact = false, className = "" }: MacroS
   const setActiveSettingsTab = useIoTStore((s) => s.setActiveSettingsTab);
   const setActiveWorkspaceView = useIoTStore((s) => s.setActiveWorkspaceView);
 
-  const visibleMacros = useMemo(
-    () =>
-      macros.filter(
-        (macro) =>
-          macro.title.replace(BIDI_CHARS_REGEX, "").replace(MULTI_SPACE_REGEX, " ").trim() !==
-          "تمام سگمنت ها روشن",
-      ),
-    [macros],
-  );
+  const visibleMacros = useMemo(() => filterVisibleMacros(macros), [macros]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [recentMacroId, setRecentMacroId] = useState<string | null>(null);

@@ -53,6 +53,25 @@ export function computeActiveTabWidth(measuredLabelWidth: number): number {
 }
 
 /**
+ * Computes the maximum width the expanded active tab can occupy inside a given shell width
+ * without clipping sibling tabs or trailing controls on narrow mobile screens.
+ */
+export function computeMaxActiveTabWidth(params: {
+  shellWidth: number;
+  itemCount: number;
+  trailingWidth?: number;
+}): number {
+  const { shellWidth, itemCount, trailingWidth = 0 } = params;
+  const safeCount = Math.max(1, itemCount);
+  const { tabWidth, barGap, barPaddingX, rootBorder } = EXPANDABLE_TABS_METRICS;
+  const otherTabsWidth = Math.max(0, safeCount - 1) * (tabWidth + barGap);
+  const trailingSection = trailingWidth > 0 ? trailingWidth + barGap : 0;
+  const available = shellWidth - rootBorder - barPaddingX - otherTabsWidth - trailingSection;
+
+  return Math.max(tabWidth, Math.floor(available));
+}
+
+/**
  * Computes the target morphing shell dimensions while clamping width strictly inside
  * the available mobile viewport so panels never cause horizontal overflow.
  */
@@ -60,10 +79,11 @@ export function computeTargetShellSize(params: {
   isOpen: boolean;
   contentSize: BoxSize | null;
   closedSize: BoxSize;
+  activeTabWidth?: number;
   maxViewportWidth?: number | null;
 }): BoxSize {
-  const { isOpen, contentSize, closedSize, maxViewportWidth } = params;
-  const { rootBorder, viewportMarginX } = EXPANDABLE_TABS_METRICS;
+  const { isOpen, contentSize, closedSize, activeTabWidth, maxViewportWidth } = params;
+  const { rootBorder, tabWidth, viewportMarginX } = EXPANDABLE_TABS_METRICS;
   const maxWidth =
     maxViewportWidth && Number.isFinite(maxViewportWidth) && maxViewportWidth > 0
       ? Math.max(closedSize.width, maxViewportWidth - viewportMarginX)
@@ -76,7 +96,11 @@ export function computeTargetShellSize(params: {
     };
   }
 
-  const rawWidth = Math.max(contentSize.width + rootBorder, closedSize.width);
+  const openBarMinWidth =
+    activeTabWidth && activeTabWidth > tabWidth
+      ? closedSize.width - tabWidth + activeTabWidth
+      : closedSize.width;
+  const rawWidth = Math.max(contentSize.width + rootBorder, openBarMinWidth);
   const clampedWidth = maxWidth ? Math.min(rawWidth, maxWidth) : rawWidth;
 
   return {
