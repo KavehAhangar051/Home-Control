@@ -447,3 +447,10 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - The Newton loader renders five balls, but only the two outer balls animate in the normal motion mode. The three stationary middle balls no longer receive `will-change: transform`; reduced-motion mode also avoids transform-layer hints because the balls are static and only the loader's reduced-motion behavior applies.
 - Animation values, timing, positions, ball count, and appearance are unchanged. This avoids explicitly requesting compositor resources for three elements that never transform. Actual layer allocation remains browser-dependent and no runtime VRAM/FPS measurement is available.
 - Reference: [web.dev high-performance CSS animations](https://web.dev/articles/animations-guide).
+
+
+### Helix loader reduced-motion layer hints (2026-11-20)
+
+- The Helix loader's fourteen particles animate `transform` only in normal-motion mode. In reduced-motion mode they animate opacity only, so the two particle elements per row no longer request `will-change: transform` in that mode.
+- Particle count, positions, opacity timing, normal-motion transforms, and reduced-motion visuals are unchanged. This avoids unnecessary transform-layer hints when no transform animation is active. Browser layer allocation is implementation-dependent; no runtime GPU-memory or FPS measurement is claimed.
+- Reference: [MDN `will-change`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change).
