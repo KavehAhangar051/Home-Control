@@ -569,7 +569,6 @@
 }
 
 .animate-port-wakeup {
-  will-change: transform, opacity;
   backface-visibility: hidden;
 }
 
