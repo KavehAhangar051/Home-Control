@@ -126,9 +126,9 @@ export function isIdentityLut(lut: Lut3D): boolean {
       for (let red = 0; red < lut.size; red++) {
         const offset = ((blue * lut.size + green) * lut.size + red) * 4;
         if (
-          lut.data[offset] !== red / (lut.size - 1) ||
-          lut.data[offset + 1] !== green / (lut.size - 1) ||
-          lut.data[offset + 2] !== blue / (lut.size - 1) ||
+          lut.data[offset] !== Math.fround(red / (lut.size - 1)) ||
+          lut.data[offset + 1] !== Math.fround(green / (lut.size - 1)) ||
+          lut.data[offset + 2] !== Math.fround(blue / (lut.size - 1)) ||
           lut.data[offset + 3] !== 1
         ) {
           return false;
