@@ -183,12 +183,25 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                         const bool hasAnalogVal = (rawAval >= 0 && rawAval <= MAX_ANALOG_OUTPUT_VALUE);
                         const int16_t targetVal = hasAnalogVal ? static_cast<int16_t>(rawAval) : RULE_ANALOG_VALUE_UNSET;
 
+                        int holdTime = 0;
+                        char hldBuf[16] = {0};
+                        if (kvp.getValue("hld", hldBuf, sizeof(hldBuf))) {
+                            if (strcmp(hldBuf, "dc") == 0 || strcmp(hldBuf, "double_click") == 0) {
+                                holdTime = RULE_TRIGGER_DOUBLE_CLICK;
+                            } else {
+                                holdTime = atoi(hldBuf);
+                            }
+                        }
+                        if (!isValidDigitalHoldTime(holdTime)) {
+                            holdTime = 0;
+                        }
+
                         outResult.segments[segIndex].rule.active = true;
                         if (isHigh) {
                             int c = outResult.segments[segIndex].rule.highActionCount;
                             if (c < 4) {
                                 outResult.segments[segIndex].rule.highActions[c].targetPin = targetPin;
-                                outResult.segments[segIndex].rule.highActions[c].requiredHoldTime = kvp.getInt("hld", 0);
+                                outResult.segments[segIndex].rule.highActions[c].requiredHoldTime = holdTime;
                                 outResult.segments[segIndex].rule.highActions[c].targetValue = targetVal;
                                 outResult.segments[segIndex].rule.highActions[c].actionState = hasAnalogVal
                                     ? (targetVal > 0)
@@ -201,7 +214,7 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                             int c = outResult.segments[segIndex].rule.lowActionCount;
                             if (c < 4) {
                                 outResult.segments[segIndex].rule.lowActions[c].targetPin = targetPin;
-                                outResult.segments[segIndex].rule.lowActions[c].requiredHoldTime = kvp.getInt("hld", 0);
+                                outResult.segments[segIndex].rule.lowActions[c].requiredHoldTime = holdTime;
                                 outResult.segments[segIndex].rule.lowActions[c].targetValue = targetVal;
                                 outResult.segments[segIndex].rule.lowActions[c].actionState = hasAnalogVal
                                     ? (targetVal > 0)
@@ -211,6 +224,69 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                                 outResult.segments[segIndex].rule.lowActionCount++;
                             }
                         }
+                    }
+                }
+            }
+        } else if (strncmp(p, "RR ", 3) == 0) {
+            // Multi-range analog input rule:
+            // RR min=<0..maxScale> max=<0..maxScale> tgt=<pin> [hyst=<0..maxScale/2>] [trg=<0|1|enter|exit>] [ast=<0|1>] [aval=<0..4095>] [atp=<0|1|2>] [dly=<0..60>]
+            if (segIndex >= 0 && segIndex < MAX_SEGMENTS && outResult.segments[segIndex].valid) {
+                char tgtBuf[16] = {0};
+                if (kvp.getValue("tgt", tgtBuf, sizeof(tgtBuf))) {
+                    const int targetPin = parsePinNumber(tgtBuf);
+                    const uint8_t c = outResult.segments[segIndex].rule.analogRangeCount;
+                    if (targetPin >= 0 && targetPin <= 39 && c < MAX_ANALOG_RANGE_RULES) {
+                        const uint8_t res = outResult.segments[segIndex].adcResolution;
+                        const int maxScale = static_cast<int>((1UL << res) - 1UL);
+
+                        int rawMin = kvp.getInt("min", 0);
+                        int rawMax = kvp.getInt("max", maxScale);
+                        if (rawMin < 0) rawMin = 0;
+                        if (rawMin > maxScale) rawMin = maxScale;
+                        if (rawMax < 0) rawMax = 0;
+                        if (rawMax > maxScale) rawMax = maxScale;
+                        if (rawMin > rawMax) {
+                            const int tmp = rawMin;
+                            rawMin = rawMax;
+                            rawMax = tmp;
+                        }
+
+                        int rawHyst = kvp.getInt("hyst", 0);
+                        if (rawHyst < 0) rawHyst = 0;
+                        if (rawHyst > (maxScale >> 1)) rawHyst = (maxScale >> 1);
+
+                        AnalogRangeTriggerMode triggerMode = RANGE_ON_ENTER;
+                        char trgBuf[12] = {0};
+                        if (kvp.getValue("trg", trgBuf, sizeof(trgBuf))) {
+                            if (strcmp(trgBuf, "exit") == 0 || atoi(trgBuf) == 1) {
+                                triggerMode = RANGE_ON_EXIT;
+                            }
+                        }
+
+                        const int rawAval = kvp.getInt("aval", RULE_ANALOG_VALUE_UNSET);
+                        const bool hasAnalogVal = (rawAval >= 0 && rawAval <= MAX_ANALOG_OUTPUT_VALUE);
+                        const int16_t targetVal = hasAnalogVal ? static_cast<int16_t>(rawAval) : RULE_ANALOG_VALUE_UNSET;
+
+                        int rawAtp = kvp.getInt("atp", 0);
+                        if (rawAtp < 0 || rawAtp > ACTION_FOR_DURATION) rawAtp = ACTION_IMMEDIATE;
+                        int rawDly = kvp.getInt("dly", 0);
+                        if (rawDly < 0) rawDly = 0;
+                        if (rawDly > 60) rawDly = 60;
+
+                        AnalogRangeRule& rr = outResult.segments[segIndex].rule.analogRanges[c];
+                        rr.minValue = static_cast<uint16_t>(rawMin);
+                        rr.maxValue = static_cast<uint16_t>(rawMax);
+                        rr.hysteresis = static_cast<uint16_t>(rawHyst);
+                        rr.targetValue = targetVal;
+                        rr.targetPin = static_cast<int8_t>(targetPin);
+                        rr.delay = static_cast<uint8_t>(rawDly);
+                        rr.actionType = static_cast<RuleActionType>(rawAtp);
+                        rr.triggerMode = triggerMode;
+                        rr.actionState = hasAnalogVal ? (targetVal > 0) : (kvp.getInt("ast", 1) > 0);
+                        rr.enabled = true;
+
+                        outResult.segments[segIndex].rule.analogRangeCount = static_cast<uint8_t>(c + 1);
+                        outResult.segments[segIndex].rule.active = true;
                     }
                 }
             }
@@ -305,7 +381,7 @@ void AchaemenidConfigProtocol::printResult(const ParseResult* result) {
                 result->segments[i].pwmFrequency);
         } else if (strcmp(result->segments[i].type, "analog_input") == 0 ||
                    strcmp(result->segments[i].type, "adc_input") == 0) {
-            Serial.printf("  [%d] id=%s  type=%s  pin=%d  (%u-bit sint=%ums delta=%u ath=%u atl=%u)\n",
+            Serial.printf("  [%d] id=%s  type=%s  pin=%d  (%u-bit sint=%ums delta=%u ath=%u atl=%u ranges=%u)\n",
                 i,
                 result->segments[i].id,
                 result->segments[i].type,
@@ -314,7 +390,8 @@ void AchaemenidConfigProtocol::printResult(const ParseResult* result) {
                 result->segments[i].adcSampleIntervalMs,
                 result->segments[i].adcDeltaThreshold,
                 result->segments[i].adcHighThreshold,
-                result->segments[i].adcLowThreshold);
+                result->segments[i].adcLowThreshold,
+                static_cast<unsigned int>(result->segments[i].rule.analogRangeCount));
         } else {
             Serial.printf("  [%d] id=%s  type=%s  pin=%d  val=%s\n",
                 i,

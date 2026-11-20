@@ -62,6 +62,16 @@ public:
         if (entry) entry->holdTimer = timer;
     }
 
+    HOT_PATH FORCE_INLINE uniuno::TimerHandle getDoubleClickTimerIdByPin(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        return entry ? entry->doubleClickTimer : uniuno::TimerHandle();
+    }
+
+    HOT_PATH FORCE_INLINE void setDoubleClickTimerIdByPin(int pin, uniuno::TimerHandle timer) {
+        PinEntry* entry = _registry.getEntryByPin(pin);
+        if (entry) entry->doubleClickTimer = timer;
+    }
+
     int findPinByRuleActionTimerId(uniuno::TimerId timerId) const;
     int findPinByHoldTimerId(uniuno::TimerId timerId) const;
 

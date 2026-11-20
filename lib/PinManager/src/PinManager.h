@@ -173,6 +173,38 @@ public:
         _stateManager.setPendingHoldAction(pin, action);
     }
 
+    HOT_PATH FORCE_INLINE uint8_t getClickCountByPin(int pin) const {
+        return _stateManager.getClickCountByPin(pin);
+    }
+
+    HOT_PATH FORCE_INLINE void setClickCountByPin(int pin, uint8_t count) {
+        _stateManager.setClickCountByPin(pin, count);
+    }
+
+    HOT_PATH FORCE_INLINE bool getClickPolarityByPin(int pin) const {
+        return _stateManager.getClickPolarityByPin(pin);
+    }
+
+    HOT_PATH FORCE_INLINE void setClickPolarityByPin(int pin, bool polarity) {
+        _stateManager.setClickPolarityByPin(pin, polarity);
+    }
+
+    HOT_PATH FORCE_INLINE unsigned long getLastClickTimeByPin(int pin) const {
+        return _stateManager.getLastClickTimeByPin(pin);
+    }
+
+    HOT_PATH FORCE_INLINE void setLastClickTimeByPin(int pin, unsigned long ts) {
+        _stateManager.setLastClickTimeByPin(pin, ts);
+    }
+
+    HOT_PATH FORCE_INLINE uint8_t getAnalogRangeMaskByPin(int pin) const {
+        return _stateManager.getAnalogRangeMaskByPin(pin);
+    }
+
+    HOT_PATH FORCE_INLINE void setAnalogRangeMaskByPin(int pin, uint8_t mask) {
+        _stateManager.setAnalogRangeMaskByPin(pin, mask);
+    }
+
     // --- Timer Delegation ---
     HOT_PATH FORCE_INLINE int getAutoOffDelayByPin(int pin) const {
         return _timerManager.getAutoOffDelayByPin(pin);
@@ -214,6 +246,14 @@ public:
 
     HOT_PATH FORCE_INLINE void setHoldTimerIdByPin(int pin, uniuno::TimerHandle timer) {
         _timerManager.setHoldTimerIdByPin(pin, timer);
+    }
+
+    HOT_PATH FORCE_INLINE uniuno::TimerHandle getDoubleClickTimerIdByPin(int pin) const {
+        return _timerManager.getDoubleClickTimerIdByPin(pin);
+    }
+
+    HOT_PATH FORCE_INLINE void setDoubleClickTimerIdByPin(int pin, uniuno::TimerHandle timer) {
+        _timerManager.setDoubleClickTimerIdByPin(pin, timer);
     }
 
     HOT_PATH FORCE_INLINE int findPinByRuleActionTimerId(uniuno::TimerId timerId) const {

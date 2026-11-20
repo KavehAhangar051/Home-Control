@@ -116,9 +116,12 @@ void loop() {
                 };
                 eventBus.dispatch(changed);
             }
+            if (ch.rangeMaskChanged) {
+                ruleEngine->handleAnalogInput(ch, r);
+            }
             if (ch.thresholdChanged) {
                 ruleEngine->handleInput(ch.pin, ch.thresholdState, ch.durationSec, r);
-            } else if (ch.valueChanged) {
+            } else if (ch.valueChanged && !ch.rangeMaskChanged) {
                 ruleEngine->scheduleCloudSync(ch.pin);
             }
         };

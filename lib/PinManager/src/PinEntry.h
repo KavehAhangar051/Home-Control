@@ -49,6 +49,7 @@ struct AnalogInputChange {
     bool valueChanged : 1;
     bool thresholdChanged : 1;
     bool thresholdState : 1;
+    bool rangeMaskChanged : 1;
 };
 
 /**
@@ -71,16 +72,20 @@ struct PinEntry {
     uniuno::TimerHandle cloudSyncTimer;
     uniuno::TimerHandle ruleActionTimer;
     uniuno::TimerHandle holdTimer;
+    uniuno::TimerHandle doubleClickTimer;
 
-    // Timestamps for duration tracking and debounce
+    // Timestamps for duration tracking, debounce, and double-click detection
     unsigned long stateStartTime;
     unsigned long lastDebounceTime;
+    unsigned long lastClickTimeMs;
     
     // Scaled fundamental types for compact footprint
     uint16_t autoOffDelay;
     int16_t pendingRuleActionAnalogValue;
     int8_t pinNumber;
     SegmentType type;
+    uint8_t analogRangeActiveMask; // Bit i = 1 iff analogRanges[i] is currently active
+    uint8_t clickCount;            // Pending click count for digital double-click detection (0..2)
     
     // Bitfield flags (packed into a single byte)
     bool hasGpio : 1;
@@ -89,6 +94,7 @@ struct PinEntry {
     bool lastInputState : 1;
     bool pendingRuleActionState : 1;
     bool isHandled : 1;
+    bool clickPolarity : 1;
     bool active : 1;
 };
 

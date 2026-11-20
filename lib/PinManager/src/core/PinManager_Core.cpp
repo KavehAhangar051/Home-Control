@@ -85,7 +85,7 @@ void PinManager::printStatus() const {
             const uint16_t maxVal = entry->hasAdc ? entry->adc.getMaxValue() : 4095;
             const uint8_t res = entry->hasAdc ? entry->adc.getResolution() : DEFAULT_ADC_RESOLUTION;
             const bool thrState = entry->hasAdc ? entry->adc.getThresholdState() : false;
-            Serial.printf("  [%d] id=%s type=analog_input pin=%d val=%u/%u (%u-bit sint=%ums delta=%u ath=%u atl=%u) state=%s rule=%s (high=%d low=%d)\n",
+            Serial.printf("  [%d] id=%s type=analog_input pin=%d val=%u/%u (%u-bit sint=%ums delta=%u ath=%u atl=%u) state=%s rule=%s (high=%d low=%d ranges=%u)\n",
                 i, entry->segmentId, entry->pinNumber, val, maxVal, res,
                 entry->hasAdc ? entry->adc.getSampleIntervalMs() : DEFAULT_ADC_SAMPLE_INTERVAL_MS,
                 entry->hasAdc ? entry->adc.getDeltaThreshold() : DEFAULT_ADC_DELTA_THRESHOLD,
@@ -93,7 +93,8 @@ void PinManager::printStatus() const {
                 entry->hasAdc ? entry->adc.getLowThreshold() : 0,
                 thrState ? "HIGH" : "LOW",
                 entry->rule.active ? "active" : "inactive",
-                entry->rule.highActionCount, entry->rule.lowActionCount);
+                entry->rule.highActionCount, entry->rule.lowActionCount,
+                static_cast<unsigned int>(entry->rule.analogRangeCount));
         } else {
             const bool state = (entry->type == SegmentType::Input)
                 ? entry->lastInputState

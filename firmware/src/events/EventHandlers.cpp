@@ -156,8 +156,9 @@ auto onSegmentRemove = [](SegmentRemoveRequestEvent* evt) {
 auto onSegmentUpdateRule = [](SegmentUpdateRuleRequestEvent* evt) {
     if (evt == nullptr) return;
     if (pinManager.updateSegmentRuleByPin(evt->pin, evt->rule)) {
-        INFOF("[Event] Rule updated for input GPIO%d (high=%d low=%d active=%d)",
-              evt->pin, evt->rule.highActionCount, evt->rule.lowActionCount, evt->rule.active);
+        INFOF("[Event] Rule updated for input GPIO%d (high=%d low=%d ranges=%u active=%d)",
+              evt->pin, evt->rule.highActionCount, evt->rule.lowActionCount,
+              static_cast<unsigned int>(evt->rule.analogRangeCount), evt->rule.active);
         persistCurrentSegmentConfig("segment rule update");
     } else {
         WARNINGF("[Event] Rule update rejected for input GPIO%d (not registered as a digital or analog input)", evt->pin);

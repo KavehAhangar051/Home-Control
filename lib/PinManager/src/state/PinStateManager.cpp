@@ -283,7 +283,29 @@ HOT_PATH PIN_STATE_IRAM void PinStateManager::processAnalogInputs(
             entry->lastInputState = res.thresholdState;
         }
 
-        if ((res.valueChanged || res.thresholdChanged) && onAnalogChanged) {
+        // Branchless Xtensa check: detect if ANY configured analog range boundary was crossed
+        // even when res.valueChanged is false (e.g. deltaThreshold > step size).
+        bool rangeMaskChanged = false;
+        if (entry->rule.active && entry->rule.analogRangeCount > 0) {
+            const uint16_t maxScale = entry->adc.getMaxValue();
+            const uint8_t prevMask = entry->analogRangeActiveMask;
+            uint8_t nextMask = 0;
+            const uint8_t count = entry->rule.analogRangeCount <= MAX_ANALOG_RANGE_RULES
+                ? entry->rule.analogRangeCount
+                : MAX_ANALOG_RANGE_RULES;
+            for (uint8_t r = 0; r < count; ++r) {
+                const AnalogRangeRule& rr = entry->rule.analogRanges[r];
+                if (!rr.enabled) continue;
+                const bool wasIn = ((prevMask >> r) & 1U) != 0U;
+                if (uniuno::xtensa_asm::asm_range_eval(
+                        res.value, rr.minValue, rr.maxValue, rr.hysteresis, maxScale, wasIn)) {
+                    nextMask |= static_cast<uint8_t>(1U << r);
+                }
+            }
+            rangeMaskChanged = (nextMask != prevMask);
+        }
+
+        if ((res.valueChanged || res.thresholdChanged || rangeMaskChanged) && onAnalogChanged) {
             AnalogInputChange change;
             change.pin = entry->pinNumber;
             change.durationSec = durationSec;
@@ -292,6 +314,7 @@ HOT_PATH PIN_STATE_IRAM void PinStateManager::processAnalogInputs(
             change.valueChanged = res.valueChanged;
             change.thresholdChanged = res.thresholdChanged;
             change.thresholdState = res.thresholdState;
+            change.rangeMaskChanged = rangeMaskChanged;
             onAnalogChanged(change, entry->rule);
         }
     };

@@ -248,6 +248,46 @@ public:
         if (entry) entry->pendingHoldAction = action;
     }
 
+    HOT_PATH FORCE_INLINE uint8_t getClickCountByPin(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        return entry ? entry->clickCount : 0;
+    }
+
+    HOT_PATH FORCE_INLINE void setClickCountByPin(int pin, uint8_t count) {
+        PinEntry* entry = _registry.getEntryByPin(pin);
+        if (entry) entry->clickCount = count;
+    }
+
+    HOT_PATH FORCE_INLINE bool getClickPolarityByPin(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        return entry ? entry->clickPolarity : false;
+    }
+
+    HOT_PATH FORCE_INLINE void setClickPolarityByPin(int pin, bool polarity) {
+        PinEntry* entry = _registry.getEntryByPin(pin);
+        if (entry) entry->clickPolarity = polarity;
+    }
+
+    HOT_PATH FORCE_INLINE unsigned long getLastClickTimeByPin(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        return entry ? entry->lastClickTimeMs : 0;
+    }
+
+    HOT_PATH FORCE_INLINE void setLastClickTimeByPin(int pin, unsigned long ts) {
+        PinEntry* entry = _registry.getEntryByPin(pin);
+        if (entry) entry->lastClickTimeMs = ts;
+    }
+
+    HOT_PATH FORCE_INLINE uint8_t getAnalogRangeMaskByPin(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        return entry ? entry->analogRangeActiveMask : 0;
+    }
+
+    HOT_PATH FORCE_INLINE void setAnalogRangeMaskByPin(int pin, uint8_t mask) {
+        PinEntry* entry = _registry.getEntryByPin(pin);
+        if (entry) entry->analogRangeActiveMask = mask;
+    }
+
 private:
     PinRegistry& _registry;
     uint32_t _inputMask0_31;

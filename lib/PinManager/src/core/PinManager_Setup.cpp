@@ -95,11 +95,33 @@ bool PinManager::addSegment(
     entry->cloudSyncTimer = uniuno::TimerHandle();
     entry->ruleActionTimer = uniuno::TimerHandle();
     entry->holdTimer = uniuno::TimerHandle();
+    entry->doubleClickTimer = uniuno::TimerHandle();
     entry->pendingRuleActionState = false;
     entry->pendingRuleActionAnalogValue = RULE_ANALOG_VALUE_UNSET;
     entry->pendingHoldAction = RuleAction();
     entry->isHandled = false;
+    entry->clickCount = 0;
+    entry->clickPolarity = false;
+    entry->lastClickTimeMs = 0;
+    entry->analogRangeActiveMask = 0;
     entry->rule = rule;
+    if (type == SegmentType::AnalogInput && entry->hasAdc && rule.active && rule.analogRangeCount > 0) {
+        // Seed initial range membership from boot baseline so power-on never fires spurious enter events
+        const uint16_t baseline = entry->adc.getValue();
+        const uint16_t maxScale = entry->adc.getMaxValue();
+        const uint8_t count = rule.analogRangeCount <= MAX_ANALOG_RANGE_RULES
+            ? rule.analogRangeCount
+            : MAX_ANALOG_RANGE_RULES;
+        uint8_t mask = 0;
+        for (uint8_t r = 0; r < count; ++r) {
+            const AnalogRangeRule& rr = rule.analogRanges[r];
+            if (rr.enabled && uniuno::xtensa_asm::asm_range_eval(
+                    baseline, rr.minValue, rr.maxValue, rr.hysteresis, maxScale, false)) {
+                mask |= static_cast<uint8_t>(1U << r);
+            }
+        }
+        entry->analogRangeActiveMask = mask;
+    }
     entry->stateStartTime = millis();
     entry->lastDebounceTime = millis();
 
@@ -110,9 +132,10 @@ bool PinManager::addSegment(
         INFOF("[PinManager] Added segment '%s' on pin %d (Type: analog_output, %u-bit @ %uHz)",
               id, pin, entry->pwm.getResolution(), entry->pwm.getFrequency());
     } else if (type == SegmentType::AnalogInput) {
-        INFOF("[PinManager] Added segment '%s' on pin %d (Type: analog_input, %u-bit sint=%ums delta=%u ath=%u atl=%u)",
+        INFOF("[PinManager] Added segment '%s' on pin %d (Type: analog_input, %u-bit sint=%ums delta=%u ath=%u atl=%u ranges=%u)",
               id, pin, entry->adc.getResolution(), entry->adc.getSampleIntervalMs(),
-              entry->adc.getDeltaThreshold(), entry->adc.getHighThreshold(), entry->adc.getLowThreshold());
+              entry->adc.getDeltaThreshold(), entry->adc.getHighThreshold(), entry->adc.getLowThreshold(),
+              static_cast<unsigned int>(entry->rule.analogRangeCount));
     } else {
         INFOF("[PinManager] Added segment '%s' on pin %d (Type: %s)",
               id, pin, (type == SegmentType::Input ? "input" : "output"));
@@ -147,6 +170,7 @@ bool PinManager::removeSegment(const char* id) {
     entry->cloudSyncTimer.cancel();
     entry->ruleActionTimer.cancel();
     entry->holdTimer.cancel();
+    entry->doubleClickTimer.cancel();
 
     _registry.unmapPin(entry->pinNumber);
 
@@ -159,11 +183,16 @@ bool PinManager::removeSegment(const char* id) {
     entry->cloudSyncTimer = uniuno::TimerHandle();
     entry->ruleActionTimer = uniuno::TimerHandle();
     entry->holdTimer = uniuno::TimerHandle();
+    entry->doubleClickTimer = uniuno::TimerHandle();
     entry->lastInputState = false;
     entry->pendingRuleActionState = false;
     entry->pendingRuleActionAnalogValue = RULE_ANALOG_VALUE_UNSET;
     entry->pendingHoldAction = RuleAction();
     entry->isHandled = false;
+    entry->clickCount = 0;
+    entry->clickPolarity = false;
+    entry->lastClickTimeMs = 0;
+    entry->analogRangeActiveMask = 0;
     entry->stateStartTime = 0;
     entry->lastDebounceTime = 0;
 
@@ -177,6 +206,10 @@ bool PinManager::updateSegmentRule(const char* id, const RuleConfig& rule) {
     if (idx < 0) return false;
     PinEntry* entry = _registry.getEntryByIndex(idx);
     if (!entry || (entry->type != SegmentType::Input && entry->type != SegmentType::AnalogInput)) return false;
+    entry->doubleClickTimer.cancel();
+    entry->doubleClickTimer = uniuno::TimerHandle();
+    entry->clickCount = 0;
+    entry->analogRangeActiveMask = 0;
     entry->rule = rule;
     return true;
 }
@@ -187,6 +220,10 @@ bool PinManager::updateSegmentRuleByPin(int pin, const RuleConfig& rule) {
         (entry->type != SegmentType::Input && entry->type != SegmentType::AnalogInput)) {
         return false;
     }
+    entry->doubleClickTimer.cancel();
+    entry->doubleClickTimer = uniuno::TimerHandle();
+    entry->clickCount = 0;
+    entry->analogRangeActiveMask = 0;
     entry->rule = rule;
     return true;
 }

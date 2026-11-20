@@ -77,6 +77,68 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
                 _dispatcher->dispatch(event);
             }
         }
+        // Multi-range analog rules update: [0x0E][pin:u8][count:u8] + count * 12 bytes
+        else if (len >= 3 && static_cast<uint8_t>(data[0]) == 0x0E) {
+            const uint8_t pin = static_cast<uint8_t>(data[1]);
+            const uint8_t rangeCount = static_cast<uint8_t>(data[2]);
+            if (pin <= 39 && rangeCount <= MAX_ANALOG_RANGE_RULES &&
+                len == (3U + static_cast<size_t>(rangeCount) * 12U)) {
+                RuleConfig newRule;
+                bool valid = true;
+                size_t offset = 3;
+                for (uint8_t i = 0; i < rangeCount; ++i) {
+                    uint16_t minVal = static_cast<uint16_t>(static_cast<uint8_t>(data[offset])) |
+                        (static_cast<uint16_t>(static_cast<uint8_t>(data[offset + 1])) << 8);
+                    uint16_t maxVal = static_cast<uint16_t>(static_cast<uint8_t>(data[offset + 2])) |
+                        (static_cast<uint16_t>(static_cast<uint8_t>(data[offset + 3])) << 8);
+                    const uint16_t hyst = static_cast<uint16_t>(static_cast<uint8_t>(data[offset + 4])) |
+                        (static_cast<uint16_t>(static_cast<uint8_t>(data[offset + 5])) << 8);
+                    const int8_t targetPin = static_cast<int8_t>(data[offset + 6]);
+                    const uint8_t flags = static_cast<uint8_t>(data[offset + 7]);
+                    const uint8_t delay = static_cast<uint8_t>(data[offset + 8]);
+                    const int16_t targetValue = static_cast<int16_t>(
+                        static_cast<uint16_t>(static_cast<uint8_t>(data[offset + 9])) |
+                        (static_cast<uint16_t>(static_cast<uint8_t>(data[offset + 10])) << 8));
+                    offset += 12;
+
+                    const bool actionState = (flags & 0x01U) != 0U;
+                    const uint8_t actionType = static_cast<uint8_t>((flags >> 1) & 0x03U);
+                    const uint8_t triggerMode = static_cast<uint8_t>((flags >> 3) & 0x01U);
+
+                    if (minVal > MAX_ANALOG_INPUT_VALUE || maxVal > MAX_ANALOG_INPUT_VALUE ||
+                        hyst > (MAX_ANALOG_INPUT_VALUE / 2U) ||
+                        targetPin < 0 || targetPin > 39 ||
+                        actionType > ACTION_FOR_DURATION || delay > 60 ||
+                        (targetValue != RULE_ANALOG_VALUE_UNSET &&
+                         (targetValue < 0 || targetValue > MAX_ANALOG_OUTPUT_VALUE))) {
+                        valid = false;
+                        break;
+                    }
+                    if (minVal > maxVal) {
+                        const uint16_t tmp = minVal;
+                        minVal = maxVal;
+                        maxVal = tmp;
+                    }
+
+                    AnalogRangeRule& rr = newRule.analogRanges[newRule.analogRangeCount++];
+                    rr.minValue = minVal;
+                    rr.maxValue = maxVal;
+                    rr.hysteresis = hyst;
+                    rr.targetPin = targetPin;
+                    rr.delay = delay;
+                    rr.actionType = static_cast<RuleActionType>(actionType);
+                    rr.triggerMode = static_cast<AnalogRangeTriggerMode>(triggerMode);
+                    rr.targetValue = targetValue;
+                    rr.actionState = (targetValue != RULE_ANALOG_VALUE_UNSET) ? (targetValue > 0) : actionState;
+                    rr.enabled = true;
+                }
+                if (valid) {
+                    newRule.active = (newRule.analogRangeCount > 0);
+                    SegmentUpdateRuleRequestEvent event{static_cast<int>(pin), newRule};
+                    _dispatcher->dispatch(event);
+                }
+            }
+        }
     } else {
         // Text message
         const String text = message.data();
