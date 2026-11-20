@@ -165,9 +165,9 @@ export class WebGL2LutRenderer {
   render(
     source: TexImageSource,
     lut: Lut3D,
-    intensity = 1,
     sourceWidth: number,
     sourceHeight: number,
+    intensity = 1,
   ): boolean {
     const gl = this.gl;
     if (this.disposed || gl.isContextLost()) return false;
