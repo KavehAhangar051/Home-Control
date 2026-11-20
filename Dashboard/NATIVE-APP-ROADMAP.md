@@ -1642,3 +1642,31 @@ Error: .../sdkmanager failed with exit code 1
 - [x] هشدارهای قدیمی Action/Node و sdkmanager در لاگ جدید دیده نشدند.
 - [ ] بررسی دقیق منبع هشدار SDK XML در صورت تکرار.
 - [ ] نصب و اجرای APK روی گوشی واقعی و بررسی MQTT و Local WebSocket.
+
+
+---
+
+## ۱۸. انتشار APK در GitHub Releases — ۲۰۲۶-۱۱-۲۰
+
+### رفتار Workflow
+
+- Workflow همان `.github/workflows/android-apk.yml` باقی می‌ماند و پس از Build موفق، APK را هم به‌صورت Actions Artifact با نگهداری ۳۰روزه و هم به‌عنوان Asset یک GitHub Pre-release منتشر می‌کند.
+- برای ایجاد Release از GitHub CLI موجود روی runner استفاده می‌شود؛ وابستگی به Action انتشار شخص ثالث اضافه نشده است.
+- Permission مربوط به Workflow از `contents: read` به `contents: write` تغییر می‌کند تا توکن همان اجرا اجازه ساخت Tag و Release داشته باشد.
+- الگوی Tag برابر `android-build-<run-number>-<run-attempt>` است. شماره تلاش، اجرای مجدد همان Workflow را از برخورد با Release قبلی حفظ می‌کند.
+- عنوان Release شماره اجرا و تلاش را مشخص می‌کند و متن آن Commit مبنا و ماهیت Debug را اعلام می‌کند.
+- Release با `--prerelease` منتشر می‌شود تا APK توسعه‌ای با نسخه پایدار اشتباه نشود.
+
+### محدوده انتشار
+
+- فقط `app-debug.apk` منتشر می‌شود؛ AAB، Google Play و GitHub Packages اضافه نمی‌شوند.
+- فایل فعلی Debug و بدون امضای انتشار Production است. انتشار در GitHub Releases به‌خودی‌خود APK را به نسخه Production امضاشده تبدیل نمی‌کند.
+- Artifact سی‌روزه حفظ می‌شود تا مسیر دریافت فعلی نیز باقی بماند.
+
+### اعتبارسنجی
+
+- [x] Workflow و مستندات برای انتشار GitHub Pre-release به‌روزرسانی شدند.
+- [ ] اجرای موفق CI و تأیید ایجاد Release و پیوست APK
+- [ ] نصب و اجرای APK روی گوشی Android و بررسی MQTT و Local WebSocket
+
+**وضعیت:** تغییرات Workflow و مستندات ثبت شده‌اند؛ ایجاد Release واقعی پس از اجرای موفق Workflow جدید قابل تأیید است.
