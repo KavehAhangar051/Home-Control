@@ -322,3 +322,6 @@ This is a source-level execution map, not a measured performance finding. No FPS
 - `WorkflowWiresSvg` now memoizes each valid edge's Bezier geometry from its source/target port anchors and resolved input-port index. The same geometry object is passed to the SVG edge renderer and the active-edge signal particles.
 - This removes duplicate `getPortAnchor` and `buildWorkflowBezierPath` work for active edges and avoids rebuilding identical SVG path strings in the particle overlay. The geometry map is recomputed when the edge list, node map, or resolved port-index map changes.
 - Path coordinates, midpoint cut controls, edge hit areas, hover/selection styling, particle count, timing, and visible UI remain unchanged. This is a main-thread computation reduction, not a claim that SVG rendering moved to the GPU.
+
+
+- Workflow connection drafting now computes the current draft Bezier geometry once per render and shares it between the visible SVG draft wire and its optional magnetic-target signal particle. Pointer-driven geometry still updates on every draft position change; this only removes duplicate calculation for the same frame. Visual path, endpoints, magnetic styling, and particle timing are unchanged.
