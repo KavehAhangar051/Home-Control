@@ -26,7 +26,7 @@ export function GpuLutImage({
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<WebGL2LutRenderer | null>(null);
+
   const drawRef = useRef<() => void>(() => {});
   const lutRef = useRef(lut);
   const intensityRef = useRef(intensity);
@@ -56,9 +56,17 @@ export function GpuLutImage({
       }
 
       const bounds = container.getBoundingClientRect();
-      renderer.resize(bounds.width, bounds.height, window.devicePixelRatio);
-      if (renderer.render(image, lutRef.current, intensityRef.current)) {
-        setReady(true);
+      if (bounds.width <= 0 || bounds.height <= 0) return;
+
+      try {
+        renderer.resize(bounds.width, bounds.height, window.devicePixelRatio);
+        if (renderer.render(image, lutRef.current, intensityRef.current)) {
+          setReady(true);
+        }
+      } catch {
+        renderer.dispose();
+        renderer = null;
+        setReady(false);
       }
     };
 
@@ -66,12 +74,12 @@ export function GpuLutImage({
       if (disposed || renderer) return;
       try {
         renderer = new WebGL2LutRenderer(canvas);
-        rendererRef.current = renderer;
+
         setReady(false);
         draw();
       } catch {
         renderer = null;
-        rendererRef.current = null;
+
         setReady(false);
       }
     };
@@ -80,7 +88,7 @@ export function GpuLutImage({
       event.preventDefault();
       renderer?.dispose();
       renderer = null;
-      rendererRef.current = null;
+
       setReady(false);
     };
 
@@ -121,7 +129,7 @@ export function GpuLutImage({
       canvas.removeEventListener("webglcontextlost", handleContextLost);
       canvas.removeEventListener("webglcontextrestored", handleContextRestored);
       renderer?.dispose();
-      rendererRef.current = null;
+
     };
   }, [imageSrc]);
 
