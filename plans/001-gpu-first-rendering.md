@@ -21,6 +21,7 @@ The dashboard already uses Motion, WAAPI, CSS transforms, and WebGL2, but some r
 
 - The repository already contains compositor-oriented optimizations documented in `ARCHITECTURE.md` §28. Those are source-level changes, not proof of physical GPU/VRAM execution; the wording in that section now makes this limitation explicit.
 - A DPR-change listener was added to `components/gpu/GpuLutImage.tsx` so a display-density change triggers a redraw even when the CSS box size is unchanged. This is an isolated correctness fix for the opt-in LUT image surface, not a global dashboard renderer change.
+- Exact identity LUTs and non-positive LUT intensity now bypass WebGL in `GpuLutImage`: the original browser image remains the visible source, no source/LUT textures or shader draw are created for a no-op grade, and existing renderer resources are disposed when a live surface switches back to identity. Detection is memoized per LUT/intensity input and compares Float32 values exactly. This affects only the opt-in image surface; no global dashboard LUT or UI effect was introduced.
 
 - `docs/superpowers/specs/2026-11-20-gpu-first-rendering-design.md` — approved product/technical design and constraints.
 - `docs/performance/GPU-RENDERING.md` — source-level inventory, LUT architecture, memory estimates, and GPU lifecycle rules. Expanded inventory added in commit `222f45e`.
