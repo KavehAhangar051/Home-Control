@@ -36,10 +36,10 @@ The source image must be same-origin or served with CORS permission. The compone
 
 - Accepts 3D `.cube` files with `LUT_3D_SIZE`, optional `DOMAIN_MIN` / `DOMAIN_MAX`, and exactly `size³` RGB entries.
 - 1D LUTs are intentionally rejected.
-- LUT edge length is bounded to 2–64. Texture storage is RGBA8 with linear filtering and clamp-to-edge addressing. The source texture is bounded to 4096×4096; larger sources remain on the original-image fallback.
-- Approximate 3D LUT texture allocation (no mipmaps): 17³ = 19.2 KiB, 33³ = 140.4 KiB, 64³ = 1 MiB.
+- LUT edge length is bounded to 2–64. Texture storage is RGBA16F with linear filtering and clamp-to-edge addressing; the parser retains Float32 values until upload, where the GPU stores half-float texels. The source texture is bounded to 4096×4096; larger sources remain on the original-image fallback.
+- Approximate 3D LUT texture allocation (no mipmaps): 17³ = 38.4 KiB, 33³ = 280.8 KiB, 64³ = 2 MiB.
 - LUT rows use the standard .cube order: red changes fastest, then green, then blue.
-- `.cube` output triplets are stored as clamped RGB values; `DOMAIN_MIN` / `DOMAIN_MAX` normalize source RGB coordinates before the 3D lookup. The LUT is expected to use the same RGB encoding convention as the source texture. This first version does not add an implicit linear-light / sRGB conversion pass.
+- `.cube` output triplets are stored as clamped floating-point RGB values; `DOMAIN_MIN` / `DOMAIN_MAX` normalize source RGB coordinates before the 3D lookup. The LUT is expected to use the same RGB encoding convention as the source texture. This first version does not add an implicit linear-light / sRGB conversion pass.
 
 ## GPU and lifecycle rules
 
