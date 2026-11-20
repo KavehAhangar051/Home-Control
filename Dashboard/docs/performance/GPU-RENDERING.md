@@ -174,3 +174,57 @@ Recommended investigation order, subject to trace evidence:
 5. Audit the existing LUT renderer independently before mounting it anywhere. Identity mode must have a pass-through path for exact source preservation; creative mode stays opt-in and decorative-only.
 
 The next code change must target one measured path at a time. Do not implement a global CSS override, global WebGL screenshot compositor, blanket `will-change`, or blanket Worker conversion.
+
+## GPU memory and WebGL lifecycle constraints (research update)
+
+The browser platform does not expose a portable API for querying the machine's actual dedicated VRAM capacity or the exact physical VRAM currently consumed by a WebGL context. WebGL applications must therefore use conservative estimates, observe allocation failures/context loss, and avoid reporting estimates as measured VRAM. See [MDN WebGL best practices](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices).
+
+### Current LUT renderer allocation model
+
+The existing `WebGL2LutRenderer` uses:
+- One RGBA8 source texture, uploaded only when the `TexImageSource` identity changes.
+- One 3D RGBA16F LUT texture, allocated with one mip level using `texStorage3D`.
+- One canvas drawing buffer, sized from the CSS box and DPR (currently capped at 2 and at 4096 pixels on the longest edge).
+- A shader program and VAO; these are driver-managed resources whose physical allocation is not exposed.
+
+Nominal payload estimates (not driver/VRAM measurements):
+
+| Resource | Dimensions / format | Approximate payload |
+|---|---|---:|
+| Source image texture | 4096 × 4096 × RGBA8 | 64 MiB |
+| 3D LUT texture | 64 × 64 × 64 × RGBA16F | 2 MiB |
+| Canvas color buffer | 4096 × 4096 × 4 bytes | 64 MiB |
+| **Nominal total** | **One source + LUT + one color buffer** | **130 MiB** |
+
+This estimate excludes decoded source-image memory, browser/driver staging copies, implementation-specific padding/alignment, compositor surfaces, possible buffering, and any extra copies. The actual footprint may be materially higher or lower. Do not present 130 MiB as actual VRAM usage.
+
+The renderer currently caps source dimensions at 4096×4096 and caps its drawing buffer's longest edge at 4096. It also limits the LUT edge length to 64. These are source-level safety ceilings, not a validated device budget. Keep the output backing size tied to the actual CSS box and device pixel ratio; do not reduce it to improve FPS without explicit approval because that would reduce image output resolution.
+
+### Allocation and lifecycle rules
+
+1. Keep the existing one-context-per-renderer ownership model; do not create a context per dashboard node or decorative element.
+2. Keep `texStorage3D` with a single mip level for the 3D LUT. The source and LUT surfaces are 2D/3D image processing inputs, not minified 3D scene textures that automatically benefit from mipmaps.
+3. Release texture, VAO, and program handles deterministically on disposal. Deleting a WebGL handle does not guarantee immediate physical reclamation until the implementation no longer uses the underlying object.
+4. Treat `webglcontextlost` and `OUT_OF_MEMORY` as expected recoverable failure modes. Preserve the original-image fallback and never make the dashboard dependent on successful WebGL allocation.
+5. Do not poll `getError()`, `getParameter()`, or GPU completion synchronously in the animation/render hot path. Query static limits at initialization only when needed, and do not mistake those limits for available VRAM.
+6. Avoid CPU pixel readback in interactive rendering. A synchronous `readPixels()` round trip can force GPU completion and stall the pipeline; prefer GPU-to-GPU operations where applicable.
+7. Use `texStorage*` for immutable texture storage and reuse allocations. Benchmark upload paths before replacing `texImage*` with `texSubImage*`; the API choice alone does not guarantee faster image uploads.
+8. Do not request reduced-resolution backing buffers or lower-quality texture formats as an automatic performance fallback. Any quality tier that changes resolution, antialiasing, color precision, or image quality violates the current product constraint.
+9. On context restoration, rebuild program, VAO, source texture, and LUT texture from retained CPU-side source data. A lost context invalidates all previous WebGL handles.
+10. Keep GPU telemetry honest: report browser-exposed diagnostics and estimated payload separately, and mark unavailable values as `not exposed`.
+
+### Rendering-path implications
+
+- CSS/WAAPI `transform` and `opacity` are the primary compositor candidates, but DevTools must confirm that a particular animation is actually composited. [Chrome Performance reference](https://developer.chrome.com/docs/devtools/performance/reference) exposes compositor failure reasons, GPU activity, raster activity, and frame classifications.
+- Blur, masks, clip-path, gradients, and filters remain property- and browser-dependent. Do not remove or simplify them; use Paint Flashing and the Paint Profiler to identify whether they cause repeated raster work. [web.dev animation guidance](https://web.dev/articles/animations-guide).
+- A composited layer still consumes rasterized texture memory and upload bandwidth. Promoting every element can increase memory pressure and make performance worse. Use `will-change` only for a measured issue and remove it after the relevant animation window.
+- The dashboard's DOM-based Canvas/Workflow is not a canvas drawing surface. `OffscreenCanvas` is relevant only to actual canvas renderers; it cannot move React, DOM layout, DOM text, or arbitrary HTML into a Worker.
+
+### Research references
+
+- [MDN — WebGL best practices](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices)
+- [Chrome DevTools — Performance features reference](https://developer.chrome.com/docs/devtools/performance/reference)
+- [web.dev — High-performance CSS animations](https://web.dev/articles/animations-guide)
+- [web.dev — Rendering pipeline and animation overview](https://web.dev/articles/animations-overview)
+
+All values above are based on source-level dimensions and nominal format sizes. No target-device GPU memory or frame-time measurements have been collected yet.
