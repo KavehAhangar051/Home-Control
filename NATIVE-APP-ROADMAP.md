@@ -1553,10 +1553,57 @@ Error: .../sdkmanager failed with exit code 1
 
 - [x] علت ریشه‌ای از لاگ Job تأیید شد.
 - [x] Workflow اصلاح و Push شد.
-- [ ] اجرای مجدد Workflow با نسخه جدید setup-android
-- [ ] عبور از Android SDK setup
-- [ ] تولید و بارگذاری APK به‌عنوان Artifact
+- [x] اجرای مجدد Workflow با نسخه جدید setup-android
+- [x] عبور از Android SDK setup
+- [x] تولید و بارگذاری APK به‌عنوان Artifact
 
 **Commit اصلاح:** `50027e2f85643a789567a92e73c0266c3fe63f4e`
 
-**وضعیت:** رفع علت مشخص ثبت شده است؛ موفقیت کل Build و تولید APK هنوز نیازمند نتیجه اجرای جدید است.
+**اجرای موفق:** `44773873021` — Job `136418373478`. تمام ۱۳ مرحله موفق شدند و Artifact `home-control-debug-apk-6` با شناسه `14648746694` بارگذاری شد. این اجرا روی Ubuntu 26.04 انجام شد.
+
+**وضعیت:** اولین APK debug ساخته و به‌عنوان Artifact قابل دریافت است؛ نصب و اجرای واقعی روی گوشی همچنان باید توسط مالک پروژه بررسی شود.
+
+
+---
+
+## ۱۶. رفع هشدارهای Android APK CI — ۲۰۲۶-۱۱-۲۰
+
+### شواهد اجرای موفق و هشدارها
+
+در Workflow با شناسه `44773873021` و Job `136418373478`:
+- تمام ۱۳ مرحله از Checkout تا Upload موفق بودند.
+- Artifact `home-control-debug-apk-6` با شناسه `14648746694` و حجم تقریبی ۹٫۹ مگابایت تولید شد.
+- APK در مسیر `android/app/build/outputs/apk/debug/app-debug.apk` ساخته شد.
+- هشدارهای مشاهده‌شده شامل Deprecated بودن `setup-java@v4`، اجرای Actionهای Node 20 روی Runtime جدید Node 24، Deprecated بودن `sdkmanager`، هشدار Gradle درباره `flatDir` و چند DeprecationWarning مربوط به وابستگی‌های Node در Actionها بودند.
+
+### اصلاحات Workflow
+
+- `actions/checkout@v4` به `@v7` ارتقا یافت.
+- `actions/setup-node@v4` به `@v7` ارتقا یافت؛ نسخه Node پروژه همچنان 22 باقی می‌ماند.
+- `actions/setup-java@v4` به `@v6` ارتقا یافت؛ Java همچنان 21 است.
+- `actions/upload-artifact@v4` به `@v6` ارتقا یافت.
+- نصب Android SDK از `android-actions/setup-android` و `sdkmanager` به Android CLI رسمی گوگل منتقل شد. پکیج‌های Platform Tools، Platform 36 و Build Tools 36.0.0 با `android sdk install` نصب می‌شوند.
+
+### هشدارهای باقیمانده و دلیل
+
+- هشدار `flatDir` از تنظیمات Gradle پروژه Android تولیدشده/وابستگی Capacitor می‌آید. حذف کورکورانه Repository می‌تواند بارگذاری کتابخانه‌های محلی افزونه‌ها را مختل کند؛ تا زمان مهاجرت upstream یا اثبات عدم نیاز، آن را suppress یا حذف نمی‌کنیم.
+- هشدارهای `punycode` و `url.parse` در این اجرا از Runtime وابستگی‌های Actionها صادر شدند. ارتقای Actionهای اصلی به نسخه‌های Node 24-compatible و نسخه جدید Artifact برای رفع منشأ شناخته‌شده انجام شد؛ باقی‌ماندن یا رفع کامل آن‌ها فقط با لاگ اجرای جدید قابل تأیید است.
+
+### منابع رسمی
+
+- Android CLI و جایگزینی `sdkmanager`: https://developer.android.com/tools/sdkmanager
+- نصب Android CLI: https://developer.android.com/tools/agents/android-cli/download
+- `actions/checkout`: https://github.com/actions/checkout
+- `actions/setup-node`: https://github.com/actions/setup-node
+- `actions/setup-java`: https://github.com/actions/setup-java
+- `actions/upload-artifact`: https://github.com/actions/upload-artifact
+- Gradle Flat Directory Repository: https://docs.gradle.org/current/userguide/supported_repository_types.html
+
+### وضعیت
+
+- [x] موفقیت اولین APK و Artifact از لاگ GitHub تأیید شد.
+- [x] نسخه‌های قدیمی Actionهای اصلی ارتقا داده شدند.
+- [x] نصب SDK به Android CLI رسمی منتقل شد.
+- [ ] اجرای Workflow پس از این اصلاحات و تأیید لاگ بدون هشدارهای قابل رفع
+- [ ] بررسی هشدار `flatDir` پس از مشخص شدن نسخه/منشأ دقیق در زنجیره Capacitor
+- [ ] نصب و اجرای APK روی گوشی واقعی
