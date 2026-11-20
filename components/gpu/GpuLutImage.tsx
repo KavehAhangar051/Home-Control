@@ -43,6 +43,7 @@ export function GpuLutImage({
 
     let renderer: WebGL2LutRenderer | null = null;
     let disposed = false;
+    setReady(false);
 
     const draw = () => {
       if (
@@ -60,13 +61,15 @@ export function GpuLutImage({
 
       try {
         renderer.resize(bounds.width, bounds.height, window.devicePixelRatio);
-        if (renderer.render(
-          image,
-          lutRef.current,
-          image.naturalWidth,
-          image.naturalHeight,
-          intensityRef.current,
-        )) {
+        if (
+          renderer.render(
+            image,
+            lutRef.current,
+            image.naturalWidth,
+            image.naturalHeight,
+            intensityRef.current,
+          )
+        ) {
           setReady(true);
         }
       } catch {
@@ -143,7 +146,6 @@ export function GpuLutImage({
       canvas.removeEventListener("webglcontextlost", handleContextLost);
       canvas.removeEventListener("webglcontextrestored", handleContextRestored);
       renderer?.dispose();
-
     };
   }, [imageSrc]);
 
