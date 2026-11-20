@@ -23,6 +23,8 @@ uniform sampler3D u_lut;
 uniform float u_intensity;
 uniform vec2 u_canvas_size;
 uniform vec2 u_image_size;
+uniform vec3 u_domain_min;
+uniform vec3 u_domain_max;
 out vec4 out_color;
 
 void main() {
@@ -36,7 +38,12 @@ void main() {
   }
   vec2 image_uv = (v_uv - 0.5) * uv_scale + 0.5;
   vec4 source = texture(u_source, image_uv);
-  vec3 graded = texture(u_lut, clamp(source.rgb, 0.0, 1.0)).rgb;
+  vec3 lut_coordinate = clamp(
+    (source.rgb - u_domain_min) / (u_domain_max - u_domain_min),
+    0.0,
+    1.0
+  );
+  vec3 graded = texture(u_lut, lut_coordinate).rgb;
   out_color = vec4(mix(source.rgb, graded, u_intensity), source.a);
 }`;
 
@@ -100,6 +107,8 @@ export class WebGL2LutRenderer {
   private readonly intensityLocation: WebGLUniformLocation | null;
   private readonly canvasSizeLocation: WebGLUniformLocation | null;
   private readonly imageSizeLocation: WebGLUniformLocation | null;
+  private readonly domainMinLocation: WebGLUniformLocation | null;
+  private readonly domainMaxLocation: WebGLUniformLocation | null;
   private lutTexture: WebGLTexture | null = null;
   private lutTextureSize = 0;
   private uploadedLutData: Uint8Array | null = null;
@@ -143,6 +152,8 @@ export class WebGL2LutRenderer {
     this.intensityLocation = gl.getUniformLocation(this.program, "u_intensity");
     this.canvasSizeLocation = gl.getUniformLocation(this.program, "u_canvas_size");
     this.imageSizeLocation = gl.getUniformLocation(this.program, "u_image_size");
+    this.domainMinLocation = gl.getUniformLocation(this.program, "u_domain_min");
+    this.domainMaxLocation = gl.getUniformLocation(this.program, "u_domain_max");
 
     gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -189,6 +200,7 @@ export class WebGL2LutRenderer {
       lut.data.length !== lut.size ** 3 * 4 ||
       sourceWidth <= 0 ||
       sourceHeight <= 0 ||
+      lut.domainMin.some((value, index) => lut.domainMax[index] <= value) ||
       sourceWidth > 4096 ||
       sourceHeight > 4096
     ) {
@@ -251,6 +263,8 @@ export class WebGL2LutRenderer {
     gl.uniform1f(this.intensityLocation, normalizedIntensity);
     gl.uniform2f(this.canvasSizeLocation, canvas.width, canvas.height);
     gl.uniform2f(this.imageSizeLocation, sourceWidth, sourceHeight);
+    gl.uniform3fv(this.domainMinLocation, lut.domainMin);
+    gl.uniform3fv(this.domainMaxLocation, lut.domainMax);
     gl.disable(gl.BLEND);
     gl.disable(gl.DEPTH_TEST);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
