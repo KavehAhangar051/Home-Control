@@ -334,3 +334,18 @@ This is a source-level execution map, not a measured performance finding. No FPS
 - Keep always-running marquee hints only on the marquee that is actually animating. For transient interactions, enable promotion shortly before the animation and release it afterward. Do not use `will-change` as a substitute for profiling.
 - Validate with Chrome DevTools Performance (Main, Compositor, Raster and GPU tracks) and Rendering → Paint flashing. Confirm whether a candidate avoids layout/paint and whether layer count/memory remain reasonable; a CSS property alone cannot guarantee hardware-GPU execution or dedicated VRAM allocation.
 - No visual or source behavior was changed by this policy note. References: [MDN CSS performance](https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Performance/CSS), [MDN will-change](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change), [Chrome compositor-only properties and layer count](https://web.dev/articles/stick-to-compositor-only-properties-and-manage-layer-count), [Chrome RenderingNG](https://developer.chrome.com/docs/chromium/renderingng-architecture).
+
+### User Performance Trace baseline (2026-11-20)
+
+Analyzed `Trace-20261120T224646.json.gz` from Chrome DevTools. This capture is useful as an initial baseline, but it does **not** represent the requested 1920×1080 target: the recorded page viewport was 1149×912 CSS pixels at DPR 1.25 (approximately 1436×1140 device pixels). The trace covers approximately 5.51 seconds.
+
+Observed in the primary Renderer compositor pipeline:
+
+- 333 frame reports: 205 `STATE_PRESENTED_ALL`, 102 `STATE_PRESENTED_PARTIAL`, 7 `STATE_DROPPED`, and 19 `STATE_NO_UPDATE_DESIRED`.
+- Four explicit `DroppedFrame` events were recorded.
+- The main thread had two tasks longer than 50 ms: approximately 172.2 ms and 51.9 ms. The 172.2 ms task contains a roughly 100.7 ms `FunctionCall` in a minified application chunk; the trace has no source maps, so this call cannot yet be attributed reliably to a source module.
+- A `RunMicrotasks` slice reached approximately 71.4 ms; a `Layout` slice reached approximately 33.0 ms.
+- 399 `GPUTask` events were recorded, totalling approximately 187.4 ms with a maximum individual duration of 8.69 ms. These event durations are not a GPU-utilization percentage and do not expose physical VRAM usage.
+- The primary renderer pipeline reported 269 frames with main-thread animation and 112 with compositor animation. These flags are not additive and do not identify individual dashboard effects.
+
+This trace is a short mixed-activity capture, not a controlled 60/120/144 Hz animation benchmark. It does not establish a sustained FPS value or prove that the Canvas viewport animator caused the long task. Do not change a visual animation based on this trace alone. The next useful capture should use the target display resolution and DPR, isolate one repeatable interaction (for example Fit View, wheel zoom, or pan/inertia), and record the same interaction before and after any implementation change. Enable source maps in a development profiling build if source-level attribution is needed.
