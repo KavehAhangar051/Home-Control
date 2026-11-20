@@ -21,6 +21,7 @@ The dashboard already uses Motion, WAAPI, CSS transforms, and WebGL2, but some r
 
 - `docs/superpowers/specs/2026-11-20-gpu-first-rendering-design.md` — approved product/technical design and constraints.
 - `docs/performance/GPU-RENDERING.md` — source-level inventory, LUT architecture, memory estimates, and GPU lifecycle rules. Expanded inventory added in commit `222f45e`.
+- `docs/performance/GPU-BASELINE-CAPTURE.md` — reproducible Chrome DevTools capture procedure, scenarios, refresh-rate budgets, diagnostic overlays, and result template.
 - `docs/performance/60-FPS-STRATEGY.md` — existing 60/90/120/144 Hz frame budgets, Motion/runtime conventions, settings semantics, and existing performance architecture.
 - `components/MotionProvider.tsx` — async `LazyMotion` with `domMax`; current Motion callsites use `m.*`. Keep this runtime.
 - `features/iot/components/canvas/sheetViewportAnimator.ts` — rAF-driven flight, focal zoom, and inertia; DOM transform/grid/readout updates happen per frame.
@@ -87,7 +88,7 @@ Do not run `bun run format` without a scoped path in this task: its package scri
 
 ### Step 1 — Establish a reproducible browser baseline
 
-Capture Chrome DevTools Performance traces before changing runtime code. Use the same browser version, device, viewport, zoom, DPR, dashboard data, and interaction sequence for later comparisons.
+Follow [GPU-BASELINE-CAPTURE.md](../docs/performance/GPU-BASELINE-CAPTURE.md) for the exact environment record, scenario sequence, Rendering diagnostics, and result template. Capture Chrome DevTools Performance traces before changing runtime code. Use the same browser version, device, viewport, zoom, DPR, dashboard data, and interaction sequence for later comparisons.
 
 Required scenarios:
 1. Canvas/Workflow pan, focal zoom, fit-view flight, inertia, and node drag.
