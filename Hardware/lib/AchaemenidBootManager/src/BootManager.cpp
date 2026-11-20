@@ -215,12 +215,13 @@ HOT_PATH void BootManager::loop() {
 }
 
 /**
- * @brief Loads NVS segments in an isolated stack frame so the ~4.5KB ParseResult
- * buffer is popped and reclaimed BEFORE esp_wifi_init() runs on loopTask's 8KB stack.
+ * @brief Loads NVS segments using static storage so the ~4.2KB ParseResult
+ * buffer never consumes loopTask stack before esp_wifi_init() runs.
  */
 __attribute__((noinline)) void BootManager::loadOfflineConfigFromNvs() {
     INFO("[Boot] Booting up... Loading config from NVS immediately.");
-    ParseResult nvsResult = {}; // Zero-initialize to avoid garbage memory
+    static ParseResult nvsResult;
+    nvsResult.reset();
     if (ctx_.segmentStorage != nullptr && ctx_.segmentStorage->loadSegmentConfig(nvsResult)) {
         int applied = ConfigApplier::apply(nvsResult, ctx_.pinManager);
         ctx_.pinManager->printStatus();

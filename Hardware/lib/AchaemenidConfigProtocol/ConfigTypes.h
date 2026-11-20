@@ -37,13 +37,16 @@ struct RuleAction {
     RuleActionType actionType;
     bool actionState : 1;
 
-    RuleAction()
-        : requiredHoldTime(0),
-          targetPin(-1),
-          delay(0),
-          targetValue(RULE_ANALOG_VALUE_UNSET),
-          actionType(ACTION_IMMEDIATE),
-          actionState(false) {}
+    void reset() {
+        requiredHoldTime = 0;
+        targetPin = -1;
+        delay = 0;
+        targetValue = RULE_ANALOG_VALUE_UNSET;
+        actionType = ACTION_IMMEDIATE;
+        actionState = false;
+    }
+
+    RuleAction() { reset(); }
 };
 
 struct RuleConfig {
@@ -55,7 +58,17 @@ struct RuleConfig {
     
     bool active : 1;
 
-    RuleConfig() : highActionCount(0), lowActionCount(0), active(false) {}
+    void reset() {
+        for (int i = 0; i < 4; ++i) {
+            highActions[i].reset();
+            lowActions[i].reset();
+        }
+        highActionCount = 0;
+        lowActionCount = 0;
+        active = false;
+    }
+
+    RuleConfig() { reset(); }
 };
 
 struct SegmentConfig {
@@ -77,22 +90,25 @@ struct SegmentConfig {
     bool value : 1;
     bool valid : 1;
 
-    SegmentConfig()
-        : pin(-1),
-          autoOffDelay(0),
-          analogValue(0),
-          pwmFrequency(DEFAULT_PWM_FREQUENCY),
-          adcSampleIntervalMs(DEFAULT_ADC_SAMPLE_INTERVAL_MS),
-          adcDeltaThreshold(DEFAULT_ADC_DELTA_THRESHOLD),
-          adcHighThreshold(0),
-          adcLowThreshold(0),
-          pwmResolution(DEFAULT_PWM_RESOLUTION),
-          adcResolution(DEFAULT_ADC_RESOLUTION),
-          value(false),
-          valid(false) {
+    void reset() {
         id[0] = '\0';
         type[0] = '\0';
+        rule.reset();
+        pin = -1;
+        autoOffDelay = 0;
+        analogValue = 0;
+        pwmFrequency = DEFAULT_PWM_FREQUENCY;
+        adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
+        adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
+        adcHighThreshold = 0;
+        adcLowThreshold = 0;
+        pwmResolution = DEFAULT_PWM_RESOLUTION;
+        adcResolution = DEFAULT_ADC_RESOLUTION;
+        value = false;
+        valid = false;
     }
+
+    SegmentConfig() { reset(); }
 };
 
 struct MqttConfig {
@@ -104,10 +120,15 @@ struct MqttConfig {
     
     bool valid : 1;
 
-    MqttConfig() : port(1883), qos(1), valid(false) {
+    void reset() {
         host[0] = '\0';
         baseTopic[0] = '\0';
+        port = 1883;
+        qos = 1;
+        valid = false;
     }
+
+    MqttConfig() { reset(); }
 };
 
 struct WifiNetworkConfig {
@@ -116,10 +137,13 @@ struct WifiNetworkConfig {
     
     bool valid : 1;
 
-    WifiNetworkConfig() : valid(false) {
+    void reset() {
         ssid[0] = '\0';
         password[0] = '\0';
+        valid = false;
     }
+
+    WifiNetworkConfig() { reset(); }
 };
 
 struct ParseResult {
@@ -137,10 +161,26 @@ struct ParseResult {
     bool segmentsProvided;
     bool success : 1;
 
-    ParseResult() : wifiCount(0), count(0), apValid(false), apProvided(false), wifiProvided(false), segmentsProvided(false), success(false) {
+    void reset() {
+        for (int i = 0; i < MAX_SEGMENTS; ++i) {
+            segments[i].reset();
+        }
+        mqtt.reset();
+        for (int i = 0; i < 5; ++i) {
+            wifi[i].reset();
+        }
+        wifiCount = 0;
+        count = 0;
         apSsid[0] = '\0';
         apPassword[0] = '\0';
+        apValid = false;
+        apProvided = false;
+        wifiProvided = false;
+        segmentsProvided = false;
+        success = false;
     }
+
+    ParseResult() { reset(); }
 };
 
 #endif // CONFIG_TYPES_H

@@ -62,25 +62,7 @@ public:
 };
 
 bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult) {
-    outResult.count = 0;
-    outResult.success = false;
-    for (int i = 0; i < MAX_SEGMENTS; i++) {
-        outResult.segments[i].valid = false;
-        outResult.segments[i].pin = -1;
-        outResult.segments[i].autoOffDelay = 0;
-        outResult.segments[i].analogValue = 0;
-        outResult.segments[i].pwmFrequency = DEFAULT_PWM_FREQUENCY;
-        outResult.segments[i].pwmResolution = DEFAULT_PWM_RESOLUTION;
-        outResult.segments[i].adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
-        outResult.segments[i].adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
-        outResult.segments[i].adcHighThreshold = 0;
-        outResult.segments[i].adcLowThreshold = 0;
-        outResult.segments[i].adcResolution = DEFAULT_ADC_RESOLUTION;
-        outResult.segments[i].value = false;
-        outResult.segments[i].id[0] = '\0';
-        outResult.segments[i].type[0] = '\0';
-        outResult.segments[i].rule = RuleConfig();
-    }
+    outResult.reset();
 
     if (!payload || payload[0] == '\0') {
         Serial.println("[ACP] Empty payload received.");

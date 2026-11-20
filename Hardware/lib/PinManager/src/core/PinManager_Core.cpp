@@ -21,7 +21,7 @@ int PinManager::getActiveCount() const {
 }
 
 void PinManager::exportConfig(ParseResult& out) const {
-    out = ParseResult();
+    out.reset();
     out.success = true;
     out.segmentsProvided = true;
 

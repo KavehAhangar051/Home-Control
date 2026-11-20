@@ -83,7 +83,8 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
         if (text.startsWith("ESP_CFG_V2")) {
             Serial.println("[WebSocket] Received Config payload");
             AchaemenidConfigProtocol configParser;
-            ParseResult parsed;
+            static ParseResult parsed;
+            parsed.reset();
             if (configParser.parse(text.c_str(), parsed) &&
                 (parsed.segmentsProvided || parsed.wifiProvided || parsed.apProvided || parsed.mqtt.valid)) {
                 ConfigLoadedEvent event;
