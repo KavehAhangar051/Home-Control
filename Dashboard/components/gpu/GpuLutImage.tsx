@@ -104,7 +104,18 @@ export function GpuLutImage({
     };
 
     const draw = () => {
-      if (scheduledDrawFrame !== null || disposed) return;
+      if (disposed) return;
+
+      if (passThroughRef.current) {
+        if (scheduledDrawFrame !== null) {
+          window.cancelAnimationFrame(scheduledDrawFrame);
+          scheduledDrawFrame = null;
+        }
+        renderFrame();
+        return;
+      }
+
+      if (scheduledDrawFrame !== null) return;
       scheduledDrawFrame = window.requestAnimationFrame(renderFrame);
     };
 
