@@ -101,6 +101,8 @@ function createProgram(gl: WebGL2RenderingContext): WebGLProgram {
  */
 export class WebGL2LutRenderer {
   private readonly gl: WebGL2RenderingContext;
+  private readonly maxDrawingBufferWidth: number;
+  private readonly maxDrawingBufferHeight: number;
   private readonly program: WebGLProgram;
   private readonly vertexArray: WebGLVertexArrayObject;
   private readonly sourceTexture: WebGLTexture;
@@ -130,6 +132,18 @@ export class WebGL2LutRenderer {
     if (!gl) throw new Error("WebGL 2 hardware acceleration is unavailable.");
 
     this.gl = gl;
+
+    const maxViewportDimensions = gl.getParameter(gl.MAX_VIEWPORT_DIMS) as Int32Array;
+    const maxRenderbufferSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) as number;
+    this.maxDrawingBufferWidth = Math.max(
+      1,
+      Math.min(maxRenderbufferSize, maxViewportDimensions[0] ?? maxRenderbufferSize),
+    );
+    this.maxDrawingBufferHeight = Math.max(
+      1,
+      Math.min(maxRenderbufferSize, maxViewportDimensions[1] ?? maxRenderbufferSize),
+    );
+
     this.program = createProgram(gl);
 
     const vertexArray = gl.createVertexArray();
@@ -178,7 +192,8 @@ export class WebGL2LutRenderer {
 
     const scale = Math.min(
       Math.max(devicePixelRatio || 1, 1),
-      2,
+      this.maxDrawingBufferWidth / width,
+      this.maxDrawingBufferHeight / height,
       4096 / Math.max(width, height),
     );
     const pixelWidth = Math.max(1, Math.round(width * scale));
