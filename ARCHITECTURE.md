@@ -460,8 +460,6 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 - GitHub Packages is not used because this deliverable is a downloadable APK asset, not a package-registry artifact.
 
 
-- **Exact identity-LUT bypass (`lib/gpu/lut3d.ts`, `components/gpu/GpuLutImage.tsx`):** `isIdentityLut()` recognizes an exact Float32 identity grid and standard domain. `GpuLutImage` keeps the original browser image visible and skips WebGL context/resource allocation for identity LUTs or non-positive intensity; a live transition back to identity disposes its renderer and hides the overlay. Creative LUTs continue through the existing WebGL2 shader. This is a no-op fast path, not a global LUT filter or a claim that browser image decode/DOM work uses VRAM exclusively.
-
 ## 29. WebGL 2 3D LUT rendering foundation (20 November 2026)
 
 - `lib/gpu/lut3d.ts` parses bounded standard 3D `.cube` LUT files (2–64 edge length), validates the domain and entry count, and creates identity LUTs.
@@ -470,3 +468,5 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 - The component is intentionally not mounted globally. Apply LUT grading only to non-semantic decorative imagery; do not recolor live device states, warning colors, controls, text, charts, or theme tokens.
 - This is a source-level foundation, not a measured production integration. Browser/OS policy still selects the physical GPU, and runtime GPU memory, context count, shader output, and visual quality must be profiled before wider adoption. See `docs/performance/GPU-RENDERING.md`.
 
+
+- **Exact identity-LUT bypass (`lib/gpu/lut3d.ts`, `components/gpu/GpuLutImage.tsx`):** `isIdentityLut()` recognizes an exact Float32 identity grid and standard domain. `GpuLutImage` keeps the original browser image visible and skips WebGL context/resource allocation for identity LUTs or non-positive intensity; a live transition back to identity disposes its renderer and hides the overlay. Creative LUTs continue through the existing WebGL2 shader. This is a no-op fast path, not a global LUT filter or a claim that browser image decode/DOM work uses VRAM exclusively.
