@@ -61,6 +61,8 @@ export function GpuLutImage({
       if (passThroughRef.current) {
         renderer?.dispose();
         renderer = null;
+        canvas.width = 1;
+        canvas.height = 1;
         setReady(false);
         return;
       }
@@ -95,6 +97,8 @@ export function GpuLutImage({
       } catch {
         renderer.dispose();
         renderer = null;
+        canvas.width = 1;
+        canvas.height = 1;
         setReady(false);
       }
     };
