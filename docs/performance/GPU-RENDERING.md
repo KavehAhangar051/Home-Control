@@ -560,3 +560,9 @@ The next trace should isolate one repeatable Canvas action and use the target di
 
 - When a `GpuLutImage` switches to an identity LUT or zero intensity, its draw scheduler now cancels any queued frame and immediately runs the existing pass-through cleanup. The WebGL renderer, textures, and drawing buffer are released without waiting for the next animation frame, including when the document is backgrounded and requestAnimationFrame is suspended.
 - Non-pass-through rendering remains coalesced to one animation frame, and shader output, image fallback, dimensions, and visible appearance are unchanged. This improves the timing of resource release; actual VRAM reclamation remains browser/driver-managed and is not measured.
+
+### Skip unchanged Canvas camera and slider measurements (20 November 2026)
+
+- `sheetViewportAnimator.ts` now compares quantized in-flight camera values with the current viewport before dispatching transient updates. Flight, smooth focal zoom, and inertia no longer submit duplicate values on consecutive display frames when rounding produces no visible camera change. Final target application and commit behavior are unchanged.
+- Fluid and Bubble sliders now bail out of their `ResizeObserver` state update when the measured track width is identical to the stored width. Measurement and resize response remain intact; redundant React renders from duplicate observer notifications are avoided.
+- These are source-level reductions in repeated main-thread updates. They do not move camera math, pointer handling, or measurement to the GPU, and no FPS/CPU/VRAM benchmark is claimed.
