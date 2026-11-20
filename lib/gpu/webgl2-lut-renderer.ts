@@ -58,7 +58,13 @@ function compileShader(gl: WebGL2RenderingContext, type: number, source: string)
 
 function createProgram(gl: WebGL2RenderingContext): WebGLProgram {
   const vertexShader = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
-  const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
+  let fragmentShader: WebGLShader;
+  try {
+    fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
+  } catch (error) {
+    gl.deleteShader(vertexShader);
+    throw error;
+  }
   const program = gl.createProgram();
 
   if (!program) {
@@ -130,6 +136,7 @@ export class WebGL2LutRenderer {
     this.sourceTexture = sourceTexture;
 
     gl.bindVertexArray(vertexArray);
+    gl.viewport(0, 0, canvas.width, canvas.height);
     gl.useProgram(this.program);
     gl.uniform1i(gl.getUniformLocation(this.program, "u_source"), 0);
     gl.uniform1i(gl.getUniformLocation(this.program, "u_lut"), 1);
@@ -150,7 +157,11 @@ export class WebGL2LutRenderer {
       return false;
     }
 
-    const scale = Math.min(Math.max(devicePixelRatio || 1, 1), 2);
+    const scale = Math.min(
+      Math.max(devicePixelRatio || 1, 1),
+      2,
+      4096 / Math.max(width, height),
+    );
     const pixelWidth = Math.max(1, Math.round(width * scale));
     const pixelHeight = Math.max(1, Math.round(height * scale));
     const canvas = this.gl.canvas as HTMLCanvasElement;
