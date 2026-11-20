@@ -92,10 +92,7 @@ export function GpuLutImage({
       setReady(false);
     };
 
-    const handleContextRestored = () => {
-      initialize();
-      draw();
-    };
+    const handleContextRestored = () => initialize();
 
     drawRef.current = draw;
     canvas.addEventListener("webglcontextlost", handleContextLost);
@@ -156,6 +153,7 @@ export function GpuLutImage({
         alt={alt}
         crossOrigin="anonymous"
         decoding="async"
+        loading="lazy"
         onLoad={() => drawRef.current()}
         className="block h-full w-full object-cover"
       />
