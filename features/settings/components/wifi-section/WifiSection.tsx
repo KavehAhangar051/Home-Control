@@ -83,8 +83,8 @@ export default function WifiSection() {
       </div>
 
       <p className="mb-4 text-sm leading-relaxed text-text-secondary">
-        در این بخش می‌توانید اطلاعات شبکه‌های وای‌فای (SSID و رمز عبور) را برای تراشه ESP32 تعریف کنید.
-        تراشه به هنگام راه‌اندازی به ترتیب به این شبکه‌ها متصل خواهد شد.
+        اطلاعات شبکه‌های وای‌فای (SSID و رمز عبور) را برای ESP32 ثبت کنید. تراشه هنگام راه‌اندازی به
+        ترتیب به این شبکه‌ها وصل می‌شود.
       </p>
 
       <div className="surface-panel space-y-3 p-4">

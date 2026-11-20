@@ -39,7 +39,7 @@ export function ConditionSegment({ segment, rule, updateLocalRule, onSave }: Pro
         <button
           type="button"
           onClick={onSave}
-          className="w-full py-3 bg-accent3 hover:bg-accent3-dark text-bg-main text-sm font-bold rounded-xl transition-colors shadow-xs"
+          className="w-full py-3 bg-accent3 hover:bg-accent3-dark text-accent3-foreground text-sm font-bold rounded-xl transition-colors shadow-xs"
         >
           ثبت و ارسال
         </button>

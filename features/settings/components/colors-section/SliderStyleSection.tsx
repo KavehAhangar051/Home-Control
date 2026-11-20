@@ -34,8 +34,8 @@ export default function SliderStyleSection() {
           <div className="min-w-0">
             <h4 className="text-xs font-semibold text-text-secondary">سبک اسلایدرهای داشبورد</h4>
             <p className="text-[11px] text-text-muted mt-0.5">
-              حالت هوشمند بهترین مدل را برای هر بخش انتخاب می‌کند یا می‌توانید کل داشبورد را روی یک
-              مدل یکپارچه بگذارید
+              حالت هوشمند مدل مناسب هر بخش را انتخاب می‌کند؛ در غیر این صورت کل داشبورد یک مدل ثابت
+              می‌گیرد.
             </p>
           </div>
         </div>

@@ -16,7 +16,7 @@ const overviewSections = [
     description: "وضعیت روشنایی خانه را از یک فضای کاری ببین و فرمان روشن یا خاموش را ارسال کن.",
     hint: "کنترل دستی تجهیزات",
     Icon: Lightbulb,
-    color: "text-primary",
+    color: "text-accent3",
   },
   {
     id: "welcome-modules",
@@ -25,7 +25,7 @@ const overviewSections = [
       "ماژول‌های متصل به ESP32 را کنار هم مدیریت کن و تجهیزات خانه را در یک نمای واحد ببین.",
     hint: "ESP32 و ارتباط شبکه‌ای",
     Icon: Network,
-    color: "text-muted-foreground",
+    color: "text-text-secondary",
   },
   {
     id: "welcome-automation",
@@ -33,7 +33,7 @@ const overviewSections = [
     description: "برای کارهای تکراری خانه شرط و عمل تعریف کن تا تجهیزات طبق تنظیماتت عمل کنند.",
     hint: "قانون‌ها و عملیات خودکار",
     Icon: Workflow,
-    color: "text-primary",
+    color: "text-accent3",
   },
 ] as const;
 
@@ -63,13 +63,13 @@ export default function WelcomePortal() {
         <Card className="bezel-core overflow-hidden">
           <CardContent className="space-y-5 px-5 pb-6 sm:px-8 sm:pb-8">
             <m.div variants={chunkVariants} className="space-y-1.5">
-              <span className="inline-flex items-center rounded-full border border-border bg-muted/40 px-3 py-1 text-[10px] font-medium tracking-wider text-muted-foreground">
+              <span className="inline-flex items-center rounded-full border border-border-color bg-secondary/60 px-3 py-1 text-[10px] font-medium tracking-wider text-text-secondary">
                 راهنمای سریع خانه هوشمند
               </span>
-              <h2 className="text-fluid-lg font-semibold text-balance text-foreground">
+              <h2 className="text-fluid-lg font-semibold text-balance text-text-primary">
                 نمای کلی سامانه
               </h2>
-              <p className="text-sm leading-6 text-muted-foreground">
+              <p className="text-sm leading-6 text-text-secondary">
                 برای آشنایی با بخش‌های اصلی، گزینه‌ها را انتخاب کن یا محتوای این پنل را مرور کن.
               </p>
             </m.div>
@@ -92,7 +92,7 @@ export default function WelcomePortal() {
                       variant="outline"
                       size="sm"
                       data-scrollspy-anchor={item.id}
-                      className="min-h-11 @md/card:min-h-9 shrink-0 justify-start gap-2 data-[active=true]:border-primary data-[active=true]:bg-primary/10 data-[active=true]:text-foreground @md/card:w-full"
+                      className="min-h-11 @md/card:min-h-9 shrink-0 justify-start gap-2 data-[active=true]:border-accent3 data-[active=true]:bg-accent3/10 data-[active=true]:text-text-primary @md/card:w-full"
                     >
                       <item.Icon className="size-4 shrink-0" strokeWidth={2} aria-hidden="true" />
                       {item.label}
@@ -103,7 +103,7 @@ export default function WelcomePortal() {
 
               <section
                 ref={overviewRef}
-                className="relative h-80 min-w-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-xl border border-border bg-muted/20 shadow-[inset_0_1px_0_0_oklch(1_0_0/0.05)] scroll-smooth"
+                className="relative h-80 min-w-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-xl border border-border-color bg-secondary/30 dark:shadow-[inset_0_1px_0_0_oklch(1_0_0/0.05)] scroll-smooth"
                 aria-label="توضیحات قابلیت‌های سامانه"
               >
                 {overviewSections.map((item) => (
@@ -121,14 +121,12 @@ export default function WelcomePortal() {
                       <div className="min-w-0 space-y-2">
                         <h3
                           id={`${item.id}-title`}
-                          className="text-fluid-base font-semibold text-foreground"
+                          className="text-fluid-base font-semibold text-text-primary"
                         >
                           {item.label}
                         </h3>
-                        <p className="text-sm leading-7 text-muted-foreground">
-                          {item.description}
-                        </p>
-                        <p className="text-xs font-medium text-muted-foreground">{item.hint}</p>
+                        <p className="text-sm leading-7 text-text-secondary">{item.description}</p>
+                        <p className="text-xs font-medium text-text-secondary">{item.hint}</p>
                       </div>
                     </div>
                   </section>
@@ -138,10 +136,10 @@ export default function WelcomePortal() {
           </CardContent>
 
           <m.div variants={chunkVariants}>
-            <CardFooter className="text-sm leading-6 text-muted-foreground">
+            <CardFooter className="text-sm leading-6 text-text-secondary">
               <p>
-                <span className="font-medium text-foreground">برای شروع:</span> از بخش «ماژول‌ها» در
-                ناوبری، اولین ماژول خانه را اضافه کن.
+                <span className="font-medium text-text-primary">برای شروع:</span> از بخش «ماژول‌ها»
+                در ناوبری، اولین ماژول خانه را اضافه کن.
               </p>
             </CardFooter>
           </m.div>

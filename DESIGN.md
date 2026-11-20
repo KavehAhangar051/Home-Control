@@ -19,17 +19,17 @@ Use ChatGPT and Cloudflare Dashboard as interaction references, not as assets or
 
 ## Color and appearance
 
-- Default appearance starts in dark mode (`Graphite` neutral ramp `#141415`) and supports user switching to light mode through `ThemeToggle` using the native View Transition API with a reduced-motion fallback.
-- Settings expose controlled customization for primary/secondary accents (`accent3`, `accent4`) and dark/light contrast balance (`darkBlackness`, `lightWhiteness`), applied through CSS custom properties (`--bg-main`, `--card-bg-solid`, `--border-color`, `--text-*`, `--accent3`, `--accent4`).
-- Active (`1`) output and input segments share unified `accent3` surface (`bg-accent3-transparent`), border (`border-accent3`), icon badge (`bg-accent3 text-accent3-foreground`), and Canvas wire/port styling, while input segments remain clearly distinguished via a read-only `ورودی` footer badge.
-- Prefer neutral surfaces, restrained borders, and readable contrast across active, pending, disabled, and error states. Do not rely on color alone to convey device state.
+- Default appearance starts in dark mode (`Graphite` neutral ramp `#141415` rendered immediately on `<html>` via SSR `dark` class + synchronized `.dark`/`.light` classes and `<meta name="theme-color">` inside `DashboardStyles.tsx`) and supports user switching to light mode through `ThemeToggle` using the native View Transition API with a reduced-motion fallback.
+- `app/globals.css` (`:root, .dark` and `.light`) and `themeStyles.ts` align ReUI design tokens (`--background`, `--card`, `--sidebar`, `--primary`, `--primary-foreground`, `--secondary`, `--border`, `--muted-foreground`) with custom dashboard tokens (`--bg-main`, `--card-bg-solid`, `--border-color`, `--text-*`, `--accent3`, `--accent3-dark` via `computeAccentHoverHex`, `--accent4`, and `*-foreground` pairs) so every screen renders uniformly in both dark and light modes, with Light Mode separating sidebar/header/footer chrome (`#f3f3f5`) cleanly from the main canvas (`#f8f8fa`) and scoping white top-edge inset highlights strictly to `dark:`.
+- Settings expose controlled customization for primary/secondary accents (`accent3`, `accent4`) and dark/light contrast balance (`darkBlackness`, `lightWhiteness`); active (`1`) output and input segments, all 6 beUI motion sliders (`RangeSlider`, `InlineSlider`, `FluidSlider`, `BubbleSlider`, `WaveSlider`, `RulerSlider`), `WelcomePortal`, `LowDataModeBanner`, and settings toggles/editors share unified `accent3`/`accent4` and semantic `*-foreground` contrast pairs, while input segments remain clearly distinguished via a read-only `ورودی` footer badge.
+- Prefer neutral surfaces, restrained borders, and readable contrast across active, pending, disabled, and error states (retaining high-contrast `text-amber-800 dark:text-amber-300` on soft warning surfaces in `PinSelector.tsx`). Do not rely on color alone to convey device state.
 - When `data-perf-tier="lite"` or `animationsFps=30` is active on resource-constrained devices, multi-layer `backdrop-blur` and expensive per-frame filters step down cleanly to crisp solid surfaces without flattening state hierarchy.
 
 ## Typography
 
 - **Dana** (`--font-dana`, bundled locally via `next/font/local` with Persian `FaNum` glyphs) is the default UI font.
 - Five selectable secondary fonts (`Vazirmatn`, `IBM Plex Sans Arabic`, `Noto Sans Arabic`, `Rubik`, `Readex Pro`) are configured in `app/layout.tsx` (`preload: false`) and managed through `lib/fonts.ts` so users only fetch non-default webfonts when chosen.
-- Use a consistent type scale (`text-fluid-*` / tabular numbers for telemetry and counters). Keep Persian labels concise and aligned naturally in RTL layouts.
+- Use a consistent type scale (`text-fluid-*` / tabular numbers for telemetry and counters). Keep Persian labels concise, direct, free of raw Markdown punctuation or translationese shells, and consistent on «قطعه» (rather than mixing «سگمنت» and «ماژول») across user-facing controls and hints.
 
 ## Layout and responsive behavior
 

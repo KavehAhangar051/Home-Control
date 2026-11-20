@@ -105,13 +105,13 @@ export default function IconPicker({
               >
                 <ToggleGroupItem
                   value="emoji"
-                  className="flex-1 text-xs font-medium aria-pressed:bg-accent3 aria-pressed:text-bg-main"
+                  className="flex-1 text-xs font-medium aria-pressed:bg-accent3 aria-pressed:text-accent3-foreground"
                 >
                   ایموجی
                 </ToggleGroupItem>
                 <ToggleGroupItem
                   value="hugeicons"
-                  className="flex-1 text-xs font-medium aria-pressed:bg-accent3 aria-pressed:text-bg-main"
+                  className="flex-1 text-xs font-medium aria-pressed:bg-accent3 aria-pressed:text-accent3-foreground"
                 >
                   آیکون خطی
                 </ToggleGroupItem>
@@ -124,7 +124,7 @@ export default function IconPicker({
                     onSelectIcon("");
                     setShowIcons(false);
                   }}
-                  className={`p-2 rounded-lg flex items-center justify-center transition-colors text-xs col-span-2 ${!selectedIcon ? "bg-accent3 text-bg-main" : "hover:bg-card-hover-bg text-text-secondary"}`}
+                  className={`p-2 rounded-lg flex items-center justify-center transition-colors text-xs col-span-2 ${!selectedIcon ? "bg-accent3 text-accent3-foreground" : "hover:bg-card-hover-bg text-text-secondary"}`}
                 >
                   بدون آیکون
                 </button>
@@ -137,7 +137,7 @@ export default function IconPicker({
                           onSelectIcon(icon);
                           setShowIcons(false);
                         }}
-                        className={`p-2 rounded-lg flex items-center justify-center text-lg leading-none transition-colors ${selectedIcon === icon ? "bg-accent3 text-bg-main" : "hover:bg-card-hover-bg text-text-secondary"}`}
+                        className={`p-2 rounded-lg flex items-center justify-center text-lg leading-none transition-colors ${selectedIcon === icon ? "bg-accent3 text-accent3-foreground" : "hover:bg-card-hover-bg text-text-secondary"}`}
                       >
                         {icon}
                       </button>
@@ -152,7 +152,7 @@ export default function IconPicker({
                                 onSelectIcon(iconName);
                                 setShowIcons(false);
                               }}
-                              className={`p-2 rounded-lg flex items-center justify-center transition-colors ${selectedIcon === iconName ? "bg-accent3 text-bg-main" : "hover:bg-card-hover-bg text-text-secondary"}`}
+                              className={`p-2 rounded-lg flex items-center justify-center transition-colors ${selectedIcon === iconName ? "bg-accent3 text-accent3-foreground" : "hover:bg-card-hover-bg text-text-secondary"}`}
                               aria-label={iconName}
                             >
                               {React.createElement(getSegmentIcon(iconName), {

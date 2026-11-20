@@ -54,7 +54,7 @@ export function WifiNetworkEditor({
         <button
           type="button"
           onClick={onSave}
-          className="flex-1 p-2.5 bg-accent3 text-bg-main rounded-xl hover:bg-accent3-dark transition-colors flex items-center justify-center gap-2 shadow-xs"
+          className="flex-1 p-2.5 bg-accent3 text-accent3-foreground rounded-xl hover:bg-accent3-dark transition-colors flex items-center justify-center gap-2 shadow-xs"
         >
           <Check aria-hidden="true" className="size-4" />
           <span className="text-sm font-bold">ذخیره</span>

@@ -114,12 +114,22 @@ function DashboardStyles({
     // coalesce rapid slider/color-picker drags to a single animation frame.
     if (!hasHydratedVarsRef.current || polarityChanged) {
       hasHydratedVarsRef.current = true;
-      document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+      const root = document.documentElement;
+      root.classList.toggle("dark", isDark);
+      root.classList.toggle("light", !isDark);
+      root.style.colorScheme = isDark ? "dark" : "light";
+
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute("content", isDark ? "#141415" : "#fafafa");
+      }
+
       if (pendingRafRef.current !== null) {
         cancelAnimationFrame(pendingRafRef.current);
         pendingRafRef.current = null;
       }
-      applyChangedCssVars(document.documentElement.style, themeVars, appliedVarsRef.current);
+      applyChangedCssVars(root.style, themeVars, appliedVarsRef.current);
 
       return;
     }

@@ -72,7 +72,7 @@ export default function VoiceCommandsSection() {
               <button
                 type="button"
                 onClick={handleAddCommand}
-                className="bg-accent3 text-bg-main p-2 rounded-xl hover:bg-accent3-dark transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] shadow-xs"
+                className="bg-accent3 text-accent3-foreground p-2 rounded-xl hover:bg-accent3-dark transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] shadow-xs"
                 aria-label="افزودن دستور صوتی جدید"
               >
                 <Plus className="size-4" strokeWidth={2} />
@@ -84,8 +84,8 @@ export default function VoiceCommandsSection() {
       </div>
 
       <p className="text-sm text-text-secondary opacity-80 leading-relaxed">
-        با تعریف دستورات صوتی، می‌توانید با گفتن یک عبارت خاص به دستیار صوتی، چندین دستور (مانند
-        روشن/خاموش کردن ماژول‌ها یا اجرای ماکروها) را هم‌زمان اجرا کنید.
+        برای هر عبارت صوتی، یک یا چند فرمان (روشن و خاموش کردن قطعات یا اجرای ماکروها) تعریف کنید تا
+        هم‌زمان اجرا شوند.
       </p>
 
       <VoiceTranscriptOverlay isListening={isListening} voiceTranscript={voiceTranscript} />

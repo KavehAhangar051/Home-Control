@@ -20,9 +20,7 @@ export default function LayoutSection({ headerTitle, setHeaderTitle }: LayoutSec
 
         <div className="flex flex-col gap-3 rounded-lg border border-border-color bg-card-bg-solid px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <span className="text-xs font-medium text-text-primary">
-              فرم نمایش سگمنت‌ها و گروه‌ها
-            </span>
+            <span className="text-xs font-medium text-text-primary">فرم نمایش قطعات و گروه‌ها</span>
             <p className="mt-0.5 text-[11px] text-text-muted">
               انتخاب بین چیدمان ستونی کلاسیک، پنجره‌های آزاد، یا شیت بوم بی‌نهایت (مشابه n8n)
             </p>

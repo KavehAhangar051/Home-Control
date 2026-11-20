@@ -57,7 +57,7 @@ export function VoiceCommandActionsEditor({
         <button
           type="button"
           onClick={handleAddAction}
-          className="text-accent3 text-xs font-bold px-2 py-1 bg-accent3-transparent rounded-lg hover:bg-accent3 hover:text-bg-main transition-colors"
+          className="text-accent3 text-xs font-bold px-2 py-1 bg-accent3-transparent rounded-lg hover:bg-accent3 hover:text-accent3-foreground transition-colors"
         >
           + افزودن
         </button>
@@ -93,7 +93,7 @@ export function VoiceCommandActionsEditor({
               }}
               className="bg-bg-primary border border-border-color rounded-lg px-2 py-1.5 text-xs text-text-primary outline-none focus:border-accent3 focus:ring-1 focus:ring-accent3 transition-colors"
             >
-              <option value="pin">ماژول/سگمنت</option>
+              <option value="pin">قطعه</option>
               <option value="macro" disabled={macros.length === 0}>
                 دکمه سفارشی (ماکرو)
               </option>
@@ -115,7 +115,7 @@ export function VoiceCommandActionsEditor({
             ) : (
               <>
                 <select
-                  aria-label="انتخاب پایه سگمنت"
+                  aria-label="انتخاب پایه قطعه"
                   value={action.targetPin}
                   onChange={(e) => handleUpdateAction(index, { targetPin: e.target.value })}
                   className="flex-1 bg-bg-primary border border-border-color rounded-lg px-2 py-1.5 text-xs text-text-primary outline-none focus:border-accent3 focus:ring-1 focus:ring-accent3 transition-colors"

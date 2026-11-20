@@ -65,7 +65,7 @@ function SwitchModeTrack({
   const trackSize = isSmallTrack ? "h-5 w-9 rounded-[6px]" : "h-6 w-11 rounded-[7px]";
 
   const trackTone = isPinOn
-    ? "bg-accent3 border border-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+    ? "bg-accent3 border border-transparent dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
     : "bg-input border border-border-color";
 
   const thumbSize = isSmallTrack ? "size-[14px] rounded-[4px]" : "size-[18px] rounded-[5px]";

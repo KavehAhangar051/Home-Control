@@ -52,6 +52,10 @@ function computeLightPalette(whiteness = 70) {
   const g = Math.round(234 + t * 21);
   const b = Math.round(236 + t * 19);
 
+  const deepestR = Math.max(226, r - 6);
+  const deepestG = Math.max(226, g - 6);
+  const deepestB = Math.max(228, b - 4);
+
   const cardVal = Math.min(255, Math.round(250 + t * 5));
   const hoverR = Math.max(224, r - 6);
   const hoverG = Math.max(224, g - 6);
@@ -62,13 +66,14 @@ function computeLightPalette(whiteness = 70) {
   const borderB = Math.max(210, b - 21);
 
   const cardByte = toHexByte(cardVal);
+  const deepestHex = `#${toHexByte(deepestR)}${toHexByte(deepestG)}${toHexByte(deepestB)}`;
   const bgHex = `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`;
   const cardHex = `#${cardByte}${cardByte}${cardByte}`;
   const hoverHex = `#${toHexByte(hoverR)}${toHexByte(hoverG)}${toHexByte(hoverB)}`;
   const borderHex = `#${toHexByte(borderR)}${toHexByte(borderG)}${toHexByte(borderB)}`;
 
   return {
-    deepest: bgHex,
+    deepest: deepestHex,
     bg: bgHex,
     card: cardHex,
     cardSolid: cardHex,
@@ -117,6 +122,39 @@ function getContrastingForeground(hexColor: string, fallback: string): string {
   return luminance > 0.36 ? "#0f0f10" : "#ffffff";
 }
 
+function computeAccentHoverHex(
+  opaqueHex: string,
+  isDefaultAccent3: boolean,
+  isDark: boolean,
+  foregroundHex: string,
+): string {
+  if (isDefaultAccent3) {
+    return isDark ? "#d4d4d8" : "#262626";
+  }
+
+  const match = HEX_6_OR_8_REGEX.exec(opaqueHex.trim());
+
+  if (!match) return isDark ? "#d4d4d8" : "#262626";
+
+  const hex = match[1];
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+
+  // Darken bright accents slightly (keeps #0f0f10 text crisp); lift very dark accents toward white.
+  if (foregroundHex === "#0f0f10") {
+    return `#${toHexByte(r * 0.88)}${toHexByte(g * 0.88)}${toHexByte(b * 0.88)}`;
+  }
+
+  const maxChannel = Math.max(r, g, b);
+
+  if (maxChannel < 64) {
+    return `#${toHexByte(r + (255 - r) * 0.14)}${toHexByte(g + (255 - g) * 0.14)}${toHexByte(b + (255 - b) * 0.14)}`;
+  }
+
+  return `#${toHexByte(r * 0.84)}${toHexByte(g * 0.84)}${toHexByte(b * 0.84)}`;
+}
+
 /**
  * Computes all `:root` CSS custom properties for the active theme palette, accents, and font.
  * Returned as a flat key/value map so `DashboardStyles` can diff and apply only changed
@@ -139,10 +177,15 @@ export function computeThemeCssVariables({
   const resolvedAccent3 = !isDark && isDefaultAccent3 ? "#171717" : accent3;
   const opaqueAccent3 = toSixDigitHex(resolvedAccent3, isDark ? "#ededed" : "#171717");
   const opaqueAccent4 = toSixDigitHex(accent4, "#3b82f6");
-  const resolvedAccent3Dark = isDark ? "#d4d4d8" : "#262626";
   const resolvedAccent3Foreground = getContrastingForeground(
     opaqueAccent3,
     isDark ? "#0f0f10" : "#ffffff",
+  );
+  const resolvedAccent3Dark = computeAccentHoverHex(
+    opaqueAccent3,
+    isDefaultAccent3,
+    isDark,
+    resolvedAccent3Foreground,
   );
   const resolvedAccent4Foreground = getContrastingForeground(opaqueAccent4, "#ffffff");
   const mutedTextColor = isDark ? "#96969d" : "#636369";
@@ -188,8 +231,8 @@ export function computeThemeCssVariables({
     "--sidebar-control-bg": palette.cardSolid,
     "--sidebar": palette.deepest,
     "--sidebar-foreground": isDark ? "#ededed" : "#171717",
-    "--sidebar-primary": isDark ? "#ededed" : "#171717",
-    "--sidebar-primary-foreground": palette.bg,
+    "--sidebar-primary": resolvedAccent3,
+    "--sidebar-primary-foreground": resolvedAccent3Foreground,
     "--sidebar-accent": palette.cardHover,
     "--sidebar-accent-foreground": isDark ? "#ededed" : "#171717",
     "--sidebar-ring": mutedTextColor,
@@ -199,8 +242,8 @@ export function computeThemeCssVariables({
     "--card-foreground": isDark ? "#ededed" : "#171717",
     "--popover": palette.cardSolid,
     "--popover-foreground": isDark ? "#ededed" : "#171717",
-    "--primary": isDark ? "#ededed" : "#171717",
-    "--primary-foreground": palette.bg,
+    "--primary": resolvedAccent3,
+    "--primary-foreground": resolvedAccent3Foreground,
     "--secondary": palette.cardHover,
     "--secondary-foreground": isDark ? "#ededed" : "#171717",
     "--muted": palette.cardHover,

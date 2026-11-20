@@ -33,10 +33,10 @@ export default function FormDetailsInput({
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <span className="text-xs text-text-muted">(اختیاری)</span>
-          <span className="text-xs text-text-secondary font-medium">عنوان دلخواه برای سگمنت</span>
+          <span className="text-xs text-text-secondary font-medium">عنوان دلخواه قطعه</span>
         </div>
         <Input
-          aria-label="عنوان دلخواه برای سگمنت"
+          aria-label="عنوان دلخواه قطعه"
           type="text"
           placeholder="مثال: رله پمپ آب حیاط"
           value={customTitle}
@@ -45,10 +45,10 @@ export default function FormDetailsInput({
         />
       </div>
 
-      <IconPicker label="آیکون سگمنت" selectedIcon={segmentIcon} onSelectIcon={setSegmentIcon} />
+      <IconPicker label="آیکون قطعه" selectedIcon={segmentIcon} onSelectIcon={setSegmentIcon} />
 
       <div className="space-y-1.5 pt-2 border-t border-border-color">
-        <div className="text-xs text-text-secondary font-medium block">گروه سگمنت</div>
+        <div className="text-xs text-text-secondary font-medium block">گروه قطعه</div>
 
         {existingGroups.length > 0 && (
           <div className="flex items-center justify-end gap-3 mb-2 px-1">
@@ -77,7 +77,7 @@ export default function FormDetailsInput({
 
         {!isNewGroup && existingGroups.length > 0 ? (
           <Select
-            aria-label="گروه سگمنت"
+            aria-label="گروه قطعه"
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
             className="text-xs rounded-lg font-sans"

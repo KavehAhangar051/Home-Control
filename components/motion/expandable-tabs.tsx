@@ -481,7 +481,7 @@ export function ExpandableTabs({
                       layoutId={pillLayoutId}
                       transition={reduce ? { duration: 0 } : SPRING_LAYOUT}
                       className={cn(
-                        "absolute inset-0 -z-10 rounded-[18px] border border-sidebar-border/80 bg-sidebar-hover shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+                        "absolute inset-0 -z-10 rounded-[18px] border border-sidebar-border/80 bg-sidebar-hover dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
                         classNames?.pill,
                       )}
                     />

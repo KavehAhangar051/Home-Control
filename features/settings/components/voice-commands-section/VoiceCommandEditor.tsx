@@ -43,7 +43,7 @@ export function VoiceCommandEditor({
               <button
                 type="button"
                 onClick={onSave}
-                className="p-2.5 bg-accent3 text-bg-main rounded-xl hover:bg-accent3-dark transition-colors shadow-xs"
+                className="p-2.5 bg-accent3 text-accent3-foreground rounded-xl hover:bg-accent3-dark transition-colors shadow-xs"
                 aria-label="ذخیره دستور صوتی"
               >
                 <Check className="size-4" />

@@ -68,7 +68,7 @@ export default function SegmentControls({
               render={
                 <ToggleGroupItem
                   value="switch"
-                  className="h-6 px-2.5 text-[10px] font-sans font-bold cursor-pointer select-none aria-pressed:bg-accent3 aria-pressed:text-bg-main"
+                  className="h-6 px-2.5 text-[10px] font-sans font-bold cursor-pointer select-none aria-pressed:bg-accent3 aria-pressed:text-accent3-foreground"
                 >
                   سوئیچ
                 </ToggleGroupItem>
@@ -83,7 +83,7 @@ export default function SegmentControls({
                 render={
                   <ToggleGroupItem
                     value="push"
-                    className="h-6 px-2.5 text-[10px] font-sans font-bold cursor-pointer select-none aria-pressed:bg-accent3 aria-pressed:text-bg-main"
+                    className="h-6 px-2.5 text-[10px] font-sans font-bold cursor-pointer select-none aria-pressed:bg-accent3 aria-pressed:text-accent3-foreground"
                   >
                     شستی
                   </ToggleGroupItem>
@@ -111,7 +111,7 @@ export default function SegmentControls({
                   className={`h-6 min-w-6 px-1.5 gap-1 rounded-md transition-[background-color,color,box-shadow,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer group/timer-btn ${
                     autoOffValue > 0
                       ? "text-accent3 bg-accent3/15 border border-accent3/30 aria-pressed:bg-accent3/15 data-[state=on]:bg-accent3/15"
-                      : "text-muted-foreground bg-transparent aria-pressed:bg-muted md:hover:text-foreground md:hover:bg-muted"
+                      : "text-text-muted bg-transparent aria-pressed:bg-secondary md:hover:text-text-primary md:hover:bg-secondary"
                   }`}
                 >
                   <m.svg

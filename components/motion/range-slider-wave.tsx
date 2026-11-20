@@ -67,7 +67,7 @@ export function WaveSlider({ bars = BARS, barClassName, className, ...options }:
               "h-14 w-full max-w-[5px] origin-center rounded-full",
               // /45 keeps the unfilled track above the 3:1 non-text contrast
               // floor in both themes (measured 4.16 dark / 3.13 light)
-              lane.filled ? "bg-foreground" : "bg-foreground/45",
+              lane.filled ? "bg-accent3" : "bg-text-muted/45",
               barClassName,
             )}
             animate={{
@@ -84,7 +84,7 @@ export function WaveSlider({ bars = BARS, barClassName, className, ...options }:
       <button
         type="button"
         {...sliderProps}
-        className="absolute inset-0 touch-none rounded-xl outline-none ring-foreground/30 focus-visible:ring-4"
+        className="absolute inset-0 touch-none rounded-xl outline-none ring-accent3/30 focus-visible:ring-4"
       />
     </div>
   );

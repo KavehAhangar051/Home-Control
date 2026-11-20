@@ -63,7 +63,7 @@ function DockSubRow({ label, icon: Icon, isActive, onClick }: DockSubRowProps) {
       className={cn(
         "flex min-h-10 w-full cursor-pointer items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-right text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3",
         isActive
-          ? "bg-sidebar-hover text-text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+          ? "bg-sidebar-hover text-text-primary dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
           : "text-text-secondary hover:bg-sidebar-hover/70 hover:text-text-primary",
       )}
     >
@@ -318,7 +318,7 @@ export default function MobileDockNav() {
                   className={cn(
                     "flex min-h-10 w-full cursor-pointer items-center justify-between gap-1.5 rounded-xl px-2.5 py-2 text-right text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3",
                     isActive
-                      ? "bg-sidebar-hover text-text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                      ? "bg-sidebar-hover text-text-primary dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
                       : "text-text-secondary hover:bg-sidebar-hover/70 hover:text-text-primary",
                   )}
                 >
@@ -393,7 +393,7 @@ export default function MobileDockNav() {
                 className={cn(
                   "!size-10 rounded-[18px] transition-colors duration-150",
                   isListening
-                    ? "bg-accent4 text-white hover:text-white"
+                    ? "bg-accent4 text-accent4-foreground hover:text-accent4-foreground"
                     : "text-text-secondary hover:bg-sidebar-hover hover:text-text-primary",
                 )}
               >

@@ -45,7 +45,7 @@ export default function DashboardContainer() {
       <CustomCursor />
       <MotionConfig reducedMotion={animationsEnabled ? "user" : "always"}>
         <div
-          className={`style-nova bg-bg-main text-text-secondary min-h-dvh relative font-sans leading-relaxed selection:bg-accent3-medium selection:text-text-primary overflow-x-clip ${isDark ? "dark" : ""}`}
+          className={`style-nova bg-bg-main text-text-secondary min-h-dvh relative font-sans leading-relaxed selection:bg-accent3-medium selection:text-text-primary overflow-x-clip ${isDark ? "dark" : "light"}`}
         >
           <div>
             <DashboardStyles

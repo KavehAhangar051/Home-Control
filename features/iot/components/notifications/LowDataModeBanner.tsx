@@ -19,7 +19,7 @@ const ALERT_LAYOUT =
   "!grid !grid-cols-[1.25rem_minmax(0,1fr)_auto] !items-start !gap-x-3 !gap-y-1 !px-4 !py-3.5 text-right";
 
 const ACTION_BUTTON_CLASS =
-  "inline-flex min-h-9 items-center justify-center rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 max-sm:w-full";
+  "inline-flex min-h-9 items-center justify-center rounded-md bg-accent3 px-3 py-2 text-xs font-medium text-accent3-foreground transition-colors hover:bg-accent3-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 max-sm:w-full";
 
 interface WarningBannerCardProps {
   icon: React.ReactNode;

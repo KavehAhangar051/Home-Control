@@ -124,8 +124,8 @@ export default function BackupRestoreSection() {
             پشتیبان‌گیری و انتقال مستقیم فایل (Backup & Restore)
           </div>
           <p className="text-[11px] leading-5 text-text-tertiary">
-            خروجی گرفتن، اشتراک‌گذاری یا بازیابی کامل قطعات (`EspConfig`)، چیدمان‌های آزاد (`Trellis`)
-            و سناریوهای گردش کار در یک فایل JSON.
+            خروجی گرفتن، اشتراک‌گذاری یا بازیابی کامل قطعات (EspConfig)، چیدمان‌های آزاد (Trellis) و
+            سناریوهای گردش کار در یک فایل JSON.
           </p>
         </div>
 
@@ -140,7 +140,7 @@ export default function BackupRestoreSection() {
           type="button"
           disabled={busyAction !== null}
           onClick={handleExportBackup}
-          className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-accent3/35 bg-accent3/15 px-3 py-2 text-xs font-bold text-accent3 transition-colors hover:bg-accent3 hover:text-bg-main disabled:opacity-50"
+          className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-accent3/35 bg-accent3/15 px-3 py-2 text-xs font-bold text-accent3 transition-colors hover:bg-accent3 hover:text-accent3-foreground disabled:opacity-50"
         >
           <Download className="size-3.5 shrink-0" aria-hidden="true" />
           <span>{busyAction === "export" ? "در حال ذخیره..." : "ذخیره فایل پشتیبان"}</span>
