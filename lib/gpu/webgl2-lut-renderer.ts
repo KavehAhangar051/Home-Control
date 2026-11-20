@@ -111,7 +111,7 @@ export class WebGL2LutRenderer {
   private readonly domainMaxLocation: WebGLUniformLocation | null;
   private lutTexture: WebGLTexture | null = null;
   private lutTextureSize = 0;
-  private uploadedLutData: Uint8Array | null = null;
+  private uploadedLutData: Float32Array | null = null;
   private uploadedSource: TexImageSource | null = null;
   private disposed = false;
 
@@ -233,7 +233,7 @@ export class WebGL2LutRenderer {
 
       gl.activeTexture(gl.TEXTURE1);
       gl.bindTexture(gl.TEXTURE_3D, texture);
-      gl.texStorage3D(gl.TEXTURE_3D, 1, gl.RGBA8, lut.size, lut.size, lut.size);
+      gl.texStorage3D(gl.TEXTURE_3D, 1, gl.RGBA16F, lut.size, lut.size, lut.size);
       gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -254,7 +254,7 @@ export class WebGL2LutRenderer {
         lut.size,
         lut.size,
         gl.RGBA,
-        gl.UNSIGNED_BYTE,
+        gl.FLOAT,
         lut.data,
       );
       this.uploadedLutData = lut.data;
