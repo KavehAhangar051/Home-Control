@@ -24,7 +24,7 @@ export interface WaveSliderProps extends SliderOptions {
 /**
  * Equalizer slider: bars rise into a crest around the handle position and fall
  * back as it passes, so the value reads as a travelling wave. Runs purely via GPU
- * compositor `transform: scaleY(...) translateZ(0)` transitions without 32 JS spring instances.
+ * compositor-friendly `transform: scaleY(...)` transitions without 32 JS spring instances.
  */
 export function WaveSlider({ bars = BARS, barClassName, className, ...options }: WaveSliderProps) {
   const reduce = useReducedMotion();
@@ -56,7 +56,7 @@ export function WaveSlider({ bars = BARS, barClassName, className, ...options }:
           <span key={key} className="flex h-full flex-1 items-center justify-center">
             <span
               className={cn(
-                "h-14 w-full max-w-[5px] origin-center rounded-full will-change-transform [backface-visibility:hidden]",
+                "h-14 w-full max-w-[5px] origin-center rounded-full",
                 !reduce &&
                   "transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
                 // /45 keeps the unfilled track above the 3:1 non-text contrast
@@ -65,7 +65,7 @@ export function WaveSlider({ bars = BARS, barClassName, className, ...options }:
                 barClassName,
               )}
               style={{
-                transform: `scaleY(${scaleY.toFixed(4)}) translateZ(0)`,
+                transform: `scaleY(${scaleY.toFixed(4)})`,
                 transitionDelay: `${delayMs}ms`,
               }}
             />

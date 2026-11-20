@@ -432,3 +432,11 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - `GpuLutImage` now coalesces redraw triggers from image load, ResizeObserver, viewport visibility, window resize, DPR changes, visibility restoration, and LUT/intensity updates into one `requestAnimationFrame` callback. This prevents multiple synchronous WebGL resize/render submissions when several browser notifications arrive in the same frame.
 - The renderer remains demand-driven: there is no permanent animation loop, and no additional frames are requested after the queued draw completes. A pending callback is cancelled during unmount; the original image remains the fallback during initialization and context loss.
 - The shader, LUT data, texture formats, output resolution policy, image fit, transition, and visible UI are unchanged. This is a source-level scheduling optimization; runtime CPU, GPU, FPS, and VRAM gains have not been measured.
+
+
+### Avoid persistent compositor hints on every wave-slider bar (2026-11-20)
+
+- Removed the always-on `will-change: transform`, `backface-visibility: hidden`, and `translateZ(0)` hints from the 32 wave-slider bars. Their animated property remains `transform: scaleY(...)`, which is eligible for compositor handling during the existing CSS transition.
+- This avoids explicitly requesting a persistent layer for every decorative bar when the slider is idle; the browser can promote transitioning elements as needed. It preserves bar count, geometry, scale values, colors, easing, delays, reduced-motion behavior, and interaction semantics.
+- This is a GPU-layer memory hygiene change, not a measured VRAM or FPS improvement. Browser layer promotion remains implementation-dependent; verify on representative devices if compositor traces become available.
+- References: [MDN CSS animation performance](https://developer.mozilla.org/en-US/docs/Web/Performance/Guides/CSS_JavaScript_animation_performance), [web.dev animation overview](https://web.dev/articles/animations-overview).

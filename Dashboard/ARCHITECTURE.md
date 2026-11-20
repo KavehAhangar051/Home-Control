@@ -477,3 +477,8 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 ### Demand-driven LUT redraw scheduling (20 November 2026)
 
 `components/gpu/GpuLutImage.tsx` coalesces image, resize, device-pixel-ratio, visibility, and LUT-state redraw requests into a single animation-frame callback. The callback is cancelled on unmount. This keeps the WebGL2 LUT surface demand-driven without adding a continuous render loop or changing shader output, image fit, transition, or fallback behavior. This is a source-level scheduling optimization; it does not guarantee GPU-only execution, dedicated VRAM placement, or a measured FPS improvement.
+
+
+### Wave slider compositor-layer lifetime (20 November 2026)
+
+`components/motion/range-slider-wave.tsx` animates each bar using CSS `transform: scaleY(...)` transitions. The bars no longer carry permanent `will-change`, `backface-visibility`, or `translateZ(0)` promotion hints; the browser may promote them while transitions are active instead of being asked to retain 32 decorative layers while idle. Bar count, geometry, easing, stagger, reduced-motion behavior, and interaction remain unchanged. This is a source-level GPU-layer memory hygiene measure, not a measured VRAM/FPS gain; actual promotion is browser-dependent.
