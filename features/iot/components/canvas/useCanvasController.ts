@@ -159,7 +159,10 @@ export function useCanvasController({
     (updater: CanvasViewport | ((prev: CanvasViewport) => CanvasViewport)) => {
       const next = updater instanceof Function ? updater(viewportRef.current) : updater;
       const current = viewportRef.current;
-      if (current.x === next.x && current.y === next.y && current.zoom === next.zoom) return;
+      if (current.x === next.x && current.y === next.y && current.zoom === next.zoom) {
+        writeStoredCanvasViewport(activeSubMode, next);
+        return;
+      }
 
       viewportRef.current = next;
       setViewportState(next);
