@@ -12,11 +12,12 @@ namespace uniuno {
 template <typename T> struct async_result_trait {};
 
 /**
- * @brief Specialization to extract ResultType.
+ * @brief Specialization to extract ResultType and ErrorType from AsyncResult.
  */
-template <typename ResultType>
-struct async_result_trait<AsyncResult<ResultType>> {
+template <typename ResultType, typename ErrorType>
+struct async_result_trait<AsyncResult<ResultType, ErrorType>> {
   typedef ResultType result_type;
+  typedef ErrorType  error_type;
 };
 
 /**
@@ -30,10 +31,14 @@ template <class F, typename std::enable_if<function_traits<F>::arity == 1>::type
 auto create_future(F &&poll_fn)
     -> Future<typename function_traits<F>::template arg<0>::type,
               typename async_result_trait<
-                  typename function_traits<F>::result_type>::result_type> {
+                  typename function_traits<F>::result_type>::result_type,
+              typename async_result_trait<
+                  typename function_traits<F>::result_type>::error_type> {
   return Future<typename function_traits<F>::template arg<0>::type,
                 typename async_result_trait<
-                    typename function_traits<F>::result_type>::result_type>(
+                    typename function_traits<F>::result_type>::result_type,
+                typename async_result_trait<
+                    typename function_traits<F>::result_type>::error_type>(
       std::forward<F>(poll_fn));
 }
 
@@ -46,10 +51,17 @@ auto create_future(F &&poll_fn)
 template <class F, typename std::enable_if<function_traits<F>::arity == 0>::type
                        * = nullptr>
 auto create_future(F &&poll_fn)
-    -> Future<void, typename async_result_trait<typename function_traits<
-                        F>::result_type>::result_type> {
-  return Future<void, typename async_result_trait<typename function_traits<
-                          F>::result_type>::result_type>(std::forward<F>(poll_fn));
+    -> Future<void,
+              typename async_result_trait<
+                  typename function_traits<F>::result_type>::result_type,
+              typename async_result_trait<
+                  typename function_traits<F>::result_type>::error_type> {
+  return Future<void,
+                typename async_result_trait<
+                    typename function_traits<F>::result_type>::result_type,
+                typename async_result_trait<
+                    typename function_traits<F>::result_type>::error_type>(
+      std::forward<F>(poll_fn));
 }
 
 } // namespace uniuno

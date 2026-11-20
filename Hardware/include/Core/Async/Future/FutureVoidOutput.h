@@ -23,10 +23,14 @@ public:
   HOT_PATH FORCE_INLINE const AsyncResult<void, E>& poll(const I& input) {
     if (LIKELY(result_.is_pending()) && LIKELY(static_cast<bool>(poll_callback_))) {
       result_ = poll_callback_(input);
+      if (UNLIKELY(!result_.is_pending())) {
+        poll_callback_.clear(); // Release captured closure state immediately on completion
+      }
     }
     return result_;
   }
 
+  FORCE_INLINE void clear() { poll_callback_.clear(); }
   FORCE_INLINE bool is_pending()  const { return result_.is_pending(); }
   FORCE_INLINE bool is_resolved() const { return result_.is_resolved(); }
   FORCE_INLINE bool is_rejected() const { return result_.is_rejected(); }

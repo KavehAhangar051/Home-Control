@@ -90,12 +90,12 @@ HOT_PATH void ActionExecutor::execute(const RuleAction& act, int sourcePin, Rule
             if (ctx.appTimer != nullptr && actDelay > 0 && actDelay <= 60) {
                 ctx.pinManager->setPendingRuleActionState(tPin, aState);
                 ctx.pinManager->setPendingRuleActionAnalogValue(tPin, aVal);
-                uniuno::TimerHandle newTimer = ctx.appTimer->setTimeout([ctx, tPin, aState, aVal]() {
+                uniuno::TimerHandle newTimer = ctx.appTimer->setTimeout([ctx, tPin, aState, aVal]() mutable {
                     if (ctx.pinManager != nullptr) {
                         ctx.pinManager->setRuleActionTimerIdByPin(tPin, uniuno::TimerHandle());
                         ctx.pinManager->setPendingRuleActionAnalogValue(tPin, RULE_ANALOG_VALUE_UNSET);
                     }
-                    applyState(tPin, aState, aVal, const_cast<RuleContext&>(ctx));
+                    applyState(tPin, aState, aVal, ctx);
                 }, actDelay * 1000);
                 ctx.pinManager->setRuleActionTimerIdByPin(tPin, newTimer);
             } else {
@@ -118,12 +118,12 @@ HOT_PATH void ActionExecutor::execute(const RuleAction& act, int sourcePin, Rule
                     : RULE_ANALOG_VALUE_UNSET;
                 ctx.pinManager->setPendingRuleActionState(tPin, reverseState);
                 ctx.pinManager->setPendingRuleActionAnalogValue(tPin, reverseAnalog);
-                uniuno::TimerHandle newTimer = ctx.appTimer->setTimeout([ctx, tPin, reverseState, reverseAnalog]() {
+                uniuno::TimerHandle newTimer = ctx.appTimer->setTimeout([ctx, tPin, reverseState, reverseAnalog]() mutable {
                     if (ctx.pinManager != nullptr) {
                         ctx.pinManager->setRuleActionTimerIdByPin(tPin, uniuno::TimerHandle());
                         ctx.pinManager->setPendingRuleActionAnalogValue(tPin, RULE_ANALOG_VALUE_UNSET);
                     }
-                    applyState(tPin, reverseState, reverseAnalog, const_cast<RuleContext&>(ctx));
+                    applyState(tPin, reverseState, reverseAnalog, ctx);
                 }, actDelay * 1000);
                 ctx.pinManager->setRuleActionTimerIdByPin(tPin, newTimer);
             }
@@ -133,18 +133,6 @@ HOT_PATH void ActionExecutor::execute(const RuleAction& act, int sourcePin, Rule
         default:
             break;
     }
-}
-
-void ImmediateActionStrategy::execute(const RuleAction& act, int sourcePin, RuleContext& ctx) {
-    ActionExecutor::execute(act, sourcePin, ctx);
-}
-
-void DelayedActionStrategy::execute(const RuleAction& act, int sourcePin, RuleContext& ctx) {
-    ActionExecutor::execute(act, sourcePin, ctx);
-}
-
-void DurationActionStrategy::execute(const RuleAction& act, int sourcePin, RuleContext& ctx) {
-    ActionExecutor::execute(act, sourcePin, ctx);
 }
 
 } // namespace rules

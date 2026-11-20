@@ -12,58 +12,11 @@ void RuleEngine::executeAction(const RuleAction& act, int sourcePin) {
     uniuno::rules::ActionExecutor::execute(act, sourcePin, _ctx);
 }
 
-void RuleEngine::onTimerExpired(uniuno::TimerExpiredEvent* evt) {
-    if (evt == nullptr || _ctx.pinManager == nullptr) return;
-    const uniuno::TimerId expiredId = evt->timer_id;
-    
-    // Fallback: Check Rule Action Timers
-    const int targetPin = _ctx.pinManager->findPinByRuleActionTimerId(expiredId);
-    if (targetPin >= 0) {
-        const bool stateToApply = _ctx.pinManager->getPendingRuleActionState(targetPin);
-        const int16_t analogToApply = _ctx.pinManager->getPendingRuleActionAnalogValue(targetPin);
-        _ctx.pinManager->setRuleActionTimerIdByPin(targetPin, uniuno::TimerHandle());
-        _ctx.pinManager->setPendingRuleActionAnalogValue(targetPin, RULE_ANALOG_VALUE_UNSET);
-
-        // Rule execution supersedes any active Dashboard auto-off timer.
-        uniuno::TimerHandle autoOff = _ctx.pinManager->getTimerIdByPin(targetPin);
-        if (autoOff.isActive()) autoOff.cancel();
-        _ctx.pinManager->setTimerIdByPin(targetPin, uniuno::TimerHandle());
-
-        bool success = false;
-        if (analogToApply >= 0 && _ctx.pinManager->isAnalogOutputPin(targetPin)) {
-            success = _ctx.pinManager->setPinAnalogValue(targetPin, static_cast<uint16_t>(analogToApply));
-        } else {
-            const bool effectiveState = (analogToApply >= 0) ? (analogToApply > 0) : stateToApply;
-            success = _ctx.pinManager->setPinState(targetPin, effectiveState);
-        }
-
-        if (success && _ctx.eventBus != nullptr) {
-            const bool actualState = _ctx.pinManager->getPinState(targetPin);
-            const int16_t actualAnalog = _ctx.pinManager->getPinAnalogValue(targetPin);
-            const uint8_t actualRes = _ctx.pinManager->getPinPwmResolution(targetPin);
-            PinStateChangedEvent changed{
-                targetPin,
-                actualState,
-                true,
-                PinStateChangeOrigin::Automation,
-                actualAnalog,
-                actualRes
-            };
-            _ctx.eventBus->dispatch(changed);
-        }
-        return;
-    }
-
-    // Fallback: Check Hold Action Timers
-    const int sourcePin = _ctx.pinManager->findPinByHoldTimerId(expiredId);
-    if (sourcePin >= 0) {
-        const RuleAction act = _ctx.pinManager->getPendingHoldAction(sourcePin);
-        _ctx.pinManager->setHoldTimerIdByPin(sourcePin, uniuno::TimerHandle());
-        executeAction(act, sourcePin);
-        _ctx.pinManager->setIsHandledByPin(sourcePin, true);
-        return;
-    }
-}
+// NOTE: onTimerExpired() was a TimerExpiredEvent event-bus fallback path.
+// Audit confirmed it is never registered to the event dispatcher (no
+// eventBus->on<TimerExpiredEvent>(...) call found anywhere in the project).
+// All timer expirations are handled via inline setTimeout lambdas in
+// handleInput() and ActionExecutor::execute(). Dead code — removed.
 
 /**
  * @brief Handle input pin state transitions and evaluate configured rules.
@@ -147,36 +100,31 @@ HOT_PATH void RuleEngine::handleInput(int sourcePin, bool newState, unsigned lon
                 _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
             }
         } else if (startCount > 1) {
-            // Immediate actions must not disappear just because this state has
-            // additional hold-duration alternatives.
+            // Single pass: execute immediate actions AND find the longest hold-duration
+            // action (10s) simultaneously — avoids two separate O(N) scans over the same
+            // small fixed array (N ≤ 4).
+            bool has10s = false;
+            RuleAction act10s;
             for (int i = 0; i < startCount; ++i) {
-                if (startActions[i].requiredHoldTime == 0) {
+                const int holdTime = startActions[i].requiredHoldTime;
+                if (holdTime == 0) {
                     executeAction(startActions[i], sourcePin);
+                } else if (holdTime == 10 && !has10s) {
+                    has10s = true;
+                    act10s = startActions[i];
                 }
             }
 
-            if (_ctx.appTimer != nullptr) {
-                bool has10s = false;
-                RuleAction act10s;
-                for (int i = 0; i < startCount; ++i) {
-                    if (startActions[i].requiredHoldTime == 10) {
-                        has10s = true;
-                        act10s = startActions[i];
-                        break;
+            if (has10s && _ctx.appTimer != nullptr) {
+                _ctx.pinManager->setPendingHoldAction(sourcePin, act10s);
+                uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([this, sourcePin, act10s]() {
+                    if (_ctx.pinManager != nullptr) {
+                        _ctx.pinManager->setHoldTimerIdByPin(sourcePin, uniuno::TimerHandle());
+                        executeAction(act10s, sourcePin);
+                        _ctx.pinManager->setIsHandledByPin(sourcePin, true);
                     }
-                }
-
-                if (has10s) {
-                    _ctx.pinManager->setPendingHoldAction(sourcePin, act10s);
-                    uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([this, sourcePin, act10s]() {
-                        if (_ctx.pinManager != nullptr) {
-                            _ctx.pinManager->setHoldTimerIdByPin(sourcePin, uniuno::TimerHandle());
-                            executeAction(act10s, sourcePin);
-                            _ctx.pinManager->setIsHandledByPin(sourcePin, true);
-                        }
-                    }, static_cast<uint32_t>(act10s.requiredHoldTime) * 1000UL);
-                    _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
-                }
+                }, static_cast<uint32_t>(act10s.requiredHoldTime) * 1000UL);
+                _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
             }
         }
     }

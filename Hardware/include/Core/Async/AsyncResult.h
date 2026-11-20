@@ -63,6 +63,10 @@ public:
 
   FORCE_INLINE AsyncResult& operator=(const AsyncResult& other) {
     if (LIKELY(this != &other)) {
+      // Hot-path shortcut: Pending -> Pending skips destruction and construction
+      if (state_ == AsyncState::Pending && other.state_ == AsyncState::Pending) {
+        return *this;
+      }
       destroy();
       state_ = other.state_;
       if (state_ == AsyncState::Resolved) {
@@ -76,6 +80,10 @@ public:
 
   FORCE_INLINE AsyncResult& operator=(AsyncResult&& other) noexcept {
     if (LIKELY(this != &other)) {
+      // Hot-path shortcut: Pending -> Pending skips destruction and construction
+      if (state_ == AsyncState::Pending && other.state_ == AsyncState::Pending) {
+        return *this;
+      }
       destroy();
       state_ = other.state_;
       if (state_ == AsyncState::Resolved) {
@@ -106,17 +114,31 @@ public:
   /** @brief Moves and returns the error without copying. */
   FORCE_INLINE E take_error() { return std::move(storage_.err); }
 
-  /** @brief Returns the value if resolved, or the provided fallback. */
-  FORCE_INLINE T unwrap_or(T fallback) const {
+  /** @brief Returns the value if resolved, or the provided fallback (copy). */
+  FORCE_INLINE T unwrap_or(T fallback) const& {
     return is_resolved() ? storage_.value : std::move(fallback);
+  }
+
+  /** @brief Moves the value if resolved, or returns fallback without copying. */
+  FORCE_INLINE T unwrap_or(T fallback) && {
+    return is_resolved() ? std::move(storage_.value) : std::move(fallback);
   }
 
   /** @brief Transforms the resolved value using fn, preserving pending/error states. */
   template <typename F>
-  FORCE_INLINE auto map(F&& fn) const -> AsyncResult<decltype(fn(std::declval<T>())), E> {
-    using NewT = decltype(fn(std::declval<T>()));
+  FORCE_INLINE auto map(F&& fn) const& -> AsyncResult<decltype(fn(std::declval<const T&>())), E> {
+    using NewT = decltype(fn(std::declval<const T&>()));
     if (is_resolved()) return AsyncResult<NewT, E>::resolve(fn(storage_.value));
     if (is_rejected()) return AsyncResult<NewT, E>::reject(storage_.err);
+    return AsyncResult<NewT, E>::pending();
+  }
+
+  /** @brief Transforms the resolved value using fn with move semantics. */
+  template <typename F>
+  FORCE_INLINE auto map(F&& fn) && -> AsyncResult<decltype(fn(std::declval<T&&>())), E> {
+    using NewT = decltype(fn(std::declval<T&&>()));
+    if (is_resolved()) return AsyncResult<NewT, E>::resolve(fn(std::move(storage_.value)));
+    if (is_rejected()) return AsyncResult<NewT, E>::reject(std::move(storage_.err));
     return AsyncResult<NewT, E>::pending();
   }
 
@@ -184,6 +206,11 @@ public:
 
   FORCE_INLINE AsyncResult& operator=(const AsyncResult& other) {
     if (LIKELY(this != &other)) {
+      // Hot-path: Non-rejected transitions between Pending/Resolved require no destruction/construction
+      if (state_ != AsyncState::Rejected && other.state_ != AsyncState::Rejected) {
+        state_ = other.state_;
+        return *this;
+      }
       destroy();
       state_ = other.state_;
       if (UNLIKELY(state_ == AsyncState::Rejected)) {
@@ -195,6 +222,11 @@ public:
 
   FORCE_INLINE AsyncResult& operator=(AsyncResult&& other) noexcept {
     if (LIKELY(this != &other)) {
+      // Hot-path: Non-rejected transitions between Pending/Resolved require no destruction/construction
+      if (state_ != AsyncState::Rejected && other.state_ != AsyncState::Rejected) {
+        state_ = other.state_;
+        return *this;
+      }
       destroy();
       state_ = other.state_;
       if (UNLIKELY(state_ == AsyncState::Rejected)) {
