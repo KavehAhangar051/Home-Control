@@ -533,6 +533,10 @@ export interface BezierWireGeometry {
   path: string;
   startX: number;
   startY: number;
+  control1X: number;
+  control1Y: number;
+  control2X: number;
+  control2Y: number;
   endX: number;
   endY: number;
 }
@@ -567,6 +571,10 @@ export function buildBezierWireGeometry(
     path: `M ${startX} ${startY} C ${cp1X} ${startY}, ${cp2X} ${endY}, ${endX} ${endY}`,
     startX,
     startY,
+    control1X: cp1X,
+    control1Y: startY,
+    control2X: cp2X,
+    control2Y: endY,
     endX,
     endY,
   };
