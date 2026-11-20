@@ -582,4 +582,78 @@ Build واقعی باید ثابت کند:
 |---|---|
 | ۲۰۲۶-۱۱-۲۰ | ایجاد سند اولیه؛ ثبت تصمیم‌های معماری، یافته‌های ممیزی، ریسک‌ها، منابع، نقشه راه و وضعیت شروع پروژه |
 
+
+---
+
+## ۱۳. اصلاحیه ممیزی وب و شبکه محلی — ۲۰۲۶-۱۱-۲۰
+
+این بخش، جزئیات فنی نسخه‌های ابزار و ارتباط WebSocket محلی را بر اساس مستندات رسمی بررسی‌شده در ۲۰ نوامبر ۲۰۲۶ دقیق‌تر می‌کند.
+
+### ۱۳.۱ نسخه واقعی Capacitor
+
+- نسخه پایدار شاخه 8 در زمان این بررسی: **8.6.2**؛ تگ **latest** در npm نیز 8.6.2 است.
+- نسخه 9.0.0-rc.0 در وضعیت Release Candidate قرار دارد و برای شروع پروژه انتخاب نمی‌شود.
+- بنابراین تصمیم فعلی همچنان Capacitor 8.6.2 است؛ هنگام نصب باید نسخه‌های **@capacitor/core**، **@capacitor/cli**، **@capacitor/android** و پلاگین‌ها با هم تطبیق داده شوند.
+- Node.js 22+ و Android Studio 2025.2.1+ حداقل‌های مستندشده Capacitor 8 هستند؛ Android SDK API 24+ لازم است و API 36 آخرین SDK پایدار معرفی‌شده در راهنمای محیط Capacitor است.
+
+منابع:
+- [npm: @capacitor/core versions](https://www.npmjs.com/package/@capacitor/core)
+- [Capacitor GitHub Releases](https://github.com/ionic-team/capacitor/releases)
+- [Capacitor Environment Setup](https://capacitorjs.com/docs/getting-started/environment-setup)
+
+### ۱۳.۲ اصلاح دقیق Mixed Content برای WebSocket محلی
+
+راهنمای جدید Chrome درباره Local Network Access (LNA) یک نکته مهم دارد:
+
+- **ws://** از یک صفحه **https://**، وقتی Host به‌صورت قابل تشخیص یک IP خصوصی literal مانند **192.168.1.100**، loopback، **localhost** یا hostname با پسوند **.local** باشد، از Mixed Content blocking مستثنا می‌شود.
+- این استثنا به معنی دسترسی آزاد نیست؛ اتصال همچنان مشمول کنترل Local Network Access است.
+- اگر مقصد با hostname سفارشی غیر **.local** معرفی شود، راهنمای Chrome استفاده از **wss://** را توصیه می‌کند.
+- در WebSocket، آرگومان دوم سازنده فقط subprotocol است؛ نباید گزینه‌ای مانند **{ targetAddressSpace: 'local' }** به آن داده شود.
+- راهنمای Chrome توصیه می‌کند اولین درخواست نیازمند مجوز در پاسخ به اقدام صریح کاربر انجام شود، نه به‌صورت خودکار هنگام بارگذاری صفحه؛ خطاهای اتصال نیز باید به پیام قابل‌فهم برای کاربر تبدیل شوند.
+
+**نتیجه برای Home-Control:** آدرس Local WebSocket فعلی **ws://<localIp>:81** اگر **localIp** واقعاً IP خصوصی literal باشد، از نظر Mixed Content مسیر امیدوارکننده‌ای دارد؛ اما هنوز سازگاری آن در Android System WebView و Capacitor اثبات نشده است. اتصال باید روی گوشی واقعی تست شود. اگر نسخه WebView/سیاست Native رفتار متفاوتی داشته باشد، نتیجه تست ملاک خواهد بود.
+
+منبع:
+- [Chrome: Local Network Access](https://developer.chrome.com/docs/modern-web-guidance/guides/security/local-network-access)
+
+### ۱۳.۳ Android 17 و دسترسی شبکه محلی
+
+مستند رسمی Android اکنون صریحاً مشخص می‌کند:
+
+- محدودیت Local Network Protections از Android 17 (API 37) برای برنامه‌هایی که Target SDK آن‌ها 37 یا بالاتر است، اعمال می‌شود.
+- در این حالت، دسترسی به آدرس‌های شبکه محلی نیازمند مجوز runtime به نام **ACCESS_LOCAL_NETWORK** است.
+- ارتباط‌های ایجادشده از Android WebView، وضعیت مجوز شبکه محلی اپ میزبان را به ارث می‌برند.
+- برای Target SDK 36 یا پایین‌تر، دسترسی محلی با مجوز عادی **INTERNET** به‌طور ضمنی مجاز است؛ مستند Android می‌گوید در این سطح نباید **ACCESS_LOCAL_NETWORK** را به Manifest اضافه یا در runtime درخواست کرد.
+- برای اپ IoT مانند Home-Control که مستقیماً به IP دستگاه ESP32 متصل می‌شود، در صورت ارتقای Target SDK به 37+ باید مسیر درخواست مجوز، توضیح دلیل نیاز، رد مجوز و لغو مجوز طراحی شود.
+
+**تصمیم فعلی:** Target SDK اولیه 36 باقی می‌ماند. در فاز اول، مجوز **ACCESS_LOCAL_NETWORK** اضافه نمی‌شود. ارتقای آینده به 37+ یک کار مستقل و اجباری در نقشه راه خواهد بود؛ قبل از آن باید UX و کد Native مجوز پیاده‌سازی و آزمایش شود.
+
+منبع:
+- [Android Developers: Local network permission](https://developer.android.com/privacy-and-security/local-network-permission)
+
+### ۱۳.۴ اصلاح برنامه تست Local WebSocket
+
+موارد زیر به تست‌های الزامی اضافه می‌شوند:
+
+1. اتصال از Origin پیش‌فرض Capacitor (**https://localhost**) به IP خصوصی واقعی ESP32 با **ws://**.
+2. بررسی اینکه درخواست اتصال اولیه در صورت نیاز به مجوز، از مسیر اقدام کاربر انجام شود.
+3. ثبت نسخه Android و نسخه Android System WebView دستگاه تست.
+4. بررسی رفتار در Target SDK 36؛ بدون افزودن مجوز Android 17.
+5. طراحی و تست جداگانه مجوز **ACCESS_LOCAL_NETWORK** برای Target SDK 37+؛ این مورد در فاز ارتقای Target SDK اجرا می‌شود.
+6. تست خطای ESP32 خاموش، IP اشتباه، گوشی روی Wi-Fi دیگر، قطع و وصل شبکه و برگشت اپ از Background.
+7. عدم فعال‌سازی عمومی Cleartext یا Mixed Content به‌عنوان راه‌حل پیش‌فرض.
+
+### ۱۳.۵ وضعیت این اصلاحیه
+
+| مورد | وضعیت |
+|---|---|
+| Capacitor 8.6.2 | نسخه پایدار تأییدشده در زمان بررسی |
+| Capacitor 9 RC | برای شروع انتخاب نمی‌شود |
+| WebSocket با IP خصوصی literal | از نظر Mixed Content در راهنمای Chrome مستثنا؛ نیازمند تست WebView و LNA |
+| Android Target SDK 36 | مجوز **ACCESS_LOCAL_NETWORK** لازم نیست |
+| Android Target SDK 37+ | مجوز runtime **ACCESS_LOCAL_NETWORK** لازم است |
+| پیاده‌سازی مجوز Native | انجام نشده |
+| تست گوشی واقعی | هنوز انجام نشده |
+
+
 > این فایل منبع حقیقت پروژه Native است. هرگاه وضعیت واقعی سورس با این سند اختلاف داشت، سورس فعلی ملاک است و سند باید اصلاح شود.
