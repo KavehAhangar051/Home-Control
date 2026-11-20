@@ -376,3 +376,10 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - Removed the persistent `will-change: transform, opacity` hint from `.animate-port-wakeup`. The class only applies while the wake-up animation is active; the browser can promote eligible transform/opacity CSS animations as needed.
 - This avoids requesting long-lived compositor-layer resources for every matching element. The animation keyframes, duration, easing, opacity, transform, and visual output are unchanged.
 - This is a memory-pressure optimization, not a guarantee that a particular browser allocates or releases a specific amount of VRAM. Verify layer count and compositing behavior on target devices when possible.
+
+
+### Remove redundant permanent marquee promotion hint (2026-11-20)
+
+- Removed the static `will-change: transform` declaration from the continuously animated header marquee track. The active CSS animation already identifies `transform` as an animated property to the browser, so the explicit permanent hint is redundant.
+- Kept the existing keyframes, 10-second duration, linear timing, infinite iteration, and backface-visibility declaration unchanged.
+- This avoids explicitly requesting long-lived layer preparation; actual compositor promotion and GPU memory allocation remain browser/device decisions and are not guaranteed by CSS.
