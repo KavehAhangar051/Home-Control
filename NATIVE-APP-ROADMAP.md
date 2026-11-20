@@ -1069,3 +1069,130 @@ Build واقعی باید ثابت کند:
 5. تهیه فهرست دقیق فایل‌ها و پکیج‌های لازم برای اولین APK و گرفتن تأیید مالک پروژه پیش از هر تغییر.
 
 پس از تأیید مرحله پیاده‌سازی، فقط فایل‌های اعلام‌شده و تأییدشده تغییر می‌کنند. Git workflow باید Commit و Push باشد و از Pull استفاده نشود.
+
+
+---
+
+## ۱۷. Baseline Audit و آمادگی Build — ۲۰۲۶-۱۱-۲۰
+
+این بخش نتایج بررسی فایل‌های پیکربندی و Pipeline فعلی Dashboard را ثبت می‌کند. این بررسی از طریق سورس GitHub انجام شده است؛ اجرای فرمان‌ها در محیط واقعی پروژه در این مرحله انجام نشده است. بنابراین هیچ نتیجه‌ای درباره موفقیت فعلی Typecheck، Test یا Production Build ادعا نمی‌شود.
+
+### ۱۷.۱ وضعیت ابزارها و نسخه‌های ثبت‌شده
+
+بر اساس `Dashboard/package.json` و `Dashboard/bun.lock` بررسی‌شده در شاخه `main`، نسخه‌های ثبت‌شده عبارت‌اند از:
+
+| ابزار / وابستگی | نسخه ثبت‌شده |
+|---|---:|
+| Next.js | 16.4.6 |
+| React | 19.3.1 |
+| TypeScript | 7.0.2 |
+| Bun | 1.4.4 |
+
+این مقادیر نسخه‌های مشاهده‌شده در فایل‌های پروژه‌اند و به معنی تأیید نصب همین نسخه‌ها در محیط Build نیستند. پیش از Build باید نسخه واقعی Runtime و Package Manager با Lockfile تطبیق داده شود.
+
+**نکته مهم Capacitor 8:** مستندات رسمی فعلی Capacitor 8 وجود Node.js نسخه 22 یا بالاتر را برای محیط توسعه الزامی می‌دانند. Android Studio نسخه 2025.2.1 یا جدیدتر و Android SDK نیز برای Android لازم‌اند. بنابراین وجود Bun در پروژه به‌تنهایی اثبات نمی‌کند که پیش‌نیاز Node موردنیاز Capacitor فراهم است؛ باید Node 22+ در محیط توسعه نصب و نسخه آن بررسی شود. این الزام را نباید با جایگزین کردن Package Manager پروژه اشتباه گرفت.
+
+منابع:
+- [Capacitor 8 Environment Setup](https://capacitorjs.com/docs/getting-started/environment-setup)
+- [Capacitor 8 Android](https://capacitorjs.com/docs/android)
+
+### ۱۷.۲ تنظیمات Next.js و خروجی Static
+
+در `Dashboard/next.config.ts`، خروجی Static در Build تولیدی فعال می‌شود و در حالت توسعه یا در صورت فعال بودن `DISABLE_HMR`، مقدار `output` متفاوت است.
+
+برای Build قابل استفاده در Capacitor:
+- Build باید در حالت Production و با `output: "export"` اجرا شود.
+- متغیر `DISABLE_HMR` نباید ناخواسته مسیر خروجی Static را غیرفعال کند.
+- وجود `out/index.html` و فایل‌های asset موردنیاز باید بعد از Build بررسی شود.
+- مسیرهای فایل، فونت، تصاویر و لینک‌های داخلی باید از داخل WebView و بدون اتکا به سرور توسعه بررسی شوند.
+- خروجی GitHub Pages و تنظیمات Base Path آن نباید ناخواسته در بسته Native اعمال شوند.
+
+طبق مستندات Next.js، اجرای `next build` با `output: "export"` پوشه `out` تولید می‌کند. Static Export از قابلیت‌هایی که به سرور زمان اجرا یا Request پویا نیاز دارند پشتیبانی نمی‌کند. Route Handler فقط در حالت‌هایی که پاسخ آن در زمان Build قابل تولید باشد (از جمله GET ایستا) قابل Export است.
+
+منبع: [Next.js Static Exports](https://nextjs.org/docs/app/guides/static-exports)
+
+### ۱۷.۳ Routeها و Browser APIها
+
+در بررسی اولیه، Entry Pointهای `app/page.tsx` و `app/layout.tsx` بررسی شدند و ساختار اصلی به بارگذاری Dashboard و Providerهای ریشه متکی است. این مشاهده به معنی تکمیل جست‌وجوی تمام Routeها، Server Actions یا دسترسی‌های Browser در کل مخزن نیست.
+
+در ممیزی تکمیلی باید:
+1. تمام فایل‌های زیر `app/` فهرست و Route Handlerها شناسایی شوند؛
+2. هر استفاده از `window`، `document`، `navigator`، Storage و APIهای مرورگر بررسی شود؛
+3. دسترسی Browser-only در Client Component و پس از آماده شدن محیط مرورگر انجام شود؛
+4. ماژول‌هایی که هنگام Import در سطح Top-level به Browser API دسترسی دارند شناسایی شوند؛
+5. استفاده از APIهای سروری Next.js، Server Actions، Cookie/Headers پویا و Request-dependent Routeها بررسی شود.
+
+Next.js تصریح می‌کند که Client Componentها نیز در مرحله Build پیش‌رندر می‌شوند؛ بنابراین قرار دادن `window` یا `localStorage` در سطح ماژول یا مسیر اجرای Server Render می‌تواند Build را بشکند. دسترسی باید در زمان اجرای مرورگر محافظت شود.
+
+### ۱۷.۴ Git Ignore و فایل‌های تولیدی
+
+در `Dashboard/.gitignore` موارد زیر مشاهده شدند:
+- `node_modules/`
+- `.next/`
+- `out/`
+- الگوی `.env*` همراه با استثنای `.env.example`
+
+این تنظیم از Commit شدن وابستگی‌ها، خروجی Build و فایل‌های محیطی محلی جلوگیری می‌کند. پیش از افزودن Capacitor باید جداگانه تصمیم بگیریم کدام فایل‌های پروژه Native (مانند تنظیمات Gradle و فایل‌های Android) باید در Git نگهداری شوند؛ نباید کل پوشه Native را بدون بررسی Ignore یا Track کنیم.
+
+### ۱۷.۵ Pipeline فعلی GitHub Actions
+
+Workflow انتشار GitHub Pages در مسیر `Dashboard/.github/workflows/deploy-pages.yml` بررسی شد. ترتیب مشاهده‌شده شامل Checkout، نصب Bun، نصب وابستگی‌ها، Lint، Typecheck، Build و انتشار پوشه `out` است.
+
+نکته: Workflow انتشار فعلی به‌تنهایی اثبات نمی‌کند که تمام تست‌های پروژه در CI اجرا می‌شوند. در بررسی انجام‌شده، اجرای تست‌ها در مراحل فهرست‌شده Workflow مشاهده نشد. اسکریپت‌های package و تست‌ها باید در محیط واقعی اجرا شوند تا پوشش و نتیجه قطعی مشخص شود.
+
+### ۱۷.۶ ریسک Typecheck و فایل‌های تولیدشده Next.js
+
+در `Dashboard/next-env.d.ts` ارجاع‌هایی به فایل‌های تولیدشده زیر `.next/types` مشاهده شد:
+- `.next/types/routes.d.ts`
+- `.next/types/root-params.d.ts`
+
+از آنجا که Workflow فعلی Typecheck را پیش از Production Build اجرا می‌کند، باید در یک Checkout تمیز بررسی شود که این فایل‌ها در آن لحظه موجودند یا خیر و Typecheck چه نتیجه‌ای می‌دهد. این مورد فعلاً **ریسک قابل بررسی** است، نه باگ اثبات‌شده. تا پیش از مشاهده خروجی واقعی نباید ترتیب CI را تغییر داد.
+
+### ۱۷.۷ ترتیب پیشنهادی اجرای Baseline
+
+این فرمان‌ها باید در محیط توسعه‌ای که Repository در آن موجود است و بدون تغییر سورس اجرا شوند. مسیر اجرا از پوشه `Dashboard` است:
+
+1. ثبت نسخه ابزارها: `node --version`، `bun --version` و بررسی نسخه Android Studio/SDK در محیط مربوط؛
+2. نصب تکرارپذیر وابستگی‌ها با روش سازگار با Lockfile و اسکریپت‌های پروژه؛
+3. اجرای Lint و Typecheck و ذخیره کامل خروجی؛
+4. اجرای تست‌های موجود و ثبت جداگانه شکست‌های شناخته‌شده و جدید؛
+5. اجرای Production Build با متغیرهای Production و اطمینان از Static Export؛
+6. بررسی وجود `out/index.html` و assetهای موردنیاز؛
+7. بررسی `git status` برای اطمینان از اینکه آزمایش‌ها فایل tracked را تغییر نداده‌اند.
+
+نمونه فرمان‌های موجود در پروژه باید از خود `package.json` تأیید شوند؛ نام اسکریپت‌ها را حدس نزنید. در صورتی که `bun run check` اسکریپت تجمیعی Lint، Typecheck و Test باشد، خروجی کلی آن کافی نیست و هر مرحله باید جداگانه نیز گزارش شود تا منشأ خطا مشخص بماند.
+
+### ۱۷.۸ برنامه Build Verification مخصوص Capacitor
+
+پس از Baseline موفق و پس از تأیید مالک پروژه برای پیاده‌سازی:
+- نسخه Node.js 22+ و Android Studio/SDK بررسی شود؛
+- نسخه‌های هم‌تراز `@capacitor/core`، `@capacitor/cli` و `@capacitor/android` انتخاب شوند؛
+- `webDir` در Capacitor روی پوشه Static Export یعنی `out` تنظیم شود؛
+- ابتدا Web Build تولید و سپس فایل‌های آن با Capacitor به پروژه Android همگام شوند؛
+- APK آزمایشی ساخته و روی گوشی واقعی نصب شود؛
+- مسیرهای Local WebSocket، MQTT، Voice، Haptics، Lifecycle و Touch طبق بخش ۱۶ تست شوند.
+
+این مراحل هنوز اجرا نشده‌اند و اضافه کردن Capacitor، ساخت فایل پیکربندی، ایجاد پوشه Android یا تغییر Package Manifest در این مرحله انجام نشده است.
+
+### ۱۷.۹ وضعیت Baseline در پایان بررسی سورس
+
+| موضوع | وضعیت |
+|---|---|
+| Package Manifest و Lockfile | بررسی سورس انجام شد |
+| Next.js Static Export config | بررسی سورس انجام شد |
+| Git Ignore | بررسی سورس انجام شد |
+| GitHub Pages Workflow | بررسی سورس انجام شد |
+| تمام Routeها و Browser APIها | نیازمند تکمیل جست‌وجوی مخزن |
+| Typecheck واقعی | اجرا نشده |
+| تست‌های واقعی | اجرا نشده |
+| Production Build واقعی | اجرا نشده |
+| بررسی خروجی `out/` | اجرا نشده |
+| Build و نصب APK | شروع نشده |
+
+**نتیجه:** ساختار فعلی Dashboard از نظر معماری Static Export مسیر مناسبی برای بسته‌بندی با Capacitor دارد؛ اما آمادگی Build هنوز تأیید نشده است. موفقیت Baseline فقط پس از اجرای فرمان‌ها در محیط واقعی و ثبت خروجی‌ها قابل اعلام است.
+
+### ۱۷.۱۰ گام بعدی و محدودیت تغییرات
+
+گام بعدی باید تکمیل فهرست Routeها و جست‌وجوی Browser APIها، سپس اجرای Baseline واقعی در محیط توسعه باشد. اگر دسترسی به محیط اجرای پروژه فراهم نیست، باید خروجی فرمان‌ها از محیط کاربر یا CI دریافت شود؛ بررسی GitHub به‌تنهایی جای اجرای Build را نمی‌گیرد.
+
+هیچ تغییر اجرایی در این مرحله مجاز نشده است. هرگونه تغییر در Package Manifest، Lockfile، Next Config، Workflow یا فایل‌های Native باید قبل از اعمال، با فهرست دقیق فایل‌ها به مالک پروژه اعلام و تأیید شود. Git workflow طبق درخواست پروژه Commit و Push است و نباید از Pull استفاده شود.
