@@ -19,6 +19,9 @@ The dashboard already uses Motion, WAAPI, CSS transforms, and WebGL2, but some r
 
 ## Current state
 
+- The repository already contains compositor-oriented optimizations documented in `ARCHITECTURE.md` §28. Those are source-level changes, not proof of physical GPU/VRAM execution; the wording in that section now makes this limitation explicit.
+- A DPR-change listener was added to `components/gpu/GpuLutImage.tsx` so a display-density change triggers a redraw even when the CSS box size is unchanged. This is an isolated correctness fix for the opt-in LUT image surface, not a global dashboard renderer change.
+
 - `docs/superpowers/specs/2026-11-20-gpu-first-rendering-design.md` — approved product/technical design and constraints.
 - `docs/performance/GPU-RENDERING.md` — source-level inventory, LUT architecture, memory estimates, and GPU lifecycle rules. Expanded inventory added in commit `222f45e`.
 - `docs/performance/GPU-BASELINE-CAPTURE.md` — reproducible Chrome DevTools capture procedure, scenarios, refresh-rate budgets, diagnostic overlays, and result template.
@@ -78,7 +81,7 @@ Do not run `bun run format` without a scoped path in this task: its package scri
 
 ## Git workflow
 
-- Branch: `gpu-first-rendering-design`
+- Branch: `gpu-first-rendering-phase1`
 - Base: `main`
 - Keep changes on this branch; do not merge into `main` without a separate explicit instruction.
 - Commit each independently reviewable slice with a descriptive conventional commit.
