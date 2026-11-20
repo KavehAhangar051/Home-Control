@@ -1,7 +1,7 @@
 "use client";
 
 import { useReducedMotion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 export interface CubicBezierCurve {
   startX: number;
@@ -19,6 +19,7 @@ interface CompositedBezierParticleProps {
   durationMs: number;
   delayMs?: number;
   className: string;
+  children?: ReactNode;
 }
 
 interface Point {
@@ -151,6 +152,7 @@ export function CompositedBezierParticle({
   durationMs,
   delayMs = 0,
   className,
+  children,
 }: CompositedBezierParticleProps) {
   const elementRef = useRef<HTMLSpanElement>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -195,6 +197,8 @@ export function CompositedBezierParticle({
       ref={elementRef}
       aria-hidden="true"
       className={`pointer-events-none absolute top-0 left-0 ${className}`}
-    />
+    >
+      {children}
+    </span>
   );
 }
