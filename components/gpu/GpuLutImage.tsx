@@ -157,9 +157,9 @@ export function GpuLutImage({
     <div ref={containerRef} className={`relative isolate overflow-hidden ${className}`}>
       <img
         ref={imageRef}
+        crossOrigin="anonymous"
         src={imageSrc}
         alt={alt}
-        crossOrigin="anonymous"
         decoding="async"
         loading="lazy"
         onLoad={() => drawRef.current()}
