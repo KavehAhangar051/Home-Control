@@ -41,7 +41,7 @@ export function canvasSegmentNodeId(segmentId: string): string {
 export function clampCanvasZoom(zoom: number): number {
   if (Number.isNaN(zoom) || !Number.isFinite(zoom)) return 1;
 
-  return Math.min(CANVAS_MAX_ZOOM, Math.max(CANVAS_MIN_ZOOM, Math.round(zoom * 100) / 100));
+  return Math.min(CANVAS_MAX_ZOOM, Math.max(CANVAS_MIN_ZOOM, Math.round(zoom * 1000) / 1000));
 }
 
 /**
@@ -62,8 +62,8 @@ export function computeFocalZoomViewport(
   const worldY = (anchorY - prev.y) / prev.zoom;
 
   return {
-    x: Math.round(anchorX - worldX * nextZoom),
-    y: Math.round(anchorY - worldY * nextZoom),
+    x: Math.round((anchorX - worldX * nextZoom) * 10) / 10,
+    y: Math.round((anchorY - worldY * nextZoom) * 10) / 10,
     zoom: nextZoom,
   };
 }
@@ -85,6 +85,12 @@ export interface CanvasGridStyle {
   backgroundPosition: string;
 }
 
+export interface CanvasGridTransform {
+  visualStep: number;
+  backgroundSize: string;
+  transform: string;
+}
+
 /**
  * Computes CSS background dot-grid styling whose visual dots sit directly on
  * snapped (k * CANVAS_GRID_STEP, m * CANVAS_GRID_STEP) world intersections at any zoom.
@@ -102,6 +108,26 @@ export function getCanvasGridStyle(x: number, y: number, zoom: number): CanvasGr
     backgroundImage: "radial-gradient(circle, var(--border-color) 1.25px, transparent 1.25px)",
     backgroundSize: `${visualStep}px ${visualStep}px`,
     backgroundPosition: `${posX}px ${posY}px`,
+  };
+}
+
+/**
+ * Computes GPU-composited `translate3d` offset + tile step for an oversized dot-grid
+ * layer (`inset: -48px`, fixed `backgroundPosition: 48px 48px`) so panning never
+ * triggers full-viewport CSS gradient repaints.
+ */
+export function getCanvasGridTransform(x: number, y: number, zoom: number): CanvasGridTransform {
+  const safeZoom = clampCanvasZoom(zoom);
+  const rawStep = CANVAS_GRID_STEP * safeZoom;
+  const visualStep = rawStep < 8 ? rawStep * 2 : rawStep;
+  const halfStep = visualStep / 2;
+  const tx = (((x % visualStep) + visualStep) % visualStep) - halfStep;
+  const ty = (((y % visualStep) + visualStep) % visualStep) - halfStep;
+
+  return {
+    visualStep,
+    backgroundSize: `${visualStep}px ${visualStep}px`,
+    transform: `translate3d(${Math.round(tx * 100) / 100}px, ${Math.round(ty * 100) / 100}px, 0)`,
   };
 }
 
@@ -211,25 +237,44 @@ function groupSegmentsByGroupName(
   return segmentsByGroup;
 }
 
+export type CanvasViewportTier = "mobile" | "tablet" | "desktop";
+
+export function resolveCanvasViewportTier(width: number): CanvasViewportTier {
+  if (width < 640) return "mobile";
+
+  if (width < 1024) return "tablet";
+
+  return "desktop";
+}
+
+function normalizeViewportTier(input: boolean | CanvasViewportTier): CanvasViewportTier {
+  if (input === true) return "mobile";
+
+  if (input === false) return "desktop";
+
+  return input;
+}
+
 interface CanvasNodeRectMap {
   [nodeId: string]: CanvasNodeRect;
 }
 
 function buildDefaultGraphNodes(
   segmentsByGroup: Map<string, Segment[]>,
-  isMobileViewport: boolean,
+  tier: CanvasViewportTier,
 ): CanvasNodeRectMap {
   const nodes: CanvasNodeRectMap = {};
   let zCursor = 1;
   let currentY = 64;
-  const groupX = isMobileViewport ? 352 : 688;
-  const groupWidth = isMobileViewport ? 240 : 272;
+  const isCompactTier = tier !== "desktop";
+  const groupX = tier === "mobile" ? 336 : tier === "tablet" ? 448 : 688;
+  const groupWidth = tier === "mobile" ? 224 : tier === "tablet" ? 256 : 272;
   const groupHeight = 160;
-  const segWidth = isMobileViewport ? 176 : 224;
+  const segWidth = isCompactTier ? 176 : 224;
   const segHeight = 128;
   const segGapX = 32;
   const segGapY = 16;
-  const segCols = isMobileViewport ? 1 : 2;
+  const segCols = tier === "mobile" ? 1 : 2;
 
   for (const [groupName, groupSegments] of segmentsByGroup.entries()) {
     const gId = canvasGroupNodeId(groupName);
@@ -274,23 +319,24 @@ function buildDefaultGraphNodes(
 function buildDefaultGroupContainerNodes(
   segmentsByGroup: Map<string, Segment[]>,
   groupsOrder: string[],
-  isMobileViewport: boolean,
+  tier: CanvasViewportTier,
 ): CanvasNodeRectMap {
   const nodes: CanvasNodeRectMap = {};
   let zCursor = 1;
-  const cols = isMobileViewport ? 1 : Math.min(2, Math.max(1, groupsOrder.length));
-  const colWidth = isMobileViewport ? 320 : 448;
-  const gapX = 32;
-  const gapY = 32;
+  const cols = tier === "mobile" ? 1 : Math.min(2, Math.max(1, groupsOrder.length));
+  const colWidth = tier === "mobile" ? 312 : tier === "tablet" ? 352 : 448;
+  const gapX = tier === "desktop" ? 32 : 24;
+  const gapY = tier === "mobile" ? 24 : 32;
+  const originX = tier === "mobile" ? 32 : 48;
   const colHeights = Array.from({ length: cols }, () => 48);
   let idx = 0;
 
   for (const [groupName, groupSegments] of segmentsByGroup.entries()) {
     const col = idx % cols;
-    const internalCols = isMobileViewport ? 1 : 2;
+    const internalCols = tier === "desktop" ? 2 : 1;
     const rows = Math.max(1, Math.ceil(groupSegments.length / internalCols));
     const height = Math.min(640, Math.max(192, 80 + rows * 128));
-    const x = 48 + col * (colWidth + gapX);
+    const x = originX + col * (colWidth + gapX);
     const y = colHeights[col];
 
     nodes[canvasGroupNodeId(groupName)] = {
@@ -310,18 +356,22 @@ function buildDefaultGroupContainerNodes(
 
 function buildDefaultFreeSegmentNodes(
   segments: Segment[],
-  isMobileViewport: boolean,
+  tier: CanvasViewportTier,
 ): CanvasNodeRectMap {
   const nodes: CanvasNodeRectMap = {};
   let zCursor = 1;
 
-  const cols = isMobileViewport
-    ? 2
-    : Math.min(4, Math.max(2, Math.ceil(Math.sqrt(segments.length))));
+  const cols =
+    tier === "mobile"
+      ? 2
+      : tier === "tablet"
+        ? Math.min(3, Math.max(2, Math.ceil(Math.sqrt(segments.length))))
+        : Math.min(4, Math.max(2, Math.ceil(Math.sqrt(segments.length))));
 
-  const cardWidth = isMobileViewport ? 176 : 224;
-  const cardHeight = isMobileViewport ? 128 : 144;
-  const gap = isMobileViewport ? 16 : 32;
+  const cardWidth = tier === "mobile" ? 164 : tier === "tablet" ? 192 : 224;
+  const cardHeight = tier === "mobile" ? 128 : 144;
+  const gap = tier === "mobile" ? 16 : tier === "tablet" ? 24 : 32;
+  const origin = tier === "mobile" ? 32 : 48;
 
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i];
@@ -329,8 +379,8 @@ function buildDefaultFreeSegmentNodes(
     const row = Math.floor(i / cols);
 
     nodes[canvasSegmentNodeId(seg.id)] = {
-      x: snapCanvasCoordinate(48 + col * (cardWidth + gap), true),
-      y: snapCanvasCoordinate(48 + row * (cardHeight + gap), true),
+      x: snapCanvasCoordinate(origin + col * (cardWidth + gap), true),
+      y: snapCanvasCoordinate(origin + row * (cardHeight + gap), true),
       width: cardWidth,
       height: cardHeight,
       zIndex: zCursor++,
@@ -342,29 +392,40 @@ function buildDefaultFreeSegmentNodes(
 
 /**
  * Builds deterministic initial node positions and dimensions on the infinite sheet
- * for all three sub-modes ("graph" n8n mode, "groups" container mode, "segments" free mode).
+ * for all three sub-modes ("graph" n8n mode, "groups" container mode, "segments" free mode)
+ * calibrated for mobile, tablet, and desktop viewports.
  */
 export function buildDefaultCanvasNodes(
   subMode: CanvasSubMode,
   groupsOrder: string[],
   segments: Segment[],
-  isMobileViewport = false,
+  isMobileOrTier: boolean | CanvasViewportTier = false,
 ): Record<string, CanvasNodeRect> {
+  const tier = normalizeViewportTier(isMobileOrTier);
+
   if (subMode === "segments") {
-    return buildDefaultFreeSegmentNodes(segments, isMobileViewport);
+    return buildDefaultFreeSegmentNodes(segments, tier);
   }
 
   const segmentsByGroup = groupSegmentsByGroupName(groupsOrder, segments);
 
   if (subMode === "graph") {
-    return buildDefaultGraphNodes(segmentsByGroup, isMobileViewport);
+    return buildDefaultGraphNodes(segmentsByGroup, tier);
   }
 
-  return buildDefaultGroupContainerNodes(segmentsByGroup, groupsOrder, isMobileViewport);
+  return buildDefaultGroupContainerNodes(segmentsByGroup, groupsOrder, tier);
+}
+
+export interface CanvasViewportInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 }
 
 export interface FitViewportCalculationOptions {
   padding: number;
+  insets?: Partial<CanvasViewportInsets>;
   minBoundsWidth?: number;
   minBoundsHeight?: number;
   maxZoom?: number;
@@ -374,7 +435,7 @@ export interface FitViewportCalculationOptions {
 /**
  * Shared bounding-box viewport fitter used by both the Home Canvas and Workflow Studio.
  * Computes the bounding rectangle of `rects`, scales to fit within `containerWidth x containerHeight`
- * with `padding`, and centers the resulting viewport.
+ * respecting symmetric `padding` or asymmetric floating-chrome `insets`, and centers the viewport.
  */
 export function computeCenteredFitViewport(
   rects: ReadonlyArray<{ x: number; y: number; width: number; height: number }>,
@@ -382,6 +443,7 @@ export function computeCenteredFitViewport(
   containerHeight: number,
   {
     padding,
+    insets,
     minBoundsWidth = FIT_DEFAULT_MIN_BOUNDS_WIDTH,
     minBoundsHeight = FIT_DEFAULT_MIN_BOUNDS_HEIGHT,
     maxZoom = FIT_DEFAULT_MAX_ZOOM,
@@ -405,10 +467,21 @@ export function computeCenteredFitViewport(
     maxY = Math.max(maxY, rect.y + rect.height);
   }
 
+  const insetTop = insets?.top ?? padding;
+  const insetRight = insets?.right ?? padding;
+  const insetBottom = insets?.bottom ?? padding;
+  const insetLeft = insets?.left ?? padding;
+
   const boundsWidth = Math.max(minBoundsWidth, maxX - minX);
   const boundsHeight = Math.max(minBoundsHeight, maxY - minY);
-  const availableWidth = Math.max(FIT_MIN_AVAILABLE_EXTENT, containerWidth - padding * 2);
-  const availableHeight = Math.max(FIT_MIN_AVAILABLE_EXTENT, containerHeight - padding * 2);
+  const availableWidth = Math.max(
+    FIT_MIN_AVAILABLE_EXTENT,
+    containerWidth - insetLeft - insetRight,
+  );
+  const availableHeight = Math.max(
+    FIT_MIN_AVAILABLE_EXTENT,
+    containerHeight - insetTop - insetBottom,
+  );
 
   const zoom = clampCanvasZoom(
     Math.min(availableWidth / boundsWidth, availableHeight / boundsHeight, maxZoom),
@@ -416,10 +489,12 @@ export function computeCenteredFitViewport(
 
   const centerX = minX + boundsWidth / 2;
   const centerY = minY + boundsHeight / 2;
+  const viewportCenterX = insetLeft + availableWidth / 2;
+  const viewportCenterY = insetTop + availableHeight / 2;
 
   return {
-    x: Math.round(containerWidth / 2 - centerX * zoom),
-    y: Math.round(containerHeight / 2 - centerY * zoom),
+    x: Math.round(viewportCenterX - centerX * zoom),
+    y: Math.round(viewportCenterY - centerY * zoom),
     zoom,
   };
 }
@@ -432,7 +507,7 @@ export function computeFitCanvasViewport(
   visibleIds: string[],
   containerWidth: number,
   containerHeight: number,
-  padding = 48,
+  paddingOrInsets: number | Partial<CanvasViewportInsets> = 48,
 ): CanvasViewport {
   const visibleRects: CanvasNodeRect[] = [];
 
@@ -442,7 +517,16 @@ export function computeFitCanvasViewport(
     if (rect) visibleRects.push(rect);
   }
 
-  return computeCenteredFitViewport(visibleRects, containerWidth, containerHeight, { padding });
+  if (typeof paddingOrInsets === "number") {
+    return computeCenteredFitViewport(visibleRects, containerWidth, containerHeight, {
+      padding: paddingOrInsets,
+    });
+  }
+
+  return computeCenteredFitViewport(visibleRects, containerWidth, containerHeight, {
+    padding: 32,
+    insets: paddingOrInsets,
+  });
 }
 
 export interface BezierWireGeometry {

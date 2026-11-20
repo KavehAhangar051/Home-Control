@@ -6,10 +6,12 @@ import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers"
 import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 import {
   buildDefaultCanvasNodes,
+  type CanvasViewportInsets,
+  type CanvasViewportTier,
   canvasGroupNodeId,
   canvasSegmentNodeId,
   computeFitCanvasViewport,
-  getCanvasGridStyle,
+  resolveCanvasViewportTier,
 } from "./canvasGeometry";
 import {
   type CanvasWorkspaceScope,
@@ -35,11 +37,12 @@ import { useSheetViewportGestures } from "./useSheetViewportGestures";
 export type { CanvasWorkspaceScope } from "./canvasStorage";
 
 const DEFAULT_HOME_VIEWPORT: CanvasViewport = { x: 32, y: 24, zoom: 0.92 };
-const MOBILE_BREAKPOINT = 768;
-const FIT_MOBILE_BREAKPOINT = 640;
-const FIT_MOBILE_PADDING = 24;
+const MOBILE_CHROME_BREAKPOINT = 768;
+const TABLET_BREAKPOINT = 1024;
+const FIT_TABLET_PADDING = 36;
 const FIT_DESKTOP_PADDING = 52;
 const INITIAL_TOP_Z_INDEX = 30;
+const MOBILE_FIT_INSETS: CanvasViewportInsets = { top: 60, right: 16, bottom: 96, left: 16 };
 
 function resolveActiveSubMode(
   workspaceScope: CanvasWorkspaceScope,
@@ -50,14 +53,16 @@ function resolveActiveSubMode(
   return storedSubMode === "segments" ? "segments" : "groups";
 }
 
-function isMobileWindowViewport(): boolean {
-  return globalThis.window !== undefined && globalThis.window.innerWidth < MOBILE_BREAKPOINT;
+function resolveWindowViewportTier(): CanvasViewportTier {
+  if (globalThis.window === undefined) return "desktop";
+
+  return resolveCanvasViewportTier(globalThis.window.innerWidth);
 }
 
 interface ResolvedContainerDimensions {
   width: number;
   height: number;
-  fitPadding: number;
+  fitPadding: number | Partial<CanvasViewportInsets>;
 }
 
 function resolveContainerDimensions(
@@ -66,7 +71,13 @@ function resolveContainerDimensions(
 ): ResolvedContainerDimensions {
   const width = element ? element.clientWidth : fallbackSize.width;
   const height = element ? element.clientHeight : fallbackSize.height;
-  const fitPadding = width < FIT_MOBILE_BREAKPOINT ? FIT_MOBILE_PADDING : FIT_DESKTOP_PADDING;
+  const windowWidth = globalThis.window !== undefined ? globalThis.window.innerWidth : width;
+
+  if (windowWidth < MOBILE_CHROME_BREAKPOINT) {
+    return { width, height, fitPadding: MOBILE_FIT_INSETS };
+  }
+
+  const fitPadding = width < TABLET_BREAKPOINT ? FIT_TABLET_PADDING : FIT_DESKTOP_PADDING;
 
   return { width, height, fitPadding };
 }
@@ -136,9 +147,12 @@ export function useCanvasController({
 
   const {
     worldPlaneRef,
+    gridLayerRef,
+    initialGridStyle,
     containerSize,
     isPanning,
     animateToViewport,
+    syncViewportToDom,
     handleZoomBy,
     handleCanvasPointerDown,
     handleCanvasContextMenu,
@@ -147,6 +161,7 @@ export function useCanvasController({
     viewportRef,
     setViewport,
     setViewportTransient,
+    isLocked: settings.isLocked,
     onBackgroundClick: () => setSelectedNodeId(null),
     onPanEnd: (finalVp) => writeStoredCanvasViewport(activeSubMode, finalVp),
   });
@@ -176,7 +191,7 @@ export function useCanvasController({
       activeSubMode,
       groupsOrder,
       segments,
-      isMobileWindowViewport(),
+      resolveWindowViewportTier(),
     );
 
     const result = reconcileCanvasNodes({
@@ -330,7 +345,7 @@ export function useCanvasController({
       activeSubMode,
       groupsOrder,
       segments,
-      isMobileWindowViewport(),
+      resolveWindowViewportTier(),
     );
 
     nodesRef.current = fresh;
@@ -360,24 +375,21 @@ export function useCanvasController({
       if (storedVpForNext) {
         hasInitialFitRef.current = true;
         setViewportState(storedVpForNext);
-        viewportRef.current = storedVpForNext;
+        syncViewportToDom(storedVpForNext);
       } else {
         hasInitialFitRef.current = false;
       }
 
       updateSettings({ subMode: resolvedMode });
     },
-    [workspaceScope, updateSettings],
-  );
-
-  const backgroundGridStyle = React.useMemo(
-    () => getCanvasGridStyle(viewport.x, viewport.y, viewport.zoom),
-    [viewport.x, viewport.y, viewport.zoom],
+    [workspaceScope, updateSettings, syncViewportToDom],
   );
 
   return {
     containerRef,
     worldPlaneRef,
+    gridLayerRef,
+    initialGridStyle,
     containerSize,
     settings: {
       ...settings,
@@ -406,6 +418,5 @@ export function useCanvasController({
     handleChangeSubMode,
     handleCanvasPointerDown,
     handleCanvasContextMenu,
-    backgroundGridStyle,
   };
 }

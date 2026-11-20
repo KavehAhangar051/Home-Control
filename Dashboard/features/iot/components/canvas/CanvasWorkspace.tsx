@@ -45,6 +45,8 @@ export default function CanvasWorkspace({
   const {
     containerRef,
     worldPlaneRef,
+    gridLayerRef,
+    initialGridStyle,
     settings,
     updateSettings,
     nodes,
@@ -64,7 +66,6 @@ export default function CanvasWorkspace({
     handleChangeSubMode,
     handleCanvasPointerDown,
     handleCanvasContextMenu,
-    backgroundGridStyle,
   } = useCanvasController({
     workspaceScope,
     groupsOrder,
@@ -116,13 +117,20 @@ export default function CanvasWorkspace({
       onPointerDown={handleCanvasPointerDown}
       onContextMenu={handleCanvasContextMenu}
       style={{
-        ...backgroundGridStyle,
         touchAction: "none",
       }}
       className={`relative size-full min-h-[480px] flex-1 overflow-hidden border-0 bg-bg-main select-none ${
         isPanning ? "cursor-grabbing" : "cursor-default"
       }`}
     >
+      {/* GPU-composited dot grid layer (translates without CSS background repaints) */}
+      <div
+        ref={gridLayerRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute z-0 will-change-transform"
+        style={initialGridStyle}
+      />
+
       {/* Infinite Transformed World Plane */}
       <div
         ref={worldPlaneRef}

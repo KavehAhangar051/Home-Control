@@ -74,14 +74,9 @@ const CanvasWireItem = React.memo(function CanvasWireItem({
             className="animate-[dash_1.15s_linear_infinite]"
           />
           {showParticles && (
-            <>
-              <circle r={4.2} fill="var(--accent3)" fillOpacity={0.3}>
-                <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
-              </circle>
-              <circle r={2.3} fill="var(--accent3-foreground)">
-                <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
-              </circle>
-            </>
+            <circle r={3.2} fill="var(--accent3)" fillOpacity={0.85}>
+              <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
+            </circle>
           )}
         </>
       )}

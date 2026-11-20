@@ -139,6 +139,7 @@ export function useWorkflowInteractions({
         }
       }
 
+      const activePointerId = e.pointerId;
       const startClientX = e.clientX;
       const startClientY = e.clientY;
       let lastClientX = e.clientX;
@@ -150,6 +151,8 @@ export function useWorkflowInteractions({
       setNodeDragTiltCssVar(tiltEl, 0);
 
       const applyPointerMove = (moveEvent: PointerEvent) => {
+        if (moveEvent.pointerId !== activePointerId) return;
+
         const dx = (moveEvent.clientX - startClientX) / zoom;
         const dy = (moveEvent.clientY - startClientY) / zoom;
         const nextX = snapCanvasCoordinate(startNode.x + dx, snapToGrid);
@@ -209,6 +212,7 @@ export function useWorkflowInteractions({
       };
 
       const onMove = (moveEvent: PointerEvent) => {
+        if (moveEvent.pointerId !== activePointerId) return;
         pendingMove = moveEvent;
 
         if (frameId === null) {
@@ -228,6 +232,8 @@ export function useWorkflowInteractions({
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onCancel);
+        window.removeEventListener("pointerdown", onMultiTouchAbort, true);
+        window.removeEventListener("blur", onAbort);
 
         // Auto-parent non-group nodes dropped inside a sub-flow group container
         if (startNode.kind !== "group") {
@@ -271,19 +277,38 @@ export function useWorkflowInteractions({
       };
 
       const onUp = (endEvent: PointerEvent) => {
+        if (endEvent.pointerId !== activePointerId) return;
         pendingMove = endEvent;
         flushPointerMove();
         finishDrag();
       };
 
-      const onCancel = () => {
-        flushPointerMove();
+      const onCancel = (cancelEvent: PointerEvent) => {
+        if (cancelEvent.pointerId !== activePointerId) return;
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+        pendingMove = null;
         finishDrag();
+      };
+
+      const onAbort = () => {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+        pendingMove = null;
+        finishDrag();
+      };
+
+      const onMultiTouchAbort = (downEvent: PointerEvent) => {
+        if (downEvent.pointerType === "touch" && downEvent.pointerId !== activePointerId) {
+          onAbort();
+        }
       };
 
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onCancel);
+      window.addEventListener("pointerdown", onMultiTouchAbort, true);
+      window.addEventListener("blur", onAbort);
     },
     [
       activeWorkflowRef,
@@ -313,6 +338,7 @@ export function useWorkflowInteractions({
       bringNodeToFront(nodeId, { transient: true });
       setDraggingNodeId(nodeId);
 
+      const activePointerId = e.pointerId;
       const startClientX = e.clientX;
       const startClientY = e.clientY;
       let lastAppliedX = startNode.x;
@@ -322,6 +348,8 @@ export function useWorkflowInteractions({
       const snappedRightEdge = snapCanvasCoordinate(startNode.x + startNode.width, snapToGrid);
 
       const applyPointerMove = (moveEvent: PointerEvent) => {
+        if (moveEvent.pointerId !== activePointerId) return;
+
         const dx = (moveEvent.clientX - startClientX) / zoom;
         const dy = (moveEvent.clientY - startClientY) / zoom;
 
@@ -366,6 +394,7 @@ export function useWorkflowInteractions({
       };
 
       const onMove = (moveEvent: PointerEvent) => {
+        if (moveEvent.pointerId !== activePointerId) return;
         pendingMove = moveEvent;
 
         if (frameId === null) {
@@ -384,23 +413,44 @@ export function useWorkflowInteractions({
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onCancel);
+        window.removeEventListener("pointerdown", onMultiTouchAbort, true);
+        window.removeEventListener("blur", onAbort);
         onCommitInteraction();
       };
 
       const onUp = (endEvent: PointerEvent) => {
+        if (endEvent.pointerId !== activePointerId) return;
         pendingMove = endEvent;
         flushPointerMove();
         finishResize();
       };
 
-      const onCancel = () => {
-        flushPointerMove();
+      const onCancel = (cancelEvent: PointerEvent) => {
+        if (cancelEvent.pointerId !== activePointerId) return;
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+        pendingMove = null;
         finishResize();
+      };
+
+      const onAbort = () => {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+        pendingMove = null;
+        finishResize();
+      };
+
+      const onMultiTouchAbort = (downEvent: PointerEvent) => {
+        if (downEvent.pointerType === "touch" && downEvent.pointerId !== activePointerId) {
+          onAbort();
+        }
       };
 
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onCancel);
+      window.addEventListener("pointerdown", onMultiTouchAbort, true);
+      window.addEventListener("blur", onAbort);
     },
     [
       activeWorkflowRef,

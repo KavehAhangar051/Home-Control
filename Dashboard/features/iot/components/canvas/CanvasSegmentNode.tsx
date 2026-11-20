@@ -319,6 +319,7 @@ export default React.memo(function CanvasSegmentNode({
         width: rect.width,
         height: rect.height,
         zIndex,
+        contain: "layout style",
         willChange: isDragging ? "transform" : undefined,
         transition:
           animationsEnabled && !isDragging

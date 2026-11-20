@@ -34,35 +34,38 @@ export default function CanvasResizeHandles({
       <button
         type="button"
         tabIndex={-1}
+        data-canvas-resize="true"
         aria-label={ariaLabel}
         onPointerDown={(e) => {
           if (e.button === 0) onStartResize(nodeId, kind, "sw", e);
         }}
         style={{ touchAction: "none" }}
-        className="group/resize absolute -bottom-1 -left-1 z-30 size-7 cursor-nesw-resize"
+        className="group/resize absolute -bottom-1.5 -left-1.5 z-30 size-9 cursor-nesw-resize sm:-bottom-1 sm:-left-1 sm:size-7"
       >
         <span
           aria-hidden="true"
-          className={`pointer-events-none absolute bottom-[6px] left-[6px] border-b-2 border-l-2 transition-colors ${cornerRadiusClass} ${
+          className={`pointer-events-none absolute bottom-[8px] left-[8px] border-b-2 border-l-2 transition-colors sm:bottom-[6px] sm:left-[6px] ${cornerRadiusClass} ${
             isSelected ? "border-accent3" : "border-text-muted/45 group-hover/resize:border-accent3"
           }`}
         />
       </button>
 
       <div
+        data-canvas-resize="true"
         onPointerDown={(e) => {
           if (e.button === 0) onStartResize(nodeId, kind, "se", e);
         }}
         style={{ touchAction: "none" }}
-        className="absolute -right-1.5 -bottom-1.5 z-30 size-6 cursor-nwse-resize"
+        className="absolute -right-2 -bottom-2 z-30 size-8 cursor-nwse-resize sm:-right-1.5 sm:-bottom-1.5 sm:size-6"
       />
 
       <div
+        data-canvas-resize="true"
         onPointerDown={(e) => {
           if (e.button === 0) onStartResize(nodeId, kind, "s", e);
         }}
         style={{ touchAction: "none" }}
-        className="absolute inset-x-5 -bottom-1 z-20 h-2.5 cursor-ns-resize"
+        className="absolute inset-x-6 -bottom-1.5 z-20 h-3.5 cursor-ns-resize sm:inset-x-5 sm:-bottom-1 sm:h-2.5"
       />
     </>
   );

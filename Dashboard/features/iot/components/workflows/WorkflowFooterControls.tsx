@@ -60,6 +60,7 @@ export default function WorkflowFooterControls({
   return (
     <div
       dir="rtl"
+      data-canvas-chrome="true"
       onPointerDown={(e) => e.stopPropagation()}
       className={
         inPortal
@@ -67,7 +68,7 @@ export default function WorkflowFooterControls({
           : "pointer-events-none absolute inset-x-0 top-2.5 z-30 flex items-center justify-center px-2"
       }
     >
-      <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl border border-border-color bg-card-bg-solid/95 px-2 py-1 text-xs shadow-lg backdrop-blur-xl">
+      <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl border border-border-color bg-card-bg-solid/95 px-2 py-1 text-xs shadow-lg">
         {/* Undo / Redo */}
         <div className="flex items-center gap-0.5 border-l border-border-color pl-1">
           <Tooltip>
