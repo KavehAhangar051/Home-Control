@@ -340,11 +340,15 @@ export function Percent({ size, speed, reduce }: PartProps): React.JSX.Element {
     const dur = (reduce ? speed * 2 : speed) * 1000;
     const start = { t: 0 };
     const tickMs = 40;
+    let lastPercent = 0;
 
     const update = () => {
       start.t += tickMs;
       const next = Math.min(100, Math.round((start.t / dur) * 100));
-      setP(next);
+      if (next !== lastPercent) {
+        lastPercent = next;
+        setP(next);
+      }
 
       if (next >= 100) start.t = 0;
     };
