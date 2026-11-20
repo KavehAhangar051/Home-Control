@@ -286,8 +286,8 @@ export function createSheetViewportAnimator(
       vx *= decay;
       vy *= decay;
 
-      const speed = Math.hypot(vx, vy);
-      if (speed < STOP_INERTIA_SPEED_PX_PER_MS) {
+      const speedSquared = vx * vx + vy * vy;
+      if (speedSquared < STOP_INERTIA_SPEED_PX_PER_MS * STOP_INERTIA_SPEED_PX_PER_MS) {
         activeFrameId = null;
         activeMode = "idle";
         const settled: CanvasViewport = {
