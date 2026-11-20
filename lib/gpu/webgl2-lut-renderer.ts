@@ -97,6 +97,7 @@ export class WebGL2LutRenderer {
   private lutTexture: WebGLTexture | null = null;
   private lutTextureSize = 0;
   private uploadedLutData: Uint8Array | null = null;
+  private uploadedSource: TexImageSource | null = null;
   private disposed = false;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -171,8 +172,16 @@ export class WebGL2LutRenderer {
   ): boolean {
     const gl = this.gl;
     if (this.disposed || gl.isContextLost()) return false;
-    if (lut.size < 2 || lut.size > 64 || lut.data.length !== lut.size ** 3 * 4) {
-      throw new Error("Invalid 3D LUT texture data.");
+    if (
+      lut.size < 2 ||
+      lut.size > 64 ||
+      lut.data.length !== lut.size ** 3 * 4 ||
+      sourceWidth <= 0 ||
+      sourceHeight <= 0 ||
+      sourceWidth > 4096 ||
+      sourceHeight > 4096
+    ) {
+      throw new Error("Invalid 3D LUT or source image dimensions.");
     }
 
     if (!this.lutTexture || this.lutTextureSize !== lut.size) {
@@ -215,14 +224,20 @@ export class WebGL2LutRenderer {
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.sourceTexture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, source);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    if (this.uploadedSource !== source) {
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      this.uploadedSource = source;
+    }
 
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vertexArray);
     const canvas = gl.canvas as HTMLCanvasElement;
-    gl.uniform1f(this.intensityLocation, Math.max(0, Math.min(1, intensity)));
+    const normalizedIntensity = Number.isFinite(intensity)
+      ? Math.max(0, Math.min(1, intensity))
+      : 1;
+    gl.uniform1f(this.intensityLocation, normalizedIntensity);
     gl.uniform2f(this.canvasSizeLocation, canvas.width, canvas.height);
     gl.uniform2f(this.imageSizeLocation, sourceWidth, sourceHeight);
     gl.disable(gl.BLEND);
