@@ -112,7 +112,12 @@ export function GpuLutImage({
 
       void WebGL2LutRenderer.create(canvas)
         .then((nextRenderer) => {
-          if (disposed || version !== initializationVersion || passThroughRef.current) {
+          if (
+            disposed ||
+            version !== initializationVersion ||
+            passThroughRef.current ||
+            !isNearViewportRef.current
+          ) {
             nextRenderer.dispose();
             return;
           }
@@ -165,6 +170,13 @@ export function GpuLutImage({
                 initialize();
               } else {
                 isNearViewportRef.current = false;
+                if (renderer) {
+                  renderer.dispose();
+                  renderer = null;
+                  canvas.width = 1;
+                  canvas.height = 1;
+                  setReady(false);
+                }
               }
             },
             { rootMargin: "160px" },
