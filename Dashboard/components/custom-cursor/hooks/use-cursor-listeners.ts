@@ -123,6 +123,8 @@ export function useHardwareCursorListeners({
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      if (isVisible && targetX === e.clientX && targetY === e.clientY) return;
+
       targetX = e.clientX;
       targetY = e.clientY;
 

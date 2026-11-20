@@ -548,3 +548,10 @@ The next trace should isolate one repeatable Canvas action and use the target di
 
 - The custom cursor now checks its scroll timeout with an explicit `null` sentinel, clears that sentinel when the callback fires, and uses the same explicit check during effect cleanup. This correctly handles a valid browser timeout ID of zero and avoids retaining a stale completed timer handle.
 - Scroll suppression duration and cursor hover/tilt behavior remain unchanged. This is lifecycle correctness and scheduling hygiene, not a measured performance gain.
+
+### Reuse pan-motion state and skip unchanged cursor input (20 November 2026)
+
+- `features/iot/components/canvas/nodeMotion.ts` now creates the per-container pan-motion state once and mutates its three numeric fields as smoothing advances, rather than allocating and storing a new object on every changed pan frame. The smoothing coefficients, thresholds, rounded values, and per-node transforms are unchanged; clearing a gesture still deletes the WeakMap entry.
+- The same module avoids redundant inline `rotate` style writes when a dragged node's rounded tilt has not changed, and avoids removing an already-empty property. The resulting CSS value and drag feedback are unchanged.
+- `components/custom-cursor/hooks/use-cursor-listeners.ts` ignores duplicate pointer-move coordinates while the cursor is already visible. This avoids scheduling a no-op animation frame when the pointer hardware reports the same position; first-entry visibility and all changed-coordinate interpolation remain unchanged.
+- These are source-level allocation and DOM-write reductions. They do not move pointer processing to the GPU and no frame-time, CPU, or VRAM measurement is claimed.

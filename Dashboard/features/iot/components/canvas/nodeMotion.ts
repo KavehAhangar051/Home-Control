@@ -127,11 +127,16 @@ export function setNodeDragTiltCssVar(element: HTMLElement | null, tiltDeg: numb
   if (!element) return;
 
   if (!areSheetAnimationsAllowed()) {
+    if (element.style.rotate) {
     element.style.removeProperty("rotate");
+  }
     return;
   }
 
-  element.style.rotate = `${tiltDeg}deg`;
+  const rotateValue = `${tiltDeg}deg`;
+  if (element.style.rotate !== rotateValue) {
+    element.style.rotate = rotateValue;
+  }
 }
 
 export function clearNodeDragTiltCssVar(element: HTMLElement | null): void {
@@ -210,24 +215,27 @@ export function setSheetPanMotionCssVars(
   const targetShiftX = Math.max(-4.5, Math.min(4.5, frameDeltaX * 0.14));
   const targetShiftY = Math.max(-4.5, Math.min(4.5, frameDeltaY * 0.14));
 
-  const prev = panMotionStateByContainer.get(container) ?? { tilt: 0, shiftX: 0, shiftY: 0 };
-  const nextTilt = Math.round((prev.tilt * 0.62 + targetTilt * 0.38) * 100) / 100;
-  const nextShiftX = Math.round((prev.shiftX * 0.62 + targetShiftX * 0.38) * 10) / 10;
-  const nextShiftY = Math.round((prev.shiftY * 0.62 + targetShiftY * 0.38) * 10) / 10;
+  let motionState = panMotionStateByContainer.get(container);
+  if (!motionState) {
+    motionState = { tilt: 0, shiftX: 0, shiftY: 0 };
+    panMotionStateByContainer.set(container, motionState);
+  }
+
+  const nextTilt = Math.round((motionState.tilt * 0.62 + targetTilt * 0.38) * 100) / 100;
+  const nextShiftX = Math.round((motionState.shiftX * 0.62 + targetShiftX * 0.38) * 10) / 10;
+  const nextShiftY = Math.round((motionState.shiftY * 0.62 + targetShiftY * 0.38) * 10) / 10;
 
   if (
-    Math.abs(nextTilt - prev.tilt) < 0.03 &&
-    Math.abs(nextShiftX - prev.shiftX) < 0.08 &&
-    Math.abs(nextShiftY - prev.shiftY) < 0.08
+    Math.abs(nextTilt - motionState.tilt) < 0.03 &&
+    Math.abs(nextShiftX - motionState.shiftX) < 0.08 &&
+    Math.abs(nextShiftY - motionState.shiftY) < 0.08
   ) {
     return;
   }
 
-  panMotionStateByContainer.set(container, {
-    tilt: nextTilt,
-    shiftX: nextShiftX,
-    shiftY: nextShiftY,
-  });
+  motionState.tilt = nextTilt;
+  motionState.shiftX = nextShiftX;
+  motionState.shiftY = nextShiftY;
 
   const rotateValue = `${nextTilt}deg`;
   const translateValue = `${nextShiftX}px ${nextShiftY}px`;
