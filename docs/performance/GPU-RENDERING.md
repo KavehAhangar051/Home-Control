@@ -531,3 +531,9 @@ The next trace should isolate one repeatable Canvas action and use the target di
 
 - `parseCubeLut` now splits each non-empty, comment-stripped line once and reuses that token array for directive parsing and RGB triplet extraction. Previously, LUT data rows were split a second time and every line also created a rest-parameter array.
 - Parsed values, directive handling, row ordering, validation, clamping, and generated RGBA data remain unchanged. This reduces temporary array/string-tokenization work when loading larger 3D LUT files; it does not affect shader execution or establish a measured load-time improvement.
+
+### Deduplicate slider and color-picker drag updates (2026-11-20)
+
+- The shared slider hook now skips a snapped value when it equals the latest committed value. Pointer samples that remain within the same step no longer repeat the controlled callback or schedule redundant uncontrolled state updates; the final commit callback still runs on release.
+- The shared Color Picker drag hook now skips consecutive pointer samples that map to the same normalized rail coordinates. It resets that comparison at the start of each gesture, so a new drag always applies its initial point and layout changes between gestures are respected.
+- Pointer sampling remains coalesced to one animation frame, pointer-down remains immediate, and pointer-up still flushes its final coordinates. This reduces duplicate main-thread state work without changing snapping, color mapping, or visible interaction; no runtime FPS/INP measurement is claimed.
