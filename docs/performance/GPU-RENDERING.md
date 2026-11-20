@@ -141,3 +141,36 @@ A further source inspection found two details worth preserving in future optimiz
 - The source image currently enters the 2D texture through `texImage2D` only when the source object changes. Do not mechanically replace this with `texStorage2D` + `texSubImage2D`: immutable storage can make allocation behavior more predictable, but DOM-image uploads can have different costs across implementations. Benchmark the actual image-upload path before changing it. The 3D LUT already uses immutable `texStorage3D` allocation followed by `texSubImage3D` updates.
 
 These are source-level candidates, not confirmed performance defects. No runtime trace or GPU timing is available, so no renderer code was changed in this pass.
+
+### Expanded source-level inventory (2026-11-20)
+
+The following paths extend the initial inventory. These are source observations and migration candidates, not proof of paint cost, compositor promotion, or GPU execution. Runtime classification remains **not measured** until comparable browser traces are captured.
+
+| Area | Source paths | Current behavior / migration boundary |
+|---|---|---|
+| Global CSS motion | `app/globals.css` | Defines fade, slide, dialog, header marquee, node perimeter orbit, port wakeup, popover entry/exit, and reduced-motion rules. Transform/opacity keyframes are compositor candidates; animated conic gradients, masks, backdrop filters, and custom properties require browser traces. Preserve all keyframes and reduced-motion behavior. |
+| Native View Transitions | `components/motion/theme-toggle-config.ts`, `components/motion/theme-toggle.tsx`, `styles/view-transitions.css` | Rectangle/circle/circle-blur/blinds effects use `clip-path`, `filter`, mask and a registered custom property. Keep exact geometry, timing, origin, theme synchronization, and interruption semantics; do not remove blur in the full tier. |
+| Shared Motion primitives | `components/MotionProvider.tsx`, `components/motion/action-swap.tsx`, `components/motion/action-swap-variants.ts` | Existing Motion 14 runtime and lazy `domMax` feature loading. Audit animated properties and per-frame state updates; do not replace the runtime or change variant selection without profiling. |
+| Loader family | `components/motion/loader.tsx`, `components/motion/loader-shapes.tsx` | Geometric variants use Motion animations, including transform/opacity and other shape-specific properties. ASCII variants update React state from an interval and change glyph content; a texture-only replacement would alter DOM semantics and is not automatically equivalent. |
+| Color picker | `components/motion/color-picker.tsx` | Uses MotionValues/springs for interactive cursor/thumb/loupe behavior. Inspect the spring update path and reveal effects; preserve drag response and the exact visual easing. |
+| Slider family | `components/motion/dashboard-slider.tsx`, `components/motion/range-slider*.tsx` | Uses MotionValues/springs and transform-driven fills/thumbs across variants. Preserve track geometry, bubble/ruler/wave behavior, and input semantics; avoid React state per pointer sample. |
+| Dock and expandable navigation | `components/motion/dock.tsx`, `components/motion/expandable-tabs.tsx`, `components/motion/expandable-tabs-layout.tsx` | Motion-driven panel and active-indicator transitions with translucent/backdrop surfaces. Profile large-area blur, layer count, and animation properties; no blanket layer promotion. |
+| Canvas/Workflow viewport | `features/iot/components/canvas/sheetViewportAnimator.ts`, `useSheetViewportGestures.ts`, `CanvasWorkspace.tsx`, `canvasGeometry.ts` | rAF computes flight, focal zoom, and inertia; imperative DOM writes update world/grid transforms and zoom labels. Static-target flights may be candidates for native WAAPI; dynamic focal zoom/inertia require equivalent retargeting and live readouts. Grid spacing changes at zoom thresholds and may repaint. |
+| Canvas node motion | `features/iot/components/canvas/nodeMotion.ts`, `useCanvasNodeInteractions.ts`, `CanvasGroupNode.tsx`, `CanvasSegmentNode.tsx` | Pointer-driven tilt/translation is written to non-inherited transform properties on cached node elements. The pan path loops over visible nodes; measure DOM write volume and compositing cost before changing it. |
+| Canvas wire effects | `features/iot/components/canvas/CanvasWiresLayer.tsx`, `components/motion/composited-bezier-particle.tsx` | Bezier paths are sampled on geometry changes and animated through WAAPI transform/opacity. Verify compositor execution and memory cost with realistic node/particle counts. |
+| Node perimeter and port effects | `features/iot/components/canvas/NodePerimeterSpark.tsx`, `app/globals.css` | Two masked conic-gradient layers rotate continuously; port wakeup uses scale/opacity. Perimeter masks/gradients may still require raster work even when the rotation itself is composited. |
+| GPU image grading | `components/gpu/GpuLutImage.tsx`, `lib/gpu/webgl2-lut-renderer.ts`, `lib/gpu/lut3d.ts` | Lazy WebGL2 image surface with 3D LUT texture and source-image fallback. The component is not mounted in the live dashboard. Identity LUT data can be generated, but a bit-preserving pass-through shader mode and a deliberate opt-in creative grading integration are still design/implementation work. |
+
+### Baseline status and first migration order
+
+No Chrome DevTools Performance trace, target-device frame-time sample, GPU memory reading, or before/after visual comparison is attached to this repository as of this inventory. Accordingly, all performance impact statements above are source-level hypotheses. The scorecard remains **not measured**.
+
+Recommended investigation order, subject to trace evidence:
+
+1. Capture the existing Canvas/Workflow gesture and animation traces; the rAF viewport loop is the clearest recurring JavaScript frame path.
+2. Capture loader and decorative particle/spark scenes under realistic concurrency; distinguish WAAPI compositor work from mask/gradient raster work.
+3. Capture theme View Transitions separately for all four variants; preserve the authored effects even if their raster work remains browser-managed.
+4. Capture the slider/color-picker and Dock interactions while MQTT state updates are arriving; identify React/DOM work overlapping the frame budget.
+5. Audit the existing LUT renderer independently before mounting it anywhere. Identity mode must have a pass-through path for exact source preservation; creative mode stays opt-in and decorative-only.
+
+The next code change must target one measured path at a time. Do not implement a global CSS override, global WebGL screenshot compositor, blanket `will-change`, or blanket Worker conversion.
