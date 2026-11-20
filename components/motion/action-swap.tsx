@@ -107,7 +107,10 @@ function ActionSwapText({ value, children, animation = "blur", className }: Acti
             initial={reduce ? false : "initial"}
             animate={reduce ? { opacity: 1, scale: 1, y: 0 } : "animate"}
             exit={reduce ? undefined : "exit"}
-            className="absolute start-0 top-[0.08em] inline-block max-w-full truncate will-change-transform"
+            className={cn(
+              "absolute start-0 top-[0.08em] inline-block max-w-full truncate",
+              reduce ? undefined : "will-change-transform",
+            )}
           >
             {children}
           </m.span>
@@ -144,7 +147,10 @@ export function ActionSwapIcon({
           initial={reduce ? false : "initial"}
           animate={reduce ? { opacity: 1, scale: 1, y: 0 } : "animate"}
           exit={reduce ? undefined : "exit"}
-          className="col-start-1 row-start-1 inline-flex items-center justify-center will-change-transform"
+          className={cn(
+            "col-start-1 row-start-1 inline-flex items-center justify-center",
+            reduce ? undefined : "will-change-transform",
+          )}
         >
           {children}
         </m.span>
