@@ -59,7 +59,7 @@ lib/
   audio/                 Audio managers and UI sound effects
   presets.ts             Shared presets/configuration values
 public/                  Static assets served by the frontend
-docs/                    Protocol, configuration, and project reference docs
+docs/                    Protocol, configuration, dimensional drawings (`docs/dimensional-drawings/`), and reference docs
 .github/workflows/       GitHub Actions automation
 .env.example             Environment-variable template; contains placeholders only
 next.config.ts           Next.js export and deployment configuration
@@ -306,8 +306,8 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
   - Configured in **Lite Mode**: `awareness.level = "default"` (10-line compact output contract with zero prompt bloat), `colors = false`, `emoji = false`, `pro_hint = false`, `telemetry.enabled = false`, lossless SQLite gzip recall store (`rtk recall <hash>`), and `.rtk/pipeline.toml` (`home-control-lite` extending `rtk:default` + `rtk:terse`) for `<10ms` deterministic CLI token compression (60–90% reduction across `rtk git`, `rtk tsc`, `rtk bun`, `rtk next`, `rtk grep`, `rtk ls`, `rtk diff`, `rtk test`, `rtk err`).
 - **`TokenEconomizer` + `rtk` + `cbm` Persistent Vault & Unified Bridge (`/.agent-state/`, `./tools/agent-bridge.py`, `./tools/r`):**
   - All three tools store their cached binaries, `history.db` SQLite savings store, Lite Mode pipeline config, self-contained stdlib plugin bundle, and learned repository state inside gitignored/cbm-ignored `/.agent-state/{rtk,tokeneconomizer,cbm}` (symlinked to `~/.config/rtk`, `~/.local/share/rtk`, `~/.tokeneconomizer`, `~/.local/bin/codebase-memory-mcp`, and `/usr/local/bin/{rtk,te,te-hook,codebase-memory-mcp}`) so container resets recover offline in milliseconds without losing `rtk gain` metrics or learned `microskills`.
-  - `./tools/r <cmd>` (`bun run r -- <cmd>`) and `./tools/agent-bridge.py {start,run,end}` bypass missing external host hook runners in AI Studio by automatically dispatching eligible CLI commands through `rtk`, emitting `SessionStart` / `UserPromptSubmit` / `PostToolUse` / `PostToolUseFailure` / `Stop` / `SessionEnd` events plus Claude-compatible JSONL transcripts into `te-hook --host claude`, surfacing LoopGuard redirects mid-turn, and running `te fold` on completion.
-  - Configured per-repository with `microskills=envfacts`, `toolprune=propose`, and `loopguard=nudge`, coexisting transparently alongside `rtk` (Lite Mode) and `codebase-memory-mcp`.
+  - `./tools/r <cmd>` (`bun run r -- <cmd>`) and `./tools/agent-bridge.py {start,run,end}` bypass missing external host hook runners in AI Studio by auto-restoring `+x` permissions on `./tools/*`, unwrapping `bun run {typecheck,lint,format,lint:ox,test,build,check}` into native `rtk` filters (`rtk tsc`, `rtk err bunx biome/oxlint`, `rtk test`, `rtk next`, avoiding `rtk:passthrough` `0`-token gaps and keeping `cbm` unwrapped), emitting `SessionStart` / `UserPromptSubmit` / `PostToolUse` / `PostToolUseFailure` / `Stop` / `SessionEnd` events plus Claude-compatible JSONL transcripts into `te-hook --host claude`, surfacing LoopGuard redirects mid-turn, auto-folding stale prior sessions (`>60s` on explicit `start` or `>=600s` idle), and running `te fold` on `end`.
+  - Configured per-repository with `microskills=envfacts`, `toolprune=propose`, and `loopguard=nudge`, coexisting transparently alongside `rtk` (Lite Mode) and `codebase-memory-mcp`. Note: `te status`'s `effective tokens` metric requires LLM API usage blocks from a native host CLI transcript and remains `0` in AI Studio's sandbox, while `rtk gain` measures exact CLI output token savings.
 
 ## 20. Canvas Sheet Kinetic & Spatial Motion + 60 FPS Compositor Pipeline (`sheetViewportAnimator.ts`, 19 November 2026)
 
@@ -418,3 +418,7 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
   - `AnalogInputConfigEditor.tsx` inside `SegmentSettingsMenu.tsx` provides live sensor preset, resolution, interval, delta, and `ATH`/`ATL` updates (`0x0C`).
   - `AddSegmentForm.tsx`, `PinSelector.tsx`, `AnalogInputSettingsPanel.tsx`, `SegmentList.tsx`, `ConditionsSection.tsx`, `ConditionSegment.tsx`, and `WorkflowNodeBodies.tsx` support creating, configuring, inspecting, and building Schmitt-Trigger / workflow rules from `analog_input` sensors.
 
+## 27. Dimensional Drawing Reference Suite & Concentric Radius Alignment (20 November 2026)
+
+- **Monochrome architectural spec sheets (`docs/dimensional-drawings/`):** Added self-contained Apple-style monochrome dimensional drawings measured directly from source components (`index.html`, `segment-card-sheet.html` / `UI-SEG-001`, `mobile-dock-sheet.html` / `UI-DOCK-001`, and `group-bezel-sheet.html` / `UI-GRP-001`), using variable-based dimensions, closed formulas, RTL slot architecture, exploded axonometric layer stacks, concentric corner details, and viewport/container-query schematics.
+- **Concentric corner radius precision (`app/globals.css`, `SortableGroup.tsx`, `GroupHeader.tsx`, `CardFooter.tsx`):** Aligned `.bezel-core` and group inner card corners to exact concentric geometry (`calc(1.25rem - 1px - 0.375rem)` = `13px`, satisfying `R2 = R1 − B − S6 = 20 − 1 − 6`), and aligned `SwitchModeTrack` thumb radii to exact concentric geometry (`rounded-[4px]` standard = `7 − 1 − 2`, `rounded-[3px]` small = `6 − 1 − 2`).

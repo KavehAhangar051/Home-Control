@@ -74,7 +74,7 @@ export default function GroupHeader({
 
   return (
     <div
-      className={`flex items-center justify-between w-full min-w-0 gap-2 relative z-20 border-b border-border-color bg-card-hover-bg rounded-t-[calc(1.25rem-0.375rem)] ${
+      className={`flex items-center justify-between w-full min-w-0 gap-2 relative z-20 border-b border-border-color bg-card-hover-bg rounded-t-[calc(1.25rem-1px-0.375rem)] ${
         isDenseHeader ? "px-2.5 py-2" : "px-3 py-2.5 @md/group:px-4 @md/group:py-3"
       }`}
     >

@@ -32,6 +32,31 @@ TE_BIN = TE_HOME / "bin" / "te"
 TE_HOOK_BIN = TE_HOME / "bin" / "te-hook"
 RTK_CACHE_BIN = STATE_ROOT / "rtk" / "bin" / "rtk"
 
+EXECUTABLE_TOOLS = (
+    ROOT_DIR / "tools" / "r",
+    ROOT_DIR / "tools" / "rtk.sh",
+    ROOT_DIR / "tools" / "te.sh",
+    ROOT_DIR / "tools" / "cbm.sh",
+    ROOT_DIR / "tools" / "agent-bridge.py",
+)
+
+NON_RTK_SCRIPTS = frozenset(
+    {
+        "cbm",
+        "cbm:index",
+        "rtk",
+        "rtk:gain",
+        "rtk:setup",
+        "te",
+        "te:status",
+        "te:doctor",
+        "te:setup",
+        "r",
+        "agent:start",
+        "agent:end",
+    }
+)
+
 RTK_COMMANDS = frozenset(
     {
         "ls",
@@ -75,8 +100,6 @@ RTK_COMMANDS = frozenset(
         "cargo",
         "npm",
         "npx",
-        "bun",
-        "bunx",
         "curl",
     }
 )
@@ -91,7 +114,14 @@ def _tool_env() -> dict[str, str]:
 
 
 def ensure_ready() -> None:
-    """Restore persistent symlinks and binaries in milliseconds if container reset."""
+    """Restore persistent symlinks, executable bits, and binaries if container reset."""
+    for tool_path in EXECUTABLE_TOOLS:
+        if tool_path.is_file() and not os.access(tool_path, os.X_OK):
+            try:
+                tool_path.chmod(tool_path.stat().st_mode | 0o755)
+            except OSError:
+                pass
+
     rtk_ok = (
         Path("/usr/local/bin/rtk").is_file()
         and (Path.home() / ".config" / "rtk").is_symlink()
@@ -163,14 +193,17 @@ def _print_hook_messages(resp: dict) -> None:
             print(ctx.strip())
 
 
-def start_session(prompt: str = "AI Studio task") -> dict:
+def start_session(prompt: str = "AI Studio task", explicit: bool = False) -> dict:
     ensure_ready()
     existing = _read_active_session()
     if existing:
         age = time.time() - float(existing.get("updated_at", existing.get("started_at", 0)))
-        if age < 1800:
+        calls = int(existing.get("calls", 0))
+        # Explicit `start` folds any prior non-empty session (>60s old); implicit runs fold after 10m idle
+        if (explicit and calls > 0 and age > 60) or age >= 600:
+            end_session(quiet=True)
+        else:
             return existing
-        end_session(quiet=True)
 
     TRANSCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
     sid = f"ais-{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
@@ -214,36 +247,124 @@ def start_session(prompt: str = "AI Studio task") -> dict:
     return session
 
 
-def _rewrite_for_rtk(args: list[str]) -> tuple[list[str], bool, str]:
-    """Return (exec_argv, use_shell, logical_command_str)."""
+def _rtk_bin() -> str:
+    return str(RTK_CACHE_BIN) if RTK_CACHE_BIN.is_file() else "rtk"
+
+
+def _test_files() -> list[str]:
+    files = sorted(str(p.relative_to(ROOT_DIR)) for p in (ROOT_DIR / "tests").glob("*.test.mjs"))
+    return files or ["tests/*.test.mjs"]
+
+
+def _resolve_single_command(toks: list[str]) -> tuple[list[str], str, dict[str, str]]:
+    """Map package scripts & biome/oxlint/tsc/test/next commands to native RTK filters.
+
+    Returns (exec_argv, logical_cmd_for_te, extra_env).
+    """
+    if not toks:
+        return toks, "", {}
+
+    if toks[0] == "rtk" and len(toks) > 1:
+        toks = toks[1:]
+
+    rtk = _rtk_bin()
+
+    # Unwrap `bun run <script> [extra...]` / `npm run <script> [extra...]`
+    if len(toks) >= 3 and toks[0] in ("bun", "npm") and toks[1] == "run":
+        script = toks[2]
+        rest = toks[3:]
+        if script == "typecheck":
+            cmd = ["tsc", "--noEmit", *rest]
+            return [rtk, *cmd], shlex.join(cmd), {}
+        if script == "lint":
+            cmd = ["bunx", "biome", "lint", "--max-diagnostics=1000", "app", "components", "features", "lib", *rest]
+            return [rtk, "err", *cmd], shlex.join(cmd), {}
+        if script == "format":
+            cmd = ["bunx", "biome", "format", "--write", "app", "components", "features", "lib", *rest]
+            return [rtk, "err", *cmd], shlex.join(cmd), {}
+        if script == "lint:ox":
+            cmd = ["bunx", "oxlint", "app", "components", "features", "lib", *rest]
+            return [rtk, "err", *cmd], shlex.join(cmd), {}
+        if script == "test":
+            tfiles = rest if rest else _test_files()
+            cmd = ["node", "--import", "./tests/ts-loader.mjs", "--test", *tfiles]
+            return [rtk, "test", *cmd], shlex.join(cmd), {}
+        if script == "build":
+            cmd = ["next", "build", "--turbopack", *rest]
+            return [rtk, *cmd], shlex.join(cmd), {"NODE_ENV": "production"}
+        if script == "check":
+            lint_cmd = " ".join(
+                shlex.quote(t)
+                for t in [rtk, "err", "bunx", "biome", "lint", "--max-diagnostics=1000", "app", "components", "features", "lib"]
+            )
+            tsc_cmd = f"{shlex.quote(rtk)} tsc --noEmit"
+            test_cmd = " ".join(
+                shlex.quote(t) for t in [rtk, "test", "node", "--import", "./tests/ts-loader.mjs", "--test", *_test_files()]
+            )
+            return ["bash", "-lc", f"{lint_cmd} && {tsc_cmd} && {test_cmd}"], "bun run check", {}
+        if script == "cbm":
+            cmd = ["bash", str(ROOT_DIR / "tools" / "cbm.sh"), "cli", *rest]
+            return cmd, shlex.join(toks), {}
+        if script == "cbm:index":
+            cmd = ["bash", str(ROOT_DIR / "tools" / "cbm.sh"), "index", *rest]
+            return cmd, shlex.join(toks), {}
+        if script in NON_RTK_SCRIPTS:
+            return toks, shlex.join(toks), {}
+
+    # Direct biome / oxlint invocations compress best via `rtk err`
+    if toks[:2] in (["bunx", "biome"], ["npx", "biome"]) or toks[0] in ("biome", "oxlint") or toks[:2] in (
+        ["bunx", "oxlint"],
+        ["npx", "oxlint"],
+    ):
+        return [rtk, "err", *toks], shlex.join(toks), {}
+
+    if toks[0] in RTK_COMMANDS:
+        return [rtk, *toks], shlex.join(toks), {}
+
+    return toks, shlex.join(toks), {}
+
+
+def _rewrite_for_rtk(args: list[str]) -> tuple[list[str], bool, str, dict[str, str]]:
+    """Return (exec_argv, use_shell, logical_command_str, extra_env)."""
     if len(args) == 1 and any(tok in args[0] for tok in SHELL_META_TOKENS):
         raw_cmd = args[0]
         # Rewrite simple `&&`-separated commands safely without touching pipes/subshells
         if all(tok not in raw_cmd for tok in ("|", ";", ">", "<", "$(", "`", "\n", "||")):
             parts = [p.strip() for p in raw_cmd.split("&&") if p.strip()]
             rewritten: list[str] = []
+            logical_parts: list[str] = []
+            merged_env: dict[str, str] = {}
             for part in parts:
                 try:
                     toks = shlex.split(part)
                 except ValueError:
                     rewritten.append(part)
+                    logical_parts.append(part)
                     continue
-                if toks and toks[0] in RTK_COMMANDS:
-                    rewritten.append(shlex.join(["rtk", *toks]))
+                resolved, logical, extra_env = _resolve_single_command(toks)
+                merged_env.update(extra_env)
+                if resolved[:2] == ["bash", "-lc"] and len(resolved) == 3:
+                    rewritten.append(resolved[2])
                 else:
-                    rewritten.append(part)
-            return ["bash", "-lc", " && ".join(rewritten)], False, raw_cmd
-        return ["bash", "-lc", raw_cmd], False, raw_cmd
+                    rewritten.append(shlex.join(resolved))
+                logical_parts.append(logical or part)
+            return ["bash", "-lc", " && ".join(rewritten)], False, " && ".join(logical_parts), merged_env
+        return ["bash", "-lc", raw_cmd], False, raw_cmd, {}
 
     if args and args[0] == "--raw":
         inner = args[1:]
-        return inner, False, shlex.join(inner)
+        return inner, False, shlex.join(inner), {}
 
-    if args and args[0] in RTK_COMMANDS:
-        rtk_bin = str(RTK_CACHE_BIN) if RTK_CACHE_BIN.is_file() else "rtk"
-        return [rtk_bin, *args], False, shlex.join(args)
+    if len(args) == 1 and " " in args[0]:
+        try:
+            toks = shlex.split(args[0])
+            resolved, logical, extra_env = _resolve_single_command(toks)
+            return resolved, False, logical, extra_env
+        except ValueError:
+            pass
 
-    return args, False, shlex.join(args)
+    resolved, logical, extra_env = _resolve_single_command(args)
+    return resolved, False, logical, extra_env
 
 
 def run_command(args: list[str]) -> int:
@@ -256,8 +377,9 @@ def run_command(args: list[str]) -> int:
     sid = session["session_id"]
     transcript = Path(session["transcript_path"])
 
-    argv, use_shell, logical_cmd = _rewrite_for_rtk(args)
+    argv, use_shell, logical_cmd, extra_env = _rewrite_for_rtk(args)
     env = _tool_env()
+    env.update(extra_env)
     env["TE_SESSION_ID"] = sid
 
     proc = subprocess.run(argv, shell=use_shell, env=env, cwd=str(ROOT_DIR), capture_output=True, text=True)
@@ -401,7 +523,7 @@ def main() -> int:
         return 0
     if action == "start":
         prompt = " ".join(sys.argv[2:]).strip() or "AI Studio task"
-        sess = start_session(prompt)
+        sess = start_session(prompt, explicit=True)
         print(f"[TokenEconomizer] Active session: {sess['session_id']} (calls: {sess['calls']})")
         return 0
     if action == "run":
