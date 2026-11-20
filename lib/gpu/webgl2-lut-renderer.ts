@@ -21,10 +21,21 @@ in vec2 v_uv;
 uniform sampler2D u_source;
 uniform sampler3D u_lut;
 uniform float u_intensity;
+uniform vec2 u_canvas_size;
+uniform vec2 u_image_size;
 out vec4 out_color;
 
 void main() {
-  vec4 source = texture(u_source, v_uv);
+  float canvas_aspect = u_canvas_size.x / u_canvas_size.y;
+  float image_aspect = u_image_size.x / u_image_size.y;
+  vec2 uv_scale = vec2(1.0);
+  if (image_aspect > canvas_aspect) {
+    uv_scale.x = canvas_aspect / image_aspect;
+  } else {
+    uv_scale.y = image_aspect / canvas_aspect;
+  }
+  vec2 image_uv = (v_uv - 0.5) * uv_scale + 0.5;
+  vec4 source = texture(u_source, image_uv);
   vec3 graded = texture(u_lut, clamp(source.rgb, 0.0, 1.0)).rgb;
   out_color = vec4(mix(source.rgb, graded, u_intensity), source.a);
 }`;
@@ -80,6 +91,9 @@ export class WebGL2LutRenderer {
   private readonly program: WebGLProgram;
   private readonly vertexArray: WebGLVertexArrayObject;
   private readonly sourceTexture: WebGLTexture;
+  private readonly intensityLocation: WebGLUniformLocation | null;
+  private readonly canvasSizeLocation: WebGLUniformLocation | null;
+  private readonly imageSizeLocation: WebGLUniformLocation | null;
   private lutTexture: WebGLTexture | null = null;
   private lutTextureSize = 0;
   private uploadedLutData: Uint8Array | null = null;
@@ -89,6 +103,7 @@ export class WebGL2LutRenderer {
     const gl = canvas.getContext("webgl2", {
       alpha: true,
       antialias: false,
+      premultipliedAlpha: false,
       depth: false,
       stencil: false,
       powerPreference: "high-performance",
@@ -117,6 +132,9 @@ export class WebGL2LutRenderer {
     gl.useProgram(this.program);
     gl.uniform1i(gl.getUniformLocation(this.program, "u_source"), 0);
     gl.uniform1i(gl.getUniformLocation(this.program, "u_lut"), 1);
+    this.intensityLocation = gl.getUniformLocation(this.program, "u_intensity");
+    this.canvasSizeLocation = gl.getUniformLocation(this.program, "u_canvas_size");
+    this.imageSizeLocation = gl.getUniformLocation(this.program, "u_image_size");
 
     gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -144,7 +162,13 @@ export class WebGL2LutRenderer {
     return true;
   }
 
-  render(source: TexImageSource, lut: Lut3D, intensity = 1): boolean {
+  render(
+    source: TexImageSource,
+    lut: Lut3D,
+    intensity = 1,
+    sourceWidth: number,
+    sourceHeight: number,
+  ): boolean {
     const gl = this.gl;
     if (this.disposed || gl.isContextLost()) return false;
     if (lut.size < 2 || lut.size > 64 || lut.data.length !== lut.size ** 3 * 4) {
@@ -197,10 +221,10 @@ export class WebGL2LutRenderer {
 
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vertexArray);
-    gl.uniform1f(
-      gl.getUniformLocation(this.program, "u_intensity"),
-      Math.max(0, Math.min(1, intensity)),
-    );
+    const canvas = gl.canvas as HTMLCanvasElement;
+    gl.uniform1f(this.intensityLocation, Math.max(0, Math.min(1, intensity)));
+    gl.uniform2f(this.canvasSizeLocation, canvas.width, canvas.height);
+    gl.uniform2f(this.imageSizeLocation, sourceWidth, sourceHeight);
     gl.disable(gl.BLEND);
     gl.disable(gl.DEPTH_TEST);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
