@@ -229,11 +229,20 @@ export function InlineSlider({
   const overlapsText = (x: number, bounds: { start: number; end: number }) =>
     x + 2 >= bounds.start && x - 2 <= bounds.end;
 
-  const ticks = showTicks
-    ? stops
-        .map((stop) => stop.x)
-        .filter((x) => !overlapsText(x, labelBounds) && !overlapsText(x, readoutBounds))
-    : [];
+  const ticks = useMemo(() => {
+    if (!showTicks) return [];
+
+    return stops
+      .map((stop) => stop.x)
+      .filter(
+        (x) =>
+          !overlapsText(x, { start: TEXT_INSET, end: TEXT_INSET + geometry.labelWidth }) &&
+          !overlapsText(x, {
+            start: geometry.width - TEXT_INSET - geometry.readoutWidth,
+            end: geometry.width - TEXT_INSET,
+          }),
+      );
+  }, [showTicks, stops, geometry.width, geometry.labelWidth, geometry.readoutWidth]);
 
   const queueDragCommit = (value: number) => {
     pendingDragValue.current = value;
