@@ -47,7 +47,7 @@ The source image must be same-origin or served with CORS permission. The compone
 - Uses one fullscreen triangle and a fragment shader. The 3D lookup and interpolation run in the graphics pipeline.
 - Does not read rendered pixels back to JavaScript.
 - Does not allocate mipmaps or poll GPU state in the render path.
-- Uses a device-pixel-ratio cap of 2 and a 4096-pixel maximum output edge to bound framebuffer allocation. A 4096×4096 RGBA8 source texture can still consume up to 64 MiB, so avoid mounting multiple large surfaces concurrently.
+- Sizes the drawing buffer from the current device pixel ratio without an arbitrary 2× cap, bounded by `MAX_RENDERBUFFER_SIZE`, `MAX_VIEWPORT_DIMS`, and a 4096-pixel maximum output edge. This preserves the highest supported output density within the renderer's existing ceiling. A 4096×4096 RGBA8 source texture can still consume up to 64 MiB, so avoid mounting multiple large surfaces concurrently.
 - Reuses the source texture when only LUT intensity or surface dimensions change; LUT data is re-uploaded only when its typed-array reference changes. Output dimensions are capped at 4096 pixels per edge.
 - Creates the context only when the surface approaches the viewport; it does not keep an animation loop alive.
 - Re-arms a resolution media-query listener after each `devicePixelRatio` change so moving the browser between displays with different pixel densities redraws the backing buffer even when the CSS box size is unchanged. `ResizeObserver` alone does not guarantee notification for DPR-only changes.
