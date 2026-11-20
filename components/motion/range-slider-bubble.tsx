@@ -117,7 +117,7 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
           style={{ x: thumbX, willChange: "transform" }}
         >
           <m.div
-            className="size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent3 bg-card-bg-solid shadow-sm will-change-transform"
+            className="size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent3 bg-card-bg-solid shadow-sm"
             animate={reduce ? undefined : { scale: dragging ? 1.25 : 1 }}
             transition={SPRING_PRESS}
           />
