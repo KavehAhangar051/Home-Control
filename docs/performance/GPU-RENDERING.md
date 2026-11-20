@@ -390,3 +390,12 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - The shared `[popover]` rule transitions `opacity` and `transform` over 200ms and uses `display 200ms allow-discrete` for the native open/close lifecycle. The `@starting-style` rule supplies the existing closed-to-open starting values.
 - Keep this native CSS transition rather than replacing it with a JavaScript animation loop: opacity/transform are compositor-friendly candidates and avoid per-frame React/DOM writes. Actual off-main-thread execution remains browser- and element-dependent.
 - Do not add permanent `will-change` to all popovers. They can be numerous and short-lived; MDN warns that broad or persistent hints increase memory use and can worsen rendering. Preserve the current 200ms duration, easing token, scale (0.96 → 1), opacity, discrete display behavior, and reduced-motion override.
+
+
+### Theme View Transition effect audit (2026-11-20)
+
+- Audited the four existing theme reveal variants in `components/motion/theme-toggle-config.ts`: rectangular and circular `clip-path` reveals, circular `clip-path + filter: blur()`, and the repeated `mask-image` blinds reveal driven by the registered `--beui-vt-slat` custom property.
+- These effects are intentionally retained unchanged. Unlike simple `transform`/ `opacity` animation, `clip-path`, `filter`, animated custom properties, and masks are not a universal compositor-only guarantee; depending on browser, GPU, geometry, and implementation they can require paint/raster work. The temporary `will-change` hints do not guarantee GPU execution or dedicated VRAM allocation.
+- Do not replace these reveals with a different effect or reduce blur, duration, origin, mask geometry, or easing to chase a presumed GPU win. Any future renderer migration must reproduce all four variants and be validated visually and with browser compositor/raster traces on supported engines.
+- The existing CSS View Transition path remains preferable to introducing a JavaScript per-frame loop. Keep the current animation definitions and use browser-native transition handling; measure before changing the rendering path.
+- References: [MDN CSS animation performance](https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Performance/CSS), [MDN `will-change`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change), [Chrome modern motion guidance](https://github.com/GoogleChrome/modern-web-guidance-src/blob/main/guides/ui-behaviors/motion/guide.md).
