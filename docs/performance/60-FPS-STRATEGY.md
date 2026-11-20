@@ -88,6 +88,12 @@ The dashboard uses a GPU-first strategy for visual work, not a claim that every 
 - Source-level change only: no browser performance trace or compositor-layer inspection has been captured for this branch.
 - Confirm actual compositor promotion, frame-time distribution, and GPU memory in Chromium DevTools before describing the new particle animation as verified GPU execution.
 
+## WebGL 2 LUT surfaces
+
+- The opt-in WebGL 2 3D LUT foundation is documented in `GPU-RENDERING.md`. It is intended for decorative image surfaces only and is not mounted in the dashboard shell.
+- LUT surfaces redraw on source/LUT/size changes rather than maintaining a continuous frame loop. They create contexts near the viewport, cap backing-store dimensions, and retain an original-image fallback.
+- Do not count the renderer as a dashboard-wide GPU migration until a real surface is integrated and its GPU memory, context count, frame time, color output, and context restoration are profiled on target hardware.
+
 ## Current measurement status
 
 - **Turbopack pre-optimization baseline:** 7,411 graph records, 58 homepage `/` client JS outputs (**2,880,282 B raw / 1,164,449 B compressed**).

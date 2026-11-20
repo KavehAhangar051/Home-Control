@@ -421,10 +421,10 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 
 ## 28. Dashboard-Wide GPU-First Compositor & VRAM Layer Architecture (20 November 2026)
 
-- **Zero CPU SVG `stroke-dashoffset` & SMIL `<animateMotion>` Loops (`app/globals.css`, `NodePerimeterSpark.tsx`, `CanvasWiresLayer.tsx`, `WorkflowWiresSvg.tsx`, `WorkflowEdgeItem.tsx`):**
-  - Replaced continuous SVG `stroke-dashoffset` perimeter/wire repaints and SMIL `<animateMotion>` `getPointAtLength()` evaluations with:
-    1. Masked concentric GPU rotating conic-gradient layers in `NodePerimeterSpark.tsx` (`node-perimeter-orbit`: `translate3d(-50%, -50%, 0) rotate(...)`, `contain: strict`, `will-change: transform`, `backface-visibility: hidden`), preserving exact halo + bright comet framing at `0` CPU paint cost.
-    2. Static cached Bezier `<svg>` rails paired with sibling GPU Motion-Path signal particles (`wire-signal-orbit`: `offset-path: path(...)`, `offset-anchor: 50% 50%`, `translateZ(0)`, `will-change: offset-distance, transform, opacity`), paused automatically under `html[data-page-hidden="true"]` and disabled under `prefers-reduced-motion: reduce`.
+- **Per-frame SVG Path Work Removal (`app/globals.css`, `NodePerimeterSpark.tsx`, `CanvasWiresLayer.tsx`, `WorkflowWiresSvg.tsx`):**
+  - Replaced continuously repainted SVG perimeter/wire paths and SMIL `<animateMotion>` path-position evaluation with:
+    1. Masked concentric conic-gradient layers in `NodePerimeterSpark.tsx`, animated with compositor-friendly `transform` rotation. The browser still performs initial paint/rasterization and layer composition; this avoids repeated SVG path painting, not all CPU work.
+    2. Static cached Bezier `<svg>` rails paired with `CompositedBezierParticle`: Bezier geometry is sampled when endpoints change, then Web Animations API keyframes animate only `translate3d` and `opacity`. These are compositor candidates; actual layer promotion is browser-dependent. The shared component pauses when the document is hidden and respects reduced-motion.
 - **Zero Per-Frame Layout Reflow & Clip-Path Paint in Sliders & Loaders (`range-slider-fluid.tsx`, `range-slider-bubble.tsx`, `range-slider-wave.tsx`, `range-slider.tsx`, `range-slider-inline.tsx`, `range-slider-ruler.tsx`, `loader-shapes.tsx`):**
   - `FluidSlider` replaces per-frame `clipPath: inset(...)` painting with `ResizeObserver`-measured pixel `fillX` sliding and exact `-fillX` label counter-translation (`willChange: "transform"`), preserving glyph-for-glyph text inversion and rounded liquid caps on the GPU compositor.
   - `BubbleSlider` replaces CSS `width` and `left` layout animations with `origin-left scaleX` fill and GPU `x` thumb/bubble translations.
@@ -453,3 +453,12 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 - Release tags and Actions artifact names include both `<run-number>` and `<run-attempt>`. Including the attempt number keeps reruns of the same workflow run from colliding with an existing tag, release, or artifact. Pre-releases are explicitly excluded from the repository's Latest release.
 - The attached file is an **unsigned debug APK** for development and manual device validation. A GitHub Release does not make it a production-signed APK; release signing remains out of scope until separately approved.
 - GitHub Packages is not used because this deliverable is a downloadable APK asset, not a package-registry artifact.
+
+## 29. WebGL 2 3D LUT rendering foundation (20 November 2026)
+
+- `lib/gpu/lut3d.ts` parses bounded standard 3D `.cube` LUT files (2–64 edge length), validates the domain and entry count, and creates identity LUTs.
+- `lib/gpu/webgl2-lut-renderer.ts` owns a WebGL 2 context, uploads the source image and a `TEXTURE_3D` LUT, and applies color grading in a fragment shader using a fullscreen triangle. It uses immutable RGBA16F LUT storage populated from Float32 values, linear filtering, no mipmaps, no GPU-to-CPU readback, and explicit resource disposal.
+- `components/gpu/GpuLutImage.tsx` is an opt-in image surface. It lazily creates the context near the viewport, redraws on content/size changes rather than running a permanent frame loop, caps output DPR at 2, and keeps the original image as a fallback when hardware WebGL 2 is unavailable or the context is lost.
+- The component is intentionally not mounted globally. Apply LUT grading only to non-semantic decorative imagery; do not recolor live device states, warning colors, controls, text, charts, or theme tokens.
+- This is a source-level foundation, not a measured production integration. Browser/OS policy still selects the physical GPU, and runtime GPU memory, context count, shader output, and visual quality must be profiled before wider adoption. See `docs/performance/GPU-RENDERING.md`.
+

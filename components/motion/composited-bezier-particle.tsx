@@ -156,6 +156,16 @@ export function CompositedBezierParticle({
 }: CompositedBezierParticleProps) {
   const elementRef = useRef<HTMLSpanElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  const {
+    startX,
+    startY,
+    control1X,
+    control1Y,
+    control2X,
+    control2Y,
+    endX,
+    endY,
+  } = curve;
 
   useEffect(() => {
     const element = elementRef.current;
@@ -167,12 +177,24 @@ export function CompositedBezierParticle({
       return;
     }
 
-    const animation = element.animate(createTransformKeyframes(curve), {
-      duration: durationMs,
-      delay: delayMs,
-      iterations: Number.POSITIVE_INFINITY,
-      easing: "linear",
-    });
+    const animation = element.animate(
+      createTransformKeyframes({
+        startX,
+        startY,
+        control1X,
+        control1Y,
+        control2X,
+        control2Y,
+        endX,
+        endY,
+      }),
+      {
+        duration: durationMs,
+        delay: delayMs,
+        iterations: Number.POSITIVE_INFINITY,
+        easing: "linear",
+      },
+    );
     const unregister = registerVisibilityAwareAnimation(animation);
 
     return () => {
@@ -180,14 +202,14 @@ export function CompositedBezierParticle({
       animation.cancel();
     };
   }, [
-    curve.startX,
-    curve.startY,
-    curve.control1X,
-    curve.control1Y,
-    curve.control2X,
-    curve.control2Y,
-    curve.endX,
-    curve.endY,
+    startX,
+    startY,
+    control1X,
+    control1Y,
+    control2X,
+    control2Y,
+    endX,
+    endY,
     durationMs,
     delayMs,
     prefersReducedMotion,
