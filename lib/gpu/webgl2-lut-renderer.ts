@@ -160,6 +160,17 @@ export class WebGL2LutRenderer {
   private lutTextureSize = 0;
   private uploadedLutData: Float32Array | null = null;
   private uploadedSource: TexImageSource | null = null;
+  private lastIntensity = Number.NaN;
+  private lastCanvasWidth = -1;
+  private lastCanvasHeight = -1;
+  private lastImageWidth = -1;
+  private lastImageHeight = -1;
+  private lastDomainMinR = Number.NaN;
+  private lastDomainMinG = Number.NaN;
+  private lastDomainMinB = Number.NaN;
+  private lastDomainMaxR = Number.NaN;
+  private lastDomainMaxG = Number.NaN;
+  private lastDomainMaxB = Number.NaN;
   private disposed = false;
 
   static async create(canvas: HTMLCanvasElement): Promise<WebGL2LutRenderer> {
@@ -350,11 +361,44 @@ export class WebGL2LutRenderer {
     const normalizedIntensity = Number.isFinite(intensity)
       ? Math.max(0, Math.min(1, intensity))
       : 1;
-    gl.uniform1f(this.intensityLocation, normalizedIntensity);
-    gl.uniform2f(this.canvasSizeLocation, canvas.width, canvas.height);
-    gl.uniform2f(this.imageSizeLocation, sourceWidth, sourceHeight);
-    gl.uniform3fv(this.domainMinLocation, lut.domainMin);
-    gl.uniform3fv(this.domainMaxLocation, lut.domainMax);
+    if (this.lastIntensity !== normalizedIntensity) {
+      gl.uniform1f(this.intensityLocation, normalizedIntensity);
+      this.lastIntensity = normalizedIntensity;
+    }
+    if (this.lastCanvasWidth !== canvas.width || this.lastCanvasHeight !== canvas.height) {
+      gl.uniform2f(this.canvasSizeLocation, canvas.width, canvas.height);
+      this.lastCanvasWidth = canvas.width;
+      this.lastCanvasHeight = canvas.height;
+    }
+    if (this.lastImageWidth !== sourceWidth || this.lastImageHeight !== sourceHeight) {
+      gl.uniform2f(this.imageSizeLocation, sourceWidth, sourceHeight);
+      this.lastImageWidth = sourceWidth;
+      this.lastImageHeight = sourceHeight;
+    }
+
+    const [domainMinR, domainMinG, domainMinB] = lut.domainMin;
+    if (
+      this.lastDomainMinR !== domainMinR ||
+      this.lastDomainMinG !== domainMinG ||
+      this.lastDomainMinB !== domainMinB
+    ) {
+      gl.uniform3fv(this.domainMinLocation, lut.domainMin);
+      this.lastDomainMinR = domainMinR;
+      this.lastDomainMinG = domainMinG;
+      this.lastDomainMinB = domainMinB;
+    }
+
+    const [domainMaxR, domainMaxG, domainMaxB] = lut.domainMax;
+    if (
+      this.lastDomainMaxR !== domainMaxR ||
+      this.lastDomainMaxG !== domainMaxG ||
+      this.lastDomainMaxB !== domainMaxB
+    ) {
+      gl.uniform3fv(this.domainMaxLocation, lut.domainMax);
+      this.lastDomainMaxR = domainMaxR;
+      this.lastDomainMaxG = domainMaxG;
+      this.lastDomainMaxB = domainMaxB;
+    }
     gl.disable(gl.BLEND);
     gl.disable(gl.DEPTH_TEST);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
