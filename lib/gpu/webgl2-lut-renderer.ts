@@ -146,7 +146,8 @@ export class WebGL2LutRenderer {
 
     gl.bindVertexArray(vertexArray);
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.useProgram(this.program);
+    const activateProgram = gl.useProgram.bind(gl);
+    activateProgram(this.program);
     gl.uniform1i(gl.getUniformLocation(this.program, "u_source"), 0);
     gl.uniform1i(gl.getUniformLocation(this.program, "u_lut"), 1);
     this.intensityLocation = gl.getUniformLocation(this.program, "u_intensity");
@@ -261,7 +262,8 @@ export class WebGL2LutRenderer {
       this.uploadedSource = source;
     }
 
-    gl.useProgram(this.program);
+    const activateProgram = gl.useProgram.bind(gl);
+    activateProgram(this.program);
     gl.bindVertexArray(this.vertexArray);
     const canvas = gl.canvas as HTMLCanvasElement;
     const normalizedIntensity = Number.isFinite(intensity)
