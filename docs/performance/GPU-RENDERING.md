@@ -408,3 +408,12 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - This is a GPU shader workload optimization, not a claim of lower CPU usage or a measured frame-rate gain. The renderer remains demand-driven and only renders on source/size/LUT changes.
 - Visual equivalence and device-specific shader performance have not been runtime-verified in this environment. Keep the original-image fallback and compare output on representative DPR/aspect-ratio combinations before treating the shader change as validated.
 - Reference: [MDN WebGL best practices — prefer doing work in the vertex shader](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices).
+
+
+### WebGL shader initialization and hot-path re-audit (2026-11-20)
+
+- Confirmed the renderer now uses `KHR_parallel_shader_compile` when available: shader status checks are deferred until `COMPLETION_STATUS_KHR` reports completion, while browsers without the extension retain the synchronous compile/link fallback. The image component keeps the original image visible while asynchronous renderer creation is pending.
+- Confirmed uniform locations are cached during renderer construction, the fullscreen-triangle VAO is created once and reused, LUT storage uses immutable `texStorage3D`, and rendering is demand-driven rather than a permanent animation loop. No per-frame `getError`, `getParameter`, `readPixels`, or `finish` calls were found in the render method.
+- Kept the source-image upload path unchanged. MDN recommends considering immutable texture storage, but explicitly notes that DOM-image `texSubImage` uploads can be slower on some implementations; replacing `texImage2D` without device benchmarks could regress first-image latency. The source texture is already reused and uploaded only when the source object changes.
+- No additional renderer code change was justified by this source-only pass. Avoid adding a second context, mipmaps for the 2D source image, or a permanent render loop: the current image surface is demand-driven and the source is displayed at its native aspect-fit size.
+- Reference: [MDN WebGL best practices](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices).
