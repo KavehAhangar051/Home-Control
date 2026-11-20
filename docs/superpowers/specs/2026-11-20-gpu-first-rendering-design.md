@@ -1,7 +1,7 @@
 # GPU-First Dashboard Rendering — Design
 
 **Date:** 2026-11-20  
-**Status:** Proposed — awaiting owner approval  
+**Status:** Approved — implementation plan created  
 **Branch:** `gpu-first-rendering-design`
 
 ## Intent
