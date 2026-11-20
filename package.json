@@ -20,7 +20,11 @@
     "cbm:index": "bash ./tools/cbm.sh index",
     "rtk": "bash ./tools/rtk.sh",
     "rtk:gain": "bash ./tools/rtk.sh gain",
-    "rtk:setup": "bash ./tools/rtk.sh setup"
+    "rtk:setup": "bash ./tools/rtk.sh setup",
+    "te": "bash ./tools/te.sh",
+    "te:status": "bash ./tools/te.sh status",
+    "te:doctor": "bash ./tools/te.sh doctor",
+    "te:setup": "bash ./tools/te.sh setup"
   },
   "dependencies": {
     "@animate-ui/react": "^2.4.3",
