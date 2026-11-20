@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "env": "esp32dev",
+  "mcu": "esp32",
+  "flash_mode": "dio",
+  "flash_freq": "40m",
+  "flash_size": "4MB",
+  "built_at_utc": "2026-11-20T12:23:13Z",
+  "images": [
+    {
+      "offset": "0x1000",
+      "file": "bootloader.bin",
+      "size": 17536,
+      "sha256": "3d234a7471f67b013686dabd4dee7c1fa915c9928463616a94bc9297acf1abf8"
+    },
+    {
+      "offset": "0x8000",
+      "file": "partitions.bin",
+      "size": 3072,
+      "sha256": "0a8b5720e7b77ff11f1462458c3a509dee79224e5279898f26d6a2e3ae0517b7"
+    },
+    {
+      "offset": "0xe000",
+      "file": "boot_app0.bin",
+      "size": 8192,
+      "sha256": "f94c5d786a7a8fab06ac5d10e33bf37711a6697636dc037559ea19cc410a17f0"
+    },
+    {
+      "offset": "0x10000",
+      "file": "firmware.bin",
+      "size": 1103632,
+      "sha256": "413367be70e4dd246d7bcc49b319ced8c32b275fe42e7d8f8e3fbb3831dd55cf"
+    }
+  ]
+}
