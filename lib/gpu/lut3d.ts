@@ -1,0 +1,99 @@
+export interface Lut3D {
+  size: number;
+  data: Uint8Array;
+}
+
+const MIN_LUT_SIZE = 2;
+const MAX_LUT_SIZE = 64;
+
+function validateSize(size: number): void {
+  if (!Number.isInteger(size) || size < MIN_LUT_SIZE || size > MAX_LUT_SIZE) {
+    throw new Error(`3D LUT size must be an integer between ${MIN_LUT_SIZE} and ${MAX_LUT_SIZE}.`);
+  }
+}
+
+/**
+ * Parses a standard .cube 3D LUT into RGBA8 data.
+ * Cube rows are stored with red changing fastest, then green, then blue.
+ */
+export function parseCubeLut(source: string): Lut3D {
+  let size = 0;
+  let domainMin = [0, 0, 0];
+  let domainMax = [1, 1, 1];
+  const values: number[][] = [];
+
+  for (const rawLine of source.split(/\r?\n/)) {
+    const line = rawLine.replace(/#.*/, "").trim();
+    if (!line || line.startsWith("TITLE")) continue;
+
+    const [directive, ...tokens] = line.split(/\s+/);
+
+    if (directive === "LUT_1D_SIZE") {
+      throw new Error("1D .cube LUTs are not supported; provide a 3D LUT.");
+    }
+
+    if (directive === "LUT_3D_SIZE") {
+      size = Number(tokens[0]);
+      validateSize(size);
+      continue;
+    }
+
+    if (directive === "DOMAIN_MIN" || directive === "DOMAIN_MAX") {
+      const domain = tokens.slice(0, 3).map(Number);
+      if (domain.length !== 3 || domain.some((value) => !Number.isFinite(value))) {
+        throw new Error(`Invalid ${directive} declaration in .cube LUT.`);
+      }
+      if (directive === "DOMAIN_MIN") domainMin = domain;
+      else domainMax = domain;
+      continue;
+    }
+
+    const triplet = line.split(/\s+/).map(Number);
+    if (triplet.length === 3 && triplet.every(Number.isFinite)) {
+      values.push(triplet);
+    }
+  }
+
+  validateSize(size);
+  const expectedValues = size ** 3;
+  if (values.length !== expectedValues) {
+    throw new Error(`Expected ${expectedValues} LUT entries, received ${values.length}.`);
+  }
+
+  const data = new Uint8Array(expectedValues * 4);
+  for (let index = 0; index < values.length; index++) {
+    const [red, green, blue] = values[index];
+    const offset = index * 4;
+    data[offset] = Math.round(
+      Math.max(0, Math.min(1, (red - domainMin[0]) / (domainMax[0] - domainMin[0]))) * 255,
+    );
+    data[offset + 1] = Math.round(
+      Math.max(0, Math.min(1, (green - domainMin[1]) / (domainMax[1] - domainMin[1]))) * 255,
+    );
+    data[offset + 2] = Math.round(
+      Math.max(0, Math.min(1, (blue - domainMin[2]) / (domainMax[2] - domainMin[2]))) * 255,
+    );
+    data[offset + 3] = 255;
+  }
+
+  return { size, data };
+}
+
+export function createIdentityLut(size = 17): Lut3D {
+  validateSize(size);
+  const data = new Uint8Array(size ** 3 * 4);
+
+  for (let blue = 0; blue < size; blue++) {
+    for (let green = 0; green < size; green++) {
+      for (let red = 0; red < size; red++) {
+        const offset = ((blue * size + green) * size + red) * 4;
+        data[offset] = Math.round((red / (size - 1)) * 255);
+        data[offset + 1] = Math.round((green / (size - 1)) * 255);
+        data[offset + 2] = Math.round((blue / (size - 1)) * 255);
+        data[offset + 3] = 255;
+      }
+    }
+  }
+
+  return { size, data };
+}
