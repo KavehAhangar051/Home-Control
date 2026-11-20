@@ -82,6 +82,35 @@ function resolveContainerDimensions(
   return { width, height, fitPadding };
 }
 
+function areCanvasNodeRectsEqual(
+  left: Record<string, CanvasNodeRect>,
+  right: Record<string, CanvasNodeRect>,
+): boolean {
+  const leftIds = Object.keys(left);
+  const rightIds = Object.keys(right);
+
+  if (leftIds.length !== rightIds.length) return false;
+
+  for (let i = 0; i < leftIds.length; i++) {
+    const id = leftIds[i];
+    const a = left[id];
+    const b = right[id];
+
+    if (
+      !b ||
+      a.x !== b.x ||
+      a.y !== b.y ||
+      a.width !== b.width ||
+      a.height !== b.height ||
+      a.zIndex !== b.zIndex
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 interface UseCanvasControllerProps {
   workspaceScope?: CanvasWorkspaceScope;
   groupsOrder: string[];
@@ -129,6 +158,9 @@ export function useCanvasController({
   const setViewport = React.useCallback(
     (updater: CanvasViewport | ((prev: CanvasViewport) => CanvasViewport)) => {
       const next = updater instanceof Function ? updater(viewportRef.current) : updater;
+      const current = viewportRef.current;
+      if (current.x === next.x && current.y === next.y && current.zoom === next.zoom) return;
+
       viewportRef.current = next;
       setViewportState(next);
       writeStoredCanvasViewport(activeSubMode, next);
@@ -139,6 +171,9 @@ export function useCanvasController({
   const setViewportTransient = React.useCallback(
     (updater: CanvasViewport | ((prev: CanvasViewport) => CanvasViewport)) => {
       const next = updater instanceof Function ? updater(viewportRef.current) : updater;
+      const current = viewportRef.current;
+      if (current.x === next.x && current.y === next.y && current.zoom === next.zoom) return;
+
       viewportRef.current = next;
       setViewportState(next);
     },
@@ -176,6 +211,15 @@ export function useCanvasController({
         subMode: resolveActiveSubMode(workspaceScope, patch.subMode ?? prev.subMode),
       };
 
+      if (
+        prev.subMode === next.subMode &&
+        prev.snapToGrid === next.snapToGrid &&
+        prev.isLocked === next.isLocked &&
+        prev.cascadeGroupDrag === next.cascadeGroupDrag
+      ) {
+        return;
+      }
+
       settingsRef.current = next;
       setSettings(next);
       writeStoredCanvasSettings(workspaceScope, next);
@@ -205,8 +249,10 @@ export function useCanvasController({
     });
 
     topZIndexRef.current = result.nextTopZIndex;
-    nodesRef.current = result.nodes;
-    setNodes(result.nodes);
+    if (!areCanvasNodeRectsEqual(nodesRef.current, result.nodes)) {
+      nodesRef.current = result.nodes;
+      setNodes(result.nodes);
+    }
 
     if (result.shouldPersist) {
       replaceStoredCanvasNodes(activeSubMode, result.nodes);
