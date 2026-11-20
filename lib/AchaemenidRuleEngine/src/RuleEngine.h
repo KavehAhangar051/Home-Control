@@ -17,6 +17,18 @@ struct RuleContext {
     bool* isDashboardOnline;
 };
 
+/**
+ * @brief Evaluates digital input pin transitions and executes configured Rule Actions.
+ *
+ * Threading model:
+ *   - handleInput() MUST be called only from the Arduino main loop (Core 1).
+ *   - Timer callbacks scheduled via appTimer run from the ESP-IDF timer task (Core 1
+ *     on esp_timer), so they share the same core as the main loop and do NOT need
+ *     additional synchronization as long as appTimer uses the main-loop dispatcher.
+ *   - RuleContext dependencies (PinManager, EventDispatcher, etc.) must outlive the
+ *     RuleEngine instance. No ownership is transferred.
+ *   - RuleEngine methods are NOT reentrant.
+ */
 class RuleEngine {
 public:
     RuleEngine(RuleContext ctx);
@@ -24,7 +36,6 @@ public:
 
 private:
     void executeAction(const RuleAction& act, int sourcePin);
-    void onTimerExpired(uniuno::TimerExpiredEvent* evt);
 
     RuleContext _ctx;
 };

@@ -208,9 +208,13 @@ public:
     return idx < Capacity && ((active_mask_ & (1UL << idx)) != 0) && generations_[idx] == gen;
   }
 
+  /**
+   * @brief Cross-core & interrupt safe task wakeup.
+   * Releases memory writes from producer core and wakes up task in consumer executor core.
+   */
   FORCE_INLINE void wake(uint8_t idx, uint16_t gen) {
     if (UNLIKELY(idx >= Capacity || generations_[idx] != gen)) return;
-    ready_mask_.fetch_or(1UL << idx, std::memory_order_relaxed);
+    ready_mask_.fetch_or(1UL << idx, std::memory_order_release);
   }
 
   FORCE_INLINE void sleep(uint8_t idx, uint16_t gen) {
@@ -245,7 +249,7 @@ public:
       ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
     } else {
       interval_mask_ &= ~bit;
-      ready_mask_.fetch_or(bit, std::memory_order_relaxed);
+      ready_mask_.fetch_or(bit, std::memory_order_release);
     }
   }
 
@@ -255,11 +259,11 @@ public:
 
   /**
    * @brief Polls all active and ready futures using Xtensa bitmask + CCOUNT hardware gates.
-   *  - Idle loop: ~2 CPU cycles exit.
+   *  - Idle loop: ~2 CPU cycles exit with ZERO function call overhead (inlined into loop()).
    *  - Active interval task waiting: ~4 CPU cycles CCOUNT 1ms gate (100x fewer millis() calls!).
    */
-  HOT_PATH void poll() {
-    uint32_t to_process = ready_mask_.load(std::memory_order_relaxed);
+  FORCE_INLINE void poll() {
+    uint32_t to_process = ready_mask_.load(std::memory_order_acquire);
 
     // FAST-PATH: If nothing is ready and no intervals exist, or no tasks are active
     if (LIKELY((to_process | interval_mask_) == 0 || active_mask_ == 0)) {
@@ -288,7 +292,7 @@ public:
         }
 
         if (newly_ready) {
-          ready_mask_.fetch_or(newly_ready, std::memory_order_relaxed);
+          ready_mask_.fetch_or(newly_ready, std::memory_order_release);
           to_process |= newly_ready;
         }
       }
@@ -313,8 +317,16 @@ public:
         }
       }
 
+      const uint16_t gen_before = generations_[idx];
       auto* slot = &future_pool_[idx];
-      if ((*slot)() != AsyncState::Pending) {
+      const AsyncState state = (*slot)();
+
+      // Guard: Check if the callback cancelled itself or slot was invalidated during execution
+      if (UNLIKELY(generations_[idx] != gen_before || !(active_mask_ & bit))) {
+        continue;
+      }
+
+      if (state != AsyncState::Pending) {
         slot->clear();
         active_mask_ &= ~bit;
         // Skip expensive atomic CAS if bit was already cleared above
@@ -347,7 +359,7 @@ private:
   FORCE_INLINE TaskHandleBase<Capacity> activateSlot(uint8_t idx) {
     const uint32_t bit = 1UL << idx;
     active_mask_ |= bit;
-    ready_mask_.fetch_or(bit, std::memory_order_relaxed);
+    ready_mask_.fetch_or(bit, std::memory_order_release);
     return TaskHandleBase<Capacity>(this, idx, generations_[idx]);
   }
 
