@@ -163,3 +163,11 @@ Stop and report instead of improvising if:
 - Updated `features/iot/components/canvas/sheetViewportAnimator.ts` to skip assignments when the next world-plane/grid transform or legacy grid background values exactly match the current inline styles.
 - This avoids redundant style writes for repeated identical viewport applications without changing any computed value or animation behavior. It does not remove the requestAnimationFrame camera loop or transfer its math to the GPU.
 - Remaining verification: run the project's lint/typecheck/build and capture comparable Chrome Performance traces. No FPS or VRAM improvement is claimed without runtime measurements.
+
+
+### Phase 1 progress — non-blocking LUT shader initialization (20 November 2026)
+
+- Added an async WebGL2 LUT renderer factory. When `KHR_parallel_shader_compile` exists, it polls program completion without querying blocking compile/link status prematurely; unsupported browsers keep the synchronous compatibility path.
+- Updated `GpuLutImage` to await renderer creation safely and discard late results after unmount, context loss, or a switch to identity LUT pass-through. The source image remains visible during initialization.
+- Shader source, LUT sampling, texture formats, output dimensions, animation behavior, and UI remain unchanged.
+- Remaining verification: run Biome lint/format and TypeScript typecheck; inspect Actions results; validate supported and fallback browser paths. No runtime FPS/VRAM claim is made.
