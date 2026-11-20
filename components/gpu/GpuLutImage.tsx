@@ -55,14 +55,20 @@ export function GpuLutImage({
 
     let scheduledDrawFrame: number | null = null;
 
+    const resetDrawingBuffer = () => {
+      if (canvas.width !== 1 || canvas.height !== 1) {
+        canvas.width = 1;
+        canvas.height = 1;
+      }
+    };
+
     const renderFrame = () => {
       scheduledDrawFrame = null;
 
       if (passThroughRef.current) {
         renderer?.dispose();
         renderer = null;
-        canvas.width = 1;
-        canvas.height = 1;
+        resetDrawingBuffer();
         setReady(false);
         return;
       }
@@ -97,8 +103,7 @@ export function GpuLutImage({
       } catch {
         renderer.dispose();
         renderer = null;
-        canvas.width = 1;
-        canvas.height = 1;
+        resetDrawingBuffer();
         setReady(false);
       }
     };
@@ -190,8 +195,7 @@ export function GpuLutImage({
                 if (renderer) {
                   renderer.dispose();
                   renderer = null;
-                  canvas.width = 1;
-                  canvas.height = 1;
+                  resetDrawingBuffer();
                   setReady(false);
                 }
               }
