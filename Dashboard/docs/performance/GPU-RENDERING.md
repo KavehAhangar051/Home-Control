@@ -78,6 +78,14 @@ A browser cannot run the entire UI with zero CPU work or store all rendering res
 | Motion loaders (`components/motion/loader.tsx`) | Motion transform/opacity animations for geometric variants; ASCII variants update React state on an interval | Transform/opacity variants are compositor candidates. ASCII glyph changes are DOM/text updates and cannot be represented as a pure texture-only animation without changing implementation semantics or introducing a visual snapshot pipeline. |
 | Theme transitions (`components/motion/theme-toggle-config.ts`, `styles/view-transitions.css`) | View Transition pseudo-elements animate `clip-path`, `filter`, and a CSS custom property used by the blinds mask | Preserve the exact effect and timing. These properties are not universally compositor-only; validate paint/raster activity in each target browser before claiming GPU execution. |
 | WebGL2 LUT (`lib/gpu/webgl2-lut-renderer.ts`) | Fragment shader samples a source texture and 3D LUT | Shader work executes on the graphics pipeline when hardware WebGL is available. The image decode, source data, JS API calls, and browser resource copies are not guaranteed to reside exclusively in VRAM. |
+| Canvas viewport + dot grid (`sheetViewportAnimator.ts`, `canvasGeometry.ts`, `CanvasWorkspace.tsx`) | World plane and grid are updated imperatively with `translate3d`; grid tile size changes as zoom changes | Pan is designed around compositor transforms. During zoom, `background-size` changes whenever `visualStep` changes, which is a paint/raster candidate. Do not replace it with a simple scaled layer: the current gradient keeps a constant 1.25px dot radius while spacing changes. A GPU shader/SVG migration is only acceptable after pixel-level equivalence checks at all zoom thresholds and DPRs. |
+
+### Confirmed GPU-oriented implementation already present
+
+- `lib/gpu/webgl2-lut-renderer.ts` already requests WebGL2 with `powerPreference: "high-performance"` and `failIfMajorPerformanceCaveat: true`. This is a browser hint/requirement, not a guarantee of a discrete GPU or exclusive VRAM allocation. It also rejects software-only contexts rather than silently claiming GPU acceleration.
+- `features/iot/components/canvas/CanvasWorkspace.tsx` already keeps the transformed world plane and dot grid on separate `translate3d` paths. Preserve the grid's fixed dot radius and its 2x spacing rule below an 8px raw step when evaluating alternatives.
+- `components/motion/composited-bezier-particle.tsx` already precomputes equal-distance keyframes once and uses the Web Animations API for transform/opacity, avoiding React state updates and path calculations per frame. Do not add blanket `will-change`; verify actual layer promotion and memory cost in DevTools first.
+
 
 ### Required optimization and acceptance process
 
