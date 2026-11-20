@@ -1196,3 +1196,159 @@ Workflow انتشار GitHub Pages در مسیر `Dashboard/.github/workflows/de
 گام بعدی باید تکمیل فهرست Routeها و جست‌وجوی Browser APIها، سپس اجرای Baseline واقعی در محیط توسعه باشد. اگر دسترسی به محیط اجرای پروژه فراهم نیست، باید خروجی فرمان‌ها از محیط کاربر یا CI دریافت شود؛ بررسی GitHub به‌تنهایی جای اجرای Build را نمی‌گیرد.
 
 هیچ تغییر اجرایی در این مرحله مجاز نشده است. هرگونه تغییر در Package Manifest، Lockfile، Next Config، Workflow یا فایل‌های Native باید قبل از اعمال، با فهرست دقیق فایل‌ها به مالک پروژه اعلام و تأیید شود. Git workflow طبق درخواست پروژه Commit و Push است و نباید از Pull استفاده شود.
+
+
+---
+
+## ۱۸. Runtime Dependency Audit — Browser APIs، Dynamic Imports و Environment — ۲۰۲۶-۱۱-۲۰
+
+این بخش یافته‌های قابل‌تأیید از فایل‌های مشخص‌شده در شاخه `main` را ثبت می‌کند. جست‌وجوی کد از طریق نمایه GitHub در این نوبت نتیجه قابل اتکایی برای جست‌وجوی سراسری نمادها برنگرداند؛ بنابراین این بخش **ممیزی هدفمند فایل‌های شناخته‌شده است، نه اثبات نبود سایر استفاده‌ها در کل Repository**. اجرای APK یا Build نیز انجام نشده است.
+
+### ۱۸.۱ Entry Point و بارگذاری Dynamic
+
+فایل بررسی‌شده:
+- `features/dashboard/components/layout/DashboardClientEntry.tsx`
+- `lib/dynamicRetry.ts`
+
+مشاهدات:
+- `DashboardClientEntry` یک Client Component است.
+- `DashboardShell` با `next/dynamic` بارگذاری می‌شود و گزینه `ssr: false` دارد؛ در زمان انتظار، `DashboardBootSkeleton` نمایش داده می‌شود.
+- بارگذاری از طریق `retryDynamicImport` انجام می‌شود. مقدار پیش‌فرض دو Retry با تأخیر پایه ۲۵۰ میلی‌ثانیه و Backoff خطی دارد.
+- در صورت شکست نهایی، Error Boundary پیام خطا و امکان تلاش مجدد ارائه می‌دهد؛ Reset فعلی با `window.location.reload()` صفحه را Reload می‌کند.
+
+**ارزیابی Native:** این الگو از اجرای DashboardShell در SSR جلوگیری می‌کند، اما تضمین نمی‌کند که تمام ماژول‌های import شده در مسیرهای دیگر Browser-safe باشند. همچنین Dynamic Chunkها باید در بسته Static موجود و با مسیر asset صحیح قابل دریافت باشند.
+
+چک‌لیست:
+- [ ] بارگذاری اولیه Shell در APK بدون خطای Chunk؛
+- [ ] باز کردن همه Featureهایی که Lazy/Dynamic Import دارند؛
+- [ ] بررسی مسیر assetها در Base Path ریشه Capacitor؛
+- [ ] تست خطای موقت بارگذاری Chunk و بازیابی؛
+- [ ] تست سناریوی انتشار نسخه جدید و باقی ماندن Chunk قدیمی در Cache؛
+- [ ] بررسی اینکه Reload در خطای نهایی اپ را به صفحه سفید یا Loop نمی‌برد.
+
+مستند رسمی: [Next.js Lazy Loading](https://nextjs.org/docs/app/guides/lazy-loading)
+
+### ۱۸.۲ Browser APIهای تأییدشده در فایل‌های هدفمند
+
+| API | فایل/کاربرد مشاهده‌شده | رفتار و ریسک Native |
+|---|---|---|
+| `window.location.reload()` | Reset در Error Boundary مربوط به Entry Point | در WebView قابل استفاده است؛ باید پس از خطای Chunk و با مسیر asset محلی تست شود |
+| `document.hidden` و `visibilitychange` | تشخیص وضعیت صفحه و Resume/Pause ارتباط MQTT | در WebView موجود است؛ باید با App Lifecycle Capacitor هماهنگ شود تا Resume تکراری ایجاد نشود |
+| `window.addEventListener("online")` | تلاش برای Resume MQTT پس از Online شدن | فقط وضعیت شبکه را گزارش می‌کند و سلامت Broker یا ESP32 را اثبات نمی‌کند |
+| `SpeechRecognition` و `webkitSpeechRecognition` | تشخیص گفتار در Voice Command | API اختیاری و وابسته به WebView/سرویس سیستم است؛ پشتیبانی فارسی و مجوز میکروفون باید روی گوشی آزموده شود |
+| `navigator.vibrate` | Haptic feedback | ممکن است در WebView/دستگاه پشتیبانی نشود؛ کد فعلی در نبود API مقدار false برمی‌گرداند |
+| `window.matchMedia` | بررسی `prefers-reduced-motion` در Haptics | در صورت نبود API، کد فعلی به حالت پیش‌فرض برمی‌گردد |
+| `document.documentElement.dataset` | ثبت وضعیت مخفی بودن صفحه | دسترسی در مسیر محافظت‌شده انجام می‌شود؛ باید اثر آن روی Resume و CSS بررسی شود |
+
+#### Page Visibility و Lifecycle
+در `features/iot/hooks/usePageVisibility.ts`، Listenerهای `visibilitychange` و `online` داخل `useEffect` ثبت و در Cleanup حذف می‌شوند. این روش از ثبت Listener در سطح Module جلوگیری می‌کند. با این حال، رویدادهای مرورگر معادل چرخه عمر Native نیستند. در مرحله پیاده‌سازی باید رویداد `appStateChange` از `@capacitor/app` با همین مسیر هماهنگ شود و Resumeهای تکراری MQTT مهار شوند.
+
+#### Voice Recognition
+در `features/iot/hooks/useVoiceCommand.ts` و `voiceRecognitionHelpers.ts`:
+- سازنده استاندارد و Prefix قدیمی WebKit با Feature Detection بررسی می‌شوند؛
+- در نبود API، پیام عدم پشتیبانی نمایش داده می‌شود؛
+- زبان روی `fa-IR` تنظیم شده و `continuous` و `interimResults` فعال‌اند؛
+- خطاهای `not-allowed`، `service-not-allowed`، `audio-capture`، `no-speech` و `network` پیام‌های مجزا دارند؛
+- شناسه Session برای جلوگیری از پردازش Callbackهای قدیمی استفاده می‌شود.
+
+**ریسک اصلی:** وجود `SpeechRecognition` در TypeScript یا Chrome Desktop تضمین‌کننده حضور سرویس تشخیص گفتار در Android System WebView نیست. همچنین مجوز میکروفون به‌تنهایی تضمین‌کننده وجود موتور Speech Recognition یا پشتیبانی از فارسی نیست.
+
+**تصمیم:** در نسخه اول ابتدا API فعلی روی گوشی واقعی آزمایش شود. فقط در صورت شکست یا کیفیت ناکافی فارسی، Native Speech Adapter به‌عنوان تغییر جداگانه پیشنهاد شود. هیچ Plugin صوتی در این مرحله نصب نمی‌شود.
+
+#### Haptics
+در `lib/haptics.ts`، پشتیبانی از Vibration API، تنظیم کاربر برای Haptics و `prefers-reduced-motion` بررسی می‌شوند و خطای اجرای Vibration به‌صورت بی‌صدا مدیریت می‌شود. این رفتار Fallback مناسبی برای مرورگرهای فاقد API است. اگر `@capacitor/haptics` افزوده شود، باید همان الگوها و Preference کاربر حفظ شوند و فقط لایه اجرای لرزش پشت Adapter تغییر کند.
+
+### ۱۸.۳ Environment Variables و حالت‌های Build
+
+در `next.config.ts` متغیرهای زیر به‌صورت مستقیم مشاهده شدند:
+
+| متغیر | اثر مشاهده‌شده | سیاست Native |
+|---|---|---|
+| `DISABLE_HMR` | در صورت `true` بودن، `output: "export"` غیرفعال می‌شود؛ در حالت Dev نیز Watcherها تغییر می‌کنند | در Production Native نباید ناخواسته `true` باشد |
+| `GITHUB_PAGES` | `basePath` و `assetPrefix` و `trailingSlash` مربوط به GitHub Pages را فعال می‌کند | برای بسته‌ای که از ریشه WebView سرو می‌شود نباید ناخواسته فعال باشد |
+| `NG_ALLOWED_HOSTS` | Hostهای مجاز توسعه را تکمیل می‌کند | تنظیم توسعه است و نباید به‌عنوان مجوز شبکه Runtime تلقی شود |
+
+در فایل Root Layout، Preconnect به Cloudflare Worker و DNS Prefetch به MQTT Broker مشاهده شد. این‌ها Hintهای مرورگر برای اتصال‌اند و به‌خودی‌خود وابستگی Runtime یا تضمین دسترسی شبکه نیستند.
+
+در فایل‌های بررسی‌شده متغیر `NEXT_PUBLIC_*` مشخصی مشاهده نشد؛ اما به دلیل نبود نتیجه قابل اتکای جست‌وجوی سراسری، **نمی‌توان نبود این متغیرها در تمام پروژه را نتیجه گرفت**. پیش از Build نهایی باید کل Environment مصرف‌شده در کد، اسکریپت‌ها و Workflowها فهرست شود و هیچ Secret در Bundle کلاینت قرار نگیرد.
+
+### ۱۸.۴ Fonts و Build Offline
+
+در `app/layout.tsx` این فونت‌ها مشاهده شدند:
+- `Vazirmatn`
+- `IBM Plex Sans Arabic`
+- `Noto Sans Arabic`
+- `Rubik`
+- `Readex Pro`
+- فونت محلی Dana از مسیر `public/Fonts/`
+
+پنج فونت اول با `next/font/google` تعریف شده‌اند؛ `preload: false` فقط رفتار Preload را تغییر می‌دهد و به معنی حذف دانلود فونت در Build نیست. Next.js فایل‌های فونت Google را در زمان Build دریافت و Self-host می‌کند؛ بنابراین در زمان اجرای APK درخواست مستقیم مرورگر به Google لازم نیست، اما Build تمیز در محیط بدون دسترسی به منبع فونت ممکن است شکست بخورد مگر اینکه فایل‌های موردنیاز از Cache موجود باشند.
+
+**تصمیم فعلی:** هیچ فونتی حذف یا جایگزین نشود. در Build Verification:
+1. یک Build با دسترسی اینترنت اجرا و خروجی فونت‌ها بررسی شود؛
+2. یک Build با Cache پاک و شبکه محدود، به‌عنوان آزمایش تکرارپذیری انجام شود؛
+3. اندازه فایل‌های فونت و تعداد فونت‌های واقعاً قابل انتخاب بررسی شود؛
+4. فقط در صورت اثبات نیاز، پیشنهاد Self-host کامل فونت‌ها یا کاهش خانواده‌ها ارائه شود.
+
+منابع:
+- [Next.js Font Optimization](https://nextjs.org/docs/app/getting-started/fonts)
+- [Next.js Font API](https://nextjs.org/docs/app/api-reference/components/font)
+
+### ۱۸.۵ Remote Images و درخواست‌های بیرونی
+
+در `next.config.ts`، Image Optimization غیرفعال و `remotePatterns` برای `picsum.photos`، `upload.wikimedia.org` و `images.unsplash.com` تعریف شده است. این تنظیم به‌تنهایی ثابت نمی‌کند که همه این دامنه‌ها در مسیرهای اصلی Dashboard استفاده می‌شوند؛ اما اگر تصویر Remote در UI مصرف شود، WebView برای دریافت آن به شبکه و دسترسی دامنه نیاز دارد.
+
+موارد بررسی در تست:
+- [ ] فهرست واقعی تصاویر Remote مصرف‌شده؛
+- [ ] رفتار تصویر در حالت Offline؛
+- [ ] وجود Placeholder/Fallback؛
+- [ ] عدم استفاده ناخواسته از دامنه‌های آزمایشی در UI تولیدی؛
+- [ ] بررسی اینکه تصاویر مهم رابط کاربری در صورت نیاز محلی بسته‌بندی شوند.
+
+### ۱۸.۶ Dynamic Import و به‌روزرسانی برنامه
+
+Dynamic Import باعث می‌شود بخش‌هایی از برنامه در زمان نیاز بارگذاری شوند. در اپ Native، فایل‌ها از بسته محلی WebView دریافت می‌شوند؛ اما پس از به‌روزرسانی APK ممکن است Cache یا نسخه قبلی WebView با فایل‌های جدید هم‌خوان نباشد.
+
+برای جلوگیری از خطا:
+- فایل‌های Web و Native باید به‌صورت یک Release هماهنگ منتشر شوند؛
+- سیاست Cache فایل‌های Static و نام‌گذاری Chunkها باید بررسی شود؛
+- خطای Chunk باید پیام قابل فهم و مسیر Recovery داشته باشد؛
+- قابلیت Live Update در Capacitor در این مرحله فعال نشود؛ تا زمانی که سیاست امضا، نسخه‌بندی، امنیت و Rollback جداگانه طراحی شده باشد.
+
+### ۱۸.۷ منابع رسمی مرتبط
+
+- [Capacitor Android / WebView](https://capacitorjs.com/docs/android)
+- [Capacitor Plugins](https://capacitorjs.com/docs/plugins)
+- [Capacitor App API](https://capacitorjs.com/docs/apis/app)
+- [Capacitor Haptics API](https://capacitorjs.com/docs/apis/haptics)
+- [Next.js Static Export و Browser APIs](https://nextjs.org/docs/app/guides/static-exports)
+- [Next.js Lazy Loading](https://nextjs.org/docs/app/guides/lazy-loading)
+- [Next.js Font Optimization](https://nextjs.org/docs/app/getting-started/fonts)
+
+### ۱۸.۸ وضعیت این ممیزی و موارد باز
+
+| موضوع | نتیجه |
+|---|---|
+| Dashboard Entry و Dynamic Import | فایل‌های هدفمند بررسی شدند |
+| Retry و Error Boundary | منطق فایل‌های مربوط بررسی شد |
+| Visibility و Online | فایل Hook بررسی شد |
+| Speech Recognition | Feature Detection و Session logic بررسی شد |
+| Haptics | Fallback و Preference بررسی شد |
+| Environmentهای Next Config | سه متغیر مستقیم شناسایی شدند |
+| فونت‌ها | پنج Google Font و Dana محلی شناسایی شدند |
+| Remote Image | تنظیمات مجاز در Next Config شناسایی شدند |
+| جست‌وجوی سراسری Browser API | به علت نبود نتیجه قابل اتکای نمایه جست‌وجو، قطعی نیست |
+| Build و APK Runtime | اجرا نشده |
+
+**نتیجه:** در فایل‌های هدفمند بررسی‌شده، Browser APIهای اصلی عمدتاً داخل Hook، Effect یا تابع و همراه با Feature Detection/Guard استفاده شده‌اند. ریسک‌های باقی‌مانده عمدتاً مربوط به پشتیبانی واقعی Speech Recognition، هماهنگی Native Lifecycle، مسیر و Cache فایل‌های Dynamic Chunk، متغیرهای Build و فونت‌های Google هستند. این نتیجه جایگزین جست‌وجوی سراسری و تست روی گوشی نیست.
+
+### ۱۸.۹ گام بعدی
+
+پیش از نصب Capacitor:
+1. تکمیل جست‌وجوی Browser APIها با دسترسی به نمایه کامل یا Clone محلی؛
+2. تهیه فهرست دقیق تمام Environment Variables مصرف‌شده؛
+3. اجرای Baseline واقعی در محیط پروژه: Lint، Typecheck، Test و Static Build؛
+4. ثبت خروجی و خطاهای موجود، بدون اصلاح خودکار؛
+5. ارائه فهرست فایل‌های نیازمند تغییر برای Native و دریافت تأیید مالک پروژه.
+
+هیچ فایل اجرایی، Dependency، فونت، Environment یا تنظیم Build در این ممیزی تغییر داده نشده است.
