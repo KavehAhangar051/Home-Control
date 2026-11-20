@@ -292,3 +292,10 @@ This is a source-level execution map, not a measured performance finding. No FPS
 - `GpuLutImage` guards async initialization against unmount and WebGL context loss, disposes a renderer that completes after the surface switches to identity pass-through, and retains the original image fallback while the program is compiling.
 - This optimization targets shader startup stalls only. It does not change shader source, LUT sampling, texture format, output pixels, animation timing, or dashboard UI. Parallel compilation can reduce main-thread blocking but does not guarantee a shorter total compile duration.
 - Source-level change only. Verify extension support and startup responsiveness in target browsers; no runtime FPS or VRAM improvement is claimed.
+
+
+## Canvas zoom readout empty-cache fast path (20 November 2026)
+
+- `applyViewportToDom()` now returns from the readout-update section when the caller supplies a primed empty cache. This avoids repeating a document-wide `querySelectorAll` on every animation frame when the active canvas has no zoom-readout badges.
+- A `null` cache still means "not primed" and retains the one-off DOM discovery fallback. Non-empty cached readouts keep the existing update path. Viewport transforms, grid calculations, zoom values, animation timing, and visible output are unchanged.
+- This is a source-level hot-path reduction; its benefit is workload-dependent and should be confirmed in a Performance trace. No FPS or VRAM improvement is claimed.

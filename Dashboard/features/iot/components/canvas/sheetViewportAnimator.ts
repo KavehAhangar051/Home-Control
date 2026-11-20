@@ -54,6 +54,8 @@ export function applyViewportToDom(
   if (typeof document !== "undefined") {
     const zoomText = `${Math.round(viewport.zoom * 100)}%`;
 
+    if (cachedReadouts?.length === 0) return;
+
     if (cachedReadouts && cachedReadouts.length > 0 && cachedReadouts[0]?.isConnected) {
       for (let i = 0; i < cachedReadouts.length; i++) {
         if (cachedReadouts[i].textContent !== zoomText) {
