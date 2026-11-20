@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-apk-${{ github.ref }}
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build debug APK
+    name: Build and publish debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -76,10 +76,28 @@ jobs:
           test -s android/app/build/outputs/apk/debug/app-debug.apk
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Upload installable APK
+      - name: Upload installable APK artifact
         uses: actions/upload-artifact@v6
         with:
           name: home-control-debug-apk-${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+          TAG="android-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          TITLE="Android Debug APK ${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          NOTES="$(printf 'Automated debug APK build.\n\n- Source commit: `%s`\n- Workflow run: %s (attempt %s)\n- Build type: unsigned debug APK\n\nThis is a development build, not a signed production release.' "$GITHUB_SHA" "$GITHUB_RUN_NUMBER" "$GITHUB_RUN_ATTEMPT")"
+
+          gh release create "$TAG" "$APK_PATH" \
+            --title "$TITLE" \
+            --notes "$NOTES" \
+            --prerelease \
+            --target "$GITHUB_SHA"
