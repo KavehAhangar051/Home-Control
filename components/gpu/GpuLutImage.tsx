@@ -29,6 +29,7 @@ export function GpuLutImage({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const drawRef = useRef<() => void>(() => {});
+  const initializeRef = useRef<() => void>(() => {});
   const lutRef = useRef(lut);
   const intensityRef = useRef(intensity);
   const [ready, setReady] = useState(false);
@@ -42,6 +43,7 @@ export function GpuLutImage({
 
     let renderer: WebGL2LutRenderer | null = null;
     let disposed = false;
+    let isNearViewport = false;
     setReady(false);
 
     const draw = () => {
@@ -99,6 +101,8 @@ export function GpuLutImage({
       }
     };
 
+    initializeRef.current = initialize;
+
     const handleContextLost = (event: Event) => {
       event.preventDefault();
       renderer?.dispose();
@@ -123,7 +127,12 @@ export function GpuLutImage({
       typeof IntersectionObserver !== "undefined"
         ? new IntersectionObserver(
             (entries) => {
-              if (entries.some((entry) => entry.isIntersecting)) initialize();
+              if (entries.some((entry) => entry.isIntersecting)) {
+                isNearViewport = true;
+                initialize();
+              } else {
+                isNearViewport = false;
+              }
             },
             { rootMargin: "160px" },
           )
@@ -159,11 +168,15 @@ export function GpuLutImage({
     }
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    if (!intersectionObserver) initialize();
+    if (!intersectionObserver) {
+      isNearViewport = true;
+      initialize();
+    }
 
     return () => {
       disposed = true;
       drawRef.current = () => {};
+      initializeRef.current = () => {};
       resizeObserver?.disconnect();
       intersectionObserver?.disconnect();
       window.removeEventListener("resize", handleWindowResize);
@@ -180,7 +193,8 @@ export function GpuLutImage({
     lutRef.current = lut;
     intensityRef.current = intensity;
     passThroughRef.current = intensity <= 0 || isIdentityLut(lut);
-    drawRef.current();
+    if (passThroughRef.current) drawRef.current();
+    else if (isNearViewport) initializeRef.current();
   }, [lut, intensity]);
 
   return (
