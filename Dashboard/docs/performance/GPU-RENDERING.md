@@ -440,3 +440,10 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - This avoids explicitly requesting a persistent layer for every decorative bar when the slider is idle; the browser can promote transitioning elements as needed. It preserves bar count, geometry, scale values, colors, easing, delays, reduced-motion behavior, and interaction semantics.
 - This is a GPU-layer memory hygiene change, not a measured VRAM or FPS improvement. Browser layer promotion remains implementation-dependent; verify on representative devices if compositor traces become available.
 - References: [MDN CSS animation performance](https://developer.mozilla.org/en-US/docs/Web/Performance/Guides/CSS_JavaScript_animation_performance), [web.dev animation overview](https://web.dev/articles/animations-overview).
+
+
+### Restrict Newton loader layer hints to animated balls (2026-11-20)
+
+- The Newton loader renders five balls, but only the two outer balls animate in the normal motion mode. The three stationary middle balls no longer receive `will-change: transform`; reduced-motion mode also avoids transform-layer hints because the balls are static and only the loader's reduced-motion behavior applies.
+- Animation values, timing, positions, ball count, and appearance are unchanged. This avoids explicitly requesting compositor resources for three elements that never transform. Actual layer allocation remains browser-dependent and no runtime VRAM/FPS measurement is available.
+- Reference: [web.dev high-performance CSS animations](https://web.dev/articles/animations-guide).
