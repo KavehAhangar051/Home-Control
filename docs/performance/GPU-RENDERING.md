@@ -469,3 +469,11 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - `features/dashboard/hooks/useWorkspaceSwipe.ts` stores touch-start and touch-move coordinates in refs instead of React state. Touch-move events therefore no longer schedule React renders solely to retain the latest pointer coordinates; the same swipe threshold, axis-dominance check, group ordering, and selection callback remain in place at touch end.
 - This reduces avoidable main-thread React work during touch gestures. It does not change rendered UI or move gesture recognition to the GPU; gesture event handling still runs on the main thread.
 - Reference: [Vercel React Best Practices — transient values in refs](https://github.com/vercel/react-best-practices).
+
+
+### Coalesce Color Picker pointer updates to the display frame (2026-11-20)
+
+- The shared Color Picker drag hook now retains only the latest pointer coordinates and applies at most one color update per `requestAnimationFrame`, rather than updating React context state for every delivered `pointermove` event.
+- Pointer-down remains immediate, and pointer-up flushes its final coordinates synchronously before committing. Pointer cancellation, lost capture, window blur, and unmount cancel pending frames so stale movement cannot be applied after a gesture ends.
+- The same coordinate mapping, color values, interaction model, and spring behavior are preserved. This reduces redundant main-thread React work when input events arrive faster than the display can paint; it does not make color math GPU work. No runtime FPS or INP measurement is claimed.
+- References: [React `useRef`](https://react.dev/reference/react/useRef), [MDN `requestAnimationFrame`](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame), [MDN `pointermove`](https://developer.mozilla.org/en-US/docs/Web/API/Element/pointermove_event).
