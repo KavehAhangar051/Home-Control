@@ -3,7 +3,16 @@
 import { FolderPlus, Minus, Plus, RefreshCw, X } from "lucide-react";
 import React from "react";
 import type { Segment } from "@/features/iot/hooks/store/types";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
+import {
+  adcValueToPercent,
+  adcValueToVoltage,
+  clampAdcResolution,
+  clampAdcValue,
+  isAnalogInputSegment,
+  isReadOnlyInputSegment,
+} from "@/features/iot/utils/analogInput";
 import { getSegmentIcon } from "@/features/iot/utils/icons";
 import { WorkflowCanvasGateDiagram } from "./WorkflowCanvasGateDiagram";
 import type {
@@ -38,6 +47,16 @@ export function SegmentNodeBody({
   onTogglePin,
   onUpdateNode,
 }: SegmentNodeBodyProps) {
+  const pin = linkedSegment?.pin ?? "";
+  const isAnalogIn = isAnalogInputSegment(linkedSegment);
+  const isReadOnlyIn = isReadOnlyInputSegment(linkedSegment);
+  const storeAnalogVal = useIoTStore((s) =>
+    isAnalogIn && pin ? s.pinsAnalogValue[pin] : undefined,
+  );
+  const storeResolution = useIoTStore((s) =>
+    isAnalogIn && pin ? s.pinsPwmResolution[pin] : undefined,
+  );
+
   if (!linkedSegment) {
     return (
       <div className="flex flex-1 items-center justify-center text-center text-[11px] text-text-muted">
@@ -47,6 +66,14 @@ export function SegmentNodeBody({
   }
 
   const actionMode = node.actionMode ?? "turn_on";
+  const adcResolution = isAnalogIn
+    ? clampAdcResolution(storeResolution ?? linkedSegment.adcResolution)
+    : 12;
+  const adcRaw = isAnalogIn
+    ? clampAdcValue(storeAnalogVal ?? linkedSegment.analogValue ?? 0, adcResolution)
+    : 0;
+  const adcPercent = isAnalogIn ? adcValueToPercent(adcRaw, adcResolution) : 0;
+  const adcVoltage = isAnalogIn ? adcValueToVoltage(adcRaw, adcResolution) : "0.00";
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-2">
@@ -75,7 +102,7 @@ export function SegmentNodeBody({
           </div>
         </div>
 
-        {linkedSegment.type !== "input" && (
+        {!isReadOnlyIn && (
           <button
             type="button"
             onClick={() => onTogglePin(linkedSegment.pin)}
@@ -95,7 +122,15 @@ export function SegmentNodeBody({
         )}
       </div>
 
-      {linkedSegment.type === "input" ? (
+      {isAnalogIn ? (
+        <div className="rounded-lg border border-border-color bg-bg-main px-2 py-1 text-[10px] text-text-secondary">
+          سنسور آنالوگ ADC ·{" "}
+          <span dir="ltr" className="font-mono font-bold tabular-nums text-text-primary">
+            {adcPercent}% (~{adcVoltage}V)
+          </span>{" "}
+          · {isPinOn ? "HIGH" : "LOW"}
+        </div>
+      ) : isReadOnlyIn ? (
         <div className="rounded-lg border border-border-color bg-bg-main px-2 py-1 text-[10px] text-text-secondary">
           سنسور ورودی · سطح سیگنال: {isPinOn ? "فعال (۱)" : "غیرفعال (۰)"}
         </div>
@@ -207,7 +242,7 @@ export function GroupNodeBody({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1">
-                  {seg.type !== "input" && (
+                  {!isReadOnlyInputSegment(seg) && (
                     <button
                       type="button"
                       onClick={() => onTogglePin(seg.pin)}

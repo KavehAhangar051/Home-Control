@@ -5,6 +5,7 @@ import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { defaultDeviceSyncGateway } from "@/features/iot/services/deviceGatewayAdapter";
 import { onMqttStateChange } from "@/features/iot/services/mqtt/client";
 import type { IDeviceSyncPort } from "@/features/iot/services/ports";
+import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 import {
   clampAnalogValue,
   clampPwmResolution,
@@ -135,10 +136,13 @@ export async function executeSinglePinUpdate(
 ): Promise<boolean> {
   if (!pin) return false;
 
-  beginLoading();
   const initialStore = useIoTStore.getState();
   const prevState = initialStore.pinsState[pin];
   const segment = initialStore.segments.find((s) => s.pin === pin);
+
+  if (isReadOnlyInputSegment(segment)) return false;
+
+  beginLoading();
   const isAnalog = isAnalogOutputSegment(segment);
   const prevAnalogValue = initialStore.pinsAnalogValue[pin];
 
@@ -222,6 +226,9 @@ export async function executeAnalogPinUpdate(
 
   const store = useIoTStore.getState();
   const segment = store.segments.find((s) => s.pin === pin);
+
+  if (isReadOnlyInputSegment(segment)) return false;
+
   const resolution = resolveAnalogPinResolution(pin);
   const clampedValue = clampAnalogValue(value, resolution);
   const nextBoolState = clampedValue > 0;
@@ -476,6 +483,21 @@ export function usePinOperations() {
     [setPinsState, beginLoading, endLoading],
   );
 
+  const handleReadAnalogInput = useCallback(
+    (pin: string): boolean => {
+      if (!pin) return false;
+
+      const delivered = defaultDeviceSyncGateway.readAnalogInput(pin);
+
+      if (!delivered) {
+        showToast("ارتباط با دستگاه (MQTT/سرور) برقرار نیست؛ خواندن آنی ارسال نشد.", "error");
+      }
+
+      return delivered;
+    },
+    [showToast],
+  );
+
   return {
     isLoadingIoT: false,
     updatePinOnServer,
@@ -483,5 +505,6 @@ export function usePinOperations() {
     handleSetPinState,
     handleSetPinAnalogValue,
     handleBatchPinState,
+    handleReadAnalogInput,
   };
 }

@@ -5,6 +5,7 @@
  */
 
 import type { EspConfig } from "@/features/iot/services/config/types";
+import type { AnalogInputSegmentOptions } from "@/features/iot/utils/analogInput";
 import type { AnalogSegmentOptions } from "@/features/iot/utils/analogOutput";
 
 export interface PinAction {
@@ -31,7 +32,10 @@ export interface IDeviceCommandPort {
     pin: number,
     value: boolean,
     analogOptions?: AnalogSegmentOptions,
+    analogInputOptions?: AnalogInputSegmentOptions,
   ): void;
+  publishUpdateAnalogInputConfig(pin: number, config: AnalogInputSegmentOptions): boolean;
+  publishReadAnalogInput(pin: number): boolean;
   publishDeleteSegment(id: string): void;
   publishPresence(isVisible: boolean): void;
 }
@@ -81,4 +85,6 @@ export interface IDeviceSyncPort {
     actions: Array<{ targetPin: string; actionOn: boolean }>,
     options?: BatchPinSyncOptions,
   ): Promise<boolean>;
+  readAnalogInput(pin: string): boolean;
+  updateAnalogInputConfig(pin: string, config: AnalogInputSegmentOptions): boolean;
 }

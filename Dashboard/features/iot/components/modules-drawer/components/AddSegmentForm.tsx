@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import {
+  type AnalogInputSegmentOptions,
+  isAnalogInputType,
+} from "@/features/iot/utils/analogInput";
+import {
   type AnalogSegmentOptions,
   getAnalogMaxDuty,
   isAnalogOutputType,
@@ -24,6 +28,7 @@ import {
 } from "@/lib/ease";
 import type { Segment } from "../core/types";
 import { useAddSegmentForm } from "../hooks/useAddSegmentForm";
+import AnalogInputSettingsPanel from "./AnalogInputSettingsPanel";
 import ButtonModeSelector from "./ButtonModeSelector";
 import FormDetailsInput from "./FormDetailsInput";
 import PinSelector from "./PinSelector";
@@ -41,6 +46,7 @@ interface AddSegmentFormProps {
     icon?: string,
     groupIcon?: string,
     analogConfig?: AnalogSegmentOptions,
+    analogInputConfig?: AnalogInputSegmentOptions,
   ) => void;
   onClose: () => void;
   segments: Segment[];
@@ -75,13 +81,25 @@ export default function AddSegmentForm({
     setPwmFrequency,
     initialPercent,
     setInitialPercent,
+    adcResolution,
+    handleAdcResolutionChange,
+    adcSampleIntervalMs,
+    setAdcSampleIntervalMs,
+    adcDeltaThreshold,
+    setAdcDeltaThreshold,
+    adcHighThreshold,
+    setAdcHighThreshold,
+    adcLowThreshold,
+    setAdcLowThreshold,
+    applyAdcPreset,
     showAdvanced,
     setShowAdvanced,
     groupsOrder,
     handleSubmit,
   } = useAddSegmentForm(segments, onAddSegment, onClose);
 
-  const isAnalog = isAnalogOutputType(selectedType);
+  const isAnalogOutput = isAnalogOutputType(selectedType);
+  const isAnalogInput = isAnalogInputType(selectedType);
   const maxDuty = getAnalogMaxDuty(pwmResolution);
   const initialDuty = percentToAnalogDuty(initialPercent, pwmResolution);
 
@@ -123,6 +141,9 @@ export default function AddSegmentForm({
               <option value="input" className="bg-card-bg-solid">
                 ورودی دیجیتال (۰ و ۱)
               </option>
+              <option value="analog_input" className="bg-card-bg-solid">
+                ورودی آنالوگ (سنسور / ADC)
+              </option>
             </Select>
           </div>
 
@@ -146,7 +167,7 @@ export default function AddSegmentForm({
           />
 
           <AnimatePresence initial={false}>
-            {isAnalog && (
+            {isAnalogOutput && (
               <m.div
                 key="analog-pwm-settings"
                 initial={animationsEnabled ? { height: 0, opacity: 0 } : false}
@@ -271,9 +292,44 @@ export default function AddSegmentForm({
                 </div>
               </m.div>
             )}
+            {isAnalogInput && (
+              <m.div
+                key="analog-adc-settings"
+                initial={animationsEnabled ? { height: 0, opacity: 0 } : false}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={
+                  animationsEnabled
+                    ? { height: 0, opacity: 0 }
+                    : { opacity: 0, transition: { duration: 0 } }
+                }
+                transition={
+                  animationsEnabled
+                    ? {
+                        height: { duration: 0.22, ease: TRANSITION_ENTER_QUICK.ease },
+                        opacity: { duration: 0.16, ease: TRANSITION_EXIT_QUICK.ease },
+                      }
+                    : { duration: 0 }
+                }
+                className="overflow-hidden"
+              >
+                <AnalogInputSettingsPanel
+                  adcResolution={adcResolution}
+                  onResolutionChange={handleAdcResolutionChange}
+                  adcSampleIntervalMs={adcSampleIntervalMs}
+                  setAdcSampleIntervalMs={setAdcSampleIntervalMs}
+                  adcDeltaThreshold={adcDeltaThreshold}
+                  setAdcDeltaThreshold={setAdcDeltaThreshold}
+                  adcHighThreshold={adcHighThreshold}
+                  setAdcHighThreshold={setAdcHighThreshold}
+                  adcLowThreshold={adcLowThreshold}
+                  setAdcLowThreshold={setAdcLowThreshold}
+                  onApplyPreset={applyAdcPreset}
+                />
+              </m.div>
+            )}
           </AnimatePresence>
 
-          {!isAnalog && (
+          {!isAnalogOutput && !isAnalogInput && (
             <div className="pt-2 border-t border-border-color">
               <button
                 type="button"

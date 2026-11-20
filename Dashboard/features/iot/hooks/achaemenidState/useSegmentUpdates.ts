@@ -1,7 +1,15 @@
 import { useCallback } from "react";
 import type { SegmentRule } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { defaultDeviceSyncGateway } from "@/features/iot/services/deviceGatewayAdapter";
 import { publishUpdateRuleCommand } from "@/features/iot/services/mqttService";
+import {
+  type AnalogInputSegmentOptions,
+  isAnalogInputSegment,
+  isReadOnlyInputSegment,
+  isValidAdc1Pin,
+  normalizeAnalogInputConfig,
+} from "@/features/iot/utils/analogInput";
 import { validateRuleActionList } from "./core/segmentOperations";
 
 export function useSegmentUpdates() {
@@ -45,12 +53,12 @@ export function useSegmentUpdates() {
       }
 
       const targetSegment = useIoTStore.getState().segments.find((segment) => segment.id === id);
-      if (targetSegment?.type !== "input") {
+      if (!isReadOnlyInputSegment(targetSegment)) {
         useIoTStore.getState().showToast("سگمنت ورودی موردنظر در داشبورد پیدا نشد.", "error");
         return;
       }
 
-      const inputPin = Number(targetSegment.pin);
+      const inputPin = Number(targetSegment?.pin);
       if (!Number.isInteger(inputPin) || inputPin < 0 || inputPin > 39) {
         useIoTStore.getState().showToast("شماره GPIO سگمنت ورودی معتبر نیست.", "error");
         return;
@@ -62,9 +70,71 @@ export function useSegmentUpdates() {
     [setSegments],
   );
 
+  const handleUpdateAnalogInputConfig = useCallback(
+    (id: string, config: AnalogInputSegmentOptions): boolean => {
+      const store = useIoTStore.getState();
+      const targetSegment = store.segments.find((segment) => segment.id === id);
+
+      if (!targetSegment || !isAnalogInputSegment(targetSegment)) {
+        store.showToast("سگمنت ورودی آنالوگ موردنظر پیدا نشد.", "error");
+        return false;
+      }
+
+      if (!isValidAdc1Pin(targetSegment.pin)) {
+        store.showToast("پایه انتخاب‌شده جزء کانال‌های مجاز ADC1 نیست.", "error");
+        return false;
+      }
+
+      const normalized = normalizeAnalogInputConfig({
+        adcResolution: config.adcResolution ?? targetSegment.adcResolution,
+        adcSampleIntervalMs: config.adcSampleIntervalMs ?? targetSegment.adcSampleIntervalMs,
+        adcDeltaThreshold: config.adcDeltaThreshold ?? targetSegment.adcDeltaThreshold,
+        adcHighThreshold: config.adcHighThreshold ?? targetSegment.adcHighThreshold,
+        adcLowThreshold: config.adcLowThreshold ?? targetSegment.adcLowThreshold,
+      });
+
+      setSegments((prev) =>
+        prev.map((s) =>
+          s.id === id
+            ? {
+                ...s,
+                adcResolution: normalized.adcResolution,
+                adcSampleIntervalMs: normalized.adcSampleIntervalMs,
+                adcDeltaThreshold: normalized.adcDeltaThreshold,
+                adcHighThreshold: normalized.adcHighThreshold,
+                adcLowThreshold: normalized.adcLowThreshold,
+              }
+            : s,
+        ),
+      );
+
+      store.setPinsPwmResolution((prev) =>
+        prev[targetSegment.pin] === normalized.adcResolution
+          ? prev
+          : { ...prev, [targetSegment.pin]: normalized.adcResolution },
+      );
+
+      const delivered = defaultDeviceSyncGateway.updateAnalogInputConfig(targetSegment.pin, {
+        ...normalized,
+        adcResolution:
+          config.adcResolution !== undefined ? normalized.adcResolution : undefined,
+      });
+
+      if (delivered) {
+        store.showToast("تنظیمات سنسور آنالوگ روی دستگاه اعمال شد.", "success");
+      } else {
+        store.showToast("تنظیمات در داشبورد ذخیره شد اما ارتباط با دستگاه برقرار نیست.", "error");
+      }
+
+      return delivered;
+    },
+    [setSegments],
+  );
+
   return {
     handleUpdateSegmentMode,
     handleUpdateSegmentAutoOff,
     handleUpdateSegmentRule,
+    handleUpdateAnalogInputConfig,
   };
 }

@@ -22,6 +22,8 @@ import {
 import {
   publishAddSegmentCommand as mqttAddSegment,
   publishDeleteSegmentCommand as mqttDeleteSegment,
+  publishReadAnalogInputCommand as mqttReadAnalogInput,
+  publishUpdateAnalogInputConfigCommand as mqttUpdateAnalogInputConfig,
 } from "./mqtt/segmentPublishers";
 import { publishPresence as mqttPublishPresence } from "./mqtt/systemPublishers";
 import type {
@@ -35,6 +37,10 @@ import type {
   SinglePinSyncOptions,
 } from "./ports";
 import { getIoTStoreSnapshot } from "./storeBridge";
+import {
+  type AnalogInputSegmentOptions,
+  normalizeAnalogInputConfig,
+} from "@/features/iot/utils/analogInput";
 import type { AnalogSegmentOptions } from "@/features/iot/utils/analogOutput";
 
 interface PartitionedBatchActions {
@@ -61,8 +67,17 @@ export class DeviceCommandAdapter implements IDeviceCommandPort {
     pin: number,
     value: boolean,
     analogOptions?: AnalogSegmentOptions,
+    analogInputOptions?: AnalogInputSegmentOptions,
   ): void {
-    mqttAddSegment(id, type, pin, value, analogOptions);
+    mqttAddSegment(id, type, pin, value, analogOptions, analogInputOptions);
+  }
+
+  publishUpdateAnalogInputConfig(pin: number, config: AnalogInputSegmentOptions): boolean {
+    return mqttUpdateAnalogInputConfig(pin, config);
+  }
+
+  publishReadAnalogInput(pin: number): boolean {
+    return mqttReadAnalogInput(pin);
   }
 
   publishDeleteSegment(id: string): void {
@@ -113,6 +128,11 @@ export interface LiveDeviceSyncDependencies {
   publishPinCommand?: (pinId: string, value: boolean, timer?: number) => boolean;
   publishAnalogOutputCommand?: (pinId: string, value: number, timer?: number) => boolean;
   publishBatchPinCommand?: (actions: PinAction[]) => boolean;
+  publishReadAnalogInputCommand?: (pin: number) => boolean;
+  publishUpdateAnalogInputConfigCommand?: (
+    pin: number,
+    config: AnalogInputSegmentOptions,
+  ) => boolean;
   isCloudflareEnabled?: () => boolean;
   updatePinOnCloudflare?: (pin: string, value: boolean) => Promise<AckResponse>;
   updateAnalogPinOnCloudflare?: (pin: string, analogValue: number) => Promise<AckResponse>;
@@ -139,6 +159,10 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
       publishPinCommand: dependencies.publishPinCommand ?? mqttPublishPin,
       publishAnalogOutputCommand: dependencies.publishAnalogOutputCommand ?? mqttPublishAnalog,
       publishBatchPinCommand: dependencies.publishBatchPinCommand ?? mqttPublishBatch,
+      publishReadAnalogInputCommand:
+        dependencies.publishReadAnalogInputCommand ?? mqttReadAnalogInput,
+      publishUpdateAnalogInputConfigCommand:
+        dependencies.publishUpdateAnalogInputConfigCommand ?? mqttUpdateAnalogInputConfig,
       isCloudflareEnabled: dependencies.isCloudflareEnabled ?? isCloudflareEnabled,
       updatePinOnCloudflare: dependencies.updatePinOnCloudflare ?? updatePinOnCloudflare,
       updateAnalogPinOnCloudflare:
@@ -156,6 +180,11 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
       value?: number;
       timer?: number;
       actions?: PinAction[];
+      sint?: number;
+      delta?: number;
+      ath?: number;
+      atl?: number;
+      res?: number;
     },
     mqttSend: () => boolean,
   ): boolean {
@@ -392,6 +421,41 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
 
     return delivered;
   }
+
+  readAnalogInput(pin: string): boolean {
+    const pinNum = Number(pin) | 0;
+
+    return this.dispatchHardwareCommand(
+      { command: "read_analog", pin: pinNum },
+      () => this.deps.publishReadAnalogInputCommand(pinNum),
+    );
+  }
+
+  updateAnalogInputConfig(pin: string, config: AnalogInputSegmentOptions): boolean {
+    const pinNum = Number(pin) | 0;
+    const includeRes =
+      config.adcResolution !== undefined &&
+      Number.isFinite(config.adcResolution) &&
+      config.adcResolution > 0;
+    const normalized = normalizeAnalogInputConfig(config);
+
+    return this.dispatchHardwareCommand(
+      {
+        command: "config_analog_input",
+        pin: pinNum,
+        sint: normalized.adcSampleIntervalMs,
+        delta: normalized.adcDeltaThreshold,
+        ath: normalized.adcHighThreshold,
+        atl: normalized.adcLowThreshold,
+        ...(includeRes ? { res: normalized.adcResolution } : {}),
+      },
+      () =>
+        this.deps.publishUpdateAnalogInputConfigCommand(
+          pinNum,
+          includeRes ? normalized : { ...normalized, adcResolution: undefined },
+        ),
+    );
+  }
 }
 
 const MAX_DISPATCH_LOG_ENTRIES = 500;
@@ -404,13 +468,13 @@ export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
   public pinsState = new Map<string, boolean>();
   public pinsAnalogValue = new Map<string, number>();
   public dispatchLog: Array<{
-    type: "single" | "analog" | "batch";
+    type: "single" | "analog" | "batch" | "read_analog" | "config_analog_input";
     payload: unknown;
     timestamp: number;
   }> = [];
 
   private appendDispatchLog(entry: {
-    type: "single" | "analog" | "batch";
+    type: "single" | "analog" | "batch" | "read_analog" | "config_analog_input";
     payload: unknown;
     timestamp: number;
   }): void {
@@ -478,6 +542,26 @@ export class InMemoryDeviceSyncAdapter implements IDeviceSyncPort {
     if (options?.showToast) {
       options.showToast(`[Simulation] ${actions.length} pins batch synced`, "success");
     }
+
+    return true;
+  }
+
+  readAnalogInput(pin: string): boolean {
+    this.appendDispatchLog({
+      type: "read_analog",
+      payload: { pin },
+      timestamp: Date.now(),
+    });
+
+    return true;
+  }
+
+  updateAnalogInputConfig(pin: string, config: AnalogInputSegmentOptions): boolean {
+    this.appendDispatchLog({
+      type: "config_analog_input",
+      payload: { pin, config: normalizeAnalogInputConfig(config) },
+      timestamp: Date.now(),
+    });
 
     return true;
   }

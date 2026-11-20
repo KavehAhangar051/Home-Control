@@ -8,6 +8,11 @@ import {
   publishDeleteSegmentCommand,
 } from "@/features/iot/services/mqtt/segmentPublishers";
 import {
+  type AnalogInputSegmentOptions,
+  DEFAULT_ADC_RESOLUTION,
+  isAnalogInputSegment,
+} from "@/features/iot/utils/analogInput";
+import {
   type AnalogSegmentOptions,
   getAnalogMaxDuty,
   isAnalogOutputSegment,
@@ -57,9 +62,21 @@ export function useSegmentManagement({
       icon?: string,
       groupIcon?: string,
       analogConfig?: AnalogSegmentOptions,
+      analogInputConfig?: AnalogInputSegmentOptions,
     ) => {
       const decision = planAddSegment({
-        input: { type, pin, title, group, mode, auto_off, icon, groupIcon, analogConfig },
+        input: {
+          type,
+          pin,
+          title,
+          group,
+          mode,
+          auto_off,
+          icon,
+          groupIcon,
+          analogConfig,
+          analogInputConfig,
+        },
         segments: useIoTStore.getState().segments,
         targetPlaceholderId,
       });
@@ -80,9 +97,10 @@ export function useSegmentManagement({
 
       const storeSnapshot = useIoTStore.getState();
       const created = decision.newSegment;
-      const isAnalog = isAnalogOutputSegment(created);
+      const isAnalogOutput = isAnalogOutputSegment(created);
+      const isAnalogInput = isAnalogInputSegment(created);
 
-      if (isAnalog && created.pin) {
+      if (isAnalogOutput && created.pin) {
         const initVal = created.analogValue ?? 0;
         const res = created.pwmResolution ?? 8;
         const lastNonZero = created.lastNonZeroValue ?? getAnalogMaxDuty(res);
@@ -91,6 +109,12 @@ export function useSegmentManagement({
         storeSnapshot.setPinsAnalogValue((prev) => ({ ...prev, [created.pin]: initVal }));
         storeSnapshot.setPinsLastNonZeroValue((prev) => ({ ...prev, [created.pin]: lastNonZero }));
         storeSnapshot.setPinsState((prev) => ({ ...prev, [created.pin]: initVal > 0 }));
+      } else if (isAnalogInput && created.pin) {
+        const res = created.adcResolution ?? DEFAULT_ADC_RESOLUTION;
+
+        storeSnapshot.setPinsPwmResolution((prev) => ({ ...prev, [created.pin]: res }));
+        storeSnapshot.setPinsAnalogValue((prev) => ({ ...prev, [created.pin]: 0 }));
+        storeSnapshot.setPinsState((prev) => ({ ...prev, [created.pin]: false }));
       } else if (
         pin &&
         type !== "placeholder" &&
@@ -106,11 +130,20 @@ export function useSegmentManagement({
           created.type,
           Number(created.pin) | 0,
           false,
-          isAnalog
+          isAnalogOutput
             ? {
                 pwmResolution: created.pwmResolution,
                 pwmFrequency: created.pwmFrequency,
                 initialValue: created.analogValue ?? 0,
+              }
+            : undefined,
+          isAnalogInput
+            ? {
+                adcResolution: created.adcResolution,
+                adcSampleIntervalMs: created.adcSampleIntervalMs,
+                adcDeltaThreshold: created.adcDeltaThreshold,
+                adcHighThreshold: created.adcHighThreshold,
+                adcLowThreshold: created.adcLowThreshold,
               }
             : undefined,
         );

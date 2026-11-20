@@ -1,9 +1,11 @@
 import React, { type ComponentPropsWithoutRef } from "react";
 import type { Toggle } from "@/components/ui/toggle";
+import { isAnalogInputSegment } from "@/features/iot/utils/analogInput";
 import { isAnalogOutputSegment } from "@/features/iot/utils/analogOutput";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
 import { getSegmentTileDensity } from "../core/segmentTileDensity";
 import type { SegmentData } from "../core/types";
+import AnalogInputBody from "./AnalogInputBody";
 import AnalogOutputBody from "./AnalogOutputBody";
 import PinToggle from "./PinToggle";
 
@@ -147,6 +149,14 @@ function CardBody({
     <div className="size-full flex-1 flex items-stretch">
       {segment.type === "input" ? (
         <InputSegmentBody
+          segment={segment}
+          isPinOn={isPinOn}
+          isCompact={isCompact}
+          isUltraCompact={isUltraCompact}
+          hasExternalHeader={hasExternalHeader}
+        />
+      ) : isAnalogInputSegment(segment) ? (
+        <AnalogInputBody
           segment={segment}
           isPinOn={isPinOn}
           isCompact={isCompact}

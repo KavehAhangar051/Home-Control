@@ -20,12 +20,20 @@ export const MQTT_OPCODES = {
   SET_ANALOG_OUTPUT: 0x0a,
   /** Update automation rule with 13-byte analog targetValue actions */
   UPDATE_RULE_ANALOG: 0x0b,
+  /** Live update ADC1 sampling, delta, Schmitt-Trigger thresholds, and optional resolution */
+  UPDATE_ANALOG_INPUT_CONFIG: 0x0c,
+  /** Force immediate ADC1 sensor readout bypassing sampleIntervalMs/deltaThreshold */
+  READ_ANALOG_INPUT: 0x0d,
 } as const;
 
 /** Binary byte sizes for protocol framing */
 export const PIN_COMMAND_BUFFER_SIZE = 7;
 export const ANALOG_COMMAND_BUFFER_SIZE = 8;
 export const ANALOG_SEGMENT_EXT_SIZE = 5;
+export const ANALOG_INPUT_SEGMENT_EXT_SIZE = 9;
+export const ANALOG_INPUT_CONFIG_BASE_SIZE = 10;
+export const ANALOG_INPUT_CONFIG_WITH_RES_SIZE = 11;
+export const READ_ANALOG_INPUT_BUFFER_SIZE = 2;
 export const DEFAULT_TIMER_DISABLED = -1;
 export const MAX_BATCH_ACTIONS = 255;
 export const BATCH_HEADER_SIZE = 2;

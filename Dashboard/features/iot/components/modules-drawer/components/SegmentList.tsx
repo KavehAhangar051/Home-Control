@@ -3,6 +3,11 @@ import { Card } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Sliders } from "@/components/ui/hugeicons-groups/shell";
 import {
+  clampAdcResolution,
+  clampAdcSampleInterval,
+  isAnalogInputSegment,
+} from "@/features/iot/utils/analogInput";
+import {
   clampPwmFrequency,
   clampPwmResolution,
   isAnalogOutputSegment,
@@ -40,7 +45,8 @@ export default function SegmentList({ segments, onRemoveSegment }: SegmentListPr
           >
             <p className="text-xs font-medium text-text-secondary">هنوز قطعه‌ای اضافه نشده است</p>
             <p className="text-xs text-text-muted leading-relaxed">
-              از فرم کناری اولین کلید کنترل، خروجی آنالوگ یا ورودی دیجیتال خانه را ایجاد کنید
+              از فرم کناری اولین کلید کنترل، خروجی آنالوگ، ورودی دیجیتال یا سنسور آنالوگ خانه را
+              ایجاد کنید
             </p>
           </m.div>
         ) : (
@@ -80,11 +86,17 @@ export default function SegmentList({ segments, onRemoveSegment }: SegmentListPr
                     ·{" "}
                     {seg.type === "input"
                       ? "ورودی دیجیتال"
-                      : isAnalogOutputSegment(seg)
-                        ? `خروجی آنالوگ PWM · ${clampPwmResolution(seg.pwmResolution)} بیت · ${clampPwmFrequency(seg.pwmFrequency)}Hz`
-                        : seg.mode === "push"
-                          ? "شستی لحظه‌ای"
-                          : "کلید دوحالته"}
+                      : isAnalogInputSegment(seg)
+                        ? `ورودی آنالوگ ADC · ${clampAdcResolution(seg.adcResolution)} بیت · ${clampAdcSampleInterval(seg.adcSampleIntervalMs)}ms${
+                            (seg.adcHighThreshold ?? 0) > 0
+                              ? ` · ATH ${seg.adcHighThreshold}`
+                              : ""
+                          }`
+                        : isAnalogOutputSegment(seg)
+                          ? `خروجی آنالوگ PWM · ${clampPwmResolution(seg.pwmResolution)} بیت · ${clampPwmFrequency(seg.pwmFrequency)}Hz`
+                          : seg.mode === "push"
+                            ? "شستی لحظه‌ای"
+                            : "کلید دوحالته"}
                   </span>
                 </div>
               </MotionCard>

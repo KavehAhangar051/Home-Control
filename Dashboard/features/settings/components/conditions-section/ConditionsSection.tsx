@@ -5,6 +5,7 @@ import { Info } from "@/components/ui/hugeicons-groups/controls";
 import { Settings2 } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { publishUpdateRuleCommand } from "@/features/iot/services/mqttService";
+import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 import {
   hasExplicitAnalogTargetValue,
   isAnalogOutputSegment,
@@ -29,15 +30,15 @@ export default function ConditionsSection() {
     >
   >({});
 
-  const inputSegments = segments.filter((s) => s.type === "input");
+  const inputSegments = segments.filter((s) => isReadOnlyInputSegment(s));
 
   return (
     <div className="space-y-6">
       <div className="bg-accent3-transparent border border-accent3 text-accent3 p-4 rounded-xl text-xs flex gap-3 items-start">
         <Info className="size-5 shrink-0 mt-0.5" />
         <p className="leading-relaxed font-medium">
-          برای زمان‌های مختلف نگه‌داشتن کلید (مثلاً 0، 3، 5 یا 10 ثانیه) عملیات جداگانه تعریف کنید. هر
-          وضعیت می‌تواند چند عملیات روی پایه‌های مجزا داشته باشد.
+          برای ورودی‌های دیجیتال و سنسورهای آنالوگ (ADC دارای آستانه) می‌توانید عملیات جداگانه تعریف
+          کنید. هر وضعیت می‌تواند تا ۴ عملیات روی خروجی‌های دیجیتال یا PWM داشته باشد.
         </p>
       </div>
 
@@ -48,8 +49,8 @@ export default function ConditionsSection() {
             هنوز قطعه ورودی در داشبورد ثبت نشده است
           </p>
           <p className="text-xs text-text-secondary max-w-sm mx-auto leading-relaxed">
-            ابتدا از بخش «پالایه و ماژول‌ها» یک قطعه از نوع «ورودی دیجیتال» بسازید تا بتوانید برای آن
-            شرط تعریف کنید.
+            ابتدا از بخش «پالایه و ماژول‌ها» یک قطعه از نوع «ورودی دیجیتال» یا «ورودی آنالوگ (ADC)»
+            بسازید تا بتوانید برای آن شرط تعریف کنید.
           </p>
         </div>
       ) : (
@@ -71,6 +72,14 @@ export default function ConditionsSection() {
                   const matchedSeg = segments.find(
                     (s) => s.type !== "placeholder" && s.pin.trim() === pin,
                   );
+                  if (isReadOnlyInputSegment(matchedSeg)) {
+                    showToast(
+                      `پایه GPIO ${pin} به‌عنوان ورودی تعریف شده و نمی‌تواند هدف خروجی باشد.`,
+                      "error",
+                    );
+
+                    return;
+                  }
                   const val = validateEsp32Pin(
                     pin,
                     isAnalogOutputSegment(matchedSeg) ? "analog_output" : "output",

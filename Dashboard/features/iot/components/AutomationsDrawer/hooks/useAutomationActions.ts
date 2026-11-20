@@ -1,5 +1,6 @@
 import type { AutomationAction, Macro, Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 
 export function buildNewAutomationAction(
   type: "pin" | "macro",
@@ -8,7 +9,8 @@ export function buildNewAutomationAction(
 ): AutomationAction {
   if (type === "pin") {
     const defaultSegment = segments.find(
-      (seg) => seg.type !== "placeholder" && seg.type !== "input" && seg.pin.trim().length > 0,
+      (seg) =>
+        seg.type !== "placeholder" && !isReadOnlyInputSegment(seg) && seg.pin.trim().length > 0,
     );
 
     return { targetPin: defaultSegment?.pin || "2", actionOn: true };

@@ -5,6 +5,7 @@ import { Square } from "@/components/ui/hugeicons-groups/controls";
 import { Layers, Play, Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Select } from "@/components/ui/select";
 import type { AutomationAction } from "@/features/iot/hooks/store/types";
+import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 import { useAutomationActions } from "../../hooks/useAutomationActions";
 
 interface ActionBuilderProps {
@@ -16,6 +17,10 @@ export default function ActionBuilder({ actions, setActions }: ActionBuilderProp
   const { addAction, updateAction, removeAction, segments, macros } = useAutomationActions(
     actions,
     setActions,
+  );
+
+  const controllableSegments = segments.filter(
+    (seg) => seg.type !== "placeholder" && !isReadOnlyInputSegment(seg) && seg.pin.trim().length > 0,
   );
 
   return (
@@ -50,12 +55,12 @@ export default function ActionBuilder({ actions, setActions }: ActionBuilderProp
                   wrapperClassName="min-w-0 flex-1"
                   className="h-9 bg-card-bg-solid p-2 rounded-lg text-xs"
                 >
-                  {segments.map((seg) => (
+                  {controllableSegments.map((seg) => (
                     <option key={seg.id} value={seg.pin}>
                       {seg.title} (GPIO {seg.pin})
                     </option>
                   ))}
-                  {!segments.find((s) => s.pin === act.targetPin) && (
+                  {!controllableSegments.find((s) => s.pin === act.targetPin) && (
                     <option value={act.targetPin}>پایه دستی: {act.targetPin}</option>
                   )}
                 </Select>

@@ -12,6 +12,11 @@ export interface SegmentData {
   lastNonZeroValue?: number;
   pwmResolution?: number;
   pwmFrequency?: number;
+  adcResolution?: number;
+  adcSampleIntervalMs?: number;
+  adcDeltaThreshold?: number;
+  adcHighThreshold?: number;
+  adcLowThreshold?: number;
   rule?: {
     highActions?: Array<{
       reqHold: number;

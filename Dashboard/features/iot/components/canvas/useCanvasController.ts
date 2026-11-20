@@ -3,6 +3,7 @@
 import React from "react";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
+import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 import {
   buildDefaultCanvasNodes,
   canvasGroupNodeId,
@@ -258,7 +259,7 @@ export function useCanvasController({
         groupName,
         segmentId: seg.id,
         pin: seg.type === "placeholder" ? "" : seg.pin,
-        isInput: seg.type === "input",
+        isInput: isReadOnlyInputSegment(seg),
       });
     }
 

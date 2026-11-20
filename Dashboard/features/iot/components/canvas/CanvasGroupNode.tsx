@@ -8,6 +8,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 import { getSegmentIcon, hasIcon, ICON_MAP } from "@/features/iot/utils/icons";
 import { SPRING_MOUSE, SPRING_PANEL } from "@/lib/ease";
 import CanvasGroupBody from "./CanvasGroupBody";
@@ -74,7 +75,7 @@ function countGroupSegments(groupSegments: Segment[], pinsState: Record<string, 
 
   for (const seg of groupSegments) {
     if (seg.type !== "placeholder" && seg.pin) {
-      if (seg.type !== "input") controllableCount += 1;
+      if (!isReadOnlyInputSegment(seg)) controllableCount += 1;
 
       if (pinsState[seg.pin]) activeCount += 1;
     }

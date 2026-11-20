@@ -1,6 +1,12 @@
 import type { GroupsSlice, Segment } from "@/features/iot/hooks/store/types";
 import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
 import {
+  ANALOG_INPUT_TYPE,
+  type AnalogInputSegmentOptions,
+  isAnalogInputType,
+  normalizeAnalogInputConfig,
+} from "@/features/iot/utils/analogInput";
+import {
   ANALOG_OUTPUT_TYPE,
   type AnalogSegmentOptions,
   clampAnalogValue,
@@ -23,6 +29,7 @@ export interface AddSegmentInput {
   icon?: string;
   groupIcon?: string;
   analogConfig?: AnalogSegmentOptions;
+  analogInputConfig?: AnalogInputSegmentOptions;
 }
 
 export type AddSegmentDecision =
@@ -61,32 +68,36 @@ export function planAddSegment(params: {
   }
 
   const finalGroup = resolveSegmentGroup(input.group);
-  const isAnalog = isAnalogOutputType(input.type);
+  const isAnalogOutput = isAnalogOutputType(input.type);
+  const isAnalogInput = isAnalogInputType(input.type);
 
-  const analogResolution = isAnalog
+  const analogResolution = isAnalogOutput
     ? clampPwmResolution(input.analogConfig?.pwmResolution)
     : undefined;
-  const analogFrequency = isAnalog
+  const analogFrequency = isAnalogOutput
     ? clampPwmFrequency(input.analogConfig?.pwmFrequency)
     : undefined;
-  const analogInitialValue = isAnalog
+  const analogInitialValue = isAnalogOutput
     ? clampAnalogValue(input.analogConfig?.initialValue ?? 0, analogResolution)
     : undefined;
+  const adcConfig = isAnalogInput ? normalizeAnalogInputConfig(input.analogInputConfig) : undefined;
 
   const newSegment: Segment = {
     id: createId(),
-    type: isAnalog ? ANALOG_OUTPUT_TYPE : input.type,
+    type: isAnalogOutput ? ANALOG_OUTPUT_TYPE : isAnalogInput ? ANALOG_INPUT_TYPE : input.type,
     pin: input.pin,
     title:
       input.title ||
-      (isAnalog
+      (isAnalogOutput
         ? `خروجی آنالوگ PWM (GPIO ${input.pin})`
-        : `کنترل پایه دیجیتال (GPIO ${input.pin})`),
+        : isAnalogInput
+          ? `ورودی آنالوگ ADC (GPIO ${input.pin})`
+          : `کنترل پایه دیجیتال (GPIO ${input.pin})`),
     group: finalGroup,
-    mode: isAnalog ? "switch" : input.mode || "switch",
-    auto_off: input.auto_off || 0,
+    mode: isAnalogOutput || isAnalogInput ? "switch" : input.mode || "switch",
+    auto_off: isAnalogInput ? 0 : input.auto_off || 0,
     icon: input.icon,
-    ...(isAnalog && analogResolution !== undefined && analogFrequency !== undefined
+    ...(isAnalogOutput && analogResolution !== undefined && analogFrequency !== undefined
       ? {
           pwmResolution: analogResolution,
           pwmFrequency: analogFrequency,
@@ -96,6 +107,17 @@ export function planAddSegment(params: {
               ? analogInitialValue
               : getAnalogMaxDuty(analogResolution),
           state: Boolean(analogInitialValue && analogInitialValue > 0),
+        }
+      : {}),
+    ...(isAnalogInput && adcConfig
+      ? {
+          adcResolution: adcConfig.adcResolution,
+          adcSampleIntervalMs: adcConfig.adcSampleIntervalMs,
+          adcDeltaThreshold: adcConfig.adcDeltaThreshold,
+          adcHighThreshold: adcConfig.adcHighThreshold,
+          adcLowThreshold: adcConfig.adcLowThreshold,
+          analogValue: 0,
+          state: false,
         }
       : {}),
   };

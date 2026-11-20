@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { Segment } from "@/features/iot/hooks/store/types";
+import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 import { getSegmentIcon } from "@/features/iot/utils/icons";
 import { WorkflowSchematicSymbol } from "./WorkflowSchematicSymbols";
 import { type PaletteSymbolEntry, startPaletteDrag } from "./workflowPaletteData";
@@ -187,7 +188,7 @@ export function PaletteSegmentsSection({
               >
                 <WorkflowSchematicSymbol
                   kind="segment"
-                  isInputSegment={seg.type === "input"}
+                  isInputSegment={isReadOnlyInputSegment(seg)}
                   className="h-6 w-11"
                 />
                 {React.createElement(getSegmentIcon(seg.icon), {

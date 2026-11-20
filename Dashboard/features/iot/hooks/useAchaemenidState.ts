@@ -39,6 +39,7 @@ export function useAchaemenidState() {
     handleSetPinState,
     handleSetPinAnalogValue,
     handleBatchPinState,
+    handleReadAnalogInput,
   } = usePinOperations();
 
   const {
@@ -55,8 +56,12 @@ export function useAchaemenidState() {
     updatePinOnServer,
   });
 
-  const { handleUpdateSegmentMode, handleUpdateSegmentRule, handleUpdateSegmentAutoOff } =
-    useSegmentUpdates();
+  const {
+    handleUpdateSegmentMode,
+    handleUpdateSegmentRule,
+    handleUpdateSegmentAutoOff,
+    handleUpdateAnalogInputConfig,
+  } = useSegmentUpdates();
 
   return {
     isLoadingIoT,
@@ -75,11 +80,13 @@ export function useAchaemenidState() {
     handleUpdateSegmentMode,
     handleUpdateSegmentRule,
     handleUpdateSegmentAutoOff,
+    handleUpdateAnalogInputConfig,
     handleRemoveGroup,
     handleTogglePin,
     handleSetPinState,
     handleSetPinAnalogValue,
     handleBatchPinState,
+    handleReadAnalogInput,
     handleBypassSync,
     workerUrl,
     setWorkerUrl,

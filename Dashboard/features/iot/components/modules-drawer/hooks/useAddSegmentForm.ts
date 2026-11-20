@@ -1,6 +1,20 @@
 import { useState } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
+  type AnalogInputPreset,
+  type AnalogInputSegmentOptions,
+  clampAdcDeltaThreshold,
+  clampAdcResolution,
+  DEFAULT_ADC_DELTA_THRESHOLD,
+  DEFAULT_ADC_HIGH_THRESHOLD,
+  DEFAULT_ADC_LOW_THRESHOLD,
+  DEFAULT_ADC_RESOLUTION,
+  DEFAULT_ADC_SAMPLE_INTERVAL_MS,
+  getAdcMaxValue,
+  isAnalogInputType,
+  normalizeAnalogInputConfig,
+} from "@/features/iot/utils/analogInput";
+import {
   type AnalogSegmentOptions,
   clampPwmFrequency,
   clampPwmResolution,
@@ -22,6 +36,7 @@ export type OnAddSegmentFn = (
   icon?: string,
   groupIcon?: string,
   analogConfig?: AnalogSegmentOptions,
+  analogInputConfig?: AnalogInputSegmentOptions,
 ) => void;
 
 export function useAddSegmentForm(
@@ -42,7 +57,31 @@ export function useAddSegmentForm(
   const [pwmResolution, setPwmResolution] = useState<number>(DEFAULT_PWM_RESOLUTION);
   const [pwmFrequency, setPwmFrequency] = useState<number>(DEFAULT_PWM_FREQUENCY);
   const [initialPercent, setInitialPercent] = useState<number>(0);
+  const [adcResolution, setAdcResolution] = useState<number>(DEFAULT_ADC_RESOLUTION);
+  const [adcSampleIntervalMs, setAdcSampleIntervalMs] = useState<number>(
+    DEFAULT_ADC_SAMPLE_INTERVAL_MS,
+  );
+  const [adcDeltaThreshold, setAdcDeltaThreshold] = useState<number>(DEFAULT_ADC_DELTA_THRESHOLD);
+  const [adcHighThreshold, setAdcHighThreshold] = useState<number>(DEFAULT_ADC_HIGH_THRESHOLD);
+  const [adcLowThreshold, setAdcLowThreshold] = useState<number>(DEFAULT_ADC_LOW_THRESHOLD);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const handleAdcResolutionChange = (nextRes: number) => {
+    const clampedRes = clampAdcResolution(nextRes);
+    const nextMax = getAdcMaxValue(clampedRes);
+    setAdcResolution(clampedRes);
+    setAdcDeltaThreshold((prev) => clampAdcDeltaThreshold(prev, clampedRes));
+    setAdcHighThreshold((prev) => Math.min(nextMax, prev));
+    setAdcLowThreshold((prev) => Math.min(nextMax, prev));
+  };
+
+  const applyAdcPreset = (preset: AnalogInputPreset) => {
+    setAdcResolution(preset.config.adcResolution);
+    setAdcSampleIntervalMs(preset.config.adcSampleIntervalMs);
+    setAdcDeltaThreshold(preset.config.adcDeltaThreshold);
+    setAdcHighThreshold(preset.config.adcHighThreshold);
+    setAdcLowThreshold(preset.config.adcLowThreshold);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,10 +113,18 @@ export function useAddSegmentForm(
       return;
     }
 
-    const isAnalog = isAnalogOutputType(selectedType);
+    const isAnalogOutput = isAnalogOutputType(selectedType);
+    const isAnalogInput = isAnalogInputType(selectedType);
+
+    if (isAnalogInput && adcHighThreshold > 0 && adcLowThreshold > adcHighThreshold) {
+      setErrorText("آستانه پایین (ATL) نمی‌تواند از آستانه بالا (ATH) بزرگ‌تر باشد.");
+
+      return;
+    }
+
     const resolvedResolution = clampPwmResolution(pwmResolution);
     const resolvedFrequency = clampPwmFrequency(pwmFrequency);
-    const analogConfig: AnalogSegmentOptions | undefined = isAnalog
+    const analogConfig: AnalogSegmentOptions | undefined = isAnalogOutput
       ? {
           pwmResolution: resolvedResolution,
           pwmFrequency: resolvedFrequency,
@@ -85,23 +132,36 @@ export function useAddSegmentForm(
         }
       : undefined;
 
+    const analogInputConfig: AnalogInputSegmentOptions | undefined = isAnalogInput
+      ? normalizeAnalogInputConfig({
+          adcResolution,
+          adcSampleIntervalMs,
+          adcDeltaThreshold,
+          adcHighThreshold,
+          adcLowThreshold,
+        })
+      : undefined;
+
     const defaultTitle =
       selectedType === "input"
         ? `ورودی دیجیتال (GPIO ${finalPin})`
-        : isAnalog
+        : isAnalogOutput
           ? `خروجی آنالوگ PWM (GPIO ${finalPin})`
-          : `کنترل پایه دیجیتال (GPIO ${finalPin})`;
+          : isAnalogInput
+            ? `ورودی آنالوگ ADC (GPIO ${finalPin})`
+            : `کنترل پایه دیجیتال (GPIO ${finalPin})`;
 
     onAddSegment(
       selectedType,
       finalPin,
       customTitle.trim() || defaultTitle,
       groupName.trim() || "Test",
-      isAnalog ? undefined : buttonMode,
+      isAnalogOutput || isAnalogInput ? undefined : buttonMode,
       undefined,
       segmentIcon || undefined,
       groupIcon || undefined,
       analogConfig,
+      analogInputConfig,
     );
 
     setCustomTitle("");
@@ -113,6 +173,11 @@ export function useAddSegmentForm(
     setPwmResolution(DEFAULT_PWM_RESOLUTION);
     setPwmFrequency(DEFAULT_PWM_FREQUENCY);
     setInitialPercent(0);
+    setAdcResolution(DEFAULT_ADC_RESOLUTION);
+    setAdcSampleIntervalMs(DEFAULT_ADC_SAMPLE_INTERVAL_MS);
+    setAdcDeltaThreshold(DEFAULT_ADC_DELTA_THRESHOLD);
+    setAdcHighThreshold(DEFAULT_ADC_HIGH_THRESHOLD);
+    setAdcLowThreshold(DEFAULT_ADC_LOW_THRESHOLD);
     setErrorText("");
     onClose();
   };
@@ -139,6 +204,17 @@ export function useAddSegmentForm(
     setPwmFrequency,
     initialPercent,
     setInitialPercent,
+    adcResolution,
+    handleAdcResolutionChange,
+    adcSampleIntervalMs,
+    setAdcSampleIntervalMs,
+    adcDeltaThreshold,
+    setAdcDeltaThreshold,
+    adcHighThreshold,
+    setAdcHighThreshold,
+    adcLowThreshold,
+    setAdcLowThreshold,
+    applyAdcPreset,
     showAdvanced,
     setShowAdvanced,
     groupsOrder,

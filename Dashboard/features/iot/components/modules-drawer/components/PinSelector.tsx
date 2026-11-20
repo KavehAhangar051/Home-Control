@@ -1,5 +1,10 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  ADC1_ALLOWED_PINS,
+  ADC_INPUT_ONLY_PINS,
+  isAnalogInputType,
+} from "@/features/iot/utils/analogInput";
 import { isAnalogOutputType, RECOMMENDED_PWM_PINS } from "@/features/iot/utils/analogOutput";
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 import { toAsciiDigits } from "@/lib/persianText";
@@ -19,7 +24,8 @@ export default function PinSelector({
 }: PinSelectorProps) {
   const trimmedPin = customPin.trim();
   const validation = trimmedPin ? validateEsp32Pin(trimmedPin, selectedType) : null;
-  const isAnalog = isAnalogOutputType(selectedType);
+  const isAnalogOutput = isAnalogOutputType(selectedType);
+  const isAnalogInput = isAnalogInputType(selectedType);
   const isInvalid = Boolean(validation && !validation.isValid);
   const hasWarning = Boolean(validation?.isValid && validation.isWarning);
 
@@ -36,7 +42,7 @@ export default function PinSelector({
         inputMode="numeric"
         aria-invalid={isInvalid || undefined}
         aria-describedby={isInvalid || hasWarning ? "esp32-hardware-pin-feedback" : undefined}
-        placeholder={isAnalog ? "مثال: 16 یا 25" : "مثال: 14"}
+        placeholder={isAnalogInput ? "مثال: 34 یا 32" : isAnalogOutput ? "مثال: 16 یا 25" : "مثال: 14"}
         value={customPin}
         onChange={(e) => setCustomPin(toAsciiDigits(e.target.value).replace(/[^0-9]/g, ""))}
         className="text-xs font-mono tabular-nums rounded-lg text-start placeholder:font-sans"
@@ -62,7 +68,53 @@ export default function PinSelector({
         </p>
       )}
 
-      {isAnalog && (
+      {isAnalogInput && (
+        <div className="space-y-1.5 pt-0.5">
+          <span className="block text-[11px] text-text-muted font-sans">
+            پایه‌های مجاز ADC1 (فقط این ۶ پایه با WiFi تداخل ندارند):
+          </span>
+          <div className="flex flex-wrap gap-1.5" dir="ltr">
+            {ADC1_ALLOWED_PINS.map((pinNum) => {
+              const pinStr = String(pinNum);
+              const isSelected = trimmedPin === pinStr;
+              const isUsed = usedPins?.has(pinStr) ?? false;
+              const isInputOnly = ADC_INPUT_ONLY_PINS.has(pinNum);
+
+              return (
+                <button
+                  key={pinNum}
+                  type="button"
+                  disabled={isUsed}
+                  aria-pressed={isSelected}
+                  onClick={() => setCustomPin(pinStr)}
+                  title={
+                    isUsed
+                      ? `GPIO ${pinStr} در حال استفاده است`
+                      : isInputOnly
+                        ? `GPIO ${pinStr} (فقط ورودی — ایده‌آل برای سنسور آنالوگ)`
+                        : `انتخاب GPIO ${pinStr}`
+                  }
+                  className={`min-w-9 rounded-md border px-2 py-1 font-mono text-[11px] tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+                    isSelected
+                      ? "border-accent3 bg-accent3 text-accent3-foreground font-semibold"
+                      : isUsed
+                        ? "border-border-color/50 bg-secondary/40 text-text-muted/45 line-through cursor-not-allowed"
+                        : "border-border-color bg-secondary text-text-secondary hover:border-accent3/60 hover:text-text-primary cursor-pointer"
+                  }`}
+                >
+                  {pinStr}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10.5px] leading-relaxed text-text-muted font-sans">
+            پایه‌های ۳۴، ۳۵، ۳۶ و ۳۹ فقط ورودی و بدون مقاومت داخلی هستند؛ بهترین گزینه برای اتصال
+            سنسورهای آنالوگ (ولتاژ ۰ تا ۳.۳ ولت).
+          </p>
+        </div>
+      )}
+
+      {isAnalogOutput && (
         <div className="space-y-1.5 pt-0.5">
           <span className="block text-[11px] text-text-muted font-sans">
             پایه‌های پیشنهادی PWM (انتخاب سریع):

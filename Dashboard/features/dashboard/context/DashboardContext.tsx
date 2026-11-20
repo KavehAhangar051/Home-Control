@@ -24,11 +24,13 @@ export interface DashboardContextInterface {
     | "handleUpdateSegmentMode"
     | "handleUpdateSegmentRule"
     | "handleUpdateSegmentAutoOff"
+    | "handleUpdateAnalogInputConfig"
     | "handleRemoveGroup"
     | "handleTogglePin"
     | "handleSetPinState"
     | "handleSetPinAnalogValue"
     | "handleBatchPinState"
+    | "handleReadAnalogInput"
     | "handleBypassSync"
     | "setWorkerUrl"
     | "handleRetrySync"
@@ -88,11 +90,13 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       handleUpdateSegmentMode: resolved.handleUpdateSegmentMode,
       handleUpdateSegmentRule: resolved.handleUpdateSegmentRule,
       handleUpdateSegmentAutoOff: resolved.handleUpdateSegmentAutoOff,
+      handleUpdateAnalogInputConfig: resolved.handleUpdateAnalogInputConfig,
       handleRemoveGroup: resolved.handleRemoveGroup,
       handleTogglePin: resolved.handleTogglePin,
       handleSetPinState: resolved.handleSetPinState,
       handleSetPinAnalogValue: resolved.handleSetPinAnalogValue,
       handleBatchPinState: resolved.handleBatchPinState,
+      handleReadAnalogInput: resolved.handleReadAnalogInput,
       handleBypassSync: resolved.handleBypassSync,
       setWorkerUrl: resolved.setWorkerUrl,
       handleRetrySync: resolved.handleRetrySync,
@@ -111,11 +115,13 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       resolved.handleUpdateSegmentMode,
       resolved.handleUpdateSegmentRule,
       resolved.handleUpdateSegmentAutoOff,
+      resolved.handleUpdateAnalogInputConfig,
       resolved.handleRemoveGroup,
       resolved.handleTogglePin,
       resolved.handleSetPinState,
       resolved.handleSetPinAnalogValue,
       resolved.handleBatchPinState,
+      resolved.handleReadAnalogInput,
       resolved.handleBypassSync,
       resolved.setWorkerUrl,
       resolved.handleRetrySync,
