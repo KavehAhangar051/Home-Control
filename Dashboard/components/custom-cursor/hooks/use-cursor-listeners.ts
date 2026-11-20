@@ -36,6 +36,8 @@ export function useHardwareCursorListeners({
     let currentY = -100;
     let rafId: number | null = null;
     let isLoopRunning = false;
+    let lastCursorX = Number.NaN;
+    let lastCursorY = Number.NaN;
 
     // Cache previous transform state to prevent redundant CSS string construction and DOM writes
     let prevRotX = -999;
@@ -84,10 +86,13 @@ export function useHardwareCursorListeners({
       const cursor = cursorRef.current;
 
       if (cursor) {
-        // Fast numeric rounding avoids Number.prototype.toFixed string allocation overhead
         const rx = ((currentX * 100) | 0) / 100;
         const ry = ((currentY * 100) | 0) / 100;
-        cursor.style.transform = `translate3d(${rx}px,${ry}px,0)`;
+        if (rx !== lastCursorX || ry !== lastCursorY) {
+          lastCursorX = rx;
+          lastCursorY = ry;
+          cursor.style.transform = `translate3d(${rx}px,${ry}px,0)`;
+        }
       }
 
       // Apply subtle dynamic velocity tilt during motion
@@ -110,10 +115,12 @@ export function useHardwareCursorListeners({
     };
 
     const startLoop = () => {
+      if (document.hidden || isLoopRunning) return;
+
       if (!isLoopRunning) {
         isLoopRunning = true;
 
-        if (rafId) cancelAnimationFrame(rafId);
+        if (rafId !== null) cancelAnimationFrame(rafId);
         rafId = requestAnimationFrame(animate);
       }
     };
@@ -131,6 +138,8 @@ export function useHardwareCursorListeners({
         if (cursor) {
           cursor.style.opacity = "1";
           cursor.style.transform = `translate3d(${targetX}px,${targetY}px,0)`;
+          lastCursorX = targetX;
+          lastCursorY = targetY;
         }
       }
 
@@ -141,7 +150,7 @@ export function useHardwareCursorListeners({
       isVisible = false;
       isLoopRunning = false;
 
-      if (rafId) {
+      if (rafId !== null) {
         cancelAnimationFrame(rafId);
         rafId = null;
       }
@@ -162,6 +171,8 @@ export function useHardwareCursorListeners({
       if (cursor) {
         cursor.style.opacity = "1";
         cursor.style.transform = `translate3d(${targetX}px,${targetY}px,0)`;
+        lastCursorX = targetX;
+        lastCursorY = targetY;
       }
 
       startLoop();
@@ -204,6 +215,18 @@ export function useHardwareCursorListeners({
       }, 100);
     };
 
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        rafId = null;
+        isLoopRunning = false;
+        return;
+      }
+
+      if (isVisible) startLoop();
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     document.addEventListener("pointerleave", onPointerLeave, { passive: true });
     document.addEventListener("pointerenter", onPointerEnter, { passive: true });
@@ -213,7 +236,8 @@ export function useHardwareCursorListeners({
     window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      if (rafId) cancelAnimationFrame(rafId);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("pointerleave", onPointerLeave);
       document.removeEventListener("pointerenter", onPointerEnter);
