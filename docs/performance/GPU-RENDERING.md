@@ -417,3 +417,11 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - Kept the source-image upload path unchanged. MDN recommends considering immutable texture storage, but explicitly notes that DOM-image `texSubImage` uploads can be slower on some implementations; replacing `texImage2D` without device benchmarks could regress first-image latency. The source texture is already reused and uploaded only when the source object changes.
 - No additional renderer code change was justified by this source-only pass. Avoid adding a second context, mipmaps for the 2D source image, or a permanent render loop: the current image surface is demand-driven and the source is displayed at its native aspect-fit size.
 - Reference: [MDN WebGL best practices](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices).
+
+
+### Skip unchanged LUT shader uniform uploads (2026-11-20)
+
+- The LUT renderer now caches the last uploaded intensity, canvas dimensions, source dimensions, and all six LUT domain components. It issues each corresponding `uniform*` call only when that value changes.
+- This preserves the exact shader inputs and output while avoiding redundant JavaScript-to-WebGL uniform submissions on repeated redraws (for example, ResizeObserver callbacks where dimensions and LUT parameters are unchanged).
+- The cache is renderer-instance-local and starts with sentinel values, so the first draw always initializes every uniform. A recreated renderer after context loss also initializes all uniforms on its first draw.
+- This reduces redundant API calls, not shader work or guaranteed CPU time; the renderer remains demand-driven and no runtime benchmark or trace was available.
