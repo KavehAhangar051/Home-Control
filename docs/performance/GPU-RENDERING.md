@@ -325,3 +325,12 @@ This is a source-level execution map, not a measured performance finding. No FPS
 
 
 - Workflow connection drafting now computes the current draft Bezier geometry once per render and shares it between the visible SVG draft wire and its optional magnetic-target signal particle. Pointer-driven geometry still updates on every draft position change; this only removes duplicate calculation for the same frame. Visual path, endpoints, magnetic styling, and particle timing are unchanged.
+
+
+## Compositor layer budget and animation property policy
+
+- Prefer the existing compositor-candidate `transform` and `opacity` paths for continuous motion. Changes to layout properties (for example `width`, `height`, `top`, `left`, `margin`) can trigger layout; paint-heavy properties such as animated shadows and blur may still require raster/paint work.
+- Do not add blanket `will-change`, `translateZ(0)`, or `transform-gpu` to every dashboard element. A promoted layer consumes graphics memory and compositor bookkeeping; excessive layers can increase memory pressure and hurt performance. Keep promotion scoped to elements that are actively moving, as the existing Canvas node drag behavior does.
+- Keep always-running marquee hints only on the marquee that is actually animating. For transient interactions, enable promotion shortly before the animation and release it afterward. Do not use `will-change` as a substitute for profiling.
+- Validate with Chrome DevTools Performance (Main, Compositor, Raster and GPU tracks) and Rendering → Paint flashing. Confirm whether a candidate avoids layout/paint and whether layer count/memory remain reasonable; a CSS property alone cannot guarantee hardware-GPU execution or dedicated VRAM allocation.
+- No visual or source behavior was changed by this policy note. References: [MDN CSS performance](https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Performance/CSS), [MDN will-change](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change), [Chrome compositor-only properties and layer count](https://web.dev/articles/stick-to-compositor-only-properties-and-manage-layer-count), [Chrome RenderingNG](https://developer.chrome.com/docs/chromium/renderingng-architecture).
