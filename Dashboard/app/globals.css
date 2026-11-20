@@ -189,7 +189,6 @@
   --animate-dialog-out: dialog-fade-out 0.15s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-node-spark: node-perimeter-orbit 2.4s linear infinite;
   --animate-node-spark-fast: node-perimeter-orbit 1.15s linear infinite;
-  --animate-wire-signal: wire-signal-orbit 1.25s linear infinite;
   --animate-port-wakeup: port-wakeup-ring 1.1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 
   @keyframes fade-in {
@@ -270,23 +269,6 @@
     }
     to {
       transform: translate3d(-50%, -50%, 0) rotate(360deg);
-    }
-  }
-
-  @keyframes wire-signal-orbit {
-    0% {
-      offset-distance: 0%;
-      opacity: 0;
-    }
-    8% {
-      opacity: 1;
-    }
-    92% {
-      opacity: 1;
-    }
-    100% {
-      offset-distance: 100%;
-      opacity: 0;
     }
   }
 
@@ -591,16 +573,10 @@
   backface-visibility: hidden;
 }
 
-.animate-wire-signal {
-  will-change: offset-distance, transform, opacity;
-  backface-visibility: hidden;
-}
-
 /* Pause infinite decorative animations when the browser tab is hidden */
 html[data-page-hidden="true"] .header-title-marquee-track,
 html[data-page-hidden="true"] .animate-node-spark,
 html[data-page-hidden="true"] .animate-node-spark-fast,
-html[data-page-hidden="true"] .animate-wire-signal,
 html[data-page-hidden="true"] .animate-port-wakeup,
 html[data-page-hidden="true"] .animate-pulse {
   /* biome-ignore lint/complexity/noImportantStyles: Pauses continuous GPU timers in hidden tabs */
@@ -618,7 +594,6 @@ html[data-page-hidden="true"] .animate-pulse {
 
   .animate-node-spark,
   .animate-node-spark-fast,
-  .animate-wire-signal,
   .animate-port-wakeup,
   .animate-fade-in,
   .animate-slide-in,
