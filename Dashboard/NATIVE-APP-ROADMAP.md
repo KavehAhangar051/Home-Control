@@ -1653,9 +1653,9 @@ Error: .../sdkmanager failed with exit code 1
 - Workflow همان `.github/workflows/android-apk.yml` باقی می‌ماند و پس از Build موفق، APK را هم به‌صورت Actions Artifact با نگهداری ۳۰روزه و هم به‌عنوان Asset یک GitHub Pre-release منتشر می‌کند.
 - برای ایجاد Release از GitHub CLI موجود روی runner استفاده می‌شود؛ وابستگی به Action انتشار شخص ثالث اضافه نشده است.
 - Permission مربوط به Workflow از `contents: read` به `contents: write` تغییر می‌کند تا توکن همان اجرا اجازه ساخت Tag و Release داشته باشد.
-- الگوی Tag برابر `android-build-<run-number>-<run-attempt>` است. شماره تلاش، اجرای مجدد همان Workflow را از برخورد با Release قبلی حفظ می‌کند.
+- الگوی Tag برابر `android-build-<run-number>-<run-attempt>` و نام Artifact نیز شامل هر دو شماره اجرا و تلاش است. این کار اجرای مجدد همان Workflow را از برخورد با Release یا Artifact قبلی حفظ می‌کند.
 - عنوان Release شماره اجرا و تلاش را مشخص می‌کند و متن آن Commit مبنا و ماهیت Debug را اعلام می‌کند.
-- Release با `--prerelease` منتشر می‌شود تا APK توسعه‌ای با نسخه پایدار اشتباه نشود.
+- Release با `--prerelease --latest=false` منتشر می‌شود تا APK توسعه‌ای با نسخه پایدار اشتباه نشود و به‌عنوان Latest Release انتخاب نشود.
 
 ### محدوده انتشار
 
