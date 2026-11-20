@@ -185,7 +185,7 @@ The browser platform does not expose a portable API for querying the machine's a
 The existing `WebGL2LutRenderer` uses:
 - One RGBA8 source texture, uploaded only when the `TexImageSource` identity changes.
 - One 3D RGBA16F LUT texture, allocated with one mip level using `texStorage3D`.
-- One canvas drawing buffer, sized from the CSS box and DPR (currently capped at 2 and at 4096 pixels on the longest edge).
+- One canvas drawing buffer, sized from the CSS box and device DPR, bounded by the WebGL viewport/renderbuffer limits and 4096 pixels on the longest edge.
 - A shader program and VAO; these are driver-managed resources whose physical allocation is not exposed.
 
 Nominal payload estimates (not driver/VRAM measurements):
