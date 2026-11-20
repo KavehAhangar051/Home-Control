@@ -459,6 +459,9 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 - The attached file is an **unsigned debug APK** for development and manual device validation. A GitHub Release does not make it a production-signed APK; release signing remains out of scope until separately approved.
 - GitHub Packages is not used because this deliverable is a downloadable APK asset, not a package-registry artifact.
 
+
+- **Exact identity-LUT bypass (`lib/gpu/lut3d.ts`, `components/gpu/GpuLutImage.tsx`):** `isIdentityLut()` recognizes an exact Float32 identity grid and standard domain. `GpuLutImage` keeps the original browser image visible and skips WebGL context/resource allocation for identity LUTs or non-positive intensity; a live transition back to identity disposes its renderer and hides the overlay. Creative LUTs continue through the existing WebGL2 shader. This is a no-op fast path, not a global LUT filter or a claim that browser image decode/DOM work uses VRAM exclusively.
+
 ## 29. WebGL 2 3D LUT rendering foundation (20 November 2026)
 
 - `lib/gpu/lut3d.ts` parses bounded standard 3D `.cube` LUT files (2–64 edge length), validates the domain and entry count, and creates identity LUTs.
