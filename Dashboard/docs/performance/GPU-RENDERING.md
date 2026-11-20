@@ -537,3 +537,14 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - The shared slider hook now skips a snapped value when it equals the latest committed value. Pointer samples that remain within the same step no longer repeat the controlled callback or schedule redundant uncontrolled state updates; the final commit callback still runs on release.
 - The shared Color Picker drag hook now skips consecutive pointer samples that map to the same normalized rail coordinates. It resets that comparison at the start of each gesture, so a new drag always applies its initial point and layout changes between gestures are respected.
 - Pointer sampling remains coalesced to one animation frame, pointer-down remains immediate, and pointer-up still flushes its final coordinates. This reduces duplicate main-thread state work without changing snapping, color mapping, or visible interaction; no runtime FPS/INP measurement is claimed.
+
+### Reuse transient touch-coordinate objects (20 November 2026)
+
+- The Canvas pinch-gesture handler now mutates the existing coordinate record for each tracked touch instead of allocating a new object for every `pointermove`. Pointer IDs, latest-coordinate sampling, requestAnimationFrame coalescing, pinch geometry, and gesture transitions are unchanged.
+- The dashboard workspace swipe handler similarly reuses its latest touch-end coordinate record after the first move in a gesture. Touch-start still resets the record, so each new gesture captures a fresh initial point.
+- These changes reduce short-lived object allocation and potential garbage-collection pressure in high-frequency touch handlers. They do not change gesture thresholds, rendering, or visual behavior; no runtime allocation or frame-time measurement is claimed.
+
+### Cursor scroll-timeout sentinel handling (20 November 2026)
+
+- The custom cursor now checks its scroll timeout with an explicit `null` sentinel, clears that sentinel when the callback fires, and uses the same explicit check during effect cleanup. This correctly handles a valid browser timeout ID of zero and avoids retaining a stale completed timer handle.
+- Scroll suppression duration and cursor hover/tilt behavior remain unchanged. This is lifecycle correctness and scheduling hygiene, not a measured performance gain.

@@ -59,10 +59,15 @@ export function useWorkspaceSwipe(
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    touchEnd.current = {
-      x: e.targetTouches[0].clientX,
-      y: e.targetTouches[0].clientY,
-    };
+    const touch = e.targetTouches[0];
+    const point = touchEnd.current;
+
+    if (point) {
+      point.x = touch.clientX;
+      point.y = touch.clientY;
+    } else {
+      touchEnd.current = { x: touch.clientX, y: touch.clientY };
+    }
   };
 
   const onTouchEnd = () => {

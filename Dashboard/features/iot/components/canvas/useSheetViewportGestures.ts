@@ -543,8 +543,12 @@ export function useSheetViewportGestures({
     };
 
     const onWindowPointerMove = (moveEvent: PointerEvent) => {
-      if (moveEvent.pointerType === "touch" && touchPointers.has(moveEvent.pointerId)) {
-        touchPointers.set(moveEvent.pointerId, { x: moveEvent.clientX, y: moveEvent.clientY });
+      if (moveEvent.pointerType === "touch") {
+        const touchPoint = touchPointers.get(moveEvent.pointerId);
+        if (touchPoint) {
+          touchPoint.x = moveEvent.clientX;
+          touchPoint.y = moveEvent.clientY;
+        }
       }
 
       if (gesture.mode === "pinch") {
