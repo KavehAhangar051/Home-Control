@@ -123,7 +123,7 @@ export default React.memo(function WorkflowWiresSvg({
           );
         })}
 
-        {draftAnchor && connectingDraft && (
+        {draftAnchor && connectingDraft && draftGeometry && (
           <WorkflowDraftWire
             draftAnchor={draftAnchor}
             connectingDraft={connectingDraft}
