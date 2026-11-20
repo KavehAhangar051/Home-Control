@@ -15,7 +15,7 @@ function validateSize(size: number): void {
 }
 
 /**
- * Parses a standard .cube 3D LUT into RGBA8 data.
+ * Parses a standard .cube 3D LUT into Float32 RGBA data.
  * Cube rows are stored with red changing fastest, then green, then blue.
  */
 export function parseCubeLut(source: string): Lut3D {
