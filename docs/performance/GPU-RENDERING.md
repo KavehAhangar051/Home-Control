@@ -506,3 +506,9 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - Progress values, scale, origin, fill geometry, update cadence, and appearance are unchanged. The active transform remains eligible for browser compositing; actual layer allocation and memory placement remain browser-managed.
 - This is source-level compositing hygiene only; no measured FPS, paint, or VRAM improvement is claimed.
 - Reference: [MDN `will-change`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change).
+
+### Pause discrete loader timers and LUT draws when not visible (2026-11-20)
+
+- The Scramble, Percent, and ASCII loader variants now stop their interval timers while the document is hidden and resume from their existing progress/frame state when it becomes visible. This avoids background timer callbacks and React state updates; the visible cadence and rendered states are unchanged.
+- The WebGL2 LUT image renderer now also checks its existing near-viewport state before drawing. Resize or device-pixel-ratio notifications can no longer trigger a WebGL upload/draw for an image outside the observer's 160px visibility margin; re-entry still initializes or redraws through the existing observer path.
+- These are source-level background-work reductions. No FPS, GPU utilization, battery, or VRAM measurements are claimed.
