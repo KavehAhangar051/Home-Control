@@ -99,6 +99,20 @@ function easeOutCubic(t: number): number {
   return 1 - inv * inv * inv;
 }
 
+/** Avoid repeating imperative DOM/store updates when frame quantization yields the same viewport. */
+function applyViewportIfChanged(
+  deps: SheetViewportAnimatorDeps,
+  next: CanvasViewport,
+): void {
+  const current = deps.getCurrentViewport();
+
+  if (current.x === next.x && current.y === next.y && current.zoom === next.zoom) {
+    return;
+  }
+
+  deps.applyTransientViewport(next);
+}
+
 /**
  * Creates a frame-rate-independent imperative viewport camera & inertia engine
  * for infinite sheets (Home Canvas & Workflow Studio).
@@ -173,7 +187,7 @@ export function createSheetViewportAnimator(
       const nextY = Math.round(start.y + dy * eased);
       const nextZoom = Math.round((start.zoom + dz * eased) * 1000) / 1000;
 
-      deps.applyTransientViewport({
+      applyViewportIfChanged(deps, {
         x: nextX,
         y: nextY,
         zoom: nextZoom,
@@ -245,7 +259,7 @@ export function createSheetViewportAnimator(
         return;
       }
 
-      deps.applyTransientViewport({
+      applyViewportIfChanged(deps, {
         x: Math.round(nextX * 10) / 10,
         y: Math.round(nextY * 10) / 10,
         zoom: Math.round(nextZoom * 1000) / 1000,
@@ -303,7 +317,7 @@ export function createSheetViewportAnimator(
       floatX += vx * dt;
       floatY += vy * dt;
 
-      deps.applyTransientViewport({
+      applyViewportIfChanged(deps, {
         x: Math.round(floatX * 10) / 10,
         y: Math.round(floatY * 10) / 10,
         zoom,
