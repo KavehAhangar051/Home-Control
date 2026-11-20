@@ -307,3 +307,11 @@ This is a source-level execution map, not a measured performance finding. No FPS
 - The cache is weakly keyed, so geometry entries can be reclaimed when the owning curve object becomes unreachable; it does not create an unbounded strong-reference cache.
 - Animation duration, delay, iteration count, easing, transform/opacity keyframes, particle count, and rendered appearance are unchanged. Each DOM element still owns its own WAAPI Animation instance.
 - This reduces duplicate initialization work and allocations; it does not move keyframe generation to the GPU or change per-frame compositor behavior. Runtime benefit depends on active wire count and should be profiled on target devices.
+
+
+## Shared Canvas wire geometry (20 November 2026)
+
+- `CanvasWiresLayer` now derives each valid connection's Bezier geometry once in a memoized map keyed by connection ID and passes the same immutable geometry object to both the static SVG wire and the optional signal-particle layer.
+- Previously, the static wire and particle component each called `buildBezierWireGeometry` independently for the same connection. The shared result avoids duplicate endpoint/control-point calculations and SVG path-string allocation on renders where the connection/node inputs change.
+- Geometry values, SVG path data, endpoint positions, stroke styling, particle motion, and UI are unchanged. The memo recomputes when the connections array or node map identity changes; it does not cache stale geometry across changed inputs.
+- This is a CPU-side duplicate-work reduction, not GPU migration. Validate with a browser Performance trace on large canvases; no FPS or VRAM improvement is claimed without measurement.
