@@ -492,3 +492,10 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - Gradient geometry, masks, colors, opacity, rotation classes, durations, and the visible effect are unchanged. Browser layer promotion and physical memory placement remain implementation-dependent; this is a source-level layer-allocation hygiene change, not a measured VRAM or FPS gain.
 - Updated the component documentation to describe compositor eligibility without claiming guaranteed GPU-only execution or VRAM residency.
 - Reference: [MDN WebGL best practices — budget VRAM conservatively](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices).
+
+### Restrict Morph loader transform hint to normal-motion mode (2026-11-20)
+
+- The Morph loader animates SVG rotation/scale only in normal-motion mode. Its reduced-motion mode animates opacity only, so the SVG no longer receives an unconditional `will-change: transform` hint in that mode.
+- Morph paths, rotation/scale keyframes, opacity values, timing, and reduced-motion output are unchanged. This removes an inactive compositor hint; it does not change the SVG path morph, which remains browser-rendered and may require paint work.
+- Browser layer promotion is implementation-dependent; no runtime VRAM, FPS, or paint reduction is claimed.
+- Reference: [MDN `will-change`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change).
