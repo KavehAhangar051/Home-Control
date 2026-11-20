@@ -31,3 +31,4 @@ Thumbs.db
 
 # Local agent/runtime state
 .agent/
+.agent-state/

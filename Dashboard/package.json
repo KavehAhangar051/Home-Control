@@ -24,7 +24,10 @@
     "te": "bash ./tools/te.sh",
     "te:status": "bash ./tools/te.sh status",
     "te:doctor": "bash ./tools/te.sh doctor",
-    "te:setup": "bash ./tools/te.sh setup"
+    "te:setup": "bash ./tools/te.sh setup",
+    "r": "bash ./tools/r",
+    "agent:start": "python3 ./tools/agent-bridge.py start",
+    "agent:end": "python3 ./tools/agent-bridge.py end"
   },
   "dependencies": {
     "@animate-ui/react": "^2.4.3",
