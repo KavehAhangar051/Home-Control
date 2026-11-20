@@ -62,3 +62,28 @@ Do not add one WebGL context per small UI element. Prefer a single shared surfac
 ## Verification status
 
 Source implementation only. The component is not mounted in the live dashboard yet; no runtime GPU trace, visual comparison, memory measurement, or context-loss exercise has been recorded. Do not describe this engine as production-verified until those checks are completed.
+
+## Non-negotiable visual and execution constraints
+
+The dashboard's visual output is a compatibility contract. Performance work must not remove, simplify, replace, shorten, recolor, or reduce the quality of an existing effect, animation, transition, blur, glow, shadow, mask, or interaction. Do not add a new visual effect as part of GPU migration. A change is acceptable only when the rendered result, timing, easing, interaction response, and reduced-motion behavior remain equivalent.
+
+A browser cannot run the entire UI with zero CPU work or store all rendering resources exclusively in VRAM. React/DOM updates, style calculation, layout, accessibility, event handling, image decoding, command submission, and some raster work remain CPU/browser responsibilities. The application can request hardware acceleration and move eligible animation interpolation, rasterization, and pixel processing to GPU-backed browser paths, but it cannot force every browser operation onto the GPU or choose a physical GPU. System RAM remains part of browser and GPU resource management.
+
+### Source-level animation inventory (not a runtime measurement)
+
+| Area | Current mechanism | GPU migration boundary |
+|---|---|---|
+| Infinite Canvas / Workflow viewport (`features/iot/components/canvas/sheetViewportAnimator.ts`) | `requestAnimationFrame` computes flight easing, focal zoom smoothing, and pan inertia; writes world/grid transforms and zoom readouts | Transform compositing can be GPU-backed, but JS still calculates per-frame values and updates readout text. Moving interpolation off the main thread must preserve live zoom readouts, focal anchoring, inertia decay, cancellation, and final committed viewport. |
+| Bezier particles (`components/motion/composited-bezier-particle.tsx`) | Precomputed keyframes played through the Web Animations API using transform and opacity | Already avoids React state updates and per-frame path calculations; actual compositor promotion remains browser-dependent. |
+| Motion loaders (`components/motion/loader.tsx`) | Motion transform/opacity animations for geometric variants; ASCII variants update React state on an interval | Transform/opacity variants are compositor candidates. ASCII glyph changes are DOM/text updates and cannot be represented as a pure texture-only animation without changing implementation semantics or introducing a visual snapshot pipeline. |
+| Theme transitions (`components/motion/theme-toggle-config.ts`, `styles/view-transitions.css`) | View Transition pseudo-elements animate `clip-path`, `filter`, and a CSS custom property used by the blinds mask | Preserve the exact effect and timing. These properties are not universally compositor-only; validate paint/raster activity in each target browser before claiming GPU execution. |
+| WebGL2 LUT (`lib/gpu/webgl2-lut-renderer.ts`) | Fragment shader samples a source texture and 3D LUT | Shader work executes on the graphics pipeline when hardware WebGL is available. The image decode, source data, JS API calls, and browser resource copies are not guaranteed to reside exclusively in VRAM. |
+
+### Required optimization and acceptance process
+
+1. Record a baseline trace for each representative effect in the target browser/device. Capture Main, Compositor, Raster, GPU, dropped frames, and memory/layer information where available.
+2. Classify every frame-time operation: JavaScript, React/DOM, style, layout, paint/raster, texture upload, compositing, or shader execution. Do not infer GPU execution from a CSS class or property name.
+3. Change only the execution mechanism. Keep the same assets, colors, geometry, blur radius, shadow parameters, keyframes, duration, easing, stagger, and interaction states.
+4. Compare before/after recordings and visual output at the same viewport, DPR, browser, and device. Reject changes that introduce paint regressions, extra texture uploads, excessive layers, VRAM pressure, context loss, or any visible/timing difference.
+5. Track GPU memory as an estimate, not a directly queried universal VRAM counter. WebGL does not expose a portable API for querying available or allocated physical VRAM. Budget textures/render targets explicitly and release resources deterministically.
+6. Keep a browser-compatible path when hardware acceleration or a required GPU capability is unavailable; do not silently substitute a lower-quality effect. Report the fallback honestly.
