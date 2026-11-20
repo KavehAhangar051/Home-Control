@@ -189,9 +189,9 @@ export function CompositedBezierParticle({
         endY,
       }),
       {
-      duration: durationMs,
-      delay: delayMs,
-      iterations: Number.POSITIVE_INFINITY,
+        duration: durationMs,
+        delay: delayMs,
+        iterations: Number.POSITIVE_INFINITY,
         easing: "linear",
       },
     );
