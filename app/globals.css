@@ -563,7 +563,6 @@
 }
 
 .header-title-marquee .header-title-marquee-track {
-  will-change: transform;
   backface-visibility: hidden;
   animation: header-title-marquee 10s linear infinite;
 }
