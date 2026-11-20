@@ -295,12 +295,15 @@ export class WebGL2LutRenderer {
       !Number.isFinite(sourceHeight) ||
       sourceWidth <= 0 ||
       sourceHeight <= 0 ||
-      lut.domainMin.some(
-        (value, index) =>
-          !Number.isFinite(value) ||
-          !Number.isFinite(lut.domainMax[index]) ||
-          lut.domainMax[index] <= value,
-      ) ||
+      !Number.isFinite(lut.domainMin[0]) ||
+      !Number.isFinite(lut.domainMin[1]) ||
+      !Number.isFinite(lut.domainMin[2]) ||
+      !Number.isFinite(lut.domainMax[0]) ||
+      !Number.isFinite(lut.domainMax[1]) ||
+      !Number.isFinite(lut.domainMax[2]) ||
+      lut.domainMax[0] <= lut.domainMin[0] ||
+      lut.domainMax[1] <= lut.domainMin[1] ||
+      lut.domainMax[2] <= lut.domainMin[2] ||
       sourceWidth > 4096 ||
       sourceHeight > 4096
     ) {
