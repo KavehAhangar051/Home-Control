@@ -4,7 +4,7 @@ import React from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { CompositedBezierParticle } from "@/components/motion/composited-bezier-particle";
 import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
-import { buildBezierWireGeometry } from "./canvasGeometry";
+import { buildBezierWireGeometry, type BezierWireGeometry } from "./canvasGeometry";
 import type { CanvasNodeRect, CanvasWireConnection } from "./canvasTypes";
 
 interface CanvasWiresLayerProps {
@@ -19,12 +19,14 @@ interface CanvasWireItemProps {
   sourceRect: CanvasNodeRect | undefined;
   targetRect: CanvasNodeRect | undefined;
   isHighlighted: boolean;
+  geometry: BezierWireGeometry | undefined;
 }
 
 interface CanvasWireParticlesItemProps {
   connection: CanvasWireConnection;
   sourceRect: CanvasNodeRect | undefined;
   targetRect: CanvasNodeRect | undefined;
+  geometry: BezierWireGeometry | undefined;
 }
 
 const CanvasWireItem = React.memo(function CanvasWireItem({
@@ -32,14 +34,15 @@ const CanvasWireItem = React.memo(function CanvasWireItem({
   sourceRect,
   targetRect,
   isHighlighted,
+  geometry,
 }: CanvasWireItemProps) {
   const isActive = useIoTStore((state) =>
     Boolean(connection.pin && state.pinsState[connection.pin]),
   );
 
-  if (!sourceRect || !targetRect) return null;
+  if (!sourceRect || !targetRect || !geometry) return null;
 
-  const { path, startX, startY, endX, endY } = buildBezierWireGeometry(sourceRect, targetRect);
+  const { path, startX, startY, endX, endY } = geometry;
 
   const strokeColor = isActive || isHighlighted ? "var(--accent3)" : "var(--border-color)";
 
@@ -101,14 +104,15 @@ const CanvasWireSignalParticle = React.memo(function CanvasWireSignalParticle({
   connection,
   sourceRect,
   targetRect,
+  geometry,
 }: CanvasWireParticlesItemProps) {
   const isActive = useIoTStore((state) =>
     Boolean(connection.pin && state.pinsState[connection.pin]),
   );
 
-  if (!isActive || !sourceRect || !targetRect) return null;
+  if (!isActive || !sourceRect || !targetRect || !geometry) return null;
 
-  const curve = buildBezierWireGeometry(sourceRect, targetRect);
+  const curve = geometry;
 
   return (
     <>
@@ -142,6 +146,20 @@ export default React.memo(function CanvasWiresLayer({
   if (connections.length === 0) return null;
 
   const showParticles = animationsEnabled && !isLiteTier;
+  const wireGeometryById = React.useMemo(() => {
+    const geometryById = new Map<string, BezierWireGeometry>();
+
+    for (const connection of connections) {
+      const sourceRect = nodes[connection.sourceId];
+      const targetRect = nodes[connection.targetId];
+
+      if (sourceRect && targetRect) {
+        geometryById.set(connection.id, buildBezierWireGeometry(sourceRect, targetRect));
+      }
+    }
+
+    return geometryById;
+  }, [connections, nodes]);
 
   return (
     <>
@@ -156,6 +174,7 @@ export default React.memo(function CanvasWiresLayer({
             connection={connection}
             sourceRect={nodes[connection.sourceId]}
             targetRect={nodes[connection.targetId]}
+            geometry={wireGeometryById.get(connection.id)}
             isHighlighted={
               selectedNodeId === connection.sourceId || selectedNodeId === connection.targetId
             }
@@ -174,6 +193,7 @@ export default React.memo(function CanvasWiresLayer({
               connection={connection}
               sourceRect={nodes[connection.sourceId]}
               targetRect={nodes[connection.targetId]}
+              geometry={wireGeometryById.get(connection.id)}
             />
           ))}
         </div>
