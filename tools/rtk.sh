@@ -1,38 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Persistent wrapper & auto-bootstrapper for rtk (Rust Token Killer - https://github.com/rtk-ai/rtk)
-# Configured permanently in Lite Mode:
-# - Zero-overhead deterministic CLI compression (<10ms per command)
-# - Lite awareness level ("default": 10-line compact rules, no heavy prompt table bloat)
-# - ANSI colors & Pro hints disabled for maximum LLM token savings
-# - Telemetry disabled, SQLite gzip recall store enabled
-# - Pipeline: rtk:default + rtk:terse (no external LLM proxy round-trips)
+# Persistent wrapper & offline-resilient auto-bootstrapper for rtk (Rust Token Killer)
+# Stores binary, Lite Mode config, and SQLite savings/recall DB inside
+# <repo>/.agent-state/rtk so container resets never lose rtk or `rtk gain` history.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+RTK_STATE_ROOT="$ROOT_DIR/.agent-state/rtk"
+RTK_CACHE_BIN="$RTK_STATE_ROOT/bin/rtk"
+RTK_CFG_DIR="$RTK_STATE_ROOT/config"
+RTK_DATA_DIR="$RTK_STATE_ROOT/data"
 RTK_BIN=""
 
-resolve_rtk_bin() {
-  if command -v rtk >/dev/null 2>&1; then
-    RTK_BIN="$(command -v rtk)"
-    return 0
-  fi
-  if [ -x "$HOME/.local/bin/rtk" ]; then
-    RTK_BIN="$HOME/.local/bin/rtk"
-    return 0
-  fi
-  if [ -x "/usr/local/bin/rtk" ]; then
-    RTK_BIN="/usr/local/bin/rtk"
-    return 0
-  fi
-  return 1
-}
-
 write_lite_config() {
-  local config_dir="$HOME/.config/rtk"
-  mkdir -p "$config_dir"
+  mkdir -p "$RTK_CFG_DIR" "$RTK_DATA_DIR"
 
-  cat > "$config_dir/config.toml" << 'EOF'
+  cat > "$RTK_CFG_DIR/config.toml" << 'EOF'
 [tracking]
 enabled = true
 history_days = 90
@@ -50,6 +33,7 @@ ignore_dirs = [
     ".next",
     "out",
     ".codebase-memory",
+    ".agent-state",
     "target",
     "__pycache__",
     ".venv",
@@ -91,42 +75,83 @@ passthrough_max_chars = 2000
 [awareness]
 level = "default"
 EOF
+
+  if [ -f "$ROOT_DIR/.rtk/pipeline.toml" ]; then
+    cp -f "$ROOT_DIR/.rtk/pipeline.toml" "$RTK_CFG_DIR/pipeline.toml"
+  fi
+}
+
+link_state_dirs() {
+  mkdir -p "$HOME/.config" "$HOME/.local/share" "$HOME/.local/bin"
+
+  # Migrate volatile /root config/data once if workspace store is empty
+  if [ -d "$HOME/.local/share/rtk" ] && [ ! -L "$HOME/.local/share/rtk" ]; then
+    if [ ! -f "$RTK_DATA_DIR/history.db" ] && [ -f "$HOME/.local/share/rtk/history.db" ]; then
+      cp -a "$HOME/.local/share/rtk/." "$RTK_DATA_DIR/" 2>/dev/null || true
+    fi
+    rm -rf "$HOME/.local/share/rtk"
+  fi
+  if [ -d "$HOME/.config/rtk" ] && [ ! -L "$HOME/.config/rtk" ]; then
+    rm -rf "$HOME/.config/rtk"
+  fi
+
+  ln -sfn "$RTK_CFG_DIR" "$HOME/.config/rtk"
+  ln -sfn "$RTK_DATA_DIR" "$HOME/.local/share/rtk"
+
+  if [ -x "$RTK_CACHE_BIN" ]; then
+    ln -sf "$RTK_CACHE_BIN" "$HOME/.local/bin/rtk" 2>/dev/null || true
+    ln -sf "$RTK_CACHE_BIN" /usr/local/bin/rtk 2>/dev/null || true
+    RTK_BIN="$RTK_CACHE_BIN"
+  fi
 }
 
 ensure_rtk_installed() {
-  if resolve_rtk_bin && [ -f "$HOME/.config/rtk/config.toml" ]; then
-    return 0
+  mkdir -p "$RTK_STATE_ROOT/bin" "$RTK_CFG_DIR" "$RTK_DATA_DIR"
+
+  # Capture existing binary into workspace vault if present on system but not cached yet
+  if [ ! -x "$RTK_CACHE_BIN" ]; then
+    for cand in "$HOME/.local/bin/rtk" /usr/local/bin/rtk; do
+      if [ -x "$cand" ] && [ ! -L "$cand" ]; then
+        cp -f "$cand" "$RTK_CACHE_BIN"
+        chmod +x "$RTK_CACHE_BIN"
+        break
+      fi
+    done
   fi
 
-  if ! resolve_rtk_bin; then
+  if [ ! -x "$RTK_CACHE_BIN" ]; then
     echo "[rtk] Installing rtk (Rust Token Killer)..." >&2
     curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
-    ln -sf "$HOME/.local/bin/rtk" /usr/local/bin/rtk 2>/dev/null || true
-    resolve_rtk_bin
+    if [ -x "$HOME/.local/bin/rtk" ]; then
+      mv -f "$HOME/.local/bin/rtk" "$RTK_CACHE_BIN"
+      chmod +x "$RTK_CACHE_BIN"
+    fi
   fi
 
-  write_lite_config
+  if [ ! -f "$RTK_CFG_DIR/config.toml" ]; then
+    write_lite_config
+  fi
 
-  (cd "$ROOT_DIR" && "$RTK_BIN" trust -y >/dev/null 2>&1) || true
-  rm -f "$HOME/.local/share/rtk/pipeline-status.json" 2>/dev/null || true
-  RTK_TELEMETRY_DISABLED=1 "$RTK_BIN" init --agent antigravity --auto-patch --trust-filters </dev/null >/dev/null 2>&1 || true
-  RTK_TELEMETRY_DISABLED=1 "$RTK_BIN" init -g --agent antigravity --auto-patch --trust-filters </dev/null >/dev/null 2>&1 || true
-  RTK_TELEMETRY_DISABLED=1 "$RTK_BIN" init -g --gemini --auto-patch --trust-filters </dev/null >/dev/null 2>&1 || true
-  RTK_TELEMETRY_DISABLED=1 "$RTK_BIN" init -g --auto-patch --trust-filters </dev/null >/dev/null 2>&1 || true
+  link_state_dirs
+
+  if [ -z "$RTK_BIN" ] && command -v rtk >/dev/null 2>&1; then
+    RTK_BIN="$(command -v rtk)"
+  fi
 }
 
 ensure_rtk_installed
 
 if [ "$#" -eq 0 ]; then
   exec "$RTK_BIN" gain
+elif [ "$1" = "ensure" ]; then
+  exit 0
 elif [ "$1" = "setup" ]; then
   write_lite_config
+  link_state_dirs
   (cd "$ROOT_DIR" && "$RTK_BIN" trust -y >/dev/null 2>&1) || true
-  rm -f "$HOME/.local/share/rtk/pipeline-status.json" 2>/dev/null || true
+  rm -f "$RTK_DATA_DIR/pipeline-status.json" 2>/dev/null || true
   RTK_TELEMETRY_DISABLED=1 "$RTK_BIN" init --agent antigravity --auto-patch --trust-filters </dev/null >/dev/null 2>&1 || true
   RTK_TELEMETRY_DISABLED=1 "$RTK_BIN" init -g --agent antigravity --auto-patch --trust-filters </dev/null >/dev/null 2>&1 || true
-  RTK_TELEMETRY_DISABLED=1 "$RTK_BIN" init -g --gemini --auto-patch --trust-filters </dev/null >/dev/null 2>&1 || true
-  RTK_TELEMETRY_DISABLED=1 "$RTK_BIN" init -g --auto-patch --trust-filters </dev/null >/dev/null 2>&1 || true
   exec "$RTK_BIN" pipeline show
 else
   exec "$RTK_BIN" "$@"

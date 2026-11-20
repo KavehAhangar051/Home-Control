@@ -91,12 +91,10 @@
   - اگر خروجی دستوری خلاصه شد و به متن کامل نیاز بود، از دستور `rtk recall <hash>` یا `rtk bypass <cmd>` استفاده کن. برای مشاهده آمار صرفه‌جویی توکن، `rtk gain` (یا `bun run rtk:gain`) را اجرا کن.
 
 ### استراتژی کاهش توکن بین‌جلسه‌ای با `TokenEconomizer` (`microsoft/TokenEconomizer`)
-- ابزار **`TokenEconomizer`** (`microsoft/TokenEconomizer`، کاملاً مبتنی بر Python 3.10+ stdlib بدون وابستگی PyPI) به‌صورت دائمی در پروژه نصب و خودنصب‌شونده پیکربندی شده است (`/usr/local/bin/te`، `/usr/local/bin/te-hook`، `~/.tokeneconomizer/plugin`، اسکریپت خودنصب‌شونده `./tools/te.sh`، اسکریپت‌های `bun run te` / `te:status` / `te:doctor` / `te:setup`، مانیفست پلاگین `.agents/plugins/tokeneconomizer` و مهارت `agents/skills/tokeneconomizer`).
-- **سه مکانیزم اصلی و تنظیمات پیش‌فرض پروژه:**
-  - `microskills=envfacts`: یادگیری بدون هزینه مدل (LLM-free) از فکت‌ها و دستورات موفق مخزن در طول جلسات و تزریق خودکار آن‌ها در ابتدای جلسه.
-  - `toolprune=propose`: ردیابی ابزارهای بلااستفاده و ارائه پیشنهاد قابل‌بررسی برای حذف آن‌ها (`te toolprune show` / `apply` / `restore`).
-  - `loopguard=nudge`: تشخیص حلقه‌های خطای تکراری و تزریق یادآور تغییر مسیر در میزبان‌های دارای هوک فعال.
-- **همزیستی با `rtk` و `codebase-memory-mcp`:** `rtk` خروجی ترمینال را فشرده می‌کند، `codebase-memory-mcp` کشف ساختاری AST را انجام می‌دهد و `TokenEconomizer` دانش بین‌جلسه‌ای، هرس ابزار و جلوگیری از لوپ خطا را مدیریت می‌کند (دستورات با پیشوند `rtk` نیز به‌درستی توسط `TokenEconomizer` شناسایی می‌شوند).
+- **ذخیره‌سازی ماندگار در `.agent-state/` (ضد ریست کانتینر):** باینری، پیکربندی و پایگاه‌داده SQLite ابزار `rtk` (`.agent-state/rtk`) و باندل/حافظه آموخته‌شده `TokenEconomizer` (`.agent-state/tokeneconomizer`) داخل ریشه پروژه نگه‌داری و به `/usr/local/bin` و `~/` لینک می‌شوند تا پس از ریست کانتینر در چند میلی‌ثانیه بدون نیاز به دانلود مجدد بازیابی شوند.
+- **پل اجرای یکپارچه (`./tools/r` و `./tools/agent-bridge.py`):** چون محیط AI Studio هوک‌های پلاگین را خودکار صدا نمی‌زند، اجرای دستورات شل از طریق **`./tools/r <cmd>`** (یا `bun run r -- <cmd>`) خروجی دستور را خودکار با `rtk` فشرده می‌کند **و هم‌زمان** رویدادهای `PostToolUse` / `PostToolUseFailure` و رونوشت استاندارد را به `TokenEconomizer` (`--host claude`) می‌فرستد تا `envfacts`، `toolprune` و هشدارهای `loopguard` واقعاً فعال بمانند.
+- **چرخه نشست:** شروع کار با `python3 ./tools/agent-bridge.py start` (یا خودکار با اولین `./tools/r`) و پایان/ثبت یادگیری با `python3 ./tools/agent-bridge.py end` (`te fold`).
+- **سه مکانیزم اصلی و تنظیمات پیش‌فرض پروژه:** `microskills=envfacts` (یادگیری بدون هزینه مدل)، `toolprune=propose` و `loopguard=nudge`.
 
 ## Goal-Driven Execution
 
