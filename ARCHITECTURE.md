@@ -482,3 +482,8 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 ### Wave slider compositor-layer lifetime (20 November 2026)
 
 `components/motion/range-slider-wave.tsx` animates each bar using CSS `transform: scaleY(...)` transitions. The bars no longer carry permanent `will-change`, `backface-visibility`, or `translateZ(0)` promotion hints; the browser may promote them while transitions are active instead of being asked to retain 32 decorative layers while idle. Bar count, geometry, easing, stagger, reduced-motion behavior, and interaction remain unchanged. This is a source-level GPU-layer memory hygiene measure, not a measured VRAM/FPS gain; actual promotion is browser-dependent.
+
+
+### Newton loader compositor hints (20 November 2026)
+
+`components/motion/loader-shapes.tsx` applies `will-change: transform` only to the two Newton balls that actually animate, and only when normal motion is enabled. The three stationary balls and reduced-motion rendering do not request transform layers. The loader's five-ball geometry, animation timing, and visible behavior remain unchanged. This is a layer-allocation hint cleanup, not a measured GPU-memory or frame-rate result.
