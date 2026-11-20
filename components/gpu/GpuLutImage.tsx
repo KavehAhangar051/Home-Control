@@ -48,6 +48,8 @@ export function GpuLutImage({
 
     let renderer: WebGL2LutRenderer | null = null;
     let disposed = false;
+    let initializing = false;
+    let initializationVersion = 0;
     isNearViewportRef.current = false;
     setReady(false);
 
@@ -93,23 +95,39 @@ export function GpuLutImage({
     };
 
     const initialize = () => {
-      if (disposed || renderer || passThroughRef.current) return;
-      try {
-        renderer = new WebGL2LutRenderer(canvas);
+      if (disposed || renderer || initializing || passThroughRef.current) return;
 
-        setReady(false);
-        draw();
-      } catch {
-        renderer = null;
+      initializing = true;
+      const version = ++initializationVersion;
 
-        setReady(false);
-      }
+      void WebGL2LutRenderer.create(canvas)
+        .then((nextRenderer) => {
+          if (disposed || version !== initializationVersion || passThroughRef.current) {
+            nextRenderer.dispose();
+            return;
+          }
+
+          renderer = nextRenderer;
+          setReady(false);
+          draw();
+        })
+        .catch(() => {
+          if (!disposed && version === initializationVersion) {
+            renderer = null;
+            setReady(false);
+          }
+        })
+        .finally(() => {
+          if (version === initializationVersion) initializing = false;
+        });
     };
 
     initializeRef.current = initialize;
 
     const handleContextLost = (event: Event) => {
       event.preventDefault();
+      initializationVersion++;
+      initializing = false;
       renderer?.dispose();
       renderer = null;
 
@@ -180,6 +198,7 @@ export function GpuLutImage({
 
     return () => {
       disposed = true;
+      initializationVersion++;
       drawRef.current = () => {};
       initializeRef.current = () => {};
       resizeObserver?.disconnect();
