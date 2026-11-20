@@ -105,3 +105,29 @@ Moving the existing viewport animator's math into a Worker would still require s
 Web Animations API / compositor animation is a more appropriate candidate for static-target viewport flights because the browser may animate transform values without a JavaScript callback each frame. However, smooth focal zoom continuously retargets x/y/zoom, pan inertia integrates pointer-derived velocity, and the zoom readout is updated live. Replacing these loops requires a behavior-equivalent retargeting design and trace evidence; do not replace them until the exact focal anchor, easing, friction, interruption, visibility cancellation, and final persisted viewport are preserved.
 
 `OffscreenCanvas` remains appropriate for genuinely canvas-based rendering or pixel processing (for example, a future dedicated GPU grid renderer), where the worker owns the canvas context. Such a renderer must preserve the current CSS radial-gradient output, including 1.25 CSS-pixel dot radius, theme color, spacing threshold, zoom alignment, and device-pixel-ratio behavior before it can replace the existing layer.
+
+### Existing WebGL2 LUT renderer: allocation and lifecycle audit
+
+The current `WebGL2LutRenderer` is a demand-driven, standalone image-processing renderer, not a universal CSS/UI color pipeline. Its fragment shader samples one RGBA8 source texture and one RGBA16F 3D LUT, then draws into a WebGL canvas. Applying that LUT to the entire dashboard would change the authored color output and is explicitly out of scope unless a separate visual specification requires it.
+
+Current source-level allocation ceilings (nominal storage only; driver/browser overhead and staging copies are excluded):
+
+| Resource | Current limit / format | Nominal upper bound |
+|---|---|---:|
+| Source texture | 4096 × 4096 × RGBA8 | 64 MiB |
+| 3D LUT texture | 64³ × RGBA16F | 2 MiB |
+| Canvas drawing buffer | Up to 4096 × 4096 RGBA8-equivalent | 64 MiB |
+| **Combined nominal peak** | One renderer at the maximum dimensions and LUT size | **~130 MiB** |
+
+The 130 MiB figure is a conservative arithmetic ceiling for these three allocations, not a measured VRAM reading or a promise that the browser places every byte in dedicated VRAM. The decoded source image may additionally occupy system memory, and the browser/driver may maintain staging or compositor copies. Multiple simultaneous renderer instances multiply the budget.
+
+Lifecycle observations from source:
+
+- The renderer reuses one source texture and reallocates the 3D LUT texture only when the LUT dimension changes.
+- LUT data is uploaded only when the `Float32Array` identity changes; callers should keep parsed LUT data stable rather than recreating it on unrelated React renders.
+- The React wrapper creates the WebGL context lazily when the image approaches the viewport, pauses draws while the document is hidden, and disposes the renderer on unmount or context loss.
+- Context restoration creates a new renderer and redraws from the retained image/LUT inputs.
+- The original image remains visible while the GPU canvas is not ready or when WebGL initialization/rendering fails; do not replace this with a lower-quality software filter and claim GPU execution.
+- `dispose()` explicitly deletes the texture, vertex-array, and program handles when the context is still valid. When the context is already lost, the browser/driver owns teardown of the lost context's resources.
+
+Before increasing these limits or creating more renderer instances, profile concurrent instances and peak texture memory on target desktop and Android devices. Prefer reducing duplicate allocations and deterministic lifecycle management over forcing additional layers or contexts.
