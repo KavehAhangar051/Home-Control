@@ -160,7 +160,7 @@ export function CompositedBezierParticle({
   useEffect(() => {
     const element = elementRef.current;
 
-    if (!element || prefersReducedMotion || typeof element.animate !== "function") {
+    if (!element || prefersReducedMotion !== false || typeof element.animate !== "function") {
       return;
     }
 
@@ -190,13 +190,15 @@ export function CompositedBezierParticle({
     prefersReducedMotion,
   ]);
 
-  if (prefersReducedMotion) return null;
-
   return (
     <span
       ref={elementRef}
       aria-hidden="true"
       className={`pointer-events-none absolute top-0 left-0 ${className}`}
+      style={{
+        transform: `translate3d(${curve.startX - PARTICLE_ANCHOR}px, ${curve.startY - PARTICLE_ANCHOR}px, 0)`,
+        opacity: prefersReducedMotion === false ? 0 : 1,
+      }}
     >
       {children}
     </span>
