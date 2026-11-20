@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { CompositedBezierParticle } from "@/components/motion/composited-bezier-particle";
 import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
 import type { ConnectingWireDraft } from "./useWorkflowStudio";
 import { WorkflowDraftWire, WorkflowEdgeItem } from "./WorkflowEdgeItem";
@@ -19,7 +20,7 @@ interface WorkflowWiresSvgProps {
 }
 
 /**
- * Renders interactive workflow Bezier wires paired with a GPU-composited signal particle overlay.
+ * Renders interactive workflow Bezier wires with compositor-friendly signal particle animations.
  */
 export default React.memo(function WorkflowWiresSvg({
   nodes,
@@ -61,14 +62,14 @@ export default React.memo(function WorkflowWiresSvg({
   const draftAnchor = draftSource ? getPortAnchor(draftSource, "out") : null;
   const showParticles = animationsEnabled && !isLiteTier;
 
-  const draftBezierPath =
+  const draftBezierCurve =
     showParticles && draftAnchor && connectingDraft?.magneticTargetId
       ? buildWorkflowBezierPath(
           draftAnchor.x,
           draftAnchor.y,
           connectingDraft.pointerWorldX,
           connectingDraft.pointerWorldY,
-        ).path
+        )
       : null;
 
   return (
@@ -127,47 +128,37 @@ export default React.memo(function WorkflowWiresSvg({
               incomingIndexByEdgeId.get(edge.id) ?? 0,
               getNodeInputCount(target),
             );
-            const { path } = buildWorkflowBezierPath(start.x, start.y, end.x, end.y);
-
-            const baseStyle: React.CSSProperties = {
-              offsetPath: `path("${path}")`,
-              offsetAnchor: "50% 50%",
-              offsetRotate: "0deg",
-              animationDuration: "1.25s",
-              transform: "translateZ(0)",
-            };
+            const curve = buildWorkflowBezierPath(start.x, start.y, end.x, end.y);
 
             return (
               <React.Fragment key={`${edge.id}-particles`}>
-                <span
-                  className="animate-wire-signal pointer-events-none absolute top-0 left-0 flex size-3.5 items-center justify-center rounded-full bg-success/30"
-                  style={baseStyle}
+                <CompositedBezierParticle
+                  curve={curve}
+                  durationMs={1250}
+                  className="flex size-3.5 items-center justify-center rounded-full bg-success/30"
                 >
                   <span className="size-1.5 rounded-full bg-success" />
-                </span>
-                <span
-                  className="animate-wire-signal pointer-events-none absolute top-0 left-0 flex size-3.5 items-center justify-center rounded-full bg-success/30"
-                  style={{ ...baseStyle, animationDelay: "-0.625s" }}
+                </CompositedBezierParticle>
+                <CompositedBezierParticle
+                  curve={curve}
+                  durationMs={1250}
+                  delayMs={-625}
+                  className="flex size-3.5 items-center justify-center rounded-full bg-success/30"
                 >
                   <span className="size-1.5 rounded-full bg-success" />
-                </span>
+                </CompositedBezierParticle>
               </React.Fragment>
             );
           })}
 
-          {draftBezierPath && (
-            <span
-              className="animate-wire-signal pointer-events-none absolute top-0 left-0 flex size-3.5 items-center justify-center rounded-full bg-success/35"
-              style={{
-                offsetPath: `path("${draftBezierPath}")`,
-                offsetAnchor: "50% 50%",
-                offsetRotate: "0deg",
-                animationDuration: "0.7s",
-                transform: "translateZ(0)",
-              }}
+          {draftBezierCurve && (
+            <CompositedBezierParticle
+              curve={draftBezierCurve}
+              durationMs={700}
+              className="flex size-3.5 items-center justify-center rounded-full bg-success/35"
             >
               <span className="size-1.5 rounded-full bg-success" />
-            </span>
+            </CompositedBezierParticle>
           )}
         </div>
       )}

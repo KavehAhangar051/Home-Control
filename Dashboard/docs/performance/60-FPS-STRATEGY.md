@@ -45,7 +45,7 @@ Average FPS alone is insufficient. Review dropped/partially presented frames, fr
 - `components/motion/range-slider*.tsx`: drives fill and thumb transforms via `MotionValue` + `useSpring`.
 - `components/motion/theme-toggle.tsx` & `styles/view-transitions.css`: theme changes use native View Transitions without synchronous `document.body.offsetHeight` forced reflow; `"lite"` tier skips root `filter: blur(8px)`.
 - Canvas & Workflow gestures (`useSheetViewportGestures.ts`, `useCanvasNodeInteractions.ts`, `useWorkflowInteractions.ts`, `useWorkflowStudio.ts`): pointer move, resize, wheel zoom, and 2-finger pinch zoom are coalesced to `requestAnimationFrame`; transient viewport changes avoid per-frame `localStorage` serialization; node drag tilt updates non-inherited `rotate`/`translate` without forcing React parent re-renders.
-- Infinite background loops (`usePageVisibility.ts`, `app/globals.css`, `CanvasWiresLayer.tsx`, `WorkflowEdgeItem.tsx`): hidden tabs (`html[data-page-hidden="true"]`) pause infinite CSS keyframes, and `"lite"` tier (when enabled by the user) replaces dual SVG SMIL `<animateMotion>` wire particles with lightweight dash feedback.
+- Infinite background loops (`usePageVisibility.ts`, `app/globals.css`, `CanvasWiresLayer.tsx`, `WorkflowWiresSvg.tsx`): hidden tabs pause CSS keyframes; Canvas and Workflow wire particles use `CompositedBezierParticle`, which samples cubic Bezier paths only when geometry changes and animates equal-distance `translate3d`/opacity keyframes through the Web Animations API. The shared component pauses its animations while the document is hidden and respects `prefers-reduced-motion`. These transform/opacity animations are compositor candidates; actual compositor promotion remains browser-dependent. The explicit `"lite"` tier continues to suppress decorative wire particles when the user selects reduced animation settings.
 
 ## Verification protocol
 
@@ -62,6 +62,31 @@ Use equivalent Chromium desktop (`1440x900`) and mobile (`390x844`, 4x/6x CPU th
 - On a 60 Hz target device, common interaction scenarios sustain smooth ~60 FPS with minimal dropped-frame bursts, and high-frequency gestures trigger zero per-frame `localStorage` writes or forced full-DOM reflows.
 - On higher-refresh displays (`90/120/144 Hz`), the dashboard imposes no artificial 60 FPS cap.
 - Performance tiering never silently disables animations, transitions, or visual fidelity on low-end devices; `"lite"` mode activates strictly when the user disables animations or selects `30 FPS` in Settings (`animationsEnabled` / `animationsFps`), while always honoring `prefers-reduced-motion`.
+
+
+
+## GPU-first rendering and LUT roadmap
+
+The dashboard uses a GPU-first strategy for visual work, not a claim that every browser operation can execute exclusively on the GPU. React, DOM construction, event handling, application state, and layout still require CPU work.
+
+### Implemented first step
+
+- Canvas and Workflow Bezier signal particles no longer animate CSS Motion Path's `offset-distance`. Their cubic curves are sampled once when geometry changes, then played as equal-distance Web Animations API keyframes that modify only `transform` and `opacity`.
+- The browser can composite these transform/opacity animations independently of main-thread rendering when the target and runtime conditions permit it. No global `will-change` or forced layer promotion is added.
+- The shared particle component uses one document-visibility listener for all active particle animations, cancels animations on cleanup, and respects reduced-motion preferences.
+
+### 3D LUT integration (planned)
+
+- Use WebGL 2 fragment shaders and a 3D texture for color lookup / grading on dedicated decorative GPU surfaces (ambient backgrounds, glows, and non-semantic visual effects).
+- Do not apply a global LUT to the interactive DOM: it can distort device-state colors, warning/error semantics, text contrast, and user-selected theme colors.
+- Keep one bounded GPU resource lifecycle per renderer, handle WebGL context loss, avoid CPU readbacks, and provide a visually safe fallback when WebGL is unavailable.
+- Select LUT size, precision, and texture format from measured quality/performance trade-offs; do not assume that allocating more VRAM improves rendering.
+- The LUT renderer is not yet enabled in the dashboard. It must be profiled on desktop and mobile hardware before being applied to production surfaces.
+
+### Verification status
+
+- Source-level change only: no browser performance trace or compositor-layer inspection has been captured for this branch.
+- Confirm actual compositor promotion, frame-time distribution, and GPU memory in Chromium DevTools before describing the new particle animation as verified GPU execution.
 
 ## Current measurement status
 
