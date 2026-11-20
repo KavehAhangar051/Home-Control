@@ -273,6 +273,8 @@ export function createSheetViewportAnimator(
     const initialVp = deps.getCurrentViewport();
     let floatX = initialVp.x;
     let floatY = initialVp.y;
+    // Pan inertia only changes position; zoom remains fixed until this loop ends.
+    const zoom = initialVp.zoom;
     let lastTime = performance.now();
     activeMode = "inertia";
 
@@ -289,9 +291,9 @@ export function createSheetViewportAnimator(
         activeFrameId = null;
         activeMode = "idle";
         const settled: CanvasViewport = {
-          ...deps.getCurrentViewport(),
           x: Math.round(floatX),
           y: Math.round(floatY),
+          zoom,
         };
         deps.applyTransientViewport(settled);
         deps.commitViewport(settled);
@@ -302,9 +304,9 @@ export function createSheetViewportAnimator(
       floatY += vy * dt;
 
       deps.applyTransientViewport({
-        ...deps.getCurrentViewport(),
         x: Math.round(floatX * 10) / 10,
         y: Math.round(floatY * 10) / 10,
+        zoom,
       });
 
       activeFrameId = requestAnimationFrame(step);
