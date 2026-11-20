@@ -81,9 +81,8 @@ Do not run `bun run format` without a scoped path in this task: its package scri
 
 ## Git workflow
 
-- Branch: `gpu-first-rendering-phase1`
-- Base: `main`
-- Keep changes on this branch; do not merge into `main` without a separate explicit instruction.
+- Primary development branch: `main`.
+- Apply future changes directly to `main`; do not create a feature branch for this work unless explicitly requested.
 - Commit each independently reviewable slice with a descriptive conventional commit.
 - Do not wait for GitHub Pages or other deployment workflows to complete.
 
