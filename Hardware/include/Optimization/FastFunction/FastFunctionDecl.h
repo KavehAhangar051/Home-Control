@@ -22,7 +22,7 @@ namespace uniuno {
 template<typename R, typename... Args, size_t Capacity>
 class FastFunction<R(Args...), Capacity> {
 public:
-  static constexpr size_t kHeaderBytes  = 16;
+  static constexpr size_t kHeaderBytes  = 4 * sizeof(void*);
   static constexpr size_t kMinTotal     = kHeaderBytes + (Capacity < sizeof(void*) ? sizeof(void*) : Capacity);
   static constexpr size_t kTotalBytes   = detail::next_pow2(kMinTotal);
   static constexpr size_t kStorageBytes = kTotalBytes - kHeaderBytes;

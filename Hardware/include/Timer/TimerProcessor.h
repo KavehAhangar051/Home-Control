@@ -33,8 +33,7 @@ public:
     StaticArray<TimerNode*, MaxTimers> execution_queue;
     auto& active_timers_ = storage.getActiveTimers();
 
-    uint16_t expired_count = 0;
-    while (expired_count < active_timers_.size()) {
+    while (!active_timers_.empty()) {
       TimerNode* top = active_timers_[0];
       if (LIKELY(!timer_due(cached_time, top->next_call_ms))) break;
       
@@ -49,7 +48,6 @@ public:
       top->pause_requested = false;
       top->remove_requested = false;
       execution_queue.push_back(top);
-      expired_count++;
     }
 
     // Active timers no longer track indices, no shifting needed
