@@ -58,6 +58,29 @@ export default React.memo(function WorkflowWiresSvg({
     return indexMap;
   }, [edges]);
 
+  const geometryByEdgeId = React.useMemo(() => {
+    const geometryMap = new Map<string, ReturnType<typeof buildWorkflowBezierPath>>();
+
+    for (const edge of edges) {
+      const source = nodeMap.get(edge.sourceId);
+      const target = nodeMap.get(edge.targetId);
+
+      if (!source || !target) continue;
+
+      const start = getPortAnchor(source, "out");
+      const end = getPortAnchor(
+        target,
+        "in",
+        incomingIndexByEdgeId.get(edge.id) ?? 0,
+        getNodeInputCount(target),
+      );
+
+      geometryMap.set(edge.id, buildWorkflowBezierPath(start.x, start.y, end.x, end.y));
+    }
+
+    return geometryMap;
+  }, [edges, incomingIndexByEdgeId, nodeMap]);
+
   const draftSource = connectingDraft ? nodeMap.get(connectingDraft.sourceId) : undefined;
   const draftAnchor = draftSource ? getPortAnchor(draftSource, "out") : null;
   const showParticles = animationsEnabled && !isLiteTier;
@@ -91,6 +114,7 @@ export default React.memo(function WorkflowWiresSvg({
               edge={edge}
               source={source}
               target={target}
+              geometry={geometryByEdgeId.get(edge.id)}
               resolvedPortIdx={incomingIndexByEdgeId.get(edge.id) ?? 0}
               totalInPorts={getNodeInputCount(target)}
               isActive={activeEdgeIds.has(edge.id)}
@@ -121,14 +145,8 @@ export default React.memo(function WorkflowWiresSvg({
 
             if (!source || !target) return null;
 
-            const start = getPortAnchor(source, "out");
-            const end = getPortAnchor(
-              target,
-              "in",
-              incomingIndexByEdgeId.get(edge.id) ?? 0,
-              getNodeInputCount(target),
-            );
-            const curve = buildWorkflowBezierPath(start.x, start.y, end.x, end.y);
+            const curve = geometryByEdgeId.get(edge.id);
+            if (!curve) return null;
 
             return (
               <React.Fragment key={`${edge.id}-particles`}>
