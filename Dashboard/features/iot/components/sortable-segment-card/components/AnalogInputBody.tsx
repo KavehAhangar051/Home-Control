@@ -55,7 +55,9 @@ function AnalogInputBody({
   );
   const hasThreshold = adcHighThreshold > 0;
   const highPct = hasThreshold ? Math.min(100, Math.max(0, (adcHighThreshold / maxVal) * 100)) : 0;
-  const lowPct = hasThreshold ? Math.min(highPct, Math.max(0, (adcLowThreshold / maxVal) * 100)) : 0;
+  const lowPct = hasThreshold
+    ? Math.min(highPct, Math.max(0, (adcLowThreshold / maxVal) * 100))
+    : 0;
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -204,12 +206,12 @@ function AnalogInputBody({
               isUltraCompact ? "h-2.5" : "h-3"
             }`}
           >
-            {/* Active Sensor Level Fill */}
+            {/* Active Sensor Level Fill (GPU-composited scaleX avoids main-thread width reflow) */}
             <div
-              className={`h-full transition-[width,background-color] duration-200 ease-out ${
+              className={`h-full w-full origin-left transition-[transform,background-color] duration-200 ease-out will-change-transform [backface-visibility:hidden] ${
                 isAlertHigh ? "bg-accent3" : "bg-accent3/75"
               }`}
-              style={{ width: `${percent}%` }}
+              style={{ transform: `scaleX(${percent / 100}) translateZ(0)` }}
             />
 
             {/* Schmitt-Trigger Hysteresis Dead-Zone Band (atl .. ath) */}
@@ -264,7 +266,9 @@ function AnalogInputBody({
           }`}
         >
           <RefreshCw
-            className={`${isUltraCompact ? "size-3" : "size-3.5"} ${isRefreshing ? "animate-spin text-accent3" : ""}`}
+            className={`${isUltraCompact ? "size-3" : "size-3.5"} ${
+              isRefreshing ? "animate-spin transform-gpu text-accent3" : ""
+            }`}
             strokeWidth={2}
           />
         </button>

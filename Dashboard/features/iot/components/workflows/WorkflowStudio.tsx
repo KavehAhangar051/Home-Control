@@ -190,7 +190,7 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
                   : undefined
               }
               onPointerDown={(e) => e.stopPropagation()}
-              className="absolute top-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-accent3/45 bg-card-bg-solid/95 px-3 py-1.5 text-[11px] font-bold text-accent3 shadow-lg backdrop-blur-md lg:hidden"
+              className="absolute top-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-accent3/45 bg-card-bg-solid px-3 py-1.5 text-[11px] font-bold text-accent3 shadow-lg transform-gpu lg:hidden"
             >
               <span className="whitespace-nowrap">پورت ورودی گره مقصد را انتخاب کنید</span>
               <button

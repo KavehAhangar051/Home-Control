@@ -36,7 +36,7 @@ function resolveInputPortClassName(
   }
 
   if (isConnectTargetHighlight) {
-    return "animate-pulse border-accent3 bg-accent3 text-accent3-foreground shadow-xs";
+    return "animate-pulse transform-gpu border-accent3 bg-accent3 text-accent3-foreground shadow-xs";
   }
 
   if (isPortConnected) {

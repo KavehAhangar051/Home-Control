@@ -43,7 +43,7 @@ export function Dock({ children, size = 44, className }: DockProps) {
     <DockContext.Provider value={ctx}>
       <div
         className={cn(
-          "inline-flex h-auto items-center gap-1.5 rounded-[26px] border border-border-color bg-card-bg-solid/90 px-2 py-1.5 shadow-2xl backdrop-blur-xl",
+          "inline-flex h-auto items-center gap-1.5 rounded-[26px] border border-border-color bg-card-bg-solid/90 px-2 py-1.5 shadow-2xl backdrop-blur-xl transform-gpu",
           className,
         )}
       >
@@ -91,6 +91,7 @@ export function DockItem({
     <m.span
       layoutId={pillLayoutId}
       transition={reduce ? { duration: 0 } : SPRING_LAYOUT}
+      style={{ willChange: "transform" }}
       className="absolute inset-0.5 -z-10 rounded-[18px] bg-sidebar-hover"
     />
   ) : null;

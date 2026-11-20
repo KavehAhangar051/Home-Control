@@ -4,14 +4,13 @@
 import {
   AnimatePresence,
   m,
-  useMotionTemplate,
   useMotionValue,
   useReducedMotion,
   useSpring,
   useTransform,
   useVelocity,
 } from "motion/react";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { SPRING_GLIDE, SPRING_PANEL, SPRING_PRESS } from "@/lib/ease";
 import { type SliderOptions, useSlider } from "@/lib/hooks/use-slider";
 import { TOUCH_GESTURE_CLASS } from "@/lib/touch";
@@ -32,7 +31,7 @@ export interface BubbleSliderProps extends SliderOptions {
 /**
  * Slider with a value bubble that pops out of the thumb on grab and reacts to
  * how fast you drag: it leans into the direction of travel and squashes along
- * the way, then settles upright when you let go.
+ * the way, then settles upright when you let go — composited exclusively via GPU transforms.
  */
 export function BubbleSlider({ format, className, ...options }: BubbleSliderProps) {
   const reduce = useReducedMotion();
@@ -41,6 +40,27 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
     ...options,
     formatValueText: options.formatValueText ?? format,
   });
+
+  const [trackWidth, setTrackWidth] = useState(252);
+
+  useLayoutEffect(() => {
+    const track = trackProps.ref.current;
+
+    if (!track) return;
+
+    const measure = () => {
+      const width = track.getBoundingClientRect().width;
+
+      if (width > 0) setTrackWidth(width);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+
+    observer.observe(track);
+
+    return () => observer.disconnect();
+  }, [trackProps.ref]);
 
   // The value is already snapped to the step — rounding here would only make
   // the bubble disagree with aria-valuenow on a fractional scale.
@@ -53,7 +73,8 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
 
   const smooth = useSpring(target, SPRING_GLIDE);
   const pos = reduce ? target : smooth;
-  const left = useMotionTemplate`${pos}%`;
+  const fillScaleX = useTransform(pos, (v) => v / 100);
+  const thumbX = useTransform(pos, (v) => (v / 100) * trackWidth);
 
   // One spring drives the whole reaction: lean is signed, squash reads its
   // magnitude. Two springs off the same velocity would just run twice.
@@ -86,41 +107,60 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
         )}
       >
         <m.div
-          className="absolute inset-y-0 left-0 rounded-full bg-accent3"
-          style={{ width: left }}
+          className="pointer-events-none absolute inset-0 origin-left rounded-full bg-accent3"
+          style={{ scaleX: fillScaleX, willChange: "transform" }}
         />
-        {/* thumb — overhangs the track by half its width at both ends, which the
-            wrapper's padding leaves room for */}
+
+        {/* thumb — translates horizontally via GPU x without CSS left/width reflow */}
         <m.div
-          className="absolute top-1/2 size-5 rounded-full border-2 border-accent3 bg-card-bg-solid shadow-sm"
-          style={{ left, x: "-50%", y: "-50%" }}
-          animate={reduce ? undefined : { scale: dragging ? 1.25 : 1 }}
-          transition={SPRING_PRESS}
-        />
-        {/* bubble — anchored to the thumb, leaning with drag velocity */}
-        <m.div className="pointer-events-none absolute bottom-6 z-20" style={{ left, x: "-50%" }}>
-          <AnimatePresence>
-            {dragging ? (
-              <m.div
-                initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.4, y: 10 }}
-                animate={reduce ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
-                exit={
-                  reduce
-                    ? { opacity: 0, transition: { duration: 0.12 } }
-                    : { opacity: 0, scale: 0.5, y: 8, transition: { duration: 0.12 } }
-                }
-                transition={reduce ? { duration: 0.12 } : SPRING_PANEL}
-                style={
-                  reduce ? undefined : { rotate: tilt, scaleX: squash, scaleY: stretch, originY: 1 }
-                }
-                className="relative whitespace-nowrap rounded-xl bg-accent3 px-2.5 py-1 text-sm font-medium tabular-nums text-accent3-foreground shadow-md"
-              >
-                {readout}
-                <span className="absolute -bottom-1 left-1/2 size-2.5 -translate-x-1/2 rotate-45 rounded-[3px] bg-accent3" />
-              </m.div>
-            ) : null}
-          </AnimatePresence>
+          className="pointer-events-none absolute left-0 top-1/2"
+          style={{ x: thumbX, willChange: "transform" }}
+        >
+          <m.div
+            className="size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent3 bg-card-bg-solid shadow-sm will-change-transform"
+            animate={reduce ? undefined : { scale: dragging ? 1.25 : 1 }}
+            transition={SPRING_PRESS}
+          />
         </m.div>
+
+        {/* bubble — anchored to the thumb via GPU x, leaning with drag velocity */}
+        <m.div
+          className="pointer-events-none absolute bottom-6 left-0 z-20"
+          style={{ x: thumbX, willChange: "transform" }}
+        >
+          <div className="-translate-x-1/2">
+            <AnimatePresence>
+              {dragging ? (
+                <m.div
+                  initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.4, y: 10 }}
+                  animate={reduce ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+                  exit={
+                    reduce
+                      ? { opacity: 0, transition: { duration: 0.12 } }
+                      : { opacity: 0, scale: 0.5, y: 8, transition: { duration: 0.12 } }
+                  }
+                  transition={reduce ? { duration: 0.12 } : SPRING_PANEL}
+                  style={
+                    reduce
+                      ? undefined
+                      : {
+                          rotate: tilt,
+                          scaleX: squash,
+                          scaleY: stretch,
+                          originY: 1,
+                          willChange: "transform, opacity",
+                        }
+                  }
+                  className="relative whitespace-nowrap rounded-xl bg-accent3 px-2.5 py-1 text-sm font-medium tabular-nums text-accent3-foreground shadow-md"
+                >
+                  {readout}
+                  <span className="absolute -bottom-1 left-1/2 size-2.5 -translate-x-1/2 rotate-45 rounded-[3px] bg-accent3" />
+                </m.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
+        </m.div>
+
         {/* 8px of track is not a touch target — pad the hit area out to 48px */}
         <button
           type="button"

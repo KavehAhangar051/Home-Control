@@ -1,6 +1,6 @@
 /**
  * @file components/motion/action-swap-variants.ts
- * @description Animation variants, transitions, and style mappings for action-swap motion components.
+ * @description Pure GPU-composited animation variants (transform & opacity) for action-swap motion components.
  */
 
 import type { Variants } from "motion/react";
@@ -14,28 +14,9 @@ const BLUR_TRANSITION = { duration: 0.2, ease: EASE_IN_OUT } as const;
 const ICON_BLUR_TRANSITION = { type: "spring", duration: 0.3, bounce: 0 } as const;
 const ROLL_TRANSITION = SPRING_SWAP;
 const ROLL_EXIT_TRANSITION = { duration: EXIT_DURATION.quick, ease: EASE_IN } as const;
-const SWAP_BLUR = "blur(8px)";
-const ICON_SWAP_BLUR = "blur(4px)";
-const ROLL_BLUR = "blur(3px)";
 export const CASCADE_STAGGER = 0.025;
 
 export const CASCADE_LETTER_VARIANTS: Variants = {
-  initial: { opacity: 0, y: "105%", filter: ROLL_BLUR },
-  animate: (delay = 0) => ({
-    opacity: 1,
-    y: "0%",
-    filter: "blur(0px)",
-    transition: { ...SPRING_SWAP, delay },
-  }),
-  exit: (delay = 0) => ({
-    opacity: 0,
-    y: "-105%",
-    filter: ROLL_BLUR,
-    transition: { duration: EXIT_DURATION.quick, ease: EASE_IN, delay: delay * 0.5 },
-  }),
-};
-
-export const LITE_CASCADE_LETTER_VARIANTS: Variants = {
   initial: { opacity: 0, y: "105%" },
   animate: (delay = 0) => ({
     opacity: 1,
@@ -51,39 +32,6 @@ export const LITE_CASCADE_LETTER_VARIANTS: Variants = {
 
 export const TEXT_VARIANTS: Record<CoreAnimation, Variants> = {
   blur: {
-    initial: { opacity: 0, scale: 0.94, filter: SWAP_BLUR },
-    animate: {
-      opacity: 1,
-      scale: 1,
-      filter: "blur(0px)",
-      transition: BLUR_TRANSITION,
-    },
-    exit: {
-      opacity: 0,
-      scale: 0.94,
-      filter: SWAP_BLUR,
-      transition: BLUR_TRANSITION,
-    },
-  },
-  roll: {
-    initial: { opacity: 0, y: "90%", filter: ROLL_BLUR },
-    animate: {
-      opacity: 1,
-      y: "0%",
-      filter: "blur(0px)",
-      transition: ROLL_TRANSITION,
-    },
-    exit: {
-      opacity: 0,
-      y: "-90%",
-      filter: ROLL_BLUR,
-      transition: ROLL_EXIT_TRANSITION,
-    },
-  },
-};
-
-export const LITE_TEXT_VARIANTS: Record<CoreAnimation, Variants> = {
-  blur: {
     initial: { opacity: 0, scale: 0.94 },
     animate: { opacity: 1, scale: 1, transition: BLUR_TRANSITION },
     exit: { opacity: 0, scale: 0.94, transition: BLUR_TRANSITION },
@@ -96,39 +44,6 @@ export const LITE_TEXT_VARIANTS: Record<CoreAnimation, Variants> = {
 };
 
 export const ICON_VARIANTS: Record<CoreAnimation, Variants> = {
-  blur: {
-    initial: { opacity: 0, scale: 0.25, filter: ICON_SWAP_BLUR },
-    animate: {
-      opacity: 1,
-      scale: 1,
-      filter: "blur(0px)",
-      transition: ICON_BLUR_TRANSITION,
-    },
-    exit: {
-      opacity: 0,
-      scale: 0.25,
-      filter: ICON_SWAP_BLUR,
-      transition: ICON_BLUR_TRANSITION,
-    },
-  },
-  roll: {
-    initial: { opacity: 0, y: 12, filter: ROLL_BLUR },
-    animate: {
-      opacity: 1,
-      y: 0,
-      filter: "blur(0px)",
-      transition: ROLL_TRANSITION,
-    },
-    exit: {
-      opacity: 0,
-      y: -12,
-      filter: ROLL_BLUR,
-      transition: ROLL_EXIT_TRANSITION,
-    },
-  },
-};
-
-export const LITE_ICON_VARIANTS: Record<CoreAnimation, Variants> = {
   blur: {
     initial: { opacity: 0, scale: 0.25 },
     animate: { opacity: 1, scale: 1, transition: ICON_BLUR_TRANSITION },

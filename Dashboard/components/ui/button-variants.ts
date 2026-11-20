@@ -59,7 +59,7 @@ export function buttonVariants({
   className,
 }: ButtonVariantsOptions = {}): string {
   return cn(
-    "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[scale,transform,background-color,color,border-color,box-shadow,opacity] duration-150 ease-out [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+    "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[transform,background-color,color,border-color,opacity] duration-150 ease-out [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
     focusRing,
     disabled,
     !isStatic && variant !== "link" && tapScale,

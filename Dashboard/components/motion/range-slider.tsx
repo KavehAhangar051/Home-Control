@@ -56,7 +56,7 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
   // the rounded fill extends 8px past its left edge. Translate a full-size
   // fill inside the 2px inset clip so its corner never stretches.
   const fillX = useTransform(pos, (p) =>
-    p >= 100 ? "0%" : `calc(${p - 100}% + ${14 - 0.16 * p}px)`,
+    p >= 100 ? 0 : ((p - 100) / 100) * Math.max(0, trackWidth - 4) + 14 - 0.16 * p,
   );
 
   // Floor rather than round, so a range the step does not divide (0 to 10 by 4)
@@ -87,7 +87,10 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-[2px] inset-y-0 overflow-hidden rounded-lg"
       >
-        <m.div className="absolute inset-0 rounded-lg bg-accent3-medium" style={{ x: fillX }} />
+        <m.div
+          className="absolute inset-0 rounded-lg bg-accent3-medium"
+          style={{ x: fillX, willChange: "transform" }}
+        />
       </div>
       {/* Tick centres follow the same inset path as the handle centre. */}
       <div className="pointer-events-none absolute inset-x-[10px] inset-y-0">
@@ -109,7 +112,7 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
         animate={reduce ? undefined : { scaleY: dragging ? 1.35 : 1 }}
         transition={SPRING_BOUNCY}
         className="absolute left-0 top-1/2 h-6 w-1 rounded-full bg-accent3 outline-none ring-inset ring-accent3/30 focus-visible:ring-4"
-        style={{ x: thumbX, y: "-50%" }}
+        style={{ x: thumbX, y: "-50%", willChange: "transform" }}
       />
     </div>
   );
