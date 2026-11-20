@@ -12,6 +12,7 @@ interface WorkflowEdgeItemProps {
   edge: WorkflowEdge;
   source: WorkflowNode;
   target: WorkflowNode;
+  geometry: ReturnType<typeof buildWorkflowBezierPath> | undefined;
   resolvedPortIdx: number;
   totalInPorts: number;
   isActive: boolean;
@@ -88,6 +89,7 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
   edge,
   source,
   target,
+  geometry,
   resolvedPortIdx,
   totalInPorts,
   isActive,
@@ -97,9 +99,9 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
   onDeleteEdge,
   onHoverEdge,
 }: WorkflowEdgeItemProps) {
-  const start = getPortAnchor(source, "out");
-  const end = getPortAnchor(target, "in", resolvedPortIdx, totalInPorts);
-  const { path, midX, midY } = buildWorkflowBezierPath(start.x, start.y, end.x, end.y);
+  if (!geometry) return null;
+
+  const { path, midX, midY, startX, startY, endX, endY } = geometry;
 
   const strokeColor = resolveEdgeStrokeColor(isSelected, isActive);
   const highlighted = isActive || isSelected;
@@ -174,8 +176,8 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
       )}
 
       <circle
-        cx={start.x}
-        cy={start.y}
+        cx={startX}
+        cy={startY}
         r={3.8}
         fill={endpointFill}
         stroke={strokeColor}
@@ -183,8 +185,8 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         className="pointer-events-none"
       />
       <circle
-        cx={end.x}
-        cy={end.y}
+        cx={endX}
+        cy={endY}
         r={3.8}
         fill={endpointFill}
         stroke={strokeColor}
@@ -192,8 +194,8 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         className="pointer-events-none"
       />
       <circle
-        cx={start.x}
-        cy={start.y}
+        cx={startX}
+        cy={startY}
         r={3.8}
         fill="none"
         stroke="var(--destructive)"
@@ -201,8 +203,8 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         className="pointer-events-none opacity-0 transition-opacity duration-150 group-hover/edge:opacity-100"
       />
       <circle
-        cx={end.x}
-        cy={end.y}
+        cx={endX}
+        cy={endY}
         r={3.8}
         fill="none"
         stroke="var(--destructive)"
