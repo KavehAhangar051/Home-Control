@@ -1,9 +1,13 @@
 #include "PinStateManager.h"
 #include <Utilities/logging.h>
 #include <Timer/Optimization/TimerAsm.h>
+#include <Optimization/XtensaAnalogAsm.h>
 
 #if defined(ESP32)
 #include <soc/gpio_struct.h>
+#define PIN_STATE_IRAM IRAM_ATTR
+#else
+#define PIN_STATE_IRAM
 #endif
 
 // Minimum duration in milliseconds to filter mechanical button contact bounce
@@ -56,7 +60,7 @@ bool PinStateManager::setStateById(const char* id, bool state) {
 
 bool PinStateManager::setPinAnalogValue(int pin, uint16_t value) {
     PinEntry* entry = _registry.getEntryByPin(pin);
-    if (!entry || !entry->active || !entry->hasPwm) {
+    if (UNLIKELY(!entry || !entry->active || !entry->hasPwm)) {
         return false;
     }
 
@@ -69,7 +73,7 @@ bool PinStateManager::setPinAnalogValue(int pin, uint16_t value) {
 bool PinStateManager::setAnalogValueById(const char* id, uint16_t value) {
     const int idx = _registry.findById(id);
     PinEntry* entry = _registry.getEntryByIndex(idx);
-    if (!entry || !entry->active || !entry->hasPwm) {
+    if (UNLIKELY(!entry || !entry->active || !entry->hasPwm)) {
         return false;
     }
 
@@ -81,9 +85,18 @@ bool PinStateManager::setAnalogValueById(const char* id, uint16_t value) {
 
 bool PinStateManager::readAnalogInputNow(int pin, AdcSampleResult& outResult) {
     PinEntry* entry = _registry.getEntryByPin(pin);
-    if (!entry || !entry->active || entry->type != SegmentType::AnalogInput || !entry->hasAdc) {
+    if (UNLIKELY(!entry || !entry->active || entry->type != SegmentType::AnalogInput || !entry->hasAdc)) {
         outResult = AdcSampleResult();
         return false;
+    }
+
+    // Safely preempt any background SAR1 async burst so hardware registers never collide
+    if (_activeAdcSlot >= 0 && _activeAdcSlot < static_cast<int8_t>(_numAnalogInputs)) {
+        PinEntry* activeEntry = _analogEntries[_activeAdcSlot];
+        if (activeEntry && activeEntry->hasAdc) {
+            activeEntry->adc.abortAsyncBurst();
+        }
+        _activeAdcSlot = -1;
     }
 
     const unsigned long now = millis();
@@ -97,6 +110,14 @@ bool PinStateManager::readAnalogInputNow(int pin, AdcSampleResult& outResult) {
 }
 
 void PinStateManager::rebuildInputCache() {
+    // Abort any in-flight async SAR1 burst before mutating the cached pointer table
+    if (_activeAdcSlot >= 0 && _activeAdcSlot < static_cast<int8_t>(_numAnalogInputs)) {
+        PinEntry* activeEntry = _analogEntries[_activeAdcSlot];
+        if (activeEntry && activeEntry->hasAdc) {
+            activeEntry->adc.abortAsyncBurst();
+        }
+    }
+
     _numInputs = 0;
     _numAnalogInputs = 0;
     _inputMask0_31 = 0;
@@ -104,10 +125,15 @@ void PinStateManager::rebuildInputCache() {
     _lastInputs0_31 = 0;
     _lastInputs32_39 = 0;
     _nextAnalogSampleTime = 0;
+    _lastAnalogGateCycle = 0;
+    _activeAdcStartCycle = 0;
+    _activeAdcSlot = -1;
+    _analogRoundRobin = 0;
     _hasAnalogSchedule = false;
 
     for (int i = 0; i < MAX_PINS; i++) {
-        const PinEntry* entry = _registry.getEntryByIndexConst(i);
+        _analogEntries[i] = nullptr;
+        PinEntry* entry = _registry.getEntryByIndex(i);
         if (!entry || !entry->active) continue;
 
         if (entry->type == SegmentType::Input) {
@@ -123,7 +149,7 @@ void PinStateManager::rebuildInputCache() {
                 if (entry->lastInputState) _lastInputs32_39 |= bit;
             }
         } else if (entry->type == SegmentType::AnalogInput && entry->hasAdc) {
-            _analogInputIndices[_numAnalogInputs++] = static_cast<uint8_t>(i);
+            _analogEntries[_numAnalogInputs++] = entry;
         }
     }
 }
@@ -133,7 +159,7 @@ void PinStateManager::rebuildInputCache() {
  * Triggered only after PinManager::processInputs() detects a hardware GPIO bit flip.
  * Uses Xtensa hardware ctz (nsau) to visit strictly the changed pins instead of scanning all inputs.
  */
-HOT_PATH IRAM_ATTR void PinStateManager::processInputs(
+HOT_PATH PIN_STATE_IRAM void PinStateManager::processInputs(
     const uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>& onInputChanged) {
     if (UNLIKELY(_numInputs == 0)) return;
 
@@ -161,10 +187,11 @@ HOT_PATH IRAM_ATTR void PinStateManager::processInputs(
 
         entry->lastDebounceTime = currentMillis;
 
-        // Compute hold duration of the preceding stable state in seconds
+        // Compute hold duration using fast ~4-cycle reciprocal multiply (avoids ~40-cycle software division)
         unsigned long durationSec = 0;
         if (entry->stateStartTime > 0 && currentMillis > entry->stateStartTime) {
-            durationSec = (currentMillis - entry->stateStartTime) / 1000;
+            durationSec = uniuno::xtensa_asm::asm_div1000_u32(
+                static_cast<uint32_t>(currentMillis - entry->stateStartTime));
         }
         entry->stateStartTime = currentMillis;
         entry->lastInputState = currentState;
@@ -215,7 +242,8 @@ HOT_PATH IRAM_ATTR void PinStateManager::processInputs(
 
             unsigned long durationSec = 0;
             if (entry->stateStartTime > 0 && currentMillis > entry->stateStartTime) {
-                durationSec = (currentMillis - entry->stateStartTime) / 1000;
+                durationSec = uniuno::xtensa_asm::asm_div1000_u32(
+                    static_cast<uint32_t>(currentMillis - entry->stateStartTime));
             }
             entry->stateStartTime = currentMillis;
             entry->lastInputState = currentState;
@@ -229,40 +257,29 @@ HOT_PATH IRAM_ATTR void PinStateManager::processInputs(
 }
 
 /**
- * @brief Scheduled ADC1 analog input processor.
- * Computes the earliest next sample deadline across all active analog_input segments
- * so idle loop() iterations skip hardware ADC reads in 1 cycle.
+ * @brief Non-blocking pipelined SAR1 ADC1 analog input scheduler.
+ *
+ * On ESP32:
+ * - Coordinates all active analog_input segments round-robin over the single SAR1 unit.
+ * - Starts a 4-sample hardware burst in ~4 CPU cycles and immediately returns to loop().
+ * - Collects each finished conversion in ~3 CPU cycles and launches the next oversample
+ *   without ever stalling the CPU.
+ * - Recomputes the earliest next deadline so idle loop() ticks stay in the 3-cycle CCOUNT gate.
  */
-HOT_PATH void PinStateManager::processAnalogInputs(
+HOT_PATH PIN_STATE_IRAM void PinStateManager::processAnalogInputs(
     const uniuno::StaticFunction<void, const AnalogInputChange&, const RuleConfig&>& onAnalogChanged) {
     if (UNLIKELY(_numAnalogInputs == 0)) return;
 
-    const unsigned long currentMillis = millis();
-    bool hasNext = false;
-    unsigned long earliestNext = 0;
-
-    for (uint8_t i = 0; i < _numAnalogInputs; ++i) {
-        const uint8_t idx = _analogInputIndices[i];
-        PinEntry* entry = _registry.getEntryByIndex(idx);
-        if (UNLIKELY(!entry || !entry->active || !entry->hasAdc)) continue;
-
-        const AdcSampleResult res = entry->adc.sample(currentMillis);
-        const unsigned long nextDue = entry->adc.getLastSampleTime() + entry->adc.getSampleIntervalMs();
-        if (!hasNext || static_cast<long>(nextDue - earliestNext) < 0) {
-            earliestNext = nextDue;
-            hasNext = true;
-        }
-
-        if (!res.sampled) {
-            continue;
-        }
+    auto emitAnalogResult = [&](PinEntry* entry, const AdcSampleResult& res, unsigned long nowMs) {
+        if (!res.sampled) return;
 
         unsigned long durationSec = 0;
         if (res.thresholdChanged) {
-            if (entry->stateStartTime > 0 && currentMillis > entry->stateStartTime) {
-                durationSec = (currentMillis - entry->stateStartTime) / 1000UL;
+            if (entry->stateStartTime > 0 && nowMs > entry->stateStartTime) {
+                durationSec = uniuno::xtensa_asm::asm_div1000_u32(
+                    static_cast<uint32_t>(nowMs - entry->stateStartTime));
             }
-            entry->stateStartTime = currentMillis;
+            entry->stateStartTime = nowMs;
             entry->lastInputState = res.thresholdState;
         }
 
@@ -277,8 +294,90 @@ HOT_PATH void PinStateManager::processAnalogInputs(
             change.thresholdState = res.thresholdState;
             onAnalogChanged(change, entry->rule);
         }
+    };
+
+#if defined(ESP32)
+    // Phase 1: If a SAR1 hardware burst is currently in flight, service it without stalling!
+    if (_activeAdcSlot >= 0) {
+        if (UNLIKELY(_activeAdcSlot >= static_cast<int8_t>(_numAnalogInputs))) {
+            _activeAdcSlot = -1;
+        } else {
+            PinEntry* activeEntry = _analogEntries[_activeAdcSlot];
+            if (UNLIKELY(!activeEntry || !activeEntry->active || !activeEntry->hasAdc)) {
+                _activeAdcSlot = -1;
+            } else {
+                AdcSampleResult res;
+                const unsigned long nowMs = millis();
+                if (!activeEntry->adc.pollAsyncBurst(nowMs, res)) {
+                    // Still converting or next oversample launched -> keep _activeAdcStartCycle fresh
+                    _activeAdcStartCycle = uniuno::asm_opt::get_cpu_cycle_count();
+                    return;
+                }
+
+                // Burst finished (4/4 oversamples + branchless DSP complete!)
+                _activeAdcSlot = -1;
+                emitAnalogResult(activeEntry, res, nowMs);
+                // Fall through to immediately start any other overdue channel or update next deadline
+            }
+        }
+    }
+
+    // Phase 2: Find next due channel (round-robin) and launch non-blocking SAR1 burst (~4 cycles)
+    const unsigned long currentMillis = millis();
+    bool hasNext = false;
+    unsigned long earliestNext = 0;
+    int8_t dueSlot = -1;
+
+    for (uint8_t step = 0; step < _numAnalogInputs; ++step) {
+        const uint8_t slot = static_cast<uint8_t>((_analogRoundRobin + step) % _numAnalogInputs);
+        PinEntry* entry = _analogEntries[slot];
+        if (UNLIKELY(!entry || !entry->active || !entry->hasAdc)) continue;
+
+        const unsigned long nextDue = entry->adc.getLastSampleTime() + entry->adc.getSampleIntervalMs();
+        if (dueSlot < 0 && uniuno::asm_opt::is_timer_expired(currentMillis, nextDue)) {
+            dueSlot = static_cast<int8_t>(slot);
+            _analogRoundRobin = static_cast<uint8_t>((slot + 1U) % _numAnalogInputs);
+        }
+
+        if (!hasNext || static_cast<long>(nextDue - earliestNext) < 0) {
+            earliestNext = nextDue;
+            hasNext = true;
+        }
+    }
+
+    if (dueSlot >= 0) {
+        PinEntry* dueEntry = _analogEntries[dueSlot];
+        if (LIKELY(dueEntry->adc.startAsyncBurst())) {
+            _activeAdcSlot = dueSlot;
+            _activeAdcStartCycle = uniuno::asm_opt::get_cpu_cycle_count();
+            return;
+        }
     }
 
     _nextAnalogSampleTime = earliestNext;
     _hasAnalogSchedule = hasNext;
+    _lastAnalogGateCycle = uniuno::asm_opt::get_cpu_cycle_count();
+#else
+    // Deterministic synchronous path for native host unit tests
+    const unsigned long currentMillis = millis();
+    bool hasNext = false;
+    unsigned long earliestNext = 0;
+
+    for (uint8_t i = 0; i < _numAnalogInputs; ++i) {
+        PinEntry* entry = _analogEntries[i];
+        if (UNLIKELY(!entry || !entry->active || !entry->hasAdc)) continue;
+
+        const AdcSampleResult res = entry->adc.sample(currentMillis);
+        const unsigned long nextDue = entry->adc.getLastSampleTime() + entry->adc.getSampleIntervalMs();
+        if (!hasNext || static_cast<long>(nextDue - earliestNext) < 0) {
+            earliestNext = nextDue;
+            hasNext = true;
+        }
+
+        emitAnalogResult(entry, res, currentMillis);
+    }
+
+    _nextAnalogSampleTime = earliestNext;
+    _hasAnalogSchedule = hasNext;
+#endif
 }
