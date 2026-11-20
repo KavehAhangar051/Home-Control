@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { WebGL2LutRenderer } from "@/lib/gpu/webgl2-lut-renderer";
-import type { Lut3D } from "@/lib/gpu/lut3d";
+import { isIdentityLut, type Lut3D } from "@/lib/gpu/lut3d";
 
 interface GpuLutImageProps {
   imageSrc: string;
@@ -32,6 +32,7 @@ export function GpuLutImage({
   const lutRef = useRef(lut);
   const intensityRef = useRef(intensity);
   const [ready, setReady] = useState(false);
+  const passThroughRef = useRef(intensity <= 0 || isIdentityLut(lut));
 
   useEffect(() => {
     const container = containerRef.current;
@@ -44,6 +45,13 @@ export function GpuLutImage({
     setReady(false);
 
     const draw = () => {
+      if (passThroughRef.current) {
+        renderer?.dispose();
+        renderer = null;
+        setReady(false);
+        return;
+      }
+
       if (
         disposed ||
         document.hidden ||
@@ -78,7 +86,7 @@ export function GpuLutImage({
     };
 
     const initialize = () => {
-      if (disposed || renderer) return;
+      if (disposed || renderer || passThroughRef.current) return;
       try {
         renderer = new WebGL2LutRenderer(canvas);
 
@@ -171,6 +179,7 @@ export function GpuLutImage({
   useEffect(() => {
     lutRef.current = lut;
     intensityRef.current = intensity;
+    passThroughRef.current = intensity <= 0 || isIdentityLut(lut);
     drawRef.current();
   }, [lut, intensity]);
 
@@ -191,7 +200,7 @@ export function GpuLutImage({
       />
       <canvas
         ref={canvasRef}
-        className={`pointer-events-none absolute inset-0 h-full w-full transition-opacity duration-200 ${ready ? "opacity-100" : "opacity-0"}`}
+        className={`pointer-events-none absolute inset-0 h-full w-full ${passThroughRef.current ? "opacity-0" : `transition-opacity duration-200 ${ready ? "opacity-100" : "opacity-0"}`}`}
       />
     </div>
   );
