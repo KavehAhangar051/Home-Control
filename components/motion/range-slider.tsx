@@ -2,7 +2,7 @@
 // beui.dev/components/motion/range-slider
 
 import { m, useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { SPRING_GLIDE } from "@/lib/ease";
 import { type SliderOptions, useSlider } from "@/lib/hooks/use-slider";
 import { TOUCH_GESTURE_CLASS } from "@/lib/touch";
@@ -30,7 +30,7 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
     const measure = () => {
       const width = track.getBoundingClientRect().width;
 
-      if (width > 0) setTrackWidth(width);
+      if (width > 0) setTrackWidth((previous) => (previous === width ? previous : width));
     };
 
     measure();
@@ -45,7 +45,7 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
   const target = useMotionValue(percent);
 
   useEffect(() => {
-    target.set(percent);
+    if (target.get() !== percent) target.set(percent);
   }, [percent, target]);
 
   const smooth = useSpring(target, SPRING_GLIDE);
@@ -65,12 +65,13 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
   // floor to 2 and drop the last dot.
   const steps = Math.floor(Number(((max - min) / step).toFixed(6)));
 
-  const ticks =
-    !showTicks || !(max > min)
-      ? []
-      : steps > 0 && steps <= 50
-        ? Array.from({ length: steps + 1 }, (_, i) => Number((min + i * step).toFixed(6)))
-        : Array.from({ length: 11 }, (_, i) => Number((min + (i / 10) * (max - min)).toFixed(6)));
+  const ticks = useMemo(() => {
+    if (!showTicks || !(max > min)) return [];
+
+    return steps > 0 && steps <= 50
+      ? Array.from({ length: steps + 1 }, (_, i) => Number((min + i * step).toFixed(6)))
+      : Array.from({ length: 11 }, (_, i) => Number((min + (i / 10) * (max - min)).toFixed(6)));
+  }, [showTicks, max, min, step, steps]);
 
   return (
     <div
