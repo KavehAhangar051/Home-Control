@@ -242,7 +242,7 @@ export function Newton({ size, speed, reduce }: PartProps): React.JSX.Element {
         return (
           <m.span
             key={i}
-            className="rounded-full bg-current will-change-transform"
+            className={`rounded-full bg-current ${!reduce && move ? "will-change-transform" : ""}`}
             style={{ width: d, height: d }}
             animate={reduce || !move ? undefined : { x: move.x }}
             transition={
