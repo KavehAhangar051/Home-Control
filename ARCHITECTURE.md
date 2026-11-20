@@ -507,3 +507,8 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 ### Color Picker drag frame scheduling (20 November 2026)
 
 `components/motion/color-picker.tsx` coalesces shared drag-hook pointer coordinates into one `requestAnimationFrame` update. Pointer-down is applied immediately; pointer-up flushes the final coordinates before commit. Pointer cancellation, lost pointer capture, window blur, and unmount cancel pending work. This limits redundant React context updates during high-frequency pointer input while preserving coordinate mapping and visible color behavior. It is a main-thread scheduling optimization, not a GPU-rendering change or a measured performance result.
+
+
+### Shared slider pointer-frame scheduling (20 November 2026)
+
+`lib/hooks/use-slider.ts` coalesces active pointer X coordinates and runs the shared value update at most once per animation frame. Pointer-down is still immediate, pointer-up flushes the final coordinate before the existing commit callback, and cancellation/blur/lost capture/unmount clear pending work. The change covers the Range, Fluid, and Bubble sliders that use this hook; it preserves step snapping, keyboard input, controlled/uncontrolled behavior, and the existing visual motion. This is a main-thread update-scheduling optimization, not GPU execution or a measured performance result.
