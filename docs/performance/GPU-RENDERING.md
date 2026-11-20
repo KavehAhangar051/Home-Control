@@ -36,7 +36,7 @@ The source image must be same-origin or served with CORS permission. The compone
 
 - Accepts 3D `.cube` files with `LUT_3D_SIZE`, optional `DOMAIN_MIN` / `DOMAIN_MAX`, and exactly `size³` RGB entries.
 - 1D LUTs are intentionally rejected.
-- LUT edge length is bounded to 2–64. Texture storage is RGBA8 with linear filtering and clamp-to-edge addressing.
+- LUT edge length is bounded to 2–64. Texture storage is RGBA8 with linear filtering and clamp-to-edge addressing. The source texture is bounded to 4096×4096; larger sources remain on the original-image fallback.
 - Approximate 3D LUT texture allocation (no mipmaps): 17³ = 19.2 KiB, 33³ = 140.4 KiB, 64³ = 1 MiB.
 - LUT rows use the standard .cube order: red changes fastest, then green, then blue.
 - The LUT is expected to use the same RGB encoding convention as the source texture. This first version does not add an implicit linear-light / sRGB conversion pass.
@@ -47,7 +47,8 @@ The source image must be same-origin or served with CORS permission. The compone
 - Uses one fullscreen triangle and a fragment shader. The 3D lookup and interpolation run in the graphics pipeline.
 - Does not read rendered pixels back to JavaScript.
 - Does not allocate mipmaps or poll GPU state in the render path.
-- Uses a device-pixel-ratio cap of 2 for the output canvas to bound framebuffer allocation.
+- Uses a device-pixel-ratio cap of 2 for the output canvas to bound framebuffer allocation. A 4096×4096 RGBA8 source texture can still consume up to 64 MiB, so avoid mounting multiple large surfaces concurrently.
+- Reuses the source texture when only LUT intensity or surface dimensions change; LUT data is re-uploaded only when its typed-array reference changes.
 - Creates the context only when the surface approaches the viewport; it does not keep an animation loop alive.
 - Releases textures, vertex array, and program on unmount. Recreates resources after `webglcontextrestored`.
 - If WebGL 2 is unavailable, context creation fails, or rendering throws, the original image remains visible.
