@@ -1607,3 +1607,38 @@ Error: .../sdkmanager failed with exit code 1
 - [ ] اجرای Workflow پس از این اصلاحات و تأیید لاگ بدون هشدارهای قابل رفع
 - [ ] بررسی هشدار `flatDir` پس از مشخص شدن نسخه/منشأ دقیق در زنجیره Capacitor
 - [ ] نصب و اجرای APK روی گوشی واقعی
+
+
+---
+
+## ۱۷. بررسی اجرای Android APK پس از مهاجرت به Android CLI — ۲۰۲۶-۱۱-۲۰
+
+### نتیجه اجرای CI
+
+- Workflow: [Run 44774858108](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44774858108)
+- Job: [136421942319](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44774858108/job/136421942319)
+- Commit مبنا: `50ed225e5c357370af2de0d4e5932e39cba5d489`
+- هر ۱۳ مرحله اصلی از نصب Android CLI تا Upload موفق شدند.
+- Gradle خروجی `BUILD SUCCESSFUL` داد؛ فایل APK غیرخالی بود و SHA-256 آن `834403ebbaa081dc7c23a7cddb638803ec4d98c71afc84e3bdb0321f52966497` ثبت شد.
+- Artifact: `home-control-debug-apk-11`، شناسه `14648399660`، حجم ۹٬۹۱۴٬۸۳۱ بایت؛ اعتبار Artifact تا ۲۰۲۶-۱۲-۲۰.
+
+### وضعیت هشدارها در این اجرا
+
+- هشدارهای قبلی مربوط به `sdkmanager`، Node 20، `punycode` و `url.parse` در لاگ این Job دیده نشدند.
+- دو هشدار Gradle درباره `flatDir` باقی است. این Repository در ماژول Cordova-generated برای سازگاری با افزونه‌های Cordova و کتابخانه‌های محلی JAR/AAR به‌کار می‌رود. حذف آن بدون اثبات نبود افزونه/کتابخانه وابسته می‌تواند سازگاری را بشکند؛ فعلاً حذف یا suppress نمی‌شود. مرجع: [Capacitor issue #5287](https://github.com/ionic-team/capacitor/issues/5287).
+- یک هشدار SDK metadata ثبت شد: parser نسخه XML تا ۳ را می‌شناسد، اما فایل SDK با نسخه ۴ مواجه شده است. این هشدار در این اجرا مانع Build نشد. با توجه به اینکه Capacitor 8.6.2 از Android Gradle Plugin 8.13.0 استفاده می‌کند و شواهد فعلی emitter دقیق هشدار را مشخص نمی‌کند، ارتقای حدسی AGP/Gradle یا downgrade کردن Android CLI انجام نشد. باید در صورت تکرار، منبع دقیق پیام و نسخه‌های واقعی ابزارهای SDK/Gradle استخراج شود.
+
+### منابع فنی
+
+- [Capacitor 8.6.2 Android build configuration](https://github.com/ionic-team/capacitor/blob/8.6.2/android/capacitor/build.gradle)
+- [Capacitor: flatDir rationale](https://github.com/ionic-team/capacitor/issues/5287)
+- [Gradle repository types](https://docs.gradle.org/current/userguide/supported_repository_types.html)
+- [Android Gradle Plugin compatibility](https://developer.android.com/build/releases/about-agp)
+
+### وضعیت
+
+- [x] اجرای Workflow پس از مهاجرت به Android CLI موفق شد.
+- [x] APK ساخته و Artifact آپلود شد.
+- [x] هشدارهای قدیمی Action/Node و sdkmanager در لاگ جدید دیده نشدند.
+- [ ] بررسی دقیق منبع هشدار SDK XML در صورت تکرار.
+- [ ] نصب و اجرای APK روی گوشی واقعی و بررسی MQTT و Local WebSocket.
