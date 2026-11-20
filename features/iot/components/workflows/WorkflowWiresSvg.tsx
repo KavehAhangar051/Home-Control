@@ -103,20 +103,14 @@ export default React.memo(function WorkflowWiresSvg({
         style={{ width: 1, height: 1 }}
       >
         {edges.map((edge) => {
-          const source = nodeMap.get(edge.sourceId);
-          const target = nodeMap.get(edge.targetId);
-
-          if (!source || !target) return null;
+          const geometry = geometryByEdgeId.get(edge.id);
+          if (!geometry) return null;
 
           return (
             <WorkflowEdgeItem
               key={edge.id}
               edge={edge}
-              source={source}
-              target={target}
-              geometry={geometryByEdgeId.get(edge.id)}
-              resolvedPortIdx={incomingIndexByEdgeId.get(edge.id) ?? 0}
-              totalInPorts={getNodeInputCount(target)}
+              geometry={geometry}
               isActive={activeEdgeIds.has(edge.id)}
               isSelected={selectedEdgeId === edge.id}
               animationsEnabled={animationsEnabled}
@@ -139,11 +133,6 @@ export default React.memo(function WorkflowWiresSvg({
         >
           {edges.map((edge) => {
             if (!activeEdgeIds.has(edge.id) || hoveredEdgeId === edge.id) return null;
-
-            const source = nodeMap.get(edge.sourceId);
-            const target = nodeMap.get(edge.targetId);
-
-            if (!source || !target) return null;
 
             const curve = geometryByEdgeId.get(edge.id);
             if (!curve) return null;
