@@ -354,12 +354,12 @@ This trace is a short mixed-activity capture, not a controlled 60/120/144 Hz ani
 
 The initial user trace contains a 100.7 ms `FunctionCall` in the deployed minified chunk `1irek62w6m78r.js` (reported function name `z`) and a 71.4 ms `RunMicrotasks` slice. The trace does not contain source maps, so the function cannot yet be attributed to an authored module. Do not infer that this is the Canvas animator or a GPU-rendering bottleneck.
 
-For a diagnostic static export with authored function/file attribution, build with:
+For a diagnostic static export with authored function/file attribution, run the **Profiling build (source maps)** GitHub Actions workflow manually from the Actions tab. It builds with `ENABLE_PROFILING_SOURCEMAPS=true`, verifies that maps exist, and uploads the static site as a seven-day artifact; it does not deploy the artifact to GitHub Pages. Alternatively, build locally with:
 
 ```sh
 ENABLE_PROFILING_SOURCEMAPS=true bun run build
 ```
 
-This opt-in sets Next.js `productionBrowserSourceMaps`; the normal build remains unchanged and does not emit production browser source maps. Use the resulting profiling build for a new trace and save it with **Include resource content**, **Include script source maps**, and **Compress with gzip** enabled. Treat that trace as source-bearing project material. Do not deploy a profiling build as the normal production release solely to collect a trace.
+To profile the downloaded artifact locally, extract it and serve the export directory (for example, `python3 -m http.server 4173 --directory out`), then open `http://localhost:4173`. The opt-in sets Next.js `productionBrowserSourceMaps`; the normal build remains unchanged and does not emit production browser source maps. Record a new trace and save it with **Include resource content**, **Include script source maps**, and **Compress with gzip** enabled. Treat the artifact and trace as source-bearing project material. Never copy the profiling artifact into the Pages deployment.
 
 The next trace should isolate one repeatable Canvas action and use the target display mode. Compare the same action before/after; source attribution alone is not evidence of an optimization.
