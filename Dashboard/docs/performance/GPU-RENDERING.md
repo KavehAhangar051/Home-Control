@@ -131,3 +131,13 @@ Lifecycle observations from source:
 - `dispose()` explicitly deletes the texture, vertex-array, and program handles when the context is still valid. When the context is already lost, the browser/driver owns teardown of the lost context's resources.
 
 Before increasing these limits or creating more renderer instances, profile concurrent instances and peak texture memory on target desktop and Android devices. Prefer reducing duplicate allocations and deterministic lifecycle management over forcing additional layers or contexts.
+
+
+### Shader initialization and texture-upload follow-up
+
+A further source inspection found two details worth preserving in future optimization work:
+
+- Shader compilation and program linking currently happen synchronously in `WebGL2LutRenderer` construction. The constructor is reached lazily when the image approaches the viewport, so this is not per-frame work, but the first visible initialization can still incur a main-thread wait while `getShaderParameter` / `getProgramParameter` query compile and link status. MDN notes that shader/program status and info-log queries can cause synchronous stalls. Treat asynchronous compilation through `KHR_parallel_shader_compile` as a measured follow-up only: it needs an explicit pending state, extension/fallback handling, and must keep the original image visible until the program is ready.
+- The source image currently enters the 2D texture through `texImage2D` only when the source object changes. Do not mechanically replace this with `texStorage2D` + `texSubImage2D`: immutable storage can make allocation behavior more predictable, but DOM-image uploads can have different costs across implementations. Benchmark the actual image-upload path before changing it. The 3D LUT already uses immutable `texStorage3D` allocation followed by `texSubImage3D` updates.
+
+These are source-level candidates, not confirmed performance defects. No runtime trace or GPU timing is available, so no renderer code was changed in this pass.
