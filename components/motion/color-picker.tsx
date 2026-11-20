@@ -364,6 +364,7 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
   onPointRef.current = onPoint;
   onEndRef.current = onEnd;
   const pendingPointRef = useRef<{ x: number; y: number } | null>(null);
+  const lastAppliedPointRef = useRef<{ x: number; y: number } | null>(null);
   const pointFrameRef = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -379,10 +380,14 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
     const rect = railRef.current?.getBoundingClientRect();
 
     if (!rect || rect.width === 0 || rect.height === 0) return;
-    onPointRef.current(
-      clamp((clientX - rect.left) / rect.width, 0, 1),
-      clamp((clientY - rect.top) / rect.height, 0, 1),
-    );
+
+    const x = clamp((clientX - rect.left) / rect.width, 0, 1);
+    const y = clamp((clientY - rect.top) / rect.height, 0, 1);
+    const previous = lastAppliedPointRef.current;
+    if (previous?.x === x && previous.y === y) return;
+
+    lastAppliedPointRef.current = { x, y };
+    onPointRef.current(x, y);
   };
 
   const flushPoint = (clientX: number, clientY: number) => {
@@ -451,6 +456,7 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
         if (disabled || event.button !== 0 || draggingRef.current) return;
         draggingRef.current = true;
         activePointerIdRef.current = event.pointerId;
+        lastAppliedPointRef.current = null;
         setDragging(true);
         capturePointer(event.currentTarget, event.pointerId);
         thumbRef.current?.focus({ preventScroll: true });
