@@ -141,19 +141,30 @@ void test_gpio_pwm_driver_lifecycle_and_state_memory() {
 #if defined(UNIUNO_TEST_ESP32_CORE_V3)
     TEST_ASSERT_EQUAL_INT(1, mockHw().ledcAttachCalls);
     TEST_ASSERT_EQUAL_INT(0, mockHw().ledcSetupCalls);
-    TEST_ASSERT_EQUAL_INT8(-1, pwm.getChannel());
 #else
     TEST_ASSERT_EQUAL_INT(1, mockHw().ledcSetupCalls);
     TEST_ASSERT_EQUAL_INT(1, mockHw().ledcAttachPinCalls);
-    TEST_ASSERT_GREATER_OR_EQUAL_INT8(0, pwm.getChannel());
-    TEST_ASSERT_TRUE(GpioPwm::getAllocatedChannelMask() != 0);
 #endif
+    // Unified O(1) bitmask allocator prioritizes High-Speed LEDC channels 0..7 on both Core v2 & v3
+    TEST_ASSERT_EQUAL_INT8(0, pwm.getChannel());
+    TEST_ASSERT_TRUE(GpioPwm::getAllocatedChannelMask() != 0);
 
     // Set mid duty cycle & clamp above max
     pwm.setValue(2048);
     TEST_ASSERT_EQUAL_UINT16(2048, pwm.getValue());
     TEST_ASSERT_TRUE(pwm.getState());
     TEST_ASSERT_EQUAL_UINT32(2048, mockHw().ledcPins[18].duty);
+
+    // Hardware deduplication: redundant setValue(2048) skips peripheral bus write
+    const int writesBeforeDup = mockHw().ledcWriteCalls;
+    pwm.setValue(2048);
+    TEST_ASSERT_EQUAL_INT(writesBeforeDup, mockHw().ledcWriteCalls);
+
+    // Verify XtensaAnalogAsm fixed-point LEDC full-ON helper (maxDuty -> (maxDuty + 1) << 4)
+    TEST_ASSERT_EQUAL_UINT32(0UL, uniuno::xtensa_asm::asm_ledc_duty_fixed(0, 4095));
+    TEST_ASSERT_EQUAL_UINT32(2048UL << 4, uniuno::xtensa_asm::asm_ledc_duty_fixed(2048, 4095));
+    TEST_ASSERT_EQUAL_UINT32(4096UL << 4, uniuno::xtensa_asm::asm_ledc_duty_fixed(4095, 4095));
+    TEST_ASSERT_EQUAL_UINT32(256UL << 4, uniuno::xtensa_asm::asm_ledc_duty_fixed(255, 255));
 
     pwm.setValue(9999);
     TEST_ASSERT_EQUAL_UINT16(4095, pwm.getValue());
@@ -175,9 +186,7 @@ void test_gpio_pwm_driver_lifecycle_and_state_memory() {
     pwm.end();
     TEST_ASSERT_FALSE(pwm.isAttached());
     TEST_ASSERT_FALSE(mockHw().ledcPins[18].attached);
-#if !defined(UNIUNO_TEST_ESP32_CORE_V3)
     TEST_ASSERT_EQUAL_UINT16(0, GpioPwm::getAllocatedChannelMask());
-#endif
 }
 
 void test_gpio_pwm_active_low_inversion() {

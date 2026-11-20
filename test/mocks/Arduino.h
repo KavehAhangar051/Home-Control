@@ -330,6 +330,15 @@ inline bool ledcAttach(uint8_t pin, uint32_t freq, uint8_t resolution) {
     return true;
 }
 
+inline bool ledcAttachChannel(uint8_t pin, uint32_t freq, uint8_t resolution, uint8_t channel) {
+    if (channel >= 16) return false;
+    if (!ledcAttach(pin, freq, resolution)) return false;
+    mockHw().ledcChannels[channel].attachedPin = static_cast<int8_t>(pin);
+    mockHw().ledcChannels[channel].freq = static_cast<double>(freq);
+    mockHw().ledcChannels[channel].resolution = resolution;
+    return true;
+}
+
 inline bool ledcDetach(uint8_t pin) {
     mockHw().ledcDetachCalls++;
     if (pin >= 64) return false;

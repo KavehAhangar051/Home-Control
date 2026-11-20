@@ -690,6 +690,64 @@ void test_websocket_parsers_analog_input_commands() {
     TEST_ASSERT_EQUAL_INT(39, bus.analogReadRequests[1].pin);
 }
 
+// ============================================================================
+// 9. O(1) ADC1 Channel LUT, Async SAR1 Burst API & XtensaAnalogAsm DSP Helpers
+// ============================================================================
+void test_gpio_adc_lut_async_burst_and_xtensa_dsp() {
+    // 1. Verify O(1) GPIO -> ADC1 hardware channel LUT
+    TEST_ASSERT_EQUAL_INT8(4, GpioAdc::pinToAdc1Channel(32));
+    TEST_ASSERT_EQUAL_INT8(5, GpioAdc::pinToAdc1Channel(33));
+    TEST_ASSERT_EQUAL_INT8(6, GpioAdc::pinToAdc1Channel(34));
+    TEST_ASSERT_EQUAL_INT8(7, GpioAdc::pinToAdc1Channel(35));
+    TEST_ASSERT_EQUAL_INT8(0, GpioAdc::pinToAdc1Channel(36));
+    TEST_ASSERT_EQUAL_INT8(3, GpioAdc::pinToAdc1Channel(39));
+    TEST_ASSERT_EQUAL_INT8(-1, GpioAdc::pinToAdc1Channel(37));
+    TEST_ASSERT_EQUAL_INT8(-1, GpioAdc::pinToAdc1Channel(38));
+    TEST_ASSERT_EQUAL_INT8(-1, GpioAdc::pinToAdc1Channel(25)); // ADC2 rejected
+    TEST_ASSERT_EQUAL_INT8(-1, GpioAdc::pinToAdc1Channel(-1));
+
+    // 2. Verify non-blocking async burst API lifecycle
+    mockHw().analogValues[36] = 1000;
+    GpioAdc adc(36, 12, 100, 40, 2800, 2200);
+    TEST_ASSERT_TRUE(adc.begin());
+    TEST_ASSERT_EQUAL_INT8(0, adc.getAdc1Channel());
+    TEST_ASSERT_FALSE(adc.isAsyncBurstActive());
+
+    mockHw().analogValues[36] = 3400;
+    TEST_ASSERT_TRUE(adc.startAsyncBurst());
+    TEST_ASSERT_TRUE(adc.isAsyncBurstActive());
+
+    // Abort burst cleanly
+    adc.abortAsyncBurst();
+    TEST_ASSERT_FALSE(adc.isAsyncBurstActive());
+
+    // Restart and complete async burst
+    TEST_ASSERT_TRUE(adc.startAsyncBurst());
+    AdcSampleResult res;
+    TEST_ASSERT_TRUE(adc.pollAsyncBurst(mockHw().fakeMillis + 100, res));
+    TEST_ASSERT_FALSE(adc.isAsyncBurstActive());
+    TEST_ASSERT_TRUE(res.sampled);
+    TEST_ASSERT_TRUE(res.valueChanged);
+    TEST_ASSERT_EQUAL_UINT16(2200, res.value); // EMA(1000, 3400) = 2200
+
+    // 3. Verify XtensaAnalogAsm DSP helpers across boundary values
+    TEST_ASSERT_EQUAL_UINT16(0, uniuno::xtensa_asm::asm_clamp_u16(-50, 0, 4095));
+    TEST_ASSERT_EQUAL_UINT16(4095, uniuno::xtensa_asm::asm_clamp_u16(9999, 0, 4095));
+    TEST_ASSERT_EQUAL_UINT16(1234, uniuno::xtensa_asm::asm_clamp_u16(1234, 0, 4095));
+    TEST_ASSERT_EQUAL_UINT16(500, uniuno::xtensa_asm::asm_abs_diff_u16(1500, 1000));
+    TEST_ASSERT_EQUAL_UINT16(500, uniuno::xtensa_asm::asm_abs_diff_u16(1000, 1500));
+    TEST_ASSERT_EQUAL_UINT16(0, uniuno::xtensa_asm::asm_ema50_rail_snap(1, 0, 4095));
+    TEST_ASSERT_EQUAL_UINT16(4095, uniuno::xtensa_asm::asm_ema50_rail_snap(4094, 4095, 4095));
+    TEST_ASSERT_TRUE(uniuno::xtensa_asm::asm_schmitt_eval(2800, 2800, 2200, false));
+    TEST_ASSERT_TRUE(uniuno::xtensa_asm::asm_schmitt_eval(2500, 2800, 2200, true));
+    TEST_ASSERT_FALSE(uniuno::xtensa_asm::asm_schmitt_eval(2200, 2800, 2200, true));
+    TEST_ASSERT_FALSE(uniuno::xtensa_asm::asm_schmitt_eval(4095, 0, 0, true));
+    TEST_ASSERT_EQUAL_UINT32(0UL, uniuno::xtensa_asm::asm_div1000_u32(999UL));
+    TEST_ASSERT_EQUAL_UINT32(1UL, uniuno::xtensa_asm::asm_div1000_u32(1000UL));
+    TEST_ASSERT_EQUAL_UINT32(10UL, uniuno::xtensa_asm::asm_div1000_u32(10999UL));
+    TEST_ASSERT_EQUAL_UINT32(4294967UL, uniuno::xtensa_asm::asm_div1000_u32(4294967295UL));
+}
+
 } // namespace
 
 void setUp() {
@@ -709,5 +767,6 @@ int main(int, char**) {
     RUN_TEST(test_analog_input_polling_and_rule_engine_automation);
     RUN_TEST(test_mqtt_binary_parsers_analog_input_opcodes);
     RUN_TEST(test_websocket_parsers_analog_input_commands);
+    RUN_TEST(test_gpio_adc_lut_async_burst_and_xtensa_dsp);
     return UNITY_END();
 }

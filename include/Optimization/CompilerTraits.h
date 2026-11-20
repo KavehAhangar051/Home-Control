@@ -38,10 +38,11 @@ namespace uniuno {
 
 // 4. Loop Unrolling
 // Hints the compiler to unroll the loop N times to reduce branching overhead.
-#if defined(__GNUC__) && !defined(__clang__)
-  #define UNROLL_LOOP(n) _Pragma("GCC unroll " #n)
+#define _UNIUNO_DO_PRAGMA(x) _Pragma(#x)
+#if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ >= 8)
+  #define UNROLL_LOOP(n) _UNIUNO_DO_PRAGMA(GCC unroll n)
 #elif defined(__clang__)
-  #define UNROLL_LOOP(n) _Pragma("unroll " #n)
+  #define UNROLL_LOOP(n) _UNIUNO_DO_PRAGMA(unroll n)
 #else
   #define UNROLL_LOOP(n)
 #endif

@@ -4,13 +4,16 @@
 #include "../PinRegistry.h"
 #include <Optimization/CompilerTraits.h>
 #include <Optimization/StaticFunction.h>
+#include <Optimization/XtensaAnalogAsm.h>
+#include <Timer/Optimization/TimerAsm.h>
 
 #if defined(ESP32)
 #include <soc/gpio_struct.h>
 #endif
 
 /**
- * @brief Manages GPIO input and output states with hardware-accelerated bitmask scanning.
+ * @brief Manages GPIO digital/analog input and output states with hardware-accelerated
+ * bitmask scanning, CCOUNT cycle gating, and non-blocking SAR1 ADC1 pipelining.
  */
 class PinStateManager {
 public:
@@ -21,9 +24,18 @@ public:
           _lastInputs0_31(0),
           _lastInputs32_39(0),
           _nextAnalogSampleTime(0),
+          _lastAnalogGateCycle(0),
+          _activeAdcStartCycle(0),
           _numInputs(0),
           _numAnalogInputs(0),
-          _hasAnalogSchedule(false) {}
+          _activeAdcSlot(-1),
+          _analogRoundRobin(0),
+          _hasAnalogSchedule(false) {
+        for (int i = 0; i < MAX_PINS; ++i) {
+            _inputIndices[i] = 0;
+            _analogEntries[i] = nullptr;
+        }
+    }
 
     bool setPinState(int pin, bool state);
     bool setStateById(const char* id, bool state);
@@ -154,12 +166,36 @@ public:
     }
 
     /**
-     * @brief Fast-path gate for analog input polling: returns false in 1 cycle when
-     * no analog_input segments exist or before the earliest sample deadline.
+     * @brief Zero-millis() ultra-fast hardware gate for analog input polling:
+     * - No analog inputs -> 1 cycle
+     * - SAR1 conversion in flight -> 3-cycle direct hardware ready bit check (zero millis!)
+     * - Idle between sample deadlines -> 3-cycle Xtensa CCOUNT 1ms gate (zero millis() on 99.9%+ ticks!)
      */
     HOT_PATH FORCE_INLINE bool hasAnalogInputsDue() const {
         if (LIKELY(_numAnalogInputs == 0)) return false;
+
+        if (_activeAdcSlot >= 0) {
+#if defined(ESP32)
+            if (LIKELY(GpioAdc::isSar1HardwareReady())) return true;
+            // Safety fallback: wake up if a hardware conversion somehow exceeds 2ms
+            const uint32_t elapsed = uniuno::asm_opt::get_cpu_cycle_count() - _activeAdcStartCycle;
+            return UNLIKELY(elapsed >= uniuno::asm_opt::ms_to_cycles(2));
+#else
+            return true;
+#endif
+        }
+
         if (UNLIKELY(!_hasAnalogSchedule)) return true;
+
+#if defined(ESP32)
+        // 3-cycle CCOUNT hardware throttle: check millis() deadline at most once per 1ms
+        // (50x finer than the 50ms minimum sample interval, eliminates ~100-cycle millis() per loop!)
+        const uint32_t nowCycles = uniuno::asm_opt::get_cpu_cycle_count();
+        if (LIKELY(static_cast<uint32_t>(nowCycles - _lastAnalogGateCycle) < uniuno::asm_opt::ms_to_cycles(1))) {
+            return false;
+        }
+        _lastAnalogGateCycle = nowCycles;
+#endif
         return uniuno::asm_opt::is_timer_expired(millis(), _nextAnalogSampleTime);
     }
 
@@ -219,10 +255,15 @@ private:
     uint32_t _lastInputs0_31;
     uint32_t _lastInputs32_39;
     unsigned long _nextAnalogSampleTime;
+    mutable uint32_t _lastAnalogGateCycle;
+    uint32_t _activeAdcStartCycle;
     uint8_t _inputIndices[MAX_PINS];
-    uint8_t _analogInputIndices[MAX_PINS];
+    // Space-for-Time direct pointer cache: zero index lookup or bounds checking in hot loop
+    PinEntry* _analogEntries[MAX_PINS];
     uint8_t _numInputs;
     uint8_t _numAnalogInputs;
+    int8_t _activeAdcSlot;    // Index into _analogEntries[] owning SAR1 right now, or -1 if idle
+    uint8_t _analogRoundRobin;
     bool _hasAnalogSchedule;
 };
 
