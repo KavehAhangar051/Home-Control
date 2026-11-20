@@ -26,6 +26,8 @@
 html[data-perf-tier="lite"][data-beui-vt="circle-blur"]::view-transition-new(root) {
   animation-name: beui-circle-reveal;
   animation-duration: 480ms;
+  will-change: clip-path;
+  filter: none;
 }
 
 /* Accessibility: Reduced Motion */
