@@ -95,3 +95,13 @@ A browser cannot run the entire UI with zero CPU work or store all rendering res
 4. Compare before/after recordings and visual output at the same viewport, DPR, browser, and device. Reject changes that introduce paint regressions, extra texture uploads, excessive layers, VRAM pressure, context loss, or any visible/timing difference.
 5. Track GPU memory as an estimate, not a directly queried universal VRAM counter. WebGL does not expose a portable API for querying available or allocated physical VRAM. Budget textures/render targets explicitly and release resources deterministically.
 6. Keep a browser-compatible path when hardware acceleration or a required GPU capability is unavailable; do not silently substitute a lower-quality effect. Report the fallback honestly.
+
+### OffscreenCanvas / Worker decision for the current DOM Canvas
+
+`CanvasWorkspace` is a DOM scene composed of positioned React nodes, SVG wires, and CSS-transformed `<div>` layers; it is not a `<canvas>` rendering surface. `transferControlToOffscreen()` only transfers an actual HTML `<canvas>` element, so it cannot move the current DOM scene, its CSS transforms, or its React nodes into a Worker.
+
+Moving the existing viewport animator's math into a Worker would still require sending viewport values to the main thread every frame so it can update `worldPlane.style.transform`, `gridLayer.style.transform`, the zoom readout text, and React's committed viewport state. That adds message traffic without removing the DOM/style writes that currently gate the visible result. It is therefore not an automatic GPU migration and must not be applied as a blanket change.
+
+Web Animations API / compositor animation is a more appropriate candidate for static-target viewport flights because the browser may animate transform values without a JavaScript callback each frame. However, smooth focal zoom continuously retargets x/y/zoom, pan inertia integrates pointer-derived velocity, and the zoom readout is updated live. Replacing these loops requires a behavior-equivalent retargeting design and trace evidence; do not replace them until the exact focal anchor, easing, friction, interruption, visibility cancellation, and final persisted viewport are preserved.
+
+`OffscreenCanvas` remains appropriate for genuinely canvas-based rendering or pixel processing (for example, a future dedicated GPU grid renderer), where the worker owns the canvas context. Such a renderer must preserve the current CSS radial-gradient output, including 1.25 CSS-pixel dot radius, theme color, spacing threshold, zoom alignment, and device-pixel-ratio behavior before it can replace the existing layer.
