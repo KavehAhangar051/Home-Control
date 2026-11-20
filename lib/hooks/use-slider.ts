@@ -88,8 +88,9 @@ export function useSlider({
   const commit = useCallback(
     (next: number) => {
       const clean = snapSliderValue(next, lo, hi, stride);
-      latestValueRef.current = clean;
+      if (clean === latestValueRef.current) return clean;
 
+      latestValueRef.current = clean;
       if (!controlled) setInternal(clean);
       onValueChange?.(clean);
 
