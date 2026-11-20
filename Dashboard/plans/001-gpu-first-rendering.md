@@ -156,3 +156,10 @@ Stop and report instead of improvising if:
 - A planned source file has drifted from the current-state description.
 
 - The Canvas viewport source audit is documented in `docs/performance/GPU-RENDERING.md`: finite camera flights are a potential WAAPI candidate, while dynamic focal zoom and velocity-based inertia remain rAF-driven until a behavior-preserving migration is demonstrated. Source comments now describe transform layers as compositor candidates rather than claiming guaranteed GPU execution.
+
+
+### Phase 1 progress — Canvas viewport write elision (20 November 2026)
+
+- Updated `features/iot/components/canvas/sheetViewportAnimator.ts` to skip assignments when the next world-plane/grid transform or legacy grid background values exactly match the current inline styles.
+- This avoids redundant style writes for repeated identical viewport applications without changing any computed value or animation behavior. It does not remove the requestAnimationFrame camera loop or transfer its math to the GPU.
+- Remaining verification: run the project's lint/typecheck/build and capture comparable Chrome Performance traces. No FPS or VRAM improvement is claimed without runtime measurements.

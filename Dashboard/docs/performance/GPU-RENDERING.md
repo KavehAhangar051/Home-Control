@@ -275,3 +275,11 @@ This is a source-level execution map, not a measured performance finding. No FPS
 - `GpuLutImage` skips WebGL context creation for an identity LUT or non-positive intensity and keeps the original browser image visible. If a live surface changes back to identity, its renderer resources are disposed and the WebGL overlay is hidden immediately.
 - This avoids source texture upload, LUT texture allocation/upload, shader execution, and an unnecessary GPU context for a no-op color transform. It also avoids precision changes from sampling an identity 3D texture. It does not claim to move DOM image decoding or browser UI work to the GPU.
 - The identity check is performed when the LUT/intensity inputs change, not per animation frame. A creative LUT continues to use the existing WebGL2 shader path.
+
+
+## Canvas viewport: redundant style-write elimination (20 November 2026)
+
+- `applyViewportToDom()` now compares the next world-plane transform and grid transform with the current inline style before assigning them. The legacy container-grid fallback similarly compares `backgroundSize` and `backgroundPosition` before writing.
+- This is a behavior-preserving main-thread micro-optimization: it avoids redundant CSSOM/style invalidation when the same viewport is applied repeatedly (for example, duplicate final/idle synchronization). It does not move the camera interpolation loop off the main thread and does not claim GPU-only execution.
+- The existing transform strings, grid spacing thresholds, dot radius, readout text, easing, inertia, and focal zoom calculations are unchanged. No effect, animation, or transition was removed or added.
+- Validation is source-level only in this change. Compare browser Performance traces before/after; expected benefit is limited to repeated identical viewport applications, not the per-frame work when values genuinely change.

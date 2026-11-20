@@ -23,7 +23,10 @@ export function applyViewportToDom(
   cachedReadouts?: HTMLElement[] | null,
 ): void {
   if (worldPlane) {
-    worldPlane.style.transform = `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`;
+    const transform = `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`;
+    if (worldPlane.style.transform !== transform) {
+      worldPlane.style.transform = transform;
+    }
   }
 
   if (gridLayer) {
@@ -35,11 +38,17 @@ export function applyViewportToDom(
       gridLayer.style.backgroundSize = gridTransform.backgroundSize;
     }
 
-    gridLayer.style.transform = gridTransform.transform;
+    if (gridLayer.style.transform !== gridTransform.transform) {
+      gridLayer.style.transform = gridTransform.transform;
+    }
   } else if (container) {
     const grid = computeGridStyle(viewport.x, viewport.y, viewport.zoom);
-    container.style.backgroundSize = grid.backgroundSize;
-    container.style.backgroundPosition = grid.backgroundPosition;
+    if (container.style.backgroundSize !== grid.backgroundSize) {
+      container.style.backgroundSize = grid.backgroundSize;
+    }
+    if (container.style.backgroundPosition !== grid.backgroundPosition) {
+      container.style.backgroundPosition = grid.backgroundPosition;
+    }
   }
 
   if (typeof document !== "undefined") {
