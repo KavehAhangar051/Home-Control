@@ -24,9 +24,9 @@ const BORDER_MASK_STYLE: React.CSSProperties = {
 };
 
 /**
- * Renders a purely GPU-composited luminous perimeter spark that orbits smoothly around
- * a rounded node's concentric border via VRAM-promoted conic-gradient layers, eliminating
- * main-thread SVG `stroke-dashoffset` repaints.
+ * Renders a luminous perimeter spark with compositor-friendly conic-gradient layers.
+ * Rotation can be composited by the browser; layer promotion and memory placement remain
+ * browser- and device-managed.
  */
 export default React.memo(function NodePerimeterSpark({
   active,
@@ -51,7 +51,6 @@ export default React.memo(function NodePerimeterSpark({
       style={{
         borderRadius: radius,
         contain: "strict",
-        transform: "translateZ(0)",
       }}
     >
       {/* Outer halo streak masked strictly to the border ring */}
