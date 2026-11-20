@@ -502,3 +502,8 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 ### Workspace swipe transient state (20 November 2026)
 
 `features/dashboard/hooks/useWorkspaceSwipe.ts` keeps touch-start and touch-move coordinates in refs rather than component state. Frequent touch-move events no longer trigger React renders merely to store pointer coordinates; swipe classification and selected-group updates still occur on touch end using the same thresholds and ordering. This is a main-thread React-work reduction, not a GPU operation or a visual change.
+
+
+### Color Picker drag frame scheduling (20 November 2026)
+
+`components/motion/color-picker.tsx` coalesces shared drag-hook pointer coordinates into one `requestAnimationFrame` update. Pointer-down is applied immediately; pointer-up flushes the final coordinates before commit. Pointer cancellation, lost pointer capture, window blur, and unmount cancel pending work. This limits redundant React context updates during high-frequency pointer input while preserving coordinate mapping and visible color behavior. It is a main-thread scheduling optimization, not a GPU-rendering change or a measured performance result.
