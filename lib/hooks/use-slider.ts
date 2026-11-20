@@ -202,13 +202,13 @@ export function useSlider({
 
   const onPointerCancel = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
+      if (activePointerIdRef.current !== event.pointerId) return;
+
       cancelPendingPointerMove();
       endDrag(event);
     },
     [cancelPendingPointerMove, endDrag],
   );
-
-
 
   useEffect(() => {
     if (!dragging) return;
