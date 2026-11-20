@@ -315,3 +315,10 @@ This is a source-level execution map, not a measured performance finding. No FPS
 - Previously, the static wire and particle component each called `buildBezierWireGeometry` independently for the same connection. The shared result avoids duplicate endpoint/control-point calculations and SVG path-string allocation on renders where the connection/node inputs change.
 - Geometry values, SVG path data, endpoint positions, stroke styling, particle motion, and UI are unchanged. The memo recomputes when the connections array or node map identity changes; it does not cache stale geometry across changed inputs.
 - This is a CPU-side duplicate-work reduction, not GPU migration. Validate with a browser Performance trace on large canvases; no FPS or VRAM improvement is claimed without measurement.
+
+
+## Shared Workflow edge geometry
+
+- `WorkflowWiresSvg` now memoizes each valid edge's Bezier geometry from its source/target port anchors and resolved input-port index. The same geometry object is passed to the SVG edge renderer and the active-edge signal particles.
+- This removes duplicate `getPortAnchor` and `buildWorkflowBezierPath` work for active edges and avoids rebuilding identical SVG path strings in the particle overlay. The geometry map is recomputed when the edge list, node map, or resolved port-index map changes.
+- Path coordinates, midpoint cut controls, edge hit areas, hover/selection styling, particle count, timing, and visible UI remain unchanged. This is a main-thread computation reduction, not a claim that SVG rendering moved to the GPU.

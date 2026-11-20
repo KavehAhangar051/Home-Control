@@ -5,16 +5,12 @@ import { m } from "motion/react";
 import React from "react";
 import { SPRING_BOUNCE } from "@/lib/ease";
 import type { ConnectingWireDraft } from "./useWorkflowStudio";
-import { buildWorkflowBezierPath, getPortAnchor } from "./workflowEngine";
-import type { WorkflowEdge, WorkflowNode } from "./workflowTypes";
+import { buildWorkflowBezierPath } from "./workflowEngine";
+import type { WorkflowEdge } from "./workflowTypes";
 
 interface WorkflowEdgeItemProps {
   edge: WorkflowEdge;
-  source: WorkflowNode;
-  target: WorkflowNode;
-  geometry: ReturnType<typeof buildWorkflowBezierPath> | undefined;
-  resolvedPortIdx: number;
-  totalInPorts: number;
+  geometry: ReturnType<typeof buildWorkflowBezierPath>;
   isActive: boolean;
   isSelected: boolean;
   animationsEnabled: boolean;
@@ -87,11 +83,7 @@ function WorkflowEdgeCutBadge({
  */
 export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
   edge,
-  source,
-  target,
   geometry,
-  resolvedPortIdx,
-  totalInPorts,
   isActive,
   isSelected,
   animationsEnabled,
@@ -99,8 +91,6 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
   onDeleteEdge,
   onHoverEdge,
 }: WorkflowEdgeItemProps) {
-  if (!geometry) return null;
-
   const { path, midX, midY, startX, startY, endX, endY } = geometry;
 
   const strokeColor = resolveEdgeStrokeColor(isSelected, isActive);
