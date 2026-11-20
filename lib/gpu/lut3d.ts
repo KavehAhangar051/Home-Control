@@ -1,6 +1,8 @@
 export interface Lut3D {
   size: number;
   data: Uint8Array;
+  domainMin: [number, number, number];
+  domainMax: [number, number, number];
 }
 
 const MIN_LUT_SIZE = 2;
@@ -18,8 +20,8 @@ function validateSize(size: number): void {
  */
 export function parseCubeLut(source: string): Lut3D {
   let size = 0;
-  let domainMin = [0, 0, 0];
-  let domainMax = [1, 1, 1];
+  let domainMin: [number, number, number] = [0, 0, 0];
+  let domainMax: [number, number, number] = [1, 1, 1];
   const values: number[] = [];
 
   for (const rawLine of source.split(/\r?\n/)) {
@@ -43,8 +45,8 @@ export function parseCubeLut(source: string): Lut3D {
       if (domain.length !== 3 || domain.some((value) => !Number.isFinite(value))) {
         throw new Error(`Invalid ${directive} declaration in .cube LUT.`);
       }
-      if (directive === "DOMAIN_MIN") domainMin = domain;
-      else domainMax = domain;
+      if (directive === "DOMAIN_MIN") domainMin = domain as [number, number, number];
+      else domainMax = domain as [number, number, number];
       continue;
     }
 
@@ -76,19 +78,13 @@ export function parseCubeLut(source: string): Lut3D {
     const green = values[valueOffset + 1];
     const blue = values[valueOffset + 2];
     const offset = index * 4;
-    data[offset] = Math.round(
-      Math.max(0, Math.min(1, (red - domainMin[0]) / (domainMax[0] - domainMin[0]))) * 255,
-    );
-    data[offset + 1] = Math.round(
-      Math.max(0, Math.min(1, (green - domainMin[1]) / (domainMax[1] - domainMin[1]))) * 255,
-    );
-    data[offset + 2] = Math.round(
-      Math.max(0, Math.min(1, (blue - domainMin[2]) / (domainMax[2] - domainMin[2]))) * 255,
-    );
+    data[offset] = Math.round(Math.max(0, Math.min(1, red)) * 255);
+    data[offset + 1] = Math.round(Math.max(0, Math.min(1, green)) * 255);
+    data[offset + 2] = Math.round(Math.max(0, Math.min(1, blue)) * 255);
     data[offset + 3] = 255;
   }
 
-  return { size, data };
+  return { size, data, domainMin, domainMax };
 }
 
 export function createIdentityLut(size = 17): Lut3D {
@@ -107,5 +103,5 @@ export function createIdentityLut(size = 17): Lut3D {
     }
   }
 
-  return { size, data };
+  return { size, data, domainMin: [0, 0, 0], domainMax: [1, 1, 1] };
 }
