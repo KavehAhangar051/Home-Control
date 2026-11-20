@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isAnalogOutputType, RECOMMENDED_PWM_PINS } from "@/features/iot/utils/analogOutput";
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
+import { toAsciiDigits } from "@/lib/persianText";
 
 interface PinSelectorProps {
   customPin: string;
@@ -19,31 +20,44 @@ export default function PinSelector({
   const trimmedPin = customPin.trim();
   const validation = trimmedPin ? validateEsp32Pin(trimmedPin, selectedType) : null;
   const isAnalog = isAnalogOutputType(selectedType);
+  const isInvalid = Boolean(validation && !validation.isValid);
+  const hasWarning = Boolean(validation?.isValid && validation.isWarning);
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label htmlFor="esp32-hardware-pin" className="w-full text-right">
+        <Label htmlFor="esp32-hardware-pin" className="w-full text-start">
           پایه سخت‌افزاری (GPIO)
         </Label>
       </div>
       <Input
         id="esp32-hardware-pin"
         type="text"
+        inputMode="numeric"
+        aria-invalid={isInvalid || undefined}
+        aria-describedby={isInvalid || hasWarning ? "esp32-hardware-pin-feedback" : undefined}
         placeholder={isAnalog ? "مثال: 16 یا 25" : "مثال: 14"}
         value={customPin}
-        onChange={(e) => setCustomPin(e.target.value.replace(/[^0-9]/g, ""))}
-        className="text-xs font-mono tabular-nums rounded-lg text-right placeholder:font-sans"
+        onChange={(e) => setCustomPin(toAsciiDigits(e.target.value).replace(/[^0-9]/g, ""))}
+        className="text-xs font-mono tabular-nums rounded-lg text-start placeholder:font-sans"
         dir="ltr"
       />
 
-      {validation && !validation.isValid && (
-        <p className="text-[11px] leading-relaxed text-destructive font-sans">
+      {isInvalid && validation && (
+        <p
+          id="esp32-hardware-pin-feedback"
+          role="alert"
+          className="text-[11px] leading-relaxed text-destructive font-sans"
+        >
           {validation.message}
         </p>
       )}
-      {validation?.isValid && validation.isWarning && (
-        <p className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-500 font-sans">
+      {hasWarning && validation && (
+        <p
+          id="esp32-hardware-pin-feedback"
+          role="status"
+          className="rounded-lg border border-warning/40 bg-warning-soft px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300 font-sans"
+        >
           {validation.message}
         </p>
       )}
@@ -64,11 +78,12 @@ export default function PinSelector({
                   key={pinNum}
                   type="button"
                   disabled={isUsed}
+                  aria-pressed={isSelected}
                   onClick={() => setCustomPin(pinStr)}
                   title={isUsed ? `GPIO ${pinStr} در حال استفاده است` : `انتخاب GPIO ${pinStr}`}
-                  className={`min-w-8 rounded-md border px-1.5 py-1 font-mono text-[11px] tabular-nums transition-colors ${
+                  className={`min-w-8 rounded-md border px-1.5 py-1 font-mono text-[11px] tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
                     isSelected
-                      ? "border-accent3 bg-accent3 text-bg-main font-semibold"
+                      ? "border-accent3 bg-accent3 text-accent3-foreground font-semibold"
                       : isUsed
                         ? "border-border-color/50 bg-secondary/40 text-text-muted/45 line-through cursor-not-allowed"
                         : "border-border-color bg-secondary text-text-secondary hover:border-accent3/60 hover:text-text-primary cursor-pointer"

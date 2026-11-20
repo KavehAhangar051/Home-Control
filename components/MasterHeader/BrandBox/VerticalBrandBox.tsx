@@ -9,7 +9,7 @@ const MARQUEE_MIN_DURATION_SECONDS = 6;
 const OVERFLOW_TOLERANCE_PX = 2;
 
 export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "variant">) {
-  const containerRef = useRef<HTMLHeadingElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLSpanElement>(null);
 
   const [marqueeState, setMarqueeState] = useState<{
@@ -76,10 +76,10 @@ export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "v
       <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-control-bg text-sidebar-text">
         <HousePlug aria-label="Home Control" className="size-4" strokeWidth={1.5} />
       </div>
-      <h1
+      <div
         ref={containerRef}
         title={headerTitle}
-        className={`relative min-w-0 flex-1 overflow-hidden whitespace-nowrap text-right text-sm font-medium text-sidebar-text ${
+        className={`relative min-w-0 flex-1 overflow-hidden whitespace-nowrap text-start text-sm font-medium text-sidebar-text ${
           marqueeState.isOverflowing
             ? "header-title-marquee [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]"
             : ""
@@ -118,7 +118,7 @@ export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "v
             </span>
           )}
         </div>
-      </h1>
+      </div>
     </div>
   );
 }

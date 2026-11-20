@@ -290,6 +290,25 @@ export function InlineSlider({
     releasePointer(event.currentTarget, event.pointerId);
   };
 
+  const blurCleanupRef = useRef<() => void>(() => {});
+  blurCleanupRef.current = () => {
+    if (!gesture.current) return;
+    gesture.current = null;
+    cancelDragCommit();
+    setDragging(false);
+    settleTo(restingX);
+  };
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    const handleWindowBlur = () => blurCleanupRef.current();
+
+    window.addEventListener("blur", handleWindowBlur);
+
+    return () => window.removeEventListener("blur", handleWindowBlur);
+  }, [dragging]);
+
   return (
     <div
       {...trackProps}
@@ -423,7 +442,7 @@ export function InlineSlider({
             options.onValueCommit?.(committed);
           }
         }}
-        className="absolute inset-0 cursor-inherit touch-none rounded-lg border-0 outline-none"
+        className="absolute inset-0 cursor-inherit touch-none rounded-lg border-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent3"
       />
     </div>
   );

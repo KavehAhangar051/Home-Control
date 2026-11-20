@@ -22,7 +22,7 @@ export function getBaseStyles(_isDark: boolean): string {
       outline: 2px solid color-mix(in oklab, var(--accent3) 30%, transparent);
       outline-offset: 0px;
     }
-    @media (min-width: 768px) {
+    @media (hover: hover) and (pointer: fine) {
       select:hover:not(:disabled), input:hover:not(:disabled), textarea:hover:not(:disabled) {
         border-color: var(--accent3-medium);
       }
@@ -51,7 +51,7 @@ export function getBaseStyles(_isDark: boolean): string {
       border-radius: 4px;
       border: 2px solid var(--bg-main);
     }
-    @media (min-width: 768px) {
+    @media (hover: hover) and (pointer: fine) {
       ::-webkit-scrollbar-thumb:hover {
         background: var(--accent3);
       }

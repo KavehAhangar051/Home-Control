@@ -45,7 +45,7 @@ export default function DashboardContainer() {
       <CustomCursor />
       <MotionConfig reducedMotion={animationsEnabled ? "user" : "always"}>
         <div
-          className={`style-nova bg-bg-main text-text-secondary min-h-dvh relative font-sans leading-relaxed selection:bg-accent3/15 selection:text-accent3 overflow-x-clip ${isDark ? "dark" : ""}`}
+          className={`style-nova bg-bg-main text-text-secondary min-h-dvh relative font-sans leading-relaxed selection:bg-accent3-medium selection:text-text-primary overflow-x-clip ${isDark ? "dark" : ""}`}
         >
           <div>
             <DashboardStyles
@@ -60,7 +60,7 @@ export default function DashboardContainer() {
 
             <a
               href="#dashboard-workspace-scroll"
-              className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:right-3 focus:z-[250] focus:rounded-xl focus:border focus:border-accent3 focus:bg-card-bg-solid focus:px-4 focus:py-2 focus:text-xs focus:font-bold focus:text-text-primary focus:shadow-lg focus:outline-none"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:start-3 focus:z-[250] focus:rounded-xl focus:border focus:border-accent3 focus:bg-card-bg-solid focus:px-4 focus:py-2 focus:text-xs focus:font-bold focus:text-text-primary focus:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
             >
               پرش به محتوای اصلی
             </a>

@@ -122,7 +122,7 @@ function SortableSegmentCard(props: SortableSegmentCardProps) {
 
   if (segment.type === "placeholder") {
     return (
-      <div ref={ref} style={style} className={`touch-none relative h-full ${SEGMENT_SPAN_CLASS}`}>
+      <div ref={ref} style={style} className={`relative h-full ${SEGMENT_SPAN_CLASS}`}>
         <PlaceholderCard
           segment={segment}
           onRemove={props.onRemove}
@@ -140,7 +140,7 @@ function SortableSegmentCard(props: SortableSegmentCardProps) {
     <div
       ref={ref}
       style={style}
-      className={`touch-none relative h-full transition-opacity duration-300 ${SEGMENT_SPAN_CLASS} ${isSettingsOpen ? "z-40" : ""}`}
+      className={`relative h-full transition-opacity duration-300 ${SEGMENT_SPAN_CLASS} ${isSettingsOpen ? "z-40" : ""}`}
     >
       <ActiveCard
         {...props}

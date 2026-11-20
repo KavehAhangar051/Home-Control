@@ -427,7 +427,7 @@ export default React.memo(function WorkflowNodeCard({
           active={outputSignal}
           animationsEnabled={shouldAnimateMotion}
           radius={16}
-          color="#10b981"
+          color="var(--success)"
           speed="flow"
         />
 

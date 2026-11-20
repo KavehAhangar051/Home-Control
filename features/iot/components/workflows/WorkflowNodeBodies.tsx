@@ -262,7 +262,7 @@ export function GroupNodeBody({
               const val = e.target.value as WorkflowGroupEvalMode;
               onUpdateNode(node.id, { groupEvalMode: val });
             }}
-            className="h-6 cursor-pointer rounded-md border border-border-color bg-bg-main px-1.5 text-[10px] font-medium text-text-secondary outline-none"
+            className="h-6 cursor-pointer rounded-md border border-border-color bg-bg-main px-1.5 text-[10px] font-medium text-text-secondary outline-none focus-visible:border-accent3 focus-visible:ring-2 focus-visible:ring-accent3/35"
           >
             <option value="any_on">شرط: حداقل یکی روشن (OR)</option>
             <option value="all_on">شرط: همه روشن (AND)</option>
@@ -276,7 +276,7 @@ export function GroupNodeBody({
               const val = e.target.value as WorkflowActionMode;
               onUpdateNode(node.id, { actionMode: val });
             }}
-            className="h-6 cursor-pointer rounded-md border border-border-color bg-bg-main px-1.5 text-[10px] font-medium text-text-secondary outline-none"
+            className="h-6 cursor-pointer rounded-md border border-border-color bg-bg-main px-1.5 text-[10px] font-medium text-text-secondary outline-none focus-visible:border-accent3 focus-visible:ring-2 focus-visible:ring-accent3/35"
           >
             <option value="turn_on">فرمان: روشن کردن همه</option>
             <option value="turn_off">فرمان: خاموش کردن همه</option>
@@ -405,7 +405,7 @@ export function TimerNodeBody({ node, timerCountdown, onUpdateNode }: TimerNodeB
             const val = e.target.value as WorkflowTimerMode;
             onUpdateNode(node.id, { timerMode: val });
           }}
-          className="h-7 min-w-0 flex-1 cursor-pointer rounded-lg border border-border-color bg-bg-main px-1.5 text-[10px] font-semibold text-text-primary outline-none"
+          className="h-7 min-w-0 flex-1 cursor-pointer rounded-lg border border-border-color bg-bg-main px-1.5 text-[10px] font-semibold text-text-primary outline-none focus-visible:border-accent3 focus-visible:ring-2 focus-visible:ring-accent3/35"
         >
           <option value="delay">تاخیر در وصل (On-Delay)</option>
           <option value="hold">نگه‌دارنده پالس (Hold)</option>

@@ -359,6 +359,9 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
   const railRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
+  const onEndRef = useRef(onEnd);
+  onEndRef.current = onEnd;
   const [dragging, setDragging] = useState(false);
 
   const point = (event: PointerEvent<HTMLDivElement>) => {
@@ -372,12 +375,33 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
   };
 
   const end = (event: PointerEvent<HTMLDivElement>) => {
-    if (!draggingRef.current) return;
-    releasePointer(event.currentTarget, event.pointerId);
+    if (!draggingRef.current || activePointerIdRef.current !== event.pointerId) return;
+    activePointerIdRef.current = null;
     draggingRef.current = false;
+    releasePointer(event.currentTarget, event.pointerId);
     setDragging(false);
-    onEnd();
+    onEndRef.current();
   };
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    const handleWindowBlur = () => {
+      if (!draggingRef.current) return;
+      const pointerId = activePointerIdRef.current;
+      activePointerIdRef.current = null;
+      draggingRef.current = false;
+      if (railRef.current && pointerId !== null) {
+        releasePointer(railRef.current, pointerId);
+      }
+      setDragging(false);
+      onEndRef.current();
+    };
+
+    window.addEventListener("blur", handleWindowBlur);
+
+    return () => window.removeEventListener("blur", handleWindowBlur);
+  }, [dragging]);
 
   return {
     railRef,
@@ -385,18 +409,20 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
     dragging,
     handlers: {
       onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
-        if (disabled || event.button !== 0) return;
+        if (disabled || event.button !== 0 || draggingRef.current) return;
         draggingRef.current = true;
+        activePointerIdRef.current = event.pointerId;
         setDragging(true);
         capturePointer(event.currentTarget, event.pointerId);
         thumbRef.current?.focus({ preventScroll: true });
         point(event);
       },
       onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
-        if (draggingRef.current) point(event);
+        if (draggingRef.current && activePointerIdRef.current === event.pointerId) point(event);
       },
       onPointerUp: end,
       onPointerCancel: end,
+      onLostPointerCapture: end,
     },
   };
 }
