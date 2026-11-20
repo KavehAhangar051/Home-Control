@@ -363,3 +363,9 @@ ENABLE_PROFILING_SOURCEMAPS=true bun run build
 To profile the downloaded artifact locally, extract it and serve the export directory (for example, `python3 -m http.server 4173 --directory out`), then open `http://localhost:4173`. The opt-in sets Next.js `productionBrowserSourceMaps`; the normal build remains unchanged and does not emit production browser source maps. Record a new trace and save it with **Include resource content**, **Include script source maps**, and **Compress with gzip** enabled. Treat the artifact and trace as source-bearing project material. Never copy the profiling artifact into the Pages deployment.
 
 The next trace should isolate one repeatable Canvas action and use the target display mode. Compare the same action before/after; source attribution alone is not evidence of an optimization.
+
+
+### Pan inertia threshold constant folding (2026-11-20)
+
+- Precompute the squared stop-speed threshold once at module initialization and compare each frame's squared velocity against that constant. This removes two repeated multiplications from the inertia frame callback while preserving the exact threshold, friction, integration, rounding, and stop behavior.
+- This is a source-level hot-loop reduction only. The inertia loop still runs on the main thread and submits DOM updates; it does not establish GPU-only execution or a measurable FPS improvement.
