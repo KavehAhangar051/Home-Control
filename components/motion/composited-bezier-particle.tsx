@@ -166,16 +166,7 @@ export function CompositedBezierParticle({
 }: CompositedBezierParticleProps) {
   const elementRef = useRef<HTMLSpanElement>(null);
   const prefersReducedMotion = useReducedMotion();
-  const {
-    startX,
-    startY,
-    control1X,
-    control1Y,
-    control2X,
-    control2Y,
-    endX,
-    endY,
-  } = curve;
+
 
   useEffect(() => {
     const element = elementRef.current;
@@ -202,19 +193,7 @@ export function CompositedBezierParticle({
       unregister();
       animation.cancel();
     };
-  }, [
-    startX,
-    startY,
-    control1X,
-    control1Y,
-    control2X,
-    control2Y,
-    endX,
-    endY,
-    durationMs,
-    delayMs,
-    prefersReducedMotion,
-  ]);
+  }, [curve, durationMs, delayMs, prefersReducedMotion]);
 
   return (
     <span
