@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { CompositedBezierParticle } from "@/components/motion/composited-bezier-particle";
 import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
 import { buildBezierWireGeometry } from "./canvasGeometry";
 import type { CanvasNodeRect, CanvasWireConnection } from "./canvasTypes";
@@ -107,29 +108,25 @@ const CanvasWireSignalParticle = React.memo(function CanvasWireSignalParticle({
 
   if (!isActive || !sourceRect || !targetRect) return null;
 
-  const { path } = buildBezierWireGeometry(sourceRect, targetRect);
-  const particleStyle: React.CSSProperties = {
-    offsetPath: `path("${path}")`,
-    offsetAnchor: "50% 50%",
-    offsetRotate: "0deg",
-    animationDuration: "1.3s",
-    transform: "translateZ(0)",
-  };
+  const curve = buildBezierWireGeometry(sourceRect, targetRect);
 
   return (
     <>
-      <span
-        className="animate-wire-signal pointer-events-none absolute top-0 left-0 flex size-3.5 items-center justify-center rounded-full bg-accent3/30"
-        style={particleStyle}
+      <CompositedBezierParticle
+        curve={curve}
+        durationMs={1300}
+        className="flex size-3.5 items-center justify-center rounded-full bg-accent3/30"
       >
         <span className="size-1.5 rounded-full bg-accent3" />
-      </span>
-      <span
-        className="animate-wire-signal pointer-events-none absolute top-0 left-0 flex size-3.5 items-center justify-center rounded-full bg-accent3/30"
-        style={{ ...particleStyle, animationDelay: "-0.65s" }}
+      </CompositedBezierParticle>
+      <CompositedBezierParticle
+        curve={curve}
+        durationMs={1300}
+        delayMs={-650}
+        className="flex size-3.5 items-center justify-center rounded-full bg-accent3/30"
       >
         <span className="size-1.5 rounded-full bg-accent3" />
-      </span>
+      </CompositedBezierParticle>
     </>
   );
 });
