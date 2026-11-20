@@ -27,6 +27,7 @@ import {
   type BoxSize,
   computeActiveTabWidth,
   computeClosedShellSize,
+  computeMaxActiveTabWidth,
   computeTargetShellSize,
   EXPANDABLE_TABS_METRICS,
 } from "./expandable-tabs-layout";
@@ -335,14 +336,25 @@ export function ExpandableTabs({
     [setActive],
   );
 
-  const { barHeight, tabWidth, panelDockGap } = EXPANDABLE_TABS_METRICS;
-  const closedSize = computeClosedShellSize(items.length, trailing ? trailingWidth : 0);
+  const { barHeight, tabWidth, panelDockGap, activePaddingStart, iconWidth, activePaddingEnd } =
+    EXPANDABLE_TABS_METRICS;
+  const effectiveTrailingWidth = trailing ? trailingWidth : 0;
+  const closedSize = computeClosedShellSize(items.length, effectiveTrailingWidth);
+  const openLabelWidth = visualOpenId ? (labelWidths[visualOpenId] ?? 0) : 0;
+  const openDesiredTabWidth = visualOpenId ? computeActiveTabWidth(openLabelWidth) : tabWidth;
 
   const targetSize = computeTargetShellSize({
     isOpen: Boolean(active),
     contentSize: openContentSize,
     closedSize,
+    activeTabWidth: openDesiredTabWidth,
     maxViewportWidth: viewportWidth,
+  });
+
+  const maxActiveTabWidth = computeMaxActiveTabWidth({
+    shellWidth: targetSize.width,
+    itemCount: items.length,
+    trailingWidth: effectiveTrailingWidth,
   });
 
   const contentVariants = reduce
@@ -443,7 +455,14 @@ export function ExpandableTabs({
               const isCurrentRoute = !visualOpenId && item.id === activeNavId;
               const showPill = isOpenTab || isCurrentRoute;
               const labelWidth = labelWidths[item.id] ?? 0;
-              const activeTabWidth = computeActiveTabWidth(labelWidth);
+              const activeTabWidth = Math.min(computeActiveTabWidth(labelWidth), maxActiveTabWidth);
+              const fittedLabelWidth = Math.max(
+                0,
+                Math.min(
+                  labelWidth,
+                  activeTabWidth - activePaddingStart - iconWidth - activePaddingEnd,
+                ),
+              );
 
               return (
                 <m.button
@@ -501,7 +520,7 @@ export function ExpandableTabs({
                     aria-hidden="true"
                     initial={false}
                     animate={{
-                      width: isOpenTab ? labelWidth : 0,
+                      width: isOpenTab ? fittedLabelWidth : 0,
                       opacity: isOpenTab ? 1 : 0,
                     }}
                     transition={reduce ? { duration: 0 } : isOpenTab ? LABEL_OPEN : LABEL_CLOSE}
@@ -510,7 +529,7 @@ export function ExpandableTabs({
                       classNames?.label,
                     )}
                   >
-                    <span className="inline-block ps-1.5">{item.label}</span>
+                    <span className="inline-block max-w-full truncate ps-1.5">{item.label}</span>
                   </m.span>
                 </m.button>
               );

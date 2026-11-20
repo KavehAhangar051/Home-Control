@@ -13,14 +13,14 @@ export type HapticPattern =
   | "error";
 
 const HAPTIC_PATTERNS: Record<HapticPattern, number | number[]> = {
-  tap: 10,
-  toggleOn: 14,
-  toggleOff: [10, 26, 10],
-  push: 16,
-  macro: [14, 30, 20],
-  voice: 22,
-  success: [12, 34, 16],
-  error: [26, 42, 26, 42, 26],
+  tap: 24,
+  toggleOn: 30,
+  toggleOff: [22, 36, 20],
+  push: 32,
+  macro: [26, 40, 34],
+  voice: 36,
+  success: [24, 42, 32],
+  error: [40, 50, 40, 50, 40],
 };
 
 /**
@@ -30,29 +30,30 @@ export function isHapticsSupported(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.vibrate === "function";
 }
 
-function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return false;
-  }
-
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 /**
- * Triggers subtle tactile feedback via the Web Vibration API.
- * Silently no-ops on unsupported devices (e.g. desktop / iOS Safari),
- * when `prefers-reduced-motion: reduce` is active, or when disabled in Settings.
+ * Triggers tactile feedback via the Web Vibration API.
+ * Durations are tuned above AOSP/Motorola vibrator actuation floors (>= 22ms)
+ * while staying crisp on MIUI/LRA devices, and respect the dedicated `hapticsEnabled`
+ * preference rather than silently failing under Android reduced-animation / battery-saver modes.
  */
 export function triggerHaptic(pattern: HapticPattern, options?: { force?: boolean }): boolean {
   if (!isHapticsSupported()) return false;
+  if (typeof document !== "undefined" && document.visibilityState === "hidden") return false;
 
-  if (!options?.force) {
-    if (!usePreferencesStore.getState().hapticsEnabled) return false;
-    if (prefersReducedMotion()) return false;
+  if (!options?.force && !usePreferencesStore.getState().hapticsEnabled) {
+    return false;
   }
 
+  const rawPattern = HAPTIC_PATTERNS[pattern];
+
   try {
-    return navigator.vibrate(HAPTIC_PATTERNS[pattern]);
+    const vibrated = navigator.vibrate(rawPattern);
+
+    if (!vibrated && Array.isArray(rawPattern)) {
+      return navigator.vibrate(rawPattern[0] ?? 28);
+    }
+
+    return vibrated;
   } catch {
     return false;
   }

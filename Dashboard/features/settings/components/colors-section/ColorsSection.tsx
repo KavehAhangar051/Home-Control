@@ -1,6 +1,7 @@
 "use client";
 
 import { RotateCcw } from "lucide-react";
+import type React from "react";
 import { useState } from "react";
 import {
   ColorPicker,
@@ -15,8 +16,11 @@ import {
   ColorPickerTrigger,
 } from "@/components/motion/color-picker";
 import { DashboardSlider } from "@/components/motion/dashboard-slider";
+import { useThemeToggle } from "@/components/motion/theme-toggle";
+import { Moon, Sun } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
+import { triggerHaptic } from "@/lib/haptics";
 import FontSection from "./FontSection";
 import SliderStyleSection from "./SliderStyleSection";
 
@@ -44,6 +48,24 @@ export default function ColorsSection() {
   const resetFont = useIoTStore((state) => state.resetFont);
   const resetSliderStyle = usePreferencesStore((state) => state.resetSliderStyle);
   const [openPicker, setOpenPicker] = useState<"accent3" | "accent4" | null>(null);
+  const {
+    isDark,
+    mounted,
+    toggle: toggleTheme,
+  } = useThemeToggle({
+    variant: "circle-blur",
+    start: "center",
+  });
+
+  const handleSelectTheme = (targetDark: boolean, e: React.MouseEvent<HTMLButtonElement>) => {
+    if (isDark === targetDark) return;
+
+    triggerHaptic("toggleOn");
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.round(((rect.left + rect.width / 2) / window.innerWidth) * 100);
+    const y = Math.round(((rect.top + rect.height / 2) / window.innerHeight) * 100);
+    toggleTheme(`${x}% ${y}%`);
+  };
 
   const handleResetAppearance = () => {
     resetColors();
@@ -70,6 +92,54 @@ export default function ColorsSection() {
           <RotateCcw className="size-3.5" />
           <span>بازنشانی</span>
         </button>
+      </div>
+
+      {/* ۰. تغییر تم شب و روز (ویژه موبایل؛ در دسکتاپ دکمه تم در فوتر باقی می‌ماند) */}
+      <div className="space-y-2.5 pb-4 border-b border-border-color md:hidden">
+        <div>
+          <h4 className="text-xs font-semibold text-text-secondary">تم و حالت نمایش</h4>
+          <p className="text-[11px] text-text-muted mt-0.5">
+            جابه‌جایی بین حالت روز (روشن) و حالت شب (تاریک) داشبورد
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            aria-pressed={mounted ? !isDark : false}
+            onClick={(event) => handleSelectTheme(false, event)}
+            className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+              mounted && !isDark
+                ? "border-accent3 bg-card-hover-bg text-text-primary"
+                : "border-border-color bg-card-bg-solid text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            <Sun
+              aria-hidden="true"
+              className={`size-4 shrink-0 ${mounted && !isDark ? "text-accent3" : "text-text-muted"}`}
+              strokeWidth={1.7}
+            />
+            <span>حالت روز</span>
+          </button>
+
+          <button
+            type="button"
+            aria-pressed={mounted ? isDark : true}
+            onClick={(event) => handleSelectTheme(true, event)}
+            className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+              !mounted || isDark
+                ? "border-accent3 bg-card-hover-bg text-text-primary"
+                : "border-border-color bg-card-bg-solid text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            <Moon
+              aria-hidden="true"
+              className={`size-4 shrink-0 ${!mounted || isDark ? "text-accent3" : "text-text-muted"}`}
+              strokeWidth={1.7}
+            />
+            <span>حالت شب</span>
+          </button>
+        </div>
       </div>
 
       {/* ۱. فونت داشبورد */}
