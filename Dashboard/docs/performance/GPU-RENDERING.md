@@ -499,3 +499,10 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - Morph paths, rotation/scale keyframes, opacity values, timing, and reduced-motion output are unchanged. This removes an inactive compositor hint; it does not change the SVG path morph, which remains browser-rendered and may require paint work.
 - Browser layer promotion is implementation-dependent; no runtime VRAM, FPS, or paint reduction is claimed.
 - Reference: [MDN `will-change`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change).
+
+### Remove the redundant forced layer from Percent loader progress (2026-11-20)
+
+- The Percent loader progress fill already declares `will-change: transform` while its `scaleX` value changes. Removed the additional `translateZ(0)` from the same transform, avoiding a second explicit layer-promotion mechanism.
+- Progress values, scale, origin, fill geometry, update cadence, and appearance are unchanged. The active transform remains eligible for browser compositing; actual layer allocation and memory placement remain browser-managed.
+- This is source-level compositing hygiene only; no measured FPS, paint, or VRAM improvement is claimed.
+- Reference: [MDN `will-change`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change).
