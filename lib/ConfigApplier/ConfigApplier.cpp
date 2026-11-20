@@ -27,7 +27,12 @@ int apply(const ParseResult& config, PinManager* pinManager) {
             seg.autoOffDelay,
             seg.rule,
             seg.pwmResolution,
-            seg.pwmFrequency
+            seg.pwmFrequency,
+            seg.adcResolution,
+            seg.adcSampleIntervalMs,
+            seg.adcDeltaThreshold,
+            seg.adcHighThreshold,
+            seg.adcLowThreshold
         );
         if (added) {
             if (sType == SegmentType::AnalogOutput) {
@@ -36,6 +41,10 @@ int apply(const ParseResult& config, PinManager* pinManager) {
                 }
                 INFOF("[ConfigApplier] Pin %d registered (id=%s, type=analog_output, duty=%u, %u-bit @ %uHz)",
                       seg.pin, seg.id, seg.analogValue, seg.pwmResolution, seg.pwmFrequency);
+            } else if (sType == SegmentType::AnalogInput) {
+                INFOF("[ConfigApplier] Pin %d registered (id=%s, type=analog_input, %u-bit sint=%ums delta=%u ath=%u atl=%u)",
+                      seg.pin, seg.id, seg.adcResolution, seg.adcSampleIntervalMs,
+                      seg.adcDeltaThreshold, seg.adcHighThreshold, seg.adcLowThreshold);
             } else {
                 pinManager->setStateById(seg.id, seg.value);
                 INFOF("[ConfigApplier] Pin %d registered (id=%s, value=%d)", seg.pin, seg.id, seg.value);

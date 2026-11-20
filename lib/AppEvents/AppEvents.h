@@ -80,11 +80,16 @@ struct PinStateChangeRequestEvent {
 struct SegmentAddRequestEvent {
     static constexpr const char* Name = "segment.add_request";
     const char* id;    /**< Segment unique identifier */
-    const char* type;  /**< Segment type (e.g., "gpio_toggle", "input", "analog_output") */
+    const char* type;  /**< Segment type (e.g., "gpio_toggle", "input", "analog_output", "analog_input") */
     int pin;           /**< Physical GPIO pin number */
     uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION; /**< PWM resolution bits (8..12) for analog_output */
     uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY;  /**< PWM carrier frequency Hz for analog_output */
     uint16_t initialValue = 0;                      /**< Initial PWM duty cycle (0..4095) */
+    uint8_t adcResolution = DEFAULT_ADC_RESOLUTION; /**< ADC resolution bits (8..12) for analog_input */
+    uint16_t adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS; /**< ADC polling interval (50..60000 ms) */
+    uint16_t adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;      /**< ADC deadband for reporting */
+    uint16_t adcHighThreshold = 0;                  /**< ADC Schmitt-trigger HIGH threshold (0 = disabled) */
+    uint16_t adcLowThreshold = 0;                   /**< ADC Schmitt-trigger LOW threshold */
 };
 
 /**
@@ -98,12 +103,35 @@ struct SegmentRemoveRequestEvent {
 
 /**
  * @struct SegmentUpdateRuleRequestEvent
- * @brief Request to update the rule of an input segment.
+ * @brief Request to update the rule of a digital or analog input segment.
  */
 struct SegmentUpdateRuleRequestEvent {
     static constexpr const char* Name = "segment.update_rule_request";
     int pin;
     RuleConfig rule;
+};
+
+/**
+ * @struct SegmentUpdateAnalogInputConfigRequestEvent
+ * @brief Request to reconfigure sampling, deadband, and hysteresis thresholds on an analog_input segment.
+ */
+struct SegmentUpdateAnalogInputConfigRequestEvent {
+    static constexpr const char* Name = "segment.update_analog_input_config";
+    int pin;
+    uint16_t sampleIntervalMs;
+    uint16_t deltaThreshold;
+    uint16_t highThreshold;
+    uint16_t lowThreshold;
+    uint8_t resolution; /**< 0 = preserve existing resolution, 8..12 = update bit depth */
+};
+
+/**
+ * @struct AnalogInputReadRequestEvent
+ * @brief Request an immediate on-demand ADC sample and publish for an analog_input pin.
+ */
+struct AnalogInputReadRequestEvent {
+    static constexpr const char* Name = "analog_input.read_request";
+    int pin;
 };
 
 /**

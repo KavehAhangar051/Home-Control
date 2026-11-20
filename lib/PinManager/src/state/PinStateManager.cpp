@@ -79,16 +79,38 @@ bool PinStateManager::setAnalogValueById(const char* id, uint16_t value) {
     return true;
 }
 
+bool PinStateManager::readAnalogInputNow(int pin, AdcSampleResult& outResult) {
+    PinEntry* entry = _registry.getEntryByPin(pin);
+    if (!entry || !entry->active || entry->type != SegmentType::AnalogInput || !entry->hasAdc) {
+        outResult = AdcSampleResult();
+        return false;
+    }
+
+    const unsigned long now = millis();
+    outResult = entry->adc.readNow(now);
+    if (outResult.thresholdChanged) {
+        entry->stateStartTime = now;
+    }
+    entry->lastInputState = outResult.thresholdState;
+    _hasAnalogSchedule = false; // Recompute earliest deadline on next loop tick
+    return outResult.sampled;
+}
+
 void PinStateManager::rebuildInputCache() {
     _numInputs = 0;
+    _numAnalogInputs = 0;
     _inputMask0_31 = 0;
     _inputMask32_39 = 0;
     _lastInputs0_31 = 0;
     _lastInputs32_39 = 0;
+    _nextAnalogSampleTime = 0;
+    _hasAnalogSchedule = false;
 
     for (int i = 0; i < MAX_PINS; i++) {
         const PinEntry* entry = _registry.getEntryByIndexConst(i);
-        if (entry && entry->active && entry->type == SegmentType::Input) {
+        if (!entry || !entry->active) continue;
+
+        if (entry->type == SegmentType::Input) {
             _inputIndices[_numInputs++] = static_cast<uint8_t>(i);
             const int pin = entry->pinNumber;
             if (pin < 32) {
@@ -100,6 +122,8 @@ void PinStateManager::rebuildInputCache() {
                 _inputMask32_39 |= bit;
                 if (entry->lastInputState) _lastInputs32_39 |= bit;
             }
+        } else if (entry->type == SegmentType::AnalogInput && entry->hasAdc) {
+            _analogInputIndices[_numAnalogInputs++] = static_cast<uint8_t>(i);
         }
     }
 }
@@ -202,4 +226,59 @@ HOT_PATH IRAM_ATTR void PinStateManager::processInputs(
         }
     }
 #endif
+}
+
+/**
+ * @brief Scheduled ADC1 analog input processor.
+ * Computes the earliest next sample deadline across all active analog_input segments
+ * so idle loop() iterations skip hardware ADC reads in 1 cycle.
+ */
+HOT_PATH void PinStateManager::processAnalogInputs(
+    const uniuno::StaticFunction<void, const AnalogInputChange&, const RuleConfig&>& onAnalogChanged) {
+    if (UNLIKELY(_numAnalogInputs == 0)) return;
+
+    const unsigned long currentMillis = millis();
+    bool hasNext = false;
+    unsigned long earliestNext = 0;
+
+    for (uint8_t i = 0; i < _numAnalogInputs; ++i) {
+        const uint8_t idx = _analogInputIndices[i];
+        PinEntry* entry = _registry.getEntryByIndex(idx);
+        if (UNLIKELY(!entry || !entry->active || !entry->hasAdc)) continue;
+
+        const AdcSampleResult res = entry->adc.sample(currentMillis);
+        const unsigned long nextDue = entry->adc.getLastSampleTime() + entry->adc.getSampleIntervalMs();
+        if (!hasNext || static_cast<long>(nextDue - earliestNext) < 0) {
+            earliestNext = nextDue;
+            hasNext = true;
+        }
+
+        if (!res.sampled) {
+            continue;
+        }
+
+        unsigned long durationSec = 0;
+        if (res.thresholdChanged) {
+            if (entry->stateStartTime > 0 && currentMillis > entry->stateStartTime) {
+                durationSec = (currentMillis - entry->stateStartTime) / 1000UL;
+            }
+            entry->stateStartTime = currentMillis;
+            entry->lastInputState = res.thresholdState;
+        }
+
+        if ((res.valueChanged || res.thresholdChanged) && onAnalogChanged) {
+            AnalogInputChange change;
+            change.pin = entry->pinNumber;
+            change.durationSec = durationSec;
+            change.value = res.value;
+            change.resolution = entry->adc.getResolution();
+            change.valueChanged = res.valueChanged;
+            change.thresholdChanged = res.thresholdChanged;
+            change.thresholdState = res.thresholdState;
+            onAnalogChanged(change, entry->rule);
+        }
+    }
+
+    _nextAnalogSampleTime = earliestNext;
+    _hasAnalogSchedule = hasNext;
 }

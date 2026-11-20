@@ -52,6 +52,31 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
                 pin, val, 0, PinStateChangeOrigin::Cloudflare);
             _dispatcher->dispatch(event);
         }
+        // Analog input config update: [0x0C][pin:u8][sint:u16LE][delta:u16LE][ath:u16LE][atl:u16LE][optional res:u8]
+        else if ((len == 10 || len == 11) && static_cast<uint8_t>(data[0]) == 0x0C) {
+            const uint8_t pin = static_cast<uint8_t>(data[1]);
+            const uint16_t sint = static_cast<uint16_t>(static_cast<uint8_t>(data[2])) |
+                (static_cast<uint16_t>(static_cast<uint8_t>(data[3])) << 8);
+            const uint16_t delta = static_cast<uint16_t>(static_cast<uint8_t>(data[4])) |
+                (static_cast<uint16_t>(static_cast<uint8_t>(data[5])) << 8);
+            const uint16_t ath = static_cast<uint16_t>(static_cast<uint8_t>(data[6])) |
+                (static_cast<uint16_t>(static_cast<uint8_t>(data[7])) << 8);
+            const uint16_t atl = static_cast<uint16_t>(static_cast<uint8_t>(data[8])) |
+                (static_cast<uint16_t>(static_cast<uint8_t>(data[9])) << 8);
+            const uint8_t res = (len == 11) ? static_cast<uint8_t>(data[10]) : 0;
+            if (pin <= 39 && (res == 0 || (res >= MIN_ADC_RESOLUTION && res <= MAX_ADC_RESOLUTION))) {
+                SegmentUpdateAnalogInputConfigRequestEvent event{pin, sint, delta, ath, atl, res};
+                _dispatcher->dispatch(event);
+            }
+        }
+        // On-demand analog input read: [0x0D][pin:u8]
+        else if (len >= 2 && static_cast<uint8_t>(data[0]) == 0x0D) {
+            const uint8_t pin = static_cast<uint8_t>(data[1]);
+            if (pin <= 39) {
+                AnalogInputReadRequestEvent event{pin};
+                _dispatcher->dispatch(event);
+            }
+        }
     } else {
         // Text message
         const String text = message.data();

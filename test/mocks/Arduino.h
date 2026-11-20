@@ -31,6 +31,13 @@
 #define HIGH 0x1
 #endif
 
+typedef enum {
+    ADC_0db = 0,
+    ADC_2_5db = 1,
+    ADC_6db = 2,
+    ADC_11db = 3
+} adc_attenuation_t;
+
 #ifndef IRAM_ATTR
 #define IRAM_ATTR
 #endif
@@ -199,6 +206,11 @@ struct MockHardwareState {
     unsigned long fakeMillis = 1000;
     uint8_t pinModes[64]{};
     int digitalStates[64]{};
+    int analogValues[64]{};
+    adc_attenuation_t analogAttenuation[64]{};
+    uint8_t adcReadResolution = 12;
+    int analogReadCalls = 0;
+    int analogSetAttenCalls = 0;
     MockLedcChannelState ledcChannels[16]{};
     MockLedcPinState ledcPins[64]{};
     int ledcSetupCalls = 0;
@@ -256,6 +268,17 @@ inline int digitalRead(uint8_t pin) {
 inline void analogWrite(uint8_t pin, int value) {
     mockHw().analogWriteCalls++;
     if (pin < 64) mockHw().ledcPins[pin].duty = static_cast<uint32_t>(value < 0 ? 0 : value);
+}
+inline int analogRead(uint8_t pin) {
+    mockHw().analogReadCalls++;
+    return (pin < 64) ? mockHw().analogValues[pin] : 0;
+}
+inline void analogReadResolution(uint8_t bits) {
+    mockHw().adcReadResolution = bits;
+}
+inline void analogSetPinAttenuation(uint8_t pin, adc_attenuation_t attenuation) {
+    mockHw().analogSetAttenCalls++;
+    if (pin < 64) mockHw().analogAttenuation[pin] = attenuation;
 }
 
 // ESP32 LEDC API stubs (both Core v2 and Core v3 signatures)

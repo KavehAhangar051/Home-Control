@@ -20,18 +20,25 @@ public:
           _inputMask32_39(0),
           _lastInputs0_31(0),
           _lastInputs32_39(0),
-          _numInputs(0) {}
+          _nextAnalogSampleTime(0),
+          _numInputs(0),
+          _numAnalogInputs(0),
+          _hasAnalogSchedule(false) {}
 
     bool setPinState(int pin, bool state);
     bool setStateById(const char* id, bool state);
     bool setPinAnalogValue(int pin, uint16_t value);
     bool setAnalogValueById(const char* id, uint16_t value);
+    bool readAnalogInputNow(int pin, AdcSampleResult& outResult);
 
     HOT_PATH FORCE_INLINE bool getPinState(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
         if (!entry || !entry->active) return false;
         if (entry->type == SegmentType::Input) {
             return entry->lastInputState;
+        }
+        if (entry->type == SegmentType::AnalogInput) {
+            return entry->hasAdc ? entry->adc.getThresholdState() : entry->lastInputState;
         }
         if (entry->type == SegmentType::AnalogOutput) {
             return entry->hasPwm ? entry->pwm.getState() : false;
@@ -42,14 +49,28 @@ public:
 
     HOT_PATH FORCE_INLINE int16_t getPinAnalogValue(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        if (!entry || !entry->active || !entry->hasPwm) return RULE_ANALOG_VALUE_UNSET;
-        return static_cast<int16_t>(entry->pwm.getValue());
+        if (!entry || !entry->active) return RULE_ANALOG_VALUE_UNSET;
+        if (entry->hasPwm) {
+            return static_cast<int16_t>(entry->pwm.getValue());
+        }
+        if (entry->hasAdc) {
+            return static_cast<int16_t>(entry->adc.getValue());
+        }
+        return RULE_ANALOG_VALUE_UNSET;
     }
 
     HOT_PATH FORCE_INLINE uint16_t getPinLastNonZeroValue(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
         if (!entry || !entry->active || !entry->hasPwm) return 0;
         return entry->pwm.getLastNonZeroValue();
+    }
+
+    HOT_PATH FORCE_INLINE uint8_t getPinAnalogResolution(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        if (!entry || !entry->active) return 0;
+        if (entry->hasPwm) return entry->pwm.getResolution();
+        if (entry->hasAdc) return entry->adc.getResolution();
+        return 0;
     }
 
     HOT_PATH FORCE_INLINE uint8_t getPinPwmResolution(int pin) const {
@@ -64,9 +85,44 @@ public:
         return entry->pwm.getFrequency();
     }
 
+    HOT_PATH FORCE_INLINE uint8_t getPinAdcResolution(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        if (!entry || !entry->active || !entry->hasAdc) return 0;
+        return entry->adc.getResolution();
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinAdcSampleInterval(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        if (!entry || !entry->active || !entry->hasAdc) return 0;
+        return entry->adc.getSampleIntervalMs();
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinAdcDeltaThreshold(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        if (!entry || !entry->active || !entry->hasAdc) return 0;
+        return entry->adc.getDeltaThreshold();
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinAdcHighThreshold(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        if (!entry || !entry->active || !entry->hasAdc) return 0;
+        return entry->adc.getHighThreshold();
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinAdcLowThreshold(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        if (!entry || !entry->active || !entry->hasAdc) return 0;
+        return entry->adc.getLowThreshold();
+    }
+
     HOT_PATH FORCE_INLINE bool isAnalogOutputPin(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
         return entry != nullptr && entry->active && entry->type == SegmentType::AnalogOutput && entry->hasPwm;
+    }
+
+    HOT_PATH FORCE_INLINE bool isAnalogInputPin(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        return entry != nullptr && entry->active && entry->type == SegmentType::AnalogInput && entry->hasAdc;
     }
 
     /**
@@ -97,7 +153,18 @@ public:
 #endif
     }
 
+    /**
+     * @brief Fast-path gate for analog input polling: returns false in 1 cycle when
+     * no analog_input segments exist or before the earliest sample deadline.
+     */
+    HOT_PATH FORCE_INLINE bool hasAnalogInputsDue() const {
+        if (LIKELY(_numAnalogInputs == 0)) return false;
+        if (UNLIKELY(!_hasAnalogSchedule)) return true;
+        return uniuno::asm_opt::is_timer_expired(millis(), _nextAnalogSampleTime);
+    }
+
     HOT_PATH void processInputs(const uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>& onInputChanged);
+    HOT_PATH void processAnalogInputs(const uniuno::StaticFunction<void, const AnalogInputChange&, const RuleConfig&>& onAnalogChanged);
     void rebuildInputCache();
 
     HOT_PATH FORCE_INLINE RuleConfig getRuleByPin(int pin) const {
@@ -151,8 +218,12 @@ private:
     uint32_t _inputMask32_39;
     uint32_t _lastInputs0_31;
     uint32_t _lastInputs32_39;
+    unsigned long _nextAnalogSampleTime;
     uint8_t _inputIndices[MAX_PINS];
+    uint8_t _analogInputIndices[MAX_PINS];
     uint8_t _numInputs;
+    uint8_t _numAnalogInputs;
+    bool _hasAnalogSchedule;
 };
 
 #endif // PIN_STATE_MANAGER_H

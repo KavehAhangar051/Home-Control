@@ -71,6 +71,11 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
         outResult.segments[i].analogValue = 0;
         outResult.segments[i].pwmFrequency = DEFAULT_PWM_FREQUENCY;
         outResult.segments[i].pwmResolution = DEFAULT_PWM_RESOLUTION;
+        outResult.segments[i].adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
+        outResult.segments[i].adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
+        outResult.segments[i].adcHighThreshold = 0;
+        outResult.segments[i].adcLowThreshold = 0;
+        outResult.segments[i].adcResolution = DEFAULT_ADC_RESOLUTION;
         outResult.segments[i].value = false;
         outResult.segments[i].id[0] = '\0';
         outResult.segments[i].type[0] = '\0';
@@ -128,7 +133,10 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                 strncpy(outResult.segments[segIndex].id, idBuf, sizeof(outResult.segments[segIndex].id) - 1);
                 strncpy(outResult.segments[segIndex].type, typeBuf, sizeof(outResult.segments[segIndex].type) - 1);
                 
-                int rawRes = kvp.getInt("res", DEFAULT_PWM_RESOLUTION);
+                const bool isAnalogInput =
+                    (strcmp(typeBuf, "analog_input") == 0 || strcmp(typeBuf, "adc_input") == 0);
+
+                int rawRes = kvp.getInt("res", isAnalogInput ? DEFAULT_ADC_RESOLUTION : DEFAULT_PWM_RESOLUTION);
                 if (rawRes < MIN_PWM_RESOLUTION) rawRes = MIN_PWM_RESOLUTION;
                 if (rawRes > MAX_PWM_RESOLUTION) rawRes = MAX_PWM_RESOLUTION;
 
@@ -136,14 +144,39 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                 if (rawFreq < MIN_PWM_FREQUENCY) rawFreq = MIN_PWM_FREQUENCY;
                 if (rawFreq > MAX_PWM_FREQUENCY) rawFreq = MAX_PWM_FREQUENCY;
 
-                const uint16_t maxDuty = static_cast<uint16_t>((1UL << rawRes) - 1UL);
+                const uint16_t maxScale = static_cast<uint16_t>((1UL << rawRes) - 1UL);
                 int rawVal = kvp.getInt("val", 0);
                 if (rawVal < 0) rawVal = 0;
-                if (rawVal > static_cast<int>(maxDuty)) rawVal = static_cast<int>(maxDuty);
+                if (rawVal > static_cast<int>(maxScale)) rawVal = static_cast<int>(maxScale);
+
+                int rawSint = kvp.getInt("sint", DEFAULT_ADC_SAMPLE_INTERVAL_MS);
+                if (rawSint < MIN_ADC_SAMPLE_INTERVAL_MS) rawSint = MIN_ADC_SAMPLE_INTERVAL_MS;
+                if (rawSint > MAX_ADC_SAMPLE_INTERVAL_MS) rawSint = MAX_ADC_SAMPLE_INTERVAL_MS;
+
+                int rawDelta = kvp.getInt("delta", DEFAULT_ADC_DELTA_THRESHOLD);
+                if (rawDelta < MIN_ADC_DELTA_THRESHOLD) rawDelta = MIN_ADC_DELTA_THRESHOLD;
+                if (rawDelta > static_cast<int>(maxScale)) rawDelta = static_cast<int>(maxScale);
+
+                int rawAth = kvp.getInt("ath", 0);
+                if (rawAth < 0) rawAth = 0;
+                if (rawAth > static_cast<int>(maxScale)) rawAth = static_cast<int>(maxScale);
+
+                int rawAtl = kvp.getInt("atl", 0);
+                if (rawAth == 0 || rawAtl < 0) rawAtl = 0;
+                if (rawAtl > rawAth) rawAtl = rawAth;
 
                 outResult.segments[segIndex].pin = pinNum;
-                outResult.segments[segIndex].pwmResolution = static_cast<uint8_t>(rawRes);
+                outResult.segments[segIndex].pwmResolution = isAnalogInput
+                    ? DEFAULT_PWM_RESOLUTION
+                    : static_cast<uint8_t>(rawRes);
                 outResult.segments[segIndex].pwmFrequency = static_cast<uint16_t>(rawFreq);
+                outResult.segments[segIndex].adcResolution = isAnalogInput
+                    ? static_cast<uint8_t>(rawRes)
+                    : DEFAULT_ADC_RESOLUTION;
+                outResult.segments[segIndex].adcSampleIntervalMs = static_cast<uint16_t>(rawSint);
+                outResult.segments[segIndex].adcDeltaThreshold = static_cast<uint16_t>(rawDelta);
+                outResult.segments[segIndex].adcHighThreshold = static_cast<uint16_t>(rawAth);
+                outResult.segments[segIndex].adcLowThreshold = static_cast<uint16_t>(rawAtl);
                 outResult.segments[segIndex].analogValue = static_cast<uint16_t>(rawVal);
                 outResult.segments[segIndex].value = (rawVal > 0);
                 outResult.segments[segIndex].autoOffDelay = kvp.getInt("ao", 0);
@@ -288,6 +321,18 @@ void AchaemenidConfigProtocol::printResult(const ParseResult* result) {
                 result->segments[i].analogValue,
                 result->segments[i].pwmResolution,
                 result->segments[i].pwmFrequency);
+        } else if (strcmp(result->segments[i].type, "analog_input") == 0 ||
+                   strcmp(result->segments[i].type, "adc_input") == 0) {
+            Serial.printf("  [%d] id=%s  type=%s  pin=%d  (%u-bit sint=%ums delta=%u ath=%u atl=%u)\n",
+                i,
+                result->segments[i].id,
+                result->segments[i].type,
+                result->segments[i].pin,
+                result->segments[i].adcResolution,
+                result->segments[i].adcSampleIntervalMs,
+                result->segments[i].adcDeltaThreshold,
+                result->segments[i].adcHighThreshold,
+                result->segments[i].adcLowThreshold);
         } else {
             Serial.printf("  [%d] id=%s  type=%s  pin=%d  val=%s\n",
                 i,

@@ -125,7 +125,12 @@ auto onSegmentAdd = [](SegmentAddRequestEvent* evt) {
         0,
         RuleConfig(),
         evt->pwmResolution,
-        evt->pwmFrequency
+        evt->pwmFrequency,
+        evt->adcResolution,
+        evt->adcSampleIntervalMs,
+        evt->adcDeltaThreshold,
+        evt->adcHighThreshold,
+        evt->adcLowThreshold
     );
     if (success) {
         if (sType == SegmentType::AnalogOutput && evt->initialValue > 0) {
@@ -155,7 +160,44 @@ auto onSegmentUpdateRule = [](SegmentUpdateRuleRequestEvent* evt) {
               evt->pin, evt->rule.highActionCount, evt->rule.lowActionCount, evt->rule.active);
         persistCurrentSegmentConfig("segment rule update");
     } else {
-        WARNINGF("[Event] Rule update rejected for input GPIO%d (not registered as an input)", evt->pin);
+        WARNINGF("[Event] Rule update rejected for input GPIO%d (not registered as a digital or analog input)", evt->pin);
+    }
+};
+
+auto onSegmentUpdateAnalogInputConfig = [](SegmentUpdateAnalogInputConfigRequestEvent* evt) {
+    if (evt == nullptr) return;
+    if (pinManager.updateAnalogInputConfigByPin(
+            evt->pin,
+            evt->sampleIntervalMs,
+            evt->deltaThreshold,
+            evt->highThreshold,
+            evt->lowThreshold,
+            evt->resolution)) {
+        INFOF("[Event] Analog input config updated for GPIO%d", evt->pin);
+        persistCurrentSegmentConfig("analog input config update");
+    } else {
+        WARNINGF("[Event] Analog input config update rejected for GPIO%d (not an analog_input segment)", evt->pin);
+    }
+};
+
+auto onAnalogInputReadRequest = [](AnalogInputReadRequestEvent* evt) {
+    if (evt == nullptr) return;
+    AdcSampleResult sample;
+    if (pinManager.readAnalogInputNow(evt->pin, sample)) {
+        const uint8_t res = pinManager.getPinAdcResolution(evt->pin);
+        PinStateChangedEvent changedEvt{
+            evt->pin,
+            sample.thresholdState,
+            true,
+            PinStateChangeOrigin::Local,
+            static_cast<int16_t>(sample.value),
+            res
+        };
+        eventBus.dispatch(changedEvt);
+        INFOF("[Event] On-demand ADC read GPIO%d -> %u (%u-bit, state=%s)",
+              evt->pin, sample.value, res, sample.thresholdState ? "HIGH" : "LOW");
+    } else {
+        WARNINGF("[Event] On-demand ADC read rejected for GPIO%d (not an analog_input segment)", evt->pin);
     }
 };
 
@@ -316,6 +358,8 @@ void setupEventBus() {
     eventBus.on<SegmentAddRequestEvent>(onSegmentAdd);
     eventBus.on<SegmentRemoveRequestEvent>(onSegmentRemove);
     eventBus.on<SegmentUpdateRuleRequestEvent>(onSegmentUpdateRule);
+    eventBus.on<SegmentUpdateAnalogInputConfigRequestEvent>(onSegmentUpdateAnalogInputConfig);
+    eventBus.on<AnalogInputReadRequestEvent>(onAnalogInputReadRequest);
     eventBus.on<PinStateChangedEvent>(onPinChanged);
     eventBus.on<ConfigLoadedEvent>(onConfigLoaded);
     eventBus.on<StateSyncRequestEvent>(onStateSyncRequest);

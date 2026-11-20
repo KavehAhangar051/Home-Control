@@ -18,6 +18,7 @@ private:
     void parseBatchToggle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
     void parseSyncState(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
     void parseSetAnalogOutput(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+    void parseReadAnalogInput(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
 };
 
 } // namespace uniuno

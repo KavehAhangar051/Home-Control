@@ -22,11 +22,24 @@ public:
         int autoOffDelay = 0,
         RuleConfig rule = RuleConfig(),
         uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION,
-        uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY
+        uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY,
+        uint8_t adcResolution = DEFAULT_ADC_RESOLUTION,
+        uint16_t adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS,
+        uint16_t adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD,
+        uint16_t adcHighThreshold = 0,
+        uint16_t adcLowThreshold = 0
     );
     bool removeSegment(const char* id);
     bool updateSegmentRule(const char* id, const RuleConfig& rule);
     bool updateSegmentRuleByPin(int pin, const RuleConfig& rule);
+    bool updateAnalogInputConfigByPin(
+        int pin,
+        uint16_t sampleIntervalMs,
+        uint16_t deltaThreshold,
+        uint16_t highThreshold,
+        uint16_t lowThreshold,
+        uint8_t resolution = 0
+    );
 
     int getActiveCount() const;
     void printStatus() const;
@@ -50,6 +63,10 @@ public:
         return _stateManager.setAnalogValueById(id, value);
     }
 
+    HOT_PATH FORCE_INLINE bool readAnalogInputNow(int pin, AdcSampleResult& outResult) {
+        return _stateManager.readAnalogInputNow(pin, outResult);
+    }
+
     HOT_PATH FORCE_INLINE bool getPinState(int pin) const {
         return _stateManager.getPinState(pin);
     }
@@ -62,6 +79,10 @@ public:
         return _stateManager.getPinLastNonZeroValue(pin);
     }
 
+    HOT_PATH FORCE_INLINE uint8_t getPinAnalogResolution(int pin) const {
+        return _stateManager.getPinAnalogResolution(pin);
+    }
+
     HOT_PATH FORCE_INLINE uint8_t getPinPwmResolution(int pin) const {
         return _stateManager.getPinPwmResolution(pin);
     }
@@ -70,8 +91,32 @@ public:
         return _stateManager.getPinPwmFrequency(pin);
     }
 
+    HOT_PATH FORCE_INLINE uint8_t getPinAdcResolution(int pin) const {
+        return _stateManager.getPinAdcResolution(pin);
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinAdcSampleInterval(int pin) const {
+        return _stateManager.getPinAdcSampleInterval(pin);
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinAdcDeltaThreshold(int pin) const {
+        return _stateManager.getPinAdcDeltaThreshold(pin);
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinAdcHighThreshold(int pin) const {
+        return _stateManager.getPinAdcHighThreshold(pin);
+    }
+
+    HOT_PATH FORCE_INLINE uint16_t getPinAdcLowThreshold(int pin) const {
+        return _stateManager.getPinAdcLowThreshold(pin);
+    }
+
     HOT_PATH FORCE_INLINE bool isAnalogOutputPin(int pin) const {
         return _stateManager.isAnalogOutputPin(pin);
+    }
+
+    HOT_PATH FORCE_INLINE bool isAnalogInputPin(int pin) const {
+        return _stateManager.isAnalogInputPin(pin);
     }
 
     template <typename Callback>
@@ -80,6 +125,15 @@ public:
         if (UNLIKELY(_stateManager.hasInputsChanged())) {
             auto cb = uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>::bind(&onInputChanged);
             _stateManager.processInputs(cb);
+        }
+    }
+
+    template <typename Callback>
+    HOT_PATH FORCE_INLINE void processAnalogInputs(Callback&& onAnalogChanged) {
+        // Fast-path: 1-cycle skip when no analog inputs exist or before next sample deadline
+        if (UNLIKELY(_stateManager.hasAnalogInputsDue())) {
+            auto cb = uniuno::StaticFunction<void, const AnalogInputChange&, const RuleConfig&>::bind(&onAnalogChanged);
+            _stateManager.processAnalogInputs(cb);
         }
     }
 

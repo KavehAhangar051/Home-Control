@@ -33,6 +33,7 @@ class RuleEngine {
 public:
     RuleEngine(RuleContext ctx);
     HOT_PATH void handleInput(int sourcePin, bool newState, unsigned long durationSec, const RuleConfig& rule);
+    HOT_PATH void scheduleCloudSync(int sourcePin);
 
 private:
     void executeAction(const RuleAction& act, int sourcePin);

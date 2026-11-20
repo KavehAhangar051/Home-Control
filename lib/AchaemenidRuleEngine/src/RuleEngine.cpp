@@ -18,11 +18,43 @@ void RuleEngine::executeAction(const RuleAction& act, int sourcePin) {
 // All timer expirations are handled via inline setTimeout lambdas in
 // handleInput() and ActionExecutor::execute(). Dead code — removed.
 
+HOT_PATH void RuleEngine::scheduleCloudSync(int sourcePin) {
+    if (_ctx.appTimer == nullptr || _ctx.pinManager == nullptr) return;
+
+    uniuno::TimerHandle existingTimer = _ctx.pinManager->getCloudSyncTimerIdByPin(sourcePin);
+    if (existingTimer.isActive()) {
+        existingTimer.cancel();
+        _ctx.pinManager->setCloudSyncTimerIdByPin(sourcePin, uniuno::TimerHandle());
+    }
+
+    uniuno::TimerHandle newTimer = _ctx.appTimer->setTimeout([this, sourcePin]() {
+        if (_ctx.pinManager != nullptr) {
+            _ctx.pinManager->setCloudSyncTimerIdByPin(sourcePin, uniuno::TimerHandle());
+            const bool finalState = _ctx.pinManager->getPinState(sourcePin);
+            const int16_t finalAnalog = _ctx.pinManager->getPinAnalogValue(sourcePin);
+            const uint8_t finalRes = _ctx.pinManager->getPinAnalogResolution(sourcePin);
+            if (_ctx.eventBus != nullptr) {
+                CloudSyncRequestEvent syncEvt{sourcePin, finalState, finalAnalog, finalRes};
+                _ctx.eventBus->dispatch(syncEvt);
+            }
+            if (finalAnalog >= 0) {
+                INFOF("[Input] Synced debounced analog state of Pin %d (state=%s, val=%d, %u-bit)",
+                      sourcePin, finalState ? "HIGH" : "LOW", static_cast<int>(finalAnalog),
+                      static_cast<unsigned int>(finalRes));
+            } else {
+                INFOF("[Input] Synced debounced state of Pin %d to %s", sourcePin, finalState ? "HIGH" : "LOW");
+            }
+        }
+    }, 1000);
+
+    _ctx.pinManager->setCloudSyncTimerIdByPin(sourcePin, newTimer);
+}
+
 /**
- * @brief Handle input pin state transitions and evaluate configured rules.
+ * @brief Handle input pin state transitions (digital or analog threshold crossings) and evaluate configured rules.
  * 
  * @param sourcePin Hardware pin number of the input.
- * @param newState The new digital state (true for HIGH, false for LOW).
+ * @param newState The new digital/threshold state (true for HIGH, false for LOW).
  * @param durationSec How many seconds the previous state was held.
  * @param rule The active rule configuration for this input.
  */
@@ -33,27 +65,7 @@ HOT_PATH void RuleEngine::handleInput(int sourcePin, bool newState, unsigned lon
     // MQTT, local WebSocket, and Cloudflare observers receive the same event.
 
     // 2. Debounce cloud sync (1000ms delay to prevent event flooding)
-    if (_ctx.appTimer != nullptr && _ctx.pinManager != nullptr) {
-        uniuno::TimerHandle existingTimer = _ctx.pinManager->getCloudSyncTimerIdByPin(sourcePin);
-        if (existingTimer.isActive()) {
-            existingTimer.cancel();
-            _ctx.pinManager->setCloudSyncTimerIdByPin(sourcePin, uniuno::TimerHandle());
-        }
-        
-        uniuno::TimerHandle newTimer = _ctx.appTimer->setTimeout([this, sourcePin]() {
-            if (_ctx.pinManager != nullptr) {
-                _ctx.pinManager->setCloudSyncTimerIdByPin(sourcePin, uniuno::TimerHandle());
-                const bool finalState = _ctx.pinManager->getPinState(sourcePin);
-                if (_ctx.eventBus != nullptr) {
-                    CloudSyncRequestEvent syncEvt{sourcePin, finalState};
-                    _ctx.eventBus->dispatch(syncEvt);
-                }
-                INFOF("[Input] Synced debounced state of Pin %d to %s", sourcePin, finalState ? "HIGH" : "LOW");
-            }
-        }, 1000);
-        
-        _ctx.pinManager->setCloudSyncTimerIdByPin(sourcePin, newTimer);
-    }
+    scheduleCloudSync(sourcePin);
 
     // 3. Evaluate configured rules
     if (rule.active && _ctx.pinManager != nullptr) {

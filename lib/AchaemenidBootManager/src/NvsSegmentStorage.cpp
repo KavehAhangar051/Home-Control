@@ -6,7 +6,8 @@
 namespace uniuno {
 namespace {
 static constexpr uint8_t STORAGE_VERSION_V2 = 2;
-static constexpr uint8_t STORAGE_VERSION = 3;
+static constexpr uint8_t STORAGE_VERSION_V3 = 3;
+static constexpr uint8_t STORAGE_VERSION = 4;
 static constexpr char NVS_NAMESPACE[] = "AchaemenidSeg";
 
 #pragma pack(push, 1)
@@ -36,6 +37,19 @@ struct StoredRuleAction {
     int32_t delay;
     int16_t targetValue; // -1 = boolean actionState mode, 0..4095 = explicit PWM duty
 };
+struct StoredSegmentV3 {
+    char id[32];
+    char type[16];
+    int16_t pin;
+    uint16_t autoOffDelay;
+    uint8_t pwmResolution;
+    uint16_t pwmFrequency;
+    uint8_t highActionCount;
+    uint8_t lowActionCount;
+    uint8_t ruleActive;
+    StoredRuleAction highActions[4];
+    StoredRuleAction lowActions[4];
+};
 struct StoredSegment {
     char id[32];
     char type[16];
@@ -43,6 +57,11 @@ struct StoredSegment {
     uint16_t autoOffDelay;
     uint8_t pwmResolution;
     uint16_t pwmFrequency;
+    uint8_t adcResolution;
+    uint16_t adcSampleIntervalMs;
+    uint16_t adcDeltaThreshold;
+    uint16_t adcHighThreshold;
+    uint16_t adcLowThreshold;
     uint8_t highActionCount;
     uint8_t lowActionCount;
     uint8_t ruleActive;
@@ -109,7 +128,7 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
 
     const int count = prefs.getInt(countKey, -1);
     const uint8_t version = prefs.getUChar(versionKey, 0);
-    if ((version != STORAGE_VERSION && version != STORAGE_VERSION_V2) ||
+    if ((version != STORAGE_VERSION && version != STORAGE_VERSION_V3 && version != STORAGE_VERSION_V2) ||
         count < 0 || count > MAX_SEGMENTS) {
         return false;
     }
@@ -155,6 +174,11 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             segment.autoOffDelay = record.autoOffDelay;
             segment.pwmResolution = DEFAULT_PWM_RESOLUTION;
             segment.pwmFrequency = DEFAULT_PWM_FREQUENCY;
+            segment.adcResolution = DEFAULT_ADC_RESOLUTION;
+            segment.adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
+            segment.adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
+            segment.adcHighThreshold = 0;
+            segment.adcLowThreshold = 0;
             segment.analogValue = 0;
             segment.value = false;
             segment.valid = true;
@@ -184,6 +208,79 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             continue;
         }
 
+        if (version == STORAGE_VERSION_V3) {
+            if (prefs.getBytesLength(key) != sizeof(StoredSegmentV3)) {
+                Serial.printf("[SegStorage] Bank %c (v3) rejected: invalid record size for %s\n", bank, key);
+                return false;
+            }
+
+            StoredSegmentV3 record{};
+            if (prefs.getBytes(key, &record, sizeof(record)) != sizeof(record)) {
+                Serial.printf("[SegStorage] Bank %c (v3) rejected: failed reading %s\n", bank, key);
+                return false;
+            }
+
+            const bool idTerminated = memchr(record.id, '\0', sizeof(record.id)) != nullptr;
+            const bool typeTerminated = memchr(record.type, '\0', sizeof(record.type)) != nullptr;
+            if (!idTerminated || !typeTerminated || record.id[0] == '\0' ||
+                record.type[0] == '\0' || record.pin < 0 || record.pin > 39 ||
+                record.pwmResolution < MIN_PWM_RESOLUTION || record.pwmResolution > MAX_PWM_RESOLUTION ||
+                record.pwmFrequency < MIN_PWM_FREQUENCY || record.pwmFrequency > MAX_PWM_FREQUENCY ||
+                record.highActionCount > 4 || record.lowActionCount > 4 ||
+                record.ruleActive > 1) {
+                Serial.printf("[SegStorage] Bank %c (v3) rejected: invalid segment record %s\n", bank, key);
+                return false;
+            }
+
+            for (int previous = 0; previous < out.count; ++previous) {
+                if (out.segments[previous].pin == record.pin ||
+                    strcmp(out.segments[previous].id, record.id) == 0) {
+                    Serial.printf("[SegStorage] Bank %c (v3) rejected: duplicate ID or GPIO in %s\n", bank, key);
+                    return false;
+                }
+            }
+
+            SegmentConfig& segment = out.segments[out.count];
+            strlcpy(segment.id, record.id, sizeof(segment.id));
+            strlcpy(segment.type, record.type, sizeof(segment.type));
+            segment.pin = record.pin;
+            segment.autoOffDelay = record.autoOffDelay;
+            segment.pwmResolution = record.pwmResolution;
+            segment.pwmFrequency = record.pwmFrequency;
+            segment.adcResolution = DEFAULT_ADC_RESOLUTION;
+            segment.adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
+            segment.adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
+            segment.adcHighThreshold = 0;
+            segment.adcLowThreshold = 0;
+            segment.analogValue = 0;
+            segment.value = false;
+            segment.valid = true;
+            segment.rule.active = record.ruleActive != 0;
+
+            for (int a = 0; a < record.highActionCount; ++a) {
+                RuleAction action;
+                if (!copyActionFromStorage(record.highActions[a], action)) {
+                    Serial.printf("[SegStorage] Bank %c (v3) rejected: invalid HIGH action in %s\n", bank, key);
+                    return false;
+                }
+                segment.rule.highActions[segment.rule.highActionCount++] = action;
+            }
+            for (int a = 0; a < record.lowActionCount; ++a) {
+                RuleAction action;
+                if (!copyActionFromStorage(record.lowActions[a], action)) {
+                    Serial.printf("[SegStorage] Bank %c (v3) rejected: invalid LOW action in %s\n", bank, key);
+                    return false;
+                }
+                segment.rule.lowActions[segment.rule.lowActionCount++] = action;
+            }
+
+            if (segment.rule.highActionCount == 0 && segment.rule.lowActionCount == 0) {
+                segment.rule.active = false;
+            }
+            ++out.count;
+            continue;
+        }
+
         if (prefs.getBytesLength(key) != sizeof(StoredSegment)) {
             Serial.printf("[SegStorage] Bank %c rejected: invalid record size for %s\n", bank, key);
             return false;
@@ -197,10 +294,20 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
 
         const bool idTerminated = memchr(record.id, '\0', sizeof(record.id)) != nullptr;
         const bool typeTerminated = memchr(record.type, '\0', sizeof(record.type)) != nullptr;
+        const uint16_t maxAdcVal = (record.adcResolution >= MIN_ADC_RESOLUTION && record.adcResolution <= MAX_ADC_RESOLUTION)
+            ? static_cast<uint16_t>((1UL << record.adcResolution) - 1UL)
+            : MAX_ANALOG_INPUT_VALUE;
         if (!idTerminated || !typeTerminated || record.id[0] == '\0' ||
             record.type[0] == '\0' || record.pin < 0 || record.pin > 39 ||
             record.pwmResolution < MIN_PWM_RESOLUTION || record.pwmResolution > MAX_PWM_RESOLUTION ||
             record.pwmFrequency < MIN_PWM_FREQUENCY || record.pwmFrequency > MAX_PWM_FREQUENCY ||
+            record.adcResolution < MIN_ADC_RESOLUTION || record.adcResolution > MAX_ADC_RESOLUTION ||
+            record.adcSampleIntervalMs < MIN_ADC_SAMPLE_INTERVAL_MS ||
+            record.adcSampleIntervalMs > MAX_ADC_SAMPLE_INTERVAL_MS ||
+            record.adcDeltaThreshold < MIN_ADC_DELTA_THRESHOLD ||
+            record.adcDeltaThreshold > maxAdcVal ||
+            record.adcHighThreshold > maxAdcVal ||
+            record.adcLowThreshold > record.adcHighThreshold ||
             record.highActionCount > 4 || record.lowActionCount > 4 ||
             record.ruleActive > 1) {
             Serial.printf("[SegStorage] Bank %c rejected: invalid segment record %s\n", bank, key);
@@ -223,6 +330,11 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
         segment.autoOffDelay = record.autoOffDelay;
         segment.pwmResolution = record.pwmResolution;
         segment.pwmFrequency = record.pwmFrequency;
+        segment.adcResolution = record.adcResolution;
+        segment.adcSampleIntervalMs = record.adcSampleIntervalMs;
+        segment.adcDeltaThreshold = record.adcDeltaThreshold;
+        segment.adcHighThreshold = record.adcHighThreshold;
+        segment.adcLowThreshold = record.adcLowThreshold;
         segment.analogValue = 0;
         segment.value = false;
         segment.valid = true;
@@ -291,6 +403,11 @@ bool loadLegacyConfig(Preferences& prefs, ParseResult& out) {
         segment.autoOffDelay = autoOff < 0 ? 0 : autoOff;
         segment.pwmResolution = DEFAULT_PWM_RESOLUTION;
         segment.pwmFrequency = DEFAULT_PWM_FREQUENCY;
+        segment.adcResolution = DEFAULT_ADC_RESOLUTION;
+        segment.adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
+        segment.adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
+        segment.adcHighThreshold = 0;
+        segment.adcLowThreshold = 0;
         segment.analogValue = 0;
         segment.value = false;
         segment.valid = true;
@@ -349,6 +466,28 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
             : ((segment.pwmFrequency > MAX_PWM_FREQUENCY) ? MAX_PWM_FREQUENCY : segment.pwmFrequency);
         record.pwmResolution = res;
         record.pwmFrequency = freq;
+
+        const uint8_t adcRes = (segment.adcResolution < MIN_ADC_RESOLUTION)
+            ? MIN_ADC_RESOLUTION
+            : ((segment.adcResolution > MAX_ADC_RESOLUTION) ? MAX_ADC_RESOLUTION : segment.adcResolution);
+        const uint16_t maxAdcVal = static_cast<uint16_t>((1UL << adcRes) - 1UL);
+        const uint16_t adcSint = (segment.adcSampleIntervalMs < MIN_ADC_SAMPLE_INTERVAL_MS)
+            ? MIN_ADC_SAMPLE_INTERVAL_MS
+            : ((segment.adcSampleIntervalMs > MAX_ADC_SAMPLE_INTERVAL_MS) ? MAX_ADC_SAMPLE_INTERVAL_MS : segment.adcSampleIntervalMs);
+        const uint16_t adcDelta = (segment.adcDeltaThreshold < MIN_ADC_DELTA_THRESHOLD)
+            ? MIN_ADC_DELTA_THRESHOLD
+            : ((segment.adcDeltaThreshold > maxAdcVal) ? maxAdcVal : segment.adcDeltaThreshold);
+        const uint16_t adcAth = (segment.adcHighThreshold > maxAdcVal) ? maxAdcVal : segment.adcHighThreshold;
+        const uint16_t adcAtl = (adcAth == 0)
+            ? 0
+            : ((segment.adcLowThreshold > adcAth) ? adcAth : segment.adcLowThreshold);
+
+        record.adcResolution = adcRes;
+        record.adcSampleIntervalMs = adcSint;
+        record.adcDeltaThreshold = adcDelta;
+        record.adcHighThreshold = adcAth;
+        record.adcLowThreshold = adcAtl;
+
         record.highActionCount = segment.rule.highActionCount;
         record.lowActionCount = segment.rule.lowActionCount;
         record.ruleActive = segment.rule.active ? 1 : 0;
