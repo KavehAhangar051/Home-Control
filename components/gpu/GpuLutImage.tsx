@@ -33,7 +33,10 @@ export function GpuLutImage({
   const lutRef = useRef(lut);
   const intensityRef = useRef(intensity);
   const [ready, setReady] = useState(false);
-  const isPassThrough = useMemo(() => intensity <= 0 || isIdentityLut(lut), [intensity, lut]);
+  const isPassThrough = useMemo(
+    () => intensity <= 0 || isIdentityLut(lut),
+    [intensity, lut],
+  );
   const passThroughRef = useRef(isPassThrough);
   const isNearViewportRef = useRef(false);
 
@@ -45,6 +48,7 @@ export function GpuLutImage({
 
     let renderer: WebGL2LutRenderer | null = null;
     let disposed = false;
+    isNearViewportRef.current = false;
     setReady(false);
 
     const draw = () => {
