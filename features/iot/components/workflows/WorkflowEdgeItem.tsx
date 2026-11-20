@@ -217,26 +217,24 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
 interface WorkflowDraftWireProps {
   draftAnchor: { x: number; y: number };
   connectingDraft: ConnectingWireDraft;
+  geometry: ReturnType<typeof buildWorkflowBezierPath>;
 }
 
 /**
  * Renders the temporary Bezier draft wire while connecting a node output port to a target input.
  */
-export function WorkflowDraftWire({ draftAnchor, connectingDraft }: WorkflowDraftWireProps) {
-  const draftBezier = buildWorkflowBezierPath(
-    draftAnchor.x,
-    draftAnchor.y,
-    connectingDraft.pointerWorldX,
-    connectingDraft.pointerWorldY,
-  );
-
+export function WorkflowDraftWire({
+  draftAnchor,
+  connectingDraft,
+  geometry,
+}: WorkflowDraftWireProps) {
   const isDraftMagnetic = Boolean(connectingDraft.magneticTargetId);
 
   return (
     <g className="pointer-events-none">
       {isDraftMagnetic && (
         <path
-          d={draftBezier.path}
+          d={geometry.path}
           fill="none"
           stroke="var(--success)"
           strokeWidth={7}
@@ -246,7 +244,7 @@ export function WorkflowDraftWire({ draftAnchor, connectingDraft }: WorkflowDraf
       )}
 
       <path
-        d={draftBezier.path}
+        d={geometry.path}
         fill="none"
         stroke={isDraftMagnetic ? "var(--success)" : "var(--accent3)"}
         strokeWidth={isDraftMagnetic ? 3 : 2.5}
