@@ -188,16 +188,7 @@ export function CompositedBezierParticle({
     }
 
     const animation = element.animate(
-      getTransformKeyframes({
-        startX,
-        startY,
-        control1X,
-        control1Y,
-        control2X,
-        control2Y,
-        endX,
-        endY,
-      }),
+      getTransformKeyframes(curve),
       {
         duration: durationMs,
         delay: delayMs,
