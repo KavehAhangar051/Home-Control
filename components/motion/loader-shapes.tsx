@@ -65,7 +65,7 @@ export function Morph({ size, speed, reduce }: PartProps): React.JSX.Element {
       height={size}
       viewBox="0 0 100 100"
       role="img"
-      style={{ willChange: "transform" }}
+      style={{ willChange: reduce ? undefined : "transform" }}
       animate={reduce ? { opacity: [1, 0.4, 1] } : { rotate: MORPH_ROT, scale: MORPH_SCALE }}
       transition={
         reduce
