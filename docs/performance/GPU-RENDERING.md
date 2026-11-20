@@ -477,3 +477,11 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - Pointer-down remains immediate, and pointer-up flushes its final coordinates synchronously before committing. Pointer cancellation, lost capture, window blur, and unmount cancel pending frames so stale movement cannot be applied after a gesture ends.
 - The same coordinate mapping, color values, interaction model, and spring behavior are preserved. This reduces redundant main-thread React work when input events arrive faster than the display can paint; it does not make color math GPU work. No runtime FPS or INP measurement is claimed.
 - References: [React `useRef`](https://react.dev/reference/react/useRef), [MDN `requestAnimationFrame`](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame), [MDN `pointermove`](https://developer.mozilla.org/en-US/docs/Web/API/Element/pointermove_event).
+
+
+### Coalesce shared slider pointer commits per display frame (2026-11-20)
+
+- `lib/hooks/use-slider.ts` now retains the latest active-pointer X coordinate and commits at most once per `requestAnimationFrame`, instead of running the shared value/React update path for every delivered `pointermove` event. This applies to the Range, Fluid, and Bubble slider designs that use the shared hook.
+- Pointer-down remains immediate. Pointer-up synchronously applies its final coordinate before firing the existing commit callback. Pointer cancellation, unrelated pointer IDs, window blur, lost capture, and unmount are handled without allowing stale queued movement to apply after the gesture ends.
+- Step snapping, keyboard behavior, controlled/uncontrolled values, visual motion, and commit semantics are retained. This reduces redundant main-thread updates; it does not move slider logic to the GPU and no FPS/INP measurement is claimed.
+- References: [Chrome input event scheduling](https://developer.chrome.com/blog/inside-browser-part4), [web.dev input handler guidance](https://web.dev/articles/debounce-your-input-handlers), [MDN `requestAnimationFrame`](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame).
