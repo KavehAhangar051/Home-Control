@@ -350,6 +350,8 @@ export function useWorkflowStudio({
 
   const {
     worldPlaneRef,
+    gridLayerRef,
+    initialGridStyle,
     containerSize,
     isPanning,
     animateToViewport,
@@ -362,6 +364,7 @@ export function useWorkflowStudio({
     setViewport,
     setViewportTransient,
     computeGridStyle: getWorkflowGridStyle,
+    isLocked,
     isAttached: Boolean(activeWorkflow),
     onPanEnd: commitWorkflowPersistence,
     onBackgroundClick: () => {
@@ -583,14 +586,10 @@ export function useWorkflowStudio({
     animateToViewport(computeFitWorkflowViewport(activeWorkflow.nodes, w, h));
   }, [activeWorkflow, animateToViewport, containerRef, containerSize.height, containerSize.width]);
 
-  const backgroundGridStyle = React.useMemo(() => {
-    const vp = activeWorkflow?.viewport ?? { x: 0, y: 0, zoom: 1 };
-
-    return getWorkflowGridStyle(vp.x, vp.y, vp.zoom);
-  }, [activeWorkflow?.viewport]);
-
   return {
     worldPlaneRef,
+    gridLayerRef,
+    initialGridStyle,
     workflows: studioState.workflows,
     activeWorkflow,
     isPaletteOpen,
@@ -609,7 +608,6 @@ export function useWorkflowStudio({
     connectingDraft,
     evaluation,
     timerCountdowns,
-    backgroundGridStyle,
     canUndo: historyAndClipboard.canUndo,
     canRedo: historyAndClipboard.canRedo,
     hasClipboard: historyAndClipboard.hasClipboard,

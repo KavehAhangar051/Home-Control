@@ -3,29 +3,39 @@ import {
   clampCanvasZoom,
   computeFocalZoomViewport,
   getCanvasGridStyle,
+  getCanvasGridTransform,
 } from "./canvasGeometry";
 import type { CanvasViewport } from "./canvasTypes";
-import {
-  areSheetAnimationsAllowed,
-  clearSheetPanMotionCssVars,
-  setSheetPanMotionCssVars,
-} from "./nodeMotion";
+import { areSheetAnimationsAllowed } from "./nodeMotion";
 
 /**
- * Directly updates the GPU-composited world plane transform, the container's dot-grid
- * background position/size, and any zoom percentage badge in the DOM without a React render pass.
+ * Directly updates the GPU-composited world plane transform, the dedicated GPU dot-grid
+ * layer (eliminating full-viewport CSS gradient repaints during pan/inertia), and cached
+ * zoom percentage badges in the DOM without a React render pass.
  */
 export function applyViewportToDom(
   container: HTMLElement | null,
   worldPlane: HTMLElement | null,
   viewport: CanvasViewport,
   computeGridStyle: (x: number, y: number, zoom: number) => CanvasGridStyle = getCanvasGridStyle,
+  gridLayer?: HTMLElement | null,
+  cachedReadouts?: HTMLElement[] | null,
 ): void {
   if (worldPlane) {
     worldPlane.style.transform = `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`;
   }
 
-  if (container) {
+  if (gridLayer) {
+    const gridTransform = getCanvasGridTransform(viewport.x, viewport.y, viewport.zoom);
+    const stepKey = String(gridTransform.visualStep);
+
+    if (gridLayer.dataset.gridStep !== stepKey) {
+      gridLayer.dataset.gridStep = stepKey;
+      gridLayer.style.backgroundSize = gridTransform.backgroundSize;
+    }
+
+    gridLayer.style.transform = gridTransform.transform;
+  } else if (container) {
     const grid = computeGridStyle(viewport.x, viewport.y, viewport.zoom);
     container.style.backgroundSize = grid.backgroundSize;
     container.style.backgroundPosition = grid.backgroundPosition;
@@ -33,6 +43,16 @@ export function applyViewportToDom(
 
   if (typeof document !== "undefined") {
     const zoomText = `${Math.round(viewport.zoom * 100)}%`;
+
+    if (cachedReadouts && cachedReadouts.length > 0 && cachedReadouts[0]?.isConnected) {
+      for (let i = 0; i < cachedReadouts.length; i++) {
+        if (cachedReadouts[i].textContent !== zoomText) {
+          cachedReadouts[i].textContent = zoomText;
+        }
+      }
+      return;
+    }
+
     const badges = document.querySelectorAll<HTMLElement>('[data-sheet-zoom-readout="true"]');
     for (let i = 0; i < badges.length; i++) {
       if (badges[i].textContent !== zoomText) {
@@ -86,7 +106,6 @@ export function createSheetViewportAnimator(
     const hadActiveLoop = activeMode !== "idle";
     activeMode = "idle";
     zoomTargetViewport = null;
-    clearSheetPanMotionCssVars(deps.getContainer());
 
     if (shouldCommit && hadActiveLoop) {
       deps.commitViewport(deps.getCurrentViewport());
@@ -132,7 +151,6 @@ export function createSheetViewportAnimator(
       if (progress >= 1) {
         activeFrameId = null;
         activeMode = "idle";
-        clearSheetPanMotionCssVars(deps.getContainer());
         deps.applyTransientViewport(safeTarget);
         deps.commitViewport(safeTarget);
         return;
@@ -231,7 +249,6 @@ export function createSheetViewportAnimator(
 
     const rawSpeed = Math.hypot(velocityXPerMs, velocityYPerMs);
     if (!areSheetAnimationsAllowed() || rawSpeed < MIN_INERTIA_SPEED_PX_PER_MS) {
-      clearSheetPanMotionCssVars(deps.getContainer());
       deps.commitViewport(deps.getCurrentViewport());
       return;
     }
@@ -259,7 +276,6 @@ export function createSheetViewportAnimator(
       if (speed < STOP_INERTIA_SPEED_PX_PER_MS) {
         activeFrameId = null;
         activeMode = "idle";
-        clearSheetPanMotionCssVars(deps.getContainer());
         const settled: CanvasViewport = {
           ...deps.getCurrentViewport(),
           x: Math.round(floatX),
@@ -273,12 +289,10 @@ export function createSheetViewportAnimator(
       floatX += vx * dt;
       floatY += vy * dt;
 
-      setSheetPanMotionCssVars(deps.getContainer(), vx * 16.67, vy * 16.67);
-
       deps.applyTransientViewport({
         ...deps.getCurrentViewport(),
-        x: Math.round(floatX),
-        y: Math.round(floatY),
+        x: Math.round(floatX * 10) / 10,
+        y: Math.round(floatY * 10) / 10,
       });
 
       activeFrameId = requestAnimationFrame(step);

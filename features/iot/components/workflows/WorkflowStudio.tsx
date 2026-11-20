@@ -163,13 +163,19 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleCanvasDrop}
         style={{
-          ...studio.backgroundGridStyle,
           touchAction: "none",
         }}
         className={`relative min-h-0 w-full flex-1 overflow-hidden select-none ${
           studio.isPanning ? "cursor-grabbing" : "cursor-default"
         }`}
       >
+        {/* GPU-composited dot grid layer */}
+        <div
+          ref={studio.gridLayerRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute z-0 will-change-transform"
+          style={studio.initialGridStyle}
+        />
         {/* Mobile & Tablet Connecting Banner */}
         <AnimatePresence>
           {studio.connectingFromId && (

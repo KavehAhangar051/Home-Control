@@ -176,13 +176,20 @@ export function useCanvasNodeInteractions({
 
       if (!startRect) return;
 
+      const activePointerId = e.pointerId;
+      const isTouch = e.pointerType === "touch";
+      const dragThreshold = isTouch ? 4.5 : 0;
       const startClientX = e.clientX;
       const startClientY = e.clientY;
       let lastClientX = e.clientX;
+      let hasExceededThreshold = dragThreshold === 0;
       const zoom = viewportRef.current.zoom;
       const tiltEl = findNodeTiltElement(nodeId);
-      setDraggingNodeId(nodeId);
-      setNodeDragTiltCssVar(tiltEl, 0);
+
+      if (hasExceededThreshold) {
+        setDraggingNodeId(nodeId);
+        setNodeDragTiltCssVar(tiltEl, 0);
+      }
 
       const childInitialRects = collectCascadeGroupChildren(
         nodeId,
@@ -193,8 +200,20 @@ export function useCanvasNodeInteractions({
       );
 
       const applyPointerMove = (moveEvent: PointerEvent) => {
-        const dx = (moveEvent.clientX - startClientX) / zoom;
-        const dy = (moveEvent.clientY - startClientY) / zoom;
+        if (moveEvent.pointerId !== activePointerId) return;
+
+        const rawDx = moveEvent.clientX - startClientX;
+        const rawDy = moveEvent.clientY - startClientY;
+
+        if (!hasExceededThreshold) {
+          if (Math.hypot(rawDx, rawDy) < dragThreshold) return;
+          hasExceededThreshold = true;
+          setDraggingNodeId(nodeId);
+          setNodeDragTiltCssVar(tiltEl, 0);
+        }
+
+        const dx = rawDx / zoom;
+        const dy = rawDy / zoom;
         const nextX = snapCanvasCoordinate(startRect.x + dx, snapToGrid);
         const nextY = snapCanvasCoordinate(startRect.y + dy, snapToGrid);
         const appliedDx = nextX - startRect.x;
@@ -243,6 +262,7 @@ export function useCanvasNodeInteractions({
       };
 
       const handlePointerMove = (moveEvent: PointerEvent) => {
+        if (moveEvent.pointerId !== activePointerId) return;
         pendingMove = moveEvent;
 
         if (frameId === null) {
@@ -262,23 +282,46 @@ export function useCanvasNodeInteractions({
         window.removeEventListener("pointermove", handlePointerMove);
         window.removeEventListener("pointerup", handlePointerUp);
         window.removeEventListener("pointercancel", handlePointerCancel);
-        replaceStoredCanvasNodes(activeSubMode, nodesRef.current);
+        window.removeEventListener("pointerdown", handleMultiTouchAbort, true);
+        window.removeEventListener("blur", handleAbort);
+        if (hasExceededThreshold) {
+          replaceStoredCanvasNodes(activeSubMode, nodesRef.current);
+        }
       };
 
       const handlePointerUp = (endEvent: PointerEvent) => {
+        if (endEvent.pointerId !== activePointerId) return;
         pendingMove = endEvent;
         flushPointerMove();
         finishDrag();
       };
 
-      const handlePointerCancel = () => {
-        flushPointerMove();
+      const handlePointerCancel = (cancelEvent: PointerEvent) => {
+        if (cancelEvent.pointerId !== activePointerId) return;
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+        pendingMove = null;
         finishDrag();
+      };
+
+      const handleAbort = () => {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+        pendingMove = null;
+        finishDrag();
+      };
+
+      const handleMultiTouchAbort = (downEvent: PointerEvent) => {
+        if (downEvent.pointerType === "touch" && downEvent.pointerId !== activePointerId) {
+          handleAbort();
+        }
       };
 
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp);
       window.addEventListener("pointercancel", handlePointerCancel);
+      window.addEventListener("pointerdown", handleMultiTouchAbort, true);
+      window.addEventListener("blur", handleAbort);
     },
     [
       activeSubMode,
@@ -312,6 +355,7 @@ export function useCanvasNodeInteractions({
 
       setDraggingNodeId(nodeId);
 
+      const activePointerId = e.pointerId;
       const startClientX = e.clientX;
       const startClientY = e.clientY;
       const zoom = viewportRef.current.zoom;
@@ -319,6 +363,8 @@ export function useCanvasNodeInteractions({
       const snappedBottomEdge = snapCanvasCoordinate(startRect.y + startRect.height, snapToGrid);
 
       const applyPointerMove = (moveEvent: PointerEvent) => {
+        if (moveEvent.pointerId !== activePointerId) return;
+
         const dx = (moveEvent.clientX - startClientX) / zoom;
         const dy = (moveEvent.clientY - startClientY) / zoom;
         const prev = nodesRef.current;
@@ -368,6 +414,7 @@ export function useCanvasNodeInteractions({
       };
 
       const handlePointerMove = (moveEvent: PointerEvent) => {
+        if (moveEvent.pointerId !== activePointerId) return;
         pendingMove = moveEvent;
 
         if (frameId === null) {
@@ -386,23 +433,44 @@ export function useCanvasNodeInteractions({
         window.removeEventListener("pointermove", handlePointerMove);
         window.removeEventListener("pointerup", handlePointerUp);
         window.removeEventListener("pointercancel", handlePointerCancel);
+        window.removeEventListener("pointerdown", handleMultiTouchAbort, true);
+        window.removeEventListener("blur", handleAbort);
         replaceStoredCanvasNodes(activeSubMode, nodesRef.current);
       };
 
       const handlePointerUp = (endEvent: PointerEvent) => {
+        if (endEvent.pointerId !== activePointerId) return;
         pendingMove = endEvent;
         flushPointerMove();
         finishResize();
       };
 
-      const handlePointerCancel = () => {
-        flushPointerMove();
+      const handlePointerCancel = (cancelEvent: PointerEvent) => {
+        if (cancelEvent.pointerId !== activePointerId) return;
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+        pendingMove = null;
         finishResize();
+      };
+
+      const handleAbort = () => {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+        pendingMove = null;
+        finishResize();
+      };
+
+      const handleMultiTouchAbort = (downEvent: PointerEvent) => {
+        if (downEvent.pointerType === "touch" && downEvent.pointerId !== activePointerId) {
+          handleAbort();
+        }
       };
 
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp);
       window.addEventListener("pointercancel", handlePointerCancel);
+      window.addEventListener("pointerdown", handleMultiTouchAbort, true);
+      window.addEventListener("blur", handleAbort);
     },
     [activeSubMode, bringNodeToFront, isLocked, nodesRef, setNodes, snapToGrid, viewportRef],
   );

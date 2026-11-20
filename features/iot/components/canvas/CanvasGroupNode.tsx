@@ -262,6 +262,7 @@ export default React.memo(function CanvasGroupNode({
         width: rect.width,
         height: rect.height,
         zIndex,
+        contain: "layout style",
         willChange: isDragging ? "transform" : undefined,
         transition:
           animationsEnabled && !isDragging

@@ -32,6 +32,34 @@ export type CanvasNodeMotionState = {
   y: number;
 };
 
+const MOTION_IDLE_STATE: CanvasNodeMotionState = Object.freeze({
+  opacity: 1,
+  scale: 1,
+  rotate: 0,
+  y: 0,
+});
+
+const MOTION_DRAG_1016: CanvasNodeMotionState = Object.freeze({
+  opacity: 1,
+  scale: 1.016,
+  rotate: 0,
+  y: -2,
+});
+
+const MOTION_DRAG_1018: CanvasNodeMotionState = Object.freeze({
+  opacity: 1,
+  scale: 1.018,
+  rotate: 0,
+  y: -2,
+});
+
+const MOTION_DRAG_1022: CanvasNodeMotionState = Object.freeze({
+  opacity: 1,
+  scale: 1.022,
+  rotate: 0,
+  y: -2,
+});
+
 /**
  * Computes the unified motion target state for canvas and workflow nodes
  * across idle, dragging, and reduced-motion states.
@@ -42,15 +70,21 @@ export function resolveCanvasNodeMotionState(
   dragTiltDeg: number,
   dragScale = 1.018,
 ): CanvasNodeMotionState {
-  if (!animationsEnabled) {
-    return { opacity: 1, scale: 1, rotate: 0, y: 0 };
+  if (!animationsEnabled || !isDragging) {
+    return MOTION_IDLE_STATE;
+  }
+
+  if (dragTiltDeg === 0) {
+    if (dragScale === 1.016) return MOTION_DRAG_1016;
+    if (dragScale === 1.018) return MOTION_DRAG_1018;
+    if (dragScale === 1.022) return MOTION_DRAG_1022;
   }
 
   return {
     opacity: 1,
-    scale: isDragging ? dragScale : 1,
-    rotate: isDragging ? dragTiltDeg : 0,
-    y: isDragging ? -2 : 0,
+    scale: dragScale,
+    rotate: dragTiltDeg,
+    y: -2,
   };
 }
 
