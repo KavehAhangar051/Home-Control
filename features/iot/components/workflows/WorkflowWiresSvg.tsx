@@ -20,7 +20,7 @@ interface WorkflowWiresSvgProps {
 }
 
 /**
- * Renders interactive workflow Bezier wires paired with a GPU-composited signal particle overlay.
+ * Renders interactive workflow Bezier wires with compositor-friendly signal particle animations.
  */
 export default React.memo(function WorkflowWiresSvg({
   nodes,
