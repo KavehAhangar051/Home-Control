@@ -128,8 +128,8 @@ export function setNodeDragTiltCssVar(element: HTMLElement | null, tiltDeg: numb
 
   if (!areSheetAnimationsAllowed()) {
     if (element.style.rotate) {
-    element.style.removeProperty("rotate");
-  }
+      element.style.removeProperty("rotate");
+    }
     return;
   }
 
@@ -140,7 +140,7 @@ export function setNodeDragTiltCssVar(element: HTMLElement | null, tiltDeg: numb
 }
 
 export function clearNodeDragTiltCssVar(element: HTMLElement | null): void {
-  if (!element) return;
+  if (!element || !element.style.rotate) return;
   element.style.removeProperty("rotate");
 }
 
