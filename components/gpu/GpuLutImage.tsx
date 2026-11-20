@@ -170,7 +170,6 @@ export function GpuLutImage({
       />
       <canvas
         ref={canvasRef}
-        role="presentation"
         className={`pointer-events-none absolute inset-0 h-full w-full transition-opacity duration-200 ${ready ? "opacity-100" : "opacity-0"}`}
       />
     </div>
