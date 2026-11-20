@@ -55,6 +55,10 @@ export function parseCubeLut(source: string): Lut3D {
   }
 
   validateSize(size);
+  if (domainMin.some((value, index) => domainMax[index] <= value)) {
+    throw new Error("Each DOMAIN_MAX component must be greater than DOMAIN_MIN.");
+  }
+
   const expectedValues = size ** 3;
   if (values.length !== expectedValues) {
     throw new Error(`Expected ${expectedValues} LUT entries, received ${values.length}.`);
