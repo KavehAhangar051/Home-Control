@@ -1352,3 +1352,148 @@ Dynamic Import باعث می‌شود بخش‌هایی از برنامه در �
 5. ارائه فهرست فایل‌های نیازمند تغییر برای Native و دریافت تأیید مالک پروژه.
 
 هیچ فایل اجرایی، Dependency، فونت، Environment یا تنظیم Build در این ممیزی تغییر داده نشده است.
+
+
+---
+
+## ۱۹. Native Network و Touch Compatibility Audit — ۲۰۲۶-۱۱-۲۰
+
+این بخش بررسی هدفمند مسیرهای ارتباطی و تعامل لمسی Dashboard را ثبت می‌کند. نتایج سورس با مستندات رسمی Android و Capacitor تطبیق داده شده‌اند. هیچ APK یا تستی روی گوشی در این مرحله اجرا نشده است؛ بنابراین موارد مربوط به رفتار واقعی WebView همچنان نیازمند آزمایش هستند.
+
+### ۱۹.۱ معماری ارتباطی مشاهده‌شده
+
+در سورس فعلی دست‌کم سه مسیر ارتباطی از نظر نقش قابل تفکیک‌اند:
+
+| مسیر | پروتکل/کاربرد | نقش |
+|---|---|---|
+| Cloudflare Worker | HTTPS | دریافت/ذخیره تنظیمات و داده‌های ابری |
+| MQTT Broker | WSS | ارتباط پیام‌رسانی Dashboard با ESP32 از مسیر Broker |
+| ESP32 محلی | WebSocket با `ws://` و پورت 81 | مسیر مستقیم محلی برای ارتباط با دستگاه |
+
+در `features/iot/services/mqtt/init.ts`، MQTT.js به‌صورت Dynamic Import بارگذاری می‌شود و با `mqtt.connect`، شناسه Client و `reconnectPeriod: 5000` اتصال را برقرار می‌کند. پس از اتصال، Topicهای State و Status Subscribe می‌شوند و Presence و Sync Request منتشر می‌شوند. دریافت State، ACK، Status و Ping نیز در Handlerهای مربوط پردازش می‌شود.
+
+در مسیر Local WebSocket، `features/iot/hooks/achaemenidState/useConnectionStrategy.ts` آدرس دستگاه را بر اساس IP محلی می‌سازد و به پورت 81 وصل می‌شود. منطق انتخاب/بازگشت به MQTT باید هنگام تست Native از نظر Retry، وضعیت اتصال هم‌زمان و جلوگیری از دو مسیر فرمان‌دهی بررسی شود.
+
+**نکته امنیتی:** WSS مسیر رمزنگاری‌شده‌ای فراهم می‌کند؛ اما WebSocket محلی با `ws://` رمزنگاری انتقال ندارد. اگر اطلاعات حساس یا فرمان‌های قابل سوءاستفاده روی این مسیر ارسال می‌شوند، مهاجم حاضر در همان شبکه محلی ممکن است امکان مشاهده یا دستکاری ترافیک را داشته باشد. Android cleartext policy نیز جایگزین رمزنگاری پروتکل نیست.
+
+### ۱۹.۲ Cleartext WebSocket در Android WebView
+
+مبدأ محلی WebView در Capacitor معمولاً HTTPS است، در حالی که اتصال ESP32 در سورس با `ws://<device-ip>:81` انجام می‌شود. باید دو لایه را از هم تفکیک کرد:
+
+1. **Android Network Security Policy:** سیاست cleartext در Android می‌تواند روی ترافیک WebView اثر بگذارد؛ مستند Android می‌گوید WebView برای برنامه‌های Target API 26 به بالا این سیاست را رعایت می‌کند.
+2. **Chromium/WebView mixed-content و WebSocket policy:** درخواست WebSocket ناامن از یک مبدأ امن می‌تواند با قواعد محتوای ناامن WebView نیز برخورد کند. رفتار دقیق باید روی نسخه Android System WebView گوشی هدف آزمایش شود.
+
+بنابراین نمی‌توان صرفاً با فعال کردن یک گزینه Capacitor نتیجه گرفت که WebSocket محلی کار خواهد کرد. همچنین `allowMixedContent`، اگر برای دور زدن محدودیت انتخاب شود، باید با احتیاط و پس از بررسی ضرورت استفاده شود؛ این گزینه راهکار امنیتی یا رمزنگاری نیست.
+
+**سیاست پیشنهادی:**
+- پیش‌فرض امن برنامه حفظ شود؛
+- از فعال‌سازی سراسری cleartext یا Mixed Content بدون تست و توجیه امنیتی خودداری شود؛
+- ابتدا اتصال فعلی روی گوشی واقعی آزمایش و خطای دقیق WebView/Logcat ثبت شود؛
+- اگر نیاز به استثنای cleartext ثابت شد، دامنه/مقصد مجاز تا حد ممکن محدود شود؛
+- راهکار بلندمدت ترجیحاً WSS معتبر برای ارتباط محلی یا یک Native Adapter با طراحی امنیتی روشن باشد. افزودن TLS به ESP32 به گواهی، اعتماد کلاینت و مدیریت کلید نیاز دارد و صرفاً تغییر `ws://` به `wss://` کافی نیست.
+
+منابع:
+- [Android Network Security Configuration](https://developer.android.com/privacy-and-security/security-config)
+- [Android Cleartext Communications Risk](https://developer.android.com/privacy-and-security/risks/cleartext-communications)
+- [Android NetworkSecurityPolicy API](https://developer.android.com/reference/android/security/NetworkSecurityPolicy)
+
+### ۱۹.۳ Local Network Permission و انتخاب Capacitor
+
+طبق ماتریس رسمی نسخه‌های Capacitor:
+
+| نسخه | Target SDK متناظر | وضعیت Local Network |
+|---|---:|---|
+| Capacitor 8 | 36 | `ACCESS_LOCAL_NETWORK` برای این Target لازم نیست |
+| Capacitor 9 | 37 | مجوز `ACCESS_LOCAL_NETWORK` و درخواست Runtime لازم است |
+
+Android 17 (API 37) دسترسی شبکه محلی را برای برنامه‌های Target 37 یا بالاتر به مجوز Runtime جدید `ACCESS_LOCAL_NETWORK` محدود می‌کند. این محدودیت شامل ارتباطات TCP روی IP محلی و ترافیک WebView نیز می‌شود. برای Target SDK 36 یا پایین‌تر، طبق مستند فعلی Android دسترسی شبکه محلی با مجوز `INTERNET` به‌صورت ضمنی برقرار می‌ماند و نباید مجوز جدید را زودتر از Target 37 اضافه یا درخواست کرد.
+
+**تصمیم فعلی برای MVP:** Capacitor 8 با Target SDK 36 انتخاب پایه باقی می‌ماند تا مسیر ساخت اولین APK ساده‌تر باشد. این تصمیم به معنی نادیده گرفتن Android 17 نیست؛ هنگام برنامه‌ریزی ارتقا به Capacitor 9 باید Permission declaration، درخواست Runtime، حالت Denial/Revocation و پیام توضیحی به کاربر پیاده‌سازی و آزمایش شوند.
+
+برای Home-Control که به‌صورت ذاتی دستگاه IoT را در LAN کنترل می‌کند، دسترسی گسترده شبکه محلی احتمالاً بخشی از قابلیت اصلی محصول است؛ در صورت ارتقا به Target 37 باید ضرورت آن مستند و با سیاست انتشار Google Play در زمان انتشار تطبیق داده شود.
+
+منابع:
+- [Capacitor Android Configuration](https://next.capacitorjs.com/docs/next/android/configuration)
+- [Capacitor Target SDK Matrix](https://next.capacitorjs.com/docs/next/android/setting-target-sdk)
+- [Android Local Network Permission](https://developer.android.com/privacy-and-security/local-network-permission)
+- [Android ACCESS_LOCAL_NETWORK API](https://developer.android.com/reference/android/Manifest.permission)
+
+### ۱۹.۴ Touch، Pointer و Drag & Drop
+
+فایل‌های Canvas و Workspace در بررسی هدفمند شامل موارد زیر بودند:
+- `CanvasWorkspace.tsx` برای سطح Canvas و World Plane؛
+- `useSheetViewportGestures.ts` برای Gestureهای Viewport؛
+- `useCanvasNodeInteractions.ts` برای تعامل Nodeها؛
+- `DndGridWorkspace.tsx` برای Workspace مبتنی بر Drag & Drop.
+
+در Canvas از Transform سه‌بعدی `translate3d(...)` به همراه Scale و `will-change: transform` برای World Plane استفاده می‌شود. این طراحی برای Pan/Zoom مناسب است، اما روی GPU و حافظه دستگاه‌های Android ارزان‌قیمت می‌تواند فشار ایجاد کند؛ اندازه Canvas، تعداد Nodeها، تعداد Wireها و نرخ به‌روزرسانی باید در دستگاه واقعی سنجیده شود.
+
+در CSS عمومی، قواعد `prefers-reduced-motion` و توقف برخی Animationها هنگام مخفی بودن صفحه وجود دارد. در عین حال، جست‌وجوی هدفمند فایل‌های بررسی‌شده یک سیاست یکپارچه و صریح `touch-action` برای همه سطوح Gesture را اثبات نکرد. این به معنی نبود آن در کل پروژه نیست؛ باید CSS نهایی و عنصرهای قابل Drag به‌صورت کامل بررسی شوند.
+
+**موارد پذیرش لمسی:**
+1. Drag کارت با یک انگشت بدون Scroll ناخواسته صفحه؛
+2. Pan و Pinch Zoom روی Canvas با دو انگشت؛
+3. جلوگیری از تداخل Gestureهای Parent و Child؛
+4. مدیریت `pointercancel`، خروج Pointer از محدوده عنصر و پایان Gesture؛
+5. بررسی Pointer Capture و Cleanup در زمان Unmount؛
+6. Drag و Resize با لمس طولانی و لمس کوتاه بدون تأخیر محسوس؛
+7. تست با نرخ فریم و تعداد Nodeهای واقعی پروژه؛
+8. بررسی انیمیشن‌ها با `prefers-reduced-motion` و هنگام Background شدن اپ.
+
+منبع:
+- [MDN: touch-action](https://developer.mozilla.org/en-US/docs/Web/CSS/touch-action)
+- [MDN: Pointer Events](https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events)
+
+### ۱۹.۵ Android App Lifecycle و اتصال پایدار
+
+Hook فعلی Page Visibility از `visibilitychange` و `online` استفاده می‌کند و برای توقف/ازسرگیری منطق ارتباطی به وضعیت صفحه متکی است. این رویدادها به‌تنهایی معادل چرخه عمر Native نیستند.
+
+هنگام افزودن Capacitor:
+- `@capacitor/app` و رویداد `appStateChange` باید به‌عنوان منبع Native Lifecycle ارزیابی شوند؛
+- از اجرای هم‌زمان Resume در رویداد Native و `visibilitychange` جلوگیری شود؛
+- اتصال MQTT و Local WebSocket هنگام Background/Foreground شدن سیاست مشخص داشته باشند؛
+- پس از برگشت از Background، وضعیت اتصال از روی رویداد واقعی Broker/ESP32 بازیابی شود، نه صرفاً Online بودن گوشی؛
+- Listenerها در Cleanup حذف شوند و ثبت چندباره رخ ندهد.
+
+منبع:
+- [Capacitor App API](https://capacitorjs.com/docs/apis/app)
+
+### ۱۹.۶ ماتریس تست اولین APK
+
+| سناریو | معیار پذیرش |
+|---|---|
+| اجرای اولیه | Dashboard بدون خطای Chunk یا صفحه سفید باز شود |
+| MQTT با WSS | Connect، Subscribe، Publish و Reconnect موفق باشند |
+| Local WS به ESP32 | اتصال به IP و پورت 81 برقرار شود یا خطای قابل تشخیص ثبت شود |
+| قطع Broker | مسیر Local و وضعیت UI مطابق منطق موجود باقی بماند |
+| قطع LAN | خطای اتصال و بازیابی پس از برگشت شبکه قابل مشاهده باشد |
+| Background/Resume | اتصال‌ها بدون Listener تکراری بازیابی شوند |
+| Drag/Drop | Gesture با Scroll و لمس سیستم تداخل نکند |
+| Canvas Pinch/Pan | حرکت نرم و بدون پرش یا Pointer Stuck باشد |
+| Voice | پشتیبانی واقعی فارسی و مجوز میکروفون روی دستگاه مشخص شود |
+| Offline | رابط اصلی و داده‌های Cache شده طبق انتظار قابل استفاده باشند |
+
+### ۱۹.۷ تصمیم‌های فعلی و مواردی که هنوز مجاز به تغییر نیستند
+
+| تصمیم | وضعیت |
+|---|---|
+| مبنای MVP: Capacitor 8 / Target 36 | پیشنهاد معماری ثبت شد |
+| فعال‌سازی سراسری Cleartext | رد؛ بدون ضرورت و تست انجام نشود |
+| فعال‌سازی سراسری Mixed Content | رد؛ بدون ضرورت و تست انجام نشود |
+| افزودن `ACCESS_LOCAL_NETWORK` در Target 36 | انجام نشود |
+| طراحی مسیر ارتقا به Capacitor 9 / Target 37 | در نقشه راه ثبت شد |
+| تغییر پروتکل Local WS به WSS | نیازمند طراحی و تأیید جداگانه |
+| افزودن Native Lifecycle Adapter | نیازمند تأیید و پیاده‌سازی جداگانه |
+| تغییر CSS مربوط به Touch | تا پایان تست و تأیید انجام نشود |
+
+### ۱۹.۸ جمع‌بندی و گام بعدی
+
+مهم‌ترین ریسک فنی پیش از اولین APK، نه MQTT از مسیر WSS، بلکه اتصال مستقیم `ws://` به ESP32 از مبدأ HTTPS در Android WebView است. این مسیر باید با Logcat و یک گوشی واقعی آزمایش شود. ریسک بعدی، هماهنگی Gestureهای Canvas با Touch و Pointer Events و سپس هماهنگی Page Visibility با Native Lifecycle است.
+
+گام بعدی پیشنهادی:
+1. تکمیل جست‌وجوی سراسری کد برای `WebSocket`، `touch-action`، Pointer Events و Environment Variables؛
+2. اجرای Lint، Typecheck، Test و Static Export در محیط واقعی؛
+3. ساخت یک APK آزمایشی بدون تغییر پروتکل شبکه و ثبت نتیجه Local WS؛
+4. ارائه فهرست دقیق فایل‌های لازم برای تغییر و دریافت تأیید پیش از هر ویرایش اجرایی.
+
+این ممیزی به‌تنهایی اثبات نمی‌کند که APK روی دستگاه اجرا می‌شود. هیچ کد اجرایی، Manifest، Network Security Config، CSS، Dependency یا تنظیم Capacitor در این مرحله تغییر داده نشده است.
