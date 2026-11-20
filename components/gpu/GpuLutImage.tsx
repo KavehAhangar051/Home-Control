@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { WebGL2LutRenderer } from "@/lib/gpu/webgl2-lut-renderer";
 import type { Lut3D } from "@/lib/gpu/lut3d";
@@ -21,7 +22,7 @@ export function GpuLutImage({
   alt,
   lut,
   intensity = 1,
-  className = "",
+  className = "aspect-video w-full",
 }: GpuLutImageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -32,14 +33,11 @@ export function GpuLutImage({
   const intensityRef = useRef(intensity);
   const [ready, setReady] = useState(false);
 
-  lutRef.current = lut;
-  intensityRef.current = intensity;
-
   useEffect(() => {
     const container = containerRef.current;
     const image = imageRef.current;
     const canvas = canvasRef.current;
-    if (!container || !image || !canvas) return;
+    if (!container || !image || !canvas || image.getAttribute("src") !== imageSrc) return;
 
     let renderer: WebGL2LutRenderer | null = null;
     let disposed = false;
@@ -150,24 +148,29 @@ export function GpuLutImage({
   }, [imageSrc]);
 
   useEffect(() => {
+    lutRef.current = lut;
+    intensityRef.current = intensity;
     drawRef.current();
   }, [lut, intensity]);
 
   return (
     <div ref={containerRef} className={`relative isolate overflow-hidden ${className}`}>
-      <img
+      <Image
         ref={imageRef}
         crossOrigin="anonymous"
         src={imageSrc}
         alt={alt}
+        fill
+        sizes="100vw"
+        unoptimized
         decoding="async"
         loading="lazy"
         onLoad={() => drawRef.current()}
-        className="block h-full w-full object-cover"
+        className="object-cover"
       />
       <canvas
         ref={canvasRef}
-        aria-hidden="true"
+        role="presentation"
         className={`pointer-events-none absolute inset-0 h-full w-full transition-opacity duration-200 ${ready ? "opacity-100" : "opacity-0"}`}
       />
     </div>
