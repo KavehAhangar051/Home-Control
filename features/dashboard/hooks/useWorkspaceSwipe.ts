@@ -62,7 +62,7 @@ export function useWorkspaceSwipe(
     touchEnd.current = {
       x: e.targetTouches[0].clientX,
       y: e.targetTouches[0].clientY,
-    });
+    };
   };
 
   const onTouchEnd = () => {
