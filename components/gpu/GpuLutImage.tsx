@@ -107,6 +107,17 @@ export function GpuLutImage({
         : null;
     resizeObserver?.observe(container);
 
+    const intersectionObserver =
+      typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(
+            (entries) => {
+              if (entries.some((entry) => entry.isIntersecting)) initialize();
+            },
+            { rootMargin: "160px" },
+          )
+        : null;
+    intersectionObserver?.observe(container);
+
     const handleWindowResize = () => draw();
     const handleVisibilityChange = () => {
       if (!document.hidden) draw();
@@ -117,13 +128,13 @@ export function GpuLutImage({
     }
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    initialize();
-    if (image.complete) draw();
+    if (!intersectionObserver) initialize();
 
     return () => {
       disposed = true;
       drawRef.current = () => {};
       resizeObserver?.disconnect();
+      intersectionObserver?.disconnect();
       window.removeEventListener("resize", handleWindowResize);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       canvas.removeEventListener("webglcontextlost", handleContextLost);
