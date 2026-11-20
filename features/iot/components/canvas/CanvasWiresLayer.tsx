@@ -143,8 +143,6 @@ export default React.memo(function CanvasWiresLayer({
 }: CanvasWiresLayerProps) {
   const isLiteTier = useIsLitePerformanceTier();
 
-  if (connections.length === 0) return null;
-
   const showParticles = animationsEnabled && !isLiteTier;
   const wireGeometryById = React.useMemo(() => {
     const geometryById = new Map<string, BezierWireGeometry>();
@@ -160,6 +158,8 @@ export default React.memo(function CanvasWiresLayer({
 
     return geometryById;
   }, [connections, nodes]);
+
+  if (connections.length === 0) return null;
 
   return (
     <>
