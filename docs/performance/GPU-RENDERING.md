@@ -283,3 +283,12 @@ This is a source-level execution map, not a measured performance finding. No FPS
 - This is a behavior-preserving main-thread micro-optimization: it avoids redundant CSSOM/style invalidation when the same viewport is applied repeatedly (for example, duplicate final/idle synchronization). It does not move the camera interpolation loop off the main thread and does not claim GPU-only execution.
 - The existing transform strings, grid spacing thresholds, dot radius, readout text, easing, inertia, and focal zoom calculations are unchanged. No effect, animation, or transition was removed or added.
 - Validation is source-level only in this change. Compare browser Performance traces before/after; expected benefit is limited to repeated identical viewport applications, not the per-frame work when values genuinely change.
+
+
+## Non-blocking LUT shader initialization
+
+- `WebGL2LutRenderer.create(canvas)` now initializes the renderer asynchronously. When `KHR_parallel_shader_compile` is available, shader compile/link work is submitted first and program completion is polled through `COMPLETION_STATUS_KHR` on animation frames; the potentially blocking `LINK_STATUS` query is made only after completion.
+- Browsers without the extension retain the existing synchronous compile/link validation path as a compatibility fallback. The extension is not Baseline across all browsers, so this is progressive enhancement, not a requirement for rendering.
+- `GpuLutImage` guards async initialization against unmount and WebGL context loss, disposes a renderer that completes after the surface switches to identity pass-through, and retains the original image fallback while the program is compiling.
+- This optimization targets shader startup stalls only. It does not change shader source, LUT sampling, texture format, output pixels, animation timing, or dashboard UI. Parallel compilation can reduce main-thread blocking but does not guarantee a shorter total compile duration.
+- Source-level change only. Verify extension support and startup responsiveness in target browsers; no runtime FPS or VRAM improvement is claimed.
