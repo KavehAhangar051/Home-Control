@@ -68,8 +68,9 @@ install_from_upstream() {
   tmp_dir="$(mktemp -d)"
 
   if [ -z "$source_dir" ] || [ ! -f "$source_dir/scripts/build_plugin.py" ]; then
-    echo "[te] Cloning microsoft/TokenEconomizer..." >&2
-    git clone --depth 1 --quiet "$TE_REPO_URL" "$tmp_dir/src"
+    local te_ref="${TE_REF:-main}"
+    echo "[te] Cloning microsoft/TokenEconomizer (${te_ref})..." >&2
+    git clone --depth 1 --branch "$te_ref" --quiet "$TE_REPO_URL" "$tmp_dir/src"
     source_dir="$tmp_dir/src"
   fi
 

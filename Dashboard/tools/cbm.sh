@@ -39,8 +39,10 @@ ensure_cbm_installed() {
     return 0
   fi
 
-  echo "[cbm] Installing codebase-memory-mcp..." >&2
-  curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash
+  local cbm_ver="${CBM_VERSION:-v0.12.1}"
+  local cbm_url="${CBM_DOWNLOAD_URL:-https://github.com/DeusData/codebase-memory-mcp/releases/download/${cbm_ver}}"
+  echo "[cbm] Installing codebase-memory-mcp ${cbm_ver}..." >&2
+  curl -fsSL "https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/${cbm_ver}/install.sh" | CBM_DOWNLOAD_URL="$cbm_url" bash
   if [ -x "$HOME/.local/bin/codebase-memory-mcp" ] && [ ! -L "$HOME/.local/bin/codebase-memory-mcp" ]; then
     mv -f "$HOME/.local/bin/codebase-memory-mcp" "$CBM_CACHE_BIN"
     chmod +x "$CBM_CACHE_BIN"

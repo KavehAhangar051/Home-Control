@@ -3,18 +3,19 @@
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "files": {
     "ignoreUnknown": true,
-    "experimentalScannerIgnores": [
-      "**/.next/**",
-      "**/.agent/**",
-      "**/node_modules/**",
-      "**/public/**",
-      "**/dist/**"
+    "includes": [
+      "**",
+      "!!**/.next",
+      "!!**/.agent",
+      "!!**/node_modules",
+      "!!**/public",
+      "!!**/dist"
     ]
   },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "style": {
         "noNonNullAssertion": "off"
       },
