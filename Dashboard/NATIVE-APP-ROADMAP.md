@@ -782,3 +782,101 @@ Build واقعی باید ثابت کند:
 | Unit tests | بخشی از تست‌های پایه موجودند |
 | Device tests | هنوز اجرا نشده |
 
+
+---
+
+## ۱۵. ممیزی Build، Static Export و Package Manager — ۲۰۲۶-۱۱-۲۰
+
+این بخش از روی فایل‌های واقعی package.json، bun.lock و next.config.ts در شاخه main و مستندات رسمی جاری Next.js، Capacitor و Bun تهیه شده است. هیچ فایل اجرایی یا تنظیمات پروژه تغییر نکرده است.
+
+### ۱۵.۱ وضعیت واقعی ابزارها در Dashboard
+
+مقادیر فعلی مخزن:
+- Next.js: محدوده نسخه در package.json برابر ^16.4.6
+- React و React DOM: محدوده ^19.2.1
+- Bun: نسخه اعلام‌شده در packageManager برابر 1.4.4
+- Lockfile: bun.lock با lockfileVersion 2
+- Build: NODE_ENV=production next build --turbopack
+- Typecheck: tsc --noEmit
+- Tests: node --import ./tests/ts-loader.mjs --test tests/*.test.mjs
+- Check: ترکیب lint، typecheck و test
+- Next static export: در production به‌صورت پیش‌فرض فعال است؛ در dev server غیرفعال می‌شود.
+
+### ۱۵.۲ نتیجه مهم: خروجی Capacitor باید از out تغذیه شود
+
+در next.config.ts:
+- در Build غیر Development، مقدار output برابر export است؛ مگر اینکه DISABLE_HMR=true باشد.
+- خروجی استاندارد Next.js static export در پوشه out قرار می‌گیرد.
+- images.unoptimized از قبل فعال است؛ بنابراین وابستگی به Next Image Optimization server در این تنظیمات دیده نمی‌شود.
+- در حالت GITHUB_PAGES=true، basePath و assetPrefix به /Home-Control-Dashboard تغییر می‌کنند و trailingSlash فعال می‌شود.
+
+**تصمیم پیشنهادی برای Capacitor:**
+- webDir در capacitor.config.ts باید out باشد؛ Capacitor انتظار دارد webDir شامل index.html نهایی باشد.
+- Build موبایل باید با DISABLE_HMR خاموش و بدون GITHUB_PAGES=true اجرا شود تا مسیر فایل‌ها از ریشه بسته Native بارگذاری شود، نه زیرمسیر GitHub Pages.
+- قبل از اجرای cap sync باید وجود out/index.html و assetهای _next بررسی شود.
+- خروجی native باید از همان Build ثابت و قابل تکرار ساخته شود؛ Build dev server یا HMR برای بسته نهایی استفاده نشود.
+- appStartPath یا basePath سفارشی در فاز اول لازم نیست، مگر اینکه تست واقعی مسیرها خلاف آن را نشان دهد.
+
+منابع:
+- [Next.js App Router Static Exports](https://nextjs.org/docs/app/guides/static-exports)
+- [Capacitor Configuration: webDir](https://capacitorjs.com/docs/config)
+- [Capacitor: Add to an existing web app](https://capacitorjs.com/docs/getting-started)
+
+### ۱۵.۳ محدودیت‌های Static Export که باید در ممیزی نهایی پوشش داده شوند
+
+مستند رسمی Next.js تأیید می‌کند که Static Export برای قابلیت‌های متکی به سرور محدودیت دارد. مواردی مانند Server Actions، Route Handlers متکی به Request، Cookies، Headers، Proxy، Redirects، Rewrites، ISR و Dynamic Routes بدون پارامترهای قابل تولید در زمان Build پشتیبانی نمی‌شوند.
+
+در سورس فعلی، App Router بررسی‌شده ساده است و next.config.ts هم output: export را فعال می‌کند؛ این نشانه مثبت است، اما جایگزین بررسی همه routeها و وابستگی‌های runtime نیست.
+
+موارد لازم:
+1. جست‌وجوی نهایی تمام Route Handlerها، Server Actions و dynamic APIs در کل Dashboard.
+2. تأیید اینکه تمام مسیرهای موردنیاز اپ در زمان Build قابل تولید هستند.
+3. بررسی اینکه هیچ قابلیت حیاتی به سرور Next.js یا API Route داخلی متکی نیست.
+4. اجرای واقعی Build و بررسی محتویات out، نه اتکا به تنظیمات config به‌تنهایی.
+
+منبع:
+- [Next.js Static Export: Supported and Unsupported Features](https://nextjs.org/docs/app/guides/static-exports)
+
+### ۱۵.۴ Bun و Lifecycle Scriptها: اصلاح برداشت قبلی
+
+مستند رسمی Bun می‌گوید Bun برخلاف npm به‌طور پیش‌فرض lifecycle script دلخواه dependencyها را اجرا نمی‌کند؛ فقط بسته‌های مورد اعتماد در allowlist داخلی یا trustedDependencies اجرا می‌شوند. این رفتار مستقل از هشدار npm 12 است.
+
+**نتیجه برای Home-Control:**
+- صرف استفاده از Bun به معنی مشکل قطعی نصب Capacitor نیست.
+- پس از افزودن Capacitor و پلاگین‌ها باید packageها و اسکریپت‌های نصب آن‌ها بررسی شوند.
+- trustedDependencies نباید به‌صورت حدسی و گسترده تنظیم شود؛ فقط packageهایی که واقعاً به lifecycle script نیاز دارند، پس از بررسی مستندات و خروجی نصب مجاز شوند.
+- بعد از نصب، bun install --frozen-lockfile باید در محیط پاک و CI قابل تکرار باشد.
+- برای نسخه‌های Capacitor CLI که پشتیبانی می‌کنند، npx cap doctor نیز اجرا شود؛ چون مستند فعلی Capacitor به‌طور مشخص آن را برای تشخیص install scriptهای مسدودشده در npm 12 معرفی می‌کند. این دستور جایگزین بررسی رفتار Bun نیست.
+
+منابع:
+- [Bun Lifecycle Scripts](https://bun.sh/docs/pm/lifecycle)
+- [Bun Install and Frozen Lockfile](https://bun.sh/docs/pm/cli/install)
+- [Capacitor Environment Setup](https://capacitorjs.com/docs/getting-started/environment-setup)
+
+### ۱۵.۵ ترتیب Build و Sync پیشنهادی
+
+پس از تأیید فاز پیاده‌سازی، ترتیب قابل تکرار باید چنین باشد:
+
+1. نصب نسخه‌های هم‌تراز Capacitor Core، CLI و Android با Bun و ثبت bun.lock.
+2. ساخت Next.js با تنظیمات production static export.
+3. بررسی وجود out/index.html و مسیرهای asset.
+4. اجرای Capacitor sync برای کپی کردن out به پلتفرم Native.
+5. اجرای تست Android روی گوشی فیزیکی.
+6. پس از پایدار شدن Android، افزودن پلتفرم iOS روی محیط macOS/Xcode و اجرای همان Build/Sync.
+7. اجرای مجدد Checkهای Dashboard پس از هر تغییر وابستگی.
+
+این مراحل نقشه پیشنهادی‌اند و هنوز اجرا نشده‌اند.
+
+### ۱۵.۶ وضعیت این ممیزی
+
+| مورد | وضعیت |
+|---|---|
+| Next.js output export | از config تأیید شد |
+| پوشه خروجی out | خروجی پیش‌فرض مستند Next.js؛ باید در Build واقعی تأیید شود |
+| images.unoptimized | در config فعال است |
+| GitHub Pages basePath | شرطی و وابسته به GITHUB_PAGES |
+| Capacitor webDir=out | تصمیم پیشنهادی؛ config هنوز ساخته نشده |
+| Static Export compatibility | ساختار اولیه مناسب؛ ممیزی کامل runtime باقی است |
+| Bun 1.4.4 و bun.lock | از package.json و lockfile تأیید شد |
+| Lifecycle scripts | نیازمند بررسی dependencyهای Native پس از انتخاب نسخه |
+| Build و cap sync | هنوز اجرا نشده |
