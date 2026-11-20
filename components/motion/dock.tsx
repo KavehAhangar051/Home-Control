@@ -43,7 +43,7 @@ export function Dock({ children, size = 44, className }: DockProps) {
     <DockContext.Provider value={ctx}>
       <div
         className={cn(
-          "inline-flex h-auto items-center gap-1.5 rounded-[26px] border border-border-color bg-card-bg-solid/90 px-2 py-1.5 shadow-2xl backdrop-blur-xl transform-gpu",
+          "inline-flex h-auto items-center gap-1.5 rounded-[26px] border border-border-color bg-card-bg-solid/90 px-2 py-1.5 shadow-2xl backdrop-blur-xl",
           className,
         )}
       >
