@@ -128,15 +128,52 @@ export function useSlider({
     [disabled, commitFromX],
   );
 
+  const pendingClientXRef = useRef<number | null>(null);
+  const moveFrameRef = useRef<number | null>(null);
+
+  const cancelPendingPointerMove = useCallback(() => {
+    if (moveFrameRef.current !== null) cancelAnimationFrame(moveFrameRef.current);
+
+    moveFrameRef.current = null;
+    pendingClientXRef.current = null;
+  }, []);
+
+  const queuePointerMove = useCallback(
+    (clientX: number) => {
+      pendingClientXRef.current = clientX;
+
+      if (moveFrameRef.current !== null) return;
+
+      moveFrameRef.current = requestAnimationFrame(() => {
+        moveFrameRef.current = null;
+        const pendingClientX = pendingClientXRef.current;
+        pendingClientXRef.current = null;
+
+        if (pendingClientX !== null && draggingRef.current && !disabled) {
+          commitFromX(pendingClientX);
+        }
+      });
+    },
+    [disabled, commitFromX],
+  );
+
+  const flushPointerMove = useCallback(
+    (clientX: number) => {
+      cancelPendingPointerMove();
+      commitFromX(clientX);
+    },
+    [cancelPendingPointerMove, commitFromX],
+  );
+
   const onPointerMove = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
       if (!draggingRef.current || activePointerIdRef.current !== event.pointerId || disabled) {
         return;
       }
 
-      commitFromX(event.clientX);
+      queuePointerMove(event.clientX);
     },
-    [disabled, commitFromX],
+    [disabled, queuePointerMove],
   );
 
   const endDrag = useCallback(
@@ -152,11 +189,33 @@ export function useSlider({
     [onValueCommit],
   );
 
+  const onPointerUp = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (draggingRef.current && activePointerIdRef.current === event.pointerId) {
+        flushPointerMove(event.clientX);
+      }
+
+      endDrag(event);
+    },
+    [flushPointerMove, endDrag],
+  );
+
+  const onPointerCancel = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (activePointerIdRef.current !== event.pointerId) return;
+
+      cancelPendingPointerMove();
+      endDrag(event);
+    },
+    [cancelPendingPointerMove, endDrag],
+  );
+
   useEffect(() => {
     if (!dragging) return;
 
     const handleWindowBlur = () => {
       if (!draggingRef.current) return;
+      cancelPendingPointerMove();
       const pointerId = activePointerIdRef.current;
       activePointerIdRef.current = null;
       draggingRef.current = false;
@@ -170,7 +229,14 @@ export function useSlider({
     window.addEventListener("blur", handleWindowBlur);
 
     return () => window.removeEventListener("blur", handleWindowBlur);
-  }, [dragging, onValueCommit]);
+  }, [dragging, onValueCommit, cancelPendingPointerMove]);
+
+  useEffect(
+    () => () => {
+      cancelPendingPointerMove();
+    },
+    [cancelPendingPointerMove],
+  );
 
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLElement>) => {
@@ -223,9 +289,9 @@ export function useSlider({
       ref: trackRef,
       onPointerDown,
       onPointerMove,
-      onPointerUp: endDrag,
-      onPointerCancel: endDrag,
-      onLostPointerCapture: endDrag,
+      onPointerUp,
+      onPointerCancel,
+      onLostPointerCapture: onPointerCancel,
     },
     /** ARIA + keyboard props for the focusable slider element. */
     sliderProps: {
