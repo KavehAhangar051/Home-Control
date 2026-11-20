@@ -64,6 +64,8 @@ Do not commit `.env.local`, real credentials, private broker details, or API key
 | `bun run format` | Format source directories in place with Biome |
 | `bun run clean` | Remove `.next`, `out`, and `tsconfig.tsbuildinfo` |
 | `bun run start` | Run the Next.js server; not intended to preview the static `out/` export |
+| `bun run r -- <cmd>` | Run a shell command through the unified `rtk` + `TokenEconomizer` bridge |
+| `bun run tools:check` | Verify and auto-repair `rtk`, `TokenEconomizer`, `cbm`, symlinks, and permissions |
 
 Run `bun run lint`, `bun run typecheck`, and `bun run build` before submitting changes when possible, and update relevant documentation (`ARCHITECTURE.md`, `DESIGN.md`, `docs/*`) immediately after code changes.
 

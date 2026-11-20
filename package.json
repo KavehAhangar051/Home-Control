@@ -27,7 +27,8 @@
     "te:setup": "bash ./tools/te.sh setup",
     "r": "bash ./tools/r",
     "agent:start": "python3 ./tools/agent-bridge.py start",
-    "agent:end": "python3 ./tools/agent-bridge.py end"
+    "agent:end": "python3 ./tools/agent-bridge.py end",
+    "tools:check": "python3 ./tools/agent-bridge.py check"
   },
   "dependencies": {
     "@animate-ui/react": "^2.4.3",

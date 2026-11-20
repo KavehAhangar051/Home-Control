@@ -513,14 +513,38 @@ def end_session(quiet: bool = False) -> None:
         print(f"[TokenEconomizer] Folded session {sid}" + (f": {folded}" if folded else ""))
 
 
+def check_tools() -> int:
+    ensure_ready()
+    env = _tool_env()
+    checks = [
+        ("rtk", [_rtk_bin(), "--version"]),
+        ("te", [str(TE_BIN), "--cwd", str(ROOT_DIR), "doctor"]),
+        ("cbm", ["bash", str(ROOT_DIR / "tools" / "cbm.sh"), "cli", "list_projects"]),
+    ]
+    failed = 0
+    for name, cmd in checks:
+        proc = subprocess.run(cmd, env=env, cwd=str(ROOT_DIR), capture_output=True, text=True)
+        status = "ok" if proc.returncode == 0 else f"fail({proc.returncode})"
+        first_line = (proc.stdout or proc.stderr or "").strip().splitlines()[:1]
+        detail = first_line[0] if first_line else ""
+        print(f"[{name}] {status}" + (f" — {detail}" if detail else ""))
+        if proc.returncode != 0:
+            failed += 1
+    perms_ok = all(p.is_file() and os.access(p, os.X_OK) for p in EXECUTABLE_TOOLS)
+    print(f"[tools:+x] {'ok' if perms_ok else 'fail'}")
+    return 1 if (failed or not perms_ok) else 0
+
+
 def main() -> int:
     if len(sys.argv) < 2:
-        print("Usage: agent-bridge.py <ensure|start|run|end> [...]", file=sys.stderr)
+        print("Usage: agent-bridge.py <ensure|check|start|run|end> [...]", file=sys.stderr)
         return 2
     action = sys.argv[1]
     if action == "ensure":
         ensure_ready()
         return 0
+    if action == "check":
+        return check_tools()
     if action == "start":
         prompt = " ".join(sys.argv[2:]).strip() or "AI Studio task"
         sess = start_session(prompt, explicit=True)

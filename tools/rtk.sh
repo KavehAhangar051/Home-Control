@@ -120,8 +120,9 @@ ensure_rtk_installed() {
   fi
 
   if [ ! -x "$RTK_CACHE_BIN" ]; then
-    echo "[rtk] Installing rtk (Rust Token Killer)..." >&2
-    curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
+    local rtk_ver="${RTK_VERSION:-v1.2.1}"
+    echo "[rtk] Installing rtk ${rtk_ver} (Rust Token Killer)..." >&2
+    curl -fsSL "https://raw.githubusercontent.com/rtk-ai/rtk/${rtk_ver}/install.sh" | RTK_VERSION="$rtk_ver" sh
     if [ -x "$HOME/.local/bin/rtk" ]; then
       mv -f "$HOME/.local/bin/rtk" "$RTK_CACHE_BIN"
       chmod +x "$RTK_CACHE_BIN"
