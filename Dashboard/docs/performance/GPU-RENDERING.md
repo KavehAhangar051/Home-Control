@@ -299,3 +299,11 @@ This is a source-level execution map, not a measured performance finding. No FPS
 - `applyViewportToDom()` now returns from the readout-update section when the caller supplies a primed empty cache. This avoids repeating a document-wide `querySelectorAll` on every animation frame when the active canvas has no zoom-readout badges.
 - A `null` cache still means "not primed" and retains the one-off DOM discovery fallback. Non-empty cached readouts keep the existing update path. Viewport transforms, grid calculations, zoom values, animation timing, and visible output are unchanged.
 - This is a source-level hot-path reduction; its benefit is workload-dependent and should be confirmed in a Performance trace. No FPS or VRAM improvement is claimed.
+
+
+## Shared Bezier keyframes for paired signal particles
+
+- `CompositedBezierParticle` now caches generated transform/opacity keyframes in a `WeakMap` keyed by the immutable-by-convention curve object. The two signal particles rendered for the same active Canvas/Workflow wire receive the same curve reference, so Bezier sampling, arc-length calculation, and keyframe string generation happen once per shared curve instead of once per particle.
+- The cache is weakly keyed, so geometry entries can be reclaimed when the owning curve object becomes unreachable; it does not create an unbounded strong-reference cache.
+- Animation duration, delay, iteration count, easing, transform/opacity keyframes, particle count, and rendered appearance are unchanged. Each DOM element still owns its own WAAPI Animation instance.
+- This reduces duplicate initialization work and allocations; it does not move keyframe generation to the GPU or change per-frame compositor behavior. Runtime benefit depends on active wire count and should be profiled on target devices.

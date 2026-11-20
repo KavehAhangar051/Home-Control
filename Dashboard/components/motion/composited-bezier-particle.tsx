@@ -31,6 +31,7 @@ interface Point {
 const SAMPLE_COUNT = 64;
 const FADE_LENGTH = 0.08;
 const PARTICLE_ANCHOR = 7;
+const transformKeyframesCache = new WeakMap<CubicBezierCurve, Keyframe[]>();
 const activeAnimations = new Set<Animation>();
 let visibilityListenerAttached = false;
 
@@ -89,6 +90,15 @@ function evaluateBezier(curve: CubicBezierCurve, t: number): Point {
  * The browser can composite the resulting transform/opacity animation without
  * recalculating the path or updating React on every frame.
  */
+function getTransformKeyframes(curve: CubicBezierCurve): Keyframe[] {
+  const cached = transformKeyframesCache.get(curve);
+  if (cached) return cached;
+
+  const keyframes = createTransformKeyframes(curve);
+  transformKeyframesCache.set(curve, keyframes);
+  return keyframes;
+}
+
 function createTransformKeyframes(curve: CubicBezierCurve): Keyframe[] {
   const samples: Point[] = [];
   let totalLength = 0;
@@ -178,7 +188,7 @@ export function CompositedBezierParticle({
     }
 
     const animation = element.animate(
-      createTransformKeyframes({
+      getTransformKeyframes({
         startX,
         startY,
         control1X,
