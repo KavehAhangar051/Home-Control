@@ -521,3 +521,8 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - Cursor transform writes are skipped when the rounded pixel position has not changed, avoiding repeated style invalidation during sub-pixel settling. RAF cancellation uses an explicit null check so a valid frame identifier of zero is handled.
 - ActionSwap text and icon elements no longer request persistent transform layers when reduced motion is enabled; their existing reduced-motion transition behavior remains unchanged.
 
+### LUT viewport re-entry and animation-frame sentinel handling (2026-11-20)
+
+- Leaving the near-viewport region now invalidates any in-flight asynchronous WebGL renderer initialization and clears its pending state. If the image re-enters before the previous shader/program setup completes, the new visibility event can start a fresh initialization; the stale completion disposes its renderer instead of blocking re-entry.
+- The coalesced draw-frame handle now uses `null` as its inactive sentinel rather than numeric zero, so a valid animation-frame identifier of zero is still recognized as pending and can be deduplicated or cancelled correctly.
+- These changes address lifecycle correctness and redundant resource initialization. They do not change LUT output, image sizing, shader behavior, or visible transitions; no runtime GPU-memory/FPS measurement is claimed.
