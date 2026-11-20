@@ -10,11 +10,9 @@
 #include "Optimization/TypeTraits.h"      // returns_void_v
 
 #ifndef FASTFUNC_IRAM
-#if defined(ESP32) || defined(ESP8266)
-#define FASTFUNC_IRAM __attribute__((section(".iram1.text")))
-#else
+// Template instantiations in headers cannot share a fixed .iram1 section under
+// Xtensa GCC 14 (Arduino-ESP32 Core v3) without triggering section type conflicts.
 #define FASTFUNC_IRAM
-#endif
 #endif
 
 #ifndef FASTFUNC_HOT_OPT

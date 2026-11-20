@@ -42,7 +42,7 @@ public:
     return WiFi.status(); 
   }
 
-  wl_status_t run(uint32_t connectTimeoutMs = 5000) override {
+  wl_status_t run(unsigned int connectTimeoutMs = 5000) override {
     if (status() == WL_CONNECTED) {
       return WL_CONNECTED;
     }
