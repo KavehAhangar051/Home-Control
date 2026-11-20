@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { WebGL2LutRenderer } from "@/lib/gpu/webgl2-lut-renderer";
 import { isIdentityLut, type Lut3D } from "@/lib/gpu/lut3d";
 
@@ -29,10 +29,13 @@ export function GpuLutImage({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const drawRef = useRef<() => void>(() => {});
+  const initializeRef = useRef<() => void>(() => {});
   const lutRef = useRef(lut);
   const intensityRef = useRef(intensity);
   const [ready, setReady] = useState(false);
-  const passThroughRef = useRef(intensity <= 0 || isIdentityLut(lut));
+  const isPassThrough = useMemo(() => intensity <= 0 || isIdentityLut(lut), [intensity, lut]);
+  const passThroughRef = useRef(isPassThrough);
+  const isNearViewportRef = useRef(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -99,6 +102,8 @@ export function GpuLutImage({
       }
     };
 
+    initializeRef.current = initialize;
+
     const handleContextLost = (event: Event) => {
       event.preventDefault();
       renderer?.dispose();
@@ -123,7 +128,12 @@ export function GpuLutImage({
       typeof IntersectionObserver !== "undefined"
         ? new IntersectionObserver(
             (entries) => {
-              if (entries.some((entry) => entry.isIntersecting)) initialize();
+              if (entries.some((entry) => entry.isIntersecting)) {
+                isNearViewportRef.current = true;
+                initialize();
+              } else {
+                isNearViewportRef.current = false;
+              }
             },
             { rootMargin: "160px" },
           )
@@ -159,11 +169,15 @@ export function GpuLutImage({
     }
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    if (!intersectionObserver) initialize();
+    if (!intersectionObserver) {
+      isNearViewportRef.current = true;
+      initialize();
+    }
 
     return () => {
       disposed = true;
       drawRef.current = () => {};
+      initializeRef.current = () => {};
       resizeObserver?.disconnect();
       intersectionObserver?.disconnect();
       window.removeEventListener("resize", handleWindowResize);
@@ -179,9 +193,10 @@ export function GpuLutImage({
   useEffect(() => {
     lutRef.current = lut;
     intensityRef.current = intensity;
-    passThroughRef.current = intensity <= 0 || isIdentityLut(lut);
-    drawRef.current();
-  }, [lut, intensity]);
+    passThroughRef.current = isPassThrough;
+    if (passThroughRef.current) drawRef.current();
+    else if (isNearViewportRef.current) initializeRef.current();
+  }, [isPassThrough, lut, intensity]);
 
   return (
     <div ref={containerRef} className={`relative isolate overflow-hidden ${className}`}>

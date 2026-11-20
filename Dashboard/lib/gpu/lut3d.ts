@@ -113,6 +113,7 @@ export function createIdentityLut(size = 17): Lut3D {
  */
 export function isIdentityLut(lut: Lut3D): boolean {
   if (
+    !Number.isInteger(lut.size) || lut.size < MIN_LUT_SIZE || lut.size > MAX_LUT_SIZE ||
     lut.domainMin[0] !== 0 || lut.domainMin[1] !== 0 || lut.domainMin[2] !== 0 ||
     lut.domainMax[0] !== 1 || lut.domainMax[1] !== 1 || lut.domainMax[2] !== 1 ||
     lut.data.length !== lut.size ** 3 * 4
@@ -125,9 +126,9 @@ export function isIdentityLut(lut: Lut3D): boolean {
       for (let red = 0; red < lut.size; red++) {
         const offset = ((blue * lut.size + green) * lut.size + red) * 4;
         if (
-          lut.data[offset] !== red / (lut.size - 1) ||
-          lut.data[offset + 1] !== green / (lut.size - 1) ||
-          lut.data[offset + 2] !== blue / (lut.size - 1) ||
+          lut.data[offset] !== Math.fround(red / (lut.size - 1)) ||
+          lut.data[offset + 1] !== Math.fround(green / (lut.size - 1)) ||
+          lut.data[offset + 2] !== Math.fround(blue / (lut.size - 1)) ||
           lut.data[offset + 3] !== 1
         ) {
           return false;
