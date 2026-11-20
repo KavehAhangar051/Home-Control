@@ -144,9 +144,25 @@ export function Ascii({
   const [frame, setFrame] = useState(0);
   useEffect(() => {
     const step = ((reduce ? speed * 2.5 : speed) / frames.length) * 1000;
-    const id = setInterval(() => setFrame((f) => (f + 1) % frames.length), step);
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const start = () => {
+      if (!document.hidden && intervalId === undefined) {
+        intervalId = setInterval(() => setFrame((f) => (f + 1) % frames.length), step);
+      }
+    };
+    const stop = () => {
+      if (intervalId !== undefined) clearInterval(intervalId);
+      intervalId = undefined;
+    };
+    const handleVisibilityChange = () => (document.hidden ? stop() : start());
 
-    return () => clearInterval(id);
+    start();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [frames.length, speed, reduce]);
 
   return (

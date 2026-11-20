@@ -143,25 +143,39 @@ export function Scramble({ size, speed, reduce }: PartProps): React.JSX.Element 
     let tick = 0;
     const total = SCRAMBLE_TARGET.length + 4;
 
-    const id = setInterval(
-      () => {
-        const reveal = tick % total;
-        let s = "";
+    const update = () => {
+      const reveal = tick % total;
+      let nextText = "";
 
-        for (let i = 0; i < SCRAMBLE_TARGET.length; i++) {
-          s +=
-            i < reveal
-              ? SCRAMBLE_TARGET[i]
-              : SCRAMBLE_GLYPHS[Math.floor(Math.random() * SCRAMBLE_GLYPHS.length)];
-        }
+      for (let i = 0; i < SCRAMBLE_TARGET.length; i++) {
+        nextText +=
+          i < reveal
+            ? SCRAMBLE_TARGET[i]
+            : SCRAMBLE_GLYPHS[Math.floor(Math.random() * SCRAMBLE_GLYPHS.length)];
+      }
 
-        setText(s);
-        tick += 1;
-      },
-      (speed / SCRAMBLE_TARGET.length) * 1000 * 0.55,
-    );
+      setText(nextText);
+      tick += 1;
+    };
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const start = () => {
+      if (!document.hidden && intervalId === undefined) {
+        intervalId = setInterval(update, (speed / SCRAMBLE_TARGET.length) * 1000 * 0.55);
+      }
+    };
+    const stop = () => {
+      if (intervalId !== undefined) clearInterval(intervalId);
+      intervalId = undefined;
+    };
+    const handleVisibilityChange = () => (document.hidden ? stop() : start());
 
-    return () => clearInterval(id);
+    start();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [speed, reduce]);
 
   const displayText = reduce ? SCRAMBLE_TARGET : text;
@@ -327,15 +341,32 @@ export function Percent({ size, speed, reduce }: PartProps): React.JSX.Element {
     const start = { t: 0 };
     const tickMs = 40;
 
-    const id = setInterval(() => {
+    const update = () => {
       start.t += tickMs;
       const next = Math.min(100, Math.round((start.t / dur) * 100));
       setP(next);
 
       if (next >= 100) start.t = 0;
-    }, tickMs);
+    };
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const startInterval = () => {
+      if (!document.hidden && intervalId === undefined) {
+        intervalId = setInterval(update, tickMs);
+      }
+    };
+    const stopInterval = () => {
+      if (intervalId !== undefined) clearInterval(intervalId);
+      intervalId = undefined;
+    };
+    const handleVisibilityChange = () => (document.hidden ? stopInterval() : startInterval());
 
-    return () => clearInterval(id);
+    startInterval();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopInterval();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [speed, reduce]);
 
   return (

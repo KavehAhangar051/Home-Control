@@ -68,6 +68,7 @@ export function GpuLutImage({
       if (
         disposed ||
         document.hidden ||
+        !isNearViewportRef.current ||
         !renderer ||
         !image.complete ||
         image.naturalWidth === 0
