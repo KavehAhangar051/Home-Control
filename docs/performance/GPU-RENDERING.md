@@ -555,3 +555,8 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - The same module avoids redundant inline `rotate` style writes when a dragged node's rounded tilt has not changed, and avoids removing an already-empty property. The resulting CSS value and drag feedback are unchanged.
 - `components/custom-cursor/hooks/use-cursor-listeners.ts` ignores duplicate pointer-move coordinates while the cursor is already visible. This avoids scheduling a no-op animation frame when the pointer hardware reports the same position; first-entry visibility and all changed-coordinate interpolation remain unchanged.
 - These are source-level allocation and DOM-write reductions. They do not move pointer processing to the GPU and no frame-time, CPU, or VRAM measurement is claimed.
+
+### Release inactive LUT resources synchronously (20 November 2026)
+
+- When a `GpuLutImage` switches to an identity LUT or zero intensity, its draw scheduler now cancels any queued frame and immediately runs the existing pass-through cleanup. The WebGL renderer, textures, and drawing buffer are released without waiting for the next animation frame, including when the document is backgrounded and requestAnimationFrame is suspended.
+- Non-pass-through rendering remains coalesced to one animation frame, and shader output, image fallback, dimensions, and visible appearance are unchanged. This improves the timing of resource release; actual VRAM reclamation remains browser/driver-managed and is not measured.
