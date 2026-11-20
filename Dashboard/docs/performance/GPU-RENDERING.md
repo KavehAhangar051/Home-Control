@@ -349,3 +349,17 @@ Observed in the primary Renderer compositor pipeline:
 - The primary renderer pipeline reported 269 frames with main-thread animation and 112 with compositor animation. These flags are not additive and do not identify individual dashboard effects.
 
 This trace is a short mixed-activity capture, not a controlled 60/120/144 Hz animation benchmark. It does not establish a sustained FPS value or prove that the Canvas viewport animator caused the long task. Do not change a visual animation based on this trace alone. The next useful capture should use the target display resolution and DPR, isolate one repeatable interaction (for example Fit View, wheel zoom, or pan/inertia), and record the same interaction before and after any implementation change. Enable source maps in a development profiling build if source-level attribution is needed.
+
+### Source-mapped profiling builds
+
+The initial user trace contains a 100.7 ms `FunctionCall` in the deployed minified chunk `1irek62w6m78r.js` (reported function name `z`) and a 71.4 ms `RunMicrotasks` slice. The trace does not contain source maps, so the function cannot yet be attributed to an authored module. Do not infer that this is the Canvas animator or a GPU-rendering bottleneck.
+
+For a diagnostic static export with authored function/file attribution, build with:
+
+```sh
+ENABLE_PROFILING_SOURCEMAPS=true bun run build
+```
+
+This opt-in sets Next.js `productionBrowserSourceMaps`; the normal build remains unchanged and does not emit production browser source maps. Use the resulting profiling build for a new trace and save it with **Include resource content**, **Include script source maps**, and **Compress with gzip** enabled. Treat that trace as source-bearing project material. Do not deploy a profiling build as the normal production release solely to collect a trace.
+
+The next trace should isolate one repeatable Canvas action and use the target display mode. Compare the same action before/after; source attribution alone is not evidence of an optimization.
