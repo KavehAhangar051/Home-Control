@@ -267,3 +267,11 @@ Research:
 - [MDN — requestAnimationFrame](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame)
 
 This is a source-level execution map, not a measured performance finding. No FPS, frame-time, CPU utilization, or GPU memory values are inferred from source inspection.
+
+
+## Exact identity-LUT pass-through
+
+- `isIdentityLut()` recognizes only a byte-for-byte Float32 identity grid with the standard [0, 1] domain; approximate or creative LUTs are never treated as identity.
+- `GpuLutImage` skips WebGL context creation for an identity LUT or non-positive intensity and keeps the original browser image visible. If a live surface changes back to identity, its renderer resources are disposed and the WebGL overlay is hidden immediately.
+- This avoids source texture upload, LUT texture allocation/upload, shader execution, and an unnecessary GPU context for a no-op color transform. It also avoids precision changes from sampling an identity 3D texture. It does not claim to move DOM image decoding or browser UI work to the GPU.
+- The identity check is performed when the LUT/intensity inputs change, not per animation frame. A creative LUT continues to use the existing WebGL2 shader path.
