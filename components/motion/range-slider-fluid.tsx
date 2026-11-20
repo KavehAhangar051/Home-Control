@@ -45,7 +45,7 @@ export function FluidSlider({
     const measure = () => {
       const width = track.getBoundingClientRect().width;
 
-      if (width > 0) setTrackWidth(width);
+      if (width > 0) setTrackWidth((current) => (current === width ? current : width));
     };
 
     measure();
