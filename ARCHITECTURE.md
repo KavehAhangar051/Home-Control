@@ -450,6 +450,6 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 
 - The `Android APK` workflow runs on pushes to `main` and manual dispatch, builds only `app-debug.apk`, and retains the Actions artifact for 30 days.
 - After artifact upload, the workflow creates a GitHub **pre-release** and attaches the same APK. It uses the built-in GitHub CLI and the workflow token with `contents: write`; no third-party release action is required.
-- Release tags follow `android-build-<run-number>-<run-attempt>`. Including the attempt number keeps reruns of the same workflow run from colliding with an existing tag/release.
+- Release tags and Actions artifact names include both `<run-number>` and `<run-attempt>`. Including the attempt number keeps reruns of the same workflow run from colliding with an existing tag, release, or artifact. Pre-releases are explicitly excluded from the repository's Latest release.
 - The attached file is an **unsigned debug APK** for development and manual device validation. A GitHub Release does not make it a production-signed APK; release signing remains out of scope until separately approved.
 - GitHub Packages is not used because this deliverable is a downloadable APK asset, not a package-registry artifact.
