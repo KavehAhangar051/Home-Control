@@ -123,9 +123,28 @@ export function GpuLutImage({
     intersectionObserver?.observe(container);
 
     const handleWindowResize = () => draw();
+    let devicePixelRatioQuery: MediaQueryList | null = null;
+
+    const watchDevicePixelRatio = () => {
+      devicePixelRatioQuery?.removeEventListener("change", handleDevicePixelRatioChange);
+      devicePixelRatioQuery = window.matchMedia(
+        `(resolution: ${window.devicePixelRatio}dppx)`,
+      );
+      devicePixelRatioQuery.addEventListener("change", handleDevicePixelRatioChange, {
+        once: true,
+      });
+    };
+
+    const handleDevicePixelRatioChange = () => {
+      draw();
+      watchDevicePixelRatio();
+    };
+
     const handleVisibilityChange = () => {
       if (!document.hidden) draw();
     };
+
+    watchDevicePixelRatio();
 
     if (!resizeObserver) {
       window.addEventListener("resize", handleWindowResize, { passive: true });
@@ -140,6 +159,8 @@ export function GpuLutImage({
       resizeObserver?.disconnect();
       intersectionObserver?.disconnect();
       window.removeEventListener("resize", handleWindowResize);
+      devicePixelRatioQuery?.removeEventListener("change", handleDevicePixelRatioChange);
+      devicePixelRatioQuery = null;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       canvas.removeEventListener("webglcontextlost", handleContextLost);
       canvas.removeEventListener("webglcontextrestored", handleContextRestored);
