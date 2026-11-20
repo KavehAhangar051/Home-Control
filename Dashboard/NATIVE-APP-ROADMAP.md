@@ -1,0 +1,585 @@
+# نقشه راه و دفتر ثبت توسعه اپلیکیشن Native Home-Control
+
+> مرجع پایدار توسعه اپلیکیشن موبایل مبتنی بر داشبورد فعلی. در هر جلسه، ابتدا این سند و سورس جاری مخزن بررسی شود و کار از آخرین وضعیت ثبت‌شده ادامه یابد.
+
+- آخرین بازبینی: ۲۰ نوامبر ۲۰۲۶
+- مخزن: https://github.com/KavehAhangar051/Home-Control
+- محدوده: اپلیکیشن موبایل مبتنی بر Dashboard/
+- وضعیت: ممیزی و برنامه‌ریزی؛ Capacitor هنوز نصب نشده است.
+
+---
+
+## ۱. تصمیم‌های قطعی مالک پروژه
+
+| موضوع | تصمیم |
+|---|---|
+| پلتفرم | ابتدا Android، سپس iOS |
+| تجربه کاربری | ظاهر فعلی داشبورد با بهینه‌سازی موبایل |
+| فناوری Native | Capacitor |
+| کد UI و منطق | کد فعلی Next.js / React |
+| State | Zustand فعلی |
+| ارتباط IoT | حفظ MQTT و WebSocket فعلی مگر ضرورت فنی اثبات شود |
+| Package manager | حفظ Bun و lockfile فعلی |
+| دستگاه تست | مالک پروژه گوشی Android واقعی دارد |
+| تغییر فایل | پیش از هر تغییر در فایل‌های موجود، مسیر، شرح تغییر و دلیل فنی اعلام و تأیید صریح گرفته شود |
+| Git | پس از تأیید و اعمال تغییرات، Commit و Push؛ از Pull استفاده نشود |
+
+### اصل معماری
+
+یک کدبیس مشترک برای Web و Mobile؛ بدون بازنویسی داشبورد در React Native یا Flutter. Ionic UI نیز فعلاً جزو برنامه نیست.
+
+~~~text
+Dashboard (Next.js + React + TypeScript)
+  ├── UI / Components / Features
+  ├── Zustand stores
+  ├── MQTT.js
+  ├── Local ESP32 WebSocket
+  └── Browser-compatible services
+             |
+             v
+       Static Web Build
+             |
+             v
+       Capacitor Runtime
+          /       \
+      Android     iOS
+~~~
+
+---
+
+## ۲. وضعیت واقعی داشبورد در زمان ممیزی
+
+اطلاعات این بخش از سورس مخزن خوانده شده‌اند. در صورت تغییر سورس باید دوباره بررسی شوند.
+
+### ۲.۱ فناوری‌ها
+
+منبع: [Dashboard/package.json](https://github.com/KavehAhangar051/Home-Control/blob/main/Dashboard/package.json)
+
+| فناوری | مقدار ثبت‌شده در package.json |
+|---|---|
+| Next.js | `^16.4.6` |
+| React / React DOM | `^19.2.1` |
+| TypeScript | `^7.0.2` |
+| Tailwind CSS | `4.3.5` |
+| Zustand | `^5.0.13` |
+| MQTT.js | `^5.15.1` |
+| Motion | `^14.0.0` |
+| Bun | `1.4.4` در packageManager |
+
+این‌ها مقادیر manifest هستند، نه الزاماً نسخه دقیق resolve شده در lockfile. برای نسخه دقیق نصب‌شده باید bun.lock بررسی شود. در manifest بررسی‌شده، پکیج‌های Capacitor وجود نداشتند.
+
+### ۲.۲ اسکریپت‌های موجود
+
+- `bun run build`: Next.js production build با Turbopack
+- `bun run typecheck`: TypeScript بدون emit
+- `bun run lint`: Biome lint
+- `bun run test`: تست‌های Node در tests/*.test.mjs
+- `bun run check`: lint، typecheck و test
+- `bun run clean`: پاک کردن .next، out و tsconfig.tsbuildinfo
+
+هیچ‌یک از این فرمان‌ها هنگام ممیزی این سند اجرا نشده‌اند.
+
+### ۲.۳ Next.js و Static Export
+
+منابع:
+- [next.config.ts](https://github.com/KavehAhangar051/Home-Control/blob/main/Dashboard/next.config.ts)
+- [app/page.tsx](https://github.com/KavehAhangar051/Home-Control/blob/main/Dashboard/app/page.tsx)
+- [app/layout.tsx](https://github.com/KavehAhangar051/Home-Control/blob/main/Dashboard/app/layout.tsx)
+
+یافته‌های تأییدشده:
+
+1. پروژه از Next.js App Router استفاده می‌کند.
+2. app/page.tsx ورودی داشبورد را از DashboardClientEntry بارگذاری می‌کند.
+3. در حالت عادی production، مقدار output برابر `export` است.
+4. اگر `DISABLE_HMR === "true"` باشد، output برابر undefined می‌شود؛ بنابراین این متغیر نباید در Build موبایل فعال باشد.
+5. اگر `GITHUB_PAGES === "true"` باشد، basePath و assetPrefix مخصوص GitHub Pages فعال می‌شوند. Build موبایل باید بدون این حالت تولید شود.
+6. images.unoptimized فعال است.
+7. app/layout.tsx از چند فونت next/font/google و یک فونت محلی next/font/local استفاده می‌کند. Build واقعی باید از نظر دسترسی شبکه هنگام دریافت فونت‌ها و بسته‌بندی assetها بررسی شود.
+8. Root layout زبان فارسی، جهت RTL و viewportFit: cover را تنظیم می‌کند.
+
+**وضعیت:** ساختار برای Static Export امیدوارکننده است؛ سازگاری کامل تا اجرای Build و اجرای خروجی در Capacitor تأیید نشده است.
+
+### ۲.۴ فایل‌های کلیدی
+
+| فایل | نقش |
+|---|---|
+| Dashboard/next.config.ts | تنظیمات Next.js و Static Export |
+| Dashboard/app/page.tsx | ورودی صفحه اصلی |
+| Dashboard/app/layout.tsx | Root layout، فونت‌ها، RTL و metadata |
+| Dashboard/features/dashboard/components/layout/DashboardClientEntry.tsx | ورودی Client داشبورد |
+| Dashboard/features/iot/hooks/useIoTStore.ts | Zustand IoT store |
+| Dashboard/features/iot/hooks/usePreferencesStore.ts | تنظیمات محلی و Persist |
+| Dashboard/features/iot/services/mqtt/client.ts | تنظیمات و client MQTT |
+| Dashboard/features/iot/services/mqtt/init.ts | راه‌اندازی و مدیریت پیام‌های MQTT |
+| Dashboard/features/iot/services/mqttService.ts | Exportهای سرویس MQTT |
+| Dashboard/features/iot/hooks/usePageVisibility.ts | مدیریت visibility و resume مرورگر |
+| Dashboard/features/iot/hooks/achaemenidState/useConnectionStrategy.ts | استراتژی Local WebSocket در Native |
+| Dashboard/features/iot/services/localWs/client.ts | نگهداری و dispatch اتصال Local WebSocket |
+| Dashboard/features/iot/hooks/useVoiceCommand.ts | Hook فرمان صوتی |
+| Dashboard/features/iot/hooks/voiceRecognitionHelpers.ts | منطق session تشخیص گفتار |
+| Dashboard/lib/haptics.ts | بازخورد لرزشی مبتنی بر Web Vibration API |
+| Dashboard/features/iot/services/configBackupService.ts | Export/Import پشتیبان تنظیمات |
+| Dashboard/features/iot/components/workflows/workflowStorage.ts | ذخیره‌سازی Workflowها |
+| Dashboard/ARCHITECTURE.md | راهنمای معماری و قواعد مهندسی |
+| Dashboard/docs/TECHNOLOGY-ROADMAP.md | جهت‌گیری فنی و درس‌های مهندسی |
+
+---
+
+## ۳. ارتباط با ESP32 و وضعیت IoT
+
+مهاجرت نباید باعث تغییر بی‌دلیل پروتکل ESP32 شود.
+
+### ۳.۱ MQTT
+
+فایل‌ها:
+- [mqtt/client.ts](https://github.com/KavehAhangar051/Home-Control/blob/main/Dashboard/features/iot/services/mqtt/client.ts)
+- [mqtt/init.ts](https://github.com/KavehAhangar051/Home-Control/blob/main/Dashboard/features/iot/services/mqtt/init.ts)
+
+یافته‌های سورس:
+- MQTT.js استفاده می‌شود.
+- تنظیمات Broker از IoT store و در صورت نیاز Local Storage خوانده می‌شود.
+- Broker پیش‌فرض: `wss://broker.emqx.io:8084/mqtt`
+- base topic پیش‌فرض: `KamyarIoT/Achaemenid`
+- QoSهای 0، 1 و 2 پشتیبانی می‌شوند؛ پیش‌فرض 1 است.
+- پیام فرمان می‌تواند payload باینری داشته باشد.
+- در init.ts صف محدود و batch برای State و Telemetry وجود دارد؛ سقف پیش‌فرض صف 256 است.
+
+**تصمیم:** MQTT.js حفظ شود و اتصال، reconnect، دریافت پیام و انتشار فرمان روی گوشی واقعی تست شود.
+
+### ۳.۲ Local WebSocket مستقیم ESP32
+
+فایل‌ها:
+- [useConnectionStrategy.ts](https://github.com/KavehAhangar051/Home-Control/blob/main/Dashboard/features/iot/hooks/achaemenidState/useConnectionStrategy.ts)
+- [localWs/client.ts](https://github.com/KavehAhangar051/Home-Control/blob/main/Dashboard/features/iot/services/localWs/client.ts)
+
+یافته‌های تأییدشده:
+- createLocalWebSocketController به‌صورت dependency-injected پیاده‌سازی شده است.
+- توضیح کد آن را برای Capacitor Native builds معرفی می‌کند.
+- تشخیص Native به‌صورت پیش‌فرض با window.Capacitor?.isNative انجام می‌شود.
+- در محیط غیر Native اتصال Local WebSocket اجرا نمی‌شود.
+- URL اتصال: `ws://<localIp>:81`
+- پس از اتصال، فرمان get_state ارسال می‌شود.
+- پیام‌های state_sync، وضعیت پین‌ها، تایمرها، مقادیر آنالوگ و رزولوشن PWM را همگام می‌کنند.
+- در زمان قطع اتصال، وضعیت Local خاموش می‌شود و مسیر MQTT fallback می‌شود.
+- reconnect با exponential backoff محدود و full jitter انجام می‌شود.
+- هنگام cleanup، handlerها حذف و WebSocket بسته می‌شود.
+
+وجود Controller به معنی اثبات کارکرد آن در Android WebView نیست؛ تست گوشی واقعی الزامی است.
+
+### ۳.۳ ریسک شبکه و امنیت
+
+اتصال Local فعلی از ws:// استفاده می‌کند و رمزنگاری نشده است.
+
+موارد مستقل برای آزمایش:
+1. Mixed Content در WebView با توجه به Origin محلی Capacitor.
+2. سیاست Cleartext و Network Security Configuration اندروید.
+3. دسترسی اپ به شبکه Wi-Fi محلی.
+4. رفتار WebSocket در نسخه Android و WebView گوشی.
+5. تغییر IP یا Wi-Fi و reconnect.
+6. timeout و خطا در صورت خاموش بودن ESP32.
+
+از فعال کردن Cleartext سراسری یا Mixed Content برای نسخه انتشار، بدون بررسی امنیتی و تست محدود، خودداری شود.
+
+برای Target SDK 37 / Android 17 به بالا، دسترسی شبکه محلی به مجوز runtime جدید ACCESS_LOCAL_NETWORK وابسته می‌شود. طبق مستند Android این الزام برای target SDK 36 یا پایین‌تر اعمال نمی‌شود. هنگام افزایش Target SDK باید مجوز و UX درخواست آن طراحی شود.
+
+منابع رسمی:
+- [Android Network Security Configuration](https://developer.android.com/privacy-and-security/security-config)
+- [Android Cleartext Communication Risks](https://developer.android.com/privacy-and-security/risks/cleartext-communications)
+- [Android Local Network Permission](https://developer.android.com/privacy-and-security/local-network-permission)
+- [Capacitor Configuration](https://capacitorjs.com/docs/config)
+
+**هیچ راه‌حل امنیتی برای WebSocket انتخاب یا پیاده‌سازی نشده است.** تصمیم نهایی پس از تست عملی و ارزیابی WSS، تنظیمات محدود Network Security و در صورت لزوم Native transport گرفته شود.
+
+---
+
+## ۴. قابلیت‌های نیازمند Native Adapter یا تست
+
+### ۴.۱ Lifecycle
+
+فایل: features/iot/hooks/usePageVisibility.ts
+
+در حال حاضر visibilitychange و online مدیریت می‌شوند و هنگام بازگشت صفحه notifyMqttResume() اجرا می‌شود.
+
+پیشنهاد:
+- از پلاگین رسمی @capacitor/app برای App State و lifecycle واقعی Native استفاده شود.
+- یک Lifecycle Adapter کوچک ساخته شود.
+- منطق موجود MQTT resume دوباره‌نویسی نشود؛ رویداد Native به مسیر موجود متصل شود.
+- فرض نشود WebSocket یا MQTT در Background حتماً زنده می‌ماند.
+- پس از بازگشت، اتصال و State دستگاه با ESP32 همگام شود.
+
+### ۴.۲ Haptics
+
+فایل: Dashboard/lib/haptics.ts
+
+کد فعلی navigator.vibrate را استفاده می‌کند و در دستگاه فاقد API بدون خطا کنار می‌رود.
+
+پیشنهاد:
+- در Native از @capacitor/haptics استفاده شود.
+- API فعلی triggerHaptic حفظ و پیاده‌سازی پشت آن Adapter شود.
+- تنظیم کاربر، الگوهای فعلی و Reduced Motion رعایت شوند.
+- رفتار Web تغییر نکند.
+
+### ۴.۳ Voice Recognition
+
+فایل‌ها:
+- features/iot/hooks/useVoiceCommand.ts
+- features/iot/hooks/voiceRecognitionHelpers.ts
+
+یافته‌ها:
+- کد از SpeechRecognition یا webkitSpeechRecognition استفاده می‌کند.
+- زبان fa-IR است.
+- continuous و interimResults فعال هستند.
+- session controller مستقل و generation-based stale callback guard وجود دارد.
+- اگر API در مرورگر نباشد، قابلیت با پیام عدم پشتیبانی متوقف می‌شود.
+
+پیشنهاد:
+- API فعلی پشت Voice Adapter قرار گیرد.
+- پلاگین Native پس از مقایسه API، مجوزها، پشتیبانی فارسی و رفتار offline/online انتخاب شود.
+- توقف، نتیجه نهایی، خطا و callbackهای session حفظ شوند.
+- تشخیص فارسی روی گوشی واقعی آزمایش شود.
+
+هیچ پلاگین Voice در این مرحله انتخاب قطعی نشده است.
+
+### ۴.۴ Storage و انتقال تنظیمات
+
+یافته‌ها:
+- Preferences store از Zustand persist و Local Storage استفاده می‌کند.
+- کلید Preferences: home-control-preferences-v1
+- Workflow storage key: iot_workflows_studio_v1
+- تنظیمات MQTT می‌توانند با کلیدهای mqtt_broker_url، mqtt_base_topic و mqtt_qos ذخیره شوند.
+- URL مربوط به Cloudflare Worker با cloudflare_worker_url ذخیره می‌شود.
+- configBackupService.ts از schema برابر home-control-backup-v1 استفاده می‌کند و قابلیت Restore دارد.
+
+تصمیم:
+- در فاز اول Storage فعلی بی‌دلیل تعویض نشود.
+- نصب نسخه جدید Native نباید داده‌ها را پاک کند.
+- تغییر Capacitor app origin یا مسیر ذخیره‌سازی فقط با برنامه مهاجرت داده انجام شود.
+- برای داده حساس، Secure Storage بررسی شود؛ Local Storage محل مناسبی برای secret حساس نیست.
+- انتقال اطلاعات Chrome به اپ Native خودکار فرض نشود؛ Backup/Restore موجود بررسی شود.
+
+### ۴.۵ UI موبایل
+
+داشبورد Mobile Navigation از جمله MobileDockNav دارد. موارد تست:
+- Safe Area بالا و پایین
+- Status Bar و Navigation Bar
+- کیبورد مجازی و viewport
+- Android Back Button
+- لمس و drag/drop
+- اسکرول و ارتفاع صفحه
+- چرخش صفحه
+- فونت فارسی و RTL
+- Motion و Reduced Motion
+- Splash Screen و بازگشت از Background
+
+---
+
+## ۵. Capacitor و ابزارهای توسعه
+
+### ۵.۱ نسخه هدف
+
+نسخه مبنا: Capacitor 8 پایدار.
+
+در زمان ثبت سند، GitHub Releases نسخه 8.6.2 را آخرین نسخه شاخه 8 نشان می‌دهد. نسخه 9 در وضعیت Release Candidate بوده و برای اولین پیاده‌سازی انتخاب نمی‌شود.
+
+قبل از نصب واقعی، آخرین نسخه پایدار و هماهنگی نسخه تمام پکیج‌های @capacitor/* دوباره بررسی شود. Core، CLI، Android و پلاگین‌ها باید Major سازگار داشته باشند.
+
+منابع:
+- [Capacitor v8 Documentation](https://capacitorjs.com/docs)
+- [Capacitor Releases](https://github.com/ionic-team/capacitor/releases)
+
+### ۵.۲ محیط پیشنهادی
+
+| ابزار | مقدار/نیاز |
+|---|---|
+| Node.js | حداقل رسمی Capacitor 8: نسخه 22 یا بالاتر؛ نسخه 24 LTS به‌عنوان محیط استاندارد پیشنهادی پروژه |
+| Package manager | Bun موجود پروژه |
+| Android Studio | حداقل 2025.2.1 برای Capacitor 8 |
+| Android SDK | API 24+ برای پشتیبانی دستگاه؛ SDK پایدار API 36 در مستندات فعلی |
+| گوشی واقعی | موجود؛ برای تست Native و شبکه محلی |
+| Xcode | حداقل 26 برای فاز iOS |
+| macOS | برای Build محلی iOS ضروری |
+
+منابع:
+- [Capacitor Environment Setup](https://capacitorjs.com/docs/getting-started/environment-setup)
+- [Capacitor Android](https://capacitorjs.com/docs/android)
+- [Capacitor iOS](https://capacitorjs.com/docs/ios)
+
+### ۵.۳ ساختار پوشه پیشنهادی
+
+این ساختار هنوز ایجاد نشده و صرفاً پیشنهاد معماری است:
+
+~~~text
+Home-Control/
+├── Hardware/
+├── Database/
+└── Dashboard/
+    ├── app/
+    ├── components/
+    ├── features/
+    ├── lib/
+    ├── android/                 # پس از افزودن Android platform
+    ├── ios/                     # فاز دوم
+    ├── capacitor.config.ts
+    ├── package.json
+    ├── bun.lock
+    └── out/                     # Static Build؛ نباید در Git commit شود
+~~~
+
+پروژه Native درون Dashboard نگه داشته می‌شود تا یک کدبیس و یک مخزن حفظ شود. قبل از ایجاد پوشه‌ها، .gitignore بررسی شود.
+
+### ۵.۴ تنظیم Build
+
+Build موبایل باید:
+- در Production اجرا شود.
+- Static Export را فعال نگه دارد.
+- GITHUB_PAGES فعال نباشد.
+- DISABLE_HMR=true تنظیم نشده باشد.
+- خروجی out/ تولید کند.
+- در Capacitor، webDir به out اشاره کند.
+
+فرمان فعلی وب در package.json برابر bun run build است. اسکریپت جداگانه Native هنوز اضافه نشده است.
+
+Build واقعی باید ثابت کند:
+1. out/index.html تولید می‌شود.
+2. فایل‌های _next و assetها درست resolve می‌شوند.
+3. فونت‌ها و CSS در حالت محلی قابل بارگذاری‌اند.
+4. مسیرهای صفحه در WebView درست کار می‌کنند.
+5. importها در SSR یا زمان اجرای Web API خطا ایجاد نمی‌کنند.
+
+---
+
+## ۶. استراتژی Update اپلیکیشن
+
+دو نوع Update مستقل‌اند:
+
+### ۶.۱ Native/Binary Update
+
+تغییرات زیر معمولاً Build و انتشار نسخه جدید Native می‌خواهند:
+- افزودن یا حذف پلاگین Native
+- تغییر Kotlin/Java یا Swift
+- تغییر Permissionها و Manifest
+- تغییر تنظیمات Native
+- تغییر نسخه یا ساختار Native runtime
+
+برای توزیع از Google Play، مسیر استاندارد به‌روزرسانی Binary از طریق Google Play است.
+
+### ۶.۲ Web Asset Update / OTA
+
+از نظر فنی راهکارهایی برای دریافت Bundleهای HTML/CSS/JavaScript وجود دارند:
+- [Capawesome Live Update](https://capawesome.io/docs/plugins/live-update/)
+- [Ionic Appflow Live Updates](https://ionic.io/docs/appflow/deploy/deploy-live-update)
+
+اما امکان فنی به معنی مجاز بودن هر نوع تغییر از راه دور نیست.
+
+سیاست فروشگاه‌ها باید پیش از انتخاب OTA بررسی شود:
+- Google Play درباره self-update و دانلود کد اجرایی محدودیت دارد. JavaScript در WebView از منظر interpreter استثناهای مشخصی دارد، اما کد بارگذاری‌شده نباید موجب نقض سیاست‌ها شود.
+- Apple App Review Guideline 2.5.2 دانلود/اجرای کدی را که قابلیت‌ها یا عملکرد اپ را تغییر می‌دهد محدود می‌کند.
+
+سیاست محافظه‌کارانه:
+1. در نسخه اول OTA نصب نشود.
+2. ابتدا انتشار Native و نسخه‌بندی تثبیت شود.
+3. پس از بررسی سیاست توزیع واقعی، OTA برای تغییرات سازگار و مجاز Web assets ارزیابی شود.
+4. Bundle نسخه‌بندی، اعتبارسنجی و Rollback داشته باشد.
+5. تغییر Native با OTA جایگزین نشود.
+6. Update در میانه کنترل دستگاه یا ارتباط حساس باعث Reload ناخواسته WebView نشود.
+
+منابع رسمی:
+- [Google Play Device and Network Abuse](https://support.google.com/googleplay/android-developer/answer/16559646)
+- [Google Play App Updates](https://developer.android.com/google/play/app-updates)
+- [Apple App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
+- [Capawesome Live Update README](https://github.com/capawesome-team/capacitor-plugins/blob/main/packages/live-update/README.md)
+
+---
+
+## ۷. نقشه راه مرحله‌به‌مرحله
+
+### فاز ۰ — ممیزی و آماده‌سازی (مرحله فعلی)
+
+- [x] تصمیم پلتفرم: Android سپس iOS
+- [x] تصمیم UI: ظاهر مشترک با بهینه‌سازی موبایل
+- [x] بررسی اولیه Next.js، React و Static Export
+- [x] بررسی اولیه MQTT و Local WebSocket
+- [x] شناسایی نیاز Lifecycle، Voice و Haptics
+- [x] شناسایی Storageهای مهم
+- [x] تأیید موجود بودن گوشی Android واقعی
+- [x] ایجاد این سند به‌عنوان دفتر ثبت پروژه
+- [ ] تکمیل ممیزی وابستگی‌های Browser API و مسیرهای صفحه
+- [ ] بررسی .gitignore برای Native folders و خروجی Build
+- [ ] اجرای Baseline دست‌نخورده Build، typecheck، lint و test
+- [ ] بررسی فونت‌های Google در Build واقعی
+- [ ] بررسی پوشش تست Local WebSocket controller
+
+### فاز ۱ — تعیین تکلیف ریسک‌های فنی
+
+- [ ] طراحی تست ws://<ESP32-IP>:81 در WebView
+- [ ] آزمایش Cleartext و Mixed Content روی گوشی
+- [ ] ثبت نسخه Android و System WebView گوشی
+- [ ] آزمایش MQTT روی Wi-Fi محلی و اینترنت موبایل
+- [ ] بررسی reconnect و state synchronization پس از Background/Foreground
+- [ ] انتخاب Native Voice با پشتیبانی فارسی
+- [ ] تعیین نیاز Storage و انتقال Backup
+- [ ] تصمیم درباره مجوز شبکه محلی بر اساس Target SDK
+
+### فاز ۲ — آماده‌سازی تغییرات و تأیید مالک
+
+قبل از تغییر هر فایل موجود، فهرست دقیق فایل‌ها، تغییرات و دلیل فنی به مالک اعلام شود و تأیید صریح گرفته شود.
+
+- [ ] ارائه فهرست فایل‌های نیازمند تغییر
+- [ ] ارائه فهرست پکیج‌های موردنیاز با نسخه‌های سازگار
+- [ ] ارائه طرح capacitor.config.ts
+- [ ] ارائه طرح اسکریپت Build موبایل
+- [ ] دریافت تأیید مالک
+
+### فاز ۳ — افزودن Capacitor و Android
+
+پس از تأیید:
+- [ ] نصب پکیج‌های Capacitor 8 با Bun
+- [ ] ایجاد capacitor.config.ts
+- [ ] تنظیم App ID و App Name نهایی
+- [ ] تنظیم webDir: "out"
+- [ ] اضافه کردن Android platform
+- [ ] بررسی فایل‌های Native تولیدشده
+- [ ] Static Build و سپس cap sync
+- [ ] باز کردن پروژه در Android Studio
+- [ ] ساخت Debug APK و نصب روی گوشی
+
+### فاز ۴ — تست گوشی واقعی
+
+- [ ] نصب تازه و اولین اجرا
+- [ ] باز شدن صفحات اصلی
+- [ ] نمایش فارسی، RTL و فونت‌ها
+- [ ] Safe Area و Status Bar
+- [ ] Android Back Button
+- [ ] کیبورد مجازی
+- [ ] اتصال Wi-Fi محلی
+- [ ] اتصال Local WebSocket به ESP32
+- [ ] دریافت State Sync کامل
+- [ ] ارسال فرمان و دریافت ACK/State
+- [ ] قطع و وصل Wi-Fi
+- [ ] خاموش و روشن کردن ESP32
+- [ ] قطع اینترنت در حالی که LAN برقرار است
+- [ ] قطع LAN و بررسی fallback به MQTT
+- [ ] Background و بازگشت به اپ
+- [ ] بستن اجباری و اجرای مجدد
+- [ ] حفظ تنظیمات پس از بستن اپ
+- [ ] تست فرمان صوتی فارسی
+- [ ] تست Haptics
+- [ ] بررسی مصرف باتری و پایداری طولانی‌مدت
+
+### فاز ۵ — تثبیت Android و انتشار
+
+- [ ] رفع خطاهای بحرانی
+- [ ] اجرای تست‌های رگرسیون
+- [ ] ثبت نسخه و Build number
+- [ ] ساخت Signed APK برای توزیع مستقیم یا تست
+- [ ] ساخت AAB برای Google Play در صورت انتخاب این کانال
+- [ ] نگهداری امن کلید امضا و Backup
+- [ ] مستندسازی Release و Rollback
+- [ ] تصمیم درباره OTA پس از بررسی سیاست فروشگاه
+
+### فاز ۶ — iOS
+
+- [ ] بررسی Mac و Xcode 26+
+- [ ] افزودن iOS platform
+- [ ] بررسی ATS و Local Network در iOS
+- [ ] بررسی مجوز Microphone و Speech Recognition
+- [ ] بررسی Haptics و App Lifecycle
+- [ ] تست روی iPhone واقعی
+- [ ] آماده‌سازی App Store release
+
+---
+
+## ۸. تست‌ها و کیفیت فعلی پروژه
+
+راهنما: [Dashboard/ARCHITECTURE.md](https://github.com/KavehAhangar051/Home-Control/blob/main/Dashboard/ARCHITECTURE.md)
+
+در مستندات معماری، نتیجه ثبت‌شده قبلی تست‌ها 69 از 71 بوده و دو انتظار مرتبط با MQTT binary frame برای بررسی باقی مانده‌اند. این عدد نتیجه اجرای جدید در تاریخ این سند نیست و باید پیش از مهاجرت دوباره Baseline گرفته شود.
+
+در ممیزی فعلی تست اختصاصی قابل اتکایی برای createLocalWebSocketController شناسایی نشده است؛ پوشش واقعی باید با جست‌وجوی کامل فایل‌های تست تأیید شود.
+
+قواعد:
+- تست‌های موجود حذف یا برای سبز شدن مصنوعی ضعیف نشوند.
+- خطاهای قبلی MQTT از خطاهای جدید Native جدا ثبت شوند.
+- تست‌های Node مکمل تست گوشی واقعی هستند.
+- مالک پروژه تست دستی UI و دستگاه را انجام می‌دهد و نتیجه را گزارش می‌کند.
+
+---
+
+## ۹. قواعد کار با مخزن و تأیید تغییرات
+
+1. پیش از هر تغییر در فایل‌های موجود، مسیر فایل و شرح دقیق تغییر اعلام شود.
+2. تا زمان تأیید مالک، فایل‌های موجود تغییر نکنند.
+3. نصب یا حذف پکیج نیز پیش از اجرا اعلام و تأیید شود.
+4. تغییر Hardware، پروتکل ESP32 یا رفتار MQTT بدون ضرورت اثبات‌شده انجام نشود.
+5. از Git Pull استفاده نشود.
+6. پس از تأیید و انجام تغییرات، Commit و Push انجام شود.
+7. پس از هر مرحله، نتیجه تست، Commit و فایل‌های تغییرکرده ثبت شوند.
+8. خروجی Build مانند out/ نباید ناخواسته وارد Git شود.
+9. این سند پس از هر تصمیم معماری، تغییر مهم، تست دستگاه یا Release به‌روزرسانی شود.
+10. وضعیت‌ها صادقانه ثبت شوند: «بررسی سورس»، «Build شده»، «روی گوشی تست شده» و «منتشر شده» معانی متفاوت دارند.
+
+---
+
+## ۱۰. وضعیت فعلی در یک نگاه
+
+| مورد | وضعیت در زمان ایجاد سند |
+|---|---|
+| تصمیم معماری | قطعی |
+| انتخاب Capacitor 8 | پیشنهادی؛ نصب نشده |
+| ممیزی اولیه سورس | انجام شده |
+| Static Build واقعی | انجام نشده |
+| نصب Capacitor | انجام نشده |
+| Android project | ایجاد نشده |
+| APK | ساخته نشده |
+| تست گوشی واقعی | هنوز انجام نشده؛ گوشی موجود است |
+| تست MQTT در WebView | انجام نشده |
+| تست Local WebSocket در WebView | انجام نشده |
+| انتخاب Native Voice plugin | انجام نشده |
+| Native Haptics | انجام نشده |
+| OTA | بررسی معماری؛ انتخاب نشده |
+| iOS | فاز آینده |
+| تغییر فایل‌های موجود | انجام نشده |
+
+### نزدیک‌ترین کار بعدی
+
+1. ممیزی نهایی وابستگی‌های Browser API و مسیرهای Build.
+2. اجرای Baseline دست‌نخورده پروژه، در صورت فراهم بودن محیط اجرا.
+3. طراحی تست Android برای Local WebSocket و MQTT.
+4. ارائه فهرست فایل‌ها و پکیج‌های موردنیاز برای تأیید مالک.
+5. فقط پس از تأیید، نصب Capacitor و ساخت اولین APK.
+
+---
+
+## ۱۱. منابع رسمی
+
+### Capacitor
+- [Capacitor Documentation v8](https://capacitorjs.com/docs)
+- [Environment Setup](https://capacitorjs.com/docs/getting-started/environment-setup)
+- [Android](https://capacitorjs.com/docs/android)
+- [iOS](https://capacitorjs.com/docs/ios)
+- [App Plugin](https://capacitorjs.com/docs/apis/app)
+- [Haptics Plugin](https://capacitorjs.com/docs/apis/haptics)
+- [Capacitor Releases](https://github.com/ionic-team/capacitor/releases)
+
+### Next.js
+- [Static Exports](https://nextjs.org/docs/app/guides/static-exports)
+
+### Android
+- [Network Security Configuration](https://developer.android.com/privacy-and-security/security-config)
+- [Cleartext Communication Risks](https://developer.android.com/privacy-and-security/risks/cleartext-communications)
+- [Local Network Permission](https://developer.android.com/privacy-and-security/local-network-permission)
+- [Google Play App Updates](https://developer.android.com/google/play/app-updates)
+- [Google Play Device and Network Abuse Policy](https://support.google.com/googleplay/android-developer/answer/16559646)
+
+### Apple
+- [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
+
+---
+
+## ۱۲. تاریخچه تغییرات این سند
+
+| تاریخ | تغییر |
+|---|---|
+| ۲۰۲۶-۱۱-۲۰ | ایجاد سند اولیه؛ ثبت تصمیم‌های معماری، یافته‌های ممیزی، ریسک‌ها، منابع، نقشه راه و وضعیت شروع پروژه |
+
+> این فایل منبع حقیقت پروژه Native است. هرگاه وضعیت واقعی سورس با این سند اختلاف داشت، سورس فعلی ملاک است و سند باید اصلاح شود.
