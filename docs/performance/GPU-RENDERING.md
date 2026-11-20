@@ -526,3 +526,8 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - Leaving the near-viewport region now invalidates any in-flight asynchronous WebGL renderer initialization and clears its pending state. If the image re-enters before the previous shader/program setup completes, the new visibility event can start a fresh initialization; the stale completion disposes its renderer instead of blocking re-entry.
 - The coalesced draw-frame handle now uses `null` as its inactive sentinel rather than numeric zero, so a valid animation-frame identifier of zero is still recognized as pending and can be deduplicated or cancelled correctly.
 - These changes address lifecycle correctness and redundant resource initialization. They do not change LUT output, image sizing, shader behavior, or visible transitions; no runtime GPU-memory/FPS measurement is claimed.
+
+### Single-pass tokenization for .cube LUT rows (2026-11-20)
+
+- `parseCubeLut` now splits each non-empty, comment-stripped line once and reuses that token array for directive parsing and RGB triplet extraction. Previously, LUT data rows were split a second time and every line also created a rest-parameter array.
+- Parsed values, directive handling, row ordering, validation, clamping, and generated RGBA data remain unchanged. This reduces temporary array/string-tokenization work when loading larger 3D LUT files; it does not affect shader execution or establish a measured load-time improvement.
