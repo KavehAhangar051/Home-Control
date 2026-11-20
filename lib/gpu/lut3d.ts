@@ -113,6 +113,7 @@ export function createIdentityLut(size = 17): Lut3D {
  */
 export function isIdentityLut(lut: Lut3D): boolean {
   if (
+    !Number.isInteger(lut.size) || lut.size < MIN_LUT_SIZE || lut.size > MAX_LUT_SIZE ||
     lut.domainMin[0] !== 0 || lut.domainMin[1] !== 0 || lut.domainMin[2] !== 0 ||
     lut.domainMax[0] !== 1 || lut.domainMax[1] !== 1 || lut.domainMax[2] !== 1 ||
     lut.data.length !== lut.size ** 3 * 4
