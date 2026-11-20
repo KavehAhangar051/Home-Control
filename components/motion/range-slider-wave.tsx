@@ -24,7 +24,7 @@ export interface WaveSliderProps extends SliderOptions {
 /**
  * Equalizer slider: bars rise into a crest around the handle position and fall
  * back as it passes, so the value reads as a travelling wave. Runs purely via GPU
- * compositor `transform: scaleY(...) translateZ(0)` transitions without 32 JS spring instances.
+ * compositor-friendly `transform: scaleY(...)` transitions without 32 JS spring instances.
  */
 export function WaveSlider({ bars = BARS, barClassName, className, ...options }: WaveSliderProps) {
   const reduce = useReducedMotion();
