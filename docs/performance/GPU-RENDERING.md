@@ -485,3 +485,10 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - Pointer-down remains immediate. Pointer-up synchronously applies its final coordinate before firing the existing commit callback. Pointer cancellation, unrelated pointer IDs, window blur, lost capture, and unmount are handled without allowing stale queued movement to apply after the gesture ends.
 - Step snapping, keyboard behavior, controlled/uncontrolled values, visual motion, and commit semantics are retained. This reduces redundant main-thread updates; it does not move slider logic to the GPU and no FPS/INP measurement is claimed.
 - References: [Chrome input event scheduling](https://developer.chrome.com/blog/inside-browser-part4), [web.dev input handler guidance](https://web.dev/articles/debounce-your-input-handlers), [MDN `requestAnimationFrame`](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame).
+
+### Avoid forcing an extra static layer around perimeter sparks (2026-11-20)
+
+- Removed the wrapper's unconditional `translateZ(0)` from `NodePerimeterSpark`. The two rotating conic-gradient layers retain their existing `will-change: transform` hints while the spark is mounted; the non-animated clipping wrapper no longer explicitly requests a separate transformed stacking/compositing context.
+- Gradient geometry, masks, colors, opacity, rotation classes, durations, and the visible effect are unchanged. Browser layer promotion and physical memory placement remain implementation-dependent; this is a source-level layer-allocation hygiene change, not a measured VRAM or FPS gain.
+- Updated the component documentation to describe compositor eligibility without claiming guaranteed GPU-only execution or VRAM residency.
+- Reference: [MDN WebGL best practices — budget VRAM conservatively](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices).
