@@ -92,7 +92,7 @@ export function AudioTrackInfo({ trackInfo, isLoading, onNext, onPrev }: Props) 
           {[1, 2, 3, 4].map((bar) => (
             <div
               key={bar}
-              className="w-1 h-3 bg-accent3 rounded-full animate-pulse opacity-60"
+              className="w-1 h-3 bg-accent3 rounded-full animate-pulse transform-gpu will-change-[opacity,transform] opacity-60"
               style={{ animationDelay: `${bar * 0.1}s` }}
             />
           ))}

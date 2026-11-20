@@ -182,7 +182,10 @@ export default function AnalogInputConfigEditor({
             max={maxVal}
             value={highThreshold}
             onChange={(e) => {
-              const nextHigh = Math.min(maxVal, Math.max(0, Math.round(Number(e.target.value) || 0)));
+              const nextHigh = Math.min(
+                maxVal,
+                Math.max(0, Math.round(Number(e.target.value) || 0)),
+              );
               setHighThreshold(nextHigh);
               if (nextHigh === 0) {
                 setLowThreshold(0);
@@ -202,9 +205,7 @@ export default function AnalogInputConfigEditor({
             max={highThreshold}
             disabled={highThreshold === 0}
             value={highThreshold === 0 ? 0 : lowThreshold}
-            onChange={(e) =>
-              setLowThreshold(Math.max(0, Math.round(Number(e.target.value) || 0)))
-            }
+            onChange={(e) => setLowThreshold(Math.max(0, Math.round(Number(e.target.value) || 0)))}
             className="h-7.5 w-full rounded-lg border border-border-color bg-secondary px-2 font-mono text-xs tabular-nums text-text-primary outline-none focus:border-accent3 disabled:opacity-45"
           />
         </label>
@@ -225,9 +226,7 @@ export default function AnalogInputConfigEditor({
       <button
         type="button"
         disabled={
-          hasInvalidThresholds ||
-          resolution < MIN_ADC_RESOLUTION ||
-          resolution > MAX_ADC_RESOLUTION
+          hasInvalidThresholds || resolution < MIN_ADC_RESOLUTION || resolution > MAX_ADC_RESOLUTION
         }
         onClick={handleSave}
         className="h-8 w-full rounded-xl bg-accent3 px-3 text-xs font-semibold text-accent3-foreground transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"

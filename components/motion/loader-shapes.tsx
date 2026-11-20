@@ -65,6 +65,7 @@ export function Morph({ size, speed, reduce }: PartProps): React.JSX.Element {
       height={size}
       viewBox="0 0 100 100"
       role="img"
+      style={{ willChange: "transform" }}
       animate={reduce ? { opacity: [1, 0.4, 1] } : { rotate: MORPH_ROT, scale: MORPH_SCALE }}
       transition={
         reduce
@@ -96,7 +97,7 @@ export function Comet({ size, speed, reduce }: PartProps): React.JSX.Element {
   return (
     <span className="relative inline-block" style={{ width: size, height: size }}>
       <m.span
-        className="absolute inset-0"
+        className="absolute inset-0 will-change-transform"
         animate={reduce ? REDUCED.animate : { rotate: 360 }}
         transition={
           reduce
@@ -241,7 +242,7 @@ export function Newton({ size, speed, reduce }: PartProps): React.JSX.Element {
         return (
           <m.span
             key={i}
-            className="rounded-full bg-current"
+            className="rounded-full bg-current will-change-transform"
             style={{ width: d, height: d }}
             animate={reduce || !move ? undefined : { x: move.x }}
             transition={
@@ -275,7 +276,7 @@ export function Helix({ size, speed, reduce }: PartProps): React.JSX.Element {
         return (
           <span key={`row-${top}`}>
             <m.span
-              className="absolute rounded-full bg-current"
+              className="absolute rounded-full bg-current will-change-transform"
               style={{ width: dot, height: dot, left: size / 2 - dot / 2, top }}
               animate={
                 reduce
@@ -294,7 +295,7 @@ export function Helix({ size, speed, reduce }: PartProps): React.JSX.Element {
               }}
             />
             <m.span
-              className="absolute rounded-full bg-current"
+              className="absolute rounded-full bg-current will-change-transform"
               style={{ width: dot, height: dot, left: size / 2 - dot / 2, top }}
               animate={
                 reduce
@@ -349,7 +350,10 @@ export function Percent({ size, speed, reduce }: PartProps): React.JSX.Element {
         className="w-full overflow-hidden rounded-full bg-current/15"
         style={{ height: Math.max(3, size * 0.1) }}
       >
-        <span className="block h-full rounded-full bg-current" style={{ width: `${p}%` }} />
+        <span
+          className="block h-full w-full origin-left rounded-full bg-current will-change-transform"
+          style={{ transform: `scaleX(${p / 100}) translateZ(0)` }}
+        />
       </span>
     </span>
   );

@@ -108,7 +108,7 @@ export default function SegmentControls({
                   onPressedChange={() => setShowAutoOffMenu(!showAutoOffMenu)}
                   aria-label="تنظیم زمان خاموشی خودکار"
                   aria-expanded={showAutoOffMenu}
-                  className={`h-6 min-w-6 px-1.5 gap-1 rounded-md transition-[background-color,color,box-shadow,scale] duration-150 ease-out active:scale-[0.96] cursor-pointer group/timer-btn ${
+                  className={`h-6 min-w-6 px-1.5 gap-1 rounded-md transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96] cursor-pointer group/timer-btn ${
                     autoOffValue > 0
                       ? "text-accent3 bg-accent3/15 border border-accent3/30 aria-pressed:bg-accent3/15 data-[state=on]:bg-accent3/15"
                       : "text-text-muted bg-transparent aria-pressed:bg-secondary md:hover:text-text-primary md:hover:bg-secondary"
@@ -116,9 +116,11 @@ export default function SegmentControls({
                 >
                   <m.svg
                     aria-hidden="true"
-                    animate={autoOffValue > 0 ? { rotate: [0, -10, 10, -10, 10, 0] } : {}}
+                    animate={
+                      autoOffValue > 0 && !reduceMotion ? { rotate: [0, -10, 10, -10, 10, 0] } : {}
+                    }
                     transition={
-                      autoOffValue > 0
+                      autoOffValue > 0 && !reduceMotion
                         ? {
                             repeat: Infinity,
                             duration: DURATION.ambient,
@@ -127,6 +129,9 @@ export default function SegmentControls({
                           }
                         : {}
                     }
+                    style={{
+                      willChange: autoOffValue > 0 && !reduceMotion ? "transform" : undefined,
+                    }}
                     className="size-3.5 shrink-0 transition-transform group-hover/timer-btn:rotate-12"
                     xmlns="http://www.w3.org/2000/svg"
                     width="14"
@@ -170,7 +175,7 @@ export default function SegmentControls({
                 : { opacity: 0, y: -4, scale: 0.96, transition: TRANSITION_EXIT_QUICK }
             }
             transition={reduceMotion ? { duration: 0 } : TRANSITION_ENTER_QUICK}
-            className="absolute top-[calc(100%+8px)] left-0 w-64 origin-top-left bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-xl shadow-xl p-3 z-[120] cursor-default text-right"
+            className="absolute top-[calc(100%+8px)] left-0 w-64 origin-top-left transform-gpu bg-card-bg-solid border border-border-color rounded-xl shadow-xl p-3 z-[120] cursor-default text-right"
           >
             <div className="flex justify-between items-center mb-2.5">
               <span className="text-[11px] font-bold text-text-primary tabular-nums">

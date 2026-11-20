@@ -74,7 +74,7 @@ export default function WorkflowHeaderBar({
     <div
       dir="rtl"
       onPointerDown={(e) => e.stopPropagation()}
-      className="custom-scrollbar relative z-40 flex h-12 w-full shrink-0 items-center justify-between gap-2 overflow-x-auto border-b border-border-color bg-card-bg-solid/95 px-2.5 backdrop-blur-md sm:px-3"
+      className="custom-scrollbar relative z-40 flex h-12 w-full shrink-0 items-center justify-between gap-2 overflow-x-auto border-b border-border-color bg-card-bg-solid px-2.5 sm:px-3"
     >
       {/* Right side in RTL: Workflow Selector + CRUD + Export/Import/Share */}
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
@@ -243,7 +243,7 @@ export default function WorkflowHeaderBar({
             }`}
           >
             <span
-              className={`pointer-events-none inline-block size-[14px] rounded-[4px] bg-card-bg-solid dark:bg-foreground shadow-xs transition-transform duration-200 ${
+              className={`pointer-events-none inline-block size-[14px] rounded-[4px] bg-card-bg-solid dark:bg-foreground shadow-xs transform-gpu will-change-transform transition-transform duration-200 ${
                 activeWorkflow.enabled ? "translate-x-0" : "-translate-x-4"
               }`}
             />

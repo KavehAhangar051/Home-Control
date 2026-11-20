@@ -30,11 +30,11 @@ function getStatusText(
 }
 
 function getStatusDotClass(isPinOn: boolean, mode: "switch" | "push", isPending = false): string {
-  if (isPending) return "bg-accent3 animate-pulse";
+  if (isPending) return "bg-accent3 animate-pulse transform-gpu";
 
   if (!isPinOn) return "bg-text-muted opacity-45";
 
-  return mode === "push" ? "bg-accent3 animate-ping" : "bg-success";
+  return mode === "push" ? "bg-accent3 animate-ping transform-gpu" : "bg-success";
 }
 
 function PushModeBadge({ isPinOn, isSmallTrack }: { isPinOn: boolean; isSmallTrack: boolean }) {
@@ -88,7 +88,7 @@ function SwitchModeTrack({
       className={`relative inline-flex shrink-0 items-center justify-start p-0.5 transition-colors duration-150 ${trackSize} ${trackTone}`}
     >
       <span
-        className={`pointer-events-none inline-block shadow-2xs transform ${thumbSize} ${thumbTone} ${motionClass} ${thumbOffset}`}
+        className={`pointer-events-none inline-block shadow-2xs transform-gpu will-change-transform ${thumbSize} ${thumbTone} ${motionClass} ${thumbOffset}`}
       />
     </span>
   );

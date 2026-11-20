@@ -131,7 +131,7 @@ export default function WorkflowPalettePanel({
           }
           onPointerDown={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.stopPropagation()}
-          className="absolute top-12 bottom-0 left-0 z-30 flex w-[288px] max-w-[86vw] flex-col border-r border-border-color bg-card-bg-solid/95 shadow-xl backdrop-blur-xl"
+          className="absolute top-12 bottom-0 left-0 z-30 flex w-[288px] max-w-[86vw] flex-col border-r border-border-color bg-card-bg-solid shadow-xl transform-gpu will-change-transform"
         >
           <div className="shrink-0 space-y-2.5 border-b border-border-color p-3">
             <div className="flex items-center justify-between gap-2">
