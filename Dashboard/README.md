@@ -99,6 +99,6 @@ bun run android:apk
 
 The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`.
 
-The `Android APK` GitHub Actions workflow runs on pushes to `main` and can also be started manually from the Actions tab. It uploads the debug APK as a downloadable workflow artifact. This pipeline intentionally produces **APK only**: it does not build an AAB, sign a release, publish a GitHub Release, or depend on GitHub Pages.
+The `Android APK` GitHub Actions workflow runs on pushes to `main` and can also be started manually from the Actions tab. It uses `android-actions/setup-android@v4` with only `platform-tools`; the obsolete SDK `tools` package is no longer requested. The action installs command-line tools and accepts SDK licenses. It uploads the debug APK as a downloadable workflow artifact. This pipeline intentionally produces **APK only**: it does not build an AAB, sign a release, publish a GitHub Release, or depend on GitHub Pages.
 
 Capacitor packages are installed with Bun's `--no-save` option by the preparation script so the existing application dependency manifest and lockfile remain unchanged during this initial bootstrap. The package versions are pinned together at 8.6.2.

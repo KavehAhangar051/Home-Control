@@ -1524,3 +1524,39 @@ Hook فعلی Page Visibility از `visibilitychange` و `online` استفاده
 - [ ] بررسی MQTT و Local WebSocket روی گوشی واقعی
 
 **وضعیت:** پیکربندی و Workflow ثبت شده‌اند؛ تا پایان موفق Workflow، وجود APK قابل دریافت‌شده تأیید نشده است.
+
+
+---
+
+## ۱۵. رفع خطای نخستین Android SDK setup — ۲۰۲۶-۱۱-۲۰
+
+### علت ریشه‌ای
+
+در اجرای GitHub Actions با شناسه `44773488351` و Job `136417026614`، مرحله `Set up Android SDK` در `android-actions/setup-android@v3` شکست خورد. لاگ دقیقاً این پیام را ثبت کرد:
+
+```text
+Warning: Failed to find package 'tools'
+Error: .../sdkmanager failed with exit code 1
+```
+
+نسخه v3 اکشن، پکیج legacy با نام `tools` را در ورودی پیش‌فرض خود درخواست می‌کرد؛ Google آن پکیج را از مخزن SDK حذف کرده است. این خطا پیش از اجرای Bun build، Capacitor sync و Gradle رخ داده است؛ بنابراین هنوز هیچ نتیجه‌ای درباره صحت Build برنامه نمی‌دهد.
+
+### اصلاح ثبت‌شده
+
+- ارتقای `android-actions/setup-android` از v3 به v4.
+- تعیین صریح `packages: platform-tools` تا پکیج منسوخ `tools` درخواست نشود.
+- حذف مرحله دستی تکراری پذیرش License؛ اکشن Setup Android خودش Licenseها را می‌پذیرد.
+- باقی‌ماندن نصب صریح Android Platform 36 و Build Tools 36.0.0 در مرحله بعدی.
+- مستندات README و ARCHITECTURE همگام شدند.
+
+### وضعیت اعتبارسنجی
+
+- [x] علت ریشه‌ای از لاگ Job تأیید شد.
+- [x] Workflow اصلاح و Push شد.
+- [ ] اجرای مجدد Workflow با نسخه جدید setup-android
+- [ ] عبور از Android SDK setup
+- [ ] تولید و بارگذاری APK به‌عنوان Artifact
+
+**Commit اصلاح:** `50027e2f85643a789567a92e73c0266c3fe63f4e`
+
+**وضعیت:** رفع علت مشخص ثبت شده است؛ موفقیت کل Build و تولید APK هنوز نیازمند نتیجه اجرای جدید است.

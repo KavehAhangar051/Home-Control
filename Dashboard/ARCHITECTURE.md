@@ -441,6 +441,6 @@ The Android shell uses Capacitor 8.6.2 and packages the existing static Next.js 
 - `bun run android:prepare` installs the pinned Capacitor 8 packages without changing `package.json` or `bun.lock`, then generates the Android platform if it is not present.
 - `bun run android:apk` runs the production static export, synchronizes Capacitor assets, and invokes Gradle `assembleDebug`.
 - `android/app/build/outputs/apk/debug/app-debug.apk` is the installable debug artifact.
-- `.github/workflows/android-apk.yml` builds on GitHub-hosted Ubuntu and uploads the APK as a workflow artifact. The workflow uses Node.js 22+, Java 21, and Android SDK API 36.
+- `.github/workflows/android-apk.yml` builds on GitHub-hosted Ubuntu and uploads the APK as a workflow artifact. The workflow uses Node.js 22+, Java 21, and Android SDK API 36. Android SDK setup uses `android-actions/setup-android@v4` with `packages: platform-tools`, avoiding the removed legacy `tools` package; the action itself installs current command-line tools and accepts licenses.
 
 This is an APK-only development pipeline. It intentionally excludes AAB, release signing, Google Play, OTA updates, and GitHub Releases. The generated Android project is created during preparation/CI rather than committed in this initial APK-only bootstrap. The first successful CI build and real-device validation are still required before claiming native runtime compatibility.
