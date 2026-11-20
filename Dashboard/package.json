@@ -28,7 +28,10 @@
     "r": "bash ./tools/r",
     "agent:start": "python3 ./tools/agent-bridge.py start",
     "agent:end": "python3 ./tools/agent-bridge.py end",
-    "tools:check": "python3 ./tools/agent-bridge.py check"
+    "tools:check": "python3 ./tools/agent-bridge.py check",
+    "android:prepare": "bun install @capacitor/core@8.6.2 @capacitor/cli@8.6.2 @capacitor/android@8.6.2 --no-save && (test -d android || cap add android)",
+    "android:sync": "cap sync android",
+    "android:apk": "bun run build && bun run android:sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@animate-ui/react": "^2.4.3",
