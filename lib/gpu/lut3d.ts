@@ -24,7 +24,7 @@ export function parseCubeLut(source: string): Lut3D {
   let domainMax: [number, number, number] = [1, 1, 1];
   const values: number[] = [];
 
-  for (const rawLine of source.replace(/^\\uFEFF/, "").split(/\r?\n/)) {
+  for (const rawLine of source.replace(/^\uFEFF/, "").split(/\r?\n/)) {
     const line = rawLine.replace(/#.*/, "").trim();
     if (!line || line.startsWith("TITLE")) continue;
 
