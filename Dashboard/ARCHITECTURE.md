@@ -497,3 +497,8 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 ### Comet and Bubble Slider layer-hint policy (20 November 2026)
 
 `components/motion/loader-shapes.tsx` applies the Comet wrapper's transform-layer hint only when normal-motion rotation is active; reduced-motion mode animates opacity only. `components/motion/range-slider-bubble.tsx` no longer forces a separate transform layer on the inner thumb: horizontal movement remains on its parent Motion transform, and the thumb scale interaction remains unchanged. These changes reduce explicit layer requests without changing visuals or interaction; they are not measured GPU-memory/FPS claims.
+
+
+### Workspace swipe transient state (20 November 2026)
+
+`features/dashboard/hooks/useWorkspaceSwipe.ts` keeps touch-start and touch-move coordinates in refs rather than component state. Frequent touch-move events no longer trigger React renders merely to store pointer coordinates; swipe classification and selected-group updates still occur on touch end using the same thresholds and ordering. This is a main-thread React-work reduction, not a GPU operation or a visual change.
