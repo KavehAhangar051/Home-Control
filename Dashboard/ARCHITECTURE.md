@@ -492,3 +492,8 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 ### Helix loader reduced-motion compositor hints (20 November 2026)
 
 `components/motion/loader-shapes.tsx` applies `will-change: transform` to Helix particles only in normal-motion mode, where their `x` and `scale` values animate. Reduced-motion mode animates opacity only and no longer requests transform layers for those particles. Particle count, layout, timing, and both motion modes' visible behavior remain unchanged. This is a rendering-hint cleanup, not a measured GPU-memory or frame-rate result.
+
+
+### Comet and Bubble Slider layer-hint policy (20 November 2026)
+
+`components/motion/loader-shapes.tsx` applies the Comet wrapper's transform-layer hint only when normal-motion rotation is active; reduced-motion mode animates opacity only. `components/motion/range-slider-bubble.tsx` no longer forces a separate transform layer on the inner thumb: horizontal movement remains on its parent Motion transform, and the thumb scale interaction remains unchanged. These changes reduce explicit layer requests without changing visuals or interaction; they are not measured GPU-memory/FPS claims.
