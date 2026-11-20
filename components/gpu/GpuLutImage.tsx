@@ -34,6 +34,7 @@ export function GpuLutImage({
   const intensityRef = useRef(intensity);
   const [ready, setReady] = useState(false);
   const passThroughRef = useRef(intensity <= 0 || isIdentityLut(lut));
+  const isNearViewportRef = useRef(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -43,7 +44,6 @@ export function GpuLutImage({
 
     let renderer: WebGL2LutRenderer | null = null;
     let disposed = false;
-    let isNearViewport = false;
     setReady(false);
 
     const draw = () => {
@@ -128,10 +128,10 @@ export function GpuLutImage({
         ? new IntersectionObserver(
             (entries) => {
               if (entries.some((entry) => entry.isIntersecting)) {
-                isNearViewport = true;
+                isNearViewportRef.current = true;
                 initialize();
               } else {
-                isNearViewport = false;
+                isNearViewportRef.current = false;
               }
             },
             { rootMargin: "160px" },
@@ -169,7 +169,7 @@ export function GpuLutImage({
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     if (!intersectionObserver) {
-      isNearViewport = true;
+      isNearViewportRef.current = true;
       initialize();
     }
 
@@ -194,7 +194,7 @@ export function GpuLutImage({
     intensityRef.current = intensity;
     passThroughRef.current = intensity <= 0 || isIdentityLut(lut);
     if (passThroughRef.current) drawRef.current();
-    else if (isNearViewport) initializeRef.current();
+    else if (isNearViewportRef.current) initializeRef.current();
   }, [lut, intensity]);
 
   return (
