@@ -90,6 +90,7 @@ export interface SheetViewportAnimator {
 
 const MIN_INERTIA_SPEED_PX_PER_MS = 0.06;
 const STOP_INERTIA_SPEED_PX_PER_MS = 0.018;
+const STOP_INERTIA_SPEED_SQUARED = STOP_INERTIA_SPEED_PX_PER_MS ** 2;
 const INERTIA_FRICTION_PER_FRAME = 0.915;
 const MAX_INERTIA_SPEED_PX_PER_MS = 3.2;
 
@@ -273,7 +274,6 @@ export function createSheetViewportAnimator(
     const initialVp = deps.getCurrentViewport();
     let floatX = initialVp.x;
     let floatY = initialVp.y;
-    // Pan inertia only changes position; zoom remains fixed until this loop ends.
     const zoom = initialVp.zoom;
     let lastTime = performance.now();
     activeMode = "inertia";
@@ -287,7 +287,7 @@ export function createSheetViewportAnimator(
       vy *= decay;
 
       const speedSquared = vx * vx + vy * vy;
-      if (speedSquared < STOP_INERTIA_SPEED_PX_PER_MS * STOP_INERTIA_SPEED_PX_PER_MS) {
+      if (speedSquared < STOP_INERTIA_SPEED_SQUARED) {
         activeFrameId = null;
         activeMode = "idle";
         const settled: CanvasViewport = {
