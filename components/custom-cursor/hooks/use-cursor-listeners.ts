@@ -206,9 +206,10 @@ export function useHardwareCursorListeners({
         updateInnerTransform();
       }
 
-      if (scrollTimeout) clearTimeout(scrollTimeout);
+      if (scrollTimeout !== null) clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         isScrolling = false;
+        scrollTimeout = null;
       }, 100);
     };
 
@@ -243,7 +244,7 @@ export function useHardwareCursorListeners({
       document.removeEventListener("mouseover", onMouseOver);
       window.removeEventListener("scroll", onScroll);
 
-      if (scrollTimeout) clearTimeout(scrollTimeout);
+      if (scrollTimeout !== null) clearTimeout(scrollTimeout);
     };
   }, [cursorRef, innerRef, enabled]);
 }
