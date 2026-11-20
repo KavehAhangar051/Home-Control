@@ -54,7 +54,7 @@ function wouldIntroduceCycle(edges: WorkflowEdge[], sourceId: string, targetId: 
   while (head < queue.length) {
     const currentId = queue[head++];
 
-    if (visited.has(currentId)) continue;
+    if (!currentId || visited.has(currentId)) continue;
     if (currentId === sourceId) return true;
 
     visited.add(currentId);
