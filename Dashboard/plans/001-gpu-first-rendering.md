@@ -19,6 +19,9 @@ The dashboard already uses Motion, WAAPI, CSS transforms, and WebGL2, but some r
 
 ## Current state
 
+- The repository already contains compositor-oriented optimizations documented in `ARCHITECTURE.md` §28. Those are source-level changes, not proof of physical GPU/VRAM execution; the wording in that section now makes this limitation explicit.
+- A DPR-change listener was added to `components/gpu/GpuLutImage.tsx` so a display-density change triggers a redraw even when the CSS box size is unchanged. This is an isolated correctness fix for the opt-in LUT image surface, not a global dashboard renderer change.
+
 - `docs/superpowers/specs/2026-11-20-gpu-first-rendering-design.md` — approved product/technical design and constraints.
 - `docs/performance/GPU-RENDERING.md` — source-level inventory, LUT architecture, memory estimates, and GPU lifecycle rules. Expanded inventory added in commit `222f45e`.
 - `docs/performance/GPU-BASELINE-CAPTURE.md` — reproducible Chrome DevTools capture procedure, scenarios, refresh-rate budgets, diagnostic overlays, and result template.
@@ -78,9 +81,8 @@ Do not run `bun run format` without a scoped path in this task: its package scri
 
 ## Git workflow
 
-- Branch: `gpu-first-rendering-design`
-- Base: `main`
-- Keep changes on this branch; do not merge into `main` without a separate explicit instruction.
+- Primary development branch: `main`.
+- Apply future changes directly to `main`; do not create a feature branch for this work unless explicitly requested.
 - Commit each independently reviewable slice with a descriptive conventional commit.
 - Do not wait for GitHub Pages or other deployment workflows to complete.
 
@@ -151,3 +153,5 @@ Stop and report instead of improvising if:
 - A WebGL context, texture budget, or output size exceeds the measured device budget.
 - A verification command fails twice or exposes an unrelated baseline failure.
 - A planned source file has drifted from the current-state description.
+
+- The Canvas viewport source audit is documented in `docs/performance/GPU-RENDERING.md`: finite camera flights are a potential WAAPI candidate, while dynamic focal zoom and velocity-based inertia remain rAF-driven until a behavior-preserving migration is demonstrated. Source comments now describe transform layers as compositor candidates rather than claiming guaranteed GPU execution.
