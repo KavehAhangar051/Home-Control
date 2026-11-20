@@ -48,12 +48,14 @@ export default function PlaceholderCard({
         <Tooltip>
           <TooltipTrigger
             render={
-              <div
+              <button
+                type="button"
                 ref={handleRef}
-                className="size-6 flex items-center justify-center bg-secondary/80 border border-border md:hover:bg-accent text-muted-foreground md:hover:text-foreground cursor-grab active:cursor-grabbing transition-colors rounded-lg"
+                aria-label="جابه‌جایی جایگاه خالی"
+                className="touch-none size-6 flex items-center justify-center bg-secondary/80 border border-border md:hover:bg-accent text-muted-foreground md:hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 cursor-grab active:cursor-grabbing transition-colors rounded-lg"
               >
-                <GripVertical className="size-3.5" />
-              </div>
+                <GripVertical className="size-3.5" aria-hidden="true" />
+              </button>
             }
           />
           <TooltipContent>کشیدن جایگاه</TooltipContent>

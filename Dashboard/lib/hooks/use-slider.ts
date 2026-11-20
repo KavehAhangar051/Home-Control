@@ -1,6 +1,13 @@
 "use client";
 
-import { type KeyboardEvent, type PointerEvent, useCallback, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  type PointerEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { capturePointer, releasePointer } from "@/lib/touch";
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -62,6 +69,7 @@ export function useSlider({
   // The state drives visuals. Move reads this ref instead, so the first
   // pointermove after pointerdown does not have to wait on a re-render.
   const draggingRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
   const [internal, setInternal] = useState(defaultValue);
   const [dragging, setDragging] = useState(false);
   const controlled = value !== undefined;
@@ -105,11 +113,12 @@ export function useSlider({
 
   const onPointerDown = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
-      if (disabled) return;
+      if (disabled || event.button !== 0 || draggingRef.current) return;
       // Start the drag first: capture is a convenience, and a browser that
       // refuses it — or a test DOM that has no pointer capture at all — must
       // not take the drag down with it.
       draggingRef.current = true;
+      activePointerIdRef.current = event.pointerId;
       setDragging(true);
       capturePointer(event.currentTarget, event.pointerId);
       // A click on the track should land keyboard focus on the handle.
@@ -121,7 +130,9 @@ export function useSlider({
 
   const onPointerMove = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
-      if (!draggingRef.current || disabled) return;
+      if (!draggingRef.current || activePointerIdRef.current !== event.pointerId || disabled) {
+        return;
+      }
 
       commitFromX(event.clientX);
     },
@@ -130,15 +141,36 @@ export function useSlider({
 
   const endDrag = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
-      if (!draggingRef.current) return;
+      if (!draggingRef.current || activePointerIdRef.current !== event.pointerId) return;
 
-      releasePointer(event.currentTarget, event.pointerId);
+      activePointerIdRef.current = null;
       draggingRef.current = false;
+      releasePointer(event.currentTarget, event.pointerId);
       setDragging(false);
       onValueCommit?.(latestValueRef.current);
     },
     [onValueCommit],
   );
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    const handleWindowBlur = () => {
+      if (!draggingRef.current) return;
+      const pointerId = activePointerIdRef.current;
+      activePointerIdRef.current = null;
+      draggingRef.current = false;
+      if (trackRef.current && pointerId !== null) {
+        releasePointer(trackRef.current, pointerId);
+      }
+      setDragging(false);
+      onValueCommit?.(latestValueRef.current);
+    };
+
+    window.addEventListener("blur", handleWindowBlur);
+
+    return () => window.removeEventListener("blur", handleWindowBlur);
+  }, [dragging, onValueCommit]);
 
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLElement>) => {

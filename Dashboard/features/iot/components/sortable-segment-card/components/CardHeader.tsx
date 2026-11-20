@@ -69,7 +69,7 @@ export default function CardHeader({
               type="button"
               ref={handleRef}
               aria-label={`جابه‌جایی کارت ${segment.title}`}
-              className={`flex items-center justify-center rounded-lg border border-transparent text-text-muted md:hover:text-text-primary md:hover:bg-secondary md:hover:border-border-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 cursor-grab active:cursor-grabbing transition-colors shrink-0 ${
+              className={`touch-none flex items-center justify-center rounded-lg border border-transparent text-text-muted md:hover:text-text-primary md:hover:bg-secondary md:hover:border-border-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 cursor-grab active:cursor-grabbing transition-colors shrink-0 ${
                 isUltraCompact ? "size-6" : "size-7"
               }`}
             >

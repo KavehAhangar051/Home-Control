@@ -69,10 +69,10 @@ export function WorkflowCanvasGateDiagram({
   outputSignal,
 }: CanvasGateDiagramProps) {
   const hasInputs = incomingCount > 0;
-  const activeStroke = outputSignal ? "#10b981" : "currentColor";
+  const activeStroke = outputSignal ? "var(--success)" : "currentColor";
   const resolvedInputCount = inputCount ?? (kind === "logic_not" ? 1 : 2);
   const leadYs = buildInputLeadYs(resolvedInputCount);
-  const bodyFill = outputSignal ? "rgba(16, 185, 129, 0.14)" : "currentColor";
+  const bodyFill = outputSignal ? "var(--color-success-soft)" : "currentColor";
   const bodyFillOpacity = outputSignal ? 1 : 0.07;
 
   return (

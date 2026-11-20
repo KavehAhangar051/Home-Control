@@ -93,13 +93,13 @@ export default function WorkflowHeaderBar({
                 }
               }}
               aria-label="نام گردش کار"
-              className="h-8 w-36 rounded-lg border border-accent3 bg-bg-main px-2 text-xs font-bold text-text-primary outline-none sm:w-44"
+              className="h-8 w-36 rounded-lg border border-accent3 bg-bg-main px-2 text-xs font-bold text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-accent3/35 sm:w-44"
             />
             <button
               type="button"
               onClick={commitRename}
               aria-label="ثبت نام گردش کار"
-              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg bg-accent3 text-accent3-foreground"
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg bg-accent3 text-accent3-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
             >
               <Check className="size-3.5" />
             </button>
@@ -110,7 +110,7 @@ export default function WorkflowHeaderBar({
               aria-label="انتخاب گردش کار"
               value={activeWorkflow.id}
               onChange={(e) => onSelectWorkflow(e.target.value)}
-              className="h-8 max-w-[140px] cursor-pointer truncate rounded-lg border border-border-color bg-bg-main px-2 text-xs font-bold text-text-primary outline-none focus:border-accent3 sm:max-w-[200px]"
+              className="h-8 max-w-[140px] cursor-pointer truncate rounded-lg border border-border-color bg-bg-main px-2 text-xs font-bold text-text-primary outline-none focus:border-accent3 focus-visible:ring-2 focus-visible:ring-accent3/35 sm:max-w-[200px]"
             >
               {workflows.map((wf) => (
                 <option key={wf.id} value={wf.id}>

@@ -90,7 +90,7 @@ export default function GroupHeader({
                 type="button"
                 ref={handleRef}
                 aria-label={`جابه‌جایی گروه ${id}`}
-                className={`flex items-center justify-center rounded-lg text-text-muted md:hover:text-text-primary md:hover:bg-card-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 transition-colors duration-150 cursor-grab active:cursor-grabbing shrink-0 ${
+                className={`touch-none flex items-center justify-center rounded-lg text-text-muted md:hover:text-text-primary md:hover:bg-card-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 transition-colors duration-150 cursor-grab active:cursor-grabbing shrink-0 ${
                   isDenseHeader ? "w-6 h-7" : "w-7 h-8"
                 }`}
               >

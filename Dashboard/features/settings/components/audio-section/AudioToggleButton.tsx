@@ -33,12 +33,12 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
         >
           <div
             className={`size-3.5 rounded-[4px] shadow-sm transition-transform duration-300 ${
-              isMusicOn ? "bg-bg-main translate-x-0" : "bg-text-secondary -translate-x-4"
+              isMusicOn ? "bg-accent3-foreground translate-x-0" : "bg-text-secondary -translate-x-4"
             }`}
           />
         </div>
 
-        <div className="min-w-0 flex-1 space-y-1 text-right">
+        <div className="min-w-0 flex-1 space-y-1 text-start">
           <span
             className={`block text-sm font-bold transition-colors ${
               isMusicOn ? "text-accent3" : "text-text-secondary"
@@ -54,14 +54,14 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
         <div
           className={`shrink-0 rounded-xl p-2.5 transition-colors duration-200 ${
             isMusicOn
-              ? "bg-accent3-transparent text-accent3 shadow-[inset_0_0_8px_rgba(99,102,241,0.2)]"
+              ? "bg-accent3-transparent text-accent3 border border-accent3/30"
               : "bg-card-hover-bg text-text-muted"
           }`}
         >
           {isMusicOn ? (
-            <Activity className="size-5 animate-pulse" />
+            <Activity className="size-5 motion-safe:animate-pulse" aria-hidden="true" />
           ) : (
-            <VolumeX className="size-5" />
+            <VolumeX className="size-5" aria-hidden="true" />
           )}
         </div>
       </Toggle>

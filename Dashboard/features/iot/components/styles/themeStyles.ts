@@ -219,7 +219,7 @@ export function computeThemeCssVariables({
     "--warning": "oklch(79.5% 0.184 86.05)",
     "--warning-foreground": "oklch(24% 0.05 86)",
     "--info": "oklch(68.5% 0.169 237.32)",
-    "--info-foreground": isDark ? "#ededed" : "oklch(29% 0.06 243)",
+    "--info-foreground": isDark ? "#0f0f10" : "oklch(29% 0.06 243)",
     "--invert": isDark ? "oklch(35% 0.01 264)" : "oklch(20.5% 0.01 264)",
     "--invert-foreground": "oklch(98.5% 0 0)",
     "--shadow-border": isDark
@@ -241,7 +241,7 @@ export function getStaticThemeRules(isDark: boolean): string {
       outline-offset: -1px;
     }
 
-    html, body, button:not([data-font-preview]), h1:not([data-font-preview]), h2:not([data-font-preview]), h3:not([data-font-preview]), h4:not([data-font-preview]), h5:not([data-font-preview]), h6:not([data-font-preview]), select, span:not([data-font-preview]), input, textarea, .font-sans:not([data-font-preview]) {
+    html, body, button:not([data-font-preview]):not(.font-mono), h1:not([data-font-preview]):not(.font-mono), h2:not([data-font-preview]):not(.font-mono), h3:not([data-font-preview]):not(.font-mono), h4:not([data-font-preview]):not(.font-mono), h5:not([data-font-preview]):not(.font-mono), h6:not([data-font-preview]):not(.font-mono), select:not(.font-mono), span:not([data-font-preview]):not(.font-mono), input:not(.font-mono), textarea:not(.font-mono), .font-sans:not([data-font-preview]):not(.font-mono) {
       font-family: var(--selected-font) !important;
     }
   `;

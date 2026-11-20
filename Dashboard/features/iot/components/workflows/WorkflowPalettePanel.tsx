@@ -5,6 +5,7 @@ import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import React from "react";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { DURATION, EASE_DRAWER, EASE_IN, EXIT_DURATION, SPRING_LAYOUT } from "@/lib/ease";
+import { normalizePersianSearch } from "@/lib/persianText";
 import {
   PaletteGroupsSection,
   PaletteSegmentsSection,
@@ -45,13 +46,13 @@ export default function WorkflowPalettePanel({
   const [categoryFilter, setCategoryFilter] = React.useState<PaletteCategoryFilter>("all");
   const prefersReducedMotion = useReducedMotion();
   const shouldAnimateMotion = animationsEnabled && !prefersReducedMotion;
-  const normalizedQuery = query.trim().toLowerCase();
+  const normalizedQuery = normalizePersianSearch(query);
 
   const matchesSearch = React.useCallback(
     (fields: string[]) => {
       if (!normalizedQuery) return true;
 
-      return fields.some((f) => f.toLowerCase().includes(normalizedQuery));
+      return fields.some((f) => normalizePersianSearch(f).includes(normalizedQuery));
     },
     [normalizedQuery],
   );
@@ -159,7 +160,7 @@ export default function WorkflowPalettePanel({
                 onChange={(e) => setQuery(e.target.value)}
                 aria-label="جستجو در کتابخانه گره‌ها"
                 placeholder="جستجو..."
-                className="h-8 w-full rounded-lg border border-border-color bg-bg-main pr-8 pl-2.5 text-[11px] text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent3"
+                className="h-8 w-full rounded-lg border border-border-color bg-bg-main ps-8 pe-2.5 text-[11px] text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent3 focus-visible:ring-2 focus-visible:ring-accent3/35"
               />
             </div>
 

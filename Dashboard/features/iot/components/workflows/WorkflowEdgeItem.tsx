@@ -25,7 +25,7 @@ interface WorkflowEdgeItemProps {
 function resolveEdgeStrokeColor(isSelected: boolean, isActive: boolean): string {
   if (isSelected) return "var(--accent3)";
 
-  if (isActive) return "#10b981";
+  if (isActive) return "var(--success)";
 
   return "var(--border-color)";
 }
@@ -42,7 +42,7 @@ function WorkflowEdgeSignalParticles({
       <path
         d={path}
         fill="none"
-        stroke="#34d399"
+        stroke="color-mix(in oklab, var(--success) 82%, white)"
         strokeWidth={2.5}
         strokeDasharray="6 10"
         strokeLinecap="round"
@@ -52,13 +52,17 @@ function WorkflowEdgeSignalParticles({
         <>
           <circle
             r={4.5}
-            fill="#10b981"
+            fill="var(--success)"
             fillOpacity={0.28}
             className="pointer-events-none group-hover/edge:opacity-0"
           >
             <animateMotion dur="1.25s" repeatCount="indefinite" path={path} />
           </circle>
-          <circle r={2.5} fill="#a7f3d0" className="pointer-events-none group-hover/edge:opacity-0">
+          <circle
+            r={2.5}
+            fill="color-mix(in oklab, var(--success) 45%, white)"
+            className="pointer-events-none group-hover/edge:opacity-0"
+          >
             <animateMotion dur="1.25s" repeatCount="indefinite" path={path} />
           </circle>
         </>
@@ -138,7 +142,7 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
 
   const strokeColor = resolveEdgeStrokeColor(isSelected, isActive);
   const highlighted = isActive || isSelected;
-  const endpointFill = isActive ? "#10b981" : "var(--card-bg-solid)";
+  const endpointFill = isActive ? "var(--success)" : "var(--card-bg-solid)";
 
   return (
     <g className="group/edge pointer-events-auto">
@@ -247,7 +251,7 @@ export function WorkflowDraftWire({
         <path
           d={draftBezier.path}
           fill="none"
-          stroke="#10b981"
+          stroke="var(--success)"
           strokeWidth={7}
           strokeOpacity={0.22}
           strokeLinecap="round"
@@ -257,7 +261,7 @@ export function WorkflowDraftWire({
       <path
         d={draftBezier.path}
         fill="none"
-        stroke={isDraftMagnetic ? "#10b981" : "var(--accent3)"}
+        stroke={isDraftMagnetic ? "var(--success)" : "var(--accent3)"}
         strokeWidth={isDraftMagnetic ? 3 : 2.5}
         strokeDasharray={isDraftMagnetic ? "8 6" : "5 5"}
         strokeLinecap="round"
@@ -265,7 +269,7 @@ export function WorkflowDraftWire({
       />
 
       {isDraftMagnetic && animationsEnabled && !isLiteTier && (
-        <circle r={3} fill="#a7f3d0">
+        <circle r={3} fill="color-mix(in oklab, var(--success) 45%, white)">
           <animateMotion dur="0.7s" repeatCount="indefinite" path={draftBezier.path} />
         </circle>
       )}
@@ -274,14 +278,16 @@ export function WorkflowDraftWire({
         cx={draftAnchor.x}
         cy={draftAnchor.y}
         r={4.5}
-        fill={isDraftMagnetic ? "#10b981" : "var(--accent3)"}
+        fill={isDraftMagnetic ? "var(--success)" : "var(--accent3)"}
       />
       <circle
         cx={connectingDraft.pointerWorldX}
         cy={connectingDraft.pointerWorldY}
         r={isDraftMagnetic ? 5.5 : 4}
-        fill={isDraftMagnetic ? "#10b981" : "var(--card-bg-solid)"}
-        stroke={isDraftMagnetic ? "#a7f3d0" : "var(--accent3)"}
+        fill={isDraftMagnetic ? "var(--success)" : "var(--card-bg-solid)"}
+        stroke={
+          isDraftMagnetic ? "color-mix(in oklab, var(--success) 45%, white)" : "var(--accent3)"
+        }
         strokeWidth={2}
       />
     </g>
