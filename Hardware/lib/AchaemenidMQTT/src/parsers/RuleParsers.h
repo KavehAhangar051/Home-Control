@@ -14,6 +14,7 @@ public:
 
 private:
     void parseUpdateRule(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher, bool withAnalogTarget);
+    void parseUpdateAnalogRangeRules(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
 };
 
 } // namespace uniuno

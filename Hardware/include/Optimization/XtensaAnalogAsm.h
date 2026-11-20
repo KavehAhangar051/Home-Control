@@ -197,6 +197,62 @@ FORCE_INLINE bool asm_schmitt_eval(uint16_t val, uint16_t highTh, uint16_t lowTh
 }
 
 /**
+ * @brief Branchless analog range + hysteresis membership evaluator.
+ * Semantics:
+ * - If !wasInRange: returns (val >= minVal && val <= maxVal)
+ * - If wasInRange:  returns (val >= exitMin && val <= exitMax), where
+ *     exitMin = (minVal > hysteresis) ? (minVal - hysteresis) : 0
+ *     exitMax = min(maxScale, maxVal + hysteresis)
+ * Uses Xtensa LX6 MAX/MIN/SUB/EXTUI/MOVNEZ — zero conditional branches, zero pipeline flushes.
+ */
+FORCE_INLINE bool asm_range_eval(
+    uint16_t val,
+    uint16_t minVal,
+    uint16_t maxVal,
+    uint16_t hysteresis,
+    uint16_t maxScale,
+    bool wasInRange
+) {
+#if defined(__XTENSA__) || defined(ESP32)
+    int32_t effMin = static_cast<int32_t>(minVal);
+    int32_t effMax = static_cast<int32_t>(maxVal);
+    int32_t t1;
+    int32_t t2;
+    const int32_t v32 = static_cast<int32_t>(val);
+    const int32_t h32 = static_cast<int32_t>(hysteresis);
+    const int32_t scale32 = static_cast<int32_t>(maxScale);
+    const uint32_t was32 = wasInRange ? 1UL : 0UL;
+    asm volatile (
+        // t1 = exitMin = max(0, minVal - hysteresis)
+        "sub    %[t1],   %[eMin], %[h]       \n"
+        "movi   %[t2],   0                   \n"
+        "max    %[t1],   %[t1],   %[t2]      \n"
+        "movnez %[eMin], %[t1],   %[was]     \n"
+        // t1 = exitMax = min(maxScale, maxVal + hysteresis)
+        "add    %[t1],   %[eMax], %[h]       \n"
+        "min    %[t1],   %[t1],   %[scale]   \n"
+        "movnez %[eMax], %[t1],   %[was]     \n"
+        // inRange iff (v - eMin) >= 0 AND (eMax - v) >= 0 -> ((v - eMin) | (eMax - v)) >= 0
+        "sub    %[t1],   %[v],    %[eMin]    \n"
+        "sub    %[t2],   %[eMax], %[v]       \n"
+        "or     %[t1],   %[t1],   %[t2]      \n"
+        "extui  %[t1],   %[t1],   31, 1      \n"
+        : [eMin] "+&r" (effMin), [eMax] "+&r" (effMax), [t1] "=&r" (t1), [t2] "=&r" (t2)
+        : [v] "r" (v32), [h] "r" (h32), [scale] "r" (scale32), [was] "r" (was32)
+    );
+    return t1 == 0;
+#else
+    if (!wasInRange) {
+        return val >= minVal && val <= maxVal;
+    }
+    const uint16_t exitMin = (minVal > hysteresis) ? static_cast<uint16_t>(minVal - hysteresis) : 0;
+    const uint32_t rawMax = static_cast<uint32_t>(maxVal) + hysteresis;
+    const uint16_t exitMax = (rawMax > maxScale) ? maxScale : static_cast<uint16_t>(rawMax);
+    return val >= exitMin && val <= exitMax;
+#endif
+}
+
+/**
  * @brief Fast exact integer division by 1000 (ms -> seconds) using reciprocal multiply.
  * Avoids Xtensa's slow ~40-cycle software division (__udivsi3).
  * Exact for the entire uint32_t domain [0 .. 4,294,967,295].
