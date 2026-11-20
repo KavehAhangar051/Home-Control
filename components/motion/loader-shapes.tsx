@@ -97,7 +97,7 @@ export function Comet({ size, speed, reduce }: PartProps): React.JSX.Element {
   return (
     <span className="relative inline-block" style={{ width: size, height: size }}>
       <m.span
-        className="absolute inset-0 will-change-transform"
+        className={`absolute inset-0 ${reduce ? "" : "will-change-transform"}`}
         animate={reduce ? REDUCED.animate : { rotate: 360 }}
         transition={
           reduce
