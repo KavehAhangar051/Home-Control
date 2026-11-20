@@ -462,3 +462,10 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - The Bubble Slider thumb no longer forces an additional `will-change: transform` layer. Its horizontal movement remains on the existing parent Motion transform, while the thumb's scale interaction remains an ordinary transform animation that the browser can promote when appropriate.
 - Visible animation values, timing, geometry, pointer behavior, and reduced-motion behavior are unchanged. This is a source-level reduction in explicit layer requests, not a measured GPU-memory/FPS improvement. Browser layer promotion is implementation-dependent.
 - References: [web.dev animation guide](https://web.dev/articles/animations-guide), [MDN `will-change`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change).
+
+
+### Keep transient workspace swipe coordinates out of React state (2026-11-20)
+
+- `features/dashboard/hooks/useWorkspaceSwipe.ts` stores touch-start and touch-move coordinates in refs instead of React state. Touch-move events therefore no longer schedule React renders solely to retain the latest pointer coordinates; the same swipe threshold, axis-dominance check, group ordering, and selection callback remain in place at touch end.
+- This reduces avoidable main-thread React work during touch gestures. It does not change rendered UI or move gesture recognition to the GPU; gesture event handling still runs on the main thread.
+- Reference: [Vercel React Best Practices — transient values in refs](https://github.com/vercel/react-best-practices).
