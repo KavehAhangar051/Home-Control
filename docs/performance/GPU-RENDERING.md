@@ -566,3 +566,15 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - `sheetViewportAnimator.ts` now compares quantized in-flight camera values with the current viewport before dispatching transient updates. Flight, smooth focal zoom, and inertia no longer submit duplicate values on consecutive display frames when rounding produces no visible camera change. Final target application and commit behavior are unchanged.
 - Fluid and Bubble sliders now bail out of their `ResizeObserver` state update when the measured track width is identical to the stored width. Measurement and resize response remain intact; redundant React renders from duplicate observer notifications are avoided.
 - These are source-level reductions in repeated main-thread updates. They do not move camera math, pointer handling, or measurement to the GPU, and no FPS/CPU/VRAM benchmark is claimed.
+
+### Canvas pan style deduplication and cached motion preference (20 November 2026)
+
+- `nodeMotion.ts` caches the `prefers-reduced-motion` MediaQueryList instead of constructing a new query object on every pan-animation check. Its live `.matches` value is still read on each check, and the dashboard animation preference remains dynamically checked.
+- Per-node pan `rotate` and `translate` styles are now written independently only when their serialized values change. Cleanup likewise removes only properties that are currently set. The smoothing math, thresholds, CSS values, and gesture lifecycle are unchanged.
+- This reduces repeated style invalidation and media-query object creation in the pan hot path; no runtime frame-time or CPU measurement is claimed.
+
+### Avoid redundant LUT drawing-buffer resets and domain-validation callbacks (20 November 2026)
+
+- `GpuLutImage` now resets its WebGL canvas backing dimensions to 1×1 only when they are not already 1×1. Pass-through, offscreen disposal, and error fallback still dispose the renderer and release the drawing buffer, while avoiding repeated canvas dimension assignments that reset the WebGL drawing context.
+- `WebGL2LutRenderer` validates its fixed three-component LUT domain with direct numeric checks rather than invoking an array callback for every render. The same finite-value and increasing-domain constraints are retained.
+- These are source-level reductions in redundant canvas resets and per-render validation overhead. Browser/driver VRAM reclamation and runtime performance remain unmeasured.
