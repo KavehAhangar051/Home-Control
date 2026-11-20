@@ -359,22 +359,54 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
   const thumbRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
+  const onPointRef = useRef(onPoint);
   const onEndRef = useRef(onEnd);
+  onPointRef.current = onPoint;
   onEndRef.current = onEnd;
+  const pendingPointRef = useRef<{ x: number; y: number } | null>(null);
+  const pointFrameRef = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  const point = (event: PointerEvent<HTMLDivElement>) => {
+  const cancelPendingPoint = () => {
+    if (pointFrameRef.current !== null) {
+      cancelAnimationFrame(pointFrameRef.current);
+      pointFrameRef.current = null;
+    }
+    pendingPointRef.current = null;
+  };
+
+  const applyPoint = (clientX: number, clientY: number) => {
     const rect = railRef.current?.getBoundingClientRect();
 
     if (!rect || rect.width === 0 || rect.height === 0) return;
-    onPoint(
-      clamp((event.clientX - rect.left) / rect.width, 0, 1),
-      clamp((event.clientY - rect.top) / rect.height, 0, 1),
+    onPointRef.current(
+      clamp((clientX - rect.left) / rect.width, 0, 1),
+      clamp((clientY - rect.top) / rect.height, 0, 1),
     );
+  };
+
+  const flushPoint = (clientX: number, clientY: number) => {
+    cancelPendingPoint();
+    applyPoint(clientX, clientY);
+  };
+
+  const queuePoint = (clientX: number, clientY: number) => {
+    pendingPointRef.current = { x: clientX, y: clientY };
+
+    if (pointFrameRef.current !== null) return;
+
+    pointFrameRef.current = requestAnimationFrame(() => {
+      pointFrameRef.current = null;
+      const pending = pendingPointRef.current;
+      pendingPointRef.current = null;
+
+      if (pending) applyPoint(pending.x, pending.y);
+    });
   };
 
   const end = (event: PointerEvent<HTMLDivElement>) => {
     if (!draggingRef.current || activePointerIdRef.current !== event.pointerId) return;
+    cancelPendingPoint();
     activePointerIdRef.current = null;
     draggingRef.current = false;
     releasePointer(event.currentTarget, event.pointerId);
@@ -387,6 +419,7 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
 
     const handleWindowBlur = () => {
       if (!draggingRef.current) return;
+      cancelPendingPoint();
       const pointerId = activePointerIdRef.current;
       activePointerIdRef.current = null;
       draggingRef.current = false;
@@ -402,6 +435,13 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
     return () => window.removeEventListener("blur", handleWindowBlur);
   }, [dragging]);
 
+  useEffect(
+    () => () => {
+      cancelPendingPoint();
+    },
+    [],
+  );
+
   return {
     railRef,
     thumbRef,
@@ -414,12 +454,19 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
         setDragging(true);
         capturePointer(event.currentTarget, event.pointerId);
         thumbRef.current?.focus({ preventScroll: true });
-        point(event);
+        flushPoint(event.clientX, event.clientY);
       },
       onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
-        if (draggingRef.current && activePointerIdRef.current === event.pointerId) point(event);
+        if (draggingRef.current && activePointerIdRef.current === event.pointerId) {
+          queuePoint(event.clientX, event.clientY);
+        }
       },
-      onPointerUp: end,
+      onPointerUp: (event: PointerEvent<HTMLDivElement>) => {
+        if (draggingRef.current && activePointerIdRef.current === event.pointerId) {
+          flushPoint(event.clientX, event.clientY);
+        }
+        end(event);
+      },
       onPointerCancel: end,
       onLostPointerCapture: end,
     },
