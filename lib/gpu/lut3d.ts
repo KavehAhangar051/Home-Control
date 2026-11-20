@@ -20,7 +20,7 @@ export function parseCubeLut(source: string): Lut3D {
   let size = 0;
   let domainMin = [0, 0, 0];
   let domainMax = [1, 1, 1];
-  const values: number[][] = [];
+  const values: number[] = [];
 
   for (const rawLine of source.split(/\r?\n/)) {
     const line = rawLine.replace(/#.*/, "").trim();
@@ -48,9 +48,12 @@ export function parseCubeLut(source: string): Lut3D {
       continue;
     }
 
-    const triplet = line.split(/\s+/).map(Number);
-    if (triplet.length === 3 && triplet.every(Number.isFinite)) {
-      values.push(triplet);
+    const triplet = line.split(/\s+/);
+    if (triplet.length === 3) {
+      const red = Number(triplet[0]);
+      const green = Number(triplet[1]);
+      const blue = Number(triplet[2]);
+      if ([red, green, blue].every(Number.isFinite)) values.push(red, green, blue);
     }
   }
 
@@ -60,13 +63,18 @@ export function parseCubeLut(source: string): Lut3D {
   }
 
   const expectedValues = size ** 3;
-  if (values.length !== expectedValues) {
-    throw new Error(`Expected ${expectedValues} LUT entries, received ${values.length}.`);
+  if (values.length !== expectedValues * 3) {
+    throw new Error(
+      `Expected ${expectedValues} LUT entries, received ${values.length / 3}.`,
+    );
   }
 
   const data = new Uint8Array(expectedValues * 4);
-  for (let index = 0; index < values.length; index++) {
-    const [red, green, blue] = values[index];
+  for (let index = 0; index < expectedValues; index++) {
+    const valueOffset = index * 3;
+    const red = values[valueOffset];
+    const green = values[valueOffset + 1];
+    const blue = values[valueOffset + 2];
     const offset = index * 4;
     data[offset] = Math.round(
       Math.max(0, Math.min(1, (red - domainMin[0]) / (domainMax[0] - domainMin[0]))) * 255,
