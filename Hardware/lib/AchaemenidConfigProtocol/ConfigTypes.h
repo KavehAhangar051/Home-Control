@@ -13,6 +13,16 @@ static constexpr uint16_t MAX_PWM_FREQUENCY = 40000;
 static constexpr int16_t RULE_ANALOG_VALUE_UNSET = -1;
 static constexpr uint16_t MAX_ANALOG_OUTPUT_VALUE = 4095;
 
+static constexpr uint8_t DEFAULT_ADC_RESOLUTION = 12;
+static constexpr uint8_t MIN_ADC_RESOLUTION = 8;
+static constexpr uint8_t MAX_ADC_RESOLUTION = 12;
+static constexpr uint16_t DEFAULT_ADC_SAMPLE_INTERVAL_MS = 500;
+static constexpr uint16_t MIN_ADC_SAMPLE_INTERVAL_MS = 50;
+static constexpr uint16_t MAX_ADC_SAMPLE_INTERVAL_MS = 60000;
+static constexpr uint16_t DEFAULT_ADC_DELTA_THRESHOLD = 40;
+static constexpr uint16_t MIN_ADC_DELTA_THRESHOLD = 1;
+static constexpr uint16_t MAX_ANALOG_INPUT_VALUE = 4095;
+
 enum RuleActionType : uint8_t {
     ACTION_IMMEDIATE = 0,
     ACTION_AFTER_DELAY = 1,
@@ -57,7 +67,12 @@ struct SegmentConfig {
     int autoOffDelay;
     uint16_t analogValue;
     uint16_t pwmFrequency;
+    uint16_t adcSampleIntervalMs;
+    uint16_t adcDeltaThreshold;
+    uint16_t adcHighThreshold;
+    uint16_t adcLowThreshold;
     uint8_t pwmResolution;
+    uint8_t adcResolution;
     
     bool value : 1;
     bool valid : 1;
@@ -67,7 +82,12 @@ struct SegmentConfig {
           autoOffDelay(0),
           analogValue(0),
           pwmFrequency(DEFAULT_PWM_FREQUENCY),
+          adcSampleIntervalMs(DEFAULT_ADC_SAMPLE_INTERVAL_MS),
+          adcDeltaThreshold(DEFAULT_ADC_DELTA_THRESHOLD),
+          adcHighThreshold(0),
+          adcLowThreshold(0),
           pwmResolution(DEFAULT_PWM_RESOLUTION),
+          adcResolution(DEFAULT_ADC_RESOLUTION),
           value(false),
           valid(false) {
         id[0] = '\0';

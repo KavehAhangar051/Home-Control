@@ -95,7 +95,7 @@ void loop() {
     // 2. Service WiFi recovery and local provisioning portal (throttled to 500ms)
     if (bootManager) bootManager->loop();
 
-    // 3. Process inputs for segments of type 'input' (zero stack lambda re-allocation)
+    // 3. Process inputs for segments of type 'input' and 'analog_input' (zero stack lambda re-allocation)
     if (ruleEngine) {
         static const auto onInputCallback = [](int pin, bool state, unsigned long dur, const RuleConfig& r) {
             PinStateChangedEvent changed{pin, state, false, PinStateChangeOrigin::PhysicalInput};
@@ -103,6 +103,26 @@ void loop() {
             ruleEngine->handleInput(pin, state, dur, r);
         };
         pinManager.processInputs(onInputCallback);
+
+        static const auto onAnalogInputCallback = [](const AnalogInputChange& ch, const RuleConfig& r) {
+            if (ch.valueChanged || ch.thresholdChanged) {
+                PinStateChangedEvent changed{
+                    ch.pin,
+                    ch.thresholdState,
+                    false, // Cloud sync is debounced below to prevent flooding
+                    PinStateChangeOrigin::PhysicalInput,
+                    static_cast<int16_t>(ch.value),
+                    ch.resolution
+                };
+                eventBus.dispatch(changed);
+            }
+            if (ch.thresholdChanged) {
+                ruleEngine->handleInput(ch.pin, ch.thresholdState, ch.durationSec, r);
+            } else if (ch.valueChanged) {
+                ruleEngine->scheduleCloudSync(ch.pin);
+            }
+        };
+        pinManager.processAnalogInputs(onAnalogInputCallback);
     }
 
     // 4. Poll Local WebSocket Server (guarded by _isStarted)

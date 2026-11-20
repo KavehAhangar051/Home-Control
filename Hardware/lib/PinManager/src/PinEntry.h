@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <GpioSwitch.h>
 #include <GpioPwm.h>
+#include <GpioAdc.h>
 #include <AchaemenidConfigProtocol.h>
 #include <Timer/TimerHandle.h>
 #include <cstring>
@@ -11,8 +12,8 @@
 enum class SegmentType : uint8_t {
     Output = 0,
     Input = 1,
-    AnalogOutput = 2
-    // Reserved for next phase: AnalogInput = 3
+    AnalogOutput = 2,
+    AnalogInput = 3
 };
 
 inline SegmentType parseSegmentType(const char* typeStr) {
@@ -21,6 +22,9 @@ inline SegmentType parseSegmentType(const char* typeStr) {
     if (strcmp(typeStr, "analog_output") == 0 || strcmp(typeStr, "pwm_output") == 0) {
         return SegmentType::AnalogOutput;
     }
+    if (strcmp(typeStr, "analog_input") == 0 || strcmp(typeStr, "adc_input") == 0) {
+        return SegmentType::AnalogInput;
+    }
     return SegmentType::Output;
 }
 
@@ -28,10 +32,24 @@ inline const char* segmentTypeToString(SegmentType type) {
     switch (type) {
         case SegmentType::Input: return "input";
         case SegmentType::AnalogOutput: return "analog_output";
+        case SegmentType::AnalogInput: return "analog_input";
         case SegmentType::Output:
         default: return "gpio_toggle";
     }
 }
+
+/**
+ * @brief Lightweight change payload emitted by PinManager::processAnalogInputs().
+ */
+struct AnalogInputChange {
+    int pin;
+    unsigned long durationSec;
+    uint16_t value;
+    uint8_t resolution;
+    bool valueChanged : 1;
+    bool thresholdChanged : 1;
+    bool thresholdState : 1;
+};
 
 /**
  * @brief Memory-optimized representation of a single managed hardware pin/segment.
@@ -46,6 +64,7 @@ struct PinEntry {
     RuleAction pendingHoldAction;
     GpioSwitch gpio;
     GpioPwm pwm;
+    GpioAdc adc;
     
     // Active timer handles
     uniuno::TimerHandle autoOffTimer;
@@ -66,6 +85,7 @@ struct PinEntry {
     // Bitfield flags (packed into a single byte)
     bool hasGpio : 1;
     bool hasPwm : 1;
+    bool hasAdc : 1;
     bool lastInputState : 1;
     bool pendingRuleActionState : 1;
     bool isHandled : 1;

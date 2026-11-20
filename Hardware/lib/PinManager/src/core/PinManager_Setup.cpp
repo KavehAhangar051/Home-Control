@@ -9,7 +9,12 @@ bool PinManager::addSegment(
     int autoOffDelay,
     RuleConfig rule,
     uint8_t pwmResolution,
-    uint16_t pwmFrequency
+    uint16_t pwmFrequency,
+    uint8_t adcResolution,
+    uint16_t adcSampleIntervalMs,
+    uint16_t adcDeltaThreshold,
+    uint16_t adcHighThreshold,
+    uint16_t adcLowThreshold
 ) {
     if (id == nullptr || id[0] == '\0') {
         WARNING("[PinManager] Segment ID is empty.");
@@ -21,6 +26,10 @@ bool PinManager::addSegment(
     }
     if (type == SegmentType::AnalogOutput && !GpioPwm::isValidPwmPin(pin)) {
         WARNINGF("[PinManager] Pin %d is not a valid PWM output pin (flash or input-only).", pin);
+        return false;
+    }
+    if (type == SegmentType::AnalogInput && !GpioAdc::isValidAdcPin(pin)) {
+        WARNINGF("[PinManager] Pin %d is not a valid WiFi-safe ADC1 pin (allowed: 32,33,34,35,36,39).", pin);
         return false;
     }
     if (_registry.findById(id) >= 0) {
@@ -42,6 +51,8 @@ bool PinManager::addSegment(
 
     entry->hasGpio = false;
     entry->hasPwm = false;
+    entry->hasAdc = false;
+    entry->lastInputState = false;
 
     if (type == SegmentType::AnalogOutput) {
         entry->pwm.configure(static_cast<int8_t>(pin), pwmResolution, pwmFrequency);
@@ -50,6 +61,21 @@ bool PinManager::addSegment(
             return false;
         }
         entry->hasPwm = true;
+    } else if (type == SegmentType::AnalogInput) {
+        entry->adc.configure(
+            static_cast<int8_t>(pin),
+            adcResolution,
+            adcSampleIntervalMs,
+            adcDeltaThreshold,
+            adcHighThreshold,
+            adcLowThreshold
+        );
+        if (!entry->adc.begin()) {
+            WARNINGF("[PinManager] Failed to initialize ADC1 on pin %d.", pin);
+            return false;
+        }
+        entry->hasAdc = true;
+        entry->lastInputState = entry->adc.getThresholdState();
     } else if (type == SegmentType::Input) {
         pinMode(pin, INPUT_PULLUP);
         entry->lastInputState = digitalRead(pin) == HIGH;
@@ -83,6 +109,10 @@ bool PinManager::addSegment(
     if (type == SegmentType::AnalogOutput) {
         INFOF("[PinManager] Added segment '%s' on pin %d (Type: analog_output, %u-bit @ %uHz)",
               id, pin, entry->pwm.getResolution(), entry->pwm.getFrequency());
+    } else if (type == SegmentType::AnalogInput) {
+        INFOF("[PinManager] Added segment '%s' on pin %d (Type: analog_input, %u-bit sint=%ums delta=%u ath=%u atl=%u)",
+              id, pin, entry->adc.getResolution(), entry->adc.getSampleIntervalMs(),
+              entry->adc.getDeltaThreshold(), entry->adc.getHighThreshold(), entry->adc.getLowThreshold());
     } else {
         INFOF("[PinManager] Added segment '%s' on pin %d (Type: %s)",
               id, pin, (type == SegmentType::Input ? "input" : "output"));
@@ -108,6 +138,10 @@ bool PinManager::removeSegment(const char* id) {
     if (entry->hasPwm) {
         entry->pwm.end();
         entry->hasPwm = false;
+    }
+    if (entry->hasAdc) {
+        entry->adc.end();
+        entry->hasAdc = false;
     }
     entry->autoOffTimer.cancel();
     entry->cloudSyncTimer.cancel();
@@ -142,14 +176,38 @@ bool PinManager::updateSegmentRule(const char* id, const RuleConfig& rule) {
     const int idx = _registry.findById(id);
     if (idx < 0) return false;
     PinEntry* entry = _registry.getEntryByIndex(idx);
-    if (!entry || entry->type != SegmentType::Input) return false;
+    if (!entry || (entry->type != SegmentType::Input && entry->type != SegmentType::AnalogInput)) return false;
     entry->rule = rule;
     return true;
 }
 
 bool PinManager::updateSegmentRuleByPin(int pin, const RuleConfig& rule) {
     PinEntry* entry = _registry.getEntryByPin(pin);
-    if (!entry || !entry->active || entry->type != SegmentType::Input) return false;
+    if (!entry || !entry->active ||
+        (entry->type != SegmentType::Input && entry->type != SegmentType::AnalogInput)) {
+        return false;
+    }
     entry->rule = rule;
+    return true;
+}
+
+bool PinManager::updateAnalogInputConfigByPin(
+    int pin,
+    uint16_t sampleIntervalMs,
+    uint16_t deltaThreshold,
+    uint16_t highThreshold,
+    uint16_t lowThreshold,
+    uint8_t resolution
+) {
+    PinEntry* entry = _registry.getEntryByPin(pin);
+    if (!entry || !entry->active || entry->type != SegmentType::AnalogInput || !entry->hasAdc) {
+        return false;
+    }
+    entry->adc.updateParameters(sampleIntervalMs, deltaThreshold, highThreshold, lowThreshold, resolution);
+    entry->lastInputState = entry->adc.getThresholdState();
+    _stateManager.rebuildInputCache();
+    INFOF("[PinManager] Updated analog_input GPIO%d (%u-bit sint=%ums delta=%u ath=%u atl=%u)",
+          pin, entry->adc.getResolution(), entry->adc.getSampleIntervalMs(),
+          entry->adc.getDeltaThreshold(), entry->adc.getHighThreshold(), entry->adc.getLowThreshold());
     return true;
 }

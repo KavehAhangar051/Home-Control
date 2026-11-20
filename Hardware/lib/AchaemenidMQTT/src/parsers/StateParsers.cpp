@@ -20,7 +20,8 @@ FORCE_INLINE static uint16_t readUint16LE(const uint8_t* buf, size_t offset) {
 }
 
 bool StateParsers::canHandle(uint8_t cmdType) const {
-    return cmdType == 0x01 || cmdType == 0x06 || cmdType == 0x08 || cmdType == 0x09 || cmdType == 0x0A;
+    return cmdType == 0x01 || cmdType == 0x06 || cmdType == 0x08 ||
+           cmdType == 0x09 || cmdType == 0x0A || cmdType == 0x0D;
 }
 
 void StateParsers::handle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
@@ -31,6 +32,7 @@ void StateParsers::handle(const uint8_t* payload, size_t len, IEventDispatcher* 
         case 0x08: parseBatchToggle(payload, len, dispatcher); break;
         case 0x09: parseSyncState(payload, len, dispatcher); break;
         case 0x0A: parseSetAnalogOutput(payload, len, dispatcher); break;
+        case 0x0D: parseReadAnalogInput(payload, len, dispatcher); break;
     }
 }
 
@@ -97,6 +99,23 @@ HOT_PATH IRAM_ATTR void StateParsers::parseSetAnalogOutput(const uint8_t* payloa
         dispatcher->dispatch(evt);
         INFOF("[MQTT Handler] Binary Analog Output (0x0A): pin=%d value=%u timer=%ld",
               pinNum, static_cast<unsigned int>(rawValue), static_cast<long>(timer));
+    }
+}
+
+/**
+ * @brief Parse binary READ_ANALOG_INPUT (0x0D) on-demand sample command.
+ * Frame (2 bytes): [0x0D][pin:u8]
+ */
+HOT_PATH IRAM_ATTR void StateParsers::parseReadAnalogInput(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
+    if (LIKELY(len >= 2)) {
+        const int pinNum = payload[1];
+        if (UNLIKELY(pinNum > 39)) {
+            WARNINGF("[MQTT Handler] Rejected READ_ANALOG_INPUT (0x0D): invalid GPIO %d", pinNum);
+            return;
+        }
+        AnalogInputReadRequestEvent evt{pinNum};
+        dispatcher->dispatch(evt);
+        INFOF("[MQTT Handler] Binary Read Analog Input (0x0D): pin=%d", pinNum);
     }
 }
 

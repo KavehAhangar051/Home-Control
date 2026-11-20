@@ -18,6 +18,7 @@ public:
             _entries[i].active = false;
             _entries[i].hasGpio = false;
             _entries[i].hasPwm = false;
+            _entries[i].hasAdc = false;
             _entries[i].segmentId[0] = '\0';
             _entries[i].pinNumber = -1;
             _entries[i].type = SegmentType::Output;
