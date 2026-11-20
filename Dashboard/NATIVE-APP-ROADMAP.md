@@ -495,7 +495,7 @@ Build واقعی باید ثابت کند:
 
 در مستندات معماری، نتیجه ثبت‌شده قبلی تست‌ها 69 از 71 بوده و دو انتظار مرتبط با MQTT binary frame برای بررسی باقی مانده‌اند. این عدد نتیجه اجرای جدید در تاریخ این سند نیست و باید پیش از مهاجرت دوباره Baseline گرفته شود.
 
-در ممیزی فعلی تست اختصاصی قابل اتکایی برای createLocalWebSocketController شناسایی نشده است؛ پوشش واقعی باید با جست‌وجوی کامل فایل‌های تست تأیید شود.
+در ممیزی اولیه، تست‌های Controller شناسایی نشده بودند؛ بررسی کامل‌تر در بخش ۱۴.۵ نشان داد تست‌های Unit/Contract برای Controller وجود دارند. شکاف اصلی، تست Integration/Device در Android WebView است.
 
 قواعد:
 - تست‌های موجود حذف یا برای سبز شدن مصنوعی ضعیف نشوند.
@@ -657,3 +657,128 @@ Build واقعی باید ثابت کند:
 
 
 > این فایل منبع حقیقت پروژه Native است. هرگاه وضعیت واقعی سورس با این سند اختلاف داشت، سورس فعلی ملاک است و سند باید اصلاح شود.
+
+---
+
+## ۱۴. ممیزی عمیق Lifecycle، Voice، Storage و تست‌ها — ۲۰۲۶-۱۱-۲۰
+
+این بخش بر اساس بررسی مستقیم فایل‌های جاری main و مستندات رسمی Capacitor، Chromium، Android و MDN اضافه شده است. هیچ فایل اجرایی پروژه در این مرحله تغییر نکرده است.
+
+### ۱۴.۱ چرخه عمر MQTT و Local WebSocket
+
+فایل‌های بررسی‌شده:
+- features/iot/hooks/usePageVisibility.ts
+- features/iot/hooks/achaemenidState/useConnectionStrategy.ts
+- features/iot/services/mqtt/init.ts
+
+یافته‌های قطعی:
+- usePageVisibility رویدادهای visibilitychange و online را گوش می‌کند.
+- هنگام بازگشت صفحه، notifyMqttResume() اجرا می‌شود.
+- هنگام مخفی شدن صفحه، publishPresence(false) اجرا می‌شود.
+- notifyMqttResume() در صورت قطع MQTT، reconnect را آغاز می‌کند؛ در صورت اتصال فعال، فریم‌های Presence و Sync Request را منتشر می‌کند. این عملیات با حداقل فاصله ۳ ثانیه throttle می‌شود.
+- Local WebSocket در useConnectionStrategy ساخته می‌شود و فقط در صورت تشخیص window.Capacitor?.isNative اتصال می‌گیرد.
+- Local WebSocket بعد از onopen فقط یک get_state می‌فرستد؛ heartbeat، ping/pong کاربردی یا بررسی سلامت دوره‌ای در Controller مشاهده نشد.
+- هنگام onclose، وضعیت Local خاموش می‌شود و Reconnect با Full Jitter انجام می‌شود.
+- در مسیر فعلی، رویداد Native Resume به‌صورت مستقیم به Controller مربوط به Local WebSocket متصل نیست.
+
+**ریسک معماری:** اگر WebView هنگام Background اتصال را به‌طور تمیز نبندد اما مسیر TCP/WebSocket دیگر قابل استفاده نباشد، صرفاً تکیه بر onclose ممکن است تشخیص خرابی را به تأخیر بیندازد. همچنین Timerها در Background ممکن است محدود یا متوقف شوند. این مورد یک ریسک قابل‌آزمایش است، نه باگ اثبات‌شده.
+
+**پیشنهاد:**
+1. از @capacitor/app برای رویدادهای Native استفاده شود.
+2. یک Lifecycle Adapter واحد، رویدادهای Native و Web visibilitychange را به یک مسیر Resume تبدیل کند تا MQTT دوبار Resume نشود.
+3. در Resume، وضعیت اتصال Local بررسی شود؛ اگر socket باز نیست، اتصال مجدد انجام شود.
+4. پس از اتصال مجدد، get_state ارسال شود و تا دریافت Snapshot معتبر، UI وضعیت محلی را قطعی فرض نکند.
+5. در صورت نیاز، heartbeat سبک با پشتیبانی Firmware طراحی شود؛ heartbeat جدید بدون بررسی Firmware/پروتکل اضافه نشود.
+6. تست Background طولانی، خاموش شدن ESP32، تغییر Wi-Fi، قطع شبکه و بازگشت اپ روی گوشی واقعی انجام شود.
+
+منابع:
+- [Capacitor App API](https://capacitorjs.com/docs/apis/app)
+- [Android Activity Lifecycle](https://developer.android.com/guide/components/activities/activity-lifecycle)
+
+### ۱۴.۲ وضعیت Web Speech API در Android WebView
+
+بررسی دقیق‌تر Chromium یک اصلاح مهم نسبت به فرض اولیه ایجاد می‌کند:
+
+- سورس فعلی Chromium برای Android WebView تصریح می‌کند که Web Speech Recognition API پشتیبانی می‌شود.
+- همان سورس تصریح می‌کند که Web Speech Synthesis API پشتیبانی نمی‌شود.
+- قابلیت On-device Speech Recognition جدید، طبق داده سازگاری MDN، در Android و WebView پشتیبانی نمی‌شود.
+- بنابراین نباید گفت SpeechRecognition در تمام Android WebViewها قطعاً وجود ندارد؛ در عین حال نباید وجود و عملکرد آن را روی تمام نسخه‌ها و سازندگان دستگاه تضمین کرد.
+- کد فعلی Home-Control از SpeechRecognition یا webkitSpeechRecognition استفاده می‌کند و زبان را fa-IR قرار می‌دهد؛ قابلیت تشخیص محلی یا مدیریت Language Pack در کد فعلی وجود ندارد.
+- در صورت استفاده از موتور تشخیص گفتار مبتنی بر سرویس، دسترسی شبکه و موجود بودن سرویس/زبان فارسی روی دستگاه می‌تواند مؤثر باشد.
+
+**نتیجه:** در فاز اول، Native Speech Plugin به‌عنوان الزام قطعی انتخاب نمی‌شود. ابتدا API در WebView گوشی واقعی Feature Detect و زبان فارسی تست شود. اگر Recognition کار کرد، همان Adapter وب حفظ شود؛ اگر API غایب یا عملکرد فارسی نامطلوب بود، یک Native Speech Adapter مستقل بررسی شود.
+
+### ۱۴.۳ مجوز Microphone در Capacitor Android
+
+- WebView برای دسترسی به میکروفون، درخواست Permission را از طریق WebChromeClient.onPermissionRequest مطرح می‌کند.
+- سورس جاری Capacitor Android در BridgeWebChromeClient درخواست AUDIO_CAPTURE را به مجوزهای MODIFY_AUDIO_SETTINGS و RECORD_AUDIO نگاشت می‌کند و نتیجه مجوز را به WebView برمی‌گرداند.
+- بنابراین Capacitor مسیر پایه مدیریت Permission میکروفون را در Bridge خود دارد؛ با این حال باید Manifest نسخه ساخته‌شده، Prompt واقعی و رد/قبول مجوز روی دستگاه آزمایش شود.
+- مجوز باید در لحظه‌ای درخواست شود که کاربر قابلیت Voice را فعال می‌کند؛ نباید هنگام اولین اجرای اپ بدون نیاز درخواست شود.
+- سیاست حریم خصوصی باید روشن کند که موتور تشخیص ممکن است صدا را برای پردازش به سرویس شبکه‌ای ارسال کند.
+
+منابع:
+- [Capacitor BridgeWebChromeClient](https://github.com/ionic-team/capacitor/blob/main/android/capacitor/src/main/java/com/getcapacitor/BridgeWebChromeClient.java)
+- [Android WebChromeClient Permission Request](https://developer.android.com/reference/android/webkit/WebChromeClient)
+- [MDN SpeechRecognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition)
+- [Chromium Android WebView implementation](https://chromium.googlesource.com/chromium/src/+/HEAD/android_webview/lib/aw_main_delegate.cc)
+
+### ۱۴.۴ Storage و مهاجرت داده
+
+فایل‌های بررسی‌شده:
+- features/iot/hooks/usePreferencesStore.ts
+- features/iot/components/workflows/workflowStorage.ts
+- features/iot/services/configBackupService.ts
+
+یافته‌ها:
+- Zustand Preferences با persist و createJSONStorage در window.localStorage ذخیره می‌شود.
+- Workflowها کلید مستقل iot_workflows_studio_v1 دارند.
+- Backup/Restore علاوه بر ESP config، تنظیمات ظاهری، Trellis layouts و Workflowها را بازیابی می‌کند.
+- Backup از مسیرهای موجود می‌تواند بخشی از راهکار انتقال بین Web و Native باشد؛ اما نباید فرض شود تمام Local Storage به‌طور خودکار در اولین نصب اپ در دسترس است.
+- Capacitor Preferences در Android از SharedPreferences و در iOS از UserDefaults استفاده می‌کند. مستندات رسمی، migrate() آن را برای مهاجرت از Capacitor 2 Storage معرفی می‌کنند؛ این API به معنی انتقال خودکار کلیدهای دلخواه window.localStorage پروژه Home-Control نیست.
+
+**تصمیم پیشنهادی:**
+1. برای اولین نسخه، Storage فعلی را حفظ کنیم تا داده‌های موجود و کد فعلی کمترین تغییر را داشته باشند.
+2. در صورت انتخاب Preferences در نسخه بعد، مهاجرت دستی و idempotent برای کلیدهای مشخص طراحی شود.
+3. ابتدا مقدار قدیمی خوانده و اعتبارسنجی شود؛ سپس مقدار جدید نوشته و دوباره خوانده/تأیید شود؛ فقط پس از موفقیت، حذف نسخه قدیمی در نظر گرفته شود.
+4. Restore از Backup و Upgrade نسخه Native جداگانه تست شوند.
+5. اطلاعات حساس یا Credentialها در Local Storage یا Preferences بدون ارزیابی امنیتی ذخیره نشوند؛ برای Secretها Secure Storage مناسب بررسی شود.
+
+منابع:
+- [Capacitor Preferences API](https://capacitorjs.com/docs/apis/preferences)
+
+### ۱۴.۵ پوشش تست واقعی در Repository
+
+بررسی کامل پوشه Dashboard/tests نشان داد که ادعای «نبود تست Controller اصلی Local WebSocket» در بخش ۸ این سند دقیق نبود و باید اصلاح شود.
+
+تست‌های موجود:
+- legacy-seams.test.mjs تست می‌کند که خارج از Native هیچ WebSocket ساخته نشود.
+- همان فایل Handshake، ارسال get_state، دریافت state_sync، به‌روزرسانی Pin، fallback، Jitter reconnect و cleanup را تست می‌کند.
+- همان فایل تست Session تشخیص گفتار، استخراج Transcript، خطای مجوز، restart و جلوگیری از stale callback را دارد.
+- safety-net.test.mjs مسیر ارسال فرمان از Local WebSocket و fallback به MQTT و همچنین Listenerهای Local State را تست می‌کند.
+- domain-contracts.test.mjs منطق معنایی اجرای فرمان‌های صوتی فارسی و Workflowها را تست می‌کند.
+
+**اصلاح متن بخش ۸:** تست‌های Unit/Contract برای Local WebSocket و Voice وجود دارند؛ شکاف اصلی، تست Integration/Device در Android WebView است، نه فقدان کامل تست Controller.
+
+مواردی که هنوز در تست‌های مشاهده‌شده پوشش صریح ندارند یا باید بررسی تکمیلی شوند:
+- Native App pause/resume و هم‌زمانی رویدادهای App و document visibility.
+- WebSocket نیمه‌باز/نیمه‌مرده پس از Background.
+- عدم ایجاد دو اتصال هنگام Resume و تغییر localIp.
+- بازیابی Storage واقعی پس از نصب/ارتقای APK.
+- Voice Recognition واقعی fa-IR روی System WebView و مجوز میکروفون.
+- رفتار واقعی MQTT و ESP32 روی شبکه Wi-Fi گوشی.
+
+### ۱۴.۶ وضعیت به‌روزشده تصمیم‌ها
+
+| موضوع | تصمیم فعلی |
+|---|---|
+| Lifecycle | افزودن Adapter مبتنی بر Capacitor App در فاز پیاده‌سازی؛ هنوز کدنویسی نشده |
+| Local WebSocket | حفظ Controller؛ تکمیل Resume و تست Device |
+| MQTT Resume | حفظ notifyMqttResume()؛ جلوگیری از اجرای تکراری |
+| Web Speech Recognition | ابتدا Feature Detect و تست فارسی در WebView |
+| Native Speech | فقط در صورت شکست تست Web Speech |
+| Microphone permission | مسیر Bridge Capacitor وجود دارد؛ تست Manifest و Prompt لازم |
+| Storage | حفظ Local Storage در نسخه اول |
+| Preferences migration | مهاجرت دستی در صورت نیاز آتی |
+| Unit tests | بخشی از تست‌های پایه موجودند |
+| Device tests | هنوز اجرا نشده |
+
