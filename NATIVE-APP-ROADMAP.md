@@ -424,11 +424,10 @@ Build واقعی باید ثابت کند:
 
 قبل از تغییر هر فایل موجود، فهرست دقیق فایل‌ها، تغییرات و دلیل فنی به مالک اعلام شود و تأیید صریح گرفته شود.
 
-- [ ] ارائه فهرست فایل‌های نیازمند تغییر
-- [ ] ارائه فهرست پکیج‌های موردنیاز با نسخه‌های سازگار
-- [ ] ارائه طرح capacitor.config.ts
-- [ ] ارائه طرح اسکریپت Build موبایل
-- [ ] دریافت تأیید مالک
+- [x] ارائه فهرست فایل‌ها و تغییرات APK-only
+- [x] تعیین Capacitor 8.6.2 و نسخه‌های سازگار
+- [x] تأیید مالک برای پیاده‌سازی APK-only
+- [x] انتخاب پیکربندی Capacitor و اسکریپت Build
 
 ### فاز ۳ — افزودن Capacitor و Android
 
@@ -1497,3 +1496,31 @@ Hook فعلی Page Visibility از `visibilitychange` و `online` استفاده
 4. ارائه فهرست دقیق فایل‌های لازم برای تغییر و دریافت تأیید پیش از هر ویرایش اجرایی.
 
 این ممیزی به‌تنهایی اثبات نمی‌کند که APK روی دستگاه اجرا می‌شود. هیچ کد اجرایی، Manifest، Network Security Config، CSS، Dependency یا تنظیم Capacitor در این مرحله تغییر داده نشده است.
+
+---
+
+## ۱۴. پیاده‌سازی اولیه APK-only — ۲۰۲۶-۱۱-۲۰
+
+### تغییرات ثبت‌شده در مخزن
+
+- Capacitor **8.6.2** برای Android انتخاب شده است.
+- شناسه برنامه اولیه: `com.homecontrol.dashboard`؛ نام نمایشی: `Home Control`.
+- خروجی Next.js به‌صورت Static Export در `out/` بسته‌بندی می‌شود.
+- `capacitor.config.json` مسیر خروجی وب را روی `out` قرار می‌دهد.
+- اسکریپت‌های `android:prepare`, `android:sync`, و `android:apk` به `package.json` اضافه شده‌اند.
+- پکیج‌های Capacitor با نسخه دقیق و گزینه Bun `--no-save` نصب می‌شوند تا در bootstrap اولیه، `bun.lock` با manifest ناسازگار نشود. این وابستگی‌ها فعلاً در `package.json` ثبت نشده‌اند؛ پس از تأیید اولین اجرای Native، تثبیت دائمی پکیج‌ها و lockfile در تغییر جداگانه انجام می‌شود.
+- Workflow جدید `.github/workflows/android-apk.yml` روی Push به `main` و `workflow_dispatch` اجرا می‌شود؛ runner برابر `ubuntu-latest`، Node.js 22، Java 21 و Android SDK API 36 است.
+- خروجی فقط `app-debug.apk` است و به‌عنوان Artifact بارگذاری می‌شود؛ هیچ AAB، Release signing، Google Play یا GitHub Release ساخته نمی‌شود.
+- پروژه Android در این bootstrap داخل CI/محیط محلی تولید می‌شود و در Git commit نمی‌شود.
+
+### وضعیت اعتبارسنجی
+
+- [x] طرح APK-only توسط مالک تأیید شد.
+- [x] پیکربندی Capacitor و اسکریپت‌های Build ثبت شدند.
+- [x] GitHub Actions workflow ثبت شد.
+- [ ] اولین GitHub Actions build موفق
+- [ ] APK به‌عنوان Artifact تولید و دریافت شد
+- [ ] نصب و اجرای دستی روی گوشی Android
+- [ ] بررسی MQTT و Local WebSocket روی گوشی واقعی
+
+**وضعیت:** پیکربندی و Workflow ثبت شده‌اند؛ تا پایان موفق Workflow، وجود APK قابل دریافت‌شده تأیید نشده است.
