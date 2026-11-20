@@ -60,7 +60,13 @@ export function GpuLutImage({
 
       try {
         renderer.resize(bounds.width, bounds.height, window.devicePixelRatio);
-        if (renderer.render(image, lutRef.current, intensityRef.current)) {
+        if (renderer.render(
+          image,
+          lutRef.current,
+          image.naturalWidth,
+          image.naturalHeight,
+          intensityRef.current,
+        )) {
           setReady(true);
         }
       } catch {
