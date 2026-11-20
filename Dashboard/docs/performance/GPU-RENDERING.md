@@ -399,3 +399,12 @@ The next trace should isolate one repeatable Canvas action and use the target di
 - Do not replace these reveals with a different effect or reduce blur, duration, origin, mask geometry, or easing to chase a presumed GPU win. Any future renderer migration must reproduce all four variants and be validated visually and with browser compositor/raster traces on supported engines.
 - The existing CSS View Transition path remains preferable to introducing a JavaScript per-frame loop. Keep the current animation definitions and use browser-native transition handling; measure before changing the rendering path.
 - References: [MDN CSS animation performance](https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Performance/CSS), [MDN `will-change`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change), [Chrome modern motion guidance](https://github.com/GoogleChrome/modern-web-guidance-src/blob/main/guides/ui-behaviors/motion/guide.md).
+
+
+### LUT image-fit math moved from fragment to vertex shader (2026-11-20)
+
+- Moved the invariant canvas/image aspect-ratio calculation and UV letterbox mapping from the per-fragment shader into the fullscreen triangle's vertex shader. The resulting interpolated source UV is affine-equivalent to the previous fragment calculation; source texture sampling, LUT lookup, intensity blend, alpha, texture formats, and draw count are unchanged.
+- This removes repeated aspect-ratio division and branching from every output fragment. The calculation now runs for the fullscreen triangle's three vertices and is interpolated across the rasterized surface.
+- This is a GPU shader workload optimization, not a claim of lower CPU usage or a measured frame-rate gain. The renderer remains demand-driven and only renders on source/size/LUT changes.
+- Visual equivalence and device-specific shader performance have not been runtime-verified in this environment. Keep the original-image fallback and compare output on representative DPR/aspect-ratio combinations before treating the shader change as validated.
+- Reference: [MDN WebGL best practices — prefer doing work in the vertex shader](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices).

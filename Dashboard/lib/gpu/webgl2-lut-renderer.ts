@@ -3,31 +3,15 @@ import type { Lut3D } from "./lut3d";
 const VERTEX_SHADER = `#version 300 es
 precision highp float;
 
-out vec2 v_uv;
+uniform vec2 u_canvas_size;
+uniform vec2 u_image_size;
+out vec2 v_image_uv;
 
 void main() {
   vec2 position = vec2(
     float((gl_VertexID << 1) & 2),
     float(gl_VertexID & 2)
   );
-  v_uv = position * 0.5;
-  gl_Position = vec4(position * 2.0 - 1.0, 0.0, 1.0);
-}`;
-
-const FRAGMENT_SHADER = `#version 300 es
-precision highp float;
-
-in vec2 v_uv;
-uniform sampler2D u_source;
-uniform sampler3D u_lut;
-uniform float u_intensity;
-uniform vec2 u_canvas_size;
-uniform vec2 u_image_size;
-uniform vec3 u_domain_min;
-uniform vec3 u_domain_max;
-out vec4 out_color;
-
-void main() {
   float canvas_aspect = u_canvas_size.x / u_canvas_size.y;
   float image_aspect = u_image_size.x / u_image_size.y;
   vec2 uv_scale = vec2(1.0);
@@ -36,8 +20,23 @@ void main() {
   } else {
     uv_scale.y = image_aspect / canvas_aspect;
   }
-  vec2 image_uv = (v_uv - 0.5) * uv_scale + 0.5;
-  vec4 source = texture(u_source, image_uv);
+  v_image_uv = (position * 0.5 - 0.5) * uv_scale + 0.5;
+  gl_Position = vec4(position * 2.0 - 1.0, 0.0, 1.0);
+}`;
+
+const FRAGMENT_SHADER = `#version 300 es
+precision highp float;
+
+in vec2 v_image_uv;
+uniform sampler2D u_source;
+uniform sampler3D u_lut;
+uniform float u_intensity;
+uniform vec3 u_domain_min;
+uniform vec3 u_domain_max;
+out vec4 out_color;
+
+void main() {
+  vec4 source = texture(u_source, v_image_uv);
   vec3 lut_coordinate = clamp(
     (source.rgb - u_domain_min) / (u_domain_max - u_domain_min),
     0.0,
