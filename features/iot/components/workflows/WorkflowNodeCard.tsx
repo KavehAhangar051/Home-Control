@@ -6,6 +6,7 @@ import React from "react";
 import NodePerimeterSpark from "@/features/iot/components/canvas/NodePerimeterSpark";
 import { resolveCanvasNodeMotionState } from "@/features/iot/components/canvas/nodeMotion";
 import type { Segment } from "@/features/iot/hooks/store/types";
+import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 import { SPRING_MOUSE, SPRING_PANEL } from "@/lib/ease";
 import {
   GroupNodeBody,
@@ -450,7 +451,7 @@ export default React.memo(function WorkflowNodeCard({
           isLocked={isLocked}
           isLogicGate={isLogicGate}
           hasInputPort={hasInputPort}
-          isInputSegment={linkedSegment?.type === "input"}
+          isInputSegment={isReadOnlyInputSegment(linkedSegment)}
           outputSignal={outputSignal}
           inputCount={inputCount}
           minInputCount={minInputCount}

@@ -197,6 +197,7 @@ export function getSimilarity(a: string, b: string): number {
   return (maxLen - row[trimA]) / maxLen;
 }
 
+import { isReadOnlyInputType } from "@/features/iot/utils/analogInput";
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 
 export interface VoiceCommandExecutionContext {
@@ -256,7 +257,7 @@ function isControllableOutputPin(
 ): boolean {
   const seg = segmentsByPin.get(pin);
 
-  if (seg && (seg.type === "input" || seg.type === "placeholder")) {
+  if (seg && (isReadOnlyInputType(seg.type) || seg.type === "placeholder")) {
     return false;
   }
 
@@ -420,7 +421,9 @@ function findBestMatchingOutputSegment(
   for (let i = 0; i < segments.length; i++) {
     const segment = segments[i];
 
-    if (!segment.pin || segment.type === "input" || segment.type === "placeholder") continue;
+    if (!segment.pin || isReadOnlyInputType(segment.type) || segment.type === "placeholder") {
+      continue;
+    }
 
     const similarity = getSimilarity(normalizePhonetics(segment.title), normalizedSegmentName);
 

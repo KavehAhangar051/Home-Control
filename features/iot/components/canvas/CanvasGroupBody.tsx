@@ -4,6 +4,7 @@ import { Power, PowerOff } from "lucide-react";
 import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import TrellisSegmentTile from "@/features/iot/components/trellis/TrellisSegmentTile";
 import type { Segment } from "@/features/iot/hooks/store/types";
+import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 import type { CanvasGroupHandlers, CanvasSubMode } from "./canvasTypes";
 
 interface CanvasGroupBodyProps extends Omit<CanvasGroupHandlers, "onDeleteGroup"> {
@@ -38,7 +39,7 @@ export default function CanvasGroupBody({
 }: CanvasGroupBodyProps) {
   const handleBatchGroupPower = (turnOn: boolean) => {
     for (const seg of groupSegments) {
-      if (seg.type !== "placeholder" && seg.type !== "input" && seg.pin) {
+      if (seg.type !== "placeholder" && !isReadOnlyInputSegment(seg) && seg.pin) {
         onSetPinState(seg.pin, turnOn);
       }
     }

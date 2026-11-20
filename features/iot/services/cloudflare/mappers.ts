@@ -1,6 +1,12 @@
 import type { RuleAction, Segment, SegmentRule } from "@/features/iot/hooks/store/types";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
 import {
+  ANALOG_INPUT_TYPE,
+  clampAdcValue,
+  isAnalogInputType,
+  normalizeAnalogInputConfig,
+} from "@/features/iot/utils/analogInput";
+import {
   ANALOG_OUTPUT_TYPE,
   clampAnalogValue,
   clampPwmFrequency,
@@ -181,6 +187,24 @@ export function normalizeSegmentRecord(segment: Segment): Segment {
         1,
         clampAnalogValue(segment.lastNonZeroValue, pwmResolution),
       );
+    }
+  } else if (isAnalogInputType(segment.type)) {
+    const adcConfig = normalizeAnalogInputConfig({
+      adcResolution: segment.adcResolution,
+      adcSampleIntervalMs: segment.adcSampleIntervalMs,
+      adcDeltaThreshold: segment.adcDeltaThreshold,
+      adcHighThreshold: segment.adcHighThreshold,
+      adcLowThreshold: segment.adcLowThreshold,
+    });
+    normalized.type = ANALOG_INPUT_TYPE;
+    normalized.adcResolution = adcConfig.adcResolution;
+    normalized.adcSampleIntervalMs = adcConfig.adcSampleIntervalMs;
+    normalized.adcDeltaThreshold = adcConfig.adcDeltaThreshold;
+    normalized.adcHighThreshold = adcConfig.adcHighThreshold;
+    normalized.adcLowThreshold = adcConfig.adcLowThreshold;
+
+    if (segment.analogValue !== undefined) {
+      normalized.analogValue = clampAdcValue(segment.analogValue, adcConfig.adcResolution);
     }
   }
 

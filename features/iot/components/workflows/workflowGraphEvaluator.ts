@@ -1,4 +1,5 @@
 import type { Segment } from "@/features/iot/hooks/store/types";
+import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 import type {
   WorkflowActionDispatch,
   WorkflowDefinition,
@@ -212,7 +213,7 @@ function evaluateSegmentNode(
     signals.anyIncomingTrue &&
     mode !== "condition_only" &&
     segment?.pin &&
-    segment.type !== "input"
+    !isReadOnlyInputSegment(segment)
   ) {
     const desired = mode === "turn_off" ? false : mode === "toggle" ? !currentPinState : true;
 
@@ -257,7 +258,7 @@ function evaluateGroupNode(
       validMemberCount++;
 
       if (shouldDispatch) {
-        if (matched.pin && matched.type !== "input") {
+        if (matched.pin && !isReadOnlyInputSegment(matched)) {
           pendingActionMap.set(`${node.id}:${matched.pin}`, {
             nodeId: node.id,
             targetPin: matched.pin,

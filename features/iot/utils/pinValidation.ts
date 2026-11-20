@@ -7,6 +7,7 @@ export interface PinValidationResult {
 const FLAG_FLASH_RESERVED = 1;
 const FLAG_INPUT_ONLY = 2;
 const FLAG_BOOT_UART = 4;
+const FLAG_ADC1 = 8;
 
 // Bit-packed lookup table for GPIO 0..39 capabilities
 const PIN_FLAGS = (() => {
@@ -20,10 +21,12 @@ const PIN_FLAGS = (() => {
     table[p] = FLAG_FLASH_RESERVED;
   }
 
-  table[34] = FLAG_INPUT_ONLY;
-  table[35] = FLAG_INPUT_ONLY;
-  table[36] = FLAG_INPUT_ONLY;
-  table[39] = FLAG_INPUT_ONLY;
+  table[32] = FLAG_ADC1;
+  table[33] = FLAG_ADC1;
+  table[34] = FLAG_INPUT_ONLY | FLAG_ADC1;
+  table[35] = FLAG_INPUT_ONLY | FLAG_ADC1;
+  table[36] = FLAG_INPUT_ONLY | FLAG_ADC1;
+  table[39] = FLAG_INPUT_ONLY | FLAG_ADC1;
 
   return table;
 })();
@@ -67,6 +70,13 @@ const RESULT_PWM_BOOT_UART_WARNING: PinValidationResult = {
   isWarning: true,
 };
 
+const RESULT_ADC1_ONLY_ERROR: PinValidationResult = {
+  isValid: false,
+  message:
+    "برای ورودی آنالوگ (ADC) فقط پایه‌های ADC1 یعنی ۳۲، ۳۳، ۳۴، ۳۵، ۳۶ و ۳۹ مجاز هستند (پایه‌های ADC2 با WiFi تداخل دارند).",
+  isWarning: undefined,
+};
+
 function parsePinIndex(pinStr: string): number {
   const len = pinStr.length;
 
@@ -99,6 +109,10 @@ export const validateEsp32Pin = (pinStr: string, type: string): PinValidationRes
 
   if ((flags & FLAG_FLASH_RESERVED) !== 0) {
     return RESULT_FLASH_RESERVED;
+  }
+
+  if (type === "analog_input") {
+    return (flags & FLAG_ADC1) !== 0 ? RESULT_VALID : RESULT_ADC1_ONLY_ERROR;
   }
 
   if ((flags & FLAG_INPUT_ONLY) !== 0) {

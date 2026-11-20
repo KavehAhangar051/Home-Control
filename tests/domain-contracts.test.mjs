@@ -63,6 +63,23 @@ describe("ESP32 Hardware Pin Validation Contracts", () => {
       assert.equal(inputRes.isWarning, true);
     }
   });
+
+  it("enforces ADC1-only constraints (GPIO 32, 33, 34, 35, 36, 39) for analog_input", () => {
+    const expectedKeys = ["isValid", "message", "isWarning"];
+
+    for (const pin of ["32", "33", "34", "35", "36", "39"]) {
+      const res = validateEsp32Pin(pin, "analog_input");
+      assert.equal(res.isValid, true, `Expected ADC1 GPIO ${pin} to be valid`);
+      assert.equal(res.isWarning, undefined);
+      assert.deepEqual(Object.keys(res), expectedKeys);
+    }
+
+    for (const badPin of ["0", "2", "4", "5", "6", "12", "13", "14", "15", "18", "25", "26", "27"]) {
+      const res = validateEsp32Pin(badPin, "analog_input");
+      assert.equal(res.isValid, false, `Expected non-ADC1 GPIO ${badPin} to be rejected`);
+      assert.deepEqual(Object.keys(res), expectedKeys);
+    }
+  });
 });
 
 describe("Persian Voice Command Engine Contracts", () => {
@@ -203,6 +220,13 @@ describe("Persian Voice Command Engine Contracts", () => {
     const placeholderRes = executeVoiceCommand("جایگاه خالی را روشن کن", context);
     assert.equal(placeholderRes.matched, false);
     assert.equal(singleCalls.length, 0);
+
+    const adcRes = executeVoiceCommand("سنسور نور را روشن کن", {
+      ...context,
+      segments: [{ pin: "32", title: "سنسور نور", type: "analog_input" }],
+    });
+    assert.equal(adcRes.matched, false);
+    assert.equal(adcRes.dispatchedCount, 0);
   });
 
   it("withholds false success toast when async pin dispatch resolves to false", async () => {
@@ -353,6 +377,35 @@ describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
       lowActions: [],
     });
   });
+
+  it("round-trips and normalizes analog_input ADC1 fields across Cloudflare serialization", () => {
+    const deserialized = deserializeFromCloudflare({
+      segments_definition: [
+        {
+          id: "seg-adc-1",
+          pin: "34",
+          title: "سنسور نور LDR",
+          type: "analog_input",
+          group: "حیاط",
+          adcResolution: 10,
+          adcSampleIntervalMs: 250,
+          adcDeltaThreshold: 20,
+          adcHighThreshold: 800,
+          adcLowThreshold: 900, // > ath, must clamp to ath (800)
+          analogValue: 1500, // > maxVal (1023), must clamp to 1023
+        },
+      ],
+    });
+
+    const seg = deserialized.segments[0];
+    assert.equal(seg.type, "analog_input");
+    assert.equal(seg.adcResolution, 10);
+    assert.equal(seg.adcSampleIntervalMs, 250);
+    assert.equal(seg.adcDeltaThreshold, 20);
+    assert.equal(seg.adcHighThreshold, 800);
+    assert.equal(seg.adcLowThreshold, 800);
+    assert.equal(seg.analogValue, 1023);
+  });
 });
 
 describe("IDeviceSyncPort In-Memory Boundary Contract", () => {
@@ -386,6 +439,19 @@ describe("IDeviceSyncPort In-Memory Boundary Contract", () => {
     adapter.reset();
     assert.equal(adapter.pinsState.size, 0);
     assert.equal(adapter.dispatchLog.length, 0);
+
+    const readOk = await adapter.readAnalogInput("34");
+    assert.equal(readOk, true);
+
+    const cfgOk = await adapter.updateAnalogInputConfig("34", {
+      adcResolution: 12,
+      adcSampleIntervalMs: 500,
+      adcDeltaThreshold: 40,
+      adcHighThreshold: 2800,
+      adcLowThreshold: 2200,
+    });
+    assert.equal(cfgOk, true);
+    assert.equal(adapter.dispatchLog.length, 2);
   });
 });
 
@@ -537,6 +603,56 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
         { targetPin: "2", actionOn: true },
         { targetPin: "4", actionOn: true },
       ],
+    );
+  });
+
+  it("treats analog_input as read-only source in workflow evaluation without dispatching writes", () => {
+    const segmentsWithAdc = [
+      ...sampleSegments,
+      { id: "seg-adc", pin: "32", title: "سنسور نور", type: "analog_input", group: "پذیرایی" },
+    ];
+    const wf = createEmptyWorkflow("تست ورودی آنالوگ");
+    const manualNode = createWorkflowNode({
+      payload: { kind: "trigger_manual" },
+      x: 0,
+      y: 0,
+      zIndex: 1,
+      segments: segmentsWithAdc,
+    });
+    const adcNode = createWorkflowNode({
+      payload: { kind: "segment", segmentId: "seg-adc" },
+      x: 240,
+      y: 0,
+      zIndex: 2,
+      segments: segmentsWithAdc,
+    });
+    const lampNode = createWorkflowNode({
+      payload: { kind: "segment", segmentId: "seg-lamp" },
+      x: 480,
+      y: 0,
+      zIndex: 3,
+      segments: segmentsWithAdc,
+    });
+
+    wf.nodes = [manualNode, adcNode, lampNode];
+    wf.edges = [
+      { id: "e1", sourceId: manualNode.id, targetId: adcNode.id },
+      { id: "e2", sourceId: adcNode.id, targetId: lampNode.id },
+    ];
+
+    const evalRes = evaluateWorkflowGraph({
+      workflow: wf,
+      segments: segmentsWithAdc,
+      pinsState: { 32: true, 2: false },
+      manualPulseNodeIds: new Set([manualNode.id]),
+    });
+
+    // adcNode outputs its live Schmitt-trigger boolean state (true), driving lampNode,
+    // while never receiving a write dispatch itself.
+    assert.equal(evalRes.nodeOutputs.get(adcNode.id), true);
+    assert.deepEqual(
+      evalRes.pendingActions.map((a) => ({ targetPin: a.targetPin, actionOn: a.actionOn })),
+      [{ targetPin: "2", actionOn: true }],
     );
   });
 

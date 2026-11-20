@@ -1,3 +1,5 @@
+import { isReadOnlyInputType } from "@/features/iot/utils/analogInput";
+
 export type SchematicSymbolKind =
   | "trigger_manual"
   | "trigger_schedule"
@@ -22,7 +24,7 @@ export function resolveSegmentSchematicKind(
   segmentType?: string,
   iconName?: string,
 ): SchematicSymbolKind {
-  if (segmentType === "input") return "segment_sensor";
+  if (isReadOnlyInputType(segmentType)) return "segment_sensor";
 
   const normalized = (iconName ?? "").toLowerCase();
 

@@ -1,6 +1,11 @@
 import type { StateCreator } from "zustand";
 import { normalizeSegmentRecord } from "@/features/iot/services/cloudflare/mappers";
 import {
+  clampAdcResolution,
+  clampAdcValue,
+  isAnalogInputSegment,
+} from "@/features/iot/utils/analogInput";
+import {
   clampAnalogValue,
   clampPwmResolution,
   getAnalogMaxDuty,
@@ -59,6 +64,17 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
           importedLastNonZero[seg.pin] = Math.max(1, clampAnalogValue(seg.lastNonZeroValue, res));
         } else if (importedLastNonZero[seg.pin] === undefined) {
           importedLastNonZero[seg.pin] = maxDuty;
+        }
+      } else if (isAnalogInputSegment(seg)) {
+        const res = clampAdcResolution(seg.adcResolution);
+        importedResolutions[seg.pin] = res;
+
+        if (seg.analogValue !== undefined) {
+          importedAnalogValues[seg.pin] = clampAdcValue(seg.analogValue, res);
+        }
+
+        if (seg.state !== undefined) {
+          importedPins[seg.pin] = seg.state;
         }
       } else if (seg.state !== undefined) {
         importedPins[seg.pin] = seg.state;

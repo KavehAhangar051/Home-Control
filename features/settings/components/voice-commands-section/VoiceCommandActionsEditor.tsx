@@ -1,5 +1,6 @@
 import { DeleteButton } from "@/components/ui/delete-button";
 import type { AutomationAction, Macro, Segment } from "@/features/iot/hooks/store/types";
+import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
 
 interface Props {
   tempActions: AutomationAction[];
@@ -14,11 +15,15 @@ export function VoiceCommandActionsEditor({
   segments,
   macros,
 }: Props) {
-  const handleAddAction = () => {
-    if (segments.length === 0 && macros.length === 0) return;
+  const controllableSegments = segments.filter(
+    (seg) => seg.type !== "placeholder" && !isReadOnlyInputSegment(seg) && seg.pin.trim().length > 0,
+  );
 
-    if (segments.length > 0) {
-      setTempActions([...tempActions, { targetPin: segments[0].pin, actionOn: true }]);
+  const handleAddAction = () => {
+    if (controllableSegments.length === 0 && macros.length === 0) return;
+
+    if (controllableSegments.length > 0) {
+      setTempActions([...tempActions, { targetPin: controllableSegments[0].pin, actionOn: true }]);
     } else {
       setTempActions([...tempActions, { targetMacro: macros[0].id }]);
     }
@@ -87,13 +92,15 @@ export function VoiceCommandActionsEditor({
               onChange={(e) => {
                 if (e.target.value === "macro" && macros.length > 0) {
                   handleUpdateAction(index, { targetMacro: macros[0].id });
-                } else if (e.target.value === "pin" && segments.length > 0) {
-                  handleUpdateAction(index, { targetPin: segments[0].pin });
+                } else if (e.target.value === "pin" && controllableSegments.length > 0) {
+                  handleUpdateAction(index, { targetPin: controllableSegments[0].pin });
                 }
               }}
               className="bg-bg-primary border border-border-color rounded-lg px-2 py-1.5 text-xs text-text-primary outline-none focus:border-accent3 focus:ring-1 focus:ring-accent3 transition-colors"
             >
-              <option value="pin">قطعه</option>
+              <option value="pin" disabled={controllableSegments.length === 0}>
+                قطعه
+              </option>
               <option value="macro" disabled={macros.length === 0}>
                 دکمه سفارشی (ماکرو)
               </option>
@@ -120,7 +127,7 @@ export function VoiceCommandActionsEditor({
                   onChange={(e) => handleUpdateAction(index, { targetPin: e.target.value })}
                   className="flex-1 bg-bg-primary border border-border-color rounded-lg px-2 py-1.5 text-xs text-text-primary outline-none focus:border-accent3 focus:ring-1 focus:ring-accent3 transition-colors"
                 >
-                  {segments.map((seg) => (
+                  {controllableSegments.map((seg) => (
                     <option key={seg.id} value={seg.pin}>
                       {seg.title} ({seg.pin})
                     </option>
