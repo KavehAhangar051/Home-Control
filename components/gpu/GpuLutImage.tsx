@@ -105,7 +105,7 @@ export function GpuLutImage({
     };
 
     const initialize = () => {
-      if (disposed || renderer || initializing || passThroughRef.current) return;
+      if (disposed || renderer || initializing || passThroughRef.current || !isNearViewportRef.current) return;
 
       initializing = true;
       const version = ++initializationVersion;
