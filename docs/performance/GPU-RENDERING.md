@@ -50,6 +50,7 @@ The source image must be same-origin or served with CORS permission. The compone
 - Uses a device-pixel-ratio cap of 2 and a 4096-pixel maximum output edge to bound framebuffer allocation. A 4096×4096 RGBA8 source texture can still consume up to 64 MiB, so avoid mounting multiple large surfaces concurrently.
 - Reuses the source texture when only LUT intensity or surface dimensions change; LUT data is re-uploaded only when its typed-array reference changes. Output dimensions are capped at 4096 pixels per edge.
 - Creates the context only when the surface approaches the viewport; it does not keep an animation loop alive.
+- Re-arms a resolution media-query listener after each `devicePixelRatio` change so moving the browser between displays with different pixel densities redraws the backing buffer even when the CSS box size is unchanged. `ResizeObserver` alone does not guarantee notification for DPR-only changes.
 - Releases textures, vertex array, and program on unmount. Recreates resources after `webglcontextrestored`.
 - If WebGL 2 is unavailable, context creation fails, or rendering throws, the original image remains visible.
 
@@ -228,3 +229,41 @@ The renderer currently caps source dimensions at 4096×4096 and caps its drawing
 - [web.dev — Rendering pipeline and animation overview](https://web.dev/articles/animations-overview)
 
 All values above are based on source-level dimensions and nominal format sizes. No target-device GPU memory or frame-time measurements have been collected yet.
+## Canvas viewport animation: source-level execution map
+
+The infinite-sheet Canvas/Workflow viewport is a DOM-based scene, not a WebGL canvas. The current path in `features/iot/components/canvas/sheetViewportAnimator.ts` is an imperative `requestAnimationFrame` loop:
+
+| Operation | Current execution | Optimization implication |
+|---|---|---|
+| Flight easing and interpolation | JavaScript callback on the main thread each frame | The camera trajectory is not currently an autonomous declarative compositor animation |
+| Smooth focal zoom | JavaScript reads the current viewport, calculates interpolation, and submits styles each frame | Target changes and focal anchoring make this a dynamic trajectory |
+| Pan inertia | JavaScript updates velocity, decay, and position each frame | The motion is input-derived and cannot be replaced with a fixed CSS transition without preserving its dynamic physics |
+| World plane | Per-frame `style.transform` update | Transform is eligible for compositor handling, but the JavaScript producer still runs on the main thread |
+| Dot grid | Per-frame transform update; background tile size changes only when the visual step changes | Transform may composite; tile-size changes can require style/paint/raster work |
+| Zoom readout | DOM text is updated when its rounded percentage changes | This remains a main-thread DOM write, although it avoids a React render pass |
+| Pointer pan | Latest pointer event is coalesced into one rAF callback | Existing batching prevents redundant updates within a frame |
+
+### Why not replace the whole camera with WAAPI immediately?
+
+A finite flight has a known start, target, and duration, so it is a possible candidate for a declarative transform animation. Smooth focal zoom changes its target as wheel input arrives; inertia integrates live velocity and frame delta. Replacing those modes with fixed keyframes or CSS transitions could change interruption behavior, focal-point locking, velocity response, or frame-rate independence.
+
+A future WAAPI experiment must therefore be isolated to finite flights first and must preserve:
+- The exact existing `easeOutCubic` trajectory and duration.
+- Interruption/cancellation semantics when a new pointer or wheel gesture begins.
+- The final viewport commit and persistence behavior.
+- Synchronization of the dot grid and zoom readouts.
+- Reduced-motion behavior and all existing visual states.
+
+Do not migrate smooth zoom or inertia to a fixed transition as a shortcut. Do not remove the grid, readout, or effects. Keep the existing rAF implementation as the fallback until browser traces prove the candidate path is composited and visual equivalence is confirmed.
+
+### Measurement needed before further changes
+
+Record the same pan, flight, wheel-zoom, pinch, and inertia scenarios from `GPU-BASELINE-CAPTURE.md`. Inspect Main, Compositor, Raster/Thread Pool, and GPU tracks, plus frame classifications. A low Main-thread time or an FPS counter alone does not establish that every update was compositor-driven. Chrome's RenderingNG documentation explains that the pipeline can skip layout/pre-paint/paint for eligible visual effects, while scripts and DOM mutation remain main-thread work.
+
+Research:
+- [Chromium RenderingNG architecture](https://developer.chrome.com/docs/chromium/renderingng-architecture)
+- [Chrome DevTools Performance reference](https://developer.chrome.com/docs/devtools/performance/reference)
+- [web.dev — Smoothness](https://web.dev/articles/smoothness)
+- [MDN — requestAnimationFrame](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame)
+
+This is a source-level execution map, not a measured performance finding. No FPS, frame-time, CPU utilization, or GPU memory values are inferred from source inspection.

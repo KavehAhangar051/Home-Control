@@ -9,9 +9,10 @@ import type { CanvasViewport } from "./canvasTypes";
 import { areSheetAnimationsAllowed } from "./nodeMotion";
 
 /**
- * Directly updates the GPU-composited world plane transform, the dedicated GPU dot-grid
- * layer (eliminating full-viewport CSS gradient repaints during pan/inertia), and cached
- * zoom percentage badges in the DOM without a React render pass.
+ * Directly updates transform-based world-plane and dot-grid layers plus cached zoom
+ * readouts without a React render pass. These transforms are compositor candidates; the
+ * browser decides whether to promote and composite them, while this rAF-driven camera
+ * calculation and style submission still execute on the main thread.
  */
 export function applyViewportToDom(
   container: HTMLElement | null,

@@ -123,7 +123,7 @@ export default function CanvasWorkspace({
         isPanning ? "cursor-grabbing" : "cursor-default"
       }`}
     >
-      {/* GPU-composited dot grid layer (translates without CSS background repaints) */}
+      {/* Transform-based dot grid layer; compositor promotion is browser-managed */}
       <div
         ref={gridLayerRef}
         aria-hidden="true"
