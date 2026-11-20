@@ -444,3 +444,12 @@ The Android shell uses Capacitor 8.6.2 and packages the existing static Next.js 
 - `.github/workflows/android-apk.yml` builds on GitHub-hosted Ubuntu and uploads the APK as a workflow artifact. The workflow uses Node.js 22, Java 21, and Android SDK API 36. Google's Android CLI installs Platform Tools, Android Platform 36, and Build Tools 36.0.0 via `android sdk install`, avoiding the deprecated `sdkmanager` interface. GitHub Actions use Node 24-compatible major versions (`checkout@v7`, `setup-node@v7`, `setup-java@v6`, `upload-artifact@v6`).
 
 This is an APK-only development pipeline. It intentionally excludes AAB, release signing, Google Play, OTA updates, and GitHub Releases. The generated Android project is created during preparation/CI rather than committed in this initial APK-only bootstrap. The first successful CI build and real-device validation are still required before claiming native runtime compatibility.
+
+
+## 10. Android APK distribution
+
+- The `Android APK` workflow runs on pushes to `main` and manual dispatch, builds only `app-debug.apk`, and retains the Actions artifact for 30 days.
+- After artifact upload, the workflow creates a GitHub **pre-release** and attaches the same APK. It uses the built-in GitHub CLI and the workflow token with `contents: write`; no third-party release action is required.
+- Release tags follow `android-build-<run-number>-<run-attempt>`. Including the attempt number keeps reruns of the same workflow run from colliding with an existing tag/release.
+- The attached file is an **unsigned debug APK** for development and manual device validation. A GitHub Release does not make it a production-signed APK; release signing remains out of scope until separately approved.
+- GitHub Packages is not used because this deliverable is a downloadable APK asset, not a package-registry artifact.
