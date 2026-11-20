@@ -28,20 +28,21 @@ export function parseCubeLut(source: string): Lut3D {
     const line = rawLine.replace(/#.*/, "").trim();
     if (!line || line.startsWith("TITLE")) continue;
 
-    const [directive, ...tokens] = line.split(/\s+/);
+    const parts = line.split(/\s+/);
+    const directive = parts[0];
 
     if (directive === "LUT_1D_SIZE") {
       throw new Error("1D .cube LUTs are not supported; provide a 3D LUT.");
     }
 
     if (directive === "LUT_3D_SIZE") {
-      size = Number(tokens[0]);
+      size = Number(parts[1]);
       validateSize(size);
       continue;
     }
 
     if (directive === "DOMAIN_MIN" || directive === "DOMAIN_MAX") {
-      const domain = tokens.slice(0, 3).map(Number);
+      const domain = parts.slice(1, 4).map(Number);
       if (domain.length !== 3 || domain.some((value) => !Number.isFinite(value))) {
         throw new Error(`Invalid ${directive} declaration in .cube LUT.`);
       }
@@ -50,11 +51,10 @@ export function parseCubeLut(source: string): Lut3D {
       continue;
     }
 
-    const triplet = line.split(/\s+/);
-    if (triplet.length === 3) {
-      const red = Number(triplet[0]);
-      const green = Number(triplet[1]);
-      const blue = Number(triplet[2]);
+    if (parts.length === 3) {
+      const red = Number(parts[0]);
+      const green = Number(parts[1]);
+      const blue = Number(parts[2]);
       if ([red, green, blue].every(Number.isFinite)) values.push(red, green, blue);
     }
   }
