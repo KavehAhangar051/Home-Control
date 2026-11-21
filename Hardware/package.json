@@ -18,12 +18,19 @@
     "pio:ensure": "bash ./tools/pio.sh ensure",
     "pio:test": "bash ./tools/pio.sh test -e native",
     "pio:build": "bash ./tools/pio.sh run -e esp32dev",
+    "te": "bash ./tools/te.sh",
+    "te:status": "bash ./tools/te.sh status",
+    "te:doctor": "bash ./tools/te.sh doctor",
+    "te:setup": "bash ./tools/te.sh setup",
+    "te:ensure": "bash ./tools/te.sh ensure",
+    "agent:start": "python3 ./tools/agent-bridge.py start",
+    "agent:end": "python3 ./tools/agent-bridge.py end",
     "rtk": "bash ./tools/rtk.sh",
     "rtk:gain": "bash ./tools/rtk.sh gain",
     "rtk:setup": "bash ./tools/rtk.sh setup",
     "rtk:ensure": "bash ./tools/rtk.sh ensure",
-    "tools:check": "python3 ./tools/rtk-bridge.py check",
-    "postinstall": "bash ./tools/rtk.sh setup || true; bash ./tools/cbm.sh ensure || true; bash ./tools/pio.sh ensure || true"
+    "tools:check": "python3 ./tools/agent-bridge.py check",
+    "postinstall": "bash ./tools/rtk.sh setup || true; bash ./tools/cbm.sh ensure || true; bash ./tools/pio.sh ensure || true; bash ./tools/te.sh setup || true"
   },
   "dependencies": {
     "lucide-react": "^1.16.0",

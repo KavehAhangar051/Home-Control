@@ -1,0 +1,30 @@
+{
+  "aborts": 0,
+  "cwd": "/app/applet",
+  "end_reason": "completed",
+  "ended": 1795271109.5373468,
+  "folded": true,
+  "host": "claude",
+  "judge_tokens": 0.0,
+  "nudges": 0,
+  "session_id": "ais-20261121-142503-15659f",
+  "source": "startup",
+  "started": 1795271103.9850638,
+  "transcript": "/app/applet/.agent-state/tokeneconomizer/transcripts/ais-20261121-142503-15659f.jsonl",
+  "turn": null,
+  "turns": [
+    {
+      "aborted": false,
+      "edits": 0,
+      "judge_tokens": 0.0,
+      "nudges": 0,
+      "resolved_proxy": true,
+      "tool_calls": 1,
+      "turn_key": "",
+      "verifications": 0,
+      "writer_tokens": 0.0
+    }
+  ],
+  "updated": 1795271109.5373487,
+  "writer_tokens": 0.0
+}

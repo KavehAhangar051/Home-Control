@@ -1,0 +1,17 @@
+{
+  "level": "default",
+  "resolved_snaps": [
+    {
+      "distinct_edit_files": 0,
+      "edit_churn": 0,
+      "error_outputs": 0,
+      "repeated_fail_sigs": 0,
+      "stagnation": 0.0,
+      "test_runs": 0,
+      "turns": 1
+    }
+  ],
+  "resolved_turns": [
+    1
+  ]
+}

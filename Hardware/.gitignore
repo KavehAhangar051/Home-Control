@@ -12,5 +12,16 @@
 .agent-state/rtk/data/*.db-journal
 .agent-state/cbm/
 .agent-state/platformio/
+.agent-state/tokeneconomizer/bin/
+.agent-state/tokeneconomizer/plugin/
+.agent-state/tokeneconomizer/transcripts/
+.agent-state/tokeneconomizer/sessions/
+.agent-state/tokeneconomizer/locks/
+.agent-state/tokeneconomizer/.index.lock
+.agent-state/tokeneconomizer/active_session.json
+.agent-state/tokeneconomizer/*.log
+.agent-state/tokeneconomizer/**/*.db-wal
+.agent-state/tokeneconomizer/**/*.db-shm
+.agent-state/tokeneconomizer/**/*.db-journal
 
 
