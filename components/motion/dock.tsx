@@ -91,7 +91,7 @@ export function DockItem({
     <m.span
       layoutId={pillLayoutId}
       transition={reduce ? { duration: 0 } : SPRING_LAYOUT}
-      style={{ willChange: "transform" }}
+      style={{ willChange: "transform", backfaceVisibility: "hidden" }}
       className="absolute inset-0.5 -z-10 rounded-[18px] bg-sidebar-hover"
     />
   ) : null;

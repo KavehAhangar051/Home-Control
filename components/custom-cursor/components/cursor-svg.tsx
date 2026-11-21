@@ -22,6 +22,7 @@ export function CursorSvg({ innerRef, ref }: CursorSvgProps) {
       style={{
         transform: "translate3d(-100px, -100px, 0)",
         transition: "opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1)",
+        contain: "layout style",
         viewTransitionName: "custom-cursor",
       }}
       aria-hidden="true"
@@ -33,8 +34,7 @@ export function CursorSvg({ innerRef, ref }: CursorSvgProps) {
           transformOrigin: "9px 2.86px",
           marginLeft: "-9px",
           marginTop: "-2.86px",
-          transition: "transform 0.16s cubic-bezier(0.16, 1, 0.3, 1)",
-          transform: "perspective(600px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1)",
+          transform: "perspective(600px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale3d(1,1,1)",
         }}
       >
         <svg
@@ -43,6 +43,10 @@ export function CursorSvg({ innerRef, ref }: CursorSvgProps) {
           viewBox="0 0 28 28"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
+          style={{
+            transform: "translate3d(0, 0, 0)",
+            backfaceVisibility: "hidden",
+          }}
           className={
             isDark
               ? "drop-shadow-[0_4px_12px_rgba(0,0,0,0.65)]"

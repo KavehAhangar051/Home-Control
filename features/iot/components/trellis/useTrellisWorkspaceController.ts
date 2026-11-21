@@ -346,11 +346,7 @@ export function useTrellisWorkspaceController({
         setWorkspaceMounted(false);
         setPresetOverride(found.preset);
 
-        try {
-          window.localStorage.setItem(getTrellisPresetStorageKey(), found.preset);
-        } catch {
-          // Ignore storage write failures
-        }
+        scheduleIdleStorageWrite(getTrellisPresetStorageKey(), () => found.preset);
       } else if (wsRef.current) {
         wsRef.current.setDocument(sanitized, { animate: true });
       }

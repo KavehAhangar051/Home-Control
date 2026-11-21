@@ -135,6 +135,7 @@ export default React.memo(function WorkflowWiresSvg({
       {showParticles && (
         <div
           aria-hidden="true"
+          style={{ contain: "layout style" }}
           className="pointer-events-none absolute top-0 left-0 size-0 overflow-visible"
         >
           {edges.map((edge) => {

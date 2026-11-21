@@ -70,6 +70,7 @@ export function useSlider({
   // pointermove after pointerdown does not have to wait on a re-render.
   const draggingRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
+  const dragRectRef = useRef<{ left: number; width: number } | null>(null);
   const [internal, setInternal] = useState(defaultValue);
   const [dragging, setDragging] = useState(false);
   const controlled = value !== undefined;
@@ -101,7 +102,7 @@ export function useSlider({
 
   const commitFromX = useCallback(
     (clientX: number) => {
-      const rect = trackRef.current?.getBoundingClientRect();
+      const rect = dragRectRef.current ?? trackRef.current?.getBoundingClientRect();
 
       if (!rect || rect.width === 0) return;
 
@@ -120,6 +121,9 @@ export function useSlider({
       // not take the drag down with it.
       draggingRef.current = true;
       activePointerIdRef.current = event.pointerId;
+      const measured = trackRef.current?.getBoundingClientRect();
+      dragRectRef.current =
+        measured && measured.width > 0 ? { left: measured.left, width: measured.width } : null;
       setDragging(true);
       capturePointer(event.currentTarget, event.pointerId);
       // A click on the track should land keyboard focus on the handle.
@@ -183,6 +187,7 @@ export function useSlider({
 
       activePointerIdRef.current = null;
       draggingRef.current = false;
+      dragRectRef.current = null;
       releasePointer(event.currentTarget, event.pointerId);
       setDragging(false);
       onValueCommit?.(latestValueRef.current);
@@ -220,6 +225,7 @@ export function useSlider({
       const pointerId = activePointerIdRef.current;
       activePointerIdRef.current = null;
       draggingRef.current = false;
+      dragRectRef.current = null;
       if (trackRef.current && pointerId !== null) {
         releasePointer(trackRef.current, pointerId);
       }

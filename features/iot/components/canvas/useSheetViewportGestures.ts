@@ -145,6 +145,12 @@ export function useSheetViewportGestures({
   const computeGridStyleRef = React.useRef(computeGridStyle);
   const isLockedRef = React.useRef(isLocked);
   const cachedReadoutsRef = React.useRef<HTMLElement[] | null>(null);
+  const containerRectRef = React.useRef<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   React.useEffect(() => {
     onBackgroundClickRef.current = onBackgroundClick;
@@ -259,15 +265,31 @@ export function useSheetViewportGestures({
       const rect = el.getBoundingClientRect();
 
       if (rect.width > 0 && rect.height > 0) {
-        setContainerSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
+        containerRectRef.current = {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        };
+        const width = Math.round(rect.width);
+        const height = Math.round(rect.height);
+        setContainerSize((prev) =>
+          prev.width === width && prev.height === height ? prev : { width, height },
+        );
       }
     };
 
     updateRect();
     const observer = new ResizeObserver(updateRect);
     observer.observe(el);
+    window.addEventListener("resize", updateRect, { passive: true });
+    window.addEventListener("scroll", updateRect, { passive: true, capture: true });
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateRect);
+      window.removeEventListener("scroll", updateRect, true);
+    };
   }, [containerRef, isAttached]);
 
   const animateToViewport = React.useCallback(
@@ -281,8 +303,7 @@ export function useSheetViewportGestures({
   const handleZoomBy = React.useCallback(
     (delta: number, focalClientX?: number, focalClientY?: number) => {
       primeReadoutCache();
-      const el = containerRef.current;
-      const rect = el?.getBoundingClientRect();
+      const rect = containerRectRef.current ?? containerRef.current?.getBoundingClientRect();
 
       const anchorX =
         focalClientX !== undefined && rect ? focalClientX - rect.left : containerSize.width / 2;
@@ -327,9 +348,15 @@ export function useSheetViewportGestures({
       const entries = Array.from(touchPointers.entries());
       const [p1Id, p1] = entries[0];
       const [p2Id, p2] = entries[1];
-      const rect = el.getBoundingClientRect();
-      const midX = (p1.x + p2.x) / 2 - rect.left;
-      const midY = (p1.y + p2.y) / 2 - rect.top;
+      const measured = el.getBoundingClientRect();
+      containerRectRef.current = {
+        left: measured.left,
+        top: measured.top,
+        width: measured.width,
+        height: measured.height,
+      };
+      const midX = (p1.x + p2.x) / 2 - measured.left;
+      const midY = (p1.y + p2.y) / 2 - measured.top;
       const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
       const curr = viewportRef.current;
 
@@ -353,7 +380,7 @@ export function useSheetViewportGestures({
       const p2 = touchPointers.get(gesture.p2Id);
       if (!p1 || !p2) return;
 
-      const rect = el.getBoundingClientRect();
+      const rect = containerRectRef.current ?? el.getBoundingClientRect();
       const midX = (p1.x + p2.x) / 2 - rect.left;
       const midY = (p1.y + p2.y) / 2 - rect.top;
       const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
@@ -713,7 +740,7 @@ export function useSheetViewportGestures({
 
       e.preventDefault();
       primeReadoutCache();
-      const rect = el.getBoundingClientRect();
+      const rect = containerRectRef.current ?? el.getBoundingClientRect();
       const anchorX = e.clientX - rect.left;
       const anchorY = e.clientY - rect.top;
       const delta = e.deltaY < 0 ? 0.11 : -0.11;

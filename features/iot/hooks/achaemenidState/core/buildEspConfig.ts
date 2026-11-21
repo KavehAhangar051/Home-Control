@@ -1,4 +1,4 @@
-import { scheduleIdleStorageWrite } from "@/lib/asyncScheduler";
+import { scheduleIdleStorageWrite, yieldToMain } from "@/lib/asyncScheduler";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import type { IoTStoreState } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
@@ -125,6 +125,7 @@ export async function persistStoreConfigToCloudflare(
       ...options?.overrides,
     });
 
+    await yieldToMain();
     const signature = JSON.stringify(snapshotToSave);
 
     if (!checkEnabled()) {

@@ -11,7 +11,8 @@ export default function VerticalHeader(props: MasterHeaderProps) {
   return (
     <div
       id="vertical-master-header"
-      className="flex size-full flex-col text-right font-sans [&_span]:hidden md:[&_span]:inline [&_h1]:hidden md:[&_h1]:block [&_p]:hidden md:[&_p]:block"
+      style={{ contain: "style" }}
+      className="flex size-full flex-col text-right font-sans [backface-visibility:hidden] [&_span]:hidden md:[&_span]:inline [&_h1]:hidden md:[&_h1]:block [&_p]:hidden md:[&_p]:block"
       dir="rtl"
     >
       <div

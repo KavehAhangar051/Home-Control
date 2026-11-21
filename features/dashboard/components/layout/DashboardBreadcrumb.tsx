@@ -50,7 +50,8 @@ export default function DashboardBreadcrumb() {
   return (
     <header
       dir="rtl"
-      className="relative z-30 flex h-12 w-full shrink-0 items-center justify-between gap-2 border-b border-sidebar-border bg-sidebar-bg px-3 sm:gap-3 sm:px-4 md:h-14 md:px-6 lg:px-8"
+      style={{ contain: "style" }}
+      className="relative z-30 flex h-12 w-full shrink-0 items-center justify-between gap-2 border-b border-sidebar-border bg-sidebar-bg px-3 [backface-visibility:hidden] sm:gap-3 sm:px-4 md:h-14 md:px-6 lg:px-8"
     >
       <Breadcrumb dir="rtl" className="relative z-10 min-w-0 shrink">
         <BreadcrumbList className="gap-1.5 text-sm text-sidebar-muted sm:gap-2">

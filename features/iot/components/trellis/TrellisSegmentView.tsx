@@ -178,7 +178,7 @@ export default function TrellisSegmentView({
   return (
     <div dir="rtl" className="relative flex size-full flex-col p-2">
       <Card
-        className={`@container/segment relative flex size-full flex-col justify-between !gap-0 !overflow-visible !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
+        className={`@container/segment relative flex size-full flex-col justify-between !gap-0 !overflow-visible !p-0 !ring-0 border transition-[border-color,background-color] duration-200 ${activeSurfaceClass}`}
         style={CARD_SPACING_STYLE}
       >
         <div

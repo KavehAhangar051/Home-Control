@@ -1,3 +1,4 @@
+import { scheduleIdleStorageWrite } from "@/lib/asyncScheduler";
 import { debugLog } from "@/lib/debug";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import { createTimeoutSignal } from "@/lib/resilience";
@@ -72,11 +73,11 @@ function tryRestoreCachedTrack(expectedSource: string): Track | null {
 }
 
 function persistSelectedTrack(source: string, track: Track): void {
-  try {
-    localStorage.setItem("music_cached_track", JSON.stringify({ source, track }));
-  } catch (error) {
-    debugLog.warn("Audio", "Could not persist the current music selection.", error);
-  }
+  scheduleIdleStorageWrite("music_cached_track", () => JSON.stringify({ source, track }), {
+    onError: (error) => {
+      debugLog.warn("Audio", "Could not persist the current music selection.", error);
+    },
+  });
 }
 
 export class AmbientManager {

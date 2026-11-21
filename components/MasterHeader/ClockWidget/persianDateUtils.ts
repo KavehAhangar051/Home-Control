@@ -40,7 +40,16 @@ const PERSIAN_TIME_FORMATTER = new Intl.DateTimeFormat("fa-IR", {
   second: "2-digit",
 });
 
+let cachedDateDayKey = -1;
+let cachedPersianDate = "";
+
 export const getPersianDateString = (time: Date) => {
+  const dayKey = time.getFullYear() * 512 + time.getMonth() * 32 + time.getDate();
+
+  if (dayKey === cachedDateDayKey && cachedPersianDate) {
+    return cachedPersianDate;
+  }
+
   const parts = PERSIAN_DATE_FORMATTER.formatToParts(time);
   let jYear = 1400;
   let jMonth = 1;
@@ -56,8 +65,12 @@ export const getPersianDateString = (time: Date) => {
 
   const shahanshahiYear = jYear + 1180;
   const monthName = ZOROASTRIAN_MONTHS[jMonth - 1] || "نامشخص";
+  const formatted = `${toPersianDigits(jDay)} ${monthName} ${toPersianDigits(shahanshahiYear)}`;
 
-  return `${toPersianDigits(jDay)} ${monthName} ${toPersianDigits(shahanshahiYear)}`;
+  cachedDateDayKey = dayKey;
+  cachedPersianDate = formatted;
+
+  return formatted;
 };
 
 export const getTimeString = (time: Date) => {
