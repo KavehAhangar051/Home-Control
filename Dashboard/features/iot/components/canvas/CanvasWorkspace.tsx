@@ -127,7 +127,7 @@ export default function CanvasWorkspace({
       <div
         ref={gridLayerRef}
         aria-hidden="true"
-        className="pointer-events-none absolute z-0 will-change-transform"
+        className="pointer-events-none absolute z-0 will-change-transform [backface-visibility:hidden]"
         style={initialGridStyle}
       />
 
@@ -135,7 +135,7 @@ export default function CanvasWorkspace({
       <div
         ref={worldPlaneRef}
         style={{
-          transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`,
+          transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale3d(${viewport.zoom}, ${viewport.zoom}, 1)`,
           transformOrigin: "0 0",
           willChange: "transform",
           backfaceVisibility: "hidden",

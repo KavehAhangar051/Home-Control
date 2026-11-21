@@ -186,6 +186,7 @@ export default function AddSegmentForm({
                     : { duration: 0 }
                 }
                 className="overflow-hidden"
+                style={{ contain: "layout style", backfaceVisibility: "hidden" }}
               >
                 <div className="space-y-3.5 rounded-xl border border-border-color bg-secondary/40 p-3">
                   <div className="flex items-center justify-between gap-2 border-b border-border-color/70 pb-2">
@@ -311,6 +312,7 @@ export default function AddSegmentForm({
                     : { duration: 0 }
                 }
                 className="overflow-hidden"
+                style={{ contain: "layout style", backfaceVisibility: "hidden" }}
               >
                 <AnalogInputSettingsPanel
                   adcResolution={adcResolution}
@@ -366,6 +368,7 @@ export default function AddSegmentForm({
                         : { duration: 0 }
                     }
                     className="overflow-hidden"
+                    style={{ contain: "layout style", backfaceVisibility: "hidden" }}
                   >
                     <div className="pt-3 pb-1 space-y-4">
                       {selectedType === "gpio_toggle" && (

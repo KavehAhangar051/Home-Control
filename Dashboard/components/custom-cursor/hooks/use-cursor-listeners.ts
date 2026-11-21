@@ -1,6 +1,8 @@
 "use client";
 
 import { type RefObject, useEffect } from "react";
+import { getDisplayDpr, snapToDevicePixel } from "@/lib/gpuDisplay";
+import { lookupCursorLerpAlpha } from "@/lib/gpuLut";
 import { checkClickable, checkHoveringText } from "./utils/cursor-detection";
 
 export interface CursorElementsRef {
@@ -10,8 +12,9 @@ export interface CursorElementsRef {
 }
 
 /**
- * Attaches a requestAnimationFrame-driven kinematic LERP loop for the custom cursor.
- * Cached transforms avoid redundant style writes while the cursor settles.
+ * Attaches a native-refresh-rate requestAnimationFrame kinematic LERP loop for the custom cursor.
+ * Uses a precomputed dt->alpha LUT and physical-pixel DPR snapping so 60Hz, 120Hz, 144Hz, and
+ * 240Hz displays share identical feel with zero main-thread Math.pow overhead.
  *
  * @param {CursorElementsRef} refs - Direct DOM references to cursor container and inner 3D shell.
  */
@@ -36,6 +39,7 @@ export function useHardwareCursorListeners({
     let currentY = -100;
     let rafId: number | null = null;
     let isLoopRunning = false;
+    let lastFrameTs = 0;
     let lastCursorX = Number.NaN;
     let lastCursorY = Number.NaN;
 
@@ -44,9 +48,6 @@ export function useHardwareCursorListeners({
     let prevRotY = -999;
     let prevRotZ = -999;
     let prevScale = -999;
-
-    // Kinematic LERP factor tuned for responsive, zero-jitter tracking
-    const LERP_FACTOR = 0.26;
 
     const updateInnerTransform = (velX = 0) => {
       const inner = innerRef.current;
@@ -72,22 +73,27 @@ export function useHardwareCursorListeners({
       prevRotZ = rotZ;
       prevScale = scale;
 
-      inner.style.transform = `perspective(600px) rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${rotZ}deg) scale(${scale})`;
+      inner.style.transform = `perspective(600px) rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${rotZ}deg) scale3d(${scale},${scale},1)`;
     };
 
-    const animate = () => {
+    const animate = (now: number) => {
+      const dt = lastFrameTs > 0 ? Math.min(64, Math.max(1, now - lastFrameTs)) : 16.6667;
+      lastFrameTs = now;
+
       const dx = targetX - currentX;
       const dy = targetY - currentY;
 
-      // Smooth kinematic interpolation
-      currentX += dx * LERP_FACTOR;
-      currentY += dy * LERP_FACTOR;
+      // Frame-rate-independent kinematic interpolation via O(1) LUT
+      const alpha = lookupCursorLerpAlpha(dt);
+      currentX += dx * alpha;
+      currentY += dy * alpha;
 
       const cursor = cursorRef.current;
 
       if (cursor) {
-        const rx = ((currentX * 100) | 0) / 100;
-        const ry = ((currentY * 100) | 0) / 100;
+        const dpr = getDisplayDpr();
+        const rx = snapToDevicePixel(currentX, dpr);
+        const ry = snapToDevicePixel(currentY, dpr);
         if (rx !== lastCursorX || ry !== lastCursorY) {
           lastCursorX = rx;
           lastCursorY = ry;
@@ -109,7 +115,18 @@ export function useHardwareCursorListeners({
         currentX = targetX;
         currentY = targetY;
         isLoopRunning = false;
+        lastFrameTs = 0;
         rafId = null;
+        if (cursor) {
+          const dpr = getDisplayDpr();
+          const rx = snapToDevicePixel(targetX, dpr);
+          const ry = snapToDevicePixel(targetY, dpr);
+          if (rx !== lastCursorX || ry !== lastCursorY) {
+            lastCursorX = rx;
+            lastCursorY = ry;
+            cursor.style.transform = `translate3d(${rx}px,${ry}px,0)`;
+          }
+        }
         updateInnerTransform(0);
       }
     };
@@ -118,6 +135,7 @@ export function useHardwareCursorListeners({
       if (document.hidden || isLoopRunning) return;
 
       isLoopRunning = true;
+      lastFrameTs = 0;
       if (rafId !== null) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(animate);
     };
@@ -135,10 +153,13 @@ export function useHardwareCursorListeners({
         const cursor = cursorRef.current;
 
         if (cursor) {
+          const dpr = getDisplayDpr();
+          const rx = snapToDevicePixel(targetX, dpr);
+          const ry = snapToDevicePixel(targetY, dpr);
           cursor.style.opacity = "1";
-          cursor.style.transform = `translate3d(${targetX}px,${targetY}px,0)`;
-          lastCursorX = targetX;
-          lastCursorY = targetY;
+          cursor.style.transform = `translate3d(${rx}px,${ry}px,0)`;
+          lastCursorX = rx;
+          lastCursorY = ry;
         }
       }
 
@@ -148,6 +169,7 @@ export function useHardwareCursorListeners({
     const onPointerLeave = () => {
       isVisible = false;
       isLoopRunning = false;
+      lastFrameTs = 0;
 
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
@@ -168,10 +190,13 @@ export function useHardwareCursorListeners({
       const cursor = cursorRef.current;
 
       if (cursor) {
+        const dpr = getDisplayDpr();
+        const rx = snapToDevicePixel(targetX, dpr);
+        const ry = snapToDevicePixel(targetY, dpr);
         cursor.style.opacity = "1";
-        cursor.style.transform = `translate3d(${targetX}px,${targetY}px,0)`;
-        lastCursorX = targetX;
-        lastCursorY = targetY;
+        cursor.style.transform = `translate3d(${rx}px,${ry}px,0)`;
+        lastCursorX = rx;
+        lastCursorY = ry;
       }
 
       startLoop();

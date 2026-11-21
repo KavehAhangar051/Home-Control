@@ -234,7 +234,7 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
         <div
           ref={studio.worldPlaneRef}
           style={{
-            transform: `translate3d(${wf.viewport.x}px, ${wf.viewport.y}px, 0) scale(${wf.viewport.zoom})`,
+            transform: `translate3d(${wf.viewport.x}px, ${wf.viewport.y}px, 0) scale3d(${wf.viewport.zoom}, ${wf.viewport.zoom}, 1)`,
             transformOrigin: "0 0",
             willChange: "transform",
             backfaceVisibility: "hidden",

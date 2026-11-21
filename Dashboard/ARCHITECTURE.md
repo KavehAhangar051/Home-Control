@@ -40,7 +40,7 @@ app/
 components/
   MasterHeader.tsx       Desktop right-rail header/layout dispatcher
   MasterHeader/          Desktop header & shared theme/voice/clock subcomponents
-  motion/                Shared Motion primitives (`dock.tsx`, `expandable-tabs.tsx`, `expandable-tabs-layout.ts`)
+  motion/                Shared Motion primitives (`dock.tsx`, `expandable-tabs.tsx`, `expandable-tabs-layout.ts`, `composited-bezier-particle.tsx`)
   AudioInitializer.tsx   Audio initialization integration
 features/
   dashboard/
@@ -57,6 +57,9 @@ features/
     components/          Settings sections and controls
 lib/
   audio/                 Audio managers and UI sound effects
+  gpuLut.ts              Precomputed typed-array LUTs (color/gamma/palette/HSV/wave/easing/physics/Bezier)
+  gpuDisplay.ts          Native display DPR, refresh-rate probe, device-pixel snapping & WebGL2 3D LUT VRAM helper
+  hooks/use-gpu-display.ts Root observer syncing native display resolution, DPR, FPS, and GPU backend attributes
   presets.ts             Shared presets/configuration values
 public/                  Static assets served by the frontend
 docs/                    Protocol, configuration, dimensional drawings (`docs/dimensional-drawings/`), and reference docs
@@ -239,9 +242,11 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 
 ## 15. 60 FPS rendering, adaptive tiering, and animation quality
 
-- The dashboard targets stable 60 FPS on 60 Hz devices and scales cleanly to higher refresh rates (`90/120/144 Hz`) without an artificial FPS cap.
+- The dashboard renders at native display resolution (`devicePixelRatio` sub-pixel snapping) and scales cleanly to native refresh rates (`60/90/120/144/165/240/360 Hz`) without an artificial FPS cap.
+- `lib/gpuDisplay.ts` & `lib/hooks/use-gpu-display.ts` (`useGpuDisplayObserver`, mounted in `DashboardContainer`) measure native display resolution, DPR, GPU backend (`webgpu`/`webgl2`/`webgl`/`2d`), and display refresh rate via a one-shot 14-frame `requestAnimationFrame` probe (zero idle CPU) and expose `--display-dpr`, `--display-fps`, `--display-pixel`, and `data-display-*` / `data-gpu-backend` on `document.documentElement`.
+- `lib/gpuLut.ts` centralizes precomputed typed-array Lookup Tables (sRGB gamma/luminance, hex bytes, dark/light theme palettes, HSV→RGB, Gaussian wave crests, cubic easing, frame-rate-independent zoom/inertia/cursor physics decay, and cubic Bezier Bernstein basis) used by `themeStyles.ts`, `color-picker.tsx`, `range-slider-wave.tsx`, `sheetViewportAnimator.ts`, `use-cursor-listeners.ts`, and `composited-bezier-particle.tsx`.
 - `lib/performanceTier.ts` (`usePerformanceTierObserver`) maps explicit user Settings (`animationsEnabled === false` or `animationsFps <= 30`) directly to `html[data-perf-tier="full" | "lite"]` with **zero continuous background rAF polling** and **no silent hardware-based quality downgrade**. All animations, blur/backdrop-blur effects, springs, transforms, and View Transitions remain 100% active on every device unless the user explicitly opts into reduced animations or `30 FPS` in Settings → پایداری.
-- Hidden tabs (`html[data-page-hidden="true"]` from `usePageVisibility`) pause infinite CSS keyframes and active `CompositedBezierParticle` Web Animations through one shared visibility listener. Canvas and Workflow wire particles pre-sample cubic Bezier geometry on changes and animate equal-distance `translate3d`/opacity keyframes; these are compositor candidates, not a guarantee of GPU execution. `ThemeToggle` avoids forced `document.body.offsetHeight` synchronous reflows, and offscreen Grid group containers use `content-visibility: auto`.
+- Hidden tabs (`html[data-page-hidden="true"]` from `usePageVisibility`) pause infinite CSS keyframes (including `.animate-ping`/`.animate-spin`) and active `CompositedBezierParticle` Web Animations through one shared visibility listener. `components/motion/composited-bezier-particle.tsx` pre-samples cubic Bezier geometry via the `BEZIER_BASIS_LUT` with keyframe caching and animates equal-distance `translate3d`/opacity keyframes on GPU compositor layers (`will-change: transform, opacity`, `backface-visibility: hidden`). `ThemeToggle` View Transitions, `app/globals.css` keyframes, canvas world/grid/node layers, sliders, loaders (`loader.tsx`, `loader-shapes.tsx`), and isolated collapse containers (`contain: layout style`) promote active motion onto 3D compositor surfaces (`translate3d`/`scale3d`/`rotate3d`, `backface-visibility: hidden`) and avoid CPU `width`/`height`/`box-shadow` transitions on interactive cards/nodes.
 - Preserve the current async `LazyMotion` + `domMax` setup because all 134 Motion calls already import lightweight `m.*` rather than monolithic `motion`, and the broad `motion/react-m` migration increased homepage bundle size in Next.js 16.4.6/Turbopack.
 - Follow `docs/performance/60-FPS-STRATEGY.md` for profiling scenarios and acceptance criteria. Record real browser measurements alongside Turbopack snapshots whenever runtime claims are updated.
 

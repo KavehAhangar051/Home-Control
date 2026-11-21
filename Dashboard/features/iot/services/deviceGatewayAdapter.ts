@@ -425,9 +425,8 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
   readAnalogInput(pin: string): boolean {
     const pinNum = Number(pin) | 0;
 
-    return this.dispatchHardwareCommand(
-      { command: "read_analog", pin: pinNum },
-      () => this.deps.publishReadAnalogInputCommand(pinNum),
+    return this.dispatchHardwareCommand({ command: "read_analog", pin: pinNum }, () =>
+      this.deps.publishReadAnalogInputCommand(pinNum),
     );
   }
 

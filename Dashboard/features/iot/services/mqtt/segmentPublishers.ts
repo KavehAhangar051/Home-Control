@@ -62,8 +62,7 @@ export const buildAddSegmentFrame = (
 
   buf[0] = MQTT_OPCODES.ADD_SEGMENT;
   buf[1] = pin & 0xff;
-  buf[2] =
-    isAnalogOutput || isAnalogInput ? PIN_STATE_LOW : value ? PIN_STATE_HIGH : PIN_STATE_LOW;
+  buf[2] = isAnalogOutput || isAnalogInput ? PIN_STATE_LOW : value ? PIN_STATE_HIGH : PIN_STATE_LOW;
 
   let offset = 3;
   buf.set(idBytes, offset);

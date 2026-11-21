@@ -108,16 +108,16 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
       >
         <m.div
           className="pointer-events-none absolute inset-0 origin-left rounded-full bg-accent3"
-          style={{ scaleX: fillScaleX, willChange: "transform" }}
+          style={{ scaleX: fillScaleX, willChange: "transform", backfaceVisibility: "hidden" }}
         />
 
         {/* thumb — translates horizontally via GPU x without CSS left/width reflow */}
         <m.div
           className="pointer-events-none absolute left-0 top-1/2"
-          style={{ x: thumbX, willChange: "transform" }}
+          style={{ x: thumbX, willChange: "transform", backfaceVisibility: "hidden" }}
         >
           <m.div
-            className="size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent3 bg-card-bg-solid shadow-sm"
+            className="size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent3 bg-card-bg-solid shadow-sm [backface-visibility:hidden]"
             animate={reduce ? undefined : { scale: dragging ? 1.25 : 1 }}
             transition={SPRING_PRESS}
           />
@@ -126,7 +126,7 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
         {/* bubble — anchored to the thumb via GPU x, leaning with drag velocity */}
         <m.div
           className="pointer-events-none absolute bottom-6 left-0 z-20"
-          style={{ x: thumbX, willChange: "transform" }}
+          style={{ x: thumbX, willChange: "transform", backfaceVisibility: "hidden" }}
         >
           <div className="-translate-x-1/2">
             <AnimatePresence>
@@ -149,6 +149,7 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
                           scaleY: stretch,
                           originY: 1,
                           willChange: "transform, opacity",
+                          backfaceVisibility: "hidden",
                         }
                   }
                   className="relative whitespace-nowrap rounded-xl bg-accent3 px-2.5 py-1 text-sm font-medium tabular-nums text-accent3-foreground shadow-md"

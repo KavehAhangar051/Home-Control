@@ -7,7 +7,7 @@
 
 import { m } from "motion/react";
 import type React from "react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { EASE_IN_OUT } from "@/lib/ease";
 import type { PartProps } from "./loader-types";
 
@@ -65,7 +65,10 @@ export function Morph({ size, speed, reduce }: PartProps): React.JSX.Element {
       height={size}
       viewBox="0 0 100 100"
       role="img"
-      style={{ willChange: reduce ? undefined : "transform" }}
+      style={{
+        willChange: reduce ? undefined : "transform",
+        backfaceVisibility: "hidden",
+      }}
       animate={reduce ? { opacity: [1, 0.4, 1] } : { rotate: MORPH_ROT, scale: MORPH_SCALE }}
       transition={
         reduce
@@ -97,7 +100,7 @@ export function Comet({ size, speed, reduce }: PartProps): React.JSX.Element {
   return (
     <span className="relative inline-block" style={{ width: size, height: size }}>
       <m.span
-        className={`absolute inset-0 ${reduce ? "" : "will-change-transform"}`}
+        className={`absolute inset-0 [backface-visibility:hidden] ${reduce ? "" : "will-change-transform"}`}
         animate={reduce ? REDUCED.animate : { rotate: 360 }}
         transition={
           reduce
@@ -194,7 +197,13 @@ export function Metaballs({ size, speed, reduce }: PartProps): React.JSX.Element
   const id = useId().replace(/:/g, "");
 
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" role="img">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      role="img"
+      className="transform-gpu [backface-visibility:hidden]"
+    >
       <title>Loading</title>
       <defs>
         <filter id={id}>
@@ -204,26 +213,30 @@ export function Metaballs({ size, speed, reduce }: PartProps): React.JSX.Element
       </defs>
       <g filter={`url(#${id})`} fill="currentColor">
         <m.circle
+          cx="50"
           cy="50"
           r="15"
-          animate={reduce ? { opacity: [0.4, 1, 0.4] } : { cx: [30, 70, 30] }}
+          style={{ willChange: reduce ? "opacity" : "transform" }}
+          initial={{ x: reduce ? -10 : -20 }}
+          animate={reduce ? { opacity: [0.4, 1, 0.4] } : { x: [-20, 20, -20] }}
           transition={{
             duration: speed * 1.6,
             ease: EASE_IN_OUT,
             repeat: Number.POSITIVE_INFINITY,
           }}
-          cx={reduce ? 40 : 30}
         />
         <m.circle
+          cx="50"
           cy="50"
           r="15"
-          animate={reduce ? { opacity: [0.4, 1, 0.4] } : { cx: [70, 30, 70] }}
+          style={{ willChange: reduce ? "opacity" : "transform" }}
+          initial={{ x: reduce ? 10 : 20 }}
+          animate={reduce ? { opacity: [0.4, 1, 0.4] } : { x: [20, -20, 20] }}
           transition={{
             duration: speed * 1.6,
             ease: EASE_IN_OUT,
             repeat: Number.POSITIVE_INFINITY,
           }}
-          cx={reduce ? 60 : 70}
         />
       </g>
     </svg>
@@ -336,39 +349,58 @@ export function Helix({ size, speed, reduce }: PartProps): React.JSX.Element {
 
 export function Percent({ size, speed, reduce }: PartProps): React.JSX.Element {
   const [p, setP] = useState(0);
+  const fillRef = useRef<HTMLSpanElement | null>(null);
+
   useEffect(() => {
-    const dur = (reduce ? speed * 2 : speed) * 1000;
-    const start = { t: 0 };
-    const tickMs = 40;
+    const dur = Math.max(100, (reduce ? speed * 2 : speed) * 1000);
+    let rafId: number | null = null;
+    let lastTs = 0;
+    let elapsed = 0;
     let lastPercent = 0;
 
-    const update = () => {
-      start.t += tickMs;
-      const next = Math.min(100, Math.round((start.t / dur) * 100));
+    const tick = (now: number) => {
+      if (lastTs > 0) {
+        elapsed = (elapsed + Math.min(64, Math.max(0, now - lastTs))) % dur;
+      }
+      lastTs = now;
+
+      const ratio = elapsed / dur;
+      const fillEl = fillRef.current;
+      if (fillEl) {
+        fillEl.style.transform = `translate3d(0, 0, 0) scaleX(${ratio.toFixed(4)})`;
+      }
+
+      const next = Math.min(100, Math.round(ratio * 100));
       if (next !== lastPercent) {
         lastPercent = next;
         setP(next);
       }
 
-      if (next >= 100) start.t = 0;
+      rafId = requestAnimationFrame(tick);
     };
-    let intervalId: ReturnType<typeof setInterval> | undefined;
-    const startInterval = () => {
-      if (!document.hidden && intervalId === undefined) {
-        intervalId = setInterval(update, tickMs);
+
+    const startLoop = () => {
+      if (!document.hidden && rafId === null) {
+        lastTs = 0;
+        rafId = requestAnimationFrame(tick);
       }
     };
-    const stopInterval = () => {
-      if (intervalId !== undefined) clearInterval(intervalId);
-      intervalId = undefined;
-    };
-    const handleVisibilityChange = () => (document.hidden ? stopInterval() : startInterval());
 
-    startInterval();
+    const stopLoop = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      lastTs = 0;
+    };
+
+    const handleVisibilityChange = () => (document.hidden ? stopLoop() : startLoop());
+
+    startLoop();
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      stopInterval();
+      stopLoop();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [speed, reduce]);
@@ -386,8 +418,9 @@ export function Percent({ size, speed, reduce }: PartProps): React.JSX.Element {
         style={{ height: Math.max(3, size * 0.1) }}
       >
         <span
-          className="block h-full w-full origin-left rounded-full bg-current will-change-transform"
-          style={{ transform: `scaleX(${p / 100})` }}
+          ref={fillRef}
+          className="block h-full w-full origin-left rounded-full bg-current will-change-transform [backface-visibility:hidden]"
+          style={{ transform: "translate3d(0, 0, 0) scaleX(0)" }}
         />
       </span>
     </span>
@@ -416,7 +449,7 @@ export function DotMatrix({ size, speed, reduce }: PartProps): React.JSX.Element
         return (
           <m.span
             key={idx}
-            className="rounded-full bg-current"
+            className={`rounded-full bg-current [backface-visibility:hidden] ${reduce ? "" : "will-change-transform"}`}
             style={{ width: dot, height: dot }}
             animate={
               reduce ? { opacity: [0.3, 1, 0.3] } : { opacity: [0.2, 1, 0.2], scale: [0.7, 1, 0.7] }
@@ -446,7 +479,7 @@ export function Dither({ size, speed, reduce }: PartProps): React.JSX.Element {
       {BAYER_4.map((order) => (
         <m.span
           key={`dither-${order}`}
-          className="bg-current"
+          className={`bg-current [backface-visibility:hidden] ${reduce ? "" : "will-change-[opacity]"}`}
           style={{ width: cell, height: cell }}
           animate={reduce ? { opacity: [0.3, 1, 0.3] } : { opacity: [0.1, 1, 0.1] }}
           transition={{

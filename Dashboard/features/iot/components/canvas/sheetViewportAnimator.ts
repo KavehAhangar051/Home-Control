@@ -1,3 +1,5 @@
+import { getDisplayDpr, snapToDevicePixel } from "@/lib/gpuDisplay";
+import { lookupEaseOutCubic, lookupInertiaDecay, lookupZoomAlpha } from "@/lib/gpuLut";
 import {
   type CanvasGridStyle,
   clampCanvasZoom,
@@ -9,10 +11,8 @@ import type { CanvasViewport } from "./canvasTypes";
 import { areSheetAnimationsAllowed } from "./nodeMotion";
 
 /**
- * Directly updates transform-based world-plane and dot-grid layers plus cached zoom
- * readouts without a React render pass. These transforms are compositor candidates; the
- * browser decides whether to promote and composite them, while this rAF-driven camera
- * calculation and style submission still execute on the main thread.
+ * Directly updates GPU-composited `translate3d`/`scale3d` world-plane and dot-grid layers
+ * plus cached zoom readouts without a React render pass, quantized to native device pixels.
  */
 export function applyViewportToDom(
   container: HTMLElement | null,
@@ -23,7 +23,7 @@ export function applyViewportToDom(
   cachedReadouts?: HTMLElement[] | null,
 ): void {
   if (worldPlane) {
-    const transform = `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`;
+    const transform = `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale3d(${viewport.zoom}, ${viewport.zoom}, 1)`;
     if (worldPlane.style.transform !== transform) {
       worldPlane.style.transform = transform;
     }
@@ -91,19 +91,10 @@ export interface SheetViewportAnimator {
 const MIN_INERTIA_SPEED_PX_PER_MS = 0.06;
 const STOP_INERTIA_SPEED_PX_PER_MS = 0.018;
 const STOP_INERTIA_SPEED_SQUARED = STOP_INERTIA_SPEED_PX_PER_MS ** 2;
-const INERTIA_FRICTION_PER_FRAME = 0.915;
 const MAX_INERTIA_SPEED_PX_PER_MS = 3.2;
 
-function easeOutCubic(t: number): number {
-  const inv = 1 - Math.min(1, Math.max(0, t));
-  return 1 - inv * inv * inv;
-}
-
 /** Avoid repeating imperative DOM/store updates when frame quantization yields the same viewport. */
-function applyViewportIfChanged(
-  deps: SheetViewportAnimatorDeps,
-  next: CanvasViewport,
-): void {
+function applyViewportIfChanged(deps: SheetViewportAnimatorDeps, next: CanvasViewport): void {
   const current = deps.getCurrentViewport();
 
   if (current.x === next.x && current.y === next.y && current.zoom === next.zoom) {
@@ -173,7 +164,7 @@ export function createSheetViewportAnimator(
     const step = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(1, elapsed / durationMs);
-      const eased = easeOutCubic(progress);
+      const eased = lookupEaseOutCubic(progress);
 
       if (progress >= 1) {
         activeFrameId = null;
@@ -183,8 +174,9 @@ export function createSheetViewportAnimator(
         return;
       }
 
-      const nextX = Math.round(start.x + dx * eased);
-      const nextY = Math.round(start.y + dy * eased);
+      const dpr = getDisplayDpr();
+      const nextX = snapToDevicePixel(start.x + dx * eased, dpr);
+      const nextY = snapToDevicePixel(start.y + dy * eased, dpr);
       const nextZoom = Math.round((start.zoom + dz * eased) * 1000) / 1000;
 
       applyViewportIfChanged(deps, {
@@ -235,11 +227,11 @@ export function createSheetViewportAnimator(
         return;
       }
 
-      const dt = Math.min(64, Math.max(4, now - lastTime));
+      const dt = Math.min(64, Math.max(1, now - lastTime));
       lastTime = now;
 
       const current = deps.getCurrentViewport();
-      const alpha = 1 - 0.001 ** (dt / 170);
+      const alpha = lookupZoomAlpha(dt);
 
       const nextZoom = current.zoom + (target.zoom - current.zoom) * alpha;
       const nextX = current.x + (target.x - current.x) * alpha;
@@ -259,9 +251,10 @@ export function createSheetViewportAnimator(
         return;
       }
 
+      const dpr = getDisplayDpr();
       applyViewportIfChanged(deps, {
-        x: Math.round(nextX * 10) / 10,
-        y: Math.round(nextY * 10) / 10,
+        x: snapToDevicePixel(nextX, dpr),
+        y: snapToDevicePixel(nextY, dpr),
         zoom: Math.round(nextZoom * 1000) / 1000,
       });
 
@@ -293,10 +286,10 @@ export function createSheetViewportAnimator(
     activeMode = "inertia";
 
     const step = (now: number) => {
-      const dt = Math.min(48, Math.max(4, now - lastTime));
+      const dt = Math.min(48, Math.max(1, now - lastTime));
       lastTime = now;
 
-      const decay = INERTIA_FRICTION_PER_FRAME ** (dt / 16.67);
+      const decay = lookupInertiaDecay(dt);
       vx *= decay;
       vy *= decay;
 
@@ -317,9 +310,10 @@ export function createSheetViewportAnimator(
       floatX += vx * dt;
       floatY += vy * dt;
 
+      const dpr = getDisplayDpr();
       applyViewportIfChanged(deps, {
-        x: Math.round(floatX * 10) / 10,
-        y: Math.round(floatY * 10) / 10,
+        x: snapToDevicePixel(floatX, dpr),
+        y: snapToDevicePixel(floatY, dpr),
         zoom,
       });
 

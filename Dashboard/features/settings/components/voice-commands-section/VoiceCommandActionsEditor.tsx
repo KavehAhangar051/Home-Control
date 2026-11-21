@@ -16,7 +16,8 @@ export function VoiceCommandActionsEditor({
   macros,
 }: Props) {
   const controllableSegments = segments.filter(
-    (seg) => seg.type !== "placeholder" && !isReadOnlyInputSegment(seg) && seg.pin.trim().length > 0,
+    (seg) =>
+      seg.type !== "placeholder" && !isReadOnlyInputSegment(seg) && seg.pin.trim().length > 0,
   );
 
   const handleAddAction = () => {

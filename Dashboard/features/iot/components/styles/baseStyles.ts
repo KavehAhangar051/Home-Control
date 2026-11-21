@@ -13,7 +13,7 @@ export function getBaseStyles(_isDark: boolean): string {
 
     /* Dropdown, Input, & Form Controls — preserve visible WCAG focus rings and invalid states */
     select, input, textarea {
-      transition: border-color 0.15s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: border-color 0.15s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.15s cubic-bezier(0.22, 1, 0.36, 1);
     }
     select:focus-visible:not([aria-invalid="true"]),
     input:focus-visible:not([aria-invalid="true"]),

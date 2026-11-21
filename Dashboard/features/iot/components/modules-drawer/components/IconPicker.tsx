@@ -89,6 +89,7 @@ export default function IconPicker({
                   }
             }
             className="overflow-hidden"
+            style={{ contain: "layout style", backfaceVisibility: "hidden" }}
           >
             <div className="p-3 bg-bg-main border border-border-color rounded-lg space-y-3">
               <ToggleGroup

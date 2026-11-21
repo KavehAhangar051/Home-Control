@@ -34,6 +34,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { EASE_OUT, SPRING_GLIDE, SPRING_LAYOUT, SPRING_PRESS } from "@/lib/ease";
+import { byteToHex, lookupHsvToRgb } from "@/lib/gpuLut";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 import { useMessages } from "@/lib/i18n";
 import { PresenceGate } from "@/lib/presence-gate";
@@ -59,16 +60,9 @@ const round = (n: number, places = 0) => {
 };
 
 function hsvaToRgba({ h, s, v, a }: Hsva): Rgba {
-  const sat = s / 100;
-  const val = v / 100;
+  const { r, g, b } = lookupHsvToRgb(h, s, v);
 
-  const f = (n: number) => {
-    const k = (n + h / 60) % 6;
-
-    return val - val * sat * Math.max(0, Math.min(k, 4 - k, 1));
-  };
-
-  return { r: Math.round(f(5) * 255), g: Math.round(f(3) * 255), b: Math.round(f(1) * 255), a };
+  return { r, g, b, a };
 }
 
 /** `previous` keeps hue for greys and saturation for black, which RGB cannot carry. */
@@ -110,9 +104,7 @@ function parseHex(input: string): Rgba | null {
 
 /** Lowercase #rrggbb, or #rrggbbaa when the color is translucent. */
 function formatHex({ r, g, b, a }: Rgba): string {
-  const pair = (n: number) => Math.round(n).toString(16).padStart(2, "0");
-
-  return `#${pair(r)}${pair(g)}${pair(b)}${a < 1 ? pair(a * 255) : ""}`;
+  return `#${byteToHex(r)}${byteToHex(g)}${byteToHex(b)}${a < 1 ? byteToHex(a * 255) : ""}`;
 }
 
 function hsvToHsl({ h, s, v }: Hsva) {
@@ -550,7 +542,7 @@ function Thumb({
   return (
     <m.div
       className="pointer-events-none absolute inset-0"
-      style={{ x, y, willChange: "transform" }}
+      style={{ x, y, willChange: "transform", backfaceVisibility: "hidden" }}
     >
       <div
         {...props}
@@ -566,7 +558,7 @@ function Thumb({
           aria-hidden="true"
           animate={{ scale: lifted ? 0.78 : 1 }}
           transition={SPRING_PRESS}
-          className="block size-full rounded-full border-[3px] border-white shadow-[0_0_0_1px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.25)]"
+          className="block size-full rounded-full border-[3px] border-white shadow-[0_0_0_1px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.25)] [backface-visibility:hidden]"
           style={{ backgroundColor: color }}
         />
         <AnimatePresence>
@@ -574,7 +566,13 @@ function Thumb({
             <m.span
               aria-hidden="true"
               className="pointer-events-none absolute bottom-[calc(100%+12px)] left-1/2 z-10 -ml-5 block size-10"
-              style={{ rotate: tilt, originX: 0.5, originY: 1.3 }}
+              style={{
+                rotate: tilt,
+                originX: 0.5,
+                originY: 1.3,
+                willChange: "transform, opacity",
+                backfaceVisibility: "hidden",
+              }}
               initial={{ opacity: 0, scale: 0.3, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0, transition: LOUPE_LIFT }}
               exit={{ opacity: 0, scale: 0.3, y: 16, transition: LOUPE_DROP }}

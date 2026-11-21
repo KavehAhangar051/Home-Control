@@ -21,10 +21,14 @@ export const VT_CSS = `
 html[data-beui-vt="rect"]::view-transition-old(root) {
   animation: none;
   mix-blend-mode: normal;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 html[data-beui-vt="rect"]::view-transition-new(root) {
   mix-blend-mode: normal;
-  will-change: clip-path;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: clip-path, transform;
   animation: beui-rect-reveal 400ms ease-out;
 }
 
@@ -32,21 +36,29 @@ html[data-beui-vt="circle"]::view-transition-old(root),
 html[data-beui-vt="circle-blur"]::view-transition-old(root) {
   animation: none;
   mix-blend-mode: normal;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 html[data-beui-vt="circle"]::view-transition-new(root) {
   mix-blend-mode: normal;
-  will-change: clip-path;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: clip-path, transform;
   animation: beui-circle-reveal 700ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 html[data-beui-vt="circle-blur"]::view-transition-new(root) {
   mix-blend-mode: normal;
-  will-change: clip-path, filter;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: clip-path, filter, transform;
   animation: beui-circle-blur-reveal 700ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html[data-beui-vt="blinds"]::view-transition-old(root) {
   animation: none;
   mix-blend-mode: normal;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 @property --beui-vt-slat {
   syntax: "<length>";
@@ -55,6 +67,9 @@ html[data-beui-vt="blinds"]::view-transition-old(root) {
 }
 html[data-beui-vt="blinds"]::view-transition-new(root) {
   mix-blend-mode: normal;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: mask-image, transform;
   mask-image: linear-gradient(
     90deg,
     #000 0 var(--beui-vt-slat),

@@ -107,11 +107,11 @@ export function FluidSlider({
       <m.div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 overflow-hidden rounded-full bg-accent3"
-        style={{ x: fillX, willChange: "transform" }}
+        style={{ x: fillX, willChange: "transform", backfaceVisibility: "hidden" }}
       >
         <m.div
           className="pointer-events-none absolute inset-0 flex items-center justify-between gap-2 px-4 sm:px-5 text-xs sm:text-sm font-medium text-accent3-foreground"
-          style={{ x: labelCounterX, willChange: "transform" }}
+          style={{ x: labelCounterX, willChange: "transform", backfaceVisibility: "hidden" }}
         >
           {row}
         </m.div>

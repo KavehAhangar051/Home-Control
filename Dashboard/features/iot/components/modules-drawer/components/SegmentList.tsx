@@ -88,9 +88,7 @@ export default function SegmentList({ segments, onRemoveSegment }: SegmentListPr
                       ? "ورودی دیجیتال"
                       : isAnalogInputSegment(seg)
                         ? `ورودی آنالوگ ADC · ${clampAdcResolution(seg.adcResolution)} بیت · ${clampAdcSampleInterval(seg.adcSampleIntervalMs)}ms${
-                            (seg.adcHighThreshold ?? 0) > 0
-                              ? ` · ATH ${seg.adcHighThreshold}`
-                              : ""
+                            (seg.adcHighThreshold ?? 0) > 0 ? ` · ATH ${seg.adcHighThreshold}` : ""
                           }`
                         : isAnalogOutputSegment(seg)
                           ? `خروجی آنالوگ PWM · ${clampPwmResolution(seg.pwmResolution)} بیت · ${clampPwmFrequency(seg.pwmFrequency)}Hz`

@@ -411,10 +411,11 @@ export default React.memo(function WorkflowNodeCard({
         height: node.height,
         zIndex: isDragging ? 950 : isSelected ? 900 : node.zIndex,
         contain: "layout style",
+        backfaceVisibility: "hidden",
         willChange: isDragging ? "transform" : undefined,
         transition:
           shouldAnimateMotion && !isDragging
-            ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), width 220ms cubic-bezier(0.22, 1, 0.36, 1), height 220ms cubic-bezier(0.22, 1, 0.36, 1)"
+            ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)"
             : undefined,
       }}
       className="absolute top-0 left-0 select-none"
@@ -424,7 +425,7 @@ export default React.memo(function WorkflowNodeCard({
         initial={shouldAnimateMotion ? { opacity: 0, scale: 0.95, y: 6 } : false}
         animate={resolveCanvasNodeMotionState(shouldAnimateMotion, isDragging, 0, 1.018)}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-[border-color,box-shadow] duration-150 ease-out ${borderClass}`}
+        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-colors duration-150 ease-out [backface-visibility:hidden] ${borderClass}`}
       >
         <NodePerimeterSpark
           active={outputSignal}

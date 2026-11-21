@@ -42,7 +42,9 @@ export default function PinSelector({
         inputMode="numeric"
         aria-invalid={isInvalid || undefined}
         aria-describedby={isInvalid || hasWarning ? "esp32-hardware-pin-feedback" : undefined}
-        placeholder={isAnalogInput ? "مثال: 34 یا 32" : isAnalogOutput ? "مثال: 16 یا 25" : "مثال: 14"}
+        placeholder={
+          isAnalogInput ? "مثال: 34 یا 32" : isAnalogOutput ? "مثال: 16 یا 25" : "مثال: 14"
+        }
         value={customPin}
         onChange={(e) => setCustomPin(toAsciiDigits(e.target.value).replace(/[^0-9]/g, ""))}
         className="text-xs font-mono tabular-nums rounded-lg text-start placeholder:font-sans"
