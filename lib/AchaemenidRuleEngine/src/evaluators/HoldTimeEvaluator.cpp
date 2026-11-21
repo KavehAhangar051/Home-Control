@@ -22,17 +22,12 @@ void HoldTimeEvaluator::executeAction(const RuleAction& act, int sourcePin) {
 HOT_PATH void HoldTimeEvaluator::processRelease(const RuleAction* actions, int count, unsigned long durationSec, int sourcePin) {
     if (UNLIKELY(actions == nullptr || count <= 0)) return;
     
-    // Categorize duration into standardized hold brackets
-    int durationBracket = 0;
-    if (durationSec < 2) {
-        durationBracket = 0;
-    } else if (durationSec < 4) {
-        durationBracket = 3;
-    } else if (durationSec < 7) {
-        durationBracket = 5;
-    } else {
-        durationBracket = 10;
-    }
+    // Categorize duration into standardized hold brackets using branchless LUT
+    // Brackets: 0..1s -> 0, 2..3s -> 3, 4..6s -> 5, >=7s -> 10
+    static const uint8_t HOLD_BRACKET_LUT[11] = {
+        0, 0, 3, 3, 5, 5, 5, 10, 10, 10, 10
+    };
+    const int durationBracket = (durationSec < 11) ? HOLD_BRACKET_LUT[durationSec] : 10;
     
     // Execute actions corresponding to this duration bracket
     for (int i = 0; i < count; i++) {

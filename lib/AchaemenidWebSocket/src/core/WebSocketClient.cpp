@@ -18,7 +18,7 @@ public:
 };
 
 AchaemenidWebSocketClient::AchaemenidWebSocketClient(IEventDispatcher* dispatcher, StateProvider stateProvider)
-    : isRunning_(false), firstConnection_(true), isNetworkAvailable_(false),
+    : firstConnection_(true),
       nextConnectAttemptTime_(0), dispatcher_(dispatcher), stateProvider_(std::move(stateProvider)),
       parser_(dispatcher_)
 {
@@ -46,7 +46,7 @@ AchaemenidWebSocketClient::~AchaemenidWebSocketClient() {
 }
 
 void AchaemenidWebSocketClient::sendText(const String& payload) {
-    if (UNLIKELY(isConnecting_ || client_ == nullptr)) return;
+    if (UNLIKELY((flags_ & FLAG_CONNECTING) || client_ == nullptr)) return;
     
     portENTER_CRITICAL(&clientMux_);
     const bool canSend = (client_ != nullptr && client_->available());
@@ -75,20 +75,21 @@ void AchaemenidWebSocketClient::syncPinState(int pin, bool state, int16_t analog
 }
 
 void AchaemenidWebSocketClient::begin(const String& serverUrl) {
-    if (UNLIKELY(isRunning_)) return;
+    if (UNLIKELY(flags_ & FLAG_RUNNING)) return;
     config_.serverUrl = serverUrl.c_str();
-    isRunning_ = true;
+    flags_ |= FLAG_RUNNING;
     lastPingTime_ = 0;
     lastPollCycle_ = uniuno::asm_opt::get_cpu_cycle_count() - uniuno::asm_opt::ms_to_cycles(50);
     lastConnectAttemptTime_ = 0;
     nextConnectAttemptTime_ = 0;
     hasConnectAttempted_ = false;
     consecutiveFailures_ = 0;
-    isNetworkAvailable_ = (WiFi.status() == WL_CONNECTED);
+    if (WiFi.status() == WL_CONNECTED) flags_ |= FLAG_NETWORK;
+    else flags_ &= ~FLAG_NETWORK;
 }
 
 void AchaemenidWebSocketClient::stop() {
-    isRunning_ = false;
+    flags_ &= ~FLAG_RUNNING;
     if (client_) {
         client_->close();
     }
@@ -97,7 +98,7 @@ void AchaemenidWebSocketClient::stop() {
 void AchaemenidWebSocketClient::connectTask(void* param) {
     AchaemenidWebSocketClient* self = static_cast<AchaemenidWebSocketClient*>(param);
     self->doConnect();
-    self->isConnecting_ = false;
+    self->flags_ &= ~FLAG_CONNECTING;
     self->connectTaskHandle_ = nullptr;
     vTaskDelete(nullptr);
 }
@@ -162,8 +163,8 @@ void AchaemenidWebSocketClient::doConnect() {
  * Eliminates unconstrained socket polling and reduces 64-bit millis() division overhead.
  */
 HOT_PATH void AchaemenidWebSocketClient::loop() {
-    // Early exit if client is not enabled or currently connecting in background task
-    if (UNLIKELY(!isRunning_ || !isNetworkAvailable_ || isConnecting_)) return;
+    // 1-cycle bitmask validation: must have FLAG_RUNNING and FLAG_NETWORK set, and FLAG_CONNECTING clear
+    if (UNLIKELY((flags_ & (FLAGS_CAN_POLL | FLAG_CONNECTING)) != FLAGS_CAN_POLL)) return;
 
     if (client_ && LIKELY(client_->available())) {
         // 4-cycle CCOUNT hardware throttle (~66 Hz / 15ms) — zero millis() calls when idle!
@@ -194,7 +195,7 @@ HOT_PATH void AchaemenidWebSocketClient::loop() {
         return;
     }
 
-    isConnecting_ = true;
+    flags_ |= FLAG_CONNECTING;
 
     const BaseType_t taskResult = xTaskCreatePinnedToCore(
         AchaemenidWebSocketClient::connectTask,
@@ -210,7 +211,7 @@ HOT_PATH void AchaemenidWebSocketClient::loop() {
         lastConnectAttemptTime_ = millis();
         hasConnectAttempted_ = true;
         if (consecutiveFailures_ < 255) ++consecutiveFailures_;
-        isConnecting_ = false;
+        flags_ &= ~FLAG_CONNECTING;
         connectTaskHandle_ = nullptr;
         const unsigned long nextRetryDelay = consecutiveFailures_ >= WS_MAX_FAST_RETRIES
             ? WS_RETRY_DELAY_AFTER_MAX_FAILURES_MS

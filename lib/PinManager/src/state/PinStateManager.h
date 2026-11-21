@@ -34,6 +34,9 @@ public:
         for (int i = 0; i < MAX_PINS; ++i) {
             _inputIndices[i] = 0;
             _analogEntries[i] = nullptr;
+            for (int j = 0; j < MAX_PINS; ++j) {
+                _analogSlotOrder[i][j] = 0;
+            }
         }
     }
 
@@ -304,6 +307,7 @@ private:
     uint8_t _numAnalogInputs;
     int8_t _activeAdcSlot;    // Index into _analogEntries[] owning SAR1 right now, or -1 if idle
     uint8_t _analogRoundRobin;
+    uint8_t _analogSlotOrder[MAX_PINS][MAX_PINS];
     bool _hasAnalogSchedule;
 };
 

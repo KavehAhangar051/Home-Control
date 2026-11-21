@@ -152,6 +152,15 @@ void PinStateManager::rebuildInputCache() {
             _analogEntries[_numAnalogInputs++] = entry;
         }
     }
+
+    // Pre-calculate round-robin lookup table to eliminate runtime modulo in hot loop
+    for (uint8_t start = 0; start < MAX_PINS; ++start) {
+        for (uint8_t step = 0; step < MAX_PINS; ++step) {
+            _analogSlotOrder[start][step] = (_numAnalogInputs > 0)
+                ? static_cast<uint8_t>((start + step) % _numAnalogInputs)
+                : 0;
+        }
+    }
 }
 
 /**
@@ -352,14 +361,14 @@ HOT_PATH PIN_STATE_IRAM void PinStateManager::processAnalogInputs(
     int8_t dueSlot = -1;
 
     for (uint8_t step = 0; step < _numAnalogInputs; ++step) {
-        const uint8_t slot = static_cast<uint8_t>((_analogRoundRobin + step) % _numAnalogInputs);
+        const uint8_t slot = _analogSlotOrder[_analogRoundRobin][step];
         PinEntry* entry = _analogEntries[slot];
         if (UNLIKELY(!entry || !entry->active || !entry->hasAdc)) continue;
 
         const unsigned long nextDue = entry->adc.getLastSampleTime() + entry->adc.getSampleIntervalMs();
         if (dueSlot < 0 && uniuno::asm_opt::is_timer_expired(currentMillis, nextDue)) {
             dueSlot = static_cast<int8_t>(slot);
-            _analogRoundRobin = static_cast<uint8_t>((slot + 1U) % _numAnalogInputs);
+            _analogRoundRobin = _analogSlotOrder[slot][1];
         }
 
         if (!hasNext || static_cast<long>(nextDue - earliestNext) < 0) {

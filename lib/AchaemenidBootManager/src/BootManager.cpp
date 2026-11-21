@@ -189,7 +189,7 @@ HOT_PATH void BootManager::loop() {
         return;
     }
 
-    if (UNLIKELY(state_ != BootState::DONE || ctx_.network == nullptr)) return;
+    if (UNLIKELY(state_ != BootState::DONE || !networkReady_)) return;
 
     // 4-cycle CCOUNT hardware throttle: check WiFi status once every 500ms without calling millis()
     if (LIKELY(!uniuno::asm_opt::is_cycle_interval_elapsed(
@@ -241,6 +241,7 @@ __attribute__((noinline)) void BootManager::loadOfflineConfigFromNvs() {
 
 void BootManager::startBootSequenceAsync(BootContext ctx) {
     ctx_ = ctx;
+    networkReady_ = (ctx_.network != nullptr);
 
     // بارگذاری بلافاصله تنظیمات از NVS در یک فریم استک مجزا (آزادسازی ۴.۵KB استک قبل از راه‌اندازی WiFi)
     loadOfflineConfigFromNvs();
