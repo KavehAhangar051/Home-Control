@@ -93,6 +93,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  colorScheme: "dark light",
   themeColor: [
     { media: "(prefers-color-scheme: dark)", color: "#141415" },
     { media: "(prefers-color-scheme: light)", color: "#fafafa" },
@@ -134,6 +135,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://home-control-db.kamyarahangar157.workers.dev"
           crossOrigin="anonymous"
         />
+        <link rel="preconnect" href="https://broker.emqx.io" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://broker.emqx.io" />
       </head>
       <body

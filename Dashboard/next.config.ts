@@ -15,7 +15,20 @@ export default function buildNextConfig(phase: string): NextConfig {
 
   const nextConfig: NextConfig = {
     reactStrictMode: true,
-    reactCompiler: !isDevServer,
+    poweredByHeader: false,
+    reactCompiler: !isDevServer
+      ? {
+          compilationMode: "infer",
+          panicThreshold: "none",
+        }
+      : false,
+    compiler: !isDevServer
+      ? {
+          removeConsole: {
+            exclude: ["error", "warn"],
+          },
+        }
+      : undefined,
     // Opt in only for profiling builds; normal static exports stay unchanged.
     productionBrowserSourceMaps: process.env.ENABLE_PROFILING_SOURCEMAPS === "true",
     allowedDevOrigins: [
@@ -39,7 +52,30 @@ export default function buildNextConfig(phase: string): NextConfig {
     },
     experimental: {
       useTypeScriptCli: true,
-      optimizePackageImports: ["@base-ui/react", "motion", "zustand"],
+      inlineCss: !isDevServer,
+      cssChunking: "graph",
+      scrollRestoration: true,
+      optimizeServerReact: true,
+      turbopackGc: true,
+      turbopackRemoveUnusedImports: true,
+      turbopackRemoveUnusedExports: true,
+      turbopackCrossModuleConstants: true,
+      turbopackCjsTreeShaking: true,
+      turbopackCjsScopeHoisting: true,
+      turbopackChunking: {
+        firstPageLoadPriority: 0.85,
+        priorityRoutes: [/^\/$/],
+      },
+      optimizePackageImports: [
+        "@animate-ui/react",
+        "@base-ui/react",
+        "@danfessler/trellis",
+        "@danfessler/trellis-react",
+        "@dnd-kit/dom",
+        "@dnd-kit/react",
+        "motion",
+        "zustand",
+      ],
     },
     typescript: {
       ignoreBuildErrors: false,

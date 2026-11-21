@@ -21,10 +21,17 @@ function applyDisplayProfileToRoot(profile: GpuDisplayProfile): void {
   const fpsStr = String(profile.refreshRateHz);
   const resStr = `${profile.physicalWidth}x${profile.physicalHeight}`;
 
+  const webGpuStr = profile.hasWebGpu ? "true" : "false";
+
   if (root.dataset.displayDpr !== dprStr) root.dataset.displayDpr = dprStr;
   if (root.dataset.displayFps !== fpsStr) root.dataset.displayFps = fpsStr;
   if (root.dataset.displayRes !== resStr) root.dataset.displayRes = resStr;
   if (root.dataset.gpuBackend !== profile.backend) root.dataset.gpuBackend = profile.backend;
+  if (root.dataset.colorGamut !== profile.colorGamut) root.dataset.colorGamut = profile.colorGamut;
+  if (root.dataset.dynamicRange !== profile.dynamicRange) {
+    root.dataset.dynamicRange = profile.dynamicRange;
+  }
+  if (root.dataset.webgpu !== webGpuStr) root.dataset.webgpu = webGpuStr;
 
   root.style.setProperty("--display-dpr", dprStr);
   root.style.setProperty("--display-fps", fpsStr);

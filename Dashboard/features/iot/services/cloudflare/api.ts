@@ -62,13 +62,16 @@ async function fetchCloudflareConfigOnce(
   const timeout = createTimeoutSignal(timeoutMs);
 
   try {
-    const res = await executeFetch(url, {
+    const fetchInit: RequestInit & { priority?: "high" | "low" | "auto" } = {
       method: "GET",
       headers: {
         Accept: "application/json",
       },
+      priority: "high",
       signal: timeout.signal,
-    });
+    };
+
+    const res = await executeFetch(url, fetchInit);
 
     if (!res.ok) {
       throw new HttpStatusError(
@@ -182,14 +185,21 @@ async function sendWorkerPostOnce(
   const timeout = createTimeoutSignal(timeoutMs);
 
   try {
-    const res = await executeFetch(url, {
+    const serializedBody = JSON.stringify(payload);
+    // Browser Fetch `keepalive` enforces a strict 64 KiB body cap; use conservative UTF-8 estimate.
+    const canKeepalive = serializedBody.length * 3 < 60_000;
+    const fetchInit: RequestInit & { priority?: "high" | "low" | "auto" } = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: serializedBody,
+      priority: "high",
+      keepalive: canKeepalive,
       signal: timeout.signal,
-    });
+    };
+
+    const res = await executeFetch(url, fetchInit);
 
     if (!res.ok) {
       const errorMessage = await parseWorkerErrorMessage(res, `خطا در ${errorContextLabel}.`);

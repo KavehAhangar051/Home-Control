@@ -62,6 +62,9 @@
 .style-nova {
   .cn-tooltip-content {
     @apply inline-flex items-center gap-1.5;
+    transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    will-change: transform, opacity;
     transition:
       opacity 120ms ease-out,
       transform 120ms ease-out;
@@ -74,22 +77,22 @@
 
   .cn-tooltip-content[data-starting-style][data-side="left"],
   .cn-tooltip-content[data-ending-style][data-side="left"] {
-    transform: scale(0.96) translateX(0.35rem);
+    transform: scale3d(0.96, 0.96, 1) translate3d(0.35rem, 0, 0);
   }
 
   .cn-tooltip-content[data-starting-style][data-side="right"],
   .cn-tooltip-content[data-ending-style][data-side="right"] {
-    transform: scale(0.96) translateX(-0.35rem);
+    transform: scale3d(0.96, 0.96, 1) translate3d(-0.35rem, 0, 0);
   }
 
   .cn-tooltip-content[data-starting-style][data-side="top"],
   .cn-tooltip-content[data-ending-style][data-side="top"] {
-    transform: scale(0.96) translateY(0.35rem);
+    transform: scale3d(0.96, 0.96, 1) translate3d(0, 0.35rem, 0);
   }
 
   .cn-tooltip-content[data-starting-style][data-side="bottom"],
   .cn-tooltip-content[data-ending-style][data-side="bottom"] {
-    transform: scale(0.96) translateY(-0.35rem);
+    transform: scale3d(0.96, 0.96, 1) translate3d(0, -0.35rem, 0);
   }
 
   .cn-tooltip-arrow {

@@ -7,13 +7,24 @@ export interface TimeoutSignalHandle {
   cleanup: () => void;
 }
 
+const NOOP_CLEANUP = () => {};
+
 /**
- * Creates an AbortSignal backed by an explicit timer so requests reliably abort
- * even in runtimes or embedded WebViews without `AbortSignal.timeout`.
+ * Creates a timeout AbortSignal using native C++ `AbortSignal.timeout()` when available
+ * (zero JS timer closure overhead), falling back cleanly to `AbortController` + `setTimeout`
+ * in runtimes or embedded WebViews without native support.
  */
 export function createTimeoutSignal(timeoutMs: number): TimeoutSignalHandle {
-  const controller = new AbortController();
   const safeTimeoutMs = Math.max(1, timeoutMs);
+
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return {
+      signal: AbortSignal.timeout(safeTimeoutMs),
+      cleanup: NOOP_CLEANUP,
+    };
+  }
+
+  const controller = new AbortController();
 
   const timerId = setTimeout(() => {
     const timeoutError = new Error(`Request timed out after ${safeTimeoutMs}ms`);
