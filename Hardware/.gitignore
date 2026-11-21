@@ -11,4 +11,6 @@
 .agent-state/rtk/data/*.db-shm
 .agent-state/rtk/data/*.db-journal
 .agent-state/cbm/
+.agent-state/platformio/
+
 

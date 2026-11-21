@@ -26,6 +26,7 @@ EXECUTABLE_TOOLS = (
     ROOT_DIR / "tools" / "r",
     ROOT_DIR / "tools" / "rtk.sh",
     ROOT_DIR / "tools" / "cbm.sh",
+    ROOT_DIR / "tools" / "pio.sh",
     ROOT_DIR / "tools" / "rtk-bridge.py",
 )
 
@@ -40,6 +41,11 @@ NON_RTK_SCRIPTS = frozenset(
         "cbm:index",
         "cbm:setup",
         "cbm:ensure",
+        "pio",
+        "pio:setup",
+        "pio:ensure",
+        "pio:test",
+        "pio:build",
         "tools:check",
     }
 )
@@ -97,11 +103,15 @@ SHELL_META_TOKENS = ("&&", "||", ";", "|", ">", "<", "\n", "$(", "`")
 CONTAINER_MARKER = Path("/tmp/.rtk_container_initialized")
 CBM_CACHE_BIN = ROOT_DIR / ".agent-state" / "cbm" / "bin" / "codebase-memory-mcp"
 CBM_CONTAINER_MARKER = Path("/tmp/.cbm_container_initialized")
+PIO_STATE_ROOT = ROOT_DIR / ".agent-state" / "platformio"
+PIO_BIN = PIO_STATE_ROOT / "penv" / "bin" / "pio"
+PIO_CONTAINER_MARKER = Path("/tmp/.pio_container_initialized")
 
 
 def _tool_env() -> dict[str, str]:
     env = os.environ.copy()
     env["RTK_TELEMETRY_DISABLED"] = "1"
+    env["PLATFORMIO_CORE_DIR"] = str(PIO_STATE_ROOT)
     return env
 
 
@@ -145,6 +155,15 @@ def ensure_ready() -> None:
     )
     if not cbm_ok:
         subprocess.run(["bash", str(ROOT_DIR / "tools" / "cbm.sh"), "ensure"], check=True)
+
+    pio_ok = (
+        PIO_BIN.is_file()
+        and Path("/usr/local/bin/pio").is_file()
+        and (Path.home() / ".platformio").is_symlink()
+        and PIO_CONTAINER_MARKER.is_file()
+    )
+    if not pio_ok:
+        subprocess.run(["bash", str(ROOT_DIR / "tools" / "pio.sh"), "ensure"], check=True)
 
 
 def _rtk_bin() -> str:
@@ -234,6 +253,7 @@ def check_tools() -> int:
         ("rtk:gain", [rtk, "gain"]),
         ("cbm:version", [str(CBM_CACHE_BIN), "--version"]),
         ("cbm:projects", ["bash", str(ROOT_DIR / "tools" / "cbm.sh"), "cli", "list_projects"]),
+        ("pio:version", [str(PIO_BIN), "--version"]),
     ]
     failed = 0
     for name, cmd in checks:
@@ -258,9 +278,15 @@ def check_tools() -> int:
         and (ROOT_DIR / ".codebase-memory" / "graph.db.zst").is_file()
     )
     print(f"[cbm:persistence] {'ok' if cbm_persist_ok else 'fail'}")
+    pio_persist_ok = (
+        Path("/usr/local/bin/pio").exists()
+        and (Path.home() / ".platformio").is_symlink()
+        and (PIO_STATE_ROOT / "platforms").is_dir()
+    )
+    print(f"[pio:persistence] {'ok' if pio_persist_ok else 'fail'}")
     perms_ok = all(p.is_file() and os.access(p, os.X_OK) for p in EXECUTABLE_TOOLS)
     print(f"[tools:+x] {'ok' if perms_ok else 'fail'}")
-    return 1 if (failed or not links_ok or not cbm_persist_ok or not perms_ok) else 0
+    return 1 if (failed or not links_ok or not cbm_persist_ok or not pio_persist_ok or not perms_ok) else 0
 
 
 def main() -> int:
