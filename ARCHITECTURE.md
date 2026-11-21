@@ -42,6 +42,8 @@ components/
   MasterHeader.tsx       Desktop right-rail header/layout dispatcher
   MasterHeader/          Desktop header & shared theme/voice/clock subcomponents
   motion/                Shared Motion primitives (`dock.tsx`, `expandable-tabs.tsx`, `expandable-tabs-layout.ts`, `composited-bezier-particle.tsx`)
+  reui/                  ReUI `@reui/emoji-picker`, `@reui/c-emoji-picker-1`, and `DashboardIconPicker`
+  ui/                    Shared Base UI / shadcn `base-nova` primitives (`button`, `card`, `dropdown-menu`, `empty`, `input`, `input-group`, `popover`, `skeleton`, `tabs`, `textarea`, `toggle-group`, `tooltip`, etc.)
   AudioInitializer.tsx   Audio initialization integration
 features/
   dashboard/
@@ -312,6 +314,7 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
   - **Cross-Tab Live Sync (`lib/hooks/use-cross-tab-sync.ts`):** `BroadcastChannel("home-control-dashboard-sync-v1")` + `storage` event sync keeps theme, accents, font, display mode, and persisted preferences synchronized across open tabs with sender-ID loop guards and hydration-safe post-mount `workspaceDisplayMode` restoration.
   - **Strict TypeScript, SSG Shell, Online-Only Audio & Headless Perf Observer:** `tsconfig.json` runs with `"strict": true`; `DashboardClientEntry.tsx` renders `DashboardShell` directly (removing `ssr: false`) for real static HTML prerendering; `AmbientManager.ts` + `AudioSection.tsx` use online Archive.org tracks exclusively (bundled `06 Dele Divaneh.mp3` removed); and `lib/perfObserver.ts` exposes headless LoAF/INP/LCP/CLS metrics on `window.__dashboardPerf`.
   - **Brotli/Gzip Static Compression & Post-Paint Script Deferral (`scripts/compress-export.mjs`, `scripts/serve-compressed.mjs`, `DeferredPlatformRuntime.tsx`, `DashboardContainer.tsx`):** `next.config.ts` explicitly enables `compress: true` alongside `experimental.inlineCss` + `experimental.cssChunking: "graph"` (inlining route CSS with zero render-blocking external `<link rel="stylesheet">` tags), while `compress-export.mjs` emits `.br` (Brotli q=11) and `.gz` (Gzip level=9) sidecars for `.html`/`.css`/`.js`/`.json`/`.webmanifest`/`.svg`/`.txt` assets in `out/` (served with content negotiation by `serve-compressed.mjs`). Non-critical runtime modules (`DeferredPlatformRuntime`, fine-pointer `CustomCursor`, `ScrollToTopButton`, and idle-warmed `ToastNotification` + `lib/audio`) are dynamically code-split and deferred until after First Paint.
+  - **Unified ReUI Emoji & Icon Picker (`components/reui/{emoji-picker,c-emoji-picker-1,dashboard-icon-picker}.tsx`, `IconPicker.tsx`, `MacrosSection.tsx`):** Adapted ReUI `@reui/emoji-picker` and `@reui/c-emoji-picker-1` onto shadcn `base-nova` primitives (`dropdown-menu`, `popover`, `tabs`, `empty`, `input-group`, `skeleton`, `textarea`) with Persian UI labels and offline `SUGGESTED_EMOJIS` fallback for air-gapped ESP32 networks. Both Modules Drawer segment/group icon selection (`IconPicker.tsx` → `FormDetailsInput.tsx`) and Settings → Custom Buttons (`MacrosSection.tsx`, including `MacroGlyph` preview and optional short custom label input) share `DashboardIconPicker`.
 
 ## 19. Codebase Knowledge Graph (`codebase-memory-mcp`) & Token Tooling (`rtk`, `TokenEconomizer`)
 
