@@ -206,6 +206,7 @@ export default function VerticalControls({
           {isExpanded && subItems && (
             <m.div
               key={`${view}-submenu`}
+              style={{ contain: "layout style", backfaceVisibility: "hidden" }}
               initial={reduceMotion ? false : { height: 0, opacity: 0 }}
               animate={{
                 height: "auto",

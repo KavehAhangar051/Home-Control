@@ -50,6 +50,7 @@ function Spinner({ size, speed, reduce }: PartProps): React.JSX.Element {
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
+      className={reduce ? undefined : "will-change-transform [backface-visibility:hidden]"}
       animate={reduce ? REDUCED.animate : { rotate: 360 }}
       transition={
         reduce
@@ -89,7 +90,7 @@ function Dots({ size, speed, reduce }: PartProps): React.JSX.Element {
       {[0, 1, 2].map((i) => (
         <m.span
           key={i}
-          className="rounded-full bg-current"
+          className={`rounded-full bg-current [backface-visibility:hidden] ${reduce ? "" : "will-change-transform"}`}
           style={{ width: dot, height: dot }}
           animate={
             reduce ? { opacity: [0.4, 1, 0.4] } : { y: [0, -size * 0.3, 0], opacity: [0.5, 1, 0.5] }
@@ -117,7 +118,7 @@ function Bars({ size, speed, reduce }: PartProps): React.JSX.Element {
       {[0, 1, 2, 3].map((i) => (
         <m.span
           key={i}
-          className="rounded-full bg-current"
+          className={`rounded-full bg-current [backface-visibility:hidden] ${reduce ? "" : "will-change-transform"}`}
           style={{ width: bar, height: size, originY: 1 }}
           animate={reduce ? { opacity: [0.4, 1, 0.4] } : { scaleY: [0.3, 1, 0.3] }}
           transition={{
@@ -144,9 +145,25 @@ export function Ascii({
   const [frame, setFrame] = useState(0);
   useEffect(() => {
     const step = ((reduce ? speed * 2.5 : speed) / frames.length) * 1000;
-    const id = setInterval(() => setFrame((f) => (f + 1) % frames.length), step);
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const start = () => {
+      if (!document.hidden && intervalId === undefined) {
+        intervalId = setInterval(() => setFrame((f) => (f + 1) % frames.length), step);
+      }
+    };
+    const stop = () => {
+      if (intervalId !== undefined) clearInterval(intervalId);
+      intervalId = undefined;
+    };
+    const handleVisibilityChange = () => (document.hidden ? stop() : start());
 
-    return () => clearInterval(id);
+    start();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [frames.length, speed, reduce]);
 
   return (

@@ -424,11 +424,10 @@ Build واقعی باید ثابت کند:
 
 قبل از تغییر هر فایل موجود، فهرست دقیق فایل‌ها، تغییرات و دلیل فنی به مالک اعلام شود و تأیید صریح گرفته شود.
 
-- [ ] ارائه فهرست فایل‌های نیازمند تغییر
-- [ ] ارائه فهرست پکیج‌های موردنیاز با نسخه‌های سازگار
-- [ ] ارائه طرح capacitor.config.ts
-- [ ] ارائه طرح اسکریپت Build موبایل
-- [ ] دریافت تأیید مالک
+- [x] ارائه فهرست فایل‌ها و تغییرات APK-only
+- [x] تعیین Capacitor 8.6.2 و نسخه‌های سازگار
+- [x] تأیید مالک برای پیاده‌سازی APK-only
+- [x] انتخاب پیکربندی Capacitor و اسکریپت Build
 
 ### فاز ۳ — افزودن Capacitor و Android
 
@@ -1497,3 +1496,177 @@ Hook فعلی Page Visibility از `visibilitychange` و `online` استفاده
 4. ارائه فهرست دقیق فایل‌های لازم برای تغییر و دریافت تأیید پیش از هر ویرایش اجرایی.
 
 این ممیزی به‌تنهایی اثبات نمی‌کند که APK روی دستگاه اجرا می‌شود. هیچ کد اجرایی، Manifest، Network Security Config، CSS، Dependency یا تنظیم Capacitor در این مرحله تغییر داده نشده است.
+
+---
+
+## ۱۴. پیاده‌سازی اولیه APK-only — ۲۰۲۶-۱۱-۲۰
+
+### تغییرات ثبت‌شده در مخزن
+
+- Capacitor **8.6.2** برای Android انتخاب شده است.
+- شناسه برنامه اولیه: `com.homecontrol.dashboard`؛ نام نمایشی: `Home Control`.
+- خروجی Next.js به‌صورت Static Export در `out/` بسته‌بندی می‌شود.
+- `capacitor.config.json` مسیر خروجی وب را روی `out` قرار می‌دهد.
+- اسکریپت‌های `android:prepare`, `android:sync`, و `android:apk` به `package.json` اضافه شده‌اند.
+- پکیج‌های Capacitor با نسخه دقیق و گزینه Bun `--no-save` نصب می‌شوند تا در bootstrap اولیه، `bun.lock` با manifest ناسازگار نشود. این وابستگی‌ها فعلاً در `package.json` ثبت نشده‌اند؛ پس از تأیید اولین اجرای Native، تثبیت دائمی پکیج‌ها و lockfile در تغییر جداگانه انجام می‌شود.
+- Workflow جدید `.github/workflows/android-apk.yml` روی Push به `main` و `workflow_dispatch` اجرا می‌شود؛ runner برابر `ubuntu-latest`، Node.js 22، Java 21 و Android SDK API 36 است.
+- خروجی فقط `app-debug.apk` است و به‌عنوان Artifact بارگذاری می‌شود؛ هیچ AAB، Release signing، Google Play یا GitHub Release ساخته نمی‌شود.
+- پروژه Android در این bootstrap داخل CI/محیط محلی تولید می‌شود و در Git commit نمی‌شود.
+
+### وضعیت اعتبارسنجی
+
+- [x] طرح APK-only توسط مالک تأیید شد.
+- [x] پیکربندی Capacitor و اسکریپت‌های Build ثبت شدند.
+- [x] GitHub Actions workflow ثبت شد.
+- [x] اولین GitHub Actions build موفق (Run: `44773873021`)
+- [x] APK به‌عنوان Artifact تولید و قابل دریافت شد (`home-control-debug-apk-6`)
+- [ ] نصب و اجرای دستی روی گوشی Android
+- [ ] بررسی MQTT و Local WebSocket روی گوشی واقعی
+
+**وضعیت:** اولین APK debug ساخته و آپلود شده است؛ نصب و اجرای واقعی روی گوشی همچنان نیازمند بررسی مالک پروژه است.
+
+
+---
+
+## ۱۵. رفع خطای نخستین Android SDK setup — ۲۰۲۶-۱۱-۲۰
+
+### علت ریشه‌ای
+
+در اجرای GitHub Actions با شناسه `44773488351` و Job `136417026614`، مرحله `Set up Android SDK` در `android-actions/setup-android@v3` شکست خورد. لاگ دقیقاً این پیام را ثبت کرد:
+
+```text
+Warning: Failed to find package 'tools'
+Error: .../sdkmanager failed with exit code 1
+```
+
+نسخه v3 اکشن، پکیج legacy با نام `tools` را در ورودی پیش‌فرض خود درخواست می‌کرد؛ Google آن پکیج را از مخزن SDK حذف کرده است. این خطا پیش از اجرای Bun build، Capacitor sync و Gradle رخ داده است؛ بنابراین هنوز هیچ نتیجه‌ای درباره صحت Build برنامه نمی‌دهد.
+
+### اصلاح ثبت‌شده
+
+- ارتقای `android-actions/setup-android` از v3 به v4.
+- تعیین صریح `packages: platform-tools` تا پکیج منسوخ `tools` درخواست نشود.
+- حذف مرحله دستی تکراری پذیرش License؛ اکشن Setup Android خودش Licenseها را می‌پذیرد.
+- باقی‌ماندن نصب صریح Android Platform 36 و Build Tools 36.0.0 در مرحله بعدی.
+- مستندات README و ARCHITECTURE همگام شدند.
+
+### وضعیت اعتبارسنجی
+
+- [x] علت ریشه‌ای از لاگ Job تأیید شد.
+- [x] Workflow اصلاح و Push شد.
+- [x] اجرای مجدد Workflow با نسخه جدید setup-android
+- [x] عبور از Android SDK setup
+- [x] تولید و بارگذاری APK به‌عنوان Artifact
+
+**Commit اصلاح:** `50027e2f85643a789567a92e73c0266c3fe63f4e`
+
+**اجرای موفق:** `44773873021` — Job `136418373478`. تمام ۱۳ مرحله موفق شدند و Artifact `home-control-debug-apk-6` با شناسه `14648746694` بارگذاری شد. این اجرا روی Ubuntu 26.04 انجام شد.
+
+**وضعیت:** اولین APK debug ساخته و به‌عنوان Artifact قابل دریافت است؛ نصب و اجرای واقعی روی گوشی همچنان باید توسط مالک پروژه بررسی شود.
+
+
+---
+
+## ۱۶. رفع هشدارهای Android APK CI — ۲۰۲۶-۱۱-۲۰
+
+### شواهد اجرای موفق و هشدارها
+
+در Workflow با شناسه `44773873021` و Job `136418373478`:
+- تمام ۱۳ مرحله از Checkout تا Upload موفق بودند.
+- Artifact `home-control-debug-apk-6` با شناسه `14648746694` و حجم تقریبی ۹٫۹ مگابایت تولید شد.
+- APK در مسیر `android/app/build/outputs/apk/debug/app-debug.apk` ساخته شد.
+- هشدارهای مشاهده‌شده شامل Deprecated بودن `setup-java@v4`، اجرای Actionهای Node 20 روی Runtime جدید Node 24، Deprecated بودن `sdkmanager`، هشدار Gradle درباره `flatDir` و چند DeprecationWarning مربوط به وابستگی‌های Node در Actionها بودند.
+
+### اصلاحات Workflow
+
+- `actions/checkout@v4` به `@v7` ارتقا یافت.
+- `actions/setup-node@v4` به `@v7` ارتقا یافت؛ نسخه Node پروژه همچنان 22 باقی می‌ماند.
+- `actions/setup-java@v4` به `@v6` ارتقا یافت؛ Java همچنان 21 است.
+- `actions/upload-artifact@v4` به `@v6` ارتقا یافت.
+- نصب Android SDK از `android-actions/setup-android` و `sdkmanager` به Android CLI رسمی گوگل منتقل شد. پکیج‌های Platform Tools، Platform 36 و Build Tools 36.0.0 با `android sdk install` نصب می‌شوند.
+
+### هشدارهای باقیمانده و دلیل
+
+- هشدار `flatDir` از تنظیمات Gradle پروژه Android تولیدشده/وابستگی Capacitor می‌آید. حذف کورکورانه Repository می‌تواند بارگذاری کتابخانه‌های محلی افزونه‌ها را مختل کند؛ تا زمان مهاجرت upstream یا اثبات عدم نیاز، آن را suppress یا حذف نمی‌کنیم.
+- هشدارهای `punycode` و `url.parse` در این اجرا از Runtime وابستگی‌های Actionها صادر شدند. ارتقای Actionهای اصلی به نسخه‌های Node 24-compatible و نسخه جدید Artifact برای رفع منشأ شناخته‌شده انجام شد؛ باقی‌ماندن یا رفع کامل آن‌ها فقط با لاگ اجرای جدید قابل تأیید است.
+
+### منابع رسمی
+
+- Android CLI و جایگزینی `sdkmanager`: https://developer.android.com/tools/sdkmanager
+- نصب Android CLI: https://developer.android.com/tools/agents/android-cli/download
+- `actions/checkout`: https://github.com/actions/checkout
+- `actions/setup-node`: https://github.com/actions/setup-node
+- `actions/setup-java`: https://github.com/actions/setup-java
+- `actions/upload-artifact`: https://github.com/actions/upload-artifact
+- Gradle Flat Directory Repository: https://docs.gradle.org/current/userguide/supported_repository_types.html
+
+### وضعیت
+
+- [x] موفقیت اولین APK و Artifact از لاگ GitHub تأیید شد.
+- [x] نسخه‌های قدیمی Actionهای اصلی ارتقا داده شدند.
+- [x] نصب SDK به Android CLI رسمی منتقل شد.
+- [ ] اجرای Workflow پس از این اصلاحات و تأیید لاگ بدون هشدارهای قابل رفع
+- [ ] بررسی هشدار `flatDir` پس از مشخص شدن نسخه/منشأ دقیق در زنجیره Capacitor
+- [ ] نصب و اجرای APK روی گوشی واقعی
+
+
+---
+
+## ۱۷. بررسی اجرای Android APK پس از مهاجرت به Android CLI — ۲۰۲۶-۱۱-۲۰
+
+### نتیجه اجرای CI
+
+- Workflow: [Run 44774858108](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44774858108)
+- Job: [136421942319](https://github.com/KavehAhangar051/Home-Control-Dashboard/actions/runs/44774858108/job/136421942319)
+- Commit مبنا: `50ed225e5c357370af2de0d4e5932e39cba5d489`
+- هر ۱۳ مرحله اصلی از نصب Android CLI تا Upload موفق شدند.
+- Gradle خروجی `BUILD SUCCESSFUL` داد؛ فایل APK غیرخالی بود و SHA-256 آن `834403ebbaa081dc7c23a7cddb638803ec4d98c71afc84e3bdb0321f52966497` ثبت شد.
+- Artifact: `home-control-debug-apk-11`، شناسه `14648399660`، حجم ۹٬۹۱۴٬۸۳۱ بایت؛ اعتبار Artifact تا ۲۰۲۶-۱۲-۲۰.
+
+### وضعیت هشدارها در این اجرا
+
+- هشدارهای قبلی مربوط به `sdkmanager`، Node 20، `punycode` و `url.parse` در لاگ این Job دیده نشدند.
+- دو هشدار Gradle درباره `flatDir` باقی است. این Repository در ماژول Cordova-generated برای سازگاری با افزونه‌های Cordova و کتابخانه‌های محلی JAR/AAR به‌کار می‌رود. حذف آن بدون اثبات نبود افزونه/کتابخانه وابسته می‌تواند سازگاری را بشکند؛ فعلاً حذف یا suppress نمی‌شود. مرجع: [Capacitor issue #5287](https://github.com/ionic-team/capacitor/issues/5287).
+- یک هشدار SDK metadata ثبت شد: parser نسخه XML تا ۳ را می‌شناسد، اما فایل SDK با نسخه ۴ مواجه شده است. این هشدار در این اجرا مانع Build نشد. با توجه به اینکه Capacitor 8.6.2 از Android Gradle Plugin 8.13.0 استفاده می‌کند و شواهد فعلی emitter دقیق هشدار را مشخص نمی‌کند، ارتقای حدسی AGP/Gradle یا downgrade کردن Android CLI انجام نشد. باید در صورت تکرار، منبع دقیق پیام و نسخه‌های واقعی ابزارهای SDK/Gradle استخراج شود.
+
+### منابع فنی
+
+- [Capacitor 8.6.2 Android build configuration](https://github.com/ionic-team/capacitor/blob/8.6.2/android/capacitor/build.gradle)
+- [Capacitor: flatDir rationale](https://github.com/ionic-team/capacitor/issues/5287)
+- [Gradle repository types](https://docs.gradle.org/current/userguide/supported_repository_types.html)
+- [Android Gradle Plugin compatibility](https://developer.android.com/build/releases/about-agp)
+
+### وضعیت
+
+- [x] اجرای Workflow پس از مهاجرت به Android CLI موفق شد.
+- [x] APK ساخته و Artifact آپلود شد.
+- [x] هشدارهای قدیمی Action/Node و sdkmanager در لاگ جدید دیده نشدند.
+- [ ] بررسی دقیق منبع هشدار SDK XML در صورت تکرار.
+- [ ] نصب و اجرای APK روی گوشی واقعی و بررسی MQTT و Local WebSocket.
+
+
+---
+
+## ۱۸. انتشار APK در GitHub Releases — ۲۰۲۶-۱۱-۲۰
+
+### رفتار Workflow
+
+- Workflow همان `.github/workflows/android-apk.yml` باقی می‌ماند و پس از Build موفق، APK را هم به‌صورت Actions Artifact با نگهداری ۳۰روزه و هم به‌عنوان Asset یک GitHub Pre-release منتشر می‌کند.
+- برای ایجاد Release از GitHub CLI موجود روی runner استفاده می‌شود؛ وابستگی به Action انتشار شخص ثالث اضافه نشده است.
+- Permission مربوط به Workflow از `contents: read` به `contents: write` تغییر می‌کند تا توکن همان اجرا اجازه ساخت Tag و Release داشته باشد.
+- الگوی Tag برابر `android-build-<run-number>-<run-attempt>` و نام Artifact نیز شامل هر دو شماره اجرا و تلاش است. این کار اجرای مجدد همان Workflow را از برخورد با Release یا Artifact قبلی حفظ می‌کند.
+- عنوان Release شماره اجرا و تلاش را مشخص می‌کند و متن آن Commit مبنا و ماهیت Debug را اعلام می‌کند.
+- Release با `--prerelease --latest=false` منتشر می‌شود تا APK توسعه‌ای با نسخه پایدار اشتباه نشود و به‌عنوان Latest Release انتخاب نشود.
+
+### محدوده انتشار
+
+- فقط `app-debug.apk` منتشر می‌شود؛ AAB، Google Play و GitHub Packages اضافه نمی‌شوند.
+- فایل فعلی Debug و بدون امضای انتشار Production است. انتشار در GitHub Releases به‌خودی‌خود APK را به نسخه Production امضاشده تبدیل نمی‌کند.
+- Artifact سی‌روزه حفظ می‌شود تا مسیر دریافت فعلی نیز باقی بماند.
+
+### اعتبارسنجی
+
+- [x] Workflow و مستندات برای انتشار GitHub Pre-release به‌روزرسانی شدند.
+- [ ] اجرای موفق CI و تأیید ایجاد Release و پیوست APK
+- [ ] نصب و اجرای APK روی گوشی Android و بررسی MQTT و Local WebSocket
+
+**وضعیت:** تغییرات Workflow و مستندات ثبت شده‌اند؛ ایجاد Release واقعی پس از اجرای موفق Workflow جدید قابل تأیید است.

@@ -114,11 +114,9 @@ export function readStoredCanvasNodes(
   subMode: CanvasSubMode,
   storage?: CanvasStorageLike | null,
 ): Record<string, CanvasNodeRect> | null {
-  const cached = memoryNodesCache.get(subMode);
+  const cached = storage === undefined ? memoryNodesCache.get(subMode) : undefined;
 
-  if (cached && Object.keys(cached).length > 0) {
-    return cached;
-  }
+  if (cached !== undefined) return cached;
 
   const resolvedStorage = resolveCanvasStorage(storage);
 
@@ -133,7 +131,7 @@ export function readStoredCanvasNodes(
     const parsed = JSON.parse(raw) as Record<string, CanvasNodeRect>;
 
     if (parsed && !Array.isArray(parsed)) {
-      memoryNodesCache.set(subMode, parsed);
+      if (storage === undefined) memoryNodesCache.set(subMode, parsed);
 
       return parsed;
     }
@@ -150,7 +148,7 @@ export function replaceStoredCanvasNodes(
   storage?: CanvasStorageLike | null,
 ): void {
   const snapshot = { ...nextNodes };
-  memoryNodesCache.set(subMode, snapshot);
+  if (storage === undefined) memoryNodesCache.set(subMode, snapshot);
 
   const key = getCanvasStorageKey(subMode);
 
@@ -238,7 +236,10 @@ export function reconcileCanvasNodes({
     }
   }
 
-  for (const [id, defRect] of Object.entries(defaults)) {
+  const defaultIds = Object.keys(defaults);
+  for (let i = 0; i < defaultIds.length; i++) {
+    const id = defaultIds[i];
+    const defRect = defaults[id];
     const existing = prevNodes[id] ?? storedNodes[id];
 
     if (existing) {
@@ -274,9 +275,9 @@ export function readStoredCanvasViewport(
   subMode: CanvasSubMode,
   storage?: CanvasStorageLike | null,
 ): CanvasViewport | null {
-  const cached = memoryViewportCache.get(subMode);
+  const cached = storage === undefined ? memoryViewportCache.get(subMode) : undefined;
 
-  if (cached) return cached;
+  if (cached !== undefined) return cached;
 
   const resolvedStorage = resolveCanvasStorage(storage);
 
@@ -304,7 +305,7 @@ export function readStoredCanvasViewport(
         zoom: clampCanvasZoom(parsed.zoom),
       };
 
-      memoryViewportCache.set(subMode, valid);
+      if (storage === undefined) memoryViewportCache.set(subMode, valid);
 
       return valid;
     }
@@ -320,7 +321,7 @@ export function writeStoredCanvasViewport(
   vp: CanvasViewport,
   storage?: CanvasStorageLike | null,
 ): void {
-  memoryViewportCache.set(subMode, vp);
+  if (storage === undefined) memoryViewportCache.set(subMode, vp);
 
   const key = getCanvasViewportStorageKey(subMode);
 
@@ -345,8 +346,10 @@ export function clearStoredCanvasMode(
   subMode: CanvasSubMode,
   storage?: CanvasStorageLike | null,
 ): void {
-  memoryNodesCache.delete(subMode);
-  memoryViewportCache.delete(subMode);
+  if (storage === undefined) {
+    memoryNodesCache.delete(subMode);
+    memoryViewportCache.delete(subMode);
+  }
 
   const nodesKey = getCanvasStorageKey(subMode);
   const viewportKey = getCanvasViewportStorageKey(subMode);

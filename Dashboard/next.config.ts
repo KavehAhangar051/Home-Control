@@ -16,6 +16,8 @@ export default function buildNextConfig(phase: string): NextConfig {
   const nextConfig: NextConfig = {
     reactStrictMode: true,
     reactCompiler: !isDevServer,
+    // Opt in only for profiling builds; normal static exports stay unchanged.
+    productionBrowserSourceMaps: process.env.ENABLE_PROFILING_SOURCEMAPS === "true",
     allowedDevOrigins: [
       "localhost",
       "**.localhost",

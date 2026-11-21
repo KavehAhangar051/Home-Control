@@ -229,11 +229,20 @@ export function InlineSlider({
   const overlapsText = (x: number, bounds: { start: number; end: number }) =>
     x + 2 >= bounds.start && x - 2 <= bounds.end;
 
-  const ticks = showTicks
-    ? stops
-        .map((stop) => stop.x)
-        .filter((x) => !overlapsText(x, labelBounds) && !overlapsText(x, readoutBounds))
-    : [];
+  const ticks = useMemo(() => {
+    if (!showTicks) return [];
+
+    return stops
+      .map((stop) => stop.x)
+      .filter(
+        (x) =>
+          !overlapsText(x, { start: TEXT_INSET, end: TEXT_INSET + geometry.labelWidth }) &&
+          !overlapsText(x, {
+            start: geometry.width - TEXT_INSET - geometry.readoutWidth,
+            end: geometry.width - TEXT_INSET,
+          }),
+      );
+  }, [showTicks, stops, geometry.width, geometry.labelWidth, geometry.readoutWidth]);
 
   const queueDragCommit = (value: number) => {
     pendingDragValue.current = value;
@@ -364,7 +373,10 @@ export function InlineSlider({
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-[2px] inset-y-0 overflow-hidden rounded-lg"
       >
-        <m.div className="absolute inset-0 rounded-lg bg-accent3-medium" style={{ x: fillX }} />
+        <m.div
+          className="absolute inset-0 rounded-lg bg-accent3-medium"
+          style={{ x: fillX, willChange: "transform", backfaceVisibility: "hidden" }}
+        />
       </div>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 text-text-primary">
         <span
@@ -393,7 +405,7 @@ export function InlineSlider({
         animate={reduce ? undefined : { scaleY: dragging ? 1.35 : 1 }}
         transition={SPRING_BOUNCY}
         className="pointer-events-none absolute left-0 top-1/2 h-6 w-1 text-accent3"
-        style={{ x: handleX, y: "-50%" }}
+        style={{ x: handleX, y: "-50%", willChange: "transform", backfaceVisibility: "hidden" }}
       >
         <m.span
           className="absolute top-0 size-1 rounded-full bg-current"

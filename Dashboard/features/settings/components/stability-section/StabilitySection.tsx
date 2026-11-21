@@ -131,6 +131,7 @@ export default function StabilitySection({
                   }
             }
             className="bg-card-bg-solid border-t border-accent3-medium/30 overflow-hidden"
+            style={{ contain: "layout style", backfaceVisibility: "hidden" }}
           >
             <div className="p-4 space-y-4">
               <StabilitySectionContent

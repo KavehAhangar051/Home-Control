@@ -123,6 +123,7 @@ export default function MacrosSection() {
                   }
             }
             className="overflow-hidden"
+            style={{ contain: "layout style", backfaceVisibility: "hidden" }}
           >
             <div className="space-y-4 rounded-2xl border border-accent3/40 bg-card-bg-solid p-4">
               <h4 className="text-sm font-semibold text-text-primary">

@@ -2,8 +2,9 @@
 
 import React from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { CompositedBezierParticle } from "@/components/motion/composited-bezier-particle";
 import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
-import { buildBezierWireGeometry } from "./canvasGeometry";
+import { buildBezierWireGeometry, type BezierWireGeometry } from "./canvasGeometry";
 import type { CanvasNodeRect, CanvasWireConnection } from "./canvasTypes";
 
 interface CanvasWiresLayerProps {
@@ -18,8 +19,14 @@ interface CanvasWireItemProps {
   sourceRect: CanvasNodeRect | undefined;
   targetRect: CanvasNodeRect | undefined;
   isHighlighted: boolean;
-  animationsEnabled: boolean;
-  showParticles: boolean;
+  geometry: BezierWireGeometry | undefined;
+}
+
+interface CanvasWireParticlesItemProps {
+  connection: CanvasWireConnection;
+  sourceRect: CanvasNodeRect | undefined;
+  targetRect: CanvasNodeRect | undefined;
+  geometry: BezierWireGeometry | undefined;
 }
 
 const CanvasWireItem = React.memo(function CanvasWireItem({
@@ -27,16 +34,15 @@ const CanvasWireItem = React.memo(function CanvasWireItem({
   sourceRect,
   targetRect,
   isHighlighted,
-  animationsEnabled,
-  showParticles,
+  geometry,
 }: CanvasWireItemProps) {
   const isActive = useIoTStore((state) =>
     Boolean(connection.pin && state.pinsState[connection.pin]),
   );
 
-  if (!sourceRect || !targetRect) return null;
+  if (!sourceRect || !targetRect || !geometry) return null;
 
-  const { path, startX, startY, endX, endY } = buildBezierWireGeometry(sourceRect, targetRect);
+  const { path, startX, startY, endX, endY } = geometry;
 
   const strokeColor = isActive || isHighlighted ? "var(--accent3)" : "var(--border-color)";
 
@@ -62,28 +68,16 @@ const CanvasWireItem = React.memo(function CanvasWireItem({
         strokeLinecap="round"
       />
 
-      {isActive && animationsEnabled && (
-        <>
-          <path
-            d={path}
-            fill="none"
-            stroke="var(--accent3)"
-            strokeWidth={2.5}
-            strokeDasharray="6 10"
-            strokeLinecap="round"
-            className="animate-[dash_1.15s_linear_infinite]"
-          />
-          {showParticles && (
-            <>
-              <circle r={4.2} fill="var(--accent3)" fillOpacity={0.3}>
-                <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
-              </circle>
-              <circle r={2.3} fill="var(--accent3-foreground)">
-                <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
-              </circle>
-            </>
-          )}
-        </>
+      {isActive && (
+        <path
+          d={path}
+          fill="none"
+          stroke="color-mix(in oklab, var(--accent3) 72%, white)"
+          strokeWidth={2}
+          strokeOpacity={0.45}
+          strokeDasharray="6 10"
+          strokeLinecap="round"
+        />
       )}
 
       <circle
@@ -106,6 +100,41 @@ const CanvasWireItem = React.memo(function CanvasWireItem({
   );
 });
 
+const CanvasWireSignalParticle = React.memo(function CanvasWireSignalParticle({
+  connection,
+  sourceRect,
+  targetRect,
+  geometry,
+}: CanvasWireParticlesItemProps) {
+  const isActive = useIoTStore((state) =>
+    Boolean(connection.pin && state.pinsState[connection.pin]),
+  );
+
+  if (!isActive || !sourceRect || !targetRect || !geometry) return null;
+
+  const curve = geometry;
+
+  return (
+    <>
+      <CompositedBezierParticle
+        curve={curve}
+        durationMs={1300}
+        className="flex size-3.5 items-center justify-center rounded-full bg-accent3/30"
+      >
+        <span className="size-1.5 rounded-full bg-accent3" />
+      </CompositedBezierParticle>
+      <CompositedBezierParticle
+        curve={curve}
+        durationMs={1300}
+        delayMs={-650}
+        className="flex size-3.5 items-center justify-center rounded-full bg-accent3/30"
+      >
+        <span className="size-1.5 rounded-full bg-accent3" />
+      </CompositedBezierParticle>
+    </>
+  );
+});
+
 export default React.memo(function CanvasWiresLayer({
   connections,
   nodes,
@@ -114,29 +143,61 @@ export default React.memo(function CanvasWiresLayer({
 }: CanvasWiresLayerProps) {
   const isLiteTier = useIsLitePerformanceTier();
 
+  const showParticles = animationsEnabled && !isLiteTier;
+  const wireGeometryById = React.useMemo(() => {
+    const geometryById = new Map<string, BezierWireGeometry>();
+
+    for (const connection of connections) {
+      const sourceRect = nodes[connection.sourceId];
+      const targetRect = nodes[connection.targetId];
+
+      if (sourceRect && targetRect) {
+        geometryById.set(connection.id, buildBezierWireGeometry(sourceRect, targetRect));
+      }
+    }
+
+    return geometryById;
+  }, [connections, nodes]);
+
   if (connections.length === 0) return null;
 
-  const showParticles = animationsEnabled && !isLiteTier;
-
   return (
-    <svg
-      aria-hidden="true"
-      className="pointer-events-none absolute top-0 left-0 overflow-visible"
-      style={{ width: 1, height: 1 }}
-    >
-      {connections.map((connection) => (
-        <CanvasWireItem
-          key={connection.id}
-          connection={connection}
-          sourceRect={nodes[connection.sourceId]}
-          targetRect={nodes[connection.targetId]}
-          isHighlighted={
-            selectedNodeId === connection.sourceId || selectedNodeId === connection.targetId
-          }
-          animationsEnabled={animationsEnabled}
-          showParticles={showParticles}
-        />
-      ))}
-    </svg>
+    <>
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none absolute top-0 left-0 overflow-visible"
+        style={{ width: 1, height: 1 }}
+      >
+        {connections.map((connection) => (
+          <CanvasWireItem
+            key={connection.id}
+            connection={connection}
+            sourceRect={nodes[connection.sourceId]}
+            targetRect={nodes[connection.targetId]}
+            geometry={wireGeometryById.get(connection.id)}
+            isHighlighted={
+              selectedNodeId === connection.sourceId || selectedNodeId === connection.targetId
+            }
+          />
+        ))}
+      </svg>
+
+      {showParticles && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-0 left-0 size-0 overflow-visible"
+        >
+          {connections.map((connection) => (
+            <CanvasWireSignalParticle
+              key={connection.id}
+              connection={connection}
+              sourceRect={nodes[connection.sourceId]}
+              targetRect={nodes[connection.targetId]}
+              geometry={wireGeometryById.get(connection.id)}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 });

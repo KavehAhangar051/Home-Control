@@ -18,11 +18,11 @@ export function VoiceTranscriptOverlay({ isListening, voiceTranscript }: Props) 
           className="overflow-hidden mt-4"
         >
           <div className="bg-accent4-transparent border border-accent4 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 relative shadow-lg shadow-accent4/10">
-            <div className="absolute inset-0 bg-accent4 opacity-10 animate-pulse rounded-2xl" />
+            <div className="absolute inset-0 bg-accent4 opacity-10 animate-pulse transform-gpu will-change-[opacity,transform] rounded-2xl" />
             <div className="flex items-center gap-3 z-10">
-              <div className="size-2 rounded-full bg-accent4 animate-ping" />
+              <div className="size-2 rounded-full bg-accent4 animate-ping transform-gpu" />
               <span className="text-accent4 font-semibold text-sm">در حال شنیدن...</span>
-              <div className="size-2 rounded-full bg-accent4 animate-ping" />
+              <div className="size-2 rounded-full bg-accent4 animate-ping transform-gpu" />
             </div>
             <div className="z-10 min-h-[2.5rem] flex items-center justify-center">
               <p className="text-2xl font-bold text-center text-text-primary">

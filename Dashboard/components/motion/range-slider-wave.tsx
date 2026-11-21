@@ -1,20 +1,15 @@
 "use client";
 // beui.dev/components/motion/range-slider
 
-import { m, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
 import { useMemo } from "react";
+import { lookupWaveCrest } from "@/lib/gpuLut";
 import { type SliderOptions, useSlider } from "@/lib/hooks/use-slider";
 import { TOUCH_GESTURE_CLASS } from "@/lib/touch";
 import { cn } from "@/lib/utils";
 
-// Per-bar spring: soft enough that the crest wobbles as it travels.
-const SPRING_BAR = { type: "spring", stiffness: 420, damping: 20, mass: 0.5 } as const;
-
 /** Bar count that reads as a wave without turning into a stripe pattern. */
 const BARS = 32;
-
-/** Width of the crest in bars — bigger spreads the bell wider. */
-const SPREAD = 2.6;
 
 export interface WaveSliderProps extends SliderOptions {
   /** Number of bars drawn across the track. */
@@ -26,8 +21,8 @@ export interface WaveSliderProps extends SliderOptions {
 
 /**
  * Equalizer slider: bars rise into a crest around the handle position and fall
- * back as it passes, so the value reads as a travelling wave. Bars up to the
- * value are filled, the rest stay muted.
+ * back as it passes, so the value reads as a travelling wave. Runs purely via GPU
+ * compositor-friendly `translate3d + scaleY` transitions and an O(1) Gaussian crest LUT.
  */
 export function WaveSlider({ bars = BARS, barClassName, className, ...options }: WaveSliderProps) {
   const reduce = useReducedMotion();
@@ -36,18 +31,6 @@ export function WaveSlider({ bars = BARS, barClassName, className, ...options }:
   // Keys only change when the bar count does — the list never reorders.
   const keys = useMemo(() => Array.from({ length: bars }, (_, i) => `bar-${i}`), [bars]);
   const head = (percent / 100) * (bars - 1);
-
-  const lanes = keys.map((key, i) => {
-    const distance = Math.abs(i - head);
-
-    return {
-      key,
-      distance,
-      // Gaussian crest centred on the handle.
-      crest: Math.exp(-(distance ** 2) / (2 * SPREAD ** 2)),
-      filled: i <= Math.round(head),
-    };
-  });
 
   return (
     <div
@@ -60,27 +43,33 @@ export function WaveSlider({ bars = BARS, barClassName, className, ...options }:
         className,
       )}
     >
-      {lanes.map((lane) => (
-        <span key={lane.key} className="flex h-full flex-1 items-center justify-center">
-          <m.span
-            className={cn(
-              "h-14 w-full max-w-[5px] origin-center rounded-full",
-              // /45 keeps the unfilled track above the 3:1 non-text contrast
-              // floor in both themes (measured 4.16 dark / 3.13 light)
-              lane.filled ? "bg-accent3" : "bg-text-muted/45",
-              barClassName,
-            )}
-            animate={{
-              scaleY: reduce ? 0.4 : 0.22 + lane.crest * (dragging ? 0.78 : 0.6),
-            }}
-            transition={
-              reduce
-                ? { duration: 0 }
-                : { ...SPRING_BAR, delay: Math.min(lane.distance * 0.012, 0.12) }
-            }
-          />
-        </span>
-      ))}
+      {keys.map((key, i) => {
+        const distance = Math.abs(i - head);
+        const crest = lookupWaveCrest(distance);
+        const filled = i <= Math.round(head);
+        const scaleY = reduce ? 0.4 : 0.22 + crest * (dragging ? 0.78 : 0.6);
+        const delayMs = reduce ? 0 : Math.min(Math.round(distance * 12), 120);
+
+        return (
+          <span key={key} className="flex h-full flex-1 items-center justify-center">
+            <span
+              className={cn(
+                "h-14 w-full max-w-[5px] origin-center rounded-full will-change-transform [backface-visibility:hidden]",
+                !reduce &&
+                  "transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+                // /45 keeps the unfilled track above the 3:1 non-text contrast
+                // floor in both themes (measured 4.16 dark / 3.13 light)
+                filled ? "bg-accent3" : "bg-text-muted/45",
+                barClassName,
+              )}
+              style={{
+                transform: `translate3d(0, 0, 0) scaleY(${scaleY.toFixed(4)})`,
+                transitionDelay: `${delayMs}ms`,
+              }}
+            />
+          </span>
+        );
+      })}
       <button
         type="button"
         {...sliderProps}

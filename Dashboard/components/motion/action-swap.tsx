@@ -8,7 +8,6 @@
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { useState } from "react";
 import { SPRING_PRESS } from "@/lib/ease";
-import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
 import { cn } from "@/lib/utils";
 import type {
   ActionSwapButtonProps,
@@ -21,9 +20,6 @@ import {
   CASCADE_STAGGER,
   type CoreAnimation,
   ICON_VARIANTS,
-  LITE_CASCADE_LETTER_VARIANTS,
-  LITE_ICON_VARIANTS,
-  LITE_TEXT_VARIANTS,
   SIZE_CLASS,
   TEXT_VARIANTS,
   VARIANT_CLASS,
@@ -51,12 +47,9 @@ function isStringText(val: unknown): val is string {
  */
 function ActionSwapText({ value, children, animation = "blur", className }: ActionSwapTextProps) {
   const reduce = useReducedMotion();
-  const isLiteTier = useIsLitePerformanceTier();
   const label = isStringText(children) ? children : null;
   const cascade = animation === "cascade" && label !== null && !reduce;
   const coreAnimation: CoreAnimation = animation === "cascade" ? "roll" : animation;
-  const textVariants = isLiteTier ? LITE_TEXT_VARIANTS : TEXT_VARIANTS;
-  const letterVariants = isLiteTier ? LITE_CASCADE_LETTER_VARIANTS : CASCADE_LETTER_VARIANTS;
 
   const cascadeChars =
     cascade && label
@@ -70,13 +63,9 @@ function ActionSwapText({ value, children, animation = "blur", className }: Acti
   return (
     <span
       className={cn(
-        "relative -my-[0.08em] inline-block max-w-full whitespace-nowrap py-[0.08em] align-bottom",
+        "relative -my-[0.08em] inline-block max-w-full overflow-y-clip whitespace-nowrap py-[0.08em] align-bottom",
         className,
       )}
-      style={{
-        clipPath: "inset(0 -999px)",
-        WebkitClipPath: "inset(0 -999px)",
-      }}
     >
       <span aria-hidden className="invisible inline-block whitespace-nowrap">
         {cascade
@@ -104,8 +93,8 @@ function ActionSwapText({ value, children, animation = "blur", className }: Acti
               <m.span
                 key={item.id}
                 custom={item.delay}
-                variants={letterVariants}
-                className="inline-block whitespace-pre"
+                variants={CASCADE_LETTER_VARIANTS}
+                className="inline-block whitespace-pre will-change-transform"
               >
                 {item.char}
               </m.span>
@@ -114,17 +103,14 @@ function ActionSwapText({ value, children, animation = "blur", className }: Acti
         ) : (
           <m.span
             key={`${coreAnimation}-${value}`}
-            variants={textVariants[coreAnimation]}
+            variants={TEXT_VARIANTS[coreAnimation]}
             initial={reduce ? false : "initial"}
-            animate={
-              reduce
-                ? isLiteTier
-                  ? { opacity: 1, scale: 1, y: 0 }
-                  : { opacity: 1, filter: "blur(0px)", scale: 1, y: 0 }
-                : "animate"
-            }
+            animate={reduce ? { opacity: 1, scale: 1, y: 0 } : "animate"}
             exit={reduce ? undefined : "exit"}
-            className="absolute start-0 top-[0.08em] inline-block max-w-full truncate"
+            className={cn(
+              "absolute start-0 top-[0.08em] inline-block max-w-full truncate",
+              reduce ? undefined : "will-change-transform",
+            )}
           >
             {children}
           </m.span>
@@ -147,9 +133,7 @@ export function ActionSwapIcon({
   className,
 }: ActionSwapIconProps) {
   const reduce = useReducedMotion();
-  const isLiteTier = useIsLitePerformanceTier();
   const coreAnimation: CoreAnimation = animation === "cascade" ? "roll" : animation;
-  const iconVariants = isLiteTier ? LITE_ICON_VARIANTS : ICON_VARIANTS;
 
   return (
     <span
@@ -159,17 +143,14 @@ export function ActionSwapIcon({
         <m.span
           key={`${animation}-${value}`}
           aria-hidden
-          variants={iconVariants[coreAnimation]}
+          variants={ICON_VARIANTS[coreAnimation]}
           initial={reduce ? false : "initial"}
-          animate={
-            reduce
-              ? isLiteTier
-                ? { opacity: 1, scale: 1, y: 0 }
-                : { opacity: 1, filter: "blur(0px)", scale: 1, y: 0 }
-              : "animate"
-          }
+          animate={reduce ? { opacity: 1, scale: 1, y: 0 } : "animate"}
           exit={reduce ? undefined : "exit"}
-          className="col-start-1 row-start-1 inline-flex items-center justify-center"
+          className={cn(
+            "col-start-1 row-start-1 inline-flex items-center justify-center",
+            reduce ? undefined : "will-change-transform",
+          )}
         >
           {children}
         </m.span>

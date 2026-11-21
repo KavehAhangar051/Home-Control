@@ -41,11 +41,12 @@ Average FPS alone is insufficient. Review dropped/partially presented frames, fr
 - `lib/asyncScheduler.ts`, `useCloudflarePush.ts`, `buildEspConfig.ts`, `useCloudflareInit.ts`, `canvasStorage.ts`, `workflowStorage.ts` & `useTrellisWorkspaceController.ts`: `JSON.stringify` config diffing and browser `localStorage` persistence are coalesced and deferred into `requestIdleCallback` slices (with automatic `pagehide` / `visibilitychange` flush guarantees), keeping 60 Hz slider, drag, and edit frames free of synchronous serialization stalls.
 - `useWorkflowRuntime.ts`, `WorkflowStudio.tsx`, `DashboardWorkspace.tsx`, `IoTWorkspace.tsx` & `WorkspaceSection.tsx`: workflow countdown timers share one consolidated 1s ticker; DAG evaluation scopes strictly to referenced pins; non-pin workflow nodes receive a stable empty pin map to preserve `React.memo`; heavy workspace display mode (`grid | trellis | canvas`) and Settings panel switches use `useDeferredValue`; and actively dragged Canvas/Workflow nodes apply scoped `willChange: "transform"` only while dragging.
 - `components/motion/action-swap-variants.ts` & `action-swap.tsx`: `"full"` tier uses the expressive blur/roll/cascade variants; `"lite"` tier shifts to compositor-only transform + opacity variants when explicitly enabled in Settings.
+- `components/motion/dock.tsx`: the stationary Dock shell no longer forces an additional `transform-gpu` promotion. Its active pill retains a scoped transform hint because that element actually moves; the shell keeps its existing translucent backdrop appearance. The backdrop filter may still require browser-managed compositing/raster resources.
 - `components/motion/color-picker.tsx`: uses `useSpring`/`useTransform`/`MotionValue` for cursor thumb and pendulum loupe without React state loops on drag; panel reveal avoids blur in `"lite"` tier.
 - `components/motion/range-slider*.tsx`: drives fill and thumb transforms via `MotionValue` + `useSpring`.
-- `components/motion/theme-toggle.tsx` & `styles/view-transitions.css`: theme changes use native View Transitions without synchronous `document.body.offsetHeight` forced reflow; `"lite"` tier skips root `filter: blur(8px)`.
+- `components/motion/theme-toggle.tsx`, `components/motion/theme-toggle-config.ts` & `styles/view-transitions.css`: theme changes use native View Transitions without synchronous `document.body.offsetHeight` forced reflow; `"lite"` tier switches `circle-blur` to the non-blurred circle reveal and overrides the inherited `will-change: clip-path, filter` with `will-change: clip-path` plus `filter: none`, avoiding an unnecessary filter layer while preserving the circle reveal.
 - Canvas & Workflow gestures (`useSheetViewportGestures.ts`, `useCanvasNodeInteractions.ts`, `useWorkflowInteractions.ts`, `useWorkflowStudio.ts`): pointer move, resize, wheel zoom, and 2-finger pinch zoom are coalesced to `requestAnimationFrame`; transient viewport changes avoid per-frame `localStorage` serialization; node drag tilt updates non-inherited `rotate`/`translate` without forcing React parent re-renders.
-- Infinite background loops (`usePageVisibility.ts`, `app/globals.css`, `CanvasWiresLayer.tsx`, `WorkflowEdgeItem.tsx`): hidden tabs (`html[data-page-hidden="true"]`) pause infinite CSS keyframes, and `"lite"` tier (when enabled by the user) replaces dual SVG SMIL `<animateMotion>` wire particles with lightweight dash feedback.
+- Infinite background loops (`usePageVisibility.ts`, `app/globals.css`, `CanvasWiresLayer.tsx`, `WorkflowWiresSvg.tsx`): hidden tabs pause CSS keyframes; Canvas and Workflow wire particles use `CompositedBezierParticle`, which samples cubic Bezier paths only when geometry changes and animates equal-distance `translate3d`/opacity keyframes through the Web Animations API. The shared component pauses its animations while the document is hidden and respects `prefers-reduced-motion`. These transform/opacity animations are compositor candidates; actual compositor promotion remains browser-dependent. The explicit `"lite"` tier continues to suppress decorative wire particles when the user selects reduced animation settings.
 
 ## Verification protocol
 
@@ -62,6 +63,40 @@ Use equivalent Chromium desktop (`1440x900`) and mobile (`390x844`, 4x/6x CPU th
 - On a 60 Hz target device, common interaction scenarios sustain smooth ~60 FPS with minimal dropped-frame bursts, and high-frequency gestures trigger zero per-frame `localStorage` writes or forced full-DOM reflows.
 - On higher-refresh displays (`90/120/144 Hz`), the dashboard imposes no artificial 60 FPS cap.
 - Performance tiering never silently disables animations, transitions, or visual fidelity on low-end devices; `"lite"` mode activates strictly when the user disables animations or selects `30 FPS` in Settings (`animationsEnabled` / `animationsFps`), while always honoring `prefers-reduced-motion`.
+
+
+
+## GPU-first rendering and LUT roadmap
+
+The dashboard uses a GPU-first strategy for visual work, not a claim that every browser operation can execute exclusively on the GPU. React, DOM construction, event handling, application state, and layout still require CPU work.
+
+### Implemented GPU-first & LUT infrastructure
+
+- `lib/gpuLut.ts`: precomputed typed-array LUTs eliminate repeated per-frame CPU math across color/palette generation (`themeStyles.ts`), HSV→RGB & hex formatting (`color-picker.tsx`), Gaussian wave crests (`range-slider-wave.tsx`), cubic easing and frame-delta physics decay (`sheetViewportAnimator.ts`, `use-cursor-listeners.ts`), and cubic Bezier Bernstein basis sampling (`composited-bezier-particle.tsx`).
+- `lib/gpuDisplay.ts` & `lib/hooks/use-gpu-display.ts`: probes native display resolution, `devicePixelRatio`, GPU backend (`webgpu`/`webgl2`/`webgl`/`2d`), and display refresh rate (`60/90/120/144/165/240/360 Hz`) via a one-shot 14-frame `requestAnimationFrame` pass, synchronizes `--display-dpr`/`--display-fps`/`--display-pixel` CSS variables, provides `snapToDevicePixel` for crisp native-DPR transforms, and exposes a WebGL2 `TEXTURE_3D` LUT uploader (`upload3dColorLutTexture`).
+- `components/motion/composited-bezier-particle.tsx`: Canvas and Workflow Bezier signal particles pre-sample cubic curves through `sampleEqualArcCubicBezier` (with a bounded keyframe cache) and animate equal-distance `translate3d`/opacity WAAPI keyframes on compositor layers with one shared visibility pause listener and `useReducedMotion()` support.
+- `app/globals.css`, `styles/view-transitions.css`, `theme-toggle-config.ts`, `sheetViewportAnimator.ts`, `CanvasWorkspace.tsx`, `WorkflowStudio.tsx`, `loader.tsx`, `loader-shapes.tsx`, `range-slider-*.tsx`, `expandable-tabs.tsx`, and card/node components: keyframes and active transforms use 3D transforms (`translate3d`/`scale3d`/`rotate3d`, `backface-visibility: hidden`), `Percent` loader uses native-FPS `rAF` + `scaleX` instead of 25fps `setInterval`, `Metaballs` animates GPU `x` instead of SVG `cx`, interactive cards/nodes avoid CPU `width`/`height`/`box-shadow` transitions, and collapsible panels isolate layout via `contain: layout style`.
+
+### 3D LUT WebGL2 surfaces
+
+- `upload3dColorLutTexture` (`lib/gpuDisplay.ts`) and the WebGL 2 3D LUT surface pipeline (`GPU-RENDERING.md`) remain scoped for dedicated decorative GPU surfaces without distorting interactive semantic UI colors, text contrast, or user theme palettes.
+
+### Verification status
+
+- Source-level change only: no browser performance trace or compositor-layer inspection has been captured for this branch.
+- Confirm actual compositor promotion, frame-time distribution, and GPU memory in Chromium DevTools before describing the new particle animation as verified GPU execution.
+
+## Workflow edge hover transitions
+
+- Workflow edge hover previously transitioned SVG `stroke` and `stroke-opacity` on the main Bezier path and endpoint circles, which can trigger repeated SVG paint work.
+- The edge now keeps its base stroke stable and cross-fades a destructive-color overlay using `opacity`. This is compositor-friendly, but SVG layer promotion and GPU execution remain browser-dependent; verify with paint flashing and a performance trace on target browsers.
+- The selected edge retains its existing visual state. The hover treatment is not a guarantee that the entire SVG scene is GPU-only.
+
+## WebGL 2 LUT surfaces
+
+- The opt-in WebGL 2 3D LUT foundation is documented in `GPU-RENDERING.md`. It is intended for decorative image surfaces only and is not mounted in the dashboard shell.
+- LUT surfaces redraw on source/LUT/size changes rather than maintaining a continuous frame loop. They create contexts near the viewport, cap backing-store dimensions, and retain an original-image fallback.
+- Do not count the renderer as a dashboard-wide GPU migration until a real surface is integrated and its GPU memory, context count, frame time, color output, and context restoration are profiled on target hardware.
 
 ## Current measurement status
 

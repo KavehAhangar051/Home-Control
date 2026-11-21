@@ -123,7 +123,7 @@ export default function SegmentSettingsMenu({
       <div
         className={`relative ${
           isAnalogInput ? "w-[280px] sm:w-[304px]" : "w-[256px] sm:w-[280px]"
-        } bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right`}
+        } bg-card-bg-solid transform-gpu border border-border-color rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right`}
       >
         {/* Segment Identity & Pin Metadata */}
         <div className="flex items-center justify-between gap-2 border-b border-border-color pb-2.5">

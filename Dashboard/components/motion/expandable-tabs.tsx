@@ -20,7 +20,6 @@ import {
 } from "react";
 import { EASE_OUT, SPRING_LAYOUT } from "@/lib/ease";
 import { triggerHaptic } from "@/lib/haptics";
-import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
 import { useMessages } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
@@ -88,22 +87,10 @@ const LABEL_CLOSE = { duration: 0.14, ease: EASE_OUT } as const;
 const CONTENT_SPRING = { type: "spring", duration: 0.42, bounce: 0.06 } as const;
 
 const CONTENT_VARIANTS: Variants = {
-  enter: { y: -8, scale: 0.98, opacity: 0, filter: "blur(4px)" },
-  center: { y: 0, scale: 1, opacity: 1, filter: "blur(0px)" },
-  exit: {
-    y: -6,
-    scale: 0.98,
-    opacity: 0,
-    filter: "blur(4px)",
-    transition: { duration: 0.08, ease: EASE_OUT },
-  },
-};
-
-const LITE_CONTENT_VARIANTS: Variants = {
-  enter: { y: -6, scale: 0.98, opacity: 0 },
+  enter: { y: -8, scale: 0.98, opacity: 0 },
   center: { y: 0, scale: 1, opacity: 1 },
   exit: {
-    y: -4,
+    y: -6,
     scale: 0.98,
     opacity: 0,
     transition: { duration: 0.08, ease: EASE_OUT },
@@ -274,7 +261,6 @@ export function ExpandableTabs({
 }: ExpandableTabsProps) {
   const t = useMessages("expandableTabs", expandableTabsMessages, labels);
   const reduce = useReducedMotion();
-  const isLiteTier = useIsLitePerformanceTier();
   const pillLayoutId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const viewportWidth = useViewportWidth();
@@ -357,11 +343,7 @@ export function ExpandableTabs({
     trailingWidth: effectiveTrailingWidth,
   });
 
-  const contentVariants = reduce
-    ? REDUCED_CONTENT_VARIANTS
-    : isLiteTier
-      ? LITE_CONTENT_VARIANTS
-      : CONTENT_VARIANTS;
+  const contentVariants = reduce ? REDUCED_CONTENT_VARIANTS : CONTENT_VARIANTS;
 
   return (
     <>
@@ -371,9 +353,14 @@ export function ExpandableTabs({
         initial={false}
         animate={{ width: targetSize.width, height: targetSize.height }}
         transition={reduce ? { duration: 0 } : SHELL_SPRING}
-        style={{ transformOrigin: "bottom center" }}
+        style={{
+          transformOrigin: "bottom center",
+          willChange: "transform, width, height",
+          backfaceVisibility: "hidden",
+          contain: "layout style",
+        }}
         className={cn(
-          "relative max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-[26px] border border-border-color bg-card-bg-solid/95 shadow-2xl backdrop-blur-xl",
+          "relative max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-[26px] border border-border-color bg-card-bg-solid/95 shadow-2xl backdrop-blur-xl transform-gpu",
           className,
           classNames?.root,
         )}
@@ -423,6 +410,7 @@ export function ExpandableTabs({
                 style={{
                   transformOrigin: "top center",
                   willChange: "transform, opacity",
+                  backfaceVisibility: "hidden",
                 }}
               >
                 <div
@@ -499,6 +487,7 @@ export function ExpandableTabs({
                     <m.span
                       layoutId={pillLayoutId}
                       transition={reduce ? { duration: 0 } : SPRING_LAYOUT}
+                      style={{ willChange: "transform", backfaceVisibility: "hidden" }}
                       className={cn(
                         "absolute inset-0 -z-10 rounded-[18px] border border-sidebar-border/80 bg-sidebar-hover dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
                         classNames?.pill,

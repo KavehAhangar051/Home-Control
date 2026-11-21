@@ -51,7 +51,7 @@ export default function GroupSettingsMenu({
       }
       transition={reduceMotion ? { duration: 0 } : TRANSITION_ENTER_QUICK}
     >
-      <div className="relative w-56 sm:w-64 bg-card-bg-solid backdrop-blur-xl border border-border-color rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right">
+      <div className="relative w-56 sm:w-64 transform-gpu bg-card-bg-solid border border-border-color rounded-2xl shadow-xl p-3.5 flex flex-col gap-3 cursor-default text-right">
         <div className="flex items-center justify-between border-b border-border-color pb-2.5">
           <span className="text-[11px] font-medium text-text-muted">تنظیمات گروه</span>
           <span className="font-sans font-bold text-text-primary text-xs sm:text-sm truncate max-w-[140px]">

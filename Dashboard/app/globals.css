@@ -97,6 +97,11 @@
   --space-fluid-md: clamp(1rem, 0.8rem + 1vw, 1.5rem);
   --space-fluid-lg: clamp(1.25rem, 1rem + 1.25vw, 2rem);
   --space-fluid-xl: clamp(1.75rem, 1.35rem + 2vw, 3rem);
+
+  /* Native display resolution & refresh-rate tokens synced by useGpuDisplayObserver */
+  --display-dpr: 1;
+  --display-fps: 60;
+  --display-pixel: calc(1px / var(--display-dpr, 1));
 }
 
 .light {
@@ -187,8 +192,8 @@
   --animate-slide-out: slide-out 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-dialog-in: dialog-fade-in 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-dialog-out: dialog-fade-out 0.15s cubic-bezier(0.22, 1, 0.36, 1);
-  --animate-node-spark: node-perimeter-spark 2.4s linear infinite;
-  --animate-node-spark-fast: node-perimeter-spark 1.15s linear infinite;
+  --animate-node-spark: node-perimeter-orbit 2.4s linear infinite;
+  --animate-node-spark-fast: node-perimeter-orbit 1.15s linear infinite;
   --animate-port-wakeup: port-wakeup-ring 1.1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 
   @keyframes fade-in {
@@ -211,22 +216,22 @@
 
   @keyframes slide-in {
     from {
-      transform: translateY(-0.5rem);
+      transform: translate3d(0, -0.5rem, 0);
       opacity: 0;
     }
     to {
-      transform: translateY(0);
+      transform: translate3d(0, 0, 0);
       opacity: 1;
     }
   }
 
   @keyframes slide-out {
     from {
-      transform: translateY(0);
+      transform: translate3d(0, 0, 0);
       opacity: 1;
     }
     to {
-      transform: translateY(-0.5rem);
+      transform: translate3d(0, -0.5rem, 0);
       opacity: 0;
     }
   }
@@ -234,31 +239,22 @@
   @keyframes dialog-fade-in {
     from {
       opacity: 0;
-      transform: scale(0.95) translateY(-0.5rem);
+      transform: translate3d(0, -0.5rem, 0) scale3d(0.95, 0.95, 1);
     }
     to {
       opacity: 1;
-      transform: scale(1) translateY(0);
+      transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
     }
   }
 
   @keyframes dialog-fade-out {
     from {
       opacity: 1;
-      transform: scale(1) translateY(0);
+      transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
     }
     to {
       opacity: 0;
-      transform: scale(0.95) translateY(-0.5rem);
-    }
-  }
-
-  @keyframes svg-border-spin {
-    from {
-      stroke-dashoffset: 100;
-    }
-    to {
-      stroke-dashoffset: 0;
+      transform: translate3d(0, -0.5rem, 0) scale3d(0.95, 0.95, 1);
     }
   }
 
@@ -272,35 +268,26 @@
     }
   }
 
-  @keyframes dash {
+  @keyframes node-perimeter-orbit {
     from {
-      stroke-dashoffset: 0;
+      transform: translate3d(-50%, -50%, 0) rotate3d(0, 0, 1, 0deg);
     }
     to {
-      stroke-dashoffset: -32;
-    }
-  }
-
-  @keyframes node-perimeter-spark {
-    from {
-      stroke-dashoffset: 100;
-    }
-    to {
-      stroke-dashoffset: 0;
+      transform: translate3d(-50%, -50%, 0) rotate3d(0, 0, 1, 360deg);
     }
   }
 
   @keyframes port-wakeup-ring {
     0% {
-      transform: scale(0.95);
+      transform: scale3d(0.95, 0.95, 1) translateZ(0);
       opacity: 0.75;
     }
     70% {
-      transform: scale(1.75);
+      transform: scale3d(1.75, 1.75, 1) translateZ(0);
       opacity: 0;
     }
     100% {
-      transform: scale(1.75);
+      transform: scale3d(1.75, 1.75, 1) translateZ(0);
       opacity: 0;
     }
   }
@@ -549,25 +536,31 @@
   contain-intrinsic-size: auto 240px;
 }
 
-/* Native Popover API entry/exit transitions */
+@utility gpu-layer {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+/* Native Popover API entry/exit transitions (GPU-composited 3D transforms) */
 [popover] {
   transition:
     opacity 0.2s var(--ease-out),
     transform 0.2s var(--ease-out),
     display 0.2s allow-discrete;
   opacity: 0;
-  transform: scale(0.96);
+  transform: scale3d(0.96, 0.96, 1) translateZ(0);
+  backface-visibility: hidden;
 }
 
 [popover]:popover-open {
   opacity: 1;
-  transform: scale(1);
+  transform: scale3d(1, 1, 1) translateZ(0);
 }
 
 @starting-style {
   [popover]:popover-open {
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale3d(0.96, 0.96, 1) translateZ(0);
   }
 }
 
@@ -581,8 +574,18 @@
 }
 
 .header-title-marquee .header-title-marquee-track {
+  backface-visibility: hidden;
   will-change: transform;
   animation: header-title-marquee 10s linear infinite;
+}
+
+.animate-port-wakeup,
+.animate-slide-in,
+.animate-slide-out,
+.animate-dialog-in,
+.animate-dialog-out {
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
 /* Pause infinite decorative animations when the browser tab is hidden */
@@ -591,8 +594,9 @@ html[data-page-hidden="true"] .animate-node-spark,
 html[data-page-hidden="true"] .animate-node-spark-fast,
 html[data-page-hidden="true"] .animate-port-wakeup,
 html[data-page-hidden="true"] .animate-pulse,
-html[data-page-hidden="true"] [class*="animate-[dash"] {
-  /* biome-ignore lint/complexity/noImportantStyles: Pauses continuous GPU/SVG timers in hidden tabs */
+html[data-page-hidden="true"] .animate-ping,
+html[data-page-hidden="true"] .animate-spin {
+  /* biome-ignore lint/complexity/noImportantStyles: Pauses continuous GPU timers in hidden tabs */
   animation-play-state: paused !important;
 }
 

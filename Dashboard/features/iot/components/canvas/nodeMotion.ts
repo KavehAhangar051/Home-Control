@@ -32,6 +32,34 @@ export type CanvasNodeMotionState = {
   y: number;
 };
 
+const MOTION_IDLE_STATE: CanvasNodeMotionState = Object.freeze({
+  opacity: 1,
+  scale: 1,
+  rotate: 0,
+  y: 0,
+});
+
+const MOTION_DRAG_1016: CanvasNodeMotionState = Object.freeze({
+  opacity: 1,
+  scale: 1.016,
+  rotate: 0,
+  y: -2,
+});
+
+const MOTION_DRAG_1018: CanvasNodeMotionState = Object.freeze({
+  opacity: 1,
+  scale: 1.018,
+  rotate: 0,
+  y: -2,
+});
+
+const MOTION_DRAG_1022: CanvasNodeMotionState = Object.freeze({
+  opacity: 1,
+  scale: 1.022,
+  rotate: 0,
+  y: -2,
+});
+
 /**
  * Computes the unified motion target state for canvas and workflow nodes
  * across idle, dragging, and reduced-motion states.
@@ -42,15 +70,21 @@ export function resolveCanvasNodeMotionState(
   dragTiltDeg: number,
   dragScale = 1.018,
 ): CanvasNodeMotionState {
-  if (!animationsEnabled) {
-    return { opacity: 1, scale: 1, rotate: 0, y: 0 };
+  if (!animationsEnabled || !isDragging) {
+    return MOTION_IDLE_STATE;
+  }
+
+  if (dragTiltDeg === 0) {
+    if (dragScale === 1.016) return MOTION_DRAG_1016;
+    if (dragScale === 1.018) return MOTION_DRAG_1018;
+    if (dragScale === 1.022) return MOTION_DRAG_1022;
   }
 
   return {
     opacity: 1,
-    scale: isDragging ? dragScale : 1,
-    rotate: isDragging ? dragTiltDeg : 0,
-    y: isDragging ? -2 : 0,
+    scale: dragScale,
+    rotate: dragTiltDeg,
+    y: -2,
   };
 }
 
@@ -93,15 +127,20 @@ export function setNodeDragTiltCssVar(element: HTMLElement | null, tiltDeg: numb
   if (!element) return;
 
   if (!areSheetAnimationsAllowed()) {
-    element.style.removeProperty("rotate");
+    if (element.style.rotate) {
+      element.style.removeProperty("rotate");
+    }
     return;
   }
 
-  element.style.rotate = `${tiltDeg}deg`;
+  const rotateValue = `${tiltDeg}deg`;
+  if (element.style.rotate !== rotateValue) {
+    element.style.rotate = rotateValue;
+  }
 }
 
 export function clearNodeDragTiltCssVar(element: HTMLElement | null): void {
-  if (!element) return;
+  if (!element || !element.style.rotate) return;
   element.style.removeProperty("rotate");
 }
 
@@ -109,6 +148,8 @@ export function clearNodeDragTiltCssVar(element: HTMLElement | null): void {
  * Checks whether canvas/sheet motion animations are enabled both in user preferences
  * (`document.documentElement.dataset.animationsEnabled`) and OS `prefers-reduced-motion`.
  */
+let reducedMotionQuery: MediaQueryList | null = null;
+
 export function areSheetAnimationsAllowed(): boolean {
   if (typeof document === "undefined" || typeof window === "undefined") return false;
 
@@ -116,11 +157,9 @@ export function areSheetAnimationsAllowed(): boolean {
     return false;
   }
 
-  if (
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  ) {
-    return false;
+  if (typeof window.matchMedia === "function") {
+    reducedMotionQuery ??= window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reducedMotionQuery.matches) return false;
   }
 
   return true;
@@ -176,24 +215,27 @@ export function setSheetPanMotionCssVars(
   const targetShiftX = Math.max(-4.5, Math.min(4.5, frameDeltaX * 0.14));
   const targetShiftY = Math.max(-4.5, Math.min(4.5, frameDeltaY * 0.14));
 
-  const prev = panMotionStateByContainer.get(container) ?? { tilt: 0, shiftX: 0, shiftY: 0 };
-  const nextTilt = Math.round((prev.tilt * 0.62 + targetTilt * 0.38) * 100) / 100;
-  const nextShiftX = Math.round((prev.shiftX * 0.62 + targetShiftX * 0.38) * 10) / 10;
-  const nextShiftY = Math.round((prev.shiftY * 0.62 + targetShiftY * 0.38) * 10) / 10;
+  let motionState = panMotionStateByContainer.get(container);
+  if (!motionState) {
+    motionState = { tilt: 0, shiftX: 0, shiftY: 0 };
+    panMotionStateByContainer.set(container, motionState);
+  }
+
+  const nextTilt = Math.round((motionState.tilt * 0.62 + targetTilt * 0.38) * 100) / 100;
+  const nextShiftX = Math.round((motionState.shiftX * 0.62 + targetShiftX * 0.38) * 10) / 10;
+  const nextShiftY = Math.round((motionState.shiftY * 0.62 + targetShiftY * 0.38) * 10) / 10;
 
   if (
-    Math.abs(nextTilt - prev.tilt) < 0.03 &&
-    Math.abs(nextShiftX - prev.shiftX) < 0.08 &&
-    Math.abs(nextShiftY - prev.shiftY) < 0.08
+    Math.abs(nextTilt - motionState.tilt) < 0.03 &&
+    Math.abs(nextShiftX - motionState.shiftX) < 0.08 &&
+    Math.abs(nextShiftY - motionState.shiftY) < 0.08
   ) {
     return;
   }
 
-  panMotionStateByContainer.set(container, {
-    tilt: nextTilt,
-    shiftX: nextShiftX,
-    shiftY: nextShiftY,
-  });
+  motionState.tilt = nextTilt;
+  motionState.shiftX = nextShiftX;
+  motionState.shiftY = nextShiftY;
 
   const rotateValue = `${nextTilt}deg`;
   const translateValue = `${nextShiftX}px ${nextShiftY}px`;
@@ -201,8 +243,12 @@ export function setSheetPanMotionCssVars(
 
   for (let i = 0; i < nodes.length; i++) {
     const el = nodes[i];
-    el.style.rotate = rotateValue;
-    el.style.translate = translateValue;
+    if (el.style.rotate !== rotateValue) {
+      el.style.rotate = rotateValue;
+    }
+    if (el.style.translate !== translateValue) {
+      el.style.translate = translateValue;
+    }
   }
 }
 
@@ -214,8 +260,8 @@ export function clearSheetPanMotionCssVars(container: HTMLElement | null): void 
 
   for (let i = 0; i < nodes.length; i++) {
     const el = nodes[i];
-    el.style.removeProperty("rotate");
-    el.style.removeProperty("translate");
+    if (el.style.rotate) el.style.removeProperty("rotate");
+    if (el.style.translate) el.style.removeProperty("translate");
   }
 }
 

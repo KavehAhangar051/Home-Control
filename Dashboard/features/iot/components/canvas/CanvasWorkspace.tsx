@@ -45,6 +45,8 @@ export default function CanvasWorkspace({
   const {
     containerRef,
     worldPlaneRef,
+    gridLayerRef,
+    initialGridStyle,
     settings,
     updateSettings,
     nodes,
@@ -64,7 +66,6 @@ export default function CanvasWorkspace({
     handleChangeSubMode,
     handleCanvasPointerDown,
     handleCanvasContextMenu,
-    backgroundGridStyle,
   } = useCanvasController({
     workspaceScope,
     groupsOrder,
@@ -116,18 +117,25 @@ export default function CanvasWorkspace({
       onPointerDown={handleCanvasPointerDown}
       onContextMenu={handleCanvasContextMenu}
       style={{
-        ...backgroundGridStyle,
         touchAction: "none",
       }}
       className={`relative size-full min-h-[480px] flex-1 overflow-hidden border-0 bg-bg-main select-none ${
         isPanning ? "cursor-grabbing" : "cursor-default"
       }`}
     >
+      {/* Transform-based dot grid layer; compositor promotion is browser-managed */}
+      <div
+        ref={gridLayerRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute z-0 will-change-transform [backface-visibility:hidden]"
+        style={initialGridStyle}
+      />
+
       {/* Infinite Transformed World Plane */}
       <div
         ref={worldPlaneRef}
         style={{
-          transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`,
+          transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale3d(${viewport.zoom}, ${viewport.zoom}, 1)`,
           transformOrigin: "0 0",
           willChange: "transform",
           backfaceVisibility: "hidden",

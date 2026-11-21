@@ -299,7 +299,7 @@ export default function MacroSidebar({ compact = false, className = "" }: MacroS
                     <Play
                       aria-hidden="true"
                       strokeWidth={2}
-                      className="size-3.5 shrink-0 text-text-muted opacity-70 transition-all group-hover:text-accent3 group-hover:opacity-100"
+                      className="size-3.5 shrink-0 text-text-muted opacity-70 transition-[color,opacity] group-hover:text-accent3 group-hover:opacity-100"
                     />
                   </button>
                 );

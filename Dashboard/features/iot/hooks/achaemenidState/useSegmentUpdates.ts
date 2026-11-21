@@ -116,8 +116,7 @@ export function useSegmentUpdates() {
 
       const delivered = defaultDeviceSyncGateway.updateAnalogInputConfig(targetSegment.pin, {
         ...normalized,
-        adcResolution:
-          config.adcResolution !== undefined ? normalized.adcResolution : undefined,
+        adcResolution: config.adcResolution !== undefined ? normalized.adcResolution : undefined,
       });
 
       if (delivered) {

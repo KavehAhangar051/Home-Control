@@ -82,3 +82,23 @@ Keep source, documentation, lockfiles, and required static assets under version 
 ## License
 
 No license is declared in this repository yet. Do not assume the code is available for unrestricted reuse until a license is added.
+
+## Android APK (debug)
+
+The Android app is built from the same Next.js dashboard using Capacitor 8. The Android platform is generated locally/inside CI; the web bundle is exported to `out/` and packaged into the APK.
+
+Requirements: Node.js 22+, Bun 1.4.4, Java 21, and Android SDK Platform 36.
+
+Prepare the Capacitor Android platform and build an installable debug APK:
+
+```bash
+bun install --frozen-lockfile
+bun run android:prepare
+bun run android:apk
+```
+
+The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+The `Android APK` GitHub Actions workflow runs on pushes to `main` and can also be started manually from the Actions tab. It installs Google's Android CLI and uses `android sdk install` for Platform Tools, Android Platform 36, and Build Tools 36.0.0; this avoids the deprecated `sdkmanager` interface. The workflow uses Node.js 22, Java 21, current Node 24-compatible GitHub Actions, uploads the debug APK as a downloadable artifact (30-day retention), and attaches the same APK to a uniquely tagged GitHub **pre-release**. Artifact names and release tags include `<run-number>-<run-attempt>`, so workflow reruns do not collide. Releases are explicitly marked as unsigned debug builds, not production-signed releases. This pipeline produces **APK only**: it does not build an AAB, configure release signing, publish to Google Play, or depend on GitHub Pages.
+
+Capacitor packages are installed with Bun's `--no-save` option by the preparation script so the existing application dependency manifest and lockfile remain unchanged during this initial bootstrap. The package versions are pinned together at 8.6.2.

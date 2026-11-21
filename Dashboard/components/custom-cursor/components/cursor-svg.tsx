@@ -18,7 +18,7 @@ export function CursorSvg({ innerRef, ref }: CursorSvgProps) {
   return (
     <div
       ref={ref}
-      className="fixed top-0 left-0 pointer-events-none z-[9999] hidden sm:block opacity-0 [backface-visibility:hidden]"
+      className="fixed top-0 left-0 pointer-events-none z-[9999] hidden sm:block opacity-0 will-change-transform [backface-visibility:hidden]"
       style={{
         transform: "translate3d(-100px, -100px, 0)",
         transition: "opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1)",
@@ -28,7 +28,7 @@ export function CursorSvg({ innerRef, ref }: CursorSvgProps) {
     >
       <div
         ref={innerRef}
-        className="[backface-visibility:hidden]"
+        className="will-change-transform [backface-visibility:hidden]"
         style={{
           transformOrigin: "9px 2.86px",
           marginLeft: "-9px",

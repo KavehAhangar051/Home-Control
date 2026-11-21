@@ -2,7 +2,7 @@
 // beui.dev/components/motion/range-slider
 
 import { animate, m, useMotionValue, useMotionValueEvent, useReducedMotion } from "motion/react";
-import { type KeyboardEvent, useEffect, useRef } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useRef } from "react";
 import { type SliderOptions, snapSliderValue, useSlider } from "@/lib/hooks/use-slider";
 import { TOUCH_GESTURE_CLASS } from "@/lib/touch";
 import { cn } from "@/lib/utils";
@@ -65,13 +65,17 @@ export function RulerSlider({
   // clear interacting underneath an active drag.
   const gesture = useRef(0);
 
-  const ticks = Array.from({ length: wholeSteps + 1 }, (_, i) => ({
-    value: Number((min + i * step).toFixed(6)),
-    major: i % majorEvery === 0,
-    offset: i * gap,
-  }));
+  const ticks = useMemo(() => {
+    const result = Array.from({ length: wholeSteps + 1 }, (_, i) => ({
+      value: Number((min + i * step).toFixed(6)),
+      major: i % majorEvery === 0,
+      offset: i * gap,
+    }));
 
-  if (remainder > 0) ticks.push({ value: max, major: true, offset: maxOffset });
+    if (remainder > 0) result.push({ value: max, major: true, offset: maxOffset });
+
+    return result;
+  }, [wholeSteps, min, step, majorEvery, gap, remainder, max, maxOffset]);
 
   const snapToTick = () => {
     const target = snapSliderValue(min + (-x.get() / gap) * step, min, max, step);
@@ -108,7 +112,8 @@ export function RulerSlider({
   useEffect(() => {
     if (interacting.current) return;
 
-    x.set(-((current - min) / step) * gap);
+    const nextX = -((current - min) / step) * gap;
+    if (x.get() !== nextX) x.set(nextX);
   }, [current, min, step, gap, x]);
 
   useMotionValueEvent(x, "change", (v) => {
@@ -165,7 +170,13 @@ export function RulerSlider({
 
             if (reduce) snapToTick();
           }}
-          style={{ x, marginLeft: -gap / 2, width: maxOffset + gap }}
+          style={{
+            x,
+            marginLeft: -gap / 2,
+            width: maxOffset + gap,
+            willChange: "transform",
+            backfaceVisibility: "hidden",
+          }}
           className="absolute inset-y-0 left-1/2"
         >
           {ticks.map((tick) => (

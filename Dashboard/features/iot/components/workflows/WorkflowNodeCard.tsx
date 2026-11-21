@@ -234,16 +234,17 @@ function WorkflowNodeResizeGrip({
     <button
       type="button"
       tabIndex={-1}
+      data-canvas-resize="true"
       aria-label={`تغییر اندازه ${label}`}
       onPointerDown={(e) => {
         if (e.button === 0) onStartResize(nodeId, e);
       }}
       style={{ touchAction: "none" }}
-      className="group/resize absolute -bottom-1 -left-1 z-30 size-7 cursor-nesw-resize"
+      className="group/resize absolute -bottom-1.5 -left-1.5 z-30 size-9 cursor-nesw-resize sm:-bottom-1 sm:-left-1 sm:size-7"
     >
       <span
         aria-hidden="true"
-        className={`pointer-events-none absolute bottom-[6px] left-[6px] size-3.5 rounded-bl-[10px] border-b-2 border-l-2 transition-colors ${
+        className={`pointer-events-none absolute bottom-[8px] left-[8px] size-3.5 rounded-bl-[10px] border-b-2 border-l-2 transition-colors sm:bottom-[6px] sm:left-[6px] ${
           isSelected ? "border-accent3" : "border-text-muted/45 group-hover/resize:border-accent3"
         }`}
       />
@@ -409,10 +410,12 @@ export default React.memo(function WorkflowNodeCard({
         width: node.width,
         height: node.height,
         zIndex: isDragging ? 950 : isSelected ? 900 : node.zIndex,
+        contain: "layout style",
+        backfaceVisibility: "hidden",
         willChange: isDragging ? "transform" : undefined,
         transition:
           shouldAnimateMotion && !isDragging
-            ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), width 220ms cubic-bezier(0.22, 1, 0.36, 1), height 220ms cubic-bezier(0.22, 1, 0.36, 1)"
+            ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)"
             : undefined,
       }}
       className="absolute top-0 left-0 select-none"
@@ -422,7 +425,7 @@ export default React.memo(function WorkflowNodeCard({
         initial={shouldAnimateMotion ? { opacity: 0, scale: 0.95, y: 6 } : false}
         animate={resolveCanvasNodeMotionState(shouldAnimateMotion, isDragging, 0, 1.018)}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-[border-color,box-shadow] duration-150 ease-out ${borderClass}`}
+        className={`relative flex size-full flex-col rounded-2xl border bg-card-bg-solid text-right transition-colors duration-150 ease-out [backface-visibility:hidden] ${borderClass}`}
       >
         <NodePerimeterSpark
           active={outputSignal}

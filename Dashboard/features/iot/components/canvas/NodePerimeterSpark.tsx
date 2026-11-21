@@ -15,9 +15,18 @@ interface NodePerimeterSparkProps {
   speed?: "flow" | "pulse";
 }
 
+const BORDER_MASK_STYLE: React.CSSProperties = {
+  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+  mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+  WebkitMaskComposite: "xor",
+  maskComposite: "exclude",
+  contain: "strict",
+};
+
 /**
- * Renders a GPU-composited luminous perimeter spark that glides seamlessly around a
- * rounded node's concentric border without affecting layout or pointer events.
+ * Renders a luminous perimeter spark with compositor-friendly conic-gradient layers.
+ * Rotation can be composited by the browser; layer promotion and memory placement remain
+ * browser- and device-managed.
  */
 export default React.memo(function NodePerimeterSpark({
   active,
@@ -30,48 +39,55 @@ export default React.memo(function NodePerimeterSpark({
     return null;
   }
 
-  const dashClass = speed === "pulse" ? "animate-node-spark-fast" : "animate-node-spark";
+  const spinClass = speed === "pulse" ? "animate-node-spark-fast" : "animate-node-spark";
+
+  const haloGradient = `conic-gradient(from 0deg, transparent 0deg 262deg, color-mix(in oklab, ${color} 45%, transparent) 292deg, ${color} 336deg, transparent 360deg)`;
+  const coreGradient = `conic-gradient(from 0deg, transparent 0deg 282deg, color-mix(in oklab, ${color} 65%, white) 334deg, transparent 360deg)`;
 
   return (
-    <svg
+    <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 z-20 size-full overflow-visible"
+      className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
+      style={{
+        borderRadius: radius,
+        contain: "strict",
+      }}
     >
-      {/* Subtle outer halo streak */}
-      <rect
-        x="0"
-        y="0"
-        width="100%"
-        height="100%"
-        rx={radius}
-        ry={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth={3.5}
-        strokeOpacity={0.28}
-        strokeLinecap="round"
-        pathLength={100}
-        strokeDasharray="18 82"
-        className={dashClass}
-      />
+      {/* Outer halo streak masked strictly to the border ring */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-35"
+        style={{
+          ...BORDER_MASK_STYLE,
+          borderRadius: radius,
+          padding: 3.5,
+        }}
+      >
+        <div
+          className={`pointer-events-none absolute top-1/2 left-1/2 aspect-square will-change-transform [backface-visibility:hidden] ${spinClass}`}
+          style={{
+            width: "max(220%, 560px)",
+            backgroundImage: haloGradient,
+          }}
+        />
+      </div>
 
       {/* Crisp bright core comet */}
-      <rect
-        x="0"
-        y="0"
-        width="100%"
-        height="100%"
-        rx={radius}
-        ry={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth={1.75}
-        strokeOpacity={0.95}
-        strokeLinecap="round"
-        pathLength={100}
-        strokeDasharray="14 86"
-        className={dashClass}
-      />
-    </svg>
+      <div
+        className="pointer-events-none absolute inset-0 opacity-95"
+        style={{
+          ...BORDER_MASK_STYLE,
+          borderRadius: radius,
+          padding: 1.75,
+        }}
+      >
+        <div
+          className={`pointer-events-none absolute top-1/2 left-1/2 aspect-square will-change-transform [backface-visibility:hidden] ${spinClass}`}
+          style={{
+            width: "max(220%, 560px)",
+            backgroundImage: coreGradient,
+          }}
+        />
+      </div>
+    </div>
   );
 });

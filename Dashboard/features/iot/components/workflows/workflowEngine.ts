@@ -310,6 +310,14 @@ interface BezierPathGeometry {
   path: string;
   midX: number;
   midY: number;
+  startX: number;
+  startY: number;
+  control1X: number;
+  control1Y: number;
+  control2X: number;
+  control2Y: number;
+  endX: number;
+  endY: number;
 }
 
 export function buildWorkflowBezierPath(
@@ -332,6 +340,14 @@ export function buildWorkflowBezierPath(
     path: `M ${startX} ${startY} C ${cp1X} ${startY}, ${cp2X} ${endY}, ${endX} ${endY}`,
     midX: Math.round((startX + endX) / 2),
     midY: Math.round((startY + endY) / 2),
+    startX,
+    startY,
+    control1X: cp1X,
+    control1Y: startY,
+    control2X: cp2X,
+    control2Y: endY,
+    endX,
+    endY,
   };
 }
 
@@ -340,13 +356,11 @@ export function computeFitWorkflowViewport(
   containerWidth: number,
   containerHeight: number,
 ): WorkflowViewport {
-  const padding =
-    containerWidth < FIT_VIEW_MOBILE_BREAKPOINT
-      ? FIT_VIEW_MOBILE_PADDING
-      : FIT_VIEW_DESKTOP_PADDING;
+  const isMobile = containerWidth < FIT_VIEW_MOBILE_BREAKPOINT;
 
   return computeCenteredFitViewport(nodes, containerWidth, containerHeight, {
-    padding,
+    padding: isMobile ? FIT_VIEW_MOBILE_PADDING : FIT_VIEW_DESKTOP_PADDING,
+    insets: isMobile ? { top: 88, right: 20, bottom: 96, left: 20 } : undefined,
     minBoundsWidth: FIT_VIEW_MIN_BOUNDS_WIDTH,
     minBoundsHeight: FIT_VIEW_MIN_BOUNDS_HEIGHT,
     maxZoom: FIT_VIEW_MAX_ZOOM,

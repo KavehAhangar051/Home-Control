@@ -20,7 +20,8 @@ export default function ActionBuilder({ actions, setActions }: ActionBuilderProp
   );
 
   const controllableSegments = segments.filter(
-    (seg) => seg.type !== "placeholder" && !isReadOnlyInputSegment(seg) && seg.pin.trim().length > 0,
+    (seg) =>
+      seg.type !== "placeholder" && !isReadOnlyInputSegment(seg) && seg.pin.trim().length > 0,
   );
 
   return (

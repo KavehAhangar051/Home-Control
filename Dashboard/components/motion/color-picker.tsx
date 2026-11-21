@@ -34,8 +34,8 @@ import {
   useSyncExternalStore,
 } from "react";
 import { EASE_OUT, SPRING_GLIDE, SPRING_LAYOUT, SPRING_PRESS } from "@/lib/ease";
+import { byteToHex, lookupHsvToRgb } from "@/lib/gpuLut";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
-import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
 import { useMessages } from "@/lib/i18n";
 import { PresenceGate } from "@/lib/presence-gate";
 import { capturePointer, releasePointer, TOUCH_GESTURE_CLASS } from "@/lib/touch";
@@ -60,16 +60,9 @@ const round = (n: number, places = 0) => {
 };
 
 function hsvaToRgba({ h, s, v, a }: Hsva): Rgba {
-  const sat = s / 100;
-  const val = v / 100;
+  const { r, g, b } = lookupHsvToRgb(h, s, v);
 
-  const f = (n: number) => {
-    const k = (n + h / 60) % 6;
-
-    return val - val * sat * Math.max(0, Math.min(k, 4 - k, 1));
-  };
-
-  return { r: Math.round(f(5) * 255), g: Math.round(f(3) * 255), b: Math.round(f(1) * 255), a };
+  return { r, g, b, a };
 }
 
 /** `previous` keeps hue for greys and saturation for black, which RGB cannot carry. */
@@ -111,9 +104,7 @@ function parseHex(input: string): Rgba | null {
 
 /** Lowercase #rrggbb, or #rrggbbaa when the color is translucent. */
 function formatHex({ r, g, b, a }: Rgba): string {
-  const pair = (n: number) => Math.round(n).toString(16).padStart(2, "0");
-
-  return `#${pair(r)}${pair(g)}${pair(b)}${a < 1 ? pair(a * 255) : ""}`;
+  return `#${byteToHex(r)}${byteToHex(g)}${byteToHex(b)}${a < 1 ? byteToHex(a * 255) : ""}`;
 }
 
 function hsvToHsl({ h, s, v }: Hsva) {
@@ -360,22 +351,59 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
   const thumbRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
+  const onPointRef = useRef(onPoint);
   const onEndRef = useRef(onEnd);
+  onPointRef.current = onPoint;
   onEndRef.current = onEnd;
+  const pendingPointRef = useRef<{ x: number; y: number } | null>(null);
+  const lastAppliedPointRef = useRef<{ x: number; y: number } | null>(null);
+  const pointFrameRef = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  const point = (event: PointerEvent<HTMLDivElement>) => {
+  const cancelPendingPoint = () => {
+    if (pointFrameRef.current !== null) {
+      cancelAnimationFrame(pointFrameRef.current);
+      pointFrameRef.current = null;
+    }
+    pendingPointRef.current = null;
+  };
+
+  const applyPoint = (clientX: number, clientY: number) => {
     const rect = railRef.current?.getBoundingClientRect();
 
     if (!rect || rect.width === 0 || rect.height === 0) return;
-    onPoint(
-      clamp((event.clientX - rect.left) / rect.width, 0, 1),
-      clamp((event.clientY - rect.top) / rect.height, 0, 1),
-    );
+
+    const x = clamp((clientX - rect.left) / rect.width, 0, 1);
+    const y = clamp((clientY - rect.top) / rect.height, 0, 1);
+    const previous = lastAppliedPointRef.current;
+    if (previous?.x === x && previous.y === y) return;
+
+    lastAppliedPointRef.current = { x, y };
+    onPointRef.current(x, y);
+  };
+
+  const flushPoint = (clientX: number, clientY: number) => {
+    cancelPendingPoint();
+    applyPoint(clientX, clientY);
+  };
+
+  const queuePoint = (clientX: number, clientY: number) => {
+    pendingPointRef.current = { x: clientX, y: clientY };
+
+    if (pointFrameRef.current !== null) return;
+
+    pointFrameRef.current = requestAnimationFrame(() => {
+      pointFrameRef.current = null;
+      const pending = pendingPointRef.current;
+      pendingPointRef.current = null;
+
+      if (pending) applyPoint(pending.x, pending.y);
+    });
   };
 
   const end = (event: PointerEvent<HTMLDivElement>) => {
     if (!draggingRef.current || activePointerIdRef.current !== event.pointerId) return;
+    cancelPendingPoint();
     activePointerIdRef.current = null;
     draggingRef.current = false;
     releasePointer(event.currentTarget, event.pointerId);
@@ -388,6 +416,7 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
 
     const handleWindowBlur = () => {
       if (!draggingRef.current) return;
+      cancelPendingPoint();
       const pointerId = activePointerIdRef.current;
       activePointerIdRef.current = null;
       draggingRef.current = false;
@@ -403,6 +432,13 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
     return () => window.removeEventListener("blur", handleWindowBlur);
   }, [dragging]);
 
+  useEffect(
+    () => () => {
+      cancelPendingPoint();
+    },
+    [],
+  );
+
   return {
     railRef,
     thumbRef,
@@ -412,15 +448,23 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
         if (disabled || event.button !== 0 || draggingRef.current) return;
         draggingRef.current = true;
         activePointerIdRef.current = event.pointerId;
+        lastAppliedPointRef.current = null;
         setDragging(true);
         capturePointer(event.currentTarget, event.pointerId);
         thumbRef.current?.focus({ preventScroll: true });
-        point(event);
+        flushPoint(event.clientX, event.clientY);
       },
       onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
-        if (draggingRef.current && activePointerIdRef.current === event.pointerId) point(event);
+        if (draggingRef.current && activePointerIdRef.current === event.pointerId) {
+          queuePoint(event.clientX, event.clientY);
+        }
       },
-      onPointerUp: end,
+      onPointerUp: (event: PointerEvent<HTMLDivElement>) => {
+        if (draggingRef.current && activePointerIdRef.current === event.pointerId) {
+          flushPoint(event.clientX, event.clientY);
+        }
+        end(event);
+      },
       onPointerCancel: end,
       onLostPointerCapture: end,
     },
@@ -496,7 +540,10 @@ function Thumb({
   const lifted = dragging && !reduce;
 
   return (
-    <m.div className="pointer-events-none absolute inset-0" style={{ x, y }}>
+    <m.div
+      className="pointer-events-none absolute inset-0"
+      style={{ x, y, willChange: "transform", backfaceVisibility: "hidden" }}
+    >
       <div
         {...props}
         ref={thumbRef}
@@ -511,7 +558,7 @@ function Thumb({
           aria-hidden="true"
           animate={{ scale: lifted ? 0.78 : 1 }}
           transition={SPRING_PRESS}
-          className="block size-full rounded-full border-[3px] border-white shadow-[0_0_0_1px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.25)]"
+          className="block size-full rounded-full border-[3px] border-white shadow-[0_0_0_1px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.25)] [backface-visibility:hidden]"
           style={{ backgroundColor: color }}
         />
         <AnimatePresence>
@@ -519,7 +566,13 @@ function Thumb({
             <m.span
               aria-hidden="true"
               className="pointer-events-none absolute bottom-[calc(100%+12px)] left-1/2 z-10 -ml-5 block size-10"
-              style={{ rotate: tilt, originX: 0.5, originY: 1.3 }}
+              style={{
+                rotate: tilt,
+                originX: 0.5,
+                originY: 1.3,
+                willChange: "transform, opacity",
+                backfaceVisibility: "hidden",
+              }}
               initial={{ opacity: 0, scale: 0.3, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0, transition: LOUPE_LIFT }}
               exit={{ opacity: 0, scale: 0.3, y: 16, transition: LOUPE_DROP }}
@@ -1261,17 +1314,7 @@ export interface ColorPickerTriggerProps extends Omit<ComponentPropsWithRef<"but
  */
 function TriggerLabel({ hex }: { hex: string }) {
   const reduce = useReducedMotion();
-  const isLiteTier = useIsLitePerformanceTier();
-  const skipBlur = reduce || isLiteTier;
   const alpha = hex.slice(7);
-
-  const alphaInitial = skipBlur
-    ? { opacity: 0, x: reduce ? 0 : -4 }
-    : { opacity: 0, x: reduce ? 0 : -4, filter: "blur(3px)" };
-
-  const alphaExit = skipBlur
-    ? { opacity: 0, transition: { duration: 0.12 } }
-    : { opacity: 0, filter: "blur(3px)", transition: { duration: 0.12 } };
 
   return (
     <m.span
@@ -1288,10 +1331,10 @@ function TriggerLabel({ hex }: { hex: string }) {
           {alpha && (
             <m.span
               key="alpha"
-              className="text-muted-foreground"
-              initial={alphaInitial}
-              animate={skipBlur ? { opacity: 1, x: 0 } : { opacity: 1, x: 0, filter: "blur(0px)" }}
-              exit={alphaExit}
+              className="text-muted-foreground will-change-transform"
+              initial={{ opacity: 0, x: reduce ? 0 : -4 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
               transition={SPRING_LAYOUT}
             >
               {alpha}
@@ -1370,11 +1413,6 @@ const PANEL_DELAY = 0.1;
 const PANEL_STAGGER = 0.035;
 
 const PANEL_ITEM = {
-  initial: { opacity: 0, y: -6, filter: "blur(4px)" },
-  animate: { opacity: 1, y: 0, filter: "blur(0px)" },
-};
-
-const PANEL_ITEM_LITE = {
   initial: { opacity: 0, y: -6 },
   animate: { opacity: 1, y: 0 },
 };
@@ -1399,7 +1437,6 @@ export function ColorPickerContent({
 }: ColorPickerContentProps) {
   const { id, t, open, setOpen, triggerRef } = usePickerContext("ColorPickerContent");
   const reduce = useReducedMotion() ?? false;
-  const isLiteTier = useIsLitePerformanceTier();
   const panelRef = useRef<HTMLDivElement>(null);
   const [shiftX, setShiftX] = useState(0);
   const [openUpward, setOpenUpward] = useState(false);
@@ -1551,17 +1588,14 @@ export function ColorPickerContent({
                       if (isValidElement(child) && child.type === ColorPickerArea) return child;
                       row += 1;
 
-                      const item = reduce
-                        ? PANEL_ITEM_REDUCED
-                        : isLiteTier
-                          ? PANEL_ITEM_LITE
-                          : PANEL_ITEM;
+                      const item = reduce ? PANEL_ITEM_REDUCED : PANEL_ITEM;
 
                       return (
                         <m.div
                           initial={item.initial}
                           animate={item.animate}
                           exit={PANEL_ITEM_EXIT}
+                          style={{ willChange: "transform, opacity" }}
                           transition={{
                             ...SPRING_LAYOUT,
                             delay: PANEL_DELAY + row * PANEL_STAGGER,

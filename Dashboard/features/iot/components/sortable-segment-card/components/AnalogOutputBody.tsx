@@ -144,7 +144,7 @@ function AnalogOutputBody({
     : "bg-secondary text-text-secondary border border-border-color";
 
   const statusDotClass = isPending
-    ? "bg-accent3 animate-pulse"
+    ? "bg-accent3 animate-pulse transform-gpu"
     : effectiveOn
       ? "bg-success"
       : "bg-text-muted opacity-45";
@@ -165,7 +165,7 @@ function AnalogOutputBody({
           onClick={onTogglePower}
           aria-pressed={effectiveOn}
           aria-label={`${segment.title} - ${effectiveOn ? "خاموش کردن" : "روشن کردن"}`}
-          className={`flex items-center justify-center rounded-lg transition-[background-color,color,transform,box-shadow] duration-150 active:scale-[0.95] cursor-pointer shrink-0 ${density.badge} ${badgeTone}`}
+          className={`flex items-center justify-center rounded-lg transition-[background-color,color,transform] duration-150 active:scale-[0.95] cursor-pointer shrink-0 ${density.badge} ${badgeTone}`}
         >
           {showEmojiIcon ? (
             <span className="text-sm leading-none flex items-center justify-center size-5">

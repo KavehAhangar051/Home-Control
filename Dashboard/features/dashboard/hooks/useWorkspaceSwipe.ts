@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef } from "react";
 
 export interface TouchPoint {
   x: number;
@@ -47,28 +47,33 @@ export function useWorkspaceSwipe(
   setSelectedGroupFilter: (val: string | null) => void,
   groupsOrder: string[],
 ) {
-  const [touchStart, setTouchStart] = useState<TouchPoint | null>(null);
-  const [touchEnd, setTouchEnd] = useState<TouchPoint | null>(null);
+  const touchStart = useRef<TouchPoint | null>(null);
+  const touchEnd = useRef<TouchPoint | null>(null);
 
   const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart({
+    touchEnd.current = null;
+    touchStart.current = {
       x: e.targetTouches[0].clientX,
       y: e.targetTouches[0].clientY,
-    });
+    };
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd({
-      x: e.targetTouches[0].clientX,
-      y: e.targetTouches[0].clientY,
-    });
+    const touch = e.targetTouches[0];
+    const point = touchEnd.current;
+
+    if (point) {
+      point.x = touch.clientX;
+      point.y = touch.clientY;
+    } else {
+      touchEnd.current = { x: touch.clientX, y: touch.clientY };
+    }
   };
 
   const onTouchEnd = () => {
     const nextFilter = resolveSwipeGroupFilter({
-      touchStart,
-      touchEnd,
+      touchStart: touchStart.current,
+      touchEnd: touchEnd.current,
       selectedGroupFilter,
       groupsOrder,
     });

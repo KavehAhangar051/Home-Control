@@ -40,7 +40,7 @@ app/
 components/
   MasterHeader.tsx       Desktop right-rail header/layout dispatcher
   MasterHeader/          Desktop header & shared theme/voice/clock subcomponents
-  motion/                Shared Motion primitives (`dock.tsx`, `expandable-tabs.tsx`, `expandable-tabs-layout.ts`)
+  motion/                Shared Motion primitives (`dock.tsx`, `expandable-tabs.tsx`, `expandable-tabs-layout.ts`, `composited-bezier-particle.tsx`)
   AudioInitializer.tsx   Audio initialization integration
 features/
   dashboard/
@@ -57,6 +57,9 @@ features/
     components/          Settings sections and controls
 lib/
   audio/                 Audio managers and UI sound effects
+  gpuLut.ts              Precomputed typed-array LUTs (color/gamma/palette/HSV/wave/easing/physics/Bezier)
+  gpuDisplay.ts          Native display DPR, refresh-rate probe, device-pixel snapping & WebGL2 3D LUT VRAM helper
+  hooks/use-gpu-display.ts Root observer syncing native display resolution, DPR, FPS, and GPU backend attributes
   presets.ts             Shared presets/configuration values
 public/                  Static assets served by the frontend
 docs/                    Protocol, configuration, dimensional drawings (`docs/dimensional-drawings/`), and reference docs
@@ -239,9 +242,11 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 
 ## 15. 60 FPS rendering, adaptive tiering, and animation quality
 
-- The dashboard targets stable 60 FPS on 60 Hz devices and scales cleanly to higher refresh rates (`90/120/144 Hz`) without an artificial FPS cap.
+- The dashboard renders at native display resolution (`devicePixelRatio` sub-pixel snapping) and scales cleanly to native refresh rates (`60/90/120/144/165/240/360 Hz`) without an artificial FPS cap.
+- `lib/gpuDisplay.ts` & `lib/hooks/use-gpu-display.ts` (`useGpuDisplayObserver`, mounted in `DashboardContainer`) measure native display resolution, DPR, GPU backend (`webgpu`/`webgl2`/`webgl`/`2d`), and display refresh rate via a one-shot 14-frame `requestAnimationFrame` probe (zero idle CPU) and expose `--display-dpr`, `--display-fps`, `--display-pixel`, and `data-display-*` / `data-gpu-backend` on `document.documentElement`.
+- `lib/gpuLut.ts` centralizes precomputed typed-array Lookup Tables (sRGB gamma/luminance, hex bytes, dark/light theme palettes, HSV→RGB, Gaussian wave crests, cubic easing, frame-rate-independent zoom/inertia/cursor physics decay, and cubic Bezier Bernstein basis) used by `themeStyles.ts`, `color-picker.tsx`, `range-slider-wave.tsx`, `sheetViewportAnimator.ts`, `use-cursor-listeners.ts`, and `composited-bezier-particle.tsx`.
 - `lib/performanceTier.ts` (`usePerformanceTierObserver`) maps explicit user Settings (`animationsEnabled === false` or `animationsFps <= 30`) directly to `html[data-perf-tier="full" | "lite"]` with **zero continuous background rAF polling** and **no silent hardware-based quality downgrade**. All animations, blur/backdrop-blur effects, springs, transforms, and View Transitions remain 100% active on every device unless the user explicitly opts into reduced animations or `30 FPS` in Settings → پایداری.
-- Hidden tabs (`html[data-page-hidden="true"]` from `usePageVisibility`) pause infinite CSS keyframes, `ThemeToggle` avoids forced `document.body.offsetHeight` synchronous reflows, and offscreen Grid group containers use `content-visibility: auto`.
+- Hidden tabs (`html[data-page-hidden="true"]` from `usePageVisibility`) pause infinite CSS keyframes (including `.animate-ping`/`.animate-spin`) and active `CompositedBezierParticle` Web Animations through one shared visibility listener. `components/motion/composited-bezier-particle.tsx` pre-samples cubic Bezier geometry via the `BEZIER_BASIS_LUT` with keyframe caching and animates equal-distance `translate3d`/opacity keyframes on GPU compositor layers (`will-change: transform, opacity`, `backface-visibility: hidden`). `ThemeToggle` View Transitions, `app/globals.css` keyframes, canvas world/grid/node layers, sliders, loaders (`loader.tsx`, `loader-shapes.tsx`), and isolated collapse containers (`contain: layout style`) promote active motion onto 3D compositor surfaces (`translate3d`/`scale3d`/`rotate3d`, `backface-visibility: hidden`) and avoid CPU `width`/`height`/`box-shadow` transitions on interactive cards/nodes.
 - Preserve the current async `LazyMotion` + `domMax` setup because all 134 Motion calls already import lightweight `m.*` rather than monolithic `motion`, and the broad `motion/react-m` migration increased homepage bundle size in Next.js 16.4.6/Turbopack.
 - Follow `docs/performance/60-FPS-STRATEGY.md` for profiling scenarios and acceptance criteria. Record real browser measurements alongside Turbopack snapshots whenever runtime claims are updated.
 
@@ -303,16 +308,19 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
   - Prefer **`bun run r -- <cmd>`** (or `bash ./tools/r <cmd>`) so execution succeeds even if `+x` bits reset. `agent-bridge.py` unwraps `bun run {typecheck,lint,format,lint:ox,test,build,check}` into native `rtk` filters (`rtk tsc`, `rtk err bunx biome/oxlint`, `rtk test`, `rtk next`, avoiding `rtk:passthrough` `0`-token gaps and keeping `cbm` unwrapped), emits Claude-format events/transcripts to `te-hook --host claude`, auto-folds stale sessions (`>60s` on explicit `start` or `>=600s` idle), and runs `te fold` on `end`.
   - Run **`bun run tools:check`** for a single-command health, permission, symlink, and index check across `rtk`, `TokenEconomizer`, and `codebase-memory-mcp`. Note: `te status`'s `effective tokens` metric requires LLM API usage blocks from a native host CLI transcript and stays `0` in AI Studio's sandbox, while `rtk gain` tracks exact CLI output token savings.
 
-## 20. Canvas Sheet Kinetic & Spatial Motion + 60 FPS Compositor Pipeline (`sheetViewportAnimator.ts`, 19 November 2026)
+- **Empty zoom-readout cache fast path (`sheetViewportAnimator.ts`):** when the gesture hook has already primed an empty readout cache, per-frame viewport updates skip document-wide badge discovery. A `null` cache still allows the initial discovery fallback; non-empty cached elements retain the existing text update behavior. This reduces avoidable main-thread DOM queries without changing camera or grid rendering.
+## 20. Canvas Sheet Kinetic & Spatial Motion + 60 FPS Compositor Pipeline (`sheetViewportAnimator.ts`, 20 November 2026)
 
-- **Zero-Re-Render Compositor Viewport Physics (`features/iot/components/canvas/sheetViewportAnimator.ts` & `useSheetViewportGestures.ts`):**
-  - Both `CanvasWorkspace` (`free` and `graph` modes) and `WorkflowStudio` share a single 60 FPS `requestAnimationFrame` viewport physics engine (`createSheetViewportAnimator` + `applyViewportToDom`) that respects `areSheetAnimationsAllowed()` (`animationsEnabled` and `prefers-reduced-motion`).
-  - **Direct GPU Layer Updates (`worldPlaneRef` & `applyViewportToDom`):** During active panning, momentum inertia coasting, 2-finger pinch-to-zoom, smooth wheel/button focal zoom, and camera flight, transient viewport updates (`x, y, zoom`) mutate `worldPlaneRef.current.style.transform` (`will-change: transform`, `backface-visibility: hidden`), `containerRef.current.style.backgroundSize/backgroundPosition`, and `[data-sheet-zoom-readout="true"]` text directly on the DOM in `< 0.05ms` with **zero React re-renders per frame**, committing to React state and `localStorage` once when the gesture or animation settles.
-  - **Effortless Panning + Momentum Inertia Coasting:** Users can pan by dragging on empty sheet background with **Left-Click** (after a `3.5px` movement threshold so simple background clicks still clear selection), **Middle-Click**, **Right-Click**, or **single-finger Touch**. Pointer velocity is tracked with an exponential moving average (`vx`, `vy` in px/ms); releasing a pan gesture with sufficient speed launches smooth friction-decayed momentum coasting (`0.915` per 16.67ms frame).
-  - **Smooth Exponential Spring Focal Zoom (`queueSmoothFocalZoom`) & Camera Flight (`animateToViewport`):** Mouse-wheel zooming and toolbar `+`/`-` zoom controls accumulate into a continuous target scale anchored at the cursor or viewport center and interpolate via frame-rate-independent exponential decay (`1 - 0.001 ** (dt / 170)`). `Fit View`, `Reset Layout` (`handleResetLayout`), and `Pan to Node` (`handlePanToWorldPoint`) fly the camera over `260ms` with a cubic-out curve (`1 - (1 - t)^3`).
-  - **Non-Inherited Velocity-Driven Card Tilt & Inertial Parallax (`nodeMotion.ts`):** Instead of mutating inherited CSS custom properties on the root container (which would trigger browser `Recalculate Style` across 1,000+ inner DOM elements and restart CSS transitions every 16ms), `primeSheetPanMotionNodes` caches the `[data-canvas-node-motion="true"]` card wrappers once at gesture start and `setSheetPanMotionCssVars` exponentially smooths and writes non-inherited `el.style.rotate` (`±1.5deg`) and `el.style.translate` (`±4.5px`) directly onto the card motion layers.
-  - **Per-Node & Per-Wire Render Isolation During Drag/Resize:** `CanvasWireItem` memoizes on `sourceRect` and `targetRect` rather than the whole `nodes` map; `TrellisSegmentTile` and `CanvasChromeBar` are wrapped in `React.memo`; `useCanvasNodeInteractions` and `useWorkflowInteractions` skip no-op z-index updates, synchronous `localStorage` writes on `pointerdown`, and unchanged snapped coordinates during drag/resize while disabling outer `transform/width/height` transitions during active pointer resize; and `useWorkflowInteractions` / `useWorkflowHistoryAndClipboard` stabilize callbacks via `activeWorkflowRef` so non-dragged `WorkflowNodeCard` components never re-render.
-  - **Mobile-Optimized `CanvasChromeBar` Capsule (`< md`):** On mobile viewports (where `#dashboard-footer-center` is unmounted and pinch-to-zoom is native), `CanvasChromeBar` renders as a compact floating pill (`rounded-full`) showing only the sub-mode switcher (`گروه‌ها` | `قطعات`), `Fit View` (`Maximize`), and `Lock/Unlock` (`Lock`/`Unlock`), hiding desktop-only controls (`-`, `zoom %`, `+`, `Snap to Grid`, and `Auto-Reset Layout`) so the top of the sheet stays uncluttered and immune to accidental layout resets.
+- **Unified Multi-Touch Pointer/Pinch State Machine (`useSheetViewportGestures.ts`):**
+  - Both `CanvasWorkspace` and `WorkflowStudio` use a single mutually-exclusive pointer-ID-locked state machine (`idle` | `pan` | `scroll-child` | `pinch`) driven by capture-phase `touch` pointer tracking + `window` pointer listeners, completely eliminating the pre-pinch stale-coordinate jump when transitioning `1 ↔ 2` fingers (`2 → 1` finger release re-anchors `pan` cleanly to `viewportRef.current` with a `150ms` / `28px` post-pinch inertia guard).
+  - Single-finger touch inside overflowing `[data-canvas-scroll-area="true"]` containers (`CanvasGroupBody`) smoothly delegates vertical scroll (suppressing accidental button clicks after `6px`), while `2`-finger touch anywhere on the sheet—including over cards or buttons—immediately transitions into focal pinch-to-zoom (`clampCanvasZoom` `0.001` precision).
+  - Node drag/resize (`useCanvasNodeInteractions.ts`, `useWorkflowInteractions.ts`) filter strictly by `pointerId`, apply a `4.5px` touch drag threshold in Canvas, and abort cleanly on multi-touch pinch or `blur`.
+- **Zero-Repaint GPU Compositor Pipeline (`sheetViewportAnimator.ts`, `canvasGeometry.ts`, `nodeMotion.ts`):**
+  - Instead of mutating `backgroundSize` / `backgroundPosition` on the full-viewport container every frame or mutating `rotate`/`translate` across dozens of inner node layers during sheet pan/inertia, `applyViewportToDom` updates `worldPlaneRef.style.transform` (`translate3d(...) scale(...)`), translates a dedicated oversized `gridLayerRef` (`getCanvasGridTransform`, `inset: -48px`) via `translate3d(...)` (updating `backgroundSize` only when `visualStep` changes), and updates cached `[data-sheet-zoom-readout="true"]` badges with zero React re-renders.
+  - `CanvasGroupNode`, `CanvasSegmentNode`, and `WorkflowNodeCard` apply `contain: layout style`, use frozen static motion target objects in `resolveCanvasNodeMotionState`, `CanvasChromeBar` and `WorkflowFooterControls` avoid full-pass `backdrop-blur` over moving canvases, and `CanvasWiresLayer` uses a single particle `<animateMotion>` circle per active wire.
+- **Mobile & Tablet Responsive Ergonomics (`canvasGeometry.ts`, `useCanvasController.ts`, `CanvasChromeBar.tsx`, `CanvasResizeHandles.tsx`):**
+  - `buildDefaultCanvasNodes` calibrates node/column sizing across `"mobile"` (`< 640px`), `"tablet"` (`640px–1023px`), and `"desktop"` (`>= 1024px`) tiers (`resolveCanvasViewportTier`), while `computeFitCanvasViewport` and `computeFitWorkflowViewport` accept asymmetric `insets` so fitted nodes center inside the unobstructed viewport between the top chrome bar and bottom `MobileDockNav`.
+  - On `< md` viewports (`!footerSlot`), `CanvasChromeBar` provides `32px+` top capsule controls (`گروه‌ها` | `قطعات`, `Fit`, `Lock`, `Reset Layout`) plus a dedicated one-handed thumb zoom capsule (`+`, live `%` tap-to-fit readout, `-`) anchored above `MobileDockNav`, and `CanvasResizeHandles` / `WorkflowNodeResizeGrip` enlarge corner touch hit areas (`size-9 sm:size-7`, tagged `data-canvas-resize="true"`).
 
 ## 21. ESP32 Analog Output (`analog_output` / LEDC PWM) Support (19 November 2026)
 
@@ -416,3 +424,96 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 
 - **Monochrome architectural spec sheets (`docs/dimensional-drawings/`):** Added self-contained Apple-style monochrome dimensional drawings measured directly from source components (`index.html`, `segment-card-sheet.html` / `UI-SEG-001`, `mobile-dock-sheet.html` / `UI-DOCK-001`, and `group-bezel-sheet.html` / `UI-GRP-001`), using variable-based dimensions, closed formulas, RTL slot architecture, exploded axonometric layer stacks, concentric corner details, and viewport/container-query schematics.
 - **Concentric corner radius precision (`app/globals.css`, `SortableGroup.tsx`, `GroupHeader.tsx`, `CardFooter.tsx`):** Aligned `.bezel-core` and group inner card corners to exact concentric geometry (`calc(1.25rem - 1px - 0.375rem)` = `13px`, satisfying `R2 = R1 − B − S6 = 20 − 1 − 6`), and aligned `SwitchModeTrack` thumb radii to exact concentric geometry (`rounded-[4px]` standard = `7 − 1 − 2`, `rounded-[3px]` small = `6 − 1 − 2`).
+
+## 28. Dashboard-Wide Compositor-Oriented Rendering Optimizations (20 November 2026)
+
+> **Terminology and verification:** These changes favor compositor-friendly properties and reduce recurring layout/paint work. CSS `will-change`, `transform-gpu`, `translateZ(0)`, and WAAPI do not force a specific physical GPU, guarantee compositor promotion, or prove that backing surfaces reside in dedicated VRAM. The browser, OS, and driver choose the rendering path. Treat every item below as a source-level optimization candidate until verified in a browser trace on the target device.
+
+- **Per-frame SVG Path Work Removal (`app/globals.css`, `NodePerimeterSpark.tsx`, `CanvasWiresLayer.tsx`, `WorkflowWiresSvg.tsx`):** Workflow draft connections also share one per-frame Bezier geometry object between the visible draft path and the optional magnetic signal particle. `WorkflowWiresSvg` also memoizes each edge's port-anchor/Bezier geometry and shares it between `WorkflowEdgeItem` and its active signal particles, avoiding duplicate path calculation and string allocation. `CanvasWiresLayer` memoizes Bezier geometry once per connection and shares the result between static wire SVG and its optional signal particles, avoiding duplicate endpoint/control-point math and path-string allocation when inputs are stable. Paired signal particles now share one WeakMap-cached transform/opacity keyframe array per curve object, avoiding duplicate Bezier sampling and string/keyframe allocation while retaining separate WAAPI timelines.
+  - Replaced continuously repainted SVG perimeter/wire paths and SMIL `<animateMotion>` path-position evaluation with:
+    1. Masked concentric conic-gradient layers in `NodePerimeterSpark.tsx`, animated with compositor-friendly `transform` rotation. The browser still performs initial paint/rasterization and layer composition; this avoids repeated SVG path painting, not all CPU work.
+    2. Static cached Bezier `<svg>` rails paired with `CompositedBezierParticle`: Bezier geometry is sampled when endpoints change, then Web Animations API keyframes animate only `translate3d` and `opacity`. These are compositor candidates; actual layer promotion is browser-dependent. The shared component pauses when the document is hidden and respects reduced-motion.
+- **Compositor layer budget:** Keep `will-change` and GPU-promotion hints scoped to actively animated elements. Do not blanket-promote dashboard layers; graphics memory and compositor bookkeeping are finite, and excess layers can regress performance. Use DevTools paint flashing and Performance tracks to verify each candidate.
+- **Workflow Edge Hover Compositing Candidate (`WorkflowEdgeItem.tsx`):** Main Bezier strokes and endpoint rings retain stable colors during hover. Destructive hover styling is cross-faded through opacity overlays instead of animating SVG `stroke`/`stroke-opacity`. This is a compositor-friendly candidate, not a guarantee of GPU-only SVG rendering; browser layer promotion must be profiled.
+- **Zero Per-Frame Layout Reflow & Clip-Path Paint in Sliders & Loaders (`range-slider-fluid.tsx`, `range-slider-bubble.tsx`, `range-slider-wave.tsx`, `range-slider.tsx`, `range-slider-inline.tsx`, `range-slider-ruler.tsx`, `loader-shapes.tsx`):**
+  - `FluidSlider` replaces per-frame `clipPath: inset(...)` painting with `ResizeObserver`-measured pixel `fillX` sliding and exact `-fillX` label counter-translation (`willChange: "transform"`), preserving glyph-for-glyph text inversion and rounded liquid caps while making the animated fill compositor-friendly.
+  - `BubbleSlider` replaces CSS `width` and `left` layout animations with `origin-left scaleX` fill and transform-based thumb/bubble translations.
+  - `WaveSlider` replaces `32` concurrent JS Motion spring instances with `scaleY(...) translateZ(0)` CSS transitions (`will-change-transform`) and staggered delays; actual compositor execution is browser-dependent.
+  - `RangeSlider`, `InlineSlider`, `RulerSlider`, and `Percent` loader use fills/strips/bars (`scaleX` / `translate3d`) as compositor-oriented animations; no dedicated-VRAM allocation is guaranteed.
+- **Blur Pass & Software Transition Cleanup (`expandable-tabs.tsx`, `dock.tsx`, `action-swap-variants.ts`, `action-swap.tsx`, `color-picker.tsx`, `theme-toggle-config.ts`, `AnalogInputBody.tsx`, `AnalogOutputBody.tsx`, `CardFooter.tsx`, `SegmentControls.tsx`, `SegmentSettingsMenu.tsx`, `GroupSettingsMenu.tsx`, `WorkflowPalettePanel.tsx`, `WorkflowHeaderBar.tsx`, `WorkflowStudio.tsx`, `WorkflowNodePorts.tsx`, `AudioTrackInfo.tsx`, `VoiceTranscriptOverlay.tsx`, `MacroSidebar/index.tsx`, `button-variants.ts`, `cursor-svg.tsx`):**
+  - Eliminated offscreen nested/character `filter: blur(...)` texture reallocations in `ExpandableTabs`, `ActionSwap`, and `ColorPicker`, dead `backdrop-blur-xl`/`backdrop-blur-md` passes on opaque `bg-card-bg-solid` menus and moving Workflow canvas chrome, `AnalogInputBody` telemetry `width` reflows (`scaleX translateZ(0)`), and `transition-all`/`box-shadow` transitions, while applying scoped compositing hints (`will-change`, `transform-gpu`, `backface-visibility: hidden`) to active dots, thumbs, cursor layers, and ViewTransition textures.
+  - The stationary `Dock` shell no longer forces an additional `transform-gpu` promotion; only its moving active pill retains a scoped transform hint. The existing backdrop filter may still require browser-managed compositing/raster resources, and the dock surface styling is unchanged.
+  - In the `"lite"` tier, the `circle-blur` theme transition switches to the non-blurred circle reveal and overrides the injected `will-change: clip-path, filter` with `will-change: clip-path` plus `filter: none`, avoiding an unnecessary filter promotion while retaining the circular reveal.
+
+## 9. Android APK build
+
+The Android shell uses Capacitor 8.6.2 and packages the existing static Next.js export; it does not duplicate the React UI or change the MQTT/WebSocket application services.
+
+- `capacitor.config.json` declares the native application ID/name and points `webDir` to `out`.
+- `bun run android:prepare` installs the pinned Capacitor 8 packages without changing `package.json` or `bun.lock`, then generates the Android platform if it is not present.
+- `bun run android:apk` runs the production static export, synchronizes Capacitor assets, and invokes Gradle `assembleDebug`.
+- `android/app/build/outputs/apk/debug/app-debug.apk` is the installable debug artifact.
+- `.github/workflows/android-apk.yml` builds on GitHub-hosted Ubuntu and uploads the APK as a workflow artifact. The workflow uses Node.js 22, Java 21, and Android SDK API 36. Google's Android CLI installs Platform Tools, Android Platform 36, and Build Tools 36.0.0 via `android sdk install`, avoiding the deprecated `sdkmanager` interface. GitHub Actions use Node 24-compatible major versions (`checkout@v7`, `setup-node@v7`, `setup-java@v6`, `upload-artifact@v6`).
+
+This is an APK-only development pipeline. It intentionally excludes AAB, release signing, Google Play, OTA updates, and GitHub Releases. The generated Android project is created during preparation/CI rather than committed in this initial APK-only bootstrap. The first successful CI build and real-device validation are still required before claiming native runtime compatibility.
+
+
+## 10. Android APK distribution
+
+- The `Android APK` workflow runs on pushes to `main` and manual dispatch, builds only `app-debug.apk`, and retains the Actions artifact for 30 days.
+- After artifact upload, the workflow creates a GitHub **pre-release** and attaches the same APK. It uses the built-in GitHub CLI and the workflow token with `contents: write`; no third-party release action is required.
+- Release tags and Actions artifact names include both `<run-number>` and `<run-attempt>`. Including the attempt number keeps reruns of the same workflow run from colliding with an existing tag, release, or artifact. Pre-releases are explicitly excluded from the repository's Latest release.
+- The attached file is an **unsigned debug APK** for development and manual device validation. A GitHub Release does not make it a production-signed APK; release signing remains out of scope until separately approved.
+- GitHub Packages is not used because this deliverable is a downloadable APK asset, not a package-registry artifact.
+
+
+## 29. WebGL 2 3D LUT rendering foundation (20 November 2026)
+
+- `lib/gpu/lut3d.ts` parses bounded standard 3D `.cube` LUT files (2–64 edge length), validates the domain and entry count, and creates identity LUTs.
+- `lib/gpu/webgl2-lut-renderer.ts` owns a WebGL 2 context, uploads the source image and a `TEXTURE_3D` LUT, and applies color grading in a fragment shader using a fullscreen triangle. It uses immutable RGBA16F LUT storage populated from Float32 values, linear filtering, no mipmaps, no GPU-to-CPU readback, and explicit resource disposal. Shader initialization is asynchronous: when `KHR_parallel_shader_compile` is supported, program completion is polled without a premature blocking status query; browsers without it use the synchronous compatibility path.
+- `components/gpu/GpuLutImage.tsx` is an opt-in image surface. It lazily creates the context near the viewport, redraws on content/size changes rather than running a permanent frame loop, sizes its backing buffer from the device DPR subject to the WebGL viewport/renderbuffer limits and a 4096-pixel maximum edge, and keeps the original image as a fallback when hardware WebGL 2 is unavailable or the context is lost.
+- The component is intentionally not mounted globally. Apply LUT grading only to non-semantic decorative imagery; do not recolor live device states, warning colors, controls, text, charts, or theme tokens.
+- This is a source-level foundation, not a measured production integration. Browser/OS policy still selects the physical GPU, and runtime GPU memory, context count, shader output, and visual quality must be profiled before wider adoption. See `docs/performance/GPU-RENDERING.md`.
+
+
+- **Exact identity-LUT bypass (`lib/gpu/lut3d.ts`, `components/gpu/GpuLutImage.tsx`):** `isIdentityLut()` recognizes an exact Float32 identity grid and standard domain. `GpuLutImage` keeps the original browser image visible and skips WebGL context/resource allocation for identity LUTs or non-positive intensity; a live transition back to identity disposes its renderer and hides the overlay. Creative LUTs continue through the existing WebGL2 shader. This is a no-op fast path, not a global LUT filter or a claim that browser image decode/DOM work uses VRAM exclusively.
+
+
+### Demand-driven LUT redraw scheduling (20 November 2026)
+
+`components/gpu/GpuLutImage.tsx` coalesces image, resize, device-pixel-ratio, visibility, and LUT-state redraw requests into a single animation-frame callback. The callback is cancelled on unmount. This keeps the WebGL2 LUT surface demand-driven without adding a continuous render loop or changing shader output, image fit, transition, or fallback behavior. This is a source-level scheduling optimization; it does not guarantee GPU-only execution, dedicated VRAM placement, or a measured FPS improvement.
+
+
+### Wave slider compositor-layer lifetime (20 November 2026)
+
+`components/motion/range-slider-wave.tsx` animates each bar using CSS `transform: scaleY(...)` transitions. The bars no longer carry permanent `will-change`, `backface-visibility`, or `translateZ(0)` promotion hints; the browser may promote them while transitions are active instead of being asked to retain 32 decorative layers while idle. Bar count, geometry, easing, stagger, reduced-motion behavior, and interaction remain unchanged. This is a source-level GPU-layer memory hygiene measure, not a measured VRAM/FPS gain; actual promotion is browser-dependent.
+
+
+### Newton loader compositor hints (20 November 2026)
+
+`components/motion/loader-shapes.tsx` applies `will-change: transform` only to the two Newton balls that actually animate, and only when normal motion is enabled. The three stationary balls and reduced-motion rendering do not request transform layers. The loader's five-ball geometry, animation timing, and visible behavior remain unchanged. This is a layer-allocation hint cleanup, not a measured GPU-memory or frame-rate result.
+
+
+### Helix loader reduced-motion compositor hints (20 November 2026)
+
+`components/motion/loader-shapes.tsx` applies `will-change: transform` to Helix particles only in normal-motion mode, where their `x` and `scale` values animate. Reduced-motion mode animates opacity only and no longer requests transform layers for those particles. Particle count, layout, timing, and both motion modes' visible behavior remain unchanged. This is a rendering-hint cleanup, not a measured GPU-memory or frame-rate result.
+
+
+### Comet and Bubble Slider layer-hint policy (20 November 2026)
+
+`components/motion/loader-shapes.tsx` applies the Comet wrapper's transform-layer hint only when normal-motion rotation is active; reduced-motion mode animates opacity only. `components/motion/range-slider-bubble.tsx` no longer forces a separate transform layer on the inner thumb: horizontal movement remains on its parent Motion transform, and the thumb scale interaction remains unchanged. These changes reduce explicit layer requests without changing visuals or interaction; they are not measured GPU-memory/FPS claims.
+
+
+### Workspace swipe transient state (20 November 2026)
+
+`features/dashboard/hooks/useWorkspaceSwipe.ts` keeps touch-start and touch-move coordinates in refs rather than component state. Frequent touch-move events no longer trigger React renders merely to store pointer coordinates; swipe classification and selected-group updates still occur on touch end using the same thresholds and ordering. This is a main-thread React-work reduction, not a GPU operation or a visual change.
+
+
+### Color Picker drag frame scheduling (20 November 2026)
+
+`components/motion/color-picker.tsx` coalesces shared drag-hook pointer coordinates into one `requestAnimationFrame` update. Pointer-down is applied immediately; pointer-up flushes the final coordinates before commit. Pointer cancellation, lost pointer capture, window blur, and unmount cancel pending work. This limits redundant React context updates during high-frequency pointer input while preserving coordinate mapping and visible color behavior. It is a main-thread scheduling optimization, not a GPU-rendering change or a measured performance result.
+
+
+### Shared slider pointer-frame scheduling (20 November 2026)
+
+`lib/hooks/use-slider.ts` coalesces active pointer X coordinates and runs the shared value update at most once per animation frame. Pointer-down is still immediate, pointer-up flushes the final coordinate before the existing commit callback, and cancellation/blur/lost capture/unmount clear pending work. The change covers the Range, Fluid, and Bubble sliders that use this hook; it preserves step snapping, keyboard input, controlled/uncontrolled behavior, and the existing visual motion. This is a main-thread update-scheduling optimization, not GPU execution or a measured performance result.

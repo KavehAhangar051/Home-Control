@@ -59,6 +59,7 @@ function WarningBannerCard({
             }
       }
       className="w-full overflow-hidden"
+      style={{ contain: "layout style", backfaceVisibility: "hidden" }}
     >
       <Alert dir="rtl" variant="warning" className={ALERT_LAYOUT}>
         {icon}

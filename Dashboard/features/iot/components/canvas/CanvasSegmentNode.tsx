@@ -319,10 +319,12 @@ export default React.memo(function CanvasSegmentNode({
         width: rect.width,
         height: rect.height,
         zIndex,
+        contain: "layout style",
+        backfaceVisibility: "hidden",
         willChange: isDragging ? "transform" : undefined,
         transition:
           animationsEnabled && !isDragging
-            ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), width 220ms cubic-bezier(0.22, 1, 0.36, 1), height 220ms cubic-bezier(0.22, 1, 0.36, 1)"
+            ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)"
             : undefined,
       }}
       className="absolute top-0 left-0 flex flex-col select-none"
@@ -332,7 +334,7 @@ export default React.memo(function CanvasSegmentNode({
         initial={animationsEnabled ? { opacity: 0, scale: 0.94, y: 8 } : false}
         animate={animateState}
         transition={isDragging ? SPRING_MOUSE : SPRING_PANEL}
-        className="relative size-full"
+        className="relative size-full [backface-visibility:hidden]"
       >
         {showPort && (
           <CanvasSegmentGraphOverlay
@@ -342,7 +344,7 @@ export default React.memo(function CanvasSegmentNode({
         )}
 
         <Card
-          className={`@container/segment relative flex size-full flex-col justify-between !gap-0 !overflow-visible !rounded-2xl !bg-card-bg-solid !p-0 !ring-0 border transition-[border-color,box-shadow] duration-150 ${surfaceBorderClass}`}
+          className={`@container/segment relative flex size-full flex-col justify-between !gap-0 !overflow-visible !rounded-2xl !bg-card-bg-solid !p-0 !ring-0 border transition-colors duration-150 ${surfaceBorderClass}`}
           style={CARD_SPACING_STYLE}
         >
           <CanvasSegmentHeader

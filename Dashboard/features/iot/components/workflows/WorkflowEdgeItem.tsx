@@ -4,22 +4,19 @@ import { Scissors, X } from "lucide-react";
 import { m } from "motion/react";
 import React from "react";
 import { SPRING_BOUNCE } from "@/lib/ease";
-import { useIsLitePerformanceTier } from "@/lib/hooks/use-performance-tier";
 import type { ConnectingWireDraft } from "./useWorkflowStudio";
-import { buildWorkflowBezierPath, getPortAnchor } from "./workflowEngine";
-import type { WorkflowEdge, WorkflowNode } from "./workflowTypes";
+import { buildWorkflowBezierPath } from "./workflowEngine";
+import type { WorkflowEdge } from "./workflowTypes";
 
 interface WorkflowEdgeItemProps {
   edge: WorkflowEdge;
-  source: WorkflowNode;
-  target: WorkflowNode;
-  resolvedPortIdx: number;
-  totalInPorts: number;
+  geometry: ReturnType<typeof buildWorkflowBezierPath>;
   isActive: boolean;
   isSelected: boolean;
   animationsEnabled: boolean;
   onSelectEdge: (edgeId: string | null) => void;
   onDeleteEdge: (edgeId: string) => void;
+  onHoverEdge: (edgeId: string | null) => void;
 }
 
 function resolveEdgeStrokeColor(isSelected: boolean, isActive: boolean): string {
@@ -28,47 +25,6 @@ function resolveEdgeStrokeColor(isSelected: boolean, isActive: boolean): string 
   if (isActive) return "var(--success)";
 
   return "var(--border-color)";
-}
-
-function WorkflowEdgeSignalParticles({
-  path,
-  showParticles,
-}: {
-  path: string;
-  showParticles: boolean;
-}) {
-  return (
-    <>
-      <path
-        d={path}
-        fill="none"
-        stroke="color-mix(in oklab, var(--success) 82%, white)"
-        strokeWidth={2.5}
-        strokeDasharray="6 10"
-        strokeLinecap="round"
-        className="pointer-events-none animate-[dash_1s_linear_infinite] group-hover/edge:opacity-0"
-      />
-      {showParticles && (
-        <>
-          <circle
-            r={4.5}
-            fill="var(--success)"
-            fillOpacity={0.28}
-            className="pointer-events-none group-hover/edge:opacity-0"
-          >
-            <animateMotion dur="1.25s" repeatCount="indefinite" path={path} />
-          </circle>
-          <circle
-            r={2.5}
-            fill="color-mix(in oklab, var(--success) 45%, white)"
-            className="pointer-events-none group-hover/edge:opacity-0"
-          >
-            <animateMotion dur="1.25s" repeatCount="indefinite" path={path} />
-          </circle>
-        </>
-      )}
-    </>
-  );
 }
 
 function WorkflowEdgeCutBadge({
@@ -96,6 +52,7 @@ function WorkflowEdgeCutBadge({
         initial={false}
         animate={animationsEnabled && isSelected ? { scale: 1.05 } : { scale: 1 }}
         transition={SPRING_BOUNCE}
+        style={{ willChange: isSelected ? "transform" : undefined }}
         className={`flex size-8 items-center justify-center transition-[transform,opacity] duration-150 ease-out ${visibilityClass}`}
       >
         <button
@@ -121,31 +78,31 @@ function WorkflowEdgeCutBadge({
 }
 
 /**
- * Renders a single Bezier connection wire with active signal pulses and a hover-cut button.
+ * Renders a single Bezier connection wire with static cached signal rails and a hover-cut button.
+ * Continuous signal particles run on a GPU-composited sibling overlay layer in `WorkflowWiresSvg`.
  */
 export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
   edge,
-  source,
-  target,
-  resolvedPortIdx,
-  totalInPorts,
+  geometry,
   isActive,
   isSelected,
   animationsEnabled,
   onSelectEdge,
   onDeleteEdge,
+  onHoverEdge,
 }: WorkflowEdgeItemProps) {
-  const isLiteTier = useIsLitePerformanceTier();
-  const start = getPortAnchor(source, "out");
-  const end = getPortAnchor(target, "in", resolvedPortIdx, totalInPorts);
-  const { path, midX, midY } = buildWorkflowBezierPath(start.x, start.y, end.x, end.y);
+  const { path, midX, midY, startX, startY, endX, endY } = geometry;
 
   const strokeColor = resolveEdgeStrokeColor(isSelected, isActive);
   const highlighted = isActive || isSelected;
   const endpointFill = isActive ? "var(--success)" : "var(--card-bg-solid)";
 
   return (
-    <g className="group/edge pointer-events-auto">
+    <g
+      className="group/edge pointer-events-auto"
+      onPointerEnter={() => onHoverEdge(edge.id)}
+      onPointerLeave={() => onHoverEdge(null)}
+    >
       <path
         d={path}
         fill="none"
@@ -178,34 +135,71 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
         strokeWidth={highlighted ? 2.75 : 2}
         strokeOpacity={highlighted ? 0.96 : 0.72}
         strokeLinecap="round"
-        className={`pointer-events-none transition-[stroke,stroke-opacity] duration-150 ${
-          isSelected
-            ? ""
-            : "group-hover/edge:stroke-destructive group-hover/edge:[stroke-dasharray:6_4]"
+        className={`pointer-events-none transition-opacity duration-150 ${
+          isSelected ? "" : "group-hover/edge:opacity-0"
         }`}
       />
+      {!isSelected && (
+        <path
+          d={path}
+          fill="none"
+          stroke="var(--destructive)"
+          strokeWidth={highlighted ? 2.75 : 2}
+          strokeOpacity={highlighted ? 0.96 : 0.72}
+          strokeDasharray="6 4"
+          strokeLinecap="round"
+          className="pointer-events-none opacity-0 transition-opacity duration-150 group-hover/edge:opacity-100"
+        />
+      )}
 
-      {isActive && animationsEnabled && (
-        <WorkflowEdgeSignalParticles path={path} showParticles={!isLiteTier} />
+      {isActive && (
+        <path
+          d={path}
+          fill="none"
+          stroke="color-mix(in oklab, var(--success) 82%, white)"
+          strokeWidth={2.25}
+          strokeOpacity={0.55}
+          strokeDasharray="6 10"
+          strokeLinecap="round"
+          className="pointer-events-none group-hover/edge:opacity-0"
+        />
       )}
 
       <circle
-        cx={start.x}
-        cy={start.y}
+        cx={startX}
+        cy={startY}
         r={3.8}
         fill={endpointFill}
         stroke={strokeColor}
         strokeWidth={2}
-        className="pointer-events-none transition-colors group-hover/edge:stroke-destructive"
+        className="pointer-events-none"
       />
       <circle
-        cx={end.x}
-        cy={end.y}
+        cx={endX}
+        cy={endY}
         r={3.8}
         fill={endpointFill}
         stroke={strokeColor}
         strokeWidth={2}
-        className="pointer-events-none transition-colors group-hover/edge:stroke-destructive"
+        className="pointer-events-none"
+      />
+      <circle
+        cx={startX}
+        cy={startY}
+        r={3.8}
+        fill="none"
+        stroke="var(--destructive)"
+        strokeWidth={2}
+        className="pointer-events-none opacity-0 transition-opacity duration-150 group-hover/edge:opacity-100"
+      />
+      <circle
+        cx={endX}
+        cy={endY}
+        r={3.8}
+        fill="none"
+        stroke="var(--destructive)"
+        strokeWidth={2}
+        className="pointer-events-none opacity-0 transition-opacity duration-150 group-hover/edge:opacity-100"
       />
 
       <WorkflowEdgeCutBadge
@@ -223,7 +217,7 @@ export const WorkflowEdgeItem = React.memo(function WorkflowEdgeItem({
 interface WorkflowDraftWireProps {
   draftAnchor: { x: number; y: number };
   connectingDraft: ConnectingWireDraft;
-  animationsEnabled: boolean;
+  geometry: ReturnType<typeof buildWorkflowBezierPath>;
 }
 
 /**
@@ -232,24 +226,15 @@ interface WorkflowDraftWireProps {
 export function WorkflowDraftWire({
   draftAnchor,
   connectingDraft,
-  animationsEnabled,
+  geometry,
 }: WorkflowDraftWireProps) {
-  const isLiteTier = useIsLitePerformanceTier();
-
-  const draftBezier = buildWorkflowBezierPath(
-    draftAnchor.x,
-    draftAnchor.y,
-    connectingDraft.pointerWorldX,
-    connectingDraft.pointerWorldY,
-  );
-
   const isDraftMagnetic = Boolean(connectingDraft.magneticTargetId);
 
   return (
     <g className="pointer-events-none">
       {isDraftMagnetic && (
         <path
-          d={draftBezier.path}
+          d={geometry.path}
           fill="none"
           stroke="var(--success)"
           strokeWidth={7}
@@ -259,20 +244,13 @@ export function WorkflowDraftWire({
       )}
 
       <path
-        d={draftBezier.path}
+        d={geometry.path}
         fill="none"
         stroke={isDraftMagnetic ? "var(--success)" : "var(--accent3)"}
         strokeWidth={isDraftMagnetic ? 3 : 2.5}
         strokeDasharray={isDraftMagnetic ? "8 6" : "5 5"}
         strokeLinecap="round"
-        className={animationsEnabled ? "animate-[dash_0.65s_linear_infinite]" : undefined}
       />
-
-      {isDraftMagnetic && animationsEnabled && !isLiteTier && (
-        <circle r={3} fill="color-mix(in oklab, var(--success) 45%, white)">
-          <animateMotion dur="0.7s" repeatCount="indefinite" path={draftBezier.path} />
-        </circle>
-      )}
 
       <circle
         cx={draftAnchor.x}

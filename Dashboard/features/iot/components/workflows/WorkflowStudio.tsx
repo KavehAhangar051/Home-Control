@@ -163,13 +163,19 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleCanvasDrop}
         style={{
-          ...studio.backgroundGridStyle,
           touchAction: "none",
         }}
         className={`relative min-h-0 w-full flex-1 overflow-hidden select-none ${
           studio.isPanning ? "cursor-grabbing" : "cursor-default"
         }`}
       >
+        {/* GPU-composited dot grid layer */}
+        <div
+          ref={studio.gridLayerRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute z-0 will-change-transform"
+          style={studio.initialGridStyle}
+        />
         {/* Mobile & Tablet Connecting Banner */}
         <AnimatePresence>
           {studio.connectingFromId && (
@@ -184,7 +190,7 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
                   : undefined
               }
               onPointerDown={(e) => e.stopPropagation()}
-              className="absolute top-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-accent3/45 bg-card-bg-solid/95 px-3 py-1.5 text-[11px] font-bold text-accent3 shadow-lg backdrop-blur-md lg:hidden"
+              className="absolute top-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-accent3/45 bg-card-bg-solid px-3 py-1.5 text-[11px] font-bold text-accent3 shadow-lg transform-gpu lg:hidden"
             >
               <span className="whitespace-nowrap">پورت ورودی گره مقصد را انتخاب کنید</span>
               <button
@@ -228,7 +234,7 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
         <div
           ref={studio.worldPlaneRef}
           style={{
-            transform: `translate3d(${wf.viewport.x}px, ${wf.viewport.y}px, 0) scale(${wf.viewport.zoom})`,
+            transform: `translate3d(${wf.viewport.x}px, ${wf.viewport.y}px, 0) scale3d(${wf.viewport.zoom}, ${wf.viewport.zoom}, 1)`,
             transformOrigin: "0 0",
             willChange: "transform",
             backfaceVisibility: "hidden",
