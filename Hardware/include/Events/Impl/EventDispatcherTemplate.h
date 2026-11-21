@@ -71,19 +71,38 @@ public:
   }
 
   // -------------------------------------------------------------------------
-  // dispatch<EventType>(event ref) — compile-time hash, no string loop
+  // dispatch<EventType>(event ref) — Ultra-Fast Template Static Group Cache
+  // Eliminates hash table lookup completely on steady-state dispatches!
   // -------------------------------------------------------------------------
   template <typename EventType>
-  void dispatch(EventType& event) {
-    this->dispatchEvent(&event, kEventHash<EventType>);
+  HOT_PATH FORCE_INLINE void dispatch(EventType& event) {
+    static EventGroup<MaxListeners>* s_cachedGroup = nullptr;
+    static uint32_t s_cachedGen = 0;
+
+    auto& storage = this->getStorage();
+    if (UNLIKELY(s_cachedGroup == nullptr || s_cachedGen != storage.generation())) {
+      s_cachedGroup = storage.findGroup(kEventHash<EventType>);
+      s_cachedGen = storage.generation();
+      if (UNLIKELY(!s_cachedGroup)) return;
+    }
+
+    this->invokeGroup(s_cachedGroup, &event);
   }
 
   // -------------------------------------------------------------------------
   // hasListeners<EventType>() — check before constructing heavy event objects
   // -------------------------------------------------------------------------
   template <typename EventType>
-  bool hasListeners() const {
-    return this->BaseEventDispatcher<MaxEvents, MaxListeners>::count(kEventHash<EventType>) > 0;
+  HOT_PATH FORCE_INLINE bool hasListeners() const {
+    static const EventGroup<MaxListeners>* s_cachedGroup = nullptr;
+    static uint32_t s_cachedGen = 0;
+
+    const auto& storage = this->getStorage();
+    if (UNLIKELY(s_cachedGroup == nullptr || s_cachedGen != storage.generation())) {
+      s_cachedGroup = storage.findGroup(kEventHash<EventType>);
+      s_cachedGen = storage.generation();
+    }
+    return s_cachedGroup != nullptr && s_cachedGroup->active && !s_cachedGroup->listeners.empty();
   }
 
   // -------------------------------------------------------------------------
