@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, type ReactNode, useCallback, useContext, useMemo } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useRef } from "react";
 
 /**
  * A component's messages. Plain strings with `{name}` placeholders, so a
@@ -23,6 +23,26 @@ const MAX_NUMBER_FORMAT_CACHE = 16;
 const numberFormatterCache = new Map<string, Intl.NumberFormat>();
 
 const LocaleContext = createContext<LocaleContextValue>({ messages: NO_MESSAGES });
+
+function shallowEqualRecord(
+  a: Record<string, string | undefined> | undefined,
+  b: Record<string, string | undefined> | undefined,
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+
+  if (keysA.length !== keysB.length) return false;
+
+  for (let i = 0; i < keysA.length; i++) {
+    const key = keysA[i];
+    if (a[key] !== b[key]) return false;
+  }
+
+  return true;
+}
 
 /** Without a locale, digits stay plain so server and client render the same text. */
 function formatNumber(value: number, locale?: string) {
@@ -84,16 +104,15 @@ export function useMessages<T extends Messages>(
 ) {
   const { locale, messages } = useContext(LocaleContext);
   const provided = messages[namespace];
-  // Inline `labels={{ … }}` is a new object every render. Keying it by content
-  // keeps `t` one identity until a label changes, so effects and memos that
-  // depend on `t` don't re-run per render, and render-time reads never lag.
-  const labelsKey = labels ? JSON.stringify(labels) : "";
+  // Inline `labels={{ … }}` is a new object every render. Stabilizing by shallow
+  // key/value comparison keeps `t` one identity without per-render JSON.stringify/parse.
+  const stableLabelsRef = useRef<Partial<T> | undefined>(labels);
 
-  const stableLabels = useMemo(
-    // SAFETY: JSON.parse reconstructs the serialized Partial<T> labels object
-    () => (labelsKey ? (JSON.parse(labelsKey) as Partial<T>) : undefined),
-    [labelsKey],
-  );
+  if (!shallowEqualRecord(stableLabelsRef.current, labels)) {
+    stableLabelsRef.current = labels;
+  }
+
+  const stableLabels = stableLabelsRef.current;
 
   return useCallback(
     (key: keyof T & string, values?: Record<string, string | number>) => {

@@ -17,6 +17,31 @@ interface PendingStorageWrite {
 const pendingStorageWrites = new Map<string, PendingStorageWrite>();
 let lifecycleFlushBound = false;
 
+interface PrioritizedScheduler {
+  yield?: () => Promise<void>;
+}
+
+/**
+ * Cooperatively yields control back to the browser main thread so pending input,
+ * paint, and compositor frames execute before heavy async serialization or work.
+ * Uses native `scheduler.yield()` when supported, falling back to a macrotask turn.
+ */
+export function yieldToMain(): Promise<void> {
+  if (typeof window === "undefined") {
+    return Promise.resolve();
+  }
+
+  const schedulerApi = (globalThis as { scheduler?: PrioritizedScheduler }).scheduler;
+
+  if (typeof schedulerApi?.yield === "function") {
+    return schedulerApi.yield();
+  }
+
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+}
+
 /**
  * Schedules a non-urgent task during browser idle time with a bounded deadline fallback.
  * Returns a cancel function safe to call multiple times.

@@ -14,7 +14,8 @@ export interface CursorElementsRef {
 /**
  * Attaches a native-refresh-rate requestAnimationFrame kinematic LERP loop for the custom cursor.
  * Uses a precomputed dt->alpha LUT and physical-pixel DPR snapping so 60Hz, 120Hz, 144Hz, and
- * 240Hz displays share identical feel with zero main-thread Math.pow overhead.
+ * 240Hz displays share identical feel with zero main-thread Math.pow overhead and zero per-frame
+ * CSS transition cancellations.
  *
  * @param {CursorElementsRef} refs - Direct DOM references to cursor container and inner 3D shell.
  */
@@ -37,43 +38,61 @@ export function useHardwareCursorListeners({
     let targetY = -100;
     let currentX = -100;
     let currentY = -100;
+
+    // Smooth 3D secondary-motion state driven directly in the native-FPS LUT loop
+    // (eliminates 60-240Hz CSS transition cancellation/re-creation on innerRef).
+    let currentRotX = 0;
+    let currentRotY = 0;
+    let currentRotZ = 0;
+    let currentScale = 1;
+    let targetRotX = 0;
+    let targetRotY = 0;
+    let targetRotZ = 0;
+    let targetScale = 1;
+
     let rafId: number | null = null;
     let isLoopRunning = false;
     let lastFrameTs = 0;
     let lastCursorX = Number.NaN;
     let lastCursorY = Number.NaN;
+    let cachedDpr = getDisplayDpr();
 
-    // Cache previous transform state to prevent redundant CSS string construction and DOM writes
+    // Cache previous written transform state to prevent redundant CSS string allocation
     let prevRotX = -999;
     let prevRotY = -999;
     let prevRotZ = -999;
     let prevScale = -999;
 
-    const updateInnerTransform = (velX = 0) => {
+    const refreshInnerTargets = (velX = 0) => {
+      targetRotX = isMouseDown ? 20 : 0;
+      targetRotY = isMouseDown ? -20 : 0;
+      const rawTilt = Math.max(-12, Math.min(12, velX * 0.32));
+      const dynamicTilt = ((rawTilt * 10) | 0) / 10;
+
+      targetRotZ = isHoveringText ? 14 : isClickable ? -6 : dynamicTilt;
+      targetScale = isClickable ? (isMouseDown ? 1.02 : 1.14) : isMouseDown ? 0.9 : 1;
+    };
+
+    const writeInnerTransform = (rotX: number, rotY: number, rotZ: number, scale: number) => {
       const inner = innerRef.current;
 
       if (!inner) return;
 
-      // 3D Secondary Feedback (Disney Squash/Anticipation & Follow-Through)
-      const rotX = isMouseDown ? 20 : 0;
-      const rotY = isMouseDown ? -20 : 0;
-      const rawTilt = Math.max(-12, Math.min(12, velX * 0.32));
-      const dynamicTilt = ((rawTilt * 10) | 0) / 10;
+      const qx = Math.round(rotX * 20) / 20;
+      const qy = Math.round(rotY * 20) / 20;
+      const qz = Math.round(rotZ * 20) / 20;
+      const qs = Math.round(scale * 1000) / 1000;
 
-      const rotZ = isHoveringText ? 14 : isClickable ? -6 : dynamicTilt;
-      const scale = isClickable ? (isMouseDown ? 1.02 : 1.14) : isMouseDown ? 0.9 : 1;
-
-      // V8 Fast Path: Skip string allocation and style invalidation if values are identical
-      if (rotX === prevRotX && rotY === prevRotY && rotZ === prevRotZ && scale === prevScale) {
+      if (qx === prevRotX && qy === prevRotY && qz === prevRotZ && qs === prevScale) {
         return;
       }
 
-      prevRotX = rotX;
-      prevRotY = rotY;
-      prevRotZ = rotZ;
-      prevScale = scale;
+      prevRotX = qx;
+      prevRotY = qy;
+      prevRotZ = qz;
+      prevScale = qs;
 
-      inner.style.transform = `perspective(600px) rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${rotZ}deg) scale3d(${scale},${scale},1)`;
+      inner.style.transform = `perspective(600px) rotateX(${qx}deg) rotateY(${qy}deg) rotateZ(${qz}deg) scale3d(${qs},${qs},1)`;
     };
 
     const animate = (now: number) => {
@@ -91,9 +110,9 @@ export function useHardwareCursorListeners({
       const cursor = cursorRef.current;
 
       if (cursor) {
-        const dpr = getDisplayDpr();
-        const rx = snapToDevicePixel(currentX, dpr);
-        const ry = snapToDevicePixel(currentY, dpr);
+        const rx = snapToDevicePixel(currentX, cachedDpr);
+        const ry = snapToDevicePixel(currentY, cachedDpr);
+
         if (rx !== lastCursorX || ry !== lastCursorY) {
           lastCursorX = rx;
           lastCursorY = ry;
@@ -101,33 +120,57 @@ export function useHardwareCursorListeners({
         }
       }
 
-      // Apply subtle dynamic velocity tilt during motion
+      // Apply subtle dynamic velocity tilt during free motion
       if (!isMouseDown && !isClickable && !isHoveringText) {
-        updateInnerTransform(dx);
+        refreshInnerTargets(dx);
       }
 
-      // Keep loop running only while cursor is still settling toward target
-      const distSq = dx * dx + dy * dy;
+      const dRotX = targetRotX - currentRotX;
+      const dRotY = targetRotY - currentRotY;
+      const dRotZ = targetRotZ - currentRotZ;
+      const dScale = targetScale - currentScale;
 
-      if (distSq > 0.005) {
+      currentRotX += dRotX * alpha;
+      currentRotY += dRotY * alpha;
+      currentRotZ += dRotZ * alpha;
+      currentScale += dScale * alpha;
+
+      writeInnerTransform(currentRotX, currentRotY, currentRotZ, currentScale);
+
+      // Keep loop running only while cursor position OR 3D tilt/scale is still settling
+      const distSq = dx * dx + dy * dy;
+      const is3DSettling =
+        Math.abs(dRotX) > 0.05 ||
+        Math.abs(dRotY) > 0.05 ||
+        Math.abs(dRotZ) > 0.05 ||
+        Math.abs(dScale) > 0.001;
+
+      if (distSq > 0.005 || is3DSettling) {
         rafId = requestAnimationFrame(animate);
       } else {
         currentX = targetX;
         currentY = targetY;
+        currentRotX = targetRotX;
+        currentRotY = targetRotY;
+        currentRotZ = targetRotZ;
+        currentScale = targetScale;
         isLoopRunning = false;
         lastFrameTs = 0;
         rafId = null;
+
         if (cursor) {
-          const dpr = getDisplayDpr();
-          const rx = snapToDevicePixel(targetX, dpr);
-          const ry = snapToDevicePixel(targetY, dpr);
+          const rx = snapToDevicePixel(targetX, cachedDpr);
+          const ry = snapToDevicePixel(targetY, cachedDpr);
+
           if (rx !== lastCursorX || ry !== lastCursorY) {
             lastCursorX = rx;
             lastCursorY = ry;
             cursor.style.transform = `translate3d(${rx}px,${ry}px,0)`;
           }
         }
-        updateInnerTransform(0);
+
+        refreshInnerTargets(0);
+        writeInnerTransform(targetRotX, targetRotY, targetRotZ, targetScale);
       }
     };
 
@@ -138,6 +181,10 @@ export function useHardwareCursorListeners({
       lastFrameTs = 0;
       if (rafId !== null) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(animate);
+    };
+
+    const onResize = () => {
+      cachedDpr = getDisplayDpr();
     };
 
     const onPointerMove = (e: PointerEvent) => {
@@ -153,9 +200,8 @@ export function useHardwareCursorListeners({
         const cursor = cursorRef.current;
 
         if (cursor) {
-          const dpr = getDisplayDpr();
-          const rx = snapToDevicePixel(targetX, dpr);
-          const ry = snapToDevicePixel(targetY, dpr);
+          const rx = snapToDevicePixel(targetX, cachedDpr);
+          const ry = snapToDevicePixel(targetY, cachedDpr);
           cursor.style.opacity = "1";
           cursor.style.transform = `translate3d(${rx}px,${ry}px,0)`;
           lastCursorX = rx;
@@ -190,9 +236,8 @@ export function useHardwareCursorListeners({
       const cursor = cursorRef.current;
 
       if (cursor) {
-        const dpr = getDisplayDpr();
-        const rx = snapToDevicePixel(targetX, dpr);
-        const ry = snapToDevicePixel(targetY, dpr);
+        const rx = snapToDevicePixel(targetX, cachedDpr);
+        const ry = snapToDevicePixel(targetY, cachedDpr);
         cursor.style.opacity = "1";
         cursor.style.transform = `translate3d(${rx}px,${ry}px,0)`;
         lastCursorX = rx;
@@ -204,12 +249,14 @@ export function useHardwareCursorListeners({
 
     const onPointerDown = () => {
       isMouseDown = true;
-      updateInnerTransform();
+      refreshInnerTargets();
+      startLoop();
     };
 
     const onPointerUp = () => {
       isMouseDown = false;
-      updateInnerTransform();
+      refreshInnerTargets();
+      startLoop();
     };
 
     const onMouseOver = (e: MouseEvent) => {
@@ -221,7 +268,8 @@ export function useHardwareCursorListeners({
       if (clickable !== isClickable || textHover !== isHoveringText) {
         isClickable = clickable;
         isHoveringText = textHover;
-        updateInnerTransform();
+        refreshInnerTargets();
+        startLoop();
       }
     };
 
@@ -230,7 +278,8 @@ export function useHardwareCursorListeners({
         isScrolling = true;
         isClickable = false;
         isHoveringText = false;
-        updateInnerTransform();
+        refreshInnerTargets();
+        startLoop();
       }
 
       if (scrollTimeout !== null) clearTimeout(scrollTimeout);
@@ -245,12 +294,14 @@ export function useHardwareCursorListeners({
         if (rafId !== null) cancelAnimationFrame(rafId);
         rafId = null;
         isLoopRunning = false;
+
         return;
       }
 
       if (isVisible) startLoop();
     };
 
+    window.addEventListener("resize", onResize, { passive: true });
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     document.addEventListener("pointerleave", onPointerLeave, { passive: true });
@@ -262,6 +313,7 @@ export function useHardwareCursorListeners({
 
     return () => {
       if (rafId !== null) cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", onResize);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("pointerleave", onPointerLeave);

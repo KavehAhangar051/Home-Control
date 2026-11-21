@@ -132,7 +132,7 @@ export default React.memo(function TrellisSegmentTile({
   return (
     <div className={`relative h-full ${isSettingsOpen ? "z-40" : ""}`}>
       <Card
-        className={`@container/segment group relative flex h-full flex-col justify-between !gap-0 !overflow-visible !rounded-xl !p-0 !ring-0 border transition-[border-color,background-color,box-shadow] duration-200 ${activeSurfaceClass}`}
+        className={`@container/segment group relative flex h-full flex-col justify-between !gap-0 !overflow-visible !rounded-xl !p-0 !ring-0 border transition-[border-color,background-color] duration-200 ${activeSurfaceClass}`}
         style={CARD_SPACING_STYLE}
       >
         <div

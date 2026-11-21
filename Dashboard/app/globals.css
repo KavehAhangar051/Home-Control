@@ -588,6 +588,27 @@
   will-change: transform, opacity;
 }
 
+/* Keep always-running status indicators, spinners, and perimeter sparks on GPU VRAM layers */
+.animate-pulse {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: opacity;
+  contain: layout style;
+}
+
+.animate-ping,
+.animate-spin {
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+  contain: layout style;
+}
+
+.animate-node-spark,
+.animate-node-spark-fast {
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
 /* Pause infinite decorative animations when the browser tab is hidden */
 html[data-page-hidden="true"] .header-title-marquee-track,
 html[data-page-hidden="true"] .animate-node-spark,

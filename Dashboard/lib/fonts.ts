@@ -1,3 +1,5 @@
+import { scheduleIdleStorageWrite } from "@/lib/asyncScheduler";
+
 export type DashboardFontId =
   | "dana"
   | "vazirmatn"
@@ -118,13 +120,7 @@ export function getStoredDashboardFont(): DashboardFontId {
  * Persists the selected dashboard font identifier in localStorage.
  */
 export function persistDashboardFont(fontId: DashboardFontId): void {
-  if (typeof window === "undefined") return;
-
-  try {
-    window.localStorage.setItem(DASHBOARD_FONT_STORAGE_KEY, fontId);
-  } catch {
-    // Ignore storage write failures in restricted contexts
-  }
+  scheduleIdleStorageWrite(DASHBOARD_FONT_STORAGE_KEY, () => fontId);
 }
 
 /**

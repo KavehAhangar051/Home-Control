@@ -4,6 +4,7 @@ import {
   isTriggerWorkflowNodeKind,
 } from "@/features/iot/components/workflows/workflowEngine";
 import type { WorkflowEdge, WorkflowNode } from "@/features/iot/components/workflows/workflowTypes";
+import { lookupCursorLerpAlpha } from "@/lib/gpuLut";
 
 /**
  * Pure state returned when a dragged wire enters the magnetic capture radius
@@ -133,14 +134,14 @@ export function setNodeDragTiltCssVar(element: HTMLElement | null, tiltDeg: numb
     return;
   }
 
-  const rotateValue = `${tiltDeg}deg`;
+  const rotateValue = `0 0 1 ${tiltDeg}deg`;
   if (element.style.rotate !== rotateValue) {
     element.style.rotate = rotateValue;
   }
 }
 
 export function clearNodeDragTiltCssVar(element: HTMLElement | null): void {
-  if (!element || !element.style.rotate) return;
+  if (!element?.style.rotate) return;
   element.style.removeProperty("rotate");
 }
 
@@ -168,7 +169,7 @@ export function areSheetAnimationsAllowed(): boolean {
 const cachedMotionNodesByContainer = new WeakMap<HTMLElement, HTMLElement[]>();
 const panMotionStateByContainer = new WeakMap<
   HTMLElement,
-  { tilt: number; shiftX: number; shiftY: number }
+  { tilt: number; shiftX: number; shiftY: number; lastTs: number }
 >();
 
 function getContainerMotionNodes(container: HTMLElement): HTMLElement[] {
@@ -194,8 +195,8 @@ export function primeSheetPanMotionNodes(container: HTMLElement | null): void {
 }
 
 /**
- * Imperatively updates non-inherited `rotate` and `translate` compositor properties directly
- * on the cached card motion elements inside `container` with built-in exponential smoothing.
+ * Imperatively updates non-inherited 3D `rotate` and `translate` compositor properties directly
+ * on the cached card motion elements inside `container` with frame-rate-independent LUT smoothing.
  * Avoids mutating inherited CSS custom properties on the root container (which would force
  * Recalculate Style across 1,000+ inner DOM nodes every frame) and avoids CSS transition thrashing.
  */
@@ -215,15 +216,21 @@ export function setSheetPanMotionCssVars(
   const targetShiftX = Math.max(-4.5, Math.min(4.5, frameDeltaX * 0.14));
   const targetShiftY = Math.max(-4.5, Math.min(4.5, frameDeltaY * 0.14));
 
+  const now = typeof performance !== "undefined" ? performance.now() : 0;
   let motionState = panMotionStateByContainer.get(container);
   if (!motionState) {
-    motionState = { tilt: 0, shiftX: 0, shiftY: 0 };
+    motionState = { tilt: 0, shiftX: 0, shiftY: 0, lastTs: now };
     panMotionStateByContainer.set(container, motionState);
   }
 
-  const nextTilt = Math.round((motionState.tilt * 0.62 + targetTilt * 0.38) * 100) / 100;
-  const nextShiftX = Math.round((motionState.shiftX * 0.62 + targetShiftX * 0.38) * 10) / 10;
-  const nextShiftY = Math.round((motionState.shiftY * 0.62 + targetShiftY * 0.38) * 10) / 10;
+  const dt = motionState.lastTs > 0 ? Math.min(64, Math.max(1, now - motionState.lastTs)) : 16.6667;
+  motionState.lastTs = now;
+  const alpha = Math.min(1, lookupCursorLerpAlpha(dt) * 1.45);
+  const invAlpha = 1 - alpha;
+
+  const nextTilt = Math.round((motionState.tilt * invAlpha + targetTilt * alpha) * 100) / 100;
+  const nextShiftX = Math.round((motionState.shiftX * invAlpha + targetShiftX * alpha) * 10) / 10;
+  const nextShiftY = Math.round((motionState.shiftY * invAlpha + targetShiftY * alpha) * 10) / 10;
 
   if (
     Math.abs(nextTilt - motionState.tilt) < 0.03 &&
@@ -237,8 +244,8 @@ export function setSheetPanMotionCssVars(
   motionState.shiftX = nextShiftX;
   motionState.shiftY = nextShiftY;
 
-  const rotateValue = `${nextTilt}deg`;
-  const translateValue = `${nextShiftX}px ${nextShiftY}px`;
+  const rotateValue = `0 0 1 ${nextTilt}deg`;
+  const translateValue = `${nextShiftX}px ${nextShiftY}px 0px`;
   const nodes = getContainerMotionNodes(container);
 
   for (let i = 0; i < nodes.length; i++) {

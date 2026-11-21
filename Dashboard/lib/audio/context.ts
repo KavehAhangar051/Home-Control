@@ -87,6 +87,10 @@ class AudioContextManager {
     void this.resumeContext(ctx);
   }
 
+  public isUnlockedAndPrimed(): boolean {
+    return this.primed && this.audioCtx !== null && this.audioCtx.state === "running";
+  }
+
   /**
    * Marks the hardware output for re-priming after the page returns from background sleep.
    */
