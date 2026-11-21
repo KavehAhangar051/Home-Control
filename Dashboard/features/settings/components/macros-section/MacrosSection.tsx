@@ -2,8 +2,10 @@
 
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { useState } from "react";
+import { DashboardIconPicker } from "@/components/reui/dashboard-icon-picker";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { MacroGlyph } from "@/features/dashboard/components/widgets/MacroSidebar";
 import type { Macro } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { isAnalogOutputSegment } from "@/features/iot/utils/analogOutput";
@@ -129,9 +131,11 @@ export default function MacrosSection() {
               <h4 className="text-sm font-semibold text-text-primary">
                 {editingId === "new" ? "ساخت دکمه جدید" : "ویرایش دکمه"}
               </h4>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid items-start gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5 text-xs text-text-secondary">
-                  <label htmlFor="custom-macro-title">نام دکمه</label>
+                  <label htmlFor="custom-macro-title" className="block font-medium">
+                    نام دکمه
+                  </label>
                   <Input
                     id="custom-macro-title"
                     value={title}
@@ -140,16 +144,14 @@ export default function MacrosSection() {
                     placeholder="مثلاً روشنایی پذیرایی"
                   />
                 </div>
-                <div className="space-y-1.5 text-xs text-text-secondary">
-                  <label htmlFor="custom-macro-icon">آیکون یا ایموجی (اختیاری)</label>
-                  <Input
-                    id="custom-macro-icon"
-                    value={icon}
-                    maxLength={24}
-                    onChange={(event) => setIcon(event.target.value)}
-                    placeholder="مثلاً 💡"
-                  />
-                </div>
+                <DashboardIconPicker
+                  label="آیکون یا ایموجی"
+                  isOptional
+                  selectedIcon={icon}
+                  onSelectIcon={setIcon}
+                  allowCustomText
+                  inputId="custom-macro-icon"
+                />
               </div>
 
               <div className="flex items-center justify-between gap-2">
@@ -262,7 +264,7 @@ export default function MacrosSection() {
           >
             <div className="flex min-w-0 items-center gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-card-hover-bg text-lg">
-                {macro.icon || "▶"}
+                <MacroGlyph icon={macro.icon} className="size-5" />
               </span>
               <div className="min-w-0">
                 <h4 className="truncate text-sm font-semibold text-text-primary">{macro.title}</h4>
