@@ -11,7 +11,9 @@ import BackupRestoreSection from "./BackupRestoreSection";
 import CloudflareIntegration from "./CloudflareIntegration";
 import HapticsToggle from "./HapticsToggle";
 import LowDataToggle from "./LowDataToggle";
+import PwaInstallCard from "./PwaInstallCard";
 import type { StabilitySectionProps } from "./types";
+import WakeLockToggle from "./WakeLockToggle";
 
 export function StabilitySectionContent({
   animationsEnabled,
@@ -42,6 +44,8 @@ export function StabilitySectionContent({
         isDark={isDark}
       />
       <HapticsToggle animationsEnabled={animationsEnabled} />
+      <WakeLockToggle animationsEnabled={animationsEnabled} />
+      <PwaInstallCard />
       <BackupRestoreSection />
       <CloudflareIntegration isDark={isDark} />
     </div>

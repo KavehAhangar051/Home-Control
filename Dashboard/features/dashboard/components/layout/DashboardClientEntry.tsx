@@ -1,17 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { Suspense } from "react";
 import DashboardBootSkeleton from "@/components/DashboardBootSkeleton";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { retryDynamicImport } from "@/lib/dynamicRetry";
-
-const DashboardShell = dynamic(
-  () => retryDynamicImport(() => import("@/features/dashboard/components/layout/DashboardShell")),
-  {
-    ssr: false,
-    loading: () => <DashboardBootSkeleton />,
-  },
-);
+import DashboardShell from "@/features/dashboard/components/layout/DashboardShell";
 
 export default function DashboardClientEntry() {
   return (
@@ -20,7 +12,9 @@ export default function DashboardClientEntry() {
       fallbackDescription="بخشی از فایل‌های برنامه بارگذاری نشد. روی دکمه تلاش مجدد کلیک کنید تا صفحه دوباره بارگذاری شود."
       onReset={() => window.location.reload()}
     >
-      <DashboardShell />
+      <Suspense fallback={<DashboardBootSkeleton />}>
+        <DashboardShell />
+      </Suspense>
     </ErrorBoundary>
   );
 }

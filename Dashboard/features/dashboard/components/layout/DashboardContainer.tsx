@@ -7,8 +7,12 @@ import DashboardStyles from "@/features/iot/components/DashboardStyles";
 import ToastNotification from "@/features/iot/components/notifications/ToastNotification";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { usePageVisibility } from "@/features/iot/hooks/usePageVisibility";
+import { useCrossTabSync } from "@/lib/hooks/use-cross-tab-sync";
 import { useGpuDisplayObserver } from "@/lib/hooks/use-gpu-display";
 import { usePerformanceTierObserver } from "@/lib/hooks/use-performance-tier";
+import { useServiceWorkerRegistration } from "@/lib/hooks/use-pwa";
+import { useScreenWakeLockObserver } from "@/lib/hooks/use-wake-lock";
+import { usePerfObserver } from "@/lib/perfObserver";
 import DashboardDrawers from "./DashboardDrawers";
 import DashboardHeader from "./DashboardHeader";
 import DashboardMain from "./DashboardMain";
@@ -24,6 +28,10 @@ const ScrollToTopButton = dynamic(() => import("../widgets/ScrollToTopButton"), 
 
 export default function DashboardContainer() {
   usePageVisibility();
+  useServiceWorkerRegistration();
+  useScreenWakeLockObserver();
+  useCrossTabSync();
+  usePerfObserver();
 
   const accent3 = useIoTStore((s) => s.accent3);
   const accent4 = useIoTStore((s) => s.accent4);

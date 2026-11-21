@@ -100,12 +100,28 @@ export const viewport: Viewport = {
   ],
 };
 
+const BASE_PATH = process.env.GITHUB_PAGES === "true" ? "/Home-Control-Dashboard" : "";
+
 export const metadata: Metadata = {
   title: "سامانه هوشمند اینترنت اشیاء | Smart IoT Dashboard",
   description:
     "داشبورد مدرن و هوشمند کنترل و پایش دستگاه‌های اینترنت اشیاء مبتنی بر میکروکنترلر ESP32",
   applicationName: "Home Control Dashboard",
   keywords: ["ESP32", "IoT", "MQTT", "Smart Home", "اینترنت اشیاء", "خانه هوشمند"],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "خانه هوشمند",
+  },
+  icons: {
+    icon: [
+      { url: `${BASE_PATH}/icons/pwa-192x192.png`, sizes: "192x192", type: "image/png" },
+      { url: `${BASE_PATH}/icons/pwa-512x512.png`, sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: `${BASE_PATH}/icons/apple-touch-icon.png`, sizes: "180x180", type: "image/png" },
+    ],
+  },
   openGraph: {
     type: "website",
     locale: "fa_IR",

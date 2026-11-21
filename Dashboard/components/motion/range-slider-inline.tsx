@@ -220,28 +220,21 @@ export function InlineSlider({
   const capTop = useTransform(split, (amount) => -amount);
   const capBottom = useTransform(split, (amount) => amount);
 
-  const labelBounds = { start: TEXT_INSET, end: TEXT_INSET + geometry.labelWidth };
-  const readoutBounds = {
-    start: geometry.width - TEXT_INSET - geometry.readoutWidth,
-    end: geometry.width - TEXT_INSET,
-  };
-
-  const overlapsText = (x: number, bounds: { start: number; end: number }) =>
-    x + 2 >= bounds.start && x - 2 <= bounds.end;
-
   const ticks = useMemo(() => {
     if (!showTicks) return [];
 
+    const overlapsText = (x: number, bounds: { start: number; end: number }) =>
+      x + 2 >= bounds.start && x - 2 <= bounds.end;
+
+    const labelBounds = { start: TEXT_INSET, end: TEXT_INSET + geometry.labelWidth };
+    const readoutBounds = {
+      start: geometry.width - TEXT_INSET - geometry.readoutWidth,
+      end: geometry.width - TEXT_INSET,
+    };
+
     return stops
       .map((stop) => stop.x)
-      .filter(
-        (x) =>
-          !overlapsText(x, { start: TEXT_INSET, end: TEXT_INSET + geometry.labelWidth }) &&
-          !overlapsText(x, {
-            start: geometry.width - TEXT_INSET - geometry.readoutWidth,
-            end: geometry.width - TEXT_INSET,
-          }),
-      );
+      .filter((x) => !overlapsText(x, labelBounds) && !overlapsText(x, readoutBounds));
   }, [showTicks, stops, geometry.width, geometry.labelWidth, geometry.readoutWidth]);
 
   const queueDragCommit = (value: number) => {

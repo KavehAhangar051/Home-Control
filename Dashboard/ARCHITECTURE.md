@@ -23,7 +23,7 @@ The application is configured for static export in its normal production mode. I
 - **Package manager:** Bun (`bun.lock` is the committed dependency lockfile)
 - **Bundler:** Turbopack is used for development and production builds. The `dev:webpack` script remains available for the AI Studio workflow that disables file watching through the custom Webpack configuration.
 - **React optimization:** React Compiler is enabled in `next.config.ts` for production builds (`!isDevServer`, `compilationMode: "infer"`, `panicThreshold: "none"`, skipped in `next dev` so Turbopack stays on native SWC and avoids multi-worker Babel cold-start timeouts); avoid adding manual memoization without profiling or a specific correctness reason. Production builds also enable SWC `removeConsole` (retaining `error`/`warn`), `poweredByHeader: false`, `experimental.inlineCss`, `experimental.cssChunking: "graph"`, `experimental.scrollRestoration`, `experimental.optimizeServerReact`, and Turbopack DCE/tree-shaking/chunking flags (`turbopackRemoveUnusedImports`, `turbopackRemoveUnusedExports`, `turbopackCrossModuleConstants`, `turbopackCjsTreeShaking`, `turbopackCjsScopeHoisting`, `turbopackGc`, `turbopackChunking`).
-- **Package import optimization & modern target:** `next.config.ts` optimizes imports for installed packages (`@animate-ui/react`, `@base-ui/react`, `@danfessler/trellis`, `@danfessler/trellis-react`, `@dnd-kit/dom`, `@dnd-kit/react`, `motion`, `zustand`); Next.js already optimizes `lucide-react` by default. `package.json` defines an evergreen `browserslist` aligned with Tailwind CSS v4 (`chrome >= 111`, `edge >= 111`, `safari >= 16.4`, `ios_saf >= 16.4`, `firefox >= 113`) and `tsconfig.json` targets `ES2022`.
+- **Package import optimization & modern target:** `next.config.ts` optimizes imports for installed packages (`@animate-ui/react`, `@base-ui/react`, `@danfessler/trellis`, `@danfessler/trellis-react`, `@dnd-kit/dom`, `@dnd-kit/react`, `motion`, `zustand`); Next.js already optimizes `lucide-react` by default. `package.json` defines an evergreen `browserslist` aligned with Tailwind CSS v4 (`chrome >= 111`, `edge >= 111`, `safari >= 16.4`, `ios_saf >= 16.4`, `firefox >= 113`) and `tsconfig.json` enforces `"strict": true` targeting `ES2022`.
 - **Native transitions:** Workspace switching uses Motion's `AnimateView` integration with React View Transitions, fed by a deferred Zustand workspace selection. Reduced-motion and the dashboard animation setting disable the transition.
 
 The authoritative dependency and command definitions are in `package.json`; do not document scripts or libraries as active unless they exist there.
@@ -32,7 +32,8 @@ The authoritative dependency and command definitions are in `package.json`; do n
 
 ```text
 app/
-  layout.tsx             Root document/layout and global providers
+  layout.tsx             Root document/layout, PWA metadata, and global providers
+  manifest.ts            Static Web App Manifest (`manifest.webmanifest`) with basePath support
   page.tsx               Root route entry
   loading.tsx            Route loading UI
   not-found.tsx          Not-found UI
@@ -56,12 +57,16 @@ features/
   settings/
     components/          Settings sections and controls
 lib/
-  audio/                 Audio managers and UI sound effects
+  audio/                 Online Archive.org ambient audio manager and Web Audio UI sound effects
   gpuLut.ts              Precomputed typed-array LUTs (color/gamma/palette/HSV/wave/easing/physics/Bezier)
   gpuDisplay.ts          Native display DPR, refresh-rate probe, device-pixel snapping & WebGL2 3D LUT VRAM helper
+  perfObserver.ts        Headless runtime PerformanceObserver (LoAF/INP/LCP/CLS on `window.__dashboardPerf`)
   hooks/use-gpu-display.ts Root observer syncing native display resolution, DPR, FPS, and GPU backend attributes
+  hooks/use-pwa.ts       Service Worker registration, `beforeinstallprompt` install hook, and online status
+  hooks/use-wake-lock.ts Screen Wake Lock API observer with visibility re-acquisition
+  hooks/use-cross-tab-sync.ts BroadcastChannel + storage cross-tab state sync & hydration-safe mode restore
   presets.ts             Shared presets/configuration values
-public/                  Static assets served by the frontend
+public/                  Static assets (`Fonts/`, `icons/` PWA PNG icons, `sw.js` static Service Worker)
 docs/                    Protocol, configuration, dimensional drawings (`docs/dimensional-drawings/`), and reference docs
 .github/workflows/       GitHub Actions automation
 .env.example             Environment-variable template; contains placeholders only
@@ -280,7 +285,7 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
 - **Zustand 5 (`subscribeWithSelector`, dev-only `devtools`, `persist`):**
   - `features/iot/hooks/useIoTStore.ts` enables `subscribeWithSelector` and dev-only `devtools` (`HomeControlIoTStore`).
   - `useCloudflarePush.ts` subscribes directly via `useIoTStore.subscribe(selectWatchedConfigSlice, ..., { equalityFn: shallow })` instead of manual full-store diffing.
-  - `features/iot/hooks/usePreferencesStore.ts` uses Zustand 5 `persist` (`home-control-preferences-v1`), `subscribeWithSelector`, and dev-only `devtools` for strictly browser-local preferences (`hapticsEnabled`, `savedTrellisLayouts`), keeping `EspConfig` / Cloudflare KV payloads 100% unchanged.
+  - `features/iot/hooks/usePreferencesStore.ts` uses Zustand 5 `persist` (`home-control-preferences-v1`), `subscribeWithSelector`, and dev-only `devtools` for strictly browser-local preferences (`hapticsEnabled`, `wakeLockEnabled`, `sliderStyle`, `savedTrellisLayouts`), keeping `EspConfig` / Cloudflare KV payloads 100% unchanged.
 - **Motion 14 (`drag` swipe gestures & `LayoutGroup`):**
   - `ToastNotification.tsx` supports upward swipe-to-dismiss (`drag="y"` with elastic constraints and reduced-motion guard).
   - `components/motion/expandable-tabs.tsx` adds a drag grabber and downward swipe-to-dismiss (`drag="y"`) on open Mobile Dock panels.
@@ -300,6 +305,11 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
   - **Sub-flows / Node Grouping (`parentGroupId`, `workflowSubflowHelpers.ts`):** Nodes can be grouped into a `kind === "group"` sub-flow container box via `Ctrl+G`, the header/footer `Boxes`/`Unlink` button, or by dragging and dropping a node inside a group container. Dragging a parent group moves all nested child nodes in lockstep.
   - **Undo / Redo & Copy / Paste / Duplicate (`useWorkflowHistoryAndClipboard.ts`):** Per-workflow bounded undo/redo stack (40 snapshots) covering node/edge creation, deletion, property edits, drag moves, and resizes (`Ctrl+Z`, `Ctrl+Y`, `Ctrl+Shift+Z`), plus node/sub-flow clipboard Copy (`Ctrl+C`), Paste (`Ctrl+V`), Duplicate (`Ctrl+D`), and `Delete`/`Backspace` shortcuts alongside footer toolbar controls.
   - **Workflow JSON Export / Share / Import:** `WorkflowHeaderBar.tsx` and `WorkflowEmptyState.tsx` support exporting individual workflows to `.workflow.json`, sharing via `Web Share API`, and importing workflow JSON files with automatic ID deduplication.
+- **PWA, Screen Wake Lock, Cross-Tab Sync, Strict TS, SSG Shell & Runtime Perf Observer:**
+  - **PWA (`app/manifest.ts`, `public/sw.js`, `public/icons/`, `lib/hooks/use-pwa.ts`, `PwaInstallCard.tsx`):** Static Web App Manifest (`manifest.webmanifest`) with `basePath` compatibility, anti-aliased `any` (192/512), `maskable` (512), and `apple-touch-icon` (180) PNG icons, zero-dependency static Service Worker caching the app shell/fonts/chunks while bypassing cross-origin MQTT/Worker/audio traffic, and in-app install / iOS Safari Add-to-Home-Screen controls inside Settings → پایداری.
+  - **Screen Wake Lock (`lib/hooks/use-wake-lock.ts`, `WakeLockToggle.tsx`):** Persisted `wakeLockEnabled` toggle acquiring `navigator.wakeLock.request("screen")` for wall-mounted tablets and automatically re-acquiring on visibility/focus recovery.
+  - **Cross-Tab Live Sync (`lib/hooks/use-cross-tab-sync.ts`):** `BroadcastChannel("home-control-dashboard-sync-v1")` + `storage` event sync keeps theme, accents, font, display mode, and persisted preferences synchronized across open tabs with sender-ID loop guards and hydration-safe post-mount `workspaceDisplayMode` restoration.
+  - **Strict TypeScript, SSG Shell, Online-Only Audio & Headless Perf Observer:** `tsconfig.json` runs with `"strict": true`; `DashboardClientEntry.tsx` renders `DashboardShell` directly (removing `ssr: false`) for real static HTML prerendering; `AmbientManager.ts` + `AudioSection.tsx` use online Archive.org tracks exclusively (bundled `06 Dele Divaneh.mp3` removed); and `lib/perfObserver.ts` exposes headless LoAF/INP/LCP/CLS metrics on `window.__dashboardPerf`.
 
 ## 19. Codebase Knowledge Graph (`codebase-memory-mcp`) & Token Tooling (`rtk`, `TokenEconomizer`)
 

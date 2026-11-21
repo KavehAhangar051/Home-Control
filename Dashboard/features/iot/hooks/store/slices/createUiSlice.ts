@@ -2,9 +2,9 @@ import type { StateCreator } from "zustand";
 import { scheduleIdleStorageWrite } from "@/lib/asyncScheduler";
 import type { IoTStoreState, UiSlice, WorkspaceDisplayMode } from "../types";
 
-const DISPLAY_MODE_STORAGE_KEY = "workspace_display_mode";
+export const DISPLAY_MODE_STORAGE_KEY = "workspace_display_mode";
 
-function readInitialDisplayMode(): WorkspaceDisplayMode {
+export function readSavedDisplayMode(): WorkspaceDisplayMode {
   if (typeof window === "undefined") return "grid";
 
   try {
@@ -21,7 +21,7 @@ function readInitialDisplayMode(): WorkspaceDisplayMode {
 }
 
 export const createUiSlice: StateCreator<IoTStoreState, [], [], UiSlice> = (set) => ({
-  workspaceDisplayMode: readInitialDisplayMode(),
+  workspaceDisplayMode: "grid",
   lowDataMode: false,
   toast: null,
   selectedGroupFilter: null,

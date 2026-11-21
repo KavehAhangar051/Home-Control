@@ -22,6 +22,9 @@ export interface PreferencesStoreState {
   /** Browser-local toggle for mobile/touch Vibration API haptic feedback. */
   hapticsEnabled: boolean;
   setHapticsEnabled: (enabled: boolean) => void;
+  /** Browser-local toggle for Screen Wake Lock API (keeps wall-mounted tablets/phones awake). */
+  wakeLockEnabled: boolean;
+  setWakeLockEnabled: (enabled: boolean) => void;
   /** User-selected beUI motion slider design (`"auto"` picks the best variant per UI context). */
   sliderStyle: SliderStylePreference;
   setSliderStyle: (style: SliderStylePreference) => void;
@@ -36,7 +39,7 @@ export interface PreferencesStoreState {
   deleteTrellisLayout: (id: string) => void;
 }
 
-const PREFERENCES_STORAGE_KEY = "home-control-preferences-v1";
+export const PREFERENCES_STORAGE_KEY = "home-control-preferences-v1";
 const MAX_SAVED_TRELLIS_LAYOUTS = 12;
 
 const noopStorage = {
@@ -47,7 +50,7 @@ const noopStorage = {
 
 /**
  * Dedicated Zustand 5 persisted store for strictly browser-local UX preferences
- * (haptics toggle, slider style, & custom Trellis workspace snapshots).
+ * (haptics toggle, wake lock, slider style, & custom Trellis workspace snapshots).
  * Kept separate from `useIoTStore` so ESP32 / Cloudflare KV payloads remain 100% pure.
  */
 export const usePreferencesStore = create<PreferencesStoreState>()(
@@ -57,6 +60,9 @@ export const usePreferencesStore = create<PreferencesStoreState>()(
         (set) => ({
           hapticsEnabled: true,
           setHapticsEnabled: (hapticsEnabled) => set({ hapticsEnabled }),
+
+          wakeLockEnabled: false,
+          setWakeLockEnabled: (wakeLockEnabled) => set({ wakeLockEnabled }),
 
           sliderStyle: DEFAULT_SLIDER_STYLE,
           setSliderStyle: (style) => set({ sliderStyle: resolveSliderStyle(style) }),
@@ -99,6 +105,7 @@ export const usePreferencesStore = create<PreferencesStoreState>()(
           ),
           partialize: (state) => ({
             hapticsEnabled: state.hapticsEnabled,
+            wakeLockEnabled: state.wakeLockEnabled,
             sliderStyle: state.sliderStyle,
             savedTrellisLayouts: state.savedTrellisLayouts,
           }),
