@@ -26,9 +26,14 @@ public:
   FORCE_INLINE void mark_for_removal() { marked_for_removal_ = 1; }
 
   FORCE_INLINE void invoke(void* event_data) {
-    if (callback_) {
+    if (LIKELY(callback_)) {
       callback_(event_data);
     }
+  }
+
+  // Branchless ultra-fast invocation for pre-validated persistent listeners
+  FORCE_INLINE void invokeDirect(void* event_data) {
+    callback_(event_data);
   }
 
 private:

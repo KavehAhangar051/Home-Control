@@ -30,6 +30,7 @@ public:
     }
 
     group->listeners.push_back(ListenerEntry(event_hash, id, std::move(callback), is_once));
+    group->updateFastPath();
     return id;
   }
 
@@ -44,6 +45,7 @@ public:
       if (current->get_id() == listener_id) {
         if (dispatch_depth_ > 0) current->mark_for_removal();
         else group->listeners.erase(group->listeners.begin() + (current - group->listeners.data()));
+        group->updateFastPath();
         return true;
       }
       current++;
@@ -68,24 +70,27 @@ public:
       group->listeners.clear();
       group->active = false;
     }
+    group->updateFastPath();
     return removed;
   }
 
   /**
-   * @brief Hot path: find group and invoke all active listeners.
-   * UNROLL_LOOP(8) hints compiler to unroll since MaxListeners is known at compile-time.
+   * @brief Fast-path invocation for a pre-located EventGroup.
+   * Eliminates depth tracking and branches when single_persistent is true.
    */
-  HOT_PATH void dispatchEvent(void* event, uint32_t event_hash) {
-    auto* group = storage_.findGroup(event_hash);
+  HOT_PATH FORCE_INLINE void invokeGroup(EventGroup<MaxListeners>* group, void* event) {
     if (UNLIKELY(!group)) return;
+
+    // Zero-overhead ultra-fast path for 1 persistent listener (95%+ of IoT events)
+    if (LIKELY(group->single_persistent)) {
+      group->primary_listener->invokeDirect(event);
+      return;
+    }
 
     dispatch_depth_++;
     bool needs_cleanup = false;
-    
-    // Fast path: direct invocation for 1-listener events (covers 95%+ embedded events)
-    const size_t lCount = group->listeners.size();
-    if (LIKELY(lCount == 1)) {
-      auto& listener = group->listeners[0];
+
+    for (auto& listener : group->listeners) {
       if (LIKELY(!listener.is_marked_for_removal())) {
         listener.invoke(event);
         if (UNLIKELY(listener.is_once())) {
@@ -95,22 +100,21 @@ public:
       } else {
         needs_cleanup = true;
       }
-    } else {
-      for (auto& listener : group->listeners) {
-        if (LIKELY(!listener.is_marked_for_removal())) {
-          listener.invoke(event);
-          if (UNLIKELY(listener.is_once())) {
-            listener.mark_for_removal();
-            needs_cleanup = true;
-          }
-        } else {
-          needs_cleanup = true;
-        }
-      }
     }
-    
+
     dispatch_depth_--;
-    if (UNLIKELY(needs_cleanup && dispatch_depth_ == 0)) cleanupMarkedListeners(group);
+    if (UNLIKELY(needs_cleanup && dispatch_depth_ == 0)) {
+      cleanupMarkedListeners(group);
+      group->updateFastPath();
+    }
+  }
+
+  /**
+   * @brief Hot path: find group and invoke all active listeners.
+   */
+  HOT_PATH void dispatchEvent(void* event, uint32_t event_hash) {
+    auto* group = storage_.findGroup(event_hash);
+    invokeGroup(group, event);
   }
 
   inline void clear() { storage_.clear(); }
@@ -136,6 +140,9 @@ public:
     }
     return cnt;
   }
+
+  EventStorage<MaxEvents, MaxListeners>& getStorage() { return storage_; }
+  const EventStorage<MaxEvents, MaxListeners>& getStorage() const { return storage_; }
 
 private:
   void cleanupMarkedListeners(EventGroup<MaxListeners>* group) {
