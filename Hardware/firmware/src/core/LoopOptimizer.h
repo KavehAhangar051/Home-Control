@@ -20,6 +20,7 @@
 #include <Optimization/StaticFunction.h>
 #include <Timer/Optimization/TimerAsm.h>
 #include <AchaemenidConfigProtocol.h>
+#include <PinEntry.h>
 
 // ============================================================================
 // روش ۱: IRAM_ATTR
