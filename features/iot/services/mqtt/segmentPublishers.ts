@@ -226,7 +226,7 @@ function writeRuleAnalogActionChunk(
   for (let i = 0; i < actions.length; i++) {
     const a = actions[i];
     const hasAnalog = hasExplicitAnalogTargetValue(a.targetValue);
-    const clampedTargetValue = hasAnalog
+    const clampedTargetValue = hasExplicitAnalogTargetValue(a.targetValue)
       ? Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.max(0, Math.round(a.targetValue)))
       : RULE_TARGET_VALUE_BOOLEAN;
 

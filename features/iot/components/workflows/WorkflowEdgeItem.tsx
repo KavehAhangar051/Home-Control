@@ -5,7 +5,7 @@ import { m } from "motion/react";
 import React from "react";
 import { SPRING_BOUNCE } from "@/lib/ease";
 import type { ConnectingWireDraft } from "./useWorkflowStudio";
-import { buildWorkflowBezierPath } from "./workflowEngine";
+import type { buildWorkflowBezierPath } from "./workflowEngine";
 import type { WorkflowEdge } from "./workflowTypes";
 
 interface WorkflowEdgeItemProps {

@@ -9,8 +9,7 @@ import type { ArchiveTrackItem, Track } from "./types";
 const AUDIO_CACHE_NAME = "home-control-audio-v1";
 const AUDIO_DOWNLOAD_TIMEOUT_MS = 15_000;
 
-const BUNDLED_TRACK_FILE = "06 Dele Divaneh.mp3";
-const BUNDLED_TRACK_TITLE = "Dele Divaneh";
+const ONLINE_SOURCE = "api";
 const MAX_ONLINE_RESOLVE_ATTEMPTS = 5;
 
 export interface AmbientAudioLike {
@@ -31,10 +30,8 @@ export interface AmbientMusicErrorDetail {
 export interface AmbientManagerDeps {
   isBrowserEnvironment?: () => boolean;
   randomFn?: () => number;
-  getMusicSource?: () => string;
   readCachedTrack?: (expectedSource: string) => Track | null;
   writeCachedTrack?: (source: string, track: Track) => void;
-  getFallbackBaseUri?: () => string;
   fetchPlaylistFn?: () => Promise<ArchiveTrackItem[]>;
   fetchTrackUrlFn?: (identifier: string) => Promise<string | null>;
   createAudioFn?: () => AmbientAudioLike;
@@ -47,12 +44,6 @@ export interface AmbientManagerDeps {
   resolvePlayableUrlFn?: (url: string) => Promise<string>;
 }
 
-function createBundledFallbackTrack(creator: string, baseUri: string): Track {
-  const url = new URL(BUNDLED_TRACK_FILE, baseUri).toString();
-
-  return { title: BUNDLED_TRACK_TITLE, creator, url, isLocal: true };
-}
-
 function tryRestoreCachedTrack(expectedSource: string): Track | null {
   try {
     const saved = localStorage.getItem("music_cached_track");
@@ -62,7 +53,7 @@ function tryRestoreCachedTrack(expectedSource: string): Track | null {
     // SAFETY: music_cached_track JSON payload matches saved track shape { source?: string; track?: Track }
     const selection = JSON.parse(saved) as { source?: string; track?: Track };
 
-    if (selection.source === expectedSource && selection.track?.url) {
+    if (selection.source === expectedSource && selection.track?.url && !selection.track.isLocal) {
       return selection.track;
     }
   } catch (error) {
@@ -96,18 +87,8 @@ export class AmbientManager {
     this.deps = {
       isBrowserEnvironment: deps.isBrowserEnvironment ?? (() => typeof window !== "undefined"),
       randomFn: deps.randomFn ?? (() => Math.random()),
-      getMusicSource:
-        deps.getMusicSource ??
-        (() => {
-          try {
-            return window.localStorage.getItem("music_source") || "local";
-          } catch {
-            return "local";
-          }
-        }),
       readCachedTrack: deps.readCachedTrack ?? tryRestoreCachedTrack,
       writeCachedTrack: deps.writeCachedTrack ?? persistSelectedTrack,
-      getFallbackBaseUri: deps.getFallbackBaseUri ?? (() => document.baseURI),
       fetchPlaylistFn: deps.fetchPlaylistFn ?? fetchArchivePlaylist,
       fetchTrackUrlFn: deps.fetchTrackUrlFn ?? fetchTrackUrl,
       createAudioFn: deps.createAudioFn ?? (() => new Audio()),
@@ -194,10 +175,8 @@ export class AmbientManager {
   public async loadAmbientTrack(direction?: "next" | "prev") {
     if (!this.deps.isBrowserEnvironment()) return;
 
-    const source = this.deps.getMusicSource();
-
-    if (!direction && source === "api") {
-      const restored = this.deps.readCachedTrack(source);
+    if (!direction) {
+      const restored = this.deps.readCachedTrack(ONLINE_SOURCE);
 
       if (restored) {
         this.currentTrack = restored;
@@ -209,39 +188,40 @@ export class AmbientManager {
       }
     }
 
-    if (source === "local") {
-      this.currentTrack = createBundledFallbackTrack(
-        "Home-Control",
-        this.deps.getFallbackBaseUri(),
-      );
-    } else {
-      const hasPlaylist = await this.fetchPlaylistIfNeeded();
+    const hasPlaylist = await this.fetchPlaylistIfNeeded();
 
-      if (!hasPlaylist) {
-        this.currentTrack = createBundledFallbackTrack("Fallback", this.deps.getFallbackBaseUri());
-      } else {
-        this.advancePlaylistIndex(direction);
-        const resolvedTrack = await this.resolveOnlineTrackFromPlaylist();
+    if (!hasPlaylist) {
+      this.currentTrack = null;
+      this.isAmbientPlaying = false;
+      this.deps.dispatchEventFn("ambientMusicError", {
+        message: "آرشیو آنلاین موسیقی در دسترس نیست. اتصال اینترنت را بررسی کن.",
+        cause: "playlist_unavailable",
+      });
 
-        if (resolvedTrack) {
-          this.currentTrack = resolvedTrack;
-        } else {
-          this.currentTrack = createBundledFallbackTrack(
-            "Fallback",
-            this.deps.getFallbackBaseUri(),
-          );
-          debugLog.warn("Audio", "Online tracks unavailable; selected bundled fallback track.");
-        }
-      }
+      return;
     }
 
-    if (this.currentTrack) {
-      this.deps.writeCachedTrack(source, this.currentTrack);
+    this.advancePlaylistIndex(direction);
+    const resolvedTrack = await this.resolveOnlineTrackFromPlaylist();
+
+    if (!resolvedTrack) {
+      this.currentTrack = null;
+      this.isAmbientPlaying = false;
+      debugLog.warn("Audio", "Online tracks unavailable after resolution attempts.");
+      this.deps.dispatchEventFn("ambientMusicError", {
+        message: "هیچ ترک آنلاینی برای پخش یافت نشد. اتصال اینترنت را بررسی کن.",
+        cause: "track_resolution_failed",
+      });
+
+      return;
     }
+
+    this.currentTrack = resolvedTrack;
+    this.deps.writeCachedTrack(ONLINE_SOURCE, this.currentTrack);
 
     if (this.isAmbientPlaying) await this.playCurrentTrack();
 
-    if (this.currentTrack) this.onTrackUpdateCallback?.(this.currentTrack);
+    this.onTrackUpdateCallback?.(this.currentTrack);
   }
 
   private async getPlayableUrl(url: string): Promise<string> {

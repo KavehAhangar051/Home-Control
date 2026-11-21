@@ -1,23 +1,12 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { soundManager } from "@/lib/audio";
 import { debugLog } from "@/lib/debug";
-import { AudioSourceSelector } from "./AudioSourceSelector";
 import { AudioToggleButton } from "./AudioToggleButton";
 import { AudioTrackInfo } from "./AudioTrackInfo";
 
 const subscribeAudioSnapshot = () => () => {};
 const getInitialIsMusicOn = () => soundManager.isAmbientPlaying;
 const getServerIsMusicOn = () => false;
-
-const getInitialMusicSource = (): "local" | "api" => {
-  try {
-    return window.localStorage.getItem("music_source") === "api" ? "api" : "local";
-  } catch {
-    return "local";
-  }
-};
-
-const getServerMusicSource = (): "local" | "api" => "local";
 const getInitialTrackInfo = () => soundManager.currentTrack;
 const getServerTrackInfo = () => null;
 
@@ -50,12 +39,6 @@ export default function AudioSection() {
     getServerIsMusicOn,
   );
 
-  const initialMusicSource = useSyncExternalStore(
-    subscribeAudioSnapshot,
-    getInitialMusicSource,
-    getServerMusicSource,
-  );
-
   const initialTrackInfo = useSyncExternalStore(
     subscribeAudioSnapshot,
     getInitialTrackInfo,
@@ -63,8 +46,6 @@ export default function AudioSection() {
   );
 
   const [musicOnOverride, setMusicOnOverride] = useState<boolean | null>(null);
-  const [musicSourceOverride, setMusicSourceOverride] = useState<"local" | "api" | null>(null);
-
   const [trackInfoOverride, setTrackInfoOverride] = useState<
     ReturnType<typeof getInitialTrackInfo> | undefined
   >(undefined);
@@ -73,7 +54,6 @@ export default function AudioSection() {
   const [playbackError, setPlaybackError] = useState<string | null>(null);
 
   const isMusicOn = musicOnOverride ?? initialMusicOn;
-  const musicSource = musicSourceOverride ?? initialMusicSource;
   const trackInfo = trackInfoOverride === undefined ? initialTrackInfo : trackInfoOverride;
 
   useEffect(() => {
@@ -109,7 +89,7 @@ export default function AudioSection() {
       setIsLoading,
       setPlaybackError,
       "Playback button action failed.",
-      "پخش آهنگ ناموفق بود. کنسول مرورگر را برای جزئیات بررسی کن.",
+      "پخش آهنگ ناموفق بود. اتصال اینترنت و کنسول مرورگر را بررسی کن.",
       async () => {
         const newState = await soundManager.toggleAmbient();
         setMusicOnOverride(newState);
@@ -119,35 +99,6 @@ export default function AudioSection() {
       },
       () => setMusicOnOverride(false),
     );
-  };
-
-  const handleSourceChange = async (source: "local" | "api") => {
-    if (source === musicSource) return;
-
-    setMusicSourceOverride(source);
-
-    try {
-      window.localStorage.setItem("music_source", source);
-    } catch {
-      // Ignore storage access failures in restricted iframe/privacy contexts
-    }
-
-    soundManager.playClick();
-    setPlaybackError(null);
-
-    if (isMusicOn) {
-      await runAudioTask(
-        setIsLoading,
-        setPlaybackError,
-        "Changing audio source failed.",
-        "بارگذاری منبع آهنگ ناموفق بود.",
-        async () => {
-          soundManager.stopAmbient();
-          await soundManager.loadAmbientTrack();
-          await soundManager.startAmbient();
-        },
-      );
-    }
   };
 
   const handleNext = async () => {
@@ -180,7 +131,6 @@ export default function AudioSection() {
           {playbackError}
         </p>
       )}
-      <AudioSourceSelector musicSource={musicSource} onSourceChange={handleSourceChange} />
       {isMusicOn && trackInfo && (
         <AudioTrackInfo
           trackInfo={trackInfo}

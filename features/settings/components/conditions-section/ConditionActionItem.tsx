@@ -66,7 +66,9 @@ export function ConditionActionItem({
   );
   const maxDuty = getAnalogMaxDuty(resolution);
   const isExactPwmMode = hasExplicitAnalogTargetValue(action.targetValue);
-  const exactDuty = isExactPwmMode ? clampAnalogValue(action.targetValue, resolution) : 0;
+  const exactDuty = hasExplicitAnalogTargetValue(action.targetValue)
+    ? clampAnalogValue(action.targetValue, resolution)
+    : 0;
   const exactPercent = analogDutyToPercent(exactDuty, resolution);
 
   return (

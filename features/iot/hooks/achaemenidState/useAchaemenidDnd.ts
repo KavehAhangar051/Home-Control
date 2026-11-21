@@ -153,6 +153,8 @@ export function useAchaemenidDnd({
     (event: DragStartEvent) => {
       const source = event.operation.source;
 
+      if (!source) return;
+
       if (source.type === "Group") setActiveGroupId(String(source.id));
       else setActiveSegmentId(String(source.id));
     },
