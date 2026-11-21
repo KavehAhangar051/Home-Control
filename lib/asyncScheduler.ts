@@ -6,6 +6,7 @@
 
 type IdleHandle =
   | { kind: "idle"; id: number }
+  | { kind: "postTask"; controller: AbortController }
   | { kind: "timeout"; id: ReturnType<typeof setTimeout> };
 
 interface PendingStorageWrite {
@@ -19,6 +20,10 @@ let lifecycleFlushBound = false;
 
 interface PrioritizedScheduler {
   yield?: () => Promise<void>;
+  postTask?: <T>(
+    callback: () => T,
+    options?: { priority?: "user-blocking" | "user-visible" | "background"; signal?: AbortSignal },
+  ) => Promise<T>;
 }
 
 /**
@@ -43,7 +48,8 @@ export function yieldToMain(): Promise<void> {
 }
 
 /**
- * Schedules a non-urgent task during browser idle time with a bounded deadline fallback.
+ * Schedules a non-urgent task during browser idle time with Prioritized Task Scheduling
+ * (`scheduler.postTask` at `"background"` priority) and bounded timeout fallbacks.
  * Returns a cancel function safe to call multiple times.
  */
 export function scheduleIdleTask(callback: () => void, timeoutMs = 1500): () => void {
@@ -62,9 +68,19 @@ export function scheduleIdleTask(callback: () => void, timeoutMs = 1500): () => 
     callback();
   };
 
+  const schedulerApi = (globalThis as { scheduler?: PrioritizedScheduler }).scheduler;
+
   if (typeof window.requestIdleCallback === "function") {
     const id = window.requestIdleCallback(run, { timeout: timeoutMs });
     handle = { kind: "idle", id };
+  } else if (typeof schedulerApi?.postTask === "function") {
+    const controller = new AbortController();
+    handle = { kind: "postTask", controller };
+    void schedulerApi
+      .postTask(run, { priority: "background", signal: controller.signal })
+      .catch(() => {
+        // Expected AbortError when the scheduled background task is cancelled or coalesced.
+      });
   } else {
     const id = setTimeout(run, 32);
     handle = { kind: "timeout", id };
@@ -76,6 +92,8 @@ export function scheduleIdleTask(callback: () => void, timeoutMs = 1500): () => 
 
     if (handle.kind === "idle" && typeof window.cancelIdleCallback === "function") {
       window.cancelIdleCallback(handle.id);
+    } else if (handle.kind === "postTask") {
+      handle.controller.abort();
     } else if (handle.kind === "timeout") {
       clearTimeout(handle.id);
     }
@@ -98,7 +116,7 @@ function writeStorageKeyNow(
 
 /**
  * Immediately flushes all queued idle localStorage writes (invoked automatically on
- * `pagehide` and when the document becomes hidden so no user state is lost).
+ * `pagehide`, Page Lifecycle `freeze`, and `visibilitychange` hidden transitions).
  */
 export function flushIdleStorageWrites(): void {
   if (pendingStorageWrites.size === 0) return;
@@ -117,14 +135,19 @@ function ensureLifecycleFlushListeners(): void {
   if (lifecycleFlushBound || typeof window === "undefined") return;
   lifecycleFlushBound = true;
 
-  window.addEventListener("pagehide", flushIdleStorageWrites);
+  window.addEventListener("pagehide", flushIdleStorageWrites, { passive: true });
 
   if (typeof document !== "undefined") {
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") {
-        flushIdleStorageWrites();
-      }
-    });
+    document.addEventListener("freeze", flushIdleStorageWrites, { passive: true });
+    document.addEventListener(
+      "visibilitychange",
+      () => {
+        if (document.visibilityState === "hidden") {
+          flushIdleStorageWrites();
+        }
+      },
+      { passive: true },
+    );
   }
 }
 

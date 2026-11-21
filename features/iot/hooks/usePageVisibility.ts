@@ -32,16 +32,48 @@ export function usePageVisibility() {
       }
     };
 
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        const isVisible = !document.hidden;
+        syncDocumentPageHidden(isVisible);
+        setIsPageVisible(isVisible);
+
+        if (isVisible) {
+          notifyMqttResume();
+        }
+      }
+    };
+
+    const handlePageHide = () => {
+      syncDocumentPageHidden(false);
+      setIsPageVisible(false);
+      publishPresence(false);
+    };
+
+    const handleResume = () => {
+      if (!document.hidden) {
+        syncDocumentPageHidden(true);
+        setIsPageVisible(true);
+        notifyMqttResume();
+      }
+    };
+
     const initialVisible = !document.hidden;
     syncDocumentPageHidden(initialVisible);
     setIsPageVisible(initialVisible);
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibilityChange, { passive: true });
+    document.addEventListener("resume", handleResume, { passive: true });
+    window.addEventListener("online", handleOnline, { passive: true });
+    window.addEventListener("pageshow", handlePageShow, { passive: true });
+    window.addEventListener("pagehide", handlePageHide, { passive: true });
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("resume", handleResume);
       window.removeEventListener("online", handleOnline);
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("pagehide", handlePageHide);
     };
   }, [setIsPageVisible]);
 }

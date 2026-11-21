@@ -8,9 +8,23 @@
 @custom-variant data-open (&:where([data-state="open"], [data-open]));
 @custom-variant data-closed (&:where([data-state="closed"], [data-closed]));
 
+/* CSS Houdini Properties & Values API: typed-OM caching for dynamic display tokens */
+@property --display-dpr {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+@property --display-fps {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 60;
+}
+
 :root,
 .dark {
   color-scheme: dark;
+  interpolate-size: allow-keywords;
   --radius: 0.5rem;
   --background: #141415;
   --foreground: #ededed;
@@ -385,8 +399,21 @@
     @apply border-border;
   }
 
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
+  }
+
+  button,
+  a,
+  [role="button"],
+  select,
+  summary {
+    touch-action: manipulation;
   }
 
   h1,
@@ -642,6 +669,33 @@ html[data-page-hidden="true"] .animate-spin {
 
   [popover] {
     transition: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root,
+  .dark {
+    --border-color: #3f3f46;
+  }
+
+  .light {
+    --border-color: #a1a1aa;
+  }
+}
+
+@media (forced-colors: active) {
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    forced-color-adjust: auto;
+  }
+
+  :focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
   }
 }
 

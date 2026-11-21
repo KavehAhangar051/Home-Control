@@ -18,7 +18,11 @@ class AudioContextManager {
           : undefined);
 
       if (AudioContextClass) {
-        this.audioCtx = new AudioContextClass();
+        try {
+          this.audioCtx = new AudioContextClass({ latencyHint: "interactive" });
+        } catch {
+          this.audioCtx = new AudioContextClass();
+        }
       }
     }
 

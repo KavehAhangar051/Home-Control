@@ -7,6 +7,8 @@
  */
 
 export type GpuRenderBackend = "webgl2" | "webgl" | "compositor";
+export type DisplayColorGamut = "rec2020" | "p3" | "srgb";
+export type DisplayDynamicRange = "high" | "standard";
 
 export interface GpuDisplayProfile {
   dpr: number;
@@ -18,6 +20,9 @@ export interface GpuDisplayProfile {
   screenPhysicalHeight: number;
   refreshRateHz: number;
   backend: GpuRenderBackend;
+  hasWebGpu: boolean;
+  colorGamut: DisplayColorGamut;
+  dynamicRange: DisplayDynamicRange;
   maxTextureSize: number;
   max3dTextureSize: number;
 }
@@ -166,9 +171,31 @@ export function upload3dColorLutTexture(
   return tex;
 }
 
+/** Detects display color gamut (`rec2020`, `p3`, `srgb`) via standard CSS Media Queries Level 4. */
+export function detectDisplayColorGamut(): DisplayColorGamut {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return "srgb";
+  }
+
+  if (window.matchMedia("(color-gamut: rec2020)").matches) return "rec2020";
+  if (window.matchMedia("(color-gamut: p3)").matches) return "p3";
+
+  return "srgb";
+}
+
+/** Detects HDR display capability (`high` vs `standard`) via CSS Media Queries Level 5. */
+export function detectDisplayDynamicRange(): DisplayDynamicRange {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return "standard";
+  }
+
+  return window.matchMedia("(dynamic-range: high)").matches ? "high" : "standard";
+}
+
 /** Reads the current native logical + physical display resolution snapshot. */
 export function readDisplayProfile(refreshRateHz = 60): GpuDisplayProfile {
   const capability = probeGpuVramCapability();
+  const hasWebGpu = typeof navigator !== "undefined" && "gpu" in navigator;
 
   if (typeof window === "undefined") {
     return {
@@ -180,6 +207,9 @@ export function readDisplayProfile(refreshRateHz = 60): GpuDisplayProfile {
       screenPhysicalWidth: 1920,
       screenPhysicalHeight: 1080,
       refreshRateHz,
+      hasWebGpu: false,
+      colorGamut: "srgb",
+      dynamicRange: "standard",
       ...capability,
     };
   }
@@ -199,6 +229,9 @@ export function readDisplayProfile(refreshRateHz = 60): GpuDisplayProfile {
     screenPhysicalWidth: Math.round(screenWidth * dpr),
     screenPhysicalHeight: Math.round(screenHeight * dpr),
     refreshRateHz: snapRefreshRateHz(refreshRateHz),
+    hasWebGpu,
+    colorGamut: detectDisplayColorGamut(),
+    dynamicRange: detectDisplayDynamicRange(),
     ...capability,
   };
 }
