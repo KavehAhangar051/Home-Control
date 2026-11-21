@@ -1,0 +1,23 @@
+{
+  "catalog_desc": {
+    "Bash": ""
+  },
+  "catalog_source": "observed",
+  "catalog_tools": [
+    "Bash"
+  ],
+  "new_in_proposal": [],
+  "prompt_streaks": {
+    "Bash": 0
+  },
+  "prompts": 1,
+  "proposal": [],
+  "sessions": 1,
+  "streaks": {
+    "Bash": 0
+  },
+  "updated": 1795271109.7258236,
+  "used_tools": [
+    "Bash"
+  ]
+}
