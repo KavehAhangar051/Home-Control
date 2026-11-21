@@ -46,7 +46,7 @@ public:
 
   /** @brief Polls the future with the given input, returning a zero-copy reference. */
   HOT_PATH FORCE_INLINE const AsyncResult<O, E>& poll(const I& input) {
-    if (LIKELY(result_.is_pending()) && LIKELY(static_cast<bool>(poll_callback_))) {
+    if (LIKELY(result_.is_pending())) {
       result_ = poll_callback_(input);
       if (UNLIKELY(!result_.is_pending())) {
         poll_callback_.clear(); // Release captured closure state immediately on completion

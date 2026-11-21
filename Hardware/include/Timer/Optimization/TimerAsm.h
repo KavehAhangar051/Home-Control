@@ -36,20 +36,44 @@ inline bool is_timer_expired(unsigned long current_time, unsigned long next_call
     bool result;
     
     #if defined(__XTENSA__) || defined(ESP32)
+    uint32_t diff;
     asm volatile (
-        "sub    a4, %[curr], %[next]   \n"  // a4 = current - next (unsigned)
-        "extui  a4, a4, 31, 1          \n"  // Extract sign bit (1 if curr < next)
-        "movi   a5, 1                  \n"  // a5 = 1
-        "sub    %[res], a5, a4         \n"  // res = 1 - a4 (1 if curr >= next, 0 otherwise)
-        : [res] "=r" (result)
+        "sub    %[diff], %[curr], %[next] \n"  // diff = current - next (unsigned)
+        "movi   %[res], 1                 \n"  // res = 1 (fills pipeline slot, eliminates RAW hazard)
+        "extui  %[diff], %[diff], 31, 1   \n"  // Extract sign bit (1 if curr < next)
+        "sub    %[res], %[res], %[diff]   \n"  // res = 1 - sign (1 if curr >= next, 0 otherwise)
+        : [res] "=r" (result), [diff] "=&r" (diff)
         : [curr] "r" (current_time), [next] "r" (next_call_ms)
-        : "a4", "a5"
     );
 #else
-    result = (current_time >= next_call_ms);
+    result = (static_cast<long>(current_time - next_call_ms) >= 0);
 #endif
     
     return result;
+}
+
+/**
+ * @brief Fast single-bit to slot index conversion using Xtensa NSAU hardware instruction.
+ * @param single_bit An integer with exactly one bit set (power of 2: 1 << idx).
+ * @return Bit index (0..31).
+ * 
+ * OPTIMIZATION: 3 single-cycle Xtensa instructions, branchless, zero memory access.
+ */
+inline uint32_t bit_to_slot_index(uint32_t single_bit) {
+#if defined(__XTENSA__) || defined(ESP32)
+    uint32_t idx;
+    uint32_t tmp;
+    asm volatile (
+        "nsau   %[out], %[b]           \n"  // out = count leading zeros (0..31)
+        "movi   %[tmp], 31             \n"  // tmp = 31
+        "sub    %[out], %[tmp], %[out] \n"  // out = 31 - clz = bit position
+        : [out] "=r" (idx), [tmp] "=&r" (tmp)
+        : [b] "r" (single_bit)
+    );
+    return idx;
+#else
+    return __builtin_ctz(single_bit);
+#endif
 }
 
 /**
