@@ -1,4 +1,10 @@
 import { type DashboardFontId, getDashboardFontFamilyCss } from "@/lib/fonts";
+import {
+  byteToHex,
+  lookupDarkPalette,
+  lookupLightPalette,
+  lookupRelativeLuminance,
+} from "@/lib/gpuLut";
 
 interface ThemeStylesParams {
   accent3: string;
@@ -11,76 +17,6 @@ interface ThemeStylesParams {
 
 const HEX_6_OR_8_REGEX = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i;
 const HEX_3_OR_4_REGEX = /^#([0-9a-f]{3})([0-9a-f])?$/i;
-
-function toHexByte(n: number): string {
-  const clamped = Math.min(255, Math.max(0, n)) | 0;
-
-  return clamped < 16 ? `0${clamped.toString(16)}` : clamped.toString(16);
-}
-
-function computeDarkPalette(blackness = 70) {
-  const clamped = Math.max(0, Math.min(100, blackness));
-  const t = (100 - clamped) / 100;
-  // At default blackness=70 (t=0.3): deepest=#0f0f10 (15), bg=#141415 (20), card=#19191b (25), raised=#232325 (35), hairline=#27272a (39)
-  const bgVal = Math.round(8 + t * 40);
-  const deepestVal = Math.max(6, bgVal - 5);
-  const cardVal = bgVal + 5;
-  const hoverVal = bgVal + 15;
-  const borderVal = bgVal + 19;
-
-  const deepestHex = `#${toHexByte(deepestVal)}${toHexByte(deepestVal)}${toHexByte(deepestVal + 1)}`;
-  const bgHex = `#${toHexByte(bgVal)}${toHexByte(bgVal)}${toHexByte(bgVal + 1)}`;
-  const cardSolidHex = `#${toHexByte(cardVal)}${toHexByte(cardVal)}${toHexByte(cardVal + 2)}`;
-  const hoverHex = `#${toHexByte(hoverVal)}${toHexByte(hoverVal)}${toHexByte(hoverVal + 2)}`;
-  const borderHex = `#${toHexByte(borderVal)}${toHexByte(borderVal)}${toHexByte(borderVal + 3)}`;
-
-  return {
-    deepest: deepestHex,
-    bg: bgHex,
-    card: cardSolidHex,
-    cardSolid: cardSolidHex,
-    cardHover: hoverHex,
-    border: borderHex,
-  };
-}
-
-function computeLightPalette(whiteness = 70) {
-  const clamped = Math.max(0, Math.min(100, whiteness));
-  const t = clamped / 100;
-  // Graphite light ramp: bg=#fafafa, card=#ffffff, raised=#f4f4f5, hairline=#e4e4e7
-  const r = Math.round(234 + t * 21);
-  const g = Math.round(234 + t * 21);
-  const b = Math.round(236 + t * 19);
-
-  const deepestR = Math.max(226, r - 6);
-  const deepestG = Math.max(226, g - 6);
-  const deepestB = Math.max(228, b - 4);
-
-  const cardVal = Math.min(255, Math.round(250 + t * 5));
-  const hoverR = Math.max(224, r - 6);
-  const hoverG = Math.max(224, g - 6);
-  const hoverB = Math.max(226, b - 5);
-
-  const borderR = Math.max(206, r - 22);
-  const borderG = Math.max(206, g - 22);
-  const borderB = Math.max(210, b - 21);
-
-  const cardByte = toHexByte(cardVal);
-  const deepestHex = `#${toHexByte(deepestR)}${toHexByte(deepestG)}${toHexByte(deepestB)}`;
-  const bgHex = `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`;
-  const cardHex = `#${cardByte}${cardByte}${cardByte}`;
-  const hoverHex = `#${toHexByte(hoverR)}${toHexByte(hoverG)}${toHexByte(hoverB)}`;
-  const borderHex = `#${toHexByte(borderR)}${toHexByte(borderG)}${toHexByte(borderB)}`;
-
-  return {
-    deepest: deepestHex,
-    bg: bgHex,
-    card: cardHex,
-    cardSolid: cardHex,
-    cardHover: hoverHex,
-    border: borderHex,
-  };
-}
 
 function toSixDigitHex(color: string, fallback: string): string {
   const trimmed = color.trim();
@@ -103,8 +39,8 @@ function toSixDigitHex(color: string, fallback: string): string {
 }
 
 /**
- * Picks `#0f0f10` or `#ffffff` against a 6-digit hex background using WCAG 2.1
- * relative luminance so user-customized accents always preserve legible contrast.
+ * Picks `#0f0f10` or `#ffffff` against a 6-digit hex background using the precomputed
+ * WCAG 2.1 sRGB-to-linear LUT (`SRGB_TO_LINEAR_LUT`) with zero runtime `Math.pow`.
  */
 function getContrastingForeground(hexColor: string, fallback: string): string {
   const match = HEX_6_OR_8_REGEX.exec(hexColor.trim());
@@ -112,12 +48,10 @@ function getContrastingForeground(hexColor: string, fallback: string): string {
   if (!match) return fallback;
 
   const hex = match[1];
-  const channels = [0, 2, 4].map((offset) => {
-    const c = parseInt(hex.slice(offset, offset + 2), 16) / 255;
-
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  const r = Number.parseInt(hex.slice(0, 2), 16);
+  const g = Number.parseInt(hex.slice(2, 4), 16);
+  const b = Number.parseInt(hex.slice(4, 6), 16);
+  const luminance = lookupRelativeLuminance(r, g, b);
 
   return luminance > 0.36 ? "#0f0f10" : "#ffffff";
 }
@@ -137,22 +71,22 @@ function computeAccentHoverHex(
   if (!match) return isDark ? "#d4d4d8" : "#262626";
 
   const hex = match[1];
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
+  const r = Number.parseInt(hex.slice(0, 2), 16);
+  const g = Number.parseInt(hex.slice(2, 4), 16);
+  const b = Number.parseInt(hex.slice(4, 6), 16);
 
   // Darken bright accents slightly (keeps #0f0f10 text crisp); lift very dark accents toward white.
   if (foregroundHex === "#0f0f10") {
-    return `#${toHexByte(r * 0.88)}${toHexByte(g * 0.88)}${toHexByte(b * 0.88)}`;
+    return `#${byteToHex(r * 0.88)}${byteToHex(g * 0.88)}${byteToHex(b * 0.88)}`;
   }
 
   const maxChannel = Math.max(r, g, b);
 
   if (maxChannel < 64) {
-    return `#${toHexByte(r + (255 - r) * 0.14)}${toHexByte(g + (255 - g) * 0.14)}${toHexByte(b + (255 - b) * 0.14)}`;
+    return `#${byteToHex(r + (255 - r) * 0.14)}${byteToHex(g + (255 - g) * 0.14)}${byteToHex(b + (255 - b) * 0.14)}`;
   }
 
-  return `#${toHexByte(r * 0.84)}${toHexByte(g * 0.84)}${toHexByte(b * 0.84)}`;
+  return `#${byteToHex(r * 0.84)}${byteToHex(g * 0.84)}${byteToHex(b * 0.84)}`;
 }
 
 /**
@@ -169,7 +103,7 @@ export function computeThemeCssVariables({
   selectedFont,
 }: ThemeStylesParams): Record<string, string> {
   const selectedFontFamily = getDashboardFontFamilyCss(selectedFont);
-  const palette = isDark ? computeDarkPalette(darkBlackness) : computeLightPalette(lightWhiteness);
+  const palette = isDark ? lookupDarkPalette(darkBlackness) : lookupLightPalette(lightWhiteness);
 
   const isDefaultAccent3 =
     accent3.toUpperCase() === "#E5E7EB" || accent3.toUpperCase() === "#EDEDED";

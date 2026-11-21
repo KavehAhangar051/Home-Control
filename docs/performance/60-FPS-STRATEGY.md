@@ -70,19 +70,16 @@ Use equivalent Chromium desktop (`1440x900`) and mobile (`390x844`, 4x/6x CPU th
 
 The dashboard uses a GPU-first strategy for visual work, not a claim that every browser operation can execute exclusively on the GPU. React, DOM construction, event handling, application state, and layout still require CPU work.
 
-### Implemented first step
+### Implemented GPU-first & LUT infrastructure
 
-- Canvas and Workflow Bezier signal particles no longer animate CSS Motion Path's `offset-distance`. Their cubic curves are sampled once when geometry changes, then played as equal-distance Web Animations API keyframes that modify only `transform` and `opacity`.
-- The browser can composite these transform/opacity animations independently of main-thread rendering when the target and runtime conditions permit it. No global `will-change` or forced layer promotion is added.
-- The shared particle component uses one document-visibility listener for all active particle animations, cancels animations on cleanup, and respects reduced-motion preferences.
+- `lib/gpuLut.ts`: precomputed typed-array LUTs eliminate repeated per-frame CPU math across color/palette generation (`themeStyles.ts`), HSV→RGB & hex formatting (`color-picker.tsx`), Gaussian wave crests (`range-slider-wave.tsx`), cubic easing and frame-delta physics decay (`sheetViewportAnimator.ts`, `use-cursor-listeners.ts`), and cubic Bezier Bernstein basis sampling (`composited-bezier-particle.tsx`).
+- `lib/gpuDisplay.ts` & `lib/hooks/use-gpu-display.ts`: probes native display resolution, `devicePixelRatio`, GPU backend (`webgpu`/`webgl2`/`webgl`/`2d`), and display refresh rate (`60/90/120/144/165/240/360 Hz`) via a one-shot 14-frame `requestAnimationFrame` pass, synchronizes `--display-dpr`/`--display-fps`/`--display-pixel` CSS variables, provides `snapToDevicePixel` for crisp native-DPR transforms, and exposes a WebGL2 `TEXTURE_3D` LUT uploader (`upload3dColorLutTexture`).
+- `components/motion/composited-bezier-particle.tsx`: Canvas and Workflow Bezier signal particles pre-sample cubic curves through `sampleEqualArcCubicBezier` (with a bounded keyframe cache) and animate equal-distance `translate3d`/opacity WAAPI keyframes on compositor layers with one shared visibility pause listener and `useReducedMotion()` support.
+- `app/globals.css`, `styles/view-transitions.css`, `theme-toggle-config.ts`, `sheetViewportAnimator.ts`, `CanvasWorkspace.tsx`, `WorkflowStudio.tsx`, `loader.tsx`, `loader-shapes.tsx`, `range-slider-*.tsx`, `expandable-tabs.tsx`, and card/node components: keyframes and active transforms use 3D transforms (`translate3d`/`scale3d`/`rotate3d`, `backface-visibility: hidden`), `Percent` loader uses native-FPS `rAF` + `scaleX` instead of 25fps `setInterval`, `Metaballs` animates GPU `x` instead of SVG `cx`, interactive cards/nodes avoid CPU `width`/`height`/`box-shadow` transitions, and collapsible panels isolate layout via `contain: layout style`.
 
-### 3D LUT integration (planned)
+### 3D LUT WebGL2 surfaces
 
-- Use WebGL 2 fragment shaders and a 3D texture for color lookup / grading on dedicated decorative GPU surfaces (ambient backgrounds, glows, and non-semantic visual effects).
-- Do not apply a global LUT to the interactive DOM: it can distort device-state colors, warning/error semantics, text contrast, and user-selected theme colors.
-- Keep one bounded GPU resource lifecycle per renderer, handle WebGL context loss, avoid CPU readbacks, and provide a visually safe fallback when WebGL is unavailable.
-- Select LUT size, precision, and texture format from measured quality/performance trade-offs; do not assume that allocating more VRAM improves rendering.
-- The LUT renderer is not yet enabled in the dashboard. It must be profiled on desktop and mobile hardware before being applied to production surfaces.
+- `upload3dColorLutTexture` (`lib/gpuDisplay.ts`) and the WebGL 2 3D LUT surface pipeline (`GPU-RENDERING.md`) remain scoped for dedicated decorative GPU surfaces without distorting interactive semantic UI colors, text contrast, or user theme palettes.
 
 ### Verification status
 

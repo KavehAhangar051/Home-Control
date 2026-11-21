@@ -22,11 +22,18 @@
   animation: none;
 }
 
+/* Promote full-viewport View Transition snapshots onto dedicated VRAM textures */
+::view-transition-old(root),
+::view-transition-new(root) {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
 /* Adaptive lite tier: keep View Transition geometry smooth without full-screen GPU filter blur */
 html[data-perf-tier="lite"][data-beui-vt="circle-blur"]::view-transition-new(root) {
   animation-name: beui-circle-reveal;
   animation-duration: 480ms;
-  will-change: clip-path;
+  will-change: clip-path, transform;
   filter: none;
 }
 

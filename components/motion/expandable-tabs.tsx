@@ -353,7 +353,12 @@ export function ExpandableTabs({
         initial={false}
         animate={{ width: targetSize.width, height: targetSize.height }}
         transition={reduce ? { duration: 0 } : SHELL_SPRING}
-        style={{ transformOrigin: "bottom center", willChange: "width, height, transform" }}
+        style={{
+          transformOrigin: "bottom center",
+          willChange: "transform, width, height",
+          backfaceVisibility: "hidden",
+          contain: "layout style",
+        }}
         className={cn(
           "relative max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-[26px] border border-border-color bg-card-bg-solid/95 shadow-2xl backdrop-blur-xl transform-gpu",
           className,
@@ -405,6 +410,7 @@ export function ExpandableTabs({
                 style={{
                   transformOrigin: "top center",
                   willChange: "transform, opacity",
+                  backfaceVisibility: "hidden",
                 }}
               >
                 <div
@@ -481,7 +487,7 @@ export function ExpandableTabs({
                     <m.span
                       layoutId={pillLayoutId}
                       transition={reduce ? { duration: 0 } : SPRING_LAYOUT}
-                      style={{ willChange: "transform" }}
+                      style={{ willChange: "transform", backfaceVisibility: "hidden" }}
                       className={cn(
                         "absolute inset-0 -z-10 rounded-[18px] border border-sidebar-border/80 bg-sidebar-hover dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
                         classNames?.pill,

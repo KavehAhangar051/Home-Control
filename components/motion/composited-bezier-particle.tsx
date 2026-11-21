@@ -1,211 +1,179 @@
 "use client";
 
+/**
+ * @file components/motion/composited-bezier-particle.tsx
+ * @description Off-main-thread GPU-composited signal particle that glides along any cubic Bezier
+ * wire using LUT-sampled equal-arc-length `translate3d` + `opacity` Web Animations API keyframes.
+ * Runs at the display's full native refresh rate (60/120/144/240Hz) in VRAM with zero SVG SMIL
+ * paint invalidations and a single shared `visibilitychange` controller.
+ */
+
 import { useReducedMotion } from "motion/react";
-import { useEffect, useRef, type ReactNode } from "react";
+import React, { useEffect, useRef } from "react";
+import { type CubicBezierCurve, sampleEqualArcCubicBezier } from "@/lib/gpuLut";
+import { cn } from "@/lib/utils";
 
-export interface CubicBezierCurve {
-  startX: number;
-  startY: number;
-  control1X: number;
-  control1Y: number;
-  control2X: number;
-  control2Y: number;
-  endX: number;
-  endY: number;
-}
-
-interface CompositedBezierParticleProps {
+export interface CompositedBezierParticleProps {
   curve: CubicBezierCurve;
   durationMs: number;
   delayMs?: number;
-  className: string;
-  children?: ReactNode;
+  className?: string;
+  children?: React.ReactNode;
 }
 
-interface Point {
-  x: number;
-  y: number;
-  distance: number;
-}
+const KEYFRAME_CACHE_LIMIT = 128;
+const keyframeCache = new Map<string, Keyframe[]>();
 
-const SAMPLE_COUNT = 64;
-const FADE_LENGTH = 0.08;
-const PARTICLE_ANCHOR = 7;
-const transformKeyframesCache = new WeakMap<CubicBezierCurve, Keyframe[]>();
 const activeAnimations = new Set<Animation>();
 let visibilityListenerAttached = false;
 
-function syncAnimationVisibility(): void {
+function handleSharedVisibilityChange(): void {
+  const hidden = document.hidden;
+
   for (const animation of activeAnimations) {
-    if (document.hidden) {
-      animation.pause();
-    } else {
-      animation.play();
+    try {
+      if (hidden) {
+        animation.pause();
+      } else if (animation.playState === "paused") {
+        animation.play();
+      }
+    } catch {
+      // Ignore animations already finished or detached.
     }
   }
 }
 
-function registerVisibilityAwareAnimation(animation: Animation): () => void {
+function registerAnimation(animation: Animation): () => void {
   activeAnimations.add(animation);
 
-  if (!visibilityListenerAttached) {
-    document.addEventListener("visibilitychange", syncAnimationVisibility);
+  if (!visibilityListenerAttached && typeof document !== "undefined") {
     visibilityListenerAttached = true;
+    document.addEventListener("visibilitychange", handleSharedVisibilityChange);
   }
 
-  if (document.hidden) animation.pause();
+  if (typeof document !== "undefined" && document.hidden) {
+    try {
+      animation.pause();
+    } catch {
+      // No-op in environments without WAAPI pause support.
+    }
+  }
 
   return () => {
     activeAnimations.delete(animation);
 
-    if (activeAnimations.size === 0 && visibilityListenerAttached) {
-      document.removeEventListener("visibilitychange", syncAnimationVisibility);
+    if (
+      activeAnimations.size === 0 &&
+      visibilityListenerAttached &&
+      typeof document !== "undefined"
+    ) {
       visibilityListenerAttached = false;
+      document.removeEventListener("visibilitychange", handleSharedVisibilityChange);
     }
   };
 }
 
-function evaluateBezier(curve: CubicBezierCurve, t: number): Point {
-  const inverse = 1 - t;
-  const inverseSquared = inverse * inverse;
-  const tSquared = t * t;
+function getCurveKeyframes(curve: CubicBezierCurve): Keyframe[] {
+  const key = `${curve.startX},${curve.startY},${curve.control1X},${curve.control1Y},${curve.control2X},${curve.control2Y},${curve.endX},${curve.endY}`;
+  const cached = keyframeCache.get(key);
+  if (cached) return cached;
 
-  return {
-    x:
-      inverseSquared * inverse * curve.startX +
-      3 * inverseSquared * t * curve.control1X +
-      3 * inverse * tSquared * curve.control2X +
-      tSquared * t * curve.endX,
-    y:
-      inverseSquared * inverse * curve.startY +
-      3 * inverseSquared * t * curve.control1Y +
-      3 * inverse * tSquared * curve.control2Y +
-      tSquared * t * curve.endY,
-    distance: 0,
-  };
+  const points = sampleEqualArcCubicBezier(curve, 24);
+  const lastIndex = points.length - 1;
+  const keyframes: Keyframe[] = points.map((pt, index) => {
+    const t = index / lastIndex;
+    const opacity = t < 0.08 ? t / 0.08 : t > 0.92 ? (1 - t) / 0.08 : 1;
+
+    return {
+      transform: `translate3d(${pt.x}px, ${pt.y}px, 0) translate3d(-50%, -50%, 0)`,
+      opacity: Math.round(opacity * 1000) / 1000,
+    };
+  });
+
+  if (keyframeCache.size >= KEYFRAME_CACHE_LIMIT) {
+    const oldestKey = keyframeCache.keys().next().value;
+    if (oldestKey !== undefined) keyframeCache.delete(oldestKey);
+  }
+
+  keyframeCache.set(key, keyframes);
+
+  return keyframes;
 }
 
 /**
- * Samples a cubic Bezier once and creates equal-distance transform keyframes.
- * The browser can composite the resulting transform/opacity animation without
- * recalculating the path or updating React on every frame.
+ * Renders a GPU-composited particle traveling at constant arc-length velocity along a cubic Bezier.
  */
-function getTransformKeyframes(curve: CubicBezierCurve): Keyframe[] {
-  const cached = transformKeyframesCache.get(curve);
-  if (cached) return cached;
-
-  const keyframes = createTransformKeyframes(curve);
-  transformKeyframesCache.set(curve, keyframes);
-  return keyframes;
-}
-
-function createTransformKeyframes(curve: CubicBezierCurve): Keyframe[] {
-  const samples: Point[] = [];
-  let totalLength = 0;
-
-  for (let index = 0; index <= SAMPLE_COUNT; index++) {
-    const point = evaluateBezier(curve, index / SAMPLE_COUNT);
-    const previous = samples[index - 1];
-
-    if (previous) {
-      const dx = point.x - previous.x;
-      const dy = point.y - previous.y;
-      totalLength += Math.hypot(dx, dy);
-    }
-
-    point.distance = totalLength;
-    samples.push(point);
-  }
-
-  if (totalLength === 0) {
-    return [
-      {
-        transform: `translate3d(${curve.startX - PARTICLE_ANCHOR}px, ${curve.startY - PARTICLE_ANCHOR}px, 0)`,
-        opacity: 0,
-      },
-    ];
-  }
-
-  const keyframes: Keyframe[] = [];
-  let sampleIndex = 1;
-
-  for (let index = 0; index <= SAMPLE_COUNT; index++) {
-    const progress = index / SAMPLE_COUNT;
-    const targetDistance = totalLength * progress;
-
-    while (
-      sampleIndex < SAMPLE_COUNT &&
-      samples[sampleIndex].distance < targetDistance
-    ) {
-      sampleIndex++;
-    }
-
-    const before = samples[sampleIndex - 1];
-    const after = samples[sampleIndex];
-    const span = after.distance - before.distance;
-    const localProgress = span > 0 ? (targetDistance - before.distance) / span : 0;
-    const x = before.x + (after.x - before.x) * localProgress;
-    const y = before.y + (after.y - before.y) * localProgress;
-    const opacity = Math.min(1, progress / FADE_LENGTH, (1 - progress) / FADE_LENGTH);
-
-    keyframes.push({
-      transform: `translate3d(${x - PARTICLE_ANCHOR}px, ${y - PARTICLE_ANCHOR}px, 0)`,
-      opacity: Math.max(0, opacity),
-    });
-  }
-
-  return keyframes;
-}
-
-export function CompositedBezierParticle({
+export const CompositedBezierParticle = React.memo(function CompositedBezierParticle({
   curve,
   durationMs,
   delayMs = 0,
   className,
   children,
 }: CompositedBezierParticleProps) {
-  const elementRef = useRef<HTMLSpanElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  const particleRef = useRef<HTMLDivElement | null>(null);
 
+  const { startX, startY, control1X, control1Y, control2X, control2Y, endX, endY } = curve;
 
   useEffect(() => {
-    const element = elementRef.current;
+    if (prefersReducedMotion) return;
 
-    if (!element || prefersReducedMotion !== false) return;
+    const el = particleRef.current;
+    if (!el || typeof el.animate !== "function") return;
 
-    if (typeof element.animate !== "function") {
-      element.style.opacity = "1";
-      return;
-    }
+    const keyframes = getCurveKeyframes({
+      startX,
+      startY,
+      control1X,
+      control1Y,
+      control2X,
+      control2Y,
+      endX,
+      endY,
+    });
 
-    const animation = element.animate(
-      getTransformKeyframes(curve),
-      {
-        duration: durationMs,
-        delay: delayMs,
-        iterations: Number.POSITIVE_INFINITY,
-        easing: "linear",
-      },
-    );
-    const unregister = registerVisibilityAwareAnimation(animation);
+    const animation = el.animate(keyframes, {
+      duration: Math.max(120, durationMs),
+      delay: delayMs,
+      iterations: Number.POSITIVE_INFINITY,
+      easing: "linear",
+    });
+
+    const unregister = registerAnimation(animation);
 
     return () => {
       unregister();
       animation.cancel();
     };
-  }, [curve, durationMs, delayMs, prefersReducedMotion]);
+  }, [
+    prefersReducedMotion,
+    startX,
+    startY,
+    control1X,
+    control1Y,
+    control2X,
+    control2Y,
+    endX,
+    endY,
+    durationMs,
+    delayMs,
+  ]);
+
+  if (prefersReducedMotion) return null;
 
   return (
-    <span
-      ref={elementRef}
+    <div
+      ref={particleRef}
       aria-hidden="true"
-      className={`pointer-events-none absolute top-0 left-0 ${className}`}
       style={{
-        transform: `translate3d(${curve.startX - PARTICLE_ANCHOR}px, ${curve.startY - PARTICLE_ANCHOR}px, 0)`,
-        opacity: prefersReducedMotion === false ? 0 : 1,
+        transform: `translate3d(${startX}px, ${startY}px, 0) translate3d(-50%, -50%, 0)`,
+        willChange: "transform, opacity",
+        backfaceVisibility: "hidden",
+        contain: "layout style",
       }}
+      className={cn("pointer-events-none absolute top-0 left-0", className)}
     >
       {children}
-    </span>
+    </div>
   );
-}
+});

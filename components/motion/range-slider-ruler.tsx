@@ -170,7 +170,13 @@ export function RulerSlider({
 
             if (reduce) snapToTick();
           }}
-          style={{ x, marginLeft: -gap / 2, width: maxOffset + gap, willChange: "transform" }}
+          style={{
+            x,
+            marginLeft: -gap / 2,
+            width: maxOffset + gap,
+            willChange: "transform",
+            backfaceVisibility: "hidden",
+          }}
           className="absolute inset-y-0 left-1/2"
         >
           {ticks.map((tick) => (

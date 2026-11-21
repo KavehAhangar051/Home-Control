@@ -375,7 +375,7 @@ export function InlineSlider({
       >
         <m.div
           className="absolute inset-0 rounded-lg bg-accent3-medium"
-          style={{ x: fillX, willChange: "transform" }}
+          style={{ x: fillX, willChange: "transform", backfaceVisibility: "hidden" }}
         />
       </div>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 text-text-primary">
@@ -405,7 +405,7 @@ export function InlineSlider({
         animate={reduce ? undefined : { scaleY: dragging ? 1.35 : 1 }}
         transition={SPRING_BOUNCY}
         className="pointer-events-none absolute left-0 top-1/2 h-6 w-1 text-accent3"
-        style={{ x: handleX, y: "-50%", willChange: "transform" }}
+        style={{ x: handleX, y: "-50%", willChange: "transform", backfaceVisibility: "hidden" }}
       >
         <m.span
           className="absolute top-0 size-1 rounded-full bg-current"

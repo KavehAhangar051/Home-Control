@@ -7,6 +7,7 @@ import DashboardStyles from "@/features/iot/components/DashboardStyles";
 import ToastNotification from "@/features/iot/components/notifications/ToastNotification";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { usePageVisibility } from "@/features/iot/hooks/usePageVisibility";
+import { useGpuDisplayObserver } from "@/lib/hooks/use-gpu-display";
 import { usePerformanceTierObserver } from "@/lib/hooks/use-performance-tier";
 import DashboardDrawers from "./DashboardDrawers";
 import DashboardHeader from "./DashboardHeader";
@@ -39,6 +40,7 @@ export default function DashboardContainer() {
     animationsFps,
     isPageVisible,
   });
+  useGpuDisplayObserver();
 
   return (
     <TooltipProvider>

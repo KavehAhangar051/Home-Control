@@ -3,15 +3,13 @@
 
 import { useReducedMotion } from "motion/react";
 import { useMemo } from "react";
+import { lookupWaveCrest } from "@/lib/gpuLut";
 import { type SliderOptions, useSlider } from "@/lib/hooks/use-slider";
 import { TOUCH_GESTURE_CLASS } from "@/lib/touch";
 import { cn } from "@/lib/utils";
 
 /** Bar count that reads as a wave without turning into a stripe pattern. */
 const BARS = 32;
-
-/** Width of the crest in bars — bigger spreads the bell wider. */
-const SPREAD = 2.6;
 
 export interface WaveSliderProps extends SliderOptions {
   /** Number of bars drawn across the track. */
@@ -24,7 +22,7 @@ export interface WaveSliderProps extends SliderOptions {
 /**
  * Equalizer slider: bars rise into a crest around the handle position and fall
  * back as it passes, so the value reads as a travelling wave. Runs purely via GPU
- * compositor-friendly `transform: scaleY(...)` transitions without 32 JS spring instances.
+ * compositor-friendly `translate3d + scaleY` transitions and an O(1) Gaussian crest LUT.
  */
 export function WaveSlider({ bars = BARS, barClassName, className, ...options }: WaveSliderProps) {
   const reduce = useReducedMotion();
@@ -47,7 +45,7 @@ export function WaveSlider({ bars = BARS, barClassName, className, ...options }:
     >
       {keys.map((key, i) => {
         const distance = Math.abs(i - head);
-        const crest = Math.exp(-(distance ** 2) / (2 * SPREAD ** 2));
+        const crest = lookupWaveCrest(distance);
         const filled = i <= Math.round(head);
         const scaleY = reduce ? 0.4 : 0.22 + crest * (dragging ? 0.78 : 0.6);
         const delayMs = reduce ? 0 : Math.min(Math.round(distance * 12), 120);
@@ -56,7 +54,7 @@ export function WaveSlider({ bars = BARS, barClassName, className, ...options }:
           <span key={key} className="flex h-full flex-1 items-center justify-center">
             <span
               className={cn(
-                "h-14 w-full max-w-[5px] origin-center rounded-full",
+                "h-14 w-full max-w-[5px] origin-center rounded-full will-change-transform [backface-visibility:hidden]",
                 !reduce &&
                   "transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
                 // /45 keeps the unfilled track above the 3:1 non-text contrast
@@ -65,7 +63,7 @@ export function WaveSlider({ bars = BARS, barClassName, className, ...options }:
                 barClassName,
               )}
               style={{
-                transform: `scaleY(${scaleY.toFixed(4)})`,
+                transform: `translate3d(0, 0, 0) scaleY(${scaleY.toFixed(4)})`,
                 transitionDelay: `${delayMs}ms`,
               }}
             />
