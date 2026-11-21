@@ -7,7 +7,14 @@
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 3000",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "r": "bash ./tools/r",
+    "rtk": "bash ./tools/rtk.sh",
+    "rtk:gain": "bash ./tools/rtk.sh gain",
+    "rtk:setup": "bash ./tools/rtk.sh setup",
+    "rtk:ensure": "bash ./tools/rtk.sh ensure",
+    "tools:check": "python3 ./tools/rtk-bridge.py check",
+    "postinstall": "bash ./tools/rtk.sh setup || true"
   },
   "dependencies": {
     "lucide-react": "^1.16.0",
