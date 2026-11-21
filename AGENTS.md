@@ -25,11 +25,21 @@
   - بیلد ESP32 Core v3: `bun run r -- pio run -e esp32dev_core3`
   - نصب/بروزرسانی کامل تمام پلتفرم‌ها و کتابخانه‌ها: `bun run pio:setup`
 
-## ۴. حفظ دائمی داده‌ها و بررسی سلامت
-- داده‌های `rtk` در `.agent-state/rtk/`، حافظه و `microskills` ابزار `TokenEconomizer` در `.agent-state/tokeneconomizer/`، گراف `cbm` در `.codebase-memory/graph.db.zst` (و کش `.agent-state/cbm/`) و کل محیط `PlatformIO` در `.agent-state/platformio/` و `.pio/` ذخیره می‌شوند.
+## ۴. ابزارهای Format، Lint، تایپ‌چک و تحلیل استاتیک C/C++
+- ابزارهای دائمی C/C++ (`clang-format`، `clang-tidy`، `clangd`، `cppcheck`، `cpplint`، `cmake`، `ninja`) در `<repo>/.agent-state/cpp-tools/` و `<repo>/.agent-state/platformio/packages/tool-cppcheck/` نصب و به `/usr/local/bin/` و `~/.local/bin/` لینک شده‌اند و تنظیمات آن‌ها در `.clang-format`، `.clang-tidy` و `.clangd` ذخیره است.
+- **دستورات کاربردی C/C++:**
+  - تولید `compile_commands.json`: `bun run cpp:compiledb`
+  - بررسی فرمت کد: `bun run cpp:format:check` (یا فرمت خودکار: `bun run cpp:format`)
+  - لینت و تحلیل استاتیک (`cppcheck` / `pio check`): `bun run cpp:lint`
+  - تحلیل عمیق (`clang-tidy`): `bun run cpp:tidy`
+  - تایپ‌چک معنایی (`clangd --check`): `bun run cpp:typecheck`
+  - نصب/تعمیر کامل ابزارهای C/C++: `bun run cpp:setup`
+
+## ۵. حفظ دائمی داده‌ها و بررسی سلامت
+- داده‌های `rtk` در `.agent-state/rtk/`، حافظه و `microskills` ابزار `TokenEconomizer` در `.agent-state/tokeneconomizer/`، گراف `cbm` در `.codebase-memory/graph.db.zst` (و کش `.agent-state/cbm/`)، محیط `PlatformIO` در `.agent-state/platformio/` و `.pio/` و ابزارهای C/C++ در `.agent-state/cpp-tools/` نگهداری می‌شوند.
 - بررسی سلامت کل ابزارها: `bun run tools:check` (یا `npm run tools:check`)
 
-## ۵. نحوه پاسخ‌گویی و استاندارد کد
+## ۶. نحوه پاسخ‌گویی و استاندارد کد
 - خلاصه، دقیق و صادق باش؛ از اغراق، تکرار و توضیحات اضافه پرهیز کن.
 - برای ویرایش‌های محدود، کل فایل را بازنویسی نکن. هرگز `.env`، `.agent-state/rtk/data/history.db`، `.agent-state/tokeneconomizer/repos/` یا `.codebase-memory/graph.db.zst` را حذف نکن.
 - کارهای مستقل (خواندن/ویرایش فایل‌ها) را موازی انجام بده.

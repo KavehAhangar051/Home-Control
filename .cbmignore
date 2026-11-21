@@ -8,5 +8,7 @@ build/
 .rtk/
 .agents/
 .aistudio/
+.cache/
+compile_commands.json
 firmware/prebuilt/
 Temp/
