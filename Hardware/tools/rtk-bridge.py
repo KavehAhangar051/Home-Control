@@ -25,6 +25,7 @@ RTK_DATA_DIR = STATE_ROOT / "data"
 EXECUTABLE_TOOLS = (
     ROOT_DIR / "tools" / "r",
     ROOT_DIR / "tools" / "rtk.sh",
+    ROOT_DIR / "tools" / "cbm.sh",
     ROOT_DIR / "tools" / "rtk-bridge.py",
 )
 
@@ -35,6 +36,10 @@ NON_RTK_SCRIPTS = frozenset(
         "rtk:gain",
         "rtk:setup",
         "rtk:ensure",
+        "cbm",
+        "cbm:index",
+        "cbm:setup",
+        "cbm:ensure",
         "tools:check",
     }
 )
@@ -90,6 +95,8 @@ SHELL_META_TOKENS = ("&&", "||", ";", "|", ">", "<", "\n", "$(", "`")
 
 
 CONTAINER_MARKER = Path("/tmp/.rtk_container_initialized")
+CBM_CACHE_BIN = ROOT_DIR / ".agent-state" / "cbm" / "bin" / "codebase-memory-mcp"
+CBM_CONTAINER_MARKER = Path("/tmp/.cbm_container_initialized")
 
 
 def _tool_env() -> dict[str, str]:
@@ -129,6 +136,15 @@ def ensure_ready() -> None:
     )
     if not rtk_ok:
         subprocess.run(["bash", str(ROOT_DIR / "tools" / "rtk.sh"), "ensure"], check=True)
+
+    cbm_ok = (
+        CBM_CACHE_BIN.is_file()
+        and Path("/usr/local/bin/codebase-memory-mcp").is_file()
+        and (Path.home() / ".cache" / "codebase-memory-mcp" / "app-applet.db").is_file()
+        and CBM_CONTAINER_MARKER.is_file()
+    )
+    if not cbm_ok:
+        subprocess.run(["bash", str(ROOT_DIR / "tools" / "cbm.sh"), "ensure"], check=True)
 
 
 def _rtk_bin() -> str:
@@ -216,6 +232,8 @@ def check_tools() -> int:
         ("rtk:version", [rtk, "--version"]),
         ("rtk:pipeline", [rtk, "pipeline", "show"]),
         ("rtk:gain", [rtk, "gain"]),
+        ("cbm:version", [str(CBM_CACHE_BIN), "--version"]),
+        ("cbm:projects", ["bash", str(ROOT_DIR / "tools" / "cbm.sh"), "cli", "list_projects"]),
     ]
     failed = 0
     for name, cmd in checks:
@@ -234,9 +252,15 @@ def check_tools() -> int:
         and (RTK_CFG_DIR / "config.toml").is_file()
     )
     print(f"[rtk:persistence] {'ok' if links_ok else 'fail'}")
+    cbm_persist_ok = (
+        Path("/usr/local/bin/codebase-memory-mcp").exists()
+        and (Path.home() / ".cache" / "codebase-memory-mcp" / "app-applet.db").is_file()
+        and (ROOT_DIR / ".codebase-memory" / "graph.db.zst").is_file()
+    )
+    print(f"[cbm:persistence] {'ok' if cbm_persist_ok else 'fail'}")
     perms_ok = all(p.is_file() and os.access(p, os.X_OK) for p in EXECUTABLE_TOOLS)
     print(f"[tools:+x] {'ok' if perms_ok else 'fail'}")
-    return 1 if (failed or not links_ok or not perms_ok) else 0
+    return 1 if (failed or not links_ok or not cbm_persist_ok or not perms_ok) else 0
 
 
 def main() -> int:
