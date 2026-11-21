@@ -99,6 +99,7 @@ struct SegmentAddRequestEvent {
 struct SegmentRemoveRequestEvent {
     static constexpr const char* Name = "segment.remove_request";
     const char* id;    /**< Segment unique identifier to remove */
+    int pin = -1;      /**< Optional fallback physical GPIO pin (0..39), or -1 if omitted */
 };
 
 /**

@@ -14,7 +14,7 @@ interface PinManagerPanelProps {
   onToggleOutput: (pin: number, nextState: boolean, timerSec: number) => void;
   onTriggerInput: (pin: number, nextState: boolean, heldSec: 0 | 3 | 5 | 10) => void;
   onAddSegment: (pin: number, id: string, type: 'output' | 'input') => void;
-  onDeleteSegment: (id: string) => void;
+  onDeleteSegment: (id: string, pin?: number) => void;
   onInspectBinaryFrame: (hex: string) => void;
 }
 
@@ -296,7 +296,7 @@ export const PinManagerPanel: React.FC<PinManagerPanelProps> = ({
                           <button
                             type="button"
                             aria-label={`Delete segment ${seg.id}`}
-                            onClick={() => onDeleteSegment(seg.id)}
+                            onClick={() => onDeleteSegment(seg.id, seg.pin)}
                             className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors shrink-0"
                           >
                             <Trash2 className="w-4 h-4" />

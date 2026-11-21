@@ -2,9 +2,9 @@
   "facts": {
     "_profile": "envfacts",
     "_task": {
-      "iid": "ais-20261121-142503-15659f",
+      "iid": "ais-20261121-153725-5fcaac",
       "injected": [],
-      "n_calls": 1,
+      "n_calls": 10,
       "resolved": null,
       "verdicts": {}
     },
@@ -15,6 +15,6 @@
   "reason": "envfacts",
   "rendered": "",
   "rendered_ids": [],
-  "sessions": 1,
-  "updated": 1795271109.7247107
+  "sessions": 4,
+  "updated": 1795276343.2699218
 }

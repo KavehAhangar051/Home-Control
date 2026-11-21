@@ -29,7 +29,28 @@ public:
         uint16_t adcHighThreshold = 0,
         uint16_t adcLowThreshold = 0
     );
+    bool upsertSegment(
+        const char* id,
+        SegmentType type,
+        int pin,
+        int autoOffDelay = 0,
+        RuleConfig rule = RuleConfig(),
+        uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION,
+        uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY,
+        uint8_t adcResolution = DEFAULT_ADC_RESOLUTION,
+        uint16_t adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS,
+        uint16_t adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD,
+        uint16_t adcHighThreshold = 0,
+        uint16_t adcLowThreshold = 0
+    );
     bool removeSegment(const char* id);
+    bool removeSegmentByPin(int pin);
+    bool removeSegmentByIdOrPin(const char* id, int fallbackPin = -1);
+    void clearAllSegments();
+    bool hasPin(int pin) const;
+    bool hasId(const char* id) const;
+    const char* getSegmentIdByPin(int pin) const;
+    static int extractPinFromCanonicalId(const char* id);
     bool updateSegmentRule(const char* id, const RuleConfig& rule);
     bool updateSegmentRuleByPin(int pin, const RuleConfig& rule);
     bool updateAnalogInputConfigByPin(
@@ -265,6 +286,8 @@ public:
     }
 
 private:
+    bool removeSegmentByIndex(int idx);
+
     PinRegistry _registry;
     PinTimerManager _timerManager;
     PinStateManager _stateManager;

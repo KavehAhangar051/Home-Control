@@ -93,7 +93,9 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
 
         if (strncmp(p, "C ", 2) == 0) {
             char markerBuf[4] = {0};
-            outResult.segmentsProvided = kvp.getValue("n", markerBuf, sizeof(markerBuf));
+            if (kvp.getValue("n", markerBuf, sizeof(markerBuf))) {
+                outResult.segmentsProvided = true;
+            }
         } else if (strncmp(p, "S ", 2) == 0) {
             segIndex++;
             if (segIndex >= MAX_SEGMENTS) {
@@ -164,6 +166,7 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                 outResult.segments[segIndex].autoOffDelay = kvp.getInt("ao", 0);
                 outResult.segments[segIndex].valid = valid;
                 if (valid) {
+                    outResult.segmentsProvided = true;
                     outResult.count++;
                 } else {
                     segIndex--;

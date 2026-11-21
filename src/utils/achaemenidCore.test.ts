@@ -6,13 +6,16 @@ import {
   bytesToHex,
   calculateStackTelemetry,
   decodeMqttBinaryFrame,
+  deleteSimulatorSegment,
   encodeAddSegmentFrame,
   encodeDeleteSegmentFrame,
   encodePresenceFrame,
   encodeTogglePinFrame,
   encodeUpdateRuleFrame,
   evaluateInputRuleTransition,
+  extractPinFromCanonicalId,
   hexToBytes,
+  upsertSimulatorSegment,
 } from './achaemenidCore';
 
 test('INITIAL_SEGMENTS matches the 5 NVS pins from Output-Of-Serial.md', () => {
@@ -56,6 +59,44 @@ test('0x02 ADD_SEGMENT and 0x03 DELETE_SEGMENT binary protocol round-trip', () =
   assert.equal(decodedDel.valid, true);
   assert.equal(decodedDel.eventType, 'DELETE_SEGMENT');
   assert.equal(decodedDel.payloadData?.id, 'relay_pump');
+  assert.equal(decodedDel.payloadData?.pin, undefined);
+
+  const delV2Frame = encodeDeleteSegmentFrame('jjib4yz', 5);
+  assert.equal(delV2Frame[delV2Frame.length - 1], 5);
+  const decodedDelV2 = decodeMqttBinaryFrame(delV2Frame);
+  assert.equal(decodedDelV2.valid, true);
+  assert.equal(decodedDelV2.eventType, 'DELETE_SEGMENT');
+  assert.equal(decodedDelV2.payloadData?.id, 'jjib4yz');
+  assert.equal(decodedDelV2.payloadData?.pin, 5);
+});
+
+test('Segment ID sync helpers handle mismatched-ID delete via fallback pin, canonical ID, and upsert on occupied pin', () => {
+  assert.equal(extractPinFromCanonicalId('gpio_5'), 5);
+  assert.equal(extractPinFromCanonicalId('pin_14'), 14);
+  assert.equal(extractPinFromCanonicalId('7xhkvz2'), null);
+  assert.equal(extractPinFromCanonicalId('jjib4yz'), null);
+
+  // User bug scenario: pin 5 stored as '48ef3dw', delete arrives with id='jjib4yz', pin=5
+  const delByPin = deleteSimulatorSegment(INITIAL_SEGMENTS, 'jjib4yz', 5);
+  assert.equal(delByPin.resolvedBy, 'fallback_pin');
+  assert.equal(delByPin.removed?.id, '48ef3dw');
+  assert.equal(delByPin.removed?.pin, 5);
+  assert.equal(delByPin.segments.some((s) => s.pin === 5), false);
+
+  // Canonical ID 'gpio_5' works even without trailing pin byte
+  const delByCanonical = deleteSimulatorSegment(INITIAL_SEGMENTS, 'gpio_5');
+  assert.equal(delByCanonical.resolvedBy, 'canonical_id');
+  assert.equal(delByCanonical.removed?.pin, 5);
+
+  // Random base-36 ID starting with a digit does not falsely delete a pin
+  const noMatch = deleteSimulatorSegment(INITIAL_SEGMENTS, '5abcxyz');
+  assert.equal(noMatch.resolvedBy, 'none');
+  assert.equal(noMatch.segments.length, INITIAL_SEGMENTS.length);
+
+  // Upsert replaces stale ID on occupied GPIO 5
+  const upserted = upsertSimulatorSegment(INITIAL_SEGMENTS, 5, 'jjib4yz', 'output');
+  assert.equal(upserted.replacedId, '48ef3dw');
+  assert.equal(upserted.segments.find((s) => s.pin === 5)?.id, 'jjib4yz');
 });
 
 test('0x04 DASHBOARD_PRESENCE and legacy JSON rejection work per MqttCommandDispatcher.cpp', () => {

@@ -306,12 +306,116 @@ export function encodeAddSegmentFrame(pin: number, id: string, type: 'output' | 
 
 /**
  * Encodes a 0x03 Binary Delete Segment MQTT frame:
- * [0x03, ...idStr\0]
+ * Legacy:      [0x03, ...idStr\0]
+ * Extended v2: [0x03, ...idStr\0, pinNum] (optional trailing GPIO 0..39 fallback)
  */
-export function encodeDeleteSegmentFrame(id: string): Uint8Array {
+export function encodeDeleteSegmentFrame(id: string, pin?: number): Uint8Array {
   const encoder = new TextEncoder();
   const idBytes = encoder.encode(id.slice(0, 31));
+  const hasValidPin =
+    typeof pin === 'number' && Number.isInteger(pin) && pin >= 0 && pin <= 39;
+  if (hasValidPin) {
+    return new Uint8Array([0x03, ...idBytes, 0x00, pin & 0xff]);
+  }
   return new Uint8Array([0x03, ...idBytes, 0x00]);
+}
+
+/**
+ * Mirrors PinManager::extractPinFromCanonicalId(id) for deterministic pin-based IDs
+ * ("gpio_<N>", "pin_<N>", or pure numeric "<N>" with 0 <= N <= 39).
+ */
+export function extractPinFromCanonicalId(id: string): number | null {
+  const match = /^(?:(?:gpio|pin)_)?(\d{1,2})$/i.exec(id);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isInteger(parsed) && parsed >= 0 && parsed <= 39 ? parsed : null;
+}
+
+/**
+ * Mirrors PinManager::upsertSegment: replaces an existing segment on the same GPIO pin
+ * (or moves an existing segment with the same ID) instead of silently failing.
+ */
+export function upsertSimulatorSegment(
+  segments: SegmentConfig[],
+  pin: number,
+  id: string,
+  type: 'output' | 'input'
+): { segments: SegmentConfig[]; replacedId?: string } {
+  if (!id || !Number.isInteger(pin) || pin < 0 || pin > 39) {
+    return { segments };
+  }
+  const existingOnPin = segments.find((s) => s.pin === pin);
+  const filtered = segments.filter((s) => s.pin !== pin && s.id !== id);
+  if (filtered.length >= MAX_SEGMENTS) {
+    return { segments };
+  }
+  const newSeg: SegmentConfig = {
+    id,
+    type,
+    pin,
+    value: false,
+    autoOffDelay: 0,
+    rule: { highActions: [], lowActions: [], active: false },
+  };
+  return {
+    segments: [...filtered, newSeg],
+    replacedId: existingOnPin?.id,
+  };
+}
+
+/**
+ * Mirrors PinManager::removeSegmentByIdOrPin: tries exact ID first, then explicit
+ * fallbackPin (0..39), then canonical pin-based ID fallback.
+ */
+export function deleteSimulatorSegment(
+  segments: SegmentConfig[],
+  id: string,
+  fallbackPin?: number
+): {
+  segments: SegmentConfig[];
+  removed?: SegmentConfig;
+  resolvedBy: 'id' | 'fallback_pin' | 'canonical_id' | 'none';
+} {
+  if (id) {
+    const byId = segments.find((s) => s.id === id);
+    if (byId) {
+      return {
+        segments: segments.filter((s) => s !== byId),
+        removed: byId,
+        resolvedBy: 'id',
+      };
+    }
+  }
+
+  if (
+    typeof fallbackPin === 'number' &&
+    Number.isInteger(fallbackPin) &&
+    fallbackPin >= 0 &&
+    fallbackPin <= 39
+  ) {
+    const byPin = segments.find((s) => s.pin === fallbackPin);
+    if (byPin) {
+      return {
+        segments: segments.filter((s) => s !== byPin),
+        removed: byPin,
+        resolvedBy: 'fallback_pin',
+      };
+    }
+  } else if (id) {
+    const canonicalPin = extractPinFromCanonicalId(id);
+    if (canonicalPin !== null) {
+      const byCanonicalPin = segments.find((s) => s.pin === canonicalPin);
+      if (byCanonicalPin) {
+        return {
+          segments: segments.filter((s) => s !== byCanonicalPin),
+          removed: byCanonicalPin,
+          resolvedBy: 'canonical_id',
+        };
+      }
+    }
+  }
+
+  return { segments, resolvedBy: 'none' };
 }
 
 /**
@@ -485,13 +589,35 @@ export function decodeMqttBinaryFrame(payload: Uint8Array): DecodedMqttCommand {
         };
       }
       const idRes = readNullTerminatedString(payload, 1, 32);
+      let fallbackPin: number | undefined;
+      if (idRes.nextOffset < payload.length) {
+        const rawPin = payload[idRes.nextOffset];
+        if (rawPin <= 39) {
+          fallbackPin = rawPin;
+        }
+      }
+      if (!idRes.value && fallbackPin === undefined) {
+        return {
+          valid: false,
+          opcodeHex,
+          commandName: 'DELETE_SEGMENT (0x03)',
+          summary: '[MQTT Handler] Rejected DELETE_SEGMENT (0x03): empty ID and no valid fallback pin',
+          error: 'Empty ID and no valid fallback pin (0..39)',
+        };
+      }
       return {
         valid: true,
         opcodeHex,
         commandName: 'DELETE_SEGMENT (0x03)',
-        summary: `[MQTT Handler] Binary Delete: id=${idRes.value}`,
+        summary:
+          fallbackPin !== undefined
+            ? `[MQTT Handler] Binary Delete: id=${idRes.value} pin=${fallbackPin}`
+            : `[MQTT Handler] Binary Delete: id=${idRes.value}`,
         eventType: 'DELETE_SEGMENT',
-        payloadData: { id: idRes.value },
+        payloadData:
+          fallbackPin !== undefined
+            ? { id: idRes.value, pin: fallbackPin }
+            : { id: idRes.value },
       };
     }
 

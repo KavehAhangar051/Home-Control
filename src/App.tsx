@@ -11,8 +11,10 @@ import {
   SerialLogEntry,
   WifiNetworkConfig,
   bytesToHex,
+  deleteSimulatorSegment,
   encodeSyncStateFrame,
   evaluateInputRuleTransition,
+  upsertSimulatorSegment,
 } from './utils/achaemenidCore';
 import { PinManagerPanel } from './components/PinManagerPanel';
 import { RuleEnginePanel } from './components/RuleEnginePanel';
@@ -185,36 +187,52 @@ export function App() {
 
   const handleAddSegment = useCallback(
     (pin: number, id: string, type: 'output' | 'input') => {
+      let replacedId: string | undefined;
       setSegments((prev) => {
-        if (prev.length >= MAX_SEGMENTS) return prev;
-        if (prev.some((s) => s.id === id || s.pin === pin)) return prev;
-        const newSeg: SegmentConfig = {
-          id,
-          type,
-          pin,
-          value: false,
-          autoOffDelay: 0,
-          rule: { highActions: [], lowActions: [], active: false },
-        };
-        return [...prev, newSeg];
+        const result = upsertSimulatorSegment(prev, pin, id, type);
+        replacedId = result.replacedId;
+        return result.segments;
       });
       appendLog(
         'INFO',
-        'Hardware/lib/PinManager/src/core/PinManager_Setup.cpp:52',
-        `[PinManager] Added segment '${id}' on pin ${pin} (Type: ${type})`
+        'Hardware/lib/PinManager/src/core/PinManager_Setup.cpp:147',
+        replacedId
+          ? `[PinManager] Replaced segment '${replacedId}' on pin ${pin} with '${id}' (Type: ${type})`
+          : `[PinManager] Added segment '${id}' on pin ${pin} (Type: ${type})`
       );
     },
     [appendLog]
   );
 
   const handleDeleteSegment = useCallback(
-    (id: string) => {
-      setSegments((prev) => prev.filter((s) => s.id !== id));
-      appendLog(
-        'INFO',
-        'Hardware/lib/AchaemenidMQTT/src/parsers/SegmentParsers.cpp:60',
-        `[MQTT Handler] Binary Delete: id=${id} removed from PinRegistry and NVS`
-      );
+    (id: string, fallbackPin?: number) => {
+      let resolvedBy: 'id' | 'fallback_pin' | 'canonical_id' | 'none' = 'none';
+      let removedSeg: SegmentConfig | undefined;
+      setSegments((prev) => {
+        const result = deleteSimulatorSegment(prev, id, fallbackPin);
+        resolvedBy = result.resolvedBy;
+        removedSeg = result.removed;
+        return result.segments;
+      });
+      if (resolvedBy === 'none') {
+        appendLog(
+          'WARN',
+          'Hardware/lib/PinManager/src/core/PinManager_Setup.cpp:365',
+          `[PinManager] Segment '${id}'${fallbackPin !== undefined ? ` (fallback pin ${fallbackPin})` : ''} not found.`
+        );
+      } else if (resolvedBy === 'fallback_pin' || resolvedBy === 'canonical_id') {
+        appendLog(
+          'WARN',
+          'Hardware/lib/PinManager/src/core/PinManager_Setup.cpp:344',
+          `[PinManager] Segment '${id}' not found; resolved via GPIO ${removedSeg?.pin} (stored id='${removedSeg?.id}') and removed from PinRegistry and NVS`
+        );
+      } else {
+        appendLog(
+          'INFO',
+          'Hardware/lib/AchaemenidMQTT/src/parsers/SegmentParsers.cpp:190',
+          `[MQTT Handler] Binary Delete: id=${id}${fallbackPin !== undefined ? ` pin=${fallbackPin}` : ''} removed from PinRegistry and NVS`
+        );
+      }
     },
     [appendLog]
   );
@@ -274,9 +292,9 @@ export function App() {
           break;
         }
         case 'DELETE_SEGMENT': {
-          const { id } = decoded.payloadData!;
-          if (id) {
-            handleDeleteSegment(id);
+          const { id, pin } = decoded.payloadData!;
+          if (id || pin !== undefined) {
+            handleDeleteSegment(id ?? '', pin);
           }
           break;
         }
