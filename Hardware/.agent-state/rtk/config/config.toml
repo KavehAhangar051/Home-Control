@@ -1,0 +1,59 @@
+[tracking]
+enabled = true
+history_days = 365
+
+[display]
+colors = false
+emoji = false
+max_width = 120
+pro_hint = false
+
+[filters]
+ignore_dirs = [
+    ".git",
+    "node_modules",
+    ".pio",
+    ".agent-state",
+    "dist",
+    "build",
+    "target",
+    "__pycache__",
+    ".venv",
+    "vendor",
+]
+ignore_files = [
+    "*.lock",
+    "*.min.js",
+    "*.min.css",
+    "*.tsbuildinfo",
+    "*.bin",
+]
+
+[retriever]
+mode = "sqlite"
+max_entry_bytes = 10485760
+max_entries = 500
+retention_days = 90
+compression = true
+tee_max_files = 20
+tee_max_file_size = 1048576
+tee_on_success = false
+
+[telemetry]
+enabled = false
+
+[hooks]
+exclude_commands = []
+transparent_prefixes = []
+suppress_hook_warning = true
+wrap_fish_scripts = false
+
+[limits]
+grep_max_results = 150
+grep_max_per_file = 20
+status_max_files = 15
+status_max_untracked = 10
+passthrough_max_chars = 2000
+
+[awareness]
+level = "default"

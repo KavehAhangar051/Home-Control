@@ -3,3 +3,11 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+# RTK persistent binary cache & transient SQLite journal files
+# (Keep .agent-state/rtk/config/ and .agent-state/rtk/data/history.db tracked so fresh imports preserve data)
+.agent-state/rtk/bin/
+.agent-state/rtk/data/*.db-wal
+.agent-state/rtk/data/*.db-shm
+.agent-state/rtk/data/*.db-journal
+

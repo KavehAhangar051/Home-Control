@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "trusted": {
+    "/app/applet/.rtk/pipeline.toml": {
+      "sha256": "cf757058ce547f9c90bb359af7342e90c2d146feecbb36e5dfe9c3e7f5fe4cca",
+      "trusted_at": "2026-11-21T13:36:14.763274526+00:00"
+    }
+  }
+}
