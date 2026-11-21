@@ -21,7 +21,7 @@ public:
   }
 
   HOT_PATH FORCE_INLINE const AsyncResult<void, E>& poll(const I& input) {
-    if (LIKELY(result_.is_pending()) && LIKELY(static_cast<bool>(poll_callback_))) {
+    if (LIKELY(result_.is_pending())) {
       result_ = poll_callback_(input);
       if (UNLIKELY(!result_.is_pending())) {
         poll_callback_.clear(); // Release captured closure state immediately on completion

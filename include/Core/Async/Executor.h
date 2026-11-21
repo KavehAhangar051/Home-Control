@@ -75,6 +75,29 @@ private:
 
 using TaskHandle = TaskHandleBase<32>;
 
+// Pre-computed 32-entry lookup tables for 1-cycle bitmask manipulation (Memory-for-Speed)
+alignas(16) static constexpr uint32_t SLOT_BIT_LUT[32] = {
+    0x00000001UL, 0x00000002UL, 0x00000004UL, 0x00000008UL,
+    0x00000010UL, 0x00000020UL, 0x00000040UL, 0x00000080UL,
+    0x00000100UL, 0x00000200UL, 0x00000400UL, 0x00000800UL,
+    0x00001000UL, 0x00002000UL, 0x00004000UL, 0x00008000UL,
+    0x00010000UL, 0x00020000UL, 0x00040000UL, 0x00080000UL,
+    0x00100000UL, 0x00200000UL, 0x00400000UL, 0x00800000UL,
+    0x01000000UL, 0x02000000UL, 0x04000000UL, 0x08000000UL,
+    0x10000000UL, 0x20000000UL, 0x40000000UL, 0x80000000UL
+};
+
+alignas(16) static constexpr uint32_t SLOT_INV_BIT_LUT[32] = {
+    ~0x00000001UL, ~0x00000002UL, ~0x00000004UL, ~0x00000008UL,
+    ~0x00000010UL, ~0x00000020UL, ~0x00000040UL, ~0x00000080UL,
+    ~0x00000100UL, ~0x00000200UL, ~0x00000400UL, ~0x00000800UL,
+    ~0x00001000UL, ~0x00002000UL, ~0x00004000UL, ~0x00008000UL,
+    ~0x00010000UL, ~0x00020000UL, ~0x00040000UL, ~0x00080000UL,
+    ~0x00100000UL, ~0x00200000UL, ~0x00400000UL, ~0x00800000UL,
+    ~0x01000000UL, ~0x02000000UL, ~0x04000000UL, ~0x08000000UL,
+    ~0x10000000UL, ~0x20000000UL, ~0x40000000UL, ~0x80000000UL
+};
+
 /**
  * @brief High-performance Hybrid Reactive Async Executor for Xtensa ESP32.
  *
@@ -105,6 +128,7 @@ public:
       generations_[i]  = 1;
       intervals_ms_[i] = 0;
       next_poll_ms_[i] = 0;
+      slot_ptrs_[i]    = &future_pool_[i];
     }
   }
 
@@ -205,50 +229,52 @@ public:
   // =========================================================================
 
   FORCE_INLINE bool isAlive(uint8_t idx, uint16_t gen) const {
-    return idx < Capacity && ((active_mask_ & (1UL << idx)) != 0) && generations_[idx] == gen;
+    return idx < Capacity && ((active_mask_ & SLOT_BIT_LUT[idx]) != 0) && generations_[idx] == gen;
   }
 
   /**
    * @brief Cross-core & interrupt safe task wakeup.
    * Releases memory writes from producer core and wakes up task in consumer executor core.
+   * 1-cycle bit generation via SLOT_BIT_LUT.
    */
   FORCE_INLINE void wake(uint8_t idx, uint16_t gen) {
     if (UNLIKELY(idx >= Capacity || generations_[idx] != gen)) return;
-    ready_mask_.fetch_or(1UL << idx, std::memory_order_release);
+    ready_mask_.fetch_or(SLOT_BIT_LUT[idx], std::memory_order_release);
   }
 
   FORCE_INLINE void sleep(uint8_t idx, uint16_t gen) {
     if (UNLIKELY(idx >= Capacity || generations_[idx] != gen)) return;
-    const uint32_t bit = 1UL << idx;
-    sleep_mask_ |= bit;
-    ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
+    sleep_mask_ |= SLOT_BIT_LUT[idx];
+    ready_mask_.fetch_and(SLOT_INV_BIT_LUT[idx], std::memory_order_relaxed);
   }
 
   FORCE_INLINE void cancel(uint8_t idx, uint16_t gen) {
     if (UNLIKELY(idx >= Capacity || generations_[idx] != gen)) return;
-    const uint32_t bit = 1UL << idx;
+    const uint32_t bit = SLOT_BIT_LUT[idx];
+    const uint32_t inv_bit = SLOT_INV_BIT_LUT[idx];
     if (active_mask_ & bit) {
-      future_pool_[idx].clear();
-      active_mask_ &= ~bit;
+      slot_ptrs_[idx]->clear();
+      active_mask_ &= inv_bit;
       if (ready_mask_.load(std::memory_order_relaxed) & bit) {
-        ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
+        ready_mask_.fetch_and(inv_bit, std::memory_order_relaxed);
       }
-      interval_mask_ &= ~bit;
-      sleep_mask_ &= ~bit;
+      interval_mask_ &= inv_bit;
+      sleep_mask_ &= inv_bit;
       generations_[idx]++;
     }
   }
 
   FORCE_INLINE void setInterval(uint8_t idx, uint16_t gen, uint32_t interval_ms) {
     if (UNLIKELY(idx >= Capacity || generations_[idx] != gen)) return;
-    const uint32_t bit = 1UL << idx;
+    const uint32_t bit = SLOT_BIT_LUT[idx];
+    const uint32_t inv_bit = SLOT_INV_BIT_LUT[idx];
     if (interval_ms > 0) {
       intervals_ms_[idx] = interval_ms;
       next_poll_ms_[idx] = millis() + interval_ms;
       interval_mask_ |= bit;
-      ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
+      ready_mask_.fetch_and(inv_bit, std::memory_order_relaxed);
     } else {
-      interval_mask_ &= ~bit;
+      interval_mask_ &= inv_bit;
       ready_mask_.fetch_or(bit, std::memory_order_release);
     }
   }
@@ -262,18 +288,24 @@ public:
    *  - Idle loop: ~2 CPU cycles exit with ZERO function call overhead (inlined into loop()).
    *  - Active interval task waiting: ~4 CPU cycles CCOUNT 1ms gate (100x fewer millis() calls!).
    */
-  FORCE_INLINE void poll() {
-    uint32_t to_process = ready_mask_.load(std::memory_order_acquire);
+  HOT_PATH FORCE_INLINE void poll() {
+    // 1. FAST-PATH: If no tasks are active in the entire system, exit in 1 CPU cycle
+    if (LIKELY(active_mask_ == 0)) {
+      return;
+    }
 
-    // FAST-PATH: If nothing is ready and no intervals exist, or no tasks are active
-    if (LIKELY((to_process | interval_mask_) == 0 || active_mask_ == 0)) {
+    // 2. Read ready mask with relaxed ordering (zero bus lock/memw stall when idle)
+    uint32_t to_process = ready_mask_.load(std::memory_order_relaxed);
+
+    // If nothing is ready and no intervals exist, exit immediately without memory fence
+    if (LIKELY((to_process | interval_mask_) == 0)) {
       return;
     }
 
     uint32_t cached_now = 0;
     bool now_cached = false;
 
-    // 1. Check expired timers for interval-throttled tasks (1ms CCOUNT hardware fast-gate)
+    // 3. Interval tasks: Hardware CCOUNT fast-gate (1ms throttle)
     if (UNLIKELY(interval_mask_ != 0)) {
       uint32_t pending_intervals = interval_mask_ & ~to_process;
       if (pending_intervals &&
@@ -284,11 +316,12 @@ public:
         uint32_t newly_ready = 0;
 
         while (pending_intervals) {
-          const uint32_t idx = __builtin_ctz(pending_intervals);
+          const uint32_t bit = pending_intervals & -pending_intervals;
+          pending_intervals ^= bit;
+          const uint32_t idx = uniuno::asm_opt::bit_to_slot_index(bit);
           if (uniuno::asm_opt::is_timer_expired(cached_now, next_poll_ms_[idx])) {
-            newly_ready |= (1UL << idx);
+            newly_ready |= bit; // Single-cycle bitwise OR, zero shift!
           }
-          pending_intervals &= pending_intervals - 1;
         }
 
         if (newly_ready) {
@@ -300,13 +333,16 @@ public:
 
     if (to_process == 0) return;
 
-    // 2. Process each ready task (Single-cycle Xtensa ctz bit-scan + 1-cycle slli slot index)
-    while (to_process) {
-      const uint32_t idx = __builtin_ctz(to_process);
-      const uint32_t bit = 1UL << idx;
-      to_process &= to_process - 1;
+    // Memory barrier ONLY when tasks are actually ready to be processed
+    std::atomic_thread_fence(std::memory_order_acquire);
 
-      if ((sleep_mask_ | interval_mask_) & bit) {
+    // 4. Process each ready task (Xtensa LX6 pipeline bit-scan + direct slot_ptrs_ LUT)
+    while (to_process) {
+      const uint32_t bit = to_process & -to_process;
+      to_process ^= bit;
+      const uint32_t idx = uniuno::asm_opt::bit_to_slot_index(bit);
+
+      if (UNLIKELY((sleep_mask_ | interval_mask_) & bit)) {
         ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
         if (interval_mask_ & bit) {
           if (!now_cached) {
@@ -318,7 +354,7 @@ public:
       }
 
       const uint16_t gen_before = generations_[idx];
-      auto* slot = &future_pool_[idx];
+      auto* slot = slot_ptrs_[idx];
       const AsyncState state = (*slot)();
 
       // Guard: Check if the callback cancelled itself or slot was invalidated during execution
@@ -329,7 +365,6 @@ public:
       if (state != AsyncState::Pending) {
         slot->clear();
         active_mask_ &= ~bit;
-        // Skip expensive atomic CAS if bit was already cleared above
         if (UNLIKELY(ready_mask_.load(std::memory_order_relaxed) & bit)) {
           ready_mask_.fetch_and(~bit, std::memory_order_relaxed);
         }
@@ -349,29 +384,33 @@ public:
   }
 
 private:
-  /** @brief 1-cycle hardware free-slot allocation using Xtensa ctz (~active_mask_). */
+  /** @brief 1-cycle hardware free-slot allocation using Xtensa bit_to_slot_index (~active_mask_). */
   FORCE_INLINE uint8_t allocateSlot() const {
     const uint32_t free_bits = (~active_mask_) & kValidMask;
     if (UNLIKELY(free_bits == 0)) return 0xFF;
-    return static_cast<uint8_t>(__builtin_ctz(free_bits));
+    const uint32_t bit = free_bits & -free_bits;
+    return static_cast<uint8_t>(uniuno::asm_opt::bit_to_slot_index(bit));
   }
 
   FORCE_INLINE TaskHandleBase<Capacity> activateSlot(uint8_t idx) {
-    const uint32_t bit = 1UL << idx;
+    const uint32_t bit = SLOT_BIT_LUT[idx];
     active_mask_ |= bit;
     ready_mask_.fetch_or(bit, std::memory_order_release);
     return TaskHandleBase<Capacity>(this, idx, generations_[idx]);
   }
 
-  FastFunction<AsyncState(void), 128> future_pool_[Capacity];
+  // --- Hot Cache Line & Offset Optimization (Offset 0..16 accessible via 16-bit l32i.n) ---
   uint32_t active_mask_;
   std::atomic<uint32_t> ready_mask_;
   uint32_t interval_mask_;
   uint32_t sleep_mask_;
   uint32_t last_interval_cycle_;
+  uint16_t generations_[Capacity];
   uint32_t intervals_ms_[Capacity];
   uint32_t next_poll_ms_[Capacity];
-  uint16_t generations_[Capacity];
+  // Direct pre-calculated slot pointer table (Memory-for-Speed, 0 runtime multiplication)
+  FastFunction<AsyncState(void), 128>* slot_ptrs_[Capacity];
+  FastFunction<AsyncState(void), 128> future_pool_[Capacity];
 };
 
 // Out-of-line inlined definitions for TaskHandleBase

@@ -171,8 +171,8 @@ private:
     FORCE_INLINE ~Storage() {}
   };
 
-  Storage    storage_;
   AsyncState state_;
+  Storage    storage_;
 };
 
 /**
@@ -271,8 +271,8 @@ private:
     FORCE_INLINE ~ErrStorage() {}
   };
 
-  ErrStorage storage_;
   AsyncState state_;
+  ErrStorage storage_;
 };
 
 } // namespace uniuno
