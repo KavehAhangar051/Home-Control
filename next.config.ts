@@ -15,6 +15,7 @@ export default function buildNextConfig(phase: string): NextConfig {
 
   const nextConfig: NextConfig = {
     reactStrictMode: true,
+    compress: true,
     poweredByHeader: false,
     reactCompiler: !isDevServer
       ? {
