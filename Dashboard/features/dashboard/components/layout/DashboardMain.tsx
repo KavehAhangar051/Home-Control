@@ -5,9 +5,14 @@ import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import LowDataModeBanner from "@/features/iot/components/notifications/LowDataModeBanner";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useMediaQuery } from "@/features/iot/hooks/useMediaQuery";
+import { setPortalTarget } from "@/lib/hooks/use-portal-target";
 import DashboardBreadcrumb from "./DashboardBreadcrumb";
 import DashboardWorkspace from "./DashboardWorkspace";
 import MobileDockNav from "./MobileDockNav";
+
+const registerFooterCenterPortal = (node: HTMLDivElement | null) => {
+  setPortalTarget("dashboard-footer-center", node);
+};
 
 function resolveScrollContainerClass(params: {
   activeWorkspaceView: string;
@@ -107,12 +112,14 @@ export default function DashboardMain() {
 
       <footer
         dir="rtl"
-        className="relative z-30 hidden h-14 w-full shrink-0 items-center justify-end border-t border-sidebar-border bg-sidebar-bg px-4 md:flex md:px-8"
+        style={{ contain: "style" }}
+        className="relative z-30 hidden h-14 w-full shrink-0 items-center justify-end border-t border-sidebar-border bg-sidebar-bg px-4 [backface-visibility:hidden] md:flex md:px-8"
       >
         {isDesktop && (
           <>
             <div
               id="dashboard-footer-center"
+              ref={registerFooterCenterPortal}
               className="pointer-events-none absolute inset-0 flex items-center justify-center px-14"
             />
             <ThemeToggle />

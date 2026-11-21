@@ -1,4 +1,5 @@
 import type { StateCreator } from "zustand";
+import { scheduleIdleStorageWrite } from "@/lib/asyncScheduler";
 import type { IoTStoreState, UiSlice, WorkspaceDisplayMode } from "../types";
 
 const DISPLAY_MODE_STORAGE_KEY = "workspace_display_mode";
@@ -34,14 +35,7 @@ export const createUiSlice: StateCreator<IoTStoreState, [], [], UiSlice> = (set)
 
   setWorkspaceDisplayMode: (mode) => {
     set({ workspaceDisplayMode: mode });
-
-    if (typeof window !== "undefined") {
-      try {
-        window.localStorage.setItem(DISPLAY_MODE_STORAGE_KEY, mode);
-      } catch {
-        // Ignore storage write failures in restricted contexts
-      }
-    }
+    scheduleIdleStorageWrite(DISPLAY_MODE_STORAGE_KEY, () => mode);
   },
 
   setLowDataMode: (enabled) => {

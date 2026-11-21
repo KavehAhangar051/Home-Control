@@ -351,6 +351,9 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
   const thumbRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
+  const dragRectRef = useRef<{ left: number; top: number; width: number; height: number } | null>(
+    null,
+  );
   const onPointRef = useRef(onPoint);
   const onEndRef = useRef(onEnd);
   onPointRef.current = onPoint;
@@ -360,16 +363,16 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
   const pointFrameRef = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  const cancelPendingPoint = () => {
+  const cancelPendingPoint = useCallback(() => {
     if (pointFrameRef.current !== null) {
       cancelAnimationFrame(pointFrameRef.current);
       pointFrameRef.current = null;
     }
     pendingPointRef.current = null;
-  };
+  }, []);
 
   const applyPoint = (clientX: number, clientY: number) => {
-    const rect = railRef.current?.getBoundingClientRect();
+    const rect = dragRectRef.current ?? railRef.current?.getBoundingClientRect();
 
     if (!rect || rect.width === 0 || rect.height === 0) return;
 
@@ -406,6 +409,7 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
     cancelPendingPoint();
     activePointerIdRef.current = null;
     draggingRef.current = false;
+    dragRectRef.current = null;
     releasePointer(event.currentTarget, event.pointerId);
     setDragging(false);
     onEndRef.current();
@@ -420,6 +424,7 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
       const pointerId = activePointerIdRef.current;
       activePointerIdRef.current = null;
       draggingRef.current = false;
+      dragRectRef.current = null;
       if (railRef.current && pointerId !== null) {
         releasePointer(railRef.current, pointerId);
       }
@@ -430,13 +435,13 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
     window.addEventListener("blur", handleWindowBlur);
 
     return () => window.removeEventListener("blur", handleWindowBlur);
-  }, [dragging]);
+  }, [dragging, cancelPendingPoint]);
 
   useEffect(
     () => () => {
       cancelPendingPoint();
     },
-    [],
+    [cancelPendingPoint],
   );
 
   return {
@@ -449,6 +454,16 @@ function useDrag(onPoint: (x: number, y: number) => void, onEnd: () => void, dis
         draggingRef.current = true;
         activePointerIdRef.current = event.pointerId;
         lastAppliedPointRef.current = null;
+        const measured = railRef.current?.getBoundingClientRect();
+        dragRectRef.current =
+          measured && measured.width > 0 && measured.height > 0
+            ? {
+                left: measured.left,
+                top: measured.top,
+                width: measured.width,
+                height: measured.height,
+              }
+            : null;
         setDragging(true);
         capturePointer(event.currentTarget, event.pointerId);
         thumbRef.current?.focus({ preventScroll: true });
