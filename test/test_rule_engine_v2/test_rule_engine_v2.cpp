@@ -123,13 +123,13 @@ void test_asm_range_eval_boundaries_and_hysteresis() {
 void test_acp_parses_multi_range_rr_and_double_click() {
     const char* cfg =
         "ESP_CFG_V2\n"
-        "S id=relay_1 tp=output pn=2\n"
-        "S id=fan_pwm tp=analog_output pn=18 res=8 frq=5000\n"
-        "S id=btn_wall tp=input pn=4\n"
+        "S id=relay_1 type=output pin=2\n"
+        "S id=fan_pwm type=analog_output pin=18 res=8 freq=5000\n"
+        "S id=btn_wall type=input pin=4\n"
         "RH tgt=2 hld=0 ast=1 atp=0 dly=0\n"
         "RH tgt=18 hld=dc aval=200 atp=0 dly=0\n"
         "RL tgt=2 hld=-1 ast=0 atp=0 dly=0\n"
-        "S id=temp_adc tp=analog_input pn=34 res=12 sint=100 delta=50\n"
+        "S id=temp_adc type=analog_input pin=34 res=12 sint=100 delta=50\n"
         "RR min=0 max=1000 hyst=40 tgt=18 aval=64 trg=enter atp=0 dly=0\n"
         "RR min=1500 max=2500 hyst=50 tgt=18 aval=160 trg=0 atp=0 dly=0\n"
         "RR min=3500 max=2800 hyst=30 tgt=2 ast=1 trg=exit atp=1 dly=2\n"
@@ -215,7 +215,7 @@ void test_analog_multi_range_independent_zones_and_hysteresis() {
     rangeRule.analogRanges[1].triggerMode = RANGE_ON_ENTER;
     rangeRule.analogRanges[1].enabled = true;
 
-    // Range 2: [3000..4095] hyst=60 -> PWM 255 AND digital alarm ON via Range 3
+    // Range 2: [3000..4095] hyst=60 -> digital alarm ON
     rangeRule.analogRanges[2].minValue = 3000;
     rangeRule.analogRanges[2].maxValue = 4095;
     rangeRule.analogRanges[2].hysteresis = 60;
@@ -225,7 +225,7 @@ void test_analog_multi_range_independent_zones_and_hysteresis() {
     rangeRule.analogRanges[2].triggerMode = RANGE_ON_ENTER;
     rangeRule.analogRanges[2].enabled = true;
 
-    // Use a large deltaThreshold (500) to prove range crossing fires EVEN when delta isn't met!
+    // Large deltaThreshold (500) proves range crossing fires EVEN when delta isn't met!
     TEST_ASSERT_TRUE(pm.addSegment("sensor_temp", SegmentType::AnalogInput, 34, 0, rangeRule,
                                    DEFAULT_PWM_RESOLUTION, DEFAULT_PWM_FREQUENCY,
                                    12, 100, 500, 0, 0));
@@ -243,43 +243,39 @@ void test_analog_multi_range_independent_zones_and_hysteresis() {
         }
     };
 
+    auto sampleAdc = [&](int pin, int rawVal, int steps = 10) {
+        mockHw().analogValues[pin] = rawVal;
+        for (int s = 0; s < steps; ++s) {
+            mockHw().fakeMillis += 100;
+            pm.processAnalogInputs(onAnalog);
+        }
+    };
+
     // Move to 1040 (within hysteresis 1000+50=1050) -> still in Range 0, no transition
-    mockHw().analogValues[34] = 1040;
-    mockHw().fakeMillis += 100;
-    pm.processAnalogInputs(onAnalog);
+    sampleAdc(34, 1040);
     TEST_ASSERT_EQUAL_UINT8(0x01, pm.getAnalogRangeMaskByPin(34));
     TEST_ASSERT_EQUAL_INT16(0, pm.getPinAnalogValue(18));
 
     // Move to 1060 -> exits Range 0 cleanly (mask becomes 0)
-    mockHw().analogValues[34] = 1060;
-    mockHw().fakeMillis += 100;
-    pm.processAnalogInputs(onAnalog);
+    sampleAdc(34, 1060);
     TEST_ASSERT_EQUAL_UINT8(0x00, pm.getAnalogRangeMaskByPin(34));
 
-    // Move to 1500 (delta from last reported 500 is 1000, next move from 1500->1520 won't re-trigger)
-    mockHw().analogValues[34] = 1500;
-    mockHw().fakeMillis += 100;
-    pm.processAnalogInputs(onAnalog);
+    // Move to 1500 -> enters Range 1 -> sets PWM to 150
+    sampleAdc(34, 1500);
     TEST_ASSERT_EQUAL_UINT8(0x02, pm.getAnalogRangeMaskByPin(34));
     TEST_ASSERT_EQUAL_INT16(150, pm.getPinAnalogValue(18));
     TEST_ASSERT_FALSE(pm.getPinState(2));
 
     // Small step from 2900 -> 3010 (step=110 < deltaThreshold=500!) MUST STILL trigger Range 2!
-    mockHw().analogValues[34] = 2900;
-    mockHw().fakeMillis += 100;
-    pm.processAnalogInputs(onAnalog);
+    sampleAdc(34, 2900);
     TEST_ASSERT_EQUAL_UINT8(0x00, pm.getAnalogRangeMaskByPin(34));
 
-    mockHw().analogValues[34] = 3010;
-    mockHw().fakeMillis += 100;
-    pm.processAnalogInputs(onAnalog);
+    sampleAdc(34, 3010);
     TEST_ASSERT_EQUAL_UINT8(0x04, pm.getAnalogRangeMaskByPin(34));
     TEST_ASSERT_TRUE(pm.getPinState(2));
 
     // Drop back into Range 0 [0..1000] -> sets PWM to 60
-    mockHw().analogValues[34] = 800;
-    mockHw().fakeMillis += 100;
-    pm.processAnalogInputs(onAnalog);
+    sampleAdc(34, 800);
     TEST_ASSERT_EQUAL_UINT8(0x01, pm.getAnalogRangeMaskByPin(34));
     TEST_ASSERT_EQUAL_INT16(60, pm.getPinAnalogValue(18));
 }
@@ -334,10 +330,16 @@ void test_analog_range_overlapping_and_on_exit_trigger() {
         if (ch.rangeMaskChanged) engine.handleAnalogInput(ch, r);
     };
 
+    auto sampleAdc = [&](int pin, int rawVal, int steps = 10) {
+        mockHw().analogValues[pin] = rawVal;
+        for (int s = 0; s < steps; ++s) {
+            mockHw().fakeMillis += 100;
+            pm.processAnalogInputs(onAnalog);
+        }
+    };
+
     // Jump to 2500 -> enters BOTH Range 0 and Range 1; only Range 0 (ON_ENTER) fires led_a ON
-    mockHw().analogValues[35] = 2500;
-    mockHw().fakeMillis += 100;
-    pm.processAnalogInputs(onAnalog);
+    sampleAdc(35, 2500, 6);
     TEST_ASSERT_EQUAL_UINT8(0x03, pm.getAnalogRangeMaskByPin(35));
     TEST_ASSERT_TRUE(pm.getPinState(2));
     TEST_ASSERT_FALSE(pm.getPinState(4));
@@ -348,9 +350,7 @@ void test_analog_range_overlapping_and_on_exit_trigger() {
     TEST_ASSERT_FALSE(pm.getPinState(2));
 
     // Drop to 1500 -> exits Range 1 (still in Range 0) -> Range 1 ON_EXIT fires led_b ON!
-    mockHw().analogValues[35] = 1500;
-    mockHw().fakeMillis += 100;
-    pm.processAnalogInputs(onAnalog);
+    sampleAdc(35, 1500, 10);
     TEST_ASSERT_EQUAL_UINT8(0x01, pm.getAnalogRangeMaskByPin(35));
     TEST_ASSERT_TRUE(pm.getPinState(4));
 }

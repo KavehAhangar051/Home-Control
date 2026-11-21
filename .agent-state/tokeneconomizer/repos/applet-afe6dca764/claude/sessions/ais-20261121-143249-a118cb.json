@@ -11,7 +11,7 @@
   "turn": {
     "abort_delivered": false,
     "aborted": false,
-    "cum_turns": 15,
+    "cum_turns": 21,
     "edits": 0,
     "events": [],
     "held": null,
@@ -29,9 +29,11 @@
     "st": {
       "edit_counts": {},
       "edit_order": [],
-      "error_outputs": 1,
+      "error_outputs": 3,
       "fail_sigs": {
-        "7bf83c1ef9": 1
+        "2a7ebe36bd": 1,
+        "7bf83c1ef9": 1,
+        "bba601d2f4": 1
       },
       "recent": [
         "  1: $ bash -c 'curl -fsSL \"https://raw.githubusercontent.com/KavehAhangar051/Home-Control-Dashbo",
@@ -48,20 +50,28 @@
         " 12: $ bash -c ' echo \"=== tidy main.cpp ===\" bash ./tools/cpp.sh tidy firmware/src/main.cpp 2>&1",
         " 13: $ bash -c ' bash ./tools/cpp.sh compiledb esp32dev >/dev/null echo \"=== tidy main.cpp ===\" b",
         " 14: $ bash -c ' bash ./tools/cpp.sh compiledb esp32dev >/dev/null echo \"=== tidy main.cpp ===\" b",
-        " 15: $ bash -c 'clang-tidy -p . --extra-arg=--target=arm-none-eabi firmware/src/main.cpp 2>&1 | h"
+        " 15: $ bash -c 'clang-tidy -p . --extra-arg=--target=arm-none-eabi firmware/src/main.cpp 2>&1 | h",
+        " 16: $ bash -lc 'if ! command -v pio >/dev/null 2>&1; then if [ -x .agent-state/platformio/penv/b  [err#bba601d2f4]",
+        " 17: $ bash -lc 'export PATH=\"$PWD/.agent-state/platformio/penv/bin:$PATH\"; pio test -e native -e  [err#2a7ebe36bd]",
+        " 18: $ bash -lc 'export PATH=\"$PWD/.agent-state/platformio/penv/bin:$PATH\"; pio test -e native -e",
+        " 19: $ bash -lc 'export PATH=\"$PWD/.agent-state/platformio/penv/bin:$PATH\"; pio run -e esp32dev -",
+        " 20: $ bash -lc 'export PATH=\"$PWD/.agent-state/platformio/penv/bin:$PATH\"; ls -la firmware/prebu",
+        " 21: $ bash -lc 'OBJDUMP=$(find .agent-state/platformio/packages -name \"xtensa-esp32-elf-objdump\""
       ],
       "repeated_fail_sigs": 0,
       "test_runs": 0,
-      "turns": 15
+      "turns": 21
     },
     "turn_key": "",
     "verifications": 0,
     "whole": {
       "edit_counts": {},
       "edit_order": [],
-      "error_outputs": 1,
+      "error_outputs": 3,
       "fail_sigs": {
-        "7bf83c1ef9": 1
+        "2a7ebe36bd": 1,
+        "7bf83c1ef9": 1,
+        "bba601d2f4": 1
       },
       "recent": [
         "  1: $ bash -c 'curl -fsSL \"https://raw.githubusercontent.com/KavehAhangar051/Home-Control-Dashbo",
@@ -78,15 +88,21 @@
         " 12: $ bash -c ' echo \"=== tidy main.cpp ===\" bash ./tools/cpp.sh tidy firmware/src/main.cpp 2>&1",
         " 13: $ bash -c ' bash ./tools/cpp.sh compiledb esp32dev >/dev/null echo \"=== tidy main.cpp ===\" b",
         " 14: $ bash -c ' bash ./tools/cpp.sh compiledb esp32dev >/dev/null echo \"=== tidy main.cpp ===\" b",
-        " 15: $ bash -c 'clang-tidy -p . --extra-arg=--target=arm-none-eabi firmware/src/main.cpp 2>&1 | h"
+        " 15: $ bash -c 'clang-tidy -p . --extra-arg=--target=arm-none-eabi firmware/src/main.cpp 2>&1 | h",
+        " 16: $ bash -lc 'if ! command -v pio >/dev/null 2>&1; then if [ -x .agent-state/platformio/penv/b  [err#bba601d2f4]",
+        " 17: $ bash -lc 'export PATH=\"$PWD/.agent-state/platformio/penv/bin:$PATH\"; pio test -e native -e  [err#2a7ebe36bd]",
+        " 18: $ bash -lc 'export PATH=\"$PWD/.agent-state/platformio/penv/bin:$PATH\"; pio test -e native -e",
+        " 19: $ bash -lc 'export PATH=\"$PWD/.agent-state/platformio/penv/bin:$PATH\"; pio run -e esp32dev -",
+        " 20: $ bash -lc 'export PATH=\"$PWD/.agent-state/platformio/penv/bin:$PATH\"; ls -la firmware/prebu",
+        " 21: $ bash -lc 'OBJDUMP=$(find .agent-state/platformio/packages -name \"xtensa-esp32-elf-objdump\""
       ],
       "repeated_fail_sigs": 0,
       "test_runs": 0,
-      "turns": 15
+      "turns": 21
     },
     "writer_tokens": 0.0
   },
   "turns": [],
-  "updated": 1795271958.0155365,
+  "updated": 1795273801.7953768,
   "writer_tokens": 0.0
 }
