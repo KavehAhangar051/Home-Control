@@ -2,17 +2,14 @@
 
 import { MotionConfig } from "motion/react";
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import DashboardStyles from "@/features/iot/components/DashboardStyles";
-import ToastNotification from "@/features/iot/components/notifications/ToastNotification";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { usePageVisibility } from "@/features/iot/hooks/usePageVisibility";
+import { scheduleIdleTask } from "@/lib/asyncScheduler";
 import { useCrossTabSync } from "@/lib/hooks/use-cross-tab-sync";
-import { useGpuDisplayObserver } from "@/lib/hooks/use-gpu-display";
 import { usePerformanceTierObserver } from "@/lib/hooks/use-performance-tier";
-import { useServiceWorkerRegistration } from "@/lib/hooks/use-pwa";
-import { useScreenWakeLockObserver } from "@/lib/hooks/use-wake-lock";
-import { usePerfObserver } from "@/lib/perfObserver";
 import DashboardDrawers from "./DashboardDrawers";
 import DashboardHeader from "./DashboardHeader";
 import DashboardMain from "./DashboardMain";
@@ -26,12 +23,22 @@ const ScrollToTopButton = dynamic(() => import("../widgets/ScrollToTopButton"), 
   ssr: false,
 });
 
+const DeferredPlatformRuntime = dynamic(() => import("./DeferredPlatformRuntime"), {
+  ssr: false,
+});
+
+const ToastNotification = dynamic(
+  () => import("@/features/iot/components/notifications/ToastNotification"),
+  { ssr: false },
+);
+
 export default function DashboardContainer() {
   usePageVisibility();
-  useServiceWorkerRegistration();
-  useScreenWakeLockObserver();
   useCrossTabSync();
-  usePerfObserver();
+
+  const [isPostPaintReady, setIsPostPaintReady] = useState(false);
+  const [hasFinePointer, setHasFinePointer] = useState(false);
+  const [hasToastActivated, setHasToastActivated] = useState(false);
 
   const accent3 = useIoTStore((s) => s.accent3);
   const accent4 = useIoTStore((s) => s.accent4);
@@ -42,17 +49,38 @@ export default function DashboardContainer() {
   const darkBlackness = useIoTStore((s) => s.darkBlackness);
   const lightWhiteness = useIoTStore((s) => s.lightWhiteness);
   const selectedFont = useIoTStore((s) => s.selectedFont);
+  const hasActiveToast = useIoTStore((s) => s.toast !== null);
 
   usePerformanceTierObserver({
     animationsEnabled,
     animationsFps,
     isPageVisible,
   });
-  useGpuDisplayObserver();
+
+  useEffect(() => {
+    if (hasActiveToast) {
+      setHasToastActivated(true);
+    }
+  }, [hasActiveToast]);
+
+  useEffect(() => {
+    let cancelIdle: (() => void) | null = null;
+    const rafId = window.requestAnimationFrame(() => {
+      cancelIdle = scheduleIdleTask(() => {
+        setHasFinePointer(window.matchMedia("(pointer: fine)").matches);
+        setIsPostPaintReady(true);
+      }, 300);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      cancelIdle?.();
+    };
+  }, []);
 
   return (
     <TooltipProvider>
-      <CustomCursor />
+      {isPostPaintReady && hasFinePointer && <CustomCursor />}
       <MotionConfig reducedMotion={animationsEnabled ? "user" : "always"}>
         <div
           className={`style-nova bg-bg-main text-text-secondary min-h-dvh relative font-sans leading-relaxed selection:bg-accent3-medium selection:text-text-primary overflow-x-clip ${isDark ? "dark" : "light"}`}
@@ -83,8 +111,9 @@ export default function DashboardContainer() {
             </div>
 
             <DashboardDrawers />
-            <ToastNotification />
-            <ScrollToTopButton />
+            {(isPostPaintReady || hasToastActivated || hasActiveToast) && <ToastNotification />}
+            {isPostPaintReady && <ScrollToTopButton />}
+            {isPostPaintReady && <DeferredPlatformRuntime />}
           </div>
         </div>
       </MotionConfig>

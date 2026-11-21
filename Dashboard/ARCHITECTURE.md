@@ -189,11 +189,12 @@ Available scripts in `package.json`:
 
 - `bun run dev` — start Next.js development with Turbopack.
 - `bun run dev:webpack` — start the legacy Webpack development workflow, including the AI Studio file-watching workaround.
-- `bun run build` — create the static production export with Turbopack.
+- `bun run build` — create the static production export with Turbopack and pre-compress HTML, CSS, JS, JSON, SVG, and WebManifest assets into `.br` (Brotli q=11) and `.gz` (Gzip level=9) sidecars (`scripts/compress-export.mjs`).
+- `bun run serve:static` — run the zero-dependency production static server (`scripts/serve-compressed.mjs`) serving `out/` with `br`/`gzip` content negotiation, `Vary: Accept-Encoding`, and cache headers.
 - `bun run analyze` — save a Turbopack bundle-analysis snapshot in `.next/diagnostics/analyze` using Next.js's built-in analyzer (`--output`); pass `--snapshot <name>` to keep named before/after captures.
 - `bun run analyze:export` — stream the latest or selected saved analyzer graph as JSON Lines; pass `--snapshot <name>` and redirect stdout when a machine-readable report is needed.
 - The `Bundle analysis` GitHub Actions workflow captures named snapshots and uploads the matching JSONL graph plus static analyzer report; it runs on relevant pushes to `main` and supports manual `before`/`after` dispatch; hidden `.next/diagnostics/analyze` files are included in the artifact.
-- `bun run start` — run the Next.js server (not a static-export preview).
+- `bun run start` — run the Next.js server with `compress: true` enabled (use `bun run serve:static` for pre-compressed `out/` static preview).
 - `bun run lint` — run the required Biome linting over `app`, `components`, `features`, and `lib`.
 - `bun run lint:ox` — run Oxlint and the repository's custom Anti-Slop rules as a diagnostic report; current legacy findings are not yet a blocking gate.
 - `bun run format` — format those source directories in place; review the resulting diff before committing.
@@ -310,6 +311,7 @@ When uncertain, prefer inspecting existing patterns and protocol documents over 
   - **Screen Wake Lock (`lib/hooks/use-wake-lock.ts`, `WakeLockToggle.tsx`):** Persisted `wakeLockEnabled` toggle acquiring `navigator.wakeLock.request("screen")` for wall-mounted tablets and automatically re-acquiring on visibility/focus recovery.
   - **Cross-Tab Live Sync (`lib/hooks/use-cross-tab-sync.ts`):** `BroadcastChannel("home-control-dashboard-sync-v1")` + `storage` event sync keeps theme, accents, font, display mode, and persisted preferences synchronized across open tabs with sender-ID loop guards and hydration-safe post-mount `workspaceDisplayMode` restoration.
   - **Strict TypeScript, SSG Shell, Online-Only Audio & Headless Perf Observer:** `tsconfig.json` runs with `"strict": true`; `DashboardClientEntry.tsx` renders `DashboardShell` directly (removing `ssr: false`) for real static HTML prerendering; `AmbientManager.ts` + `AudioSection.tsx` use online Archive.org tracks exclusively (bundled `06 Dele Divaneh.mp3` removed); and `lib/perfObserver.ts` exposes headless LoAF/INP/LCP/CLS metrics on `window.__dashboardPerf`.
+  - **Brotli/Gzip Static Compression & Post-Paint Script Deferral (`scripts/compress-export.mjs`, `scripts/serve-compressed.mjs`, `DeferredPlatformRuntime.tsx`, `DashboardContainer.tsx`):** `next.config.ts` explicitly enables `compress: true` alongside `experimental.inlineCss` + `experimental.cssChunking: "graph"` (inlining route CSS with zero render-blocking external `<link rel="stylesheet">` tags), while `compress-export.mjs` emits `.br` (Brotli q=11) and `.gz` (Gzip level=9) sidecars for `.html`/`.css`/`.js`/`.json`/`.webmanifest`/`.svg`/`.txt` assets in `out/` (served with content negotiation by `serve-compressed.mjs`). Non-critical runtime modules (`DeferredPlatformRuntime`, fine-pointer `CustomCursor`, `ScrollToTopButton`, and idle-warmed `ToastNotification` + `lib/audio`) are dynamically code-split and deferred until after First Paint.
 
 ## 19. Codebase Knowledge Graph (`codebase-memory-mcp`) & Token Tooling (`rtk`, `TokenEconomizer`)
 

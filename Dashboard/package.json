@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev --turbopack -p 3000 -H 0.0.0.0",
     "dev:webpack": "next dev --webpack -p 3000 -H 0.0.0.0",
-    "build": "NODE_ENV=production next build --turbopack",
+    "build": "NODE_ENV=production next build --turbopack && node scripts/compress-export.mjs",
     "start": "next start",
+    "serve:static": "node scripts/serve-compressed.mjs",
     "analyze": "next analyze --output",
     "lint": "biome lint --max-diagnostics=1000 app components features lib",
     "format": "biome format --write app components features lib",
