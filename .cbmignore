@@ -1,0 +1,12 @@
+# Ignore build artifacts, caches, prebuilt binaries, and internal agent state
+# while keeping firmware/, include/, lib/, src/, test/, docs/, scripts/, tools/, and AGENTS.md indexed.
+node_modules/
+.pio/
+dist/
+build/
+.agent-state/
+.rtk/
+.agents/
+.aistudio/
+firmware/prebuilt/
+Temp/
