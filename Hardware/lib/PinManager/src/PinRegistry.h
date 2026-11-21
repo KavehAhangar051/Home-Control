@@ -50,6 +50,11 @@ public:
         return (idx < 0) ? nullptr : &_entries[idx];
     }
 
+    HOT_PATH FORCE_INLINE int findIndexByPin(int pin) const {
+        if (UNLIKELY(pin < 0 || pin >= 40)) return -1;
+        return static_cast<int>(_pinToIndex[pin]);
+    }
+
     HOT_PATH FORCE_INLINE PinEntry* getEntryByIndex(int index) {
         if (UNLIKELY(index < 0 || index >= MAX_PINS)) return nullptr;
         return &_entries[index];

@@ -109,8 +109,23 @@ void PinManager::printStatus() const {
     Serial.println("======================================");
 }
 
+template <size_t Capacity>
+static void appendJsonEscaped(uniuno::StaticString<Capacity>& out, const char* text) {
+    if (!text) return;
+    for (const char* p = text; *p != '\0'; ++p) {
+        const unsigned char c = static_cast<unsigned char>(*p);
+        if (c == '"' || c == '\\') {
+            char esc[3] = {'\\', static_cast<char>(c), '\0'};
+            out += esc;
+        } else if (c >= 0x20) {
+            char ch[2] = {static_cast<char>(c), '\0'};
+            out += ch;
+        }
+    }
+}
+
 String PinManager::exportStateJson() const {
-    uniuno::StaticString<1280> json("{\"type\":\"state_sync\",\"states\":{");
+    uniuno::StaticString<2048> json("{\"type\":\"state_sync\",\"states\":{");
     bool pinStates[MAX_PINS] = {};
     bool first = true;
 
@@ -191,6 +206,25 @@ String PinManager::exportStateJson() const {
         json += pinText;
         json += "\":";
         json += resText;
+        first = false;
+    }
+
+    // Expose live pin -> stored segment ID mapping before "timers" so dashboards
+    // can detect or reconcile segment ID drift without breaking timers parsing.
+    json += "},\"ids\":{";
+    first = true;
+    for (int i = 0; i < MAX_PINS; i++) {
+        const PinEntry* entry = _registry.getEntryByIndexConst(i);
+        if (!entry || !entry->active || entry->segmentId[0] == '\0') continue;
+
+        if (!first) json += ",";
+        char pinText[6];
+        snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
+        json += "\"";
+        json += pinText;
+        json += "\":\"";
+        appendJsonEscaped(json, entry->segmentId);
+        json += "\"";
         first = false;
     }
 

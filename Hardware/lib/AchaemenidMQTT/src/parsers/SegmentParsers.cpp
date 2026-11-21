@@ -155,15 +155,41 @@ HOT_PATH IRAM_ATTR void SegmentParsers::parseAddSegment(const uint8_t* payload, 
     }
 }
 
+/**
+ * @brief Parse binary DELETE_SEGMENT (0x03) command frame.
+ * Legacy frame: [0x03][id_ascii...][0x00]
+ * Extended v2:  [0x03][id_ascii...][0x00][pin:u8]  (optional trailing GPIO 0..39 fallback)
+ */
 HOT_PATH IRAM_ATTR void SegmentParsers::parseDeleteSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
-    if (LIKELY(len >= 2)) {
-        size_t offset = 1;
-        
-        StaticString<32> idStr;
-        readIntoStaticString(payload, offset, len, idStr);
+    if (UNLIKELY(payload == nullptr || dispatcher == nullptr || len < 2)) {
+        return;
+    }
 
-        SegmentRemoveRequestEvent evt{idStr.c_str()};
-        dispatcher->dispatch(evt);
+    size_t offset = 1;
+
+    StaticString<32> idStr;
+    readIntoStaticString(payload, offset, len, idStr);
+
+    int fallbackPin = -1;
+    if (offset < len) {
+        const uint8_t rawPin = payload[offset];
+        if (rawPin <= 39) {
+            fallbackPin = static_cast<int>(rawPin);
+        } else {
+            WARNINGF("[MQTT Handler] Ignoring out-of-range fallback pin %u in DELETE_SEGMENT (0x03)", rawPin);
+        }
+    }
+
+    if (idStr.size() == 0 && fallbackPin < 0) {
+        WARNING("[MQTT Handler] Rejected DELETE_SEGMENT (0x03): empty ID and no valid fallback pin");
+        return;
+    }
+
+    SegmentRemoveRequestEvent evt{idStr.c_str(), fallbackPin};
+    dispatcher->dispatch(evt);
+    if (fallbackPin >= 0) {
+        INFOF("[MQTT Handler] Binary Delete: id=%s pin=%d", idStr.c_str(), fallbackPin);
+    } else {
         INFOF("[MQTT Handler] Binary Delete: id=%s", idStr.c_str());
     }
 }

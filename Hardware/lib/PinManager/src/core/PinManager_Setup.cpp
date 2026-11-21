@@ -144,15 +144,132 @@ bool PinManager::addSegment(
     return true;
 }
 
-bool PinManager::removeSegment(const char* id) {
-    const int idx = _registry.findById(id);
-    if (idx < 0) {
-        WARNINGF("[PinManager] Segment '%s' not found.", id);
+bool PinManager::upsertSegment(
+    const char* id,
+    SegmentType type,
+    int pin,
+    int autoOffDelay,
+    RuleConfig rule,
+    uint8_t pwmResolution,
+    uint16_t pwmFrequency,
+    uint8_t adcResolution,
+    uint16_t adcSampleIntervalMs,
+    uint16_t adcDeltaThreshold,
+    uint16_t adcHighThreshold,
+    uint16_t adcLowThreshold
+) {
+    // Validate incoming parameters BEFORE removing any existing segment so invalid
+    // commands can never destroy a valid live registration.
+    if (id == nullptr || id[0] == '\0') {
+        WARNING("[PinManager] Segment ID is empty.");
+        return false;
+    }
+    if (pin < 0 || pin >= 40) {
+        WARNINGF("[PinManager] Pin %d out of ESP32 GPIO range (0..39).", pin);
+        return false;
+    }
+    if (type == SegmentType::AnalogOutput && !GpioPwm::isValidPwmPin(pin)) {
+        WARNINGF("[PinManager] Pin %d is not a valid PWM output pin (flash or input-only).", pin);
+        return false;
+    }
+    if (type == SegmentType::AnalogInput && !GpioAdc::isValidAdcPin(pin)) {
+        WARNINGF("[PinManager] Pin %d is not a valid WiFi-safe ADC1 pin (allowed: 32,33,34,35,36,39).", pin);
         return false;
     }
 
+    const int existingPinIdx = _registry.findIndexByPin(pin);
+    const int existingIdIdx = _registry.findById(id);
+
+    if (existingPinIdx < 0 && existingIdIdx < 0 && _registry.findEmptySlot() < 0) {
+        WARNING("[PinManager] No empty slot for new segment.");
+        return false;
+    }
+
+    if (existingPinIdx >= 0) {
+        const PinEntry* existing = _registry.getEntryByIndexConst(existingPinIdx);
+        if (existing) {
+            INFOF("[PinManager] Replacing existing segment '%s' on pin %d with id '%s'",
+                  existing->segmentId, pin, id);
+        }
+        removeSegmentByIndex(existingPinIdx);
+    }
+
+    if (existingIdIdx >= 0 && existingIdIdx != existingPinIdx) {
+        const PinEntry* moved = _registry.getEntryByIndexConst(existingIdIdx);
+        if (moved && moved->active) {
+            INFOF("[PinManager] Moving segment '%s' from pin %d to pin %d",
+                  id, moved->pinNumber, pin);
+            removeSegmentByIndex(existingIdIdx);
+        }
+    }
+
+    return addSegment(
+        id,
+        type,
+        pin,
+        autoOffDelay,
+        rule,
+        pwmResolution,
+        pwmFrequency,
+        adcResolution,
+        adcSampleIntervalMs,
+        adcDeltaThreshold,
+        adcHighThreshold,
+        adcLowThreshold
+    );
+}
+
+int PinManager::extractPinFromCanonicalId(const char* id) {
+    if (id == nullptr || id[0] == '\0') {
+        return -1;
+    }
+
+    const char* digits = nullptr;
+    if ((id[0] == 'g' || id[0] == 'G') &&
+        (id[1] == 'p' || id[1] == 'P') &&
+        (id[2] == 'i' || id[2] == 'I') &&
+        (id[3] == 'o' || id[3] == 'O') &&
+        id[4] == '_') {
+        digits = id + 5;
+    } else if ((id[0] == 'p' || id[0] == 'P') &&
+               (id[1] == 'i' || id[1] == 'I') &&
+               (id[2] == 'n' || id[2] == 'N') &&
+               id[3] == '_') {
+        digits = id + 4;
+    } else if (id[0] >= '0' && id[0] <= '9') {
+        digits = id;
+    } else {
+        return -1;
+    }
+
+    if (digits[0] < '0' || digits[0] > '9') {
+        return -1;
+    }
+
+    int value = 0;
+    int digitCount = 0;
+    for (const char* p = digits; *p != '\0'; ++p) {
+        if (*p < '0' || *p > '9') {
+            return -1;
+        }
+        digitCount++;
+        if (digitCount > 2) {
+            return -1;
+        }
+        value = (value * 10) + (*p - '0');
+    }
+
+    return (value >= 0 && value < 40) ? value : -1;
+}
+
+bool PinManager::removeSegmentByIndex(int idx) {
     PinEntry* entry = _registry.getEntryByIndex(idx);
-    if (!entry) return false;
+    if (!entry || !entry->active) return false;
+
+    char removedId[sizeof(entry->segmentId)];
+    strncpy(removedId, entry->segmentId, sizeof(removedId) - 1);
+    removedId[sizeof(removedId) - 1] = '\0';
+    const int removedPin = entry->pinNumber;
 
     if (entry->hasGpio) {
         entry->gpio.turnOff();
@@ -196,9 +313,88 @@ bool PinManager::removeSegment(const char* id) {
     entry->stateStartTime = 0;
     entry->lastDebounceTime = 0;
 
-    INFOF("[PinManager] Removed segment '%s'", id);
+    INFOF("[PinManager] Removed segment '%s' (pin %d)", removedId, removedPin);
     _stateManager.rebuildInputCache();
     return true;
+}
+
+bool PinManager::removeSegment(const char* id) {
+    const int idx = _registry.findById(id);
+    if (idx < 0) {
+        WARNINGF("[PinManager] Segment '%s' not found.", id ? id : "");
+        return false;
+    }
+    return removeSegmentByIndex(idx);
+}
+
+bool PinManager::removeSegmentByPin(int pin) {
+    const int idx = _registry.findIndexByPin(pin);
+    if (idx < 0) {
+        WARNINGF("[PinManager] No segment registered on GPIO %d.", pin);
+        return false;
+    }
+    return removeSegmentByIndex(idx);
+}
+
+bool PinManager::removeSegmentByIdOrPin(const char* id, int fallbackPin) {
+    if (id != nullptr && id[0] != '\0') {
+        const int idx = _registry.findById(id);
+        if (idx >= 0) {
+            return removeSegmentByIndex(idx);
+        }
+    }
+
+    if (fallbackPin >= 0 && fallbackPin < 40) {
+        const int pinIdx = _registry.findIndexByPin(fallbackPin);
+        if (pinIdx >= 0) {
+            const PinEntry* entry = _registry.getEntryByIndexConst(pinIdx);
+            WARNINGF("[PinManager] Segment '%s' not found; resolved via fallback GPIO %d (stored id='%s').",
+                     id ? id : "", fallbackPin, entry ? entry->segmentId : "");
+            return removeSegmentByIndex(pinIdx);
+        }
+    }
+
+    if (fallbackPin < 0 && id != nullptr && id[0] != '\0') {
+        const int canonicalPin = extractPinFromCanonicalId(id);
+        if (canonicalPin >= 0) {
+            const int pinIdx = _registry.findIndexByPin(canonicalPin);
+            if (pinIdx >= 0) {
+                const PinEntry* entry = _registry.getEntryByIndexConst(pinIdx);
+                WARNINGF("[PinManager] Canonical segment '%s' not found; resolved via GPIO %d (stored id='%s').",
+                         id, canonicalPin, entry ? entry->segmentId : "");
+                return removeSegmentByIndex(pinIdx);
+            }
+        }
+    }
+
+    if (fallbackPin >= 0) {
+        WARNINGF("[PinManager] Segment '%s' (fallback pin %d) not found.", id ? id : "", fallbackPin);
+    } else {
+        WARNINGF("[PinManager] Segment '%s' not found.", id ? id : "");
+    }
+    return false;
+}
+
+void PinManager::clearAllSegments() {
+    for (int i = 0; i < MAX_PINS; ++i) {
+        const PinEntry* entry = _registry.getEntryByIndexConst(i);
+        if (entry && entry->active) {
+            removeSegmentByIndex(i);
+        }
+    }
+}
+
+bool PinManager::hasPin(int pin) const {
+    return _registry.findIndexByPin(pin) >= 0;
+}
+
+bool PinManager::hasId(const char* id) const {
+    return _registry.findById(id) >= 0;
+}
+
+const char* PinManager::getSegmentIdByPin(int pin) const {
+    const PinEntry* entry = _registry.getEntryByPinConst(pin);
+    return (entry && entry->active) ? entry->segmentId : nullptr;
 }
 
 bool PinManager::updateSegmentRule(const char* id, const RuleConfig& rule) {

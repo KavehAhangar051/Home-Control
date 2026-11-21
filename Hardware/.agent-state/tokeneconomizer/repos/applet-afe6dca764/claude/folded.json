@@ -2,5 +2,17 @@
   "ais-20261121-142503-15659f": {
     "at": 1795271109.726594,
     "transcript": "/app/applet/.agent-state/tokeneconomizer/transcripts/ais-20261121-142503-15659f.jsonl"
+  },
+  "ais-20261121-143249-a118cb": {
+    "at": 1795275446.1228106,
+    "transcript": "/app/applet/.agent-state/tokeneconomizer/transcripts/ais-20261121-143249-a118cb.jsonl"
+  },
+  "ais-20261121-152026-cf72e4": {
+    "at": 1795275445.7119544,
+    "transcript": "/app/applet/.agent-state/tokeneconomizer/transcripts/ais-20261121-152026-cf72e4.jsonl"
+  },
+  "ais-20261121-153725-5fcaac": {
+    "at": 1795276343.2743337,
+    "transcript": "/app/applet/.agent-state/tokeneconomizer/transcripts/ais-20261121-153725-5fcaac.jsonl"
   }
 }

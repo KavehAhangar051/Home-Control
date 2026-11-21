@@ -1,6 +1,7 @@
 {
   "aborts": 0,
   "cwd": "/app/applet",
+  "folded": true,
   "host": "claude",
   "judge_tokens": 0.0,
   "nudges": 0,

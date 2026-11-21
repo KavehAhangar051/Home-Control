@@ -118,7 +118,7 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
 auto onSegmentAdd = [](SegmentAddRequestEvent* evt) {
     if (evt == nullptr || evt->id == nullptr || evt->type == nullptr) return;
     const SegmentType sType = parseSegmentType(evt->type);
-    const bool success = pinManager.addSegment(
+    const bool success = pinManager.upsertSegment(
         evt->id,
         sType,
         evt->pin,
@@ -136,7 +136,7 @@ auto onSegmentAdd = [](SegmentAddRequestEvent* evt) {
         if (sType == SegmentType::AnalogOutput && evt->initialValue > 0) {
             pinManager.setPinAnalogValue(evt->pin, evt->initialValue);
         }
-        INFOF("[Event] Segment '%s' (%s) added on pin %d", evt->id, segmentTypeToString(sType), evt->pin);
+        INFOF("[Event] Segment '%s' (%s) active on pin %d", evt->id, segmentTypeToString(sType), evt->pin);
         persistCurrentSegmentConfig("segment add");
     }
 };
@@ -146,9 +146,13 @@ auto onSegmentAdd = [](SegmentAddRequestEvent* evt) {
  */
 auto onSegmentRemove = [](SegmentRemoveRequestEvent* evt) {
     if (evt == nullptr) return;
-    bool success = pinManager.removeSegment(evt->id);
+    const bool success = pinManager.removeSegmentByIdOrPin(evt->id, evt->pin);
     if (success) {
-        INFOF("[Event] Segment '%s' removed", evt->id);
+        if (evt->pin >= 0) {
+            INFOF("[Event] Segment '%s' (pin %d) removed", evt->id ? evt->id : "", evt->pin);
+        } else {
+            INFOF("[Event] Segment '%s' removed", evt->id ? evt->id : "");
+        }
         persistCurrentSegmentConfig("segment remove");
     }
 };
@@ -264,18 +268,7 @@ auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
 
     if (evt->hasParsedConfig && evt->parsed != nullptr) {
         if (evt->parsed->segmentsProvided) {
-            static ParseResult previousConfig;
-            bool hasPreviousConfig = false;
-            if (segmentStorage != nullptr) {
-                if (segmentStorageMutex != nullptr) xSemaphoreTake(segmentStorageMutex, portMAX_DELAY);
-                hasPreviousConfig = segmentStorage->loadSegmentConfig(previousConfig);
-                if (segmentStorageMutex != nullptr) xSemaphoreGive(segmentStorageMutex);
-            }
-            if (hasPreviousConfig) {
-                for (int i = 0; i < MAX_SEGMENTS; ++i) {
-                    if (previousConfig.segments[i].valid) pinManager.removeSegment(previousConfig.segments[i].id);
-                }
-            }
+            pinManager.clearAllSegments();
             evt->pinCount = ConfigApplier::apply(*evt->parsed, &pinManager);
             persistCurrentSegmentConfig("full config apply");
         }

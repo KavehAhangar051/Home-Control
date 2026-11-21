@@ -9,9 +9,19 @@
       "stagnation": 0.0,
       "test_runs": 0,
       "turns": 1
+    },
+    {
+      "distinct_edit_files": 0,
+      "edit_churn": 0,
+      "error_outputs": 2,
+      "repeated_fail_sigs": 1,
+      "stagnation": 0.5,
+      "test_runs": 0,
+      "turns": 10
     }
   ],
   "resolved_turns": [
-    1
+    1,
+    10
   ]
 }

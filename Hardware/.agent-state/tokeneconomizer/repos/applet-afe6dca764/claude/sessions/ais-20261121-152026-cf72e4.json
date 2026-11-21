@@ -1,0 +1,16 @@
+{
+  "aborts": 0,
+  "cwd": "/app/applet",
+  "end_reason": "completed",
+  "ended": 1795275445.507044,
+  "folded": true,
+  "host": "claude",
+  "judge_tokens": 0.0,
+  "nudges": 0,
+  "session_id": "ais-20261121-152026-cf72e4",
+  "started": 1795275445.3231442,
+  "transcript": "/app/applet/.agent-state/tokeneconomizer/transcripts/ais-20261121-152026-cf72e4.jsonl",
+  "turns": [],
+  "updated": 1795275445.507046,
+  "writer_tokens": 0.0
+}
