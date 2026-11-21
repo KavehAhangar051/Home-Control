@@ -23,6 +23,14 @@
     "te:doctor": "bash ./tools/te.sh doctor",
     "te:setup": "bash ./tools/te.sh setup",
     "te:ensure": "bash ./tools/te.sh ensure",
+    "cpp:setup": "bash ./tools/cpp.sh setup",
+    "cpp:ensure": "bash ./tools/cpp.sh ensure",
+    "cpp:compiledb": "bash ./tools/cpp.sh compiledb",
+    "cpp:format": "bash ./tools/cpp.sh format",
+    "cpp:format:check": "bash ./tools/cpp.sh format:check",
+    "cpp:lint": "bash ./tools/cpp.sh lint",
+    "cpp:tidy": "bash ./tools/cpp.sh tidy",
+    "cpp:typecheck": "bash ./tools/cpp.sh typecheck",
     "agent:start": "python3 ./tools/agent-bridge.py start",
     "agent:end": "python3 ./tools/agent-bridge.py end",
     "rtk": "bash ./tools/rtk.sh",
@@ -30,7 +38,7 @@
     "rtk:setup": "bash ./tools/rtk.sh setup",
     "rtk:ensure": "bash ./tools/rtk.sh ensure",
     "tools:check": "python3 ./tools/agent-bridge.py check",
-    "postinstall": "bash ./tools/rtk.sh setup || true; bash ./tools/cbm.sh ensure || true; bash ./tools/pio.sh ensure || true; bash ./tools/te.sh setup || true"
+    "postinstall": "bash ./tools/rtk.sh setup || true; bash ./tools/cbm.sh ensure || true; bash ./tools/pio.sh ensure || true; bash ./tools/te.sh setup || true; bash ./tools/cpp.sh ensure || true"
   },
   "dependencies": {
     "lucide-react": "^1.16.0",

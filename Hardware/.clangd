@@ -1,0 +1,20 @@
+CompileFlags:
+  CompilationDatabase: .
+  Remove:
+    - -mlongcalls
+    - -fstrict-volatile-bitfields
+    - -fno-tree-switch-conversion
+    - -mtext-section-literals
+    - -mdisable-hardware-atomics
+  Add:
+    - -Wno-unknown-warning-option
+
+Diagnostics:
+  UnusedIncludes: Strict
+  ClangTidy:
+    Add:
+      - bugprone-*
+      - performance-*
+    Remove:
+      - bugprone-easily-swappable-parameters
+      - bugprone-narrowing-conversions

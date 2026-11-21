@@ -44,12 +44,17 @@ TE_BIN = TE_HOME / "bin" / "te"
 TE_HOOK_BIN = TE_HOME / "bin" / "te-hook"
 TE_CONTAINER_MARKER = Path("/tmp/.te_container_initialized")
 
+CPP_STATE_ROOT = STATE_ROOT / "cpp-tools"
+CPP_VENV_BIN = CPP_STATE_ROOT / "venv" / "bin"
+CPP_CONTAINER_MARKER = Path("/tmp/.cpp_tools_initialized")
+
 EXECUTABLE_TOOLS = (
     ROOT_DIR / "tools" / "r",
     ROOT_DIR / "tools" / "rtk.sh",
     ROOT_DIR / "tools" / "cbm.sh",
     ROOT_DIR / "tools" / "pio.sh",
     ROOT_DIR / "tools" / "te.sh",
+    ROOT_DIR / "tools" / "cpp.sh",
     ROOT_DIR / "tools" / "agent-bridge.py",
 )
 
@@ -74,6 +79,14 @@ NON_RTK_SCRIPTS = frozenset(
         "te:doctor",
         "te:setup",
         "te:ensure",
+        "cpp:setup",
+        "cpp:ensure",
+        "cpp:compiledb",
+        "cpp:format",
+        "cpp:format:check",
+        "cpp:lint",
+        "cpp:tidy",
+        "cpp:typecheck",
         "agent:start",
         "agent:end",
         "tools:check",
@@ -206,6 +219,18 @@ def ensure_ready() -> None:
     )
     if not te_ok:
         subprocess.run(["bash", str(ROOT_DIR / "tools" / "te.sh"), "ensure"], check=True)
+
+    cpp_ok = (
+        (CPP_VENV_BIN / "clang-format").is_file()
+        and (CPP_VENV_BIN / "clang-tidy").is_file()
+        and Path("/usr/local/bin/clang-format").is_file()
+        and Path("/usr/local/bin/clang-tidy").is_file()
+        and Path("/usr/local/bin/clangd").is_file()
+        and Path("/usr/local/bin/cppcheck").is_file()
+        and CPP_CONTAINER_MARKER.is_file()
+    )
+    if not cpp_ok:
+        subprocess.run(["bash", str(ROOT_DIR / "tools" / "cpp.sh"), "ensure"], check=True)
 
 
 def _call_hook(event: str, payload: dict) -> dict:
@@ -534,13 +559,23 @@ def check_tools() -> int:
         ("cbm:projects", ["bash", str(ROOT_DIR / "tools" / "cbm.sh"), "cli", "list_projects"]),
         ("pio:version", [str(PIO_BIN), "--version"]),
         ("te:doctor", [str(TE_BIN), "--cwd", str(ROOT_DIR), "doctor"]),
+        ("cpp:clang-format", ["/usr/local/bin/clang-format", "--version"]),
+        ("cpp:clang-tidy", ["/usr/local/bin/clang-tidy", "--version"]),
+        ("cpp:clangd", ["/usr/local/bin/clangd", "--version"]),
+        ("cpp:cppcheck", ["/usr/local/bin/cppcheck", "--version"]),
+        ("cpp:cpplint", ["/usr/local/bin/cpplint", "--version"]),
     ]
     failed = 0
     for name, cmd in checks:
         proc = subprocess.run(cmd, env=env, cwd=str(ROOT_DIR), capture_output=True, text=True)
         status = "ok" if proc.returncode == 0 else f"fail({proc.returncode})"
-        first_line = (proc.stdout or proc.stderr or "").strip().splitlines()[:1]
-        detail = first_line[0] if first_line else ""
+        lines = [line.strip() for line in (proc.stdout or proc.stderr or "").splitlines() if line.strip()]
+        if name == "cpp:clang-tidy" and len(lines) > 1:
+            detail = lines[1]
+        elif name == "cpp:cpplint" and len(lines) > 1:
+            detail = lines[1]
+        else:
+            detail = lines[0] if lines else ""
         print(f"[{name}] {status}" + (f" — {detail}" if detail else ""))
         if proc.returncode != 0:
             failed += 1
@@ -571,9 +606,23 @@ def check_tools() -> int:
         and (TE_HOME / "plugin" / "lib" / "tokeneconomizer" / "plugin" / "hook.py").is_file()
     )
     print(f"[te:persistence] {'ok' if te_persist_ok else 'fail'}")
+    cpp_persist_ok = (
+        Path("/usr/local/bin/clang-format").exists()
+        and Path("/usr/local/bin/clang-tidy").exists()
+        and Path("/usr/local/bin/clangd").exists()
+        and Path("/usr/local/bin/cppcheck").exists()
+        and Path("/usr/local/bin/cpplint").exists()
+        and (CPP_VENV_BIN / "clang-format").is_file()
+        and (CPP_VENV_BIN / "clang-tidy").is_file()
+        and (PIO_STATE_ROOT / "packages" / "tool-cppcheck" / "cppcheck").is_file()
+        and (ROOT_DIR / ".clang-format").is_file()
+        and (ROOT_DIR / ".clang-tidy").is_file()
+        and (ROOT_DIR / ".clangd").is_file()
+    )
+    print(f"[cpp:persistence] {'ok' if cpp_persist_ok else 'fail'}")
     perms_ok = all(p.is_file() and os.access(p, os.X_OK) for p in EXECUTABLE_TOOLS)
     print(f"[tools:+x] {'ok' if perms_ok else 'fail'}")
-    return 1 if (failed or not rtk_persist_ok or not cbm_persist_ok or not pio_persist_ok or not te_persist_ok or not perms_ok) else 0
+    return 1 if (failed or not rtk_persist_ok or not cbm_persist_ok or not pio_persist_ok or not te_persist_ok or not cpp_persist_ok or not perms_ok) else 0
 
 
 def main() -> int:
