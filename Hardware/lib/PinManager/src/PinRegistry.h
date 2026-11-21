@@ -9,12 +9,14 @@
 static const int MAX_PINS = 16;
 
 /**
- * @brief High-performance registry for pin entries with O(1) bitmask operations.
+ * @brief High-performance registry for pin entries with O(1) bitmask operations
+ * and pre-computed djb2 string hashes for accelerated ID lookup.
  */
 class PinRegistry {
 public:
     PinRegistry() : _activeMask(0) {
         for (int i = 0; i < MAX_PINS; i++) {
+            _segmentIdHashes[i] = 0;
             _entries[i].active = false;
             _entries[i].hasGpio = false;
             _entries[i].hasPwm = false;
@@ -74,11 +76,20 @@ public:
         return __builtin_popcount(_activeMask);
     }
 
+    /**
+     * @brief O(1) hash-accelerated segment lookup, avoiding strcmp across non-matching slots.
+     */
     HOT_PATH int findById(const char* id) const {
         if (UNLIKELY(id == nullptr || id[0] == '\0')) return -1;
+        uint32_t targetHash = 5381;
+        const char* s = id;
+        while (*s) targetHash = ((targetHash << 5) + targetHash) + static_cast<uint8_t>(*s++);
+
         for (int i = 0; i < MAX_PINS; i++) {
-            if (uniuno::asm_opt::test_bitmap_bit(_activeMask, i) && strcmp(_entries[i].segmentId, id) == 0) {
-                return i;
+            if (uniuno::asm_opt::test_bitmap_bit(_activeMask, i) && _segmentIdHashes[i] == targetHash) {
+                if (strcmp(_entries[i].segmentId, id) == 0) {
+                    return i;
+                }
             }
         }
         return -1;
@@ -88,6 +99,10 @@ public:
         if (pin >= 0 && pin < 40 && index >= 0 && index < MAX_PINS) {
             _pinToIndex[pin] = static_cast<int8_t>(index);
             uniuno::asm_opt::set_bitmap_bit(_activeMask, index);
+            uint32_t h = 5381;
+            const char* s = _entries[index].segmentId;
+            while (*s) h = ((h << 5) + h) + static_cast<uint8_t>(*s++);
+            _segmentIdHashes[index] = h;
         }
     }
 
@@ -96,6 +111,7 @@ public:
             const int8_t idx = _pinToIndex[pin];
             if (idx >= 0 && idx < MAX_PINS) {
                 uniuno::asm_opt::clear_bitmap_bit(_activeMask, idx);
+                _segmentIdHashes[idx] = 0;
             }
             _pinToIndex[pin] = -1;
         }
@@ -103,6 +119,7 @@ public:
 
 private:
     PinEntry _entries[MAX_PINS];
+    uint32_t _segmentIdHashes[MAX_PINS];
     int8_t _pinToIndex[40];
     uint32_t _activeMask;
 };

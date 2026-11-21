@@ -54,34 +54,10 @@ struct AnalogInputChange {
 
 /**
  * @brief Memory-optimized representation of a single managed hardware pin/segment.
- * Fields ordered to minimize CPU alignment padding on 32-bit Xtensa.
+ * Hot fields placed in the primary cache line to eliminate L1 cache misses in loop().
  */
 struct PinEntry {
-    // 32-byte identifier string
-    char segmentId[32];
-    
-    // Complex objects and sub-structs (zero-heap inline drivers)
-    RuleConfig rule;
-    RuleAction pendingHoldAction;
-    GpioSwitch gpio;
-    GpioPwm pwm;
-    GpioAdc adc;
-    
-    // Active timer handles
-    uniuno::TimerHandle autoOffTimer;
-    uniuno::TimerHandle cloudSyncTimer;
-    uniuno::TimerHandle ruleActionTimer;
-    uniuno::TimerHandle holdTimer;
-    uniuno::TimerHandle doubleClickTimer;
-
-    // Timestamps for duration tracking, debounce, and double-click detection
-    unsigned long stateStartTime;
-    unsigned long lastDebounceTime;
-    unsigned long lastClickTimeMs;
-    
-    // Scaled fundamental types for compact footprint
-    uint16_t autoOffDelay;
-    int16_t pendingRuleActionAnalogValue;
+    // --- HOT FIELDS: First cache line for high-frequency loop scanning ---
     int8_t pinNumber;
     SegmentType type;
     uint8_t analogRangeActiveMask; // Bit i = 1 iff analogRanges[i] is currently active
@@ -96,6 +72,34 @@ struct PinEntry {
     bool isHandled : 1;
     bool clickPolarity : 1;
     bool active : 1;
+
+    // Timestamps for duration tracking, debounce, and double-click detection
+    unsigned long stateStartTime;
+    unsigned long lastDebounceTime;
+    unsigned long lastClickTimeMs;
+
+    uint16_t autoOffDelay;
+    int16_t pendingRuleActionAnalogValue;
+
+    // Rule config used directly on state changes
+    RuleConfig rule;
+
+    // --- SECONDARY DRIVER OBJECTS ---
+    GpioSwitch gpio;
+    GpioPwm pwm;
+    GpioAdc adc;
+
+    // Active timer handles
+    uniuno::TimerHandle autoOffTimer;
+    uniuno::TimerHandle cloudSyncTimer;
+    uniuno::TimerHandle ruleActionTimer;
+    uniuno::TimerHandle holdTimer;
+    uniuno::TimerHandle doubleClickTimer;
+
+    RuleAction pendingHoldAction;
+
+    // 32-byte identifier string (cold path: only for setup / config export)
+    char segmentId[32];
 };
 
 #endif // PIN_ENTRY_H

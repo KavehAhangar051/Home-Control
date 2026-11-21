@@ -42,6 +42,7 @@ private:
     uint32_t lastConnectedCheckCycle_ = 0;
     WebServer provisioningServer_{80};
     bool provisioningServerStarted_;
+    bool networkReady_ = false;
     uniuno::TaskHandle bootTaskHandle_;
 
     uniuno::AsyncResult<void> bootPollFn();

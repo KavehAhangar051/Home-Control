@@ -82,7 +82,10 @@ public:
     dispatch_depth_++;
     bool needs_cleanup = false;
     
-    for (auto& listener : group->listeners) {
+    // Fast path: direct invocation for 1-listener events (covers 95%+ embedded events)
+    const size_t lCount = group->listeners.size();
+    if (LIKELY(lCount == 1)) {
+      auto& listener = group->listeners[0];
       if (LIKELY(!listener.is_marked_for_removal())) {
         listener.invoke(event);
         if (UNLIKELY(listener.is_once())) {
@@ -91,6 +94,18 @@ public:
         }
       } else {
         needs_cleanup = true;
+      }
+    } else {
+      for (auto& listener : group->listeners) {
+        if (LIKELY(!listener.is_marked_for_removal())) {
+          listener.invoke(event);
+          if (UNLIKELY(listener.is_once())) {
+            listener.mark_for_removal();
+            needs_cleanup = true;
+          }
+        } else {
+          needs_cleanup = true;
+        }
       }
     }
     
