@@ -99,17 +99,24 @@ void test_mqtt_delete_segment_parser_legacy_and_v2() {
     TEST_ASSERT_EQUAL_STRING("", recorder.removeIds[2].c_str());
     TEST_ASSERT_EQUAL_INT(14, recorder.removes[2].pin);
 
-    // Out-of-range trailing pin (99 > 39) is ignored safely while preserving ID
-    const uint8_t badPinFrame[] = {0x03, 'a', 'b', 'c', 0x00, 99};
-    dispatcher.handlePayload(badPinFrame, sizeof(badPinFrame), &recorder);
+    // Virtual pin (45 in 40..127) is accepted as a valid fallback pin
+    const uint8_t vpinFrame[] = {0x03, 'v', 'p', '4', '5', 0x00, 45};
+    dispatcher.handlePayload(vpinFrame, sizeof(vpinFrame), &recorder);
     TEST_ASSERT_EQUAL_UINT32(4, recorder.removes.size());
-    TEST_ASSERT_EQUAL_STRING("abc", recorder.removeIds[3].c_str());
-    TEST_ASSERT_EQUAL_INT(-1, recorder.removes[3].pin);
+    TEST_ASSERT_EQUAL_STRING("vp45", recorder.removeIds[3].c_str());
+    TEST_ASSERT_EQUAL_INT(45, recorder.removes[3].pin);
+
+    // Out-of-range trailing pin (200 > 127) is ignored safely while preserving ID
+    const uint8_t badPinFrame[] = {0x03, 'a', 'b', 'c', 0x00, 200};
+    dispatcher.handlePayload(badPinFrame, sizeof(badPinFrame), &recorder);
+    TEST_ASSERT_EQUAL_UINT32(5, recorder.removes.size());
+    TEST_ASSERT_EQUAL_STRING("abc", recorder.removeIds[4].c_str());
+    TEST_ASSERT_EQUAL_INT(-1, recorder.removes[4].pin);
 
     // Empty ID + invalid pin is rejected
     const uint8_t emptyFrame[] = {0x03, 0x00};
     dispatcher.handlePayload(emptyFrame, sizeof(emptyFrame), &recorder);
-    TEST_ASSERT_EQUAL_UINT32(4, recorder.removes.size());
+    TEST_ASSERT_EQUAL_UINT32(5, recorder.removes.size());
 }
 
 // ============================================================================

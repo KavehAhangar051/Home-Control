@@ -26,5 +26,9 @@
   "ais-20261122-133800-29a0c4": {
     "at": 1795355455.803276,
     "transcript": "/app/applet/.agent-state/tokeneconomizer/transcripts/ais-20261122-133800-29a0c4.jsonl"
+  },
+  "ais-20261122-144431-2de311": {
+    "at": 1795361387.12641,
+    "transcript": "/app/applet/.agent-state/tokeneconomizer/transcripts/ais-20261122-144431-2de311.jsonl"
   }
 }

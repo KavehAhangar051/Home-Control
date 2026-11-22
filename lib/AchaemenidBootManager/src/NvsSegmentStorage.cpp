@@ -8,7 +8,8 @@ namespace {
 static constexpr uint8_t STORAGE_VERSION_V2 = 2;
 static constexpr uint8_t STORAGE_VERSION_V3 = 3;
 static constexpr uint8_t STORAGE_VERSION_V4 = 4;
-static constexpr uint8_t STORAGE_VERSION = 5;
+static constexpr uint8_t STORAGE_VERSION_V5 = 5;
+static constexpr uint8_t STORAGE_VERSION = 6;
 static constexpr char NVS_NAMESPACE[] = "AchaemenidSeg";
 
 #pragma pack(push, 1)
@@ -79,7 +80,7 @@ struct StoredAnalogRangeRule {
     uint8_t flags; // bit0=actionState, bits1..2=actionType, bit3=triggerMode, bit4=enabled
     uint8_t reserved;
 };
-struct StoredSegment {
+struct StoredSegmentV5 {
     char id[32];
     char type[16];
     int16_t pin;
@@ -99,11 +100,45 @@ struct StoredSegment {
     uint8_t analogRangeCount;
     StoredAnalogRangeRule analogRanges[MAX_ANALOG_RANGE_RULES];
 };
+/**
+ * @brief Compact variable-length V6 header (70 bytes).
+ * Followed immediately by only the active rule payloads:
+ *   highActionCount * StoredRuleAction (13B)
+ * + lowActionCount  * StoredRuleAction (13B)
+ * + analogRangeCount * StoredAnalogRangeRule (12B)
+ * This shrinks no-rule segments from 244B to 70B so 48 segments x 2 banks fit comfortably in min_spiffs NVS.
+ */
+struct StoredSegmentHeaderV6 {
+    char id[32];
+    char type[16];
+    int16_t pin;
+    uint16_t autoOffDelay;
+    uint8_t pwmResolution;
+    uint16_t pwmFrequency;
+    uint8_t adcResolution;
+    uint16_t adcSampleIntervalMs;
+    uint16_t adcDeltaThreshold;
+    uint16_t adcHighThreshold;
+    uint16_t adcLowThreshold;
+    uint8_t flags;          // bit0=isVirtual, bit1=ruleActive
+    uint8_t nodeId;         // 0=local, 1..16=aux node
+    uint8_t remotePin;      // REMOTE_PIN_UNSET for local, 0..39 for remote
+    uint8_t highActionCount;
+    uint8_t lowActionCount;
+    uint8_t analogRangeCount;
+};
 #pragma pack(pop)
+
+static constexpr size_t MAX_V6_BLOB_SIZE =
+    sizeof(StoredSegmentHeaderV6) +
+    (4U * sizeof(StoredRuleAction)) +
+    (4U * sizeof(StoredRuleAction)) +
+    (MAX_ANALOG_RANGE_RULES * sizeof(StoredAnalogRangeRule));
 
 static_assert(sizeof(StoredRuleActionV2) == 11, "Unexpected stored RuleActionV2 layout");
 static_assert(sizeof(StoredRuleAction) == 13, "Unexpected stored RuleAction layout");
 static_assert(sizeof(StoredAnalogRangeRule) == 12, "Unexpected stored AnalogRangeRule layout");
+static_assert(sizeof(StoredSegmentHeaderV6) == 70, "Unexpected stored StoredSegmentHeaderV6 layout");
 
 void copyActionToStorage(const RuleAction& source, StoredRuleAction& target) {
     target.requiredHoldTime = source.requiredHoldTime;
@@ -115,7 +150,7 @@ void copyActionToStorage(const RuleAction& source, StoredRuleAction& target) {
 }
 
 bool copyActionFromStorageV2(const StoredRuleActionV2& source, RuleAction& target) {
-    if (source.targetPin < 0 || source.targetPin > 39 ||
+    if (!isValidManagedPin(source.targetPin) ||
         source.actionState > 1 ||
         source.actionType > ACTION_FOR_DURATION ||
         source.delay < 0 || source.delay > 60) return false;
@@ -132,7 +167,7 @@ bool copyActionFromStorageV2(const StoredRuleActionV2& source, RuleAction& targe
 }
 
 bool copyActionFromStorage(const StoredRuleAction& source, RuleAction& target) {
-    if (source.targetPin < 0 || source.targetPin > 39 ||
+    if (!isValidManagedPin(source.targetPin) ||
         source.actionState > 1 ||
         source.actionType > ACTION_FOR_DURATION ||
         source.delay < 0 || source.delay > 60) return false;
@@ -175,7 +210,7 @@ void copyRangeToStorage(const AnalogRangeRule& source, uint16_t maxAdcVal, Store
 bool copyRangeFromStorage(const StoredAnalogRangeRule& source, uint16_t maxAdcVal, AnalogRangeRule& target) {
     const uint8_t actionType = static_cast<uint8_t>((source.flags >> 1) & 0x03U);
     const uint8_t triggerMode = static_cast<uint8_t>((source.flags >> 3) & 0x01U);
-    if (source.targetPin < 0 || source.targetPin > 39 ||
+    if (!isValidManagedPin(source.targetPin) ||
         actionType > ACTION_FOR_DURATION ||
         source.delay > 60 ||
         source.minValue > maxAdcVal ||
@@ -203,7 +238,12 @@ bool copyRangeFromStorage(const StoredAnalogRangeRule& source, uint16_t maxAdcVa
 }
 
 bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
-    out.reset();
+    // Preserve any already-loaded auxNodes in out while resetting segments.
+    for (int i = 0; i < MAX_SEGMENTS; ++i) {
+        out.segments[i].reset();
+    }
+    out.count = 0;
+    out.segmentsProvided = false;
 
     char countKey[8];
     char versionKey[8];
@@ -212,8 +252,9 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
 
     const int count = prefs.getInt(countKey, -1);
     const uint8_t version = prefs.getUChar(versionKey, 0);
-    if ((version != STORAGE_VERSION && version != STORAGE_VERSION_V4 &&
-         version != STORAGE_VERSION_V3 && version != STORAGE_VERSION_V2) ||
+    if ((version != STORAGE_VERSION && version != STORAGE_VERSION_V5 &&
+         version != STORAGE_VERSION_V4 && version != STORAGE_VERSION_V3 &&
+         version != STORAGE_VERSION_V2) ||
         count < 0 || count > MAX_SEGMENTS) {
         return false;
     }
@@ -222,7 +263,8 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
         StoredSegmentV2 v2;
         StoredSegmentV3 v3;
         StoredSegmentV4 v4;
-        StoredSegment v5;
+        StoredSegmentV5 v5;
+        uint8_t v6Buf[MAX_V6_BLOB_SIZE];
     } recordBuf;
 
     char key[16];
@@ -245,7 +287,7 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             const bool idTerminated = memchr(record.id, '\0', sizeof(record.id)) != nullptr;
             const bool typeTerminated = memchr(record.type, '\0', sizeof(record.type)) != nullptr;
             if (!idTerminated || !typeTerminated || record.id[0] == '\0' ||
-                record.type[0] == '\0' || record.pin < 0 || record.pin > 39 ||
+                record.type[0] == '\0' || !isLocalGpioPin(record.pin) ||
                 record.highActionCount > 4 || record.lowActionCount > 4 ||
                 record.ruleActive > 1) {
                 Serial.printf("[SegStorage] Bank %c (v2) rejected: invalid segment record %s\n", bank, key);
@@ -261,19 +303,11 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             }
 
             SegmentConfig& segment = out.segments[out.count];
+            segment.reset();
             strlcpy(segment.id, record.id, sizeof(segment.id));
             strlcpy(segment.type, record.type, sizeof(segment.type));
             segment.pin = record.pin;
             segment.autoOffDelay = record.autoOffDelay;
-            segment.pwmResolution = DEFAULT_PWM_RESOLUTION;
-            segment.pwmFrequency = DEFAULT_PWM_FREQUENCY;
-            segment.adcResolution = DEFAULT_ADC_RESOLUTION;
-            segment.adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
-            segment.adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
-            segment.adcHighThreshold = 0;
-            segment.adcLowThreshold = 0;
-            segment.analogValue = 0;
-            segment.value = false;
             segment.valid = true;
             segment.rule.active = record.ruleActive != 0;
 
@@ -317,7 +351,7 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             const bool idTerminated = memchr(record.id, '\0', sizeof(record.id)) != nullptr;
             const bool typeTerminated = memchr(record.type, '\0', sizeof(record.type)) != nullptr;
             if (!idTerminated || !typeTerminated || record.id[0] == '\0' ||
-                record.type[0] == '\0' || record.pin < 0 || record.pin > 39 ||
+                record.type[0] == '\0' || !isLocalGpioPin(record.pin) ||
                 record.pwmResolution < MIN_PWM_RESOLUTION || record.pwmResolution > MAX_PWM_RESOLUTION ||
                 record.pwmFrequency < MIN_PWM_FREQUENCY || record.pwmFrequency > MAX_PWM_FREQUENCY ||
                 record.highActionCount > 4 || record.lowActionCount > 4 ||
@@ -335,19 +369,13 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             }
 
             SegmentConfig& segment = out.segments[out.count];
+            segment.reset();
             strlcpy(segment.id, record.id, sizeof(segment.id));
             strlcpy(segment.type, record.type, sizeof(segment.type));
             segment.pin = record.pin;
             segment.autoOffDelay = record.autoOffDelay;
             segment.pwmResolution = record.pwmResolution;
             segment.pwmFrequency = record.pwmFrequency;
-            segment.adcResolution = DEFAULT_ADC_RESOLUTION;
-            segment.adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
-            segment.adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
-            segment.adcHighThreshold = 0;
-            segment.adcLowThreshold = 0;
-            segment.analogValue = 0;
-            segment.value = false;
             segment.valid = true;
             segment.rule.active = record.ruleActive != 0;
 
@@ -394,7 +422,7 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
                 ? static_cast<uint16_t>((1UL << record.adcResolution) - 1UL)
                 : MAX_ANALOG_INPUT_VALUE;
             if (!idTerminated || !typeTerminated || record.id[0] == '\0' ||
-                record.type[0] == '\0' || record.pin < 0 || record.pin > 39 ||
+                record.type[0] == '\0' || !isLocalGpioPin(record.pin) ||
                 record.pwmResolution < MIN_PWM_RESOLUTION || record.pwmResolution > MAX_PWM_RESOLUTION ||
                 record.pwmFrequency < MIN_PWM_FREQUENCY || record.pwmFrequency > MAX_PWM_FREQUENCY ||
                 record.adcResolution < MIN_ADC_RESOLUTION || record.adcResolution > MAX_ADC_RESOLUTION ||
@@ -419,6 +447,7 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             }
 
             SegmentConfig& segment = out.segments[out.count];
+            segment.reset();
             strlcpy(segment.id, record.id, sizeof(segment.id));
             strlcpy(segment.type, record.type, sizeof(segment.type));
             segment.pin = record.pin;
@@ -430,8 +459,6 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             segment.adcDeltaThreshold = record.adcDeltaThreshold;
             segment.adcHighThreshold = record.adcHighThreshold;
             segment.adcLowThreshold = record.adcLowThreshold;
-            segment.analogValue = 0;
-            segment.value = false;
             segment.valid = true;
             segment.rule.active = record.ruleActive != 0;
 
@@ -459,87 +486,215 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             continue;
         }
 
-        if (prefs.getBytesLength(key) != sizeof(StoredSegment)) {
-            Serial.printf("[SegStorage] Bank %c rejected: invalid record size for %s\n", bank, key);
+        if (version == STORAGE_VERSION_V5) {
+            if (prefs.getBytesLength(key) != sizeof(StoredSegmentV5)) {
+                Serial.printf("[SegStorage] Bank %c (v5) rejected: invalid record size for %s\n", bank, key);
+                return false;
+            }
+
+            StoredSegmentV5& record = recordBuf.v5;
+            memset(&record, 0, sizeof(record));
+            if (prefs.getBytes(key, &record, sizeof(record)) != sizeof(record)) {
+                Serial.printf("[SegStorage] Bank %c (v5) rejected: failed reading %s\n", bank, key);
+                return false;
+            }
+
+            const bool idTerminated = memchr(record.id, '\0', sizeof(record.id)) != nullptr;
+            const bool typeTerminated = memchr(record.type, '\0', sizeof(record.type)) != nullptr;
+            const uint16_t maxAdcVal = (record.adcResolution >= MIN_ADC_RESOLUTION && record.adcResolution <= MAX_ADC_RESOLUTION)
+                ? static_cast<uint16_t>((1UL << record.adcResolution) - 1UL)
+                : MAX_ANALOG_INPUT_VALUE;
+            if (!idTerminated || !typeTerminated || record.id[0] == '\0' ||
+                record.type[0] == '\0' || !isLocalGpioPin(record.pin) ||
+                record.pwmResolution < MIN_PWM_RESOLUTION || record.pwmResolution > MAX_PWM_RESOLUTION ||
+                record.pwmFrequency < MIN_PWM_FREQUENCY || record.pwmFrequency > MAX_PWM_FREQUENCY ||
+                record.adcResolution < MIN_ADC_RESOLUTION || record.adcResolution > MAX_ADC_RESOLUTION ||
+                record.adcSampleIntervalMs < MIN_ADC_SAMPLE_INTERVAL_MS ||
+                record.adcSampleIntervalMs > MAX_ADC_SAMPLE_INTERVAL_MS ||
+                record.adcDeltaThreshold < MIN_ADC_DELTA_THRESHOLD ||
+                record.adcDeltaThreshold > maxAdcVal ||
+                record.adcHighThreshold > maxAdcVal ||
+                record.adcLowThreshold > record.adcHighThreshold ||
+                record.highActionCount > 4 || record.lowActionCount > 4 ||
+                record.analogRangeCount > MAX_ANALOG_RANGE_RULES ||
+                record.ruleActive > 1) {
+                Serial.printf("[SegStorage] Bank %c (v5) rejected: invalid segment record %s\n", bank, key);
+                return false;
+            }
+
+            for (int previous = 0; previous < out.count; ++previous) {
+                if (out.segments[previous].pin == record.pin ||
+                    strcmp(out.segments[previous].id, record.id) == 0) {
+                    Serial.printf("[SegStorage] Bank %c (v5) rejected: duplicate ID or GPIO in %s\n", bank, key);
+                    return false;
+                }
+            }
+
+            SegmentConfig& segment = out.segments[out.count];
+            segment.reset();
+            strlcpy(segment.id, record.id, sizeof(segment.id));
+            strlcpy(segment.type, record.type, sizeof(segment.type));
+            segment.pin = record.pin;
+            segment.autoOffDelay = record.autoOffDelay;
+            segment.pwmResolution = record.pwmResolution;
+            segment.pwmFrequency = record.pwmFrequency;
+            segment.adcResolution = record.adcResolution;
+            segment.adcSampleIntervalMs = record.adcSampleIntervalMs;
+            segment.adcDeltaThreshold = record.adcDeltaThreshold;
+            segment.adcHighThreshold = record.adcHighThreshold;
+            segment.adcLowThreshold = record.adcLowThreshold;
+            segment.valid = true;
+            segment.rule.active = record.ruleActive != 0;
+
+            for (int a = 0; a < record.highActionCount; ++a) {
+                RuleAction action;
+                if (!copyActionFromStorage(record.highActions[a], action)) {
+                    Serial.printf("[SegStorage] Bank %c (v5) rejected: invalid HIGH action in %s\n", bank, key);
+                    return false;
+                }
+                segment.rule.highActions[segment.rule.highActionCount++] = action;
+            }
+            for (int a = 0; a < record.lowActionCount; ++a) {
+                RuleAction action;
+                if (!copyActionFromStorage(record.lowActions[a], action)) {
+                    Serial.printf("[SegStorage] Bank %c (v5) rejected: invalid LOW action in %s\n", bank, key);
+                    return false;
+                }
+                segment.rule.lowActions[segment.rule.lowActionCount++] = action;
+            }
+            for (uint8_t r = 0; r < record.analogRangeCount; ++r) {
+                AnalogRangeRule rr;
+                if (!copyRangeFromStorage(record.analogRanges[r], maxAdcVal, rr)) {
+                    Serial.printf("[SegStorage] Bank %c (v5) rejected: invalid analog range rule in %s\n", bank, key);
+                    return false;
+                }
+                segment.rule.analogRanges[segment.rule.analogRangeCount++] = rr;
+            }
+
+            if (segment.rule.highActionCount == 0 && segment.rule.lowActionCount == 0 &&
+                segment.rule.analogRangeCount == 0) {
+                segment.rule.active = false;
+            }
+            ++out.count;
+            continue;
+        }
+
+        // V6 compact variable-length record
+        const size_t blobLen = prefs.getBytesLength(key);
+        if (blobLen < sizeof(StoredSegmentHeaderV6) || blobLen > MAX_V6_BLOB_SIZE) {
+            Serial.printf("[SegStorage] Bank %c (v6) rejected: invalid blob size %u for %s\n",
+                          bank, static_cast<unsigned int>(blobLen), key);
             return false;
         }
 
-        StoredSegment& record = recordBuf.v5;
-        memset(&record, 0, sizeof(record));
-        if (prefs.getBytes(key, &record, sizeof(record)) != sizeof(record)) {
-            Serial.printf("[SegStorage] Bank %c rejected: failed reading %s\n", bank, key);
+        memset(recordBuf.v6Buf, 0, blobLen);
+        if (prefs.getBytes(key, recordBuf.v6Buf, blobLen) != blobLen) {
+            Serial.printf("[SegStorage] Bank %c (v6) rejected: failed reading %s\n", bank, key);
             return false;
         }
 
-        const bool idTerminated = memchr(record.id, '\0', sizeof(record.id)) != nullptr;
-        const bool typeTerminated = memchr(record.type, '\0', sizeof(record.type)) != nullptr;
-        const uint16_t maxAdcVal = (record.adcResolution >= MIN_ADC_RESOLUTION && record.adcResolution <= MAX_ADC_RESOLUTION)
-            ? static_cast<uint16_t>((1UL << record.adcResolution) - 1UL)
+        StoredSegmentHeaderV6 hdr{};
+        memcpy(&hdr, recordBuf.v6Buf, sizeof(hdr));
+
+        const size_t expectedLen =
+            sizeof(StoredSegmentHeaderV6) +
+            static_cast<size_t>(hdr.highActionCount) * sizeof(StoredRuleAction) +
+            static_cast<size_t>(hdr.lowActionCount) * sizeof(StoredRuleAction) +
+            static_cast<size_t>(hdr.analogRangeCount) * sizeof(StoredAnalogRangeRule);
+
+        const bool isVirtual = (hdr.flags & 0x01U) != 0U;
+        const bool ruleActive = (hdr.flags & 0x02U) != 0U;
+        const bool idTerminated = memchr(hdr.id, '\0', sizeof(hdr.id)) != nullptr;
+        const bool typeTerminated = memchr(hdr.type, '\0', sizeof(hdr.type)) != nullptr;
+        const uint16_t maxAdcVal = (hdr.adcResolution >= MIN_ADC_RESOLUTION && hdr.adcResolution <= MAX_ADC_RESOLUTION)
+            ? static_cast<uint16_t>((1UL << hdr.adcResolution) - 1UL)
             : MAX_ANALOG_INPUT_VALUE;
-        if (!idTerminated || !typeTerminated || record.id[0] == '\0' ||
-            record.type[0] == '\0' || record.pin < 0 || record.pin > 39 ||
-            record.pwmResolution < MIN_PWM_RESOLUTION || record.pwmResolution > MAX_PWM_RESOLUTION ||
-            record.pwmFrequency < MIN_PWM_FREQUENCY || record.pwmFrequency > MAX_PWM_FREQUENCY ||
-            record.adcResolution < MIN_ADC_RESOLUTION || record.adcResolution > MAX_ADC_RESOLUTION ||
-            record.adcSampleIntervalMs < MIN_ADC_SAMPLE_INTERVAL_MS ||
-            record.adcSampleIntervalMs > MAX_ADC_SAMPLE_INTERVAL_MS ||
-            record.adcDeltaThreshold < MIN_ADC_DELTA_THRESHOLD ||
-            record.adcDeltaThreshold > maxAdcVal ||
-            record.adcHighThreshold > maxAdcVal ||
-            record.adcLowThreshold > record.adcHighThreshold ||
-            record.highActionCount > 4 || record.lowActionCount > 4 ||
-            record.analogRangeCount > MAX_ANALOG_RANGE_RULES ||
-            record.ruleActive > 1) {
-            Serial.printf("[SegStorage] Bank %c rejected: invalid segment record %s\n", bank, key);
+
+        const bool pinValid = isVirtual ? isVirtualPin(hdr.pin) : isLocalGpioPin(hdr.pin);
+        const bool bindingValid = isVirtual
+            ? (isValidAuxNodeId(hdr.nodeId) && isValidAuxRemotePin(hdr.remotePin))
+            : (hdr.nodeId == AUX_NODE_ID_LOCAL);
+
+        if (blobLen != expectedLen || !idTerminated || !typeTerminated ||
+            hdr.id[0] == '\0' || hdr.type[0] == '\0' || !pinValid || !bindingValid ||
+            hdr.pwmResolution < MIN_PWM_RESOLUTION || hdr.pwmResolution > MAX_PWM_RESOLUTION ||
+            hdr.pwmFrequency < MIN_PWM_FREQUENCY || hdr.pwmFrequency > MAX_PWM_FREQUENCY ||
+            hdr.adcResolution < MIN_ADC_RESOLUTION || hdr.adcResolution > MAX_ADC_RESOLUTION ||
+            hdr.adcSampleIntervalMs < MIN_ADC_SAMPLE_INTERVAL_MS ||
+            hdr.adcSampleIntervalMs > MAX_ADC_SAMPLE_INTERVAL_MS ||
+            hdr.adcDeltaThreshold < MIN_ADC_DELTA_THRESHOLD ||
+            hdr.adcDeltaThreshold > maxAdcVal ||
+            hdr.adcHighThreshold > maxAdcVal ||
+            hdr.adcLowThreshold > hdr.adcHighThreshold ||
+            hdr.highActionCount > 4 || hdr.lowActionCount > 4 ||
+            hdr.analogRangeCount > MAX_ANALOG_RANGE_RULES) {
+            Serial.printf("[SegStorage] Bank %c (v6) rejected: invalid segment record %s\n", bank, key);
             return false;
         }
 
-        // A pin and segment ID must each identify exactly one registry entry.
         for (int previous = 0; previous < out.count; ++previous) {
-            if (out.segments[previous].pin == record.pin ||
-                strcmp(out.segments[previous].id, record.id) == 0) {
-                Serial.printf("[SegStorage] Bank %c rejected: duplicate ID or GPIO in %s\n", bank, key);
+            if (out.segments[previous].pin == hdr.pin ||
+                strcmp(out.segments[previous].id, hdr.id) == 0) {
+                Serial.printf("[SegStorage] Bank %c (v6) rejected: duplicate ID or pin in %s\n", bank, key);
+                return false;
+            }
+            if (isVirtual && out.segments[previous].isVirtual &&
+                out.segments[previous].nodeId == hdr.nodeId &&
+                out.segments[previous].remotePin == hdr.remotePin) {
+                Serial.printf("[SegStorage] Bank %c (v6) rejected: duplicate remote binding in %s\n", bank, key);
                 return false;
             }
         }
 
         SegmentConfig& segment = out.segments[out.count];
-        strlcpy(segment.id, record.id, sizeof(segment.id));
-        strlcpy(segment.type, record.type, sizeof(segment.type));
-        segment.pin = record.pin;
-        segment.autoOffDelay = record.autoOffDelay;
-        segment.pwmResolution = record.pwmResolution;
-        segment.pwmFrequency = record.pwmFrequency;
-        segment.adcResolution = record.adcResolution;
-        segment.adcSampleIntervalMs = record.adcSampleIntervalMs;
-        segment.adcDeltaThreshold = record.adcDeltaThreshold;
-        segment.adcHighThreshold = record.adcHighThreshold;
-        segment.adcLowThreshold = record.adcLowThreshold;
-        segment.analogValue = 0;
-        segment.value = false;
+        segment.reset();
+        strlcpy(segment.id, hdr.id, sizeof(segment.id));
+        strlcpy(segment.type, hdr.type, sizeof(segment.type));
+        segment.pin = hdr.pin;
+        segment.autoOffDelay = hdr.autoOffDelay;
+        segment.pwmResolution = hdr.pwmResolution;
+        segment.pwmFrequency = hdr.pwmFrequency;
+        segment.adcResolution = hdr.adcResolution;
+        segment.adcSampleIntervalMs = hdr.adcSampleIntervalMs;
+        segment.adcDeltaThreshold = hdr.adcDeltaThreshold;
+        segment.adcHighThreshold = hdr.adcHighThreshold;
+        segment.adcLowThreshold = hdr.adcLowThreshold;
+        segment.isVirtual = isVirtual;
+        segment.nodeId = isVirtual ? hdr.nodeId : AUX_NODE_ID_LOCAL;
+        segment.remotePin = isVirtual ? hdr.remotePin : REMOTE_PIN_UNSET;
         segment.valid = true;
-        segment.rule.active = record.ruleActive != 0;
+        segment.rule.active = ruleActive;
 
-        for (int a = 0; a < record.highActionCount; ++a) {
+        size_t offset = sizeof(StoredSegmentHeaderV6);
+        for (int a = 0; a < hdr.highActionCount; ++a) {
+            StoredRuleAction rawAction{};
+            memcpy(&rawAction, recordBuf.v6Buf + offset, sizeof(rawAction));
+            offset += sizeof(rawAction);
             RuleAction action;
-            if (!copyActionFromStorage(record.highActions[a], action)) {
-                Serial.printf("[SegStorage] Bank %c rejected: invalid HIGH action in %s\n", bank, key);
+            if (!copyActionFromStorage(rawAction, action)) {
+                Serial.printf("[SegStorage] Bank %c (v6) rejected: invalid HIGH action in %s\n", bank, key);
                 return false;
             }
             segment.rule.highActions[segment.rule.highActionCount++] = action;
         }
-        for (int a = 0; a < record.lowActionCount; ++a) {
+        for (int a = 0; a < hdr.lowActionCount; ++a) {
+            StoredRuleAction rawAction{};
+            memcpy(&rawAction, recordBuf.v6Buf + offset, sizeof(rawAction));
+            offset += sizeof(rawAction);
             RuleAction action;
-            if (!copyActionFromStorage(record.lowActions[a], action)) {
-                Serial.printf("[SegStorage] Bank %c rejected: invalid LOW action in %s\n", bank, key);
+            if (!copyActionFromStorage(rawAction, action)) {
+                Serial.printf("[SegStorage] Bank %c (v6) rejected: invalid LOW action in %s\n", bank, key);
                 return false;
             }
             segment.rule.lowActions[segment.rule.lowActionCount++] = action;
         }
-        for (uint8_t r = 0; r < record.analogRangeCount; ++r) {
+        for (uint8_t r = 0; r < hdr.analogRangeCount; ++r) {
+            StoredAnalogRangeRule rawRange{};
+            memcpy(&rawRange, recordBuf.v6Buf + offset, sizeof(rawRange));
+            offset += sizeof(rawRange);
             AnalogRangeRule rr;
-            if (!copyRangeFromStorage(record.analogRanges[r], maxAdcVal, rr)) {
-                Serial.printf("[SegStorage] Bank %c rejected: invalid analog range rule in %s\n", bank, key);
+            if (!copyRangeFromStorage(rawRange, maxAdcVal, rr)) {
+                Serial.printf("[SegStorage] Bank %c (v6) rejected: invalid analog range rule in %s\n", bank, key);
                 return false;
             }
             segment.rule.analogRanges[segment.rule.analogRangeCount++] = rr;
@@ -562,7 +717,10 @@ bool loadLegacyConfig(Preferences& prefs, ParseResult& out) {
     if (count <= 0 || count > MAX_SEGMENTS) return false;
 
     char key[16];
-    out.reset();
+    for (int i = 0; i < MAX_SEGMENTS; ++i) {
+        out.segments[i].reset();
+    }
+    out.count = 0;
     for (int i = 0; i < count; ++i) {
         snprintf(key, sizeof(key), "s%did", i);
         String id = prefs.getString(key, "");
@@ -575,7 +733,7 @@ bool loadLegacyConfig(Preferences& prefs, ParseResult& out) {
 
         if (id.length() == 0 || id.length() >= sizeof(out.segments[0].id) ||
             type.length() == 0 || type.length() >= sizeof(out.segments[0].type) ||
-            pin < 0 || pin > 39 || out.count >= MAX_SEGMENTS) {
+            !isLocalGpioPin(pin) || out.count >= MAX_SEGMENTS) {
             Serial.printf("[SegStorage] Invalid legacy segment at index %d\n", i);
             return false;
         }
@@ -586,19 +744,11 @@ bool loadLegacyConfig(Preferences& prefs, ParseResult& out) {
         }
 
         SegmentConfig& segment = out.segments[out.count++];
+        segment.reset();
         strlcpy(segment.id, id.c_str(), sizeof(segment.id));
         strlcpy(segment.type, type.c_str(), sizeof(segment.type));
         segment.pin = pin;
         segment.autoOffDelay = autoOff < 0 ? 0 : autoOff;
-        segment.pwmResolution = DEFAULT_PWM_RESOLUTION;
-        segment.pwmFrequency = DEFAULT_PWM_FREQUENCY;
-        segment.adcResolution = DEFAULT_ADC_RESOLUTION;
-        segment.adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
-        segment.adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
-        segment.adcHighThreshold = 0;
-        segment.adcLowThreshold = 0;
-        segment.analogValue = 0;
-        segment.value = false;
         segment.valid = true;
     }
 
@@ -626,6 +776,7 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
     char key[16];
     int savedCount = 0;
     bool writeOk = true;
+    uint8_t blob[MAX_V6_BLOB_SIZE];
 
     for (int i = 0; i < MAX_SEGMENTS; ++i) {
         if (!parsed.segments[i].valid) continue;
@@ -635,7 +786,12 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
         }
 
         const SegmentConfig& segment = parsed.segments[i];
-        if (segment.id[0] == '\0' || segment.pin < 0 || segment.pin > 39 ||
+        const bool isVirtual = segment.isVirtual;
+        const bool pinValid = isVirtual ? isVirtualPin(segment.pin) : isLocalGpioPin(segment.pin);
+        const bool bindingValid = !isVirtual ||
+            (isValidAuxNodeId(segment.nodeId) && isValidAuxRemotePin(segment.remotePin));
+
+        if (segment.id[0] == '\0' || !pinValid || !bindingValid ||
             segment.rule.highActionCount > 4 || segment.rule.lowActionCount > 4 ||
             segment.rule.analogRangeCount > MAX_ANALOG_RANGE_RULES) {
             writeOk = false;
@@ -643,19 +799,20 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
             break;
         }
 
-        StoredSegment record{};
-        strlcpy(record.id, segment.id, sizeof(record.id));
-        strlcpy(record.type, segment.type, sizeof(record.type));
-        record.pin = static_cast<int16_t>(segment.pin);
-        record.autoOffDelay = static_cast<uint16_t>(segment.autoOffDelay < 0 ? 0 : segment.autoOffDelay);
+        StoredSegmentHeaderV6 hdr{};
+        strlcpy(hdr.id, segment.id, sizeof(hdr.id));
+        strlcpy(hdr.type, segment.type, sizeof(hdr.type));
+        hdr.pin = static_cast<int16_t>(segment.pin);
+        hdr.autoOffDelay = static_cast<uint16_t>(segment.autoOffDelay < 0 ? 0 : segment.autoOffDelay);
+
         const uint8_t res = (segment.pwmResolution < MIN_PWM_RESOLUTION)
             ? MIN_PWM_RESOLUTION
             : ((segment.pwmResolution > MAX_PWM_RESOLUTION) ? MAX_PWM_RESOLUTION : segment.pwmResolution);
         const uint16_t freq = (segment.pwmFrequency < MIN_PWM_FREQUENCY)
             ? MIN_PWM_FREQUENCY
             : ((segment.pwmFrequency > MAX_PWM_FREQUENCY) ? MAX_PWM_FREQUENCY : segment.pwmFrequency);
-        record.pwmResolution = res;
-        record.pwmFrequency = freq;
+        hdr.pwmResolution = res;
+        hdr.pwmFrequency = freq;
 
         const uint8_t adcRes = (segment.adcResolution < MIN_ADC_RESOLUTION)
             ? MIN_ADC_RESOLUTION
@@ -672,29 +829,46 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
             ? 0
             : ((segment.adcLowThreshold > adcAth) ? adcAth : segment.adcLowThreshold);
 
-        record.adcResolution = adcRes;
-        record.adcSampleIntervalMs = adcSint;
-        record.adcDeltaThreshold = adcDelta;
-        record.adcHighThreshold = adcAth;
-        record.adcLowThreshold = adcAtl;
+        hdr.adcResolution = adcRes;
+        hdr.adcSampleIntervalMs = adcSint;
+        hdr.adcDeltaThreshold = adcDelta;
+        hdr.adcHighThreshold = adcAth;
+        hdr.adcLowThreshold = adcAtl;
 
-        record.highActionCount = segment.rule.highActionCount;
-        record.lowActionCount = segment.rule.lowActionCount;
-        record.ruleActive = segment.rule.active ? 1 : 0;
+        hdr.flags = static_cast<uint8_t>(
+            (isVirtual ? 0x01U : 0x00U) |
+            (segment.rule.active ? 0x02U : 0x00U));
+        hdr.nodeId = isVirtual ? segment.nodeId : AUX_NODE_ID_LOCAL;
+        hdr.remotePin = isVirtual ? segment.remotePin : REMOTE_PIN_UNSET;
+        hdr.highActionCount = static_cast<uint8_t>(segment.rule.highActionCount);
+        hdr.lowActionCount = static_cast<uint8_t>(segment.rule.lowActionCount);
+        hdr.analogRangeCount = segment.rule.analogRangeCount;
 
-        for (int a = 0; a < record.highActionCount; ++a) {
-            copyActionToStorage(segment.rule.highActions[a], record.highActions[a]);
+        size_t offset = 0;
+        memcpy(blob + offset, &hdr, sizeof(hdr));
+        offset += sizeof(hdr);
+
+        for (int a = 0; a < hdr.highActionCount; ++a) {
+            StoredRuleAction act{};
+            copyActionToStorage(segment.rule.highActions[a], act);
+            memcpy(blob + offset, &act, sizeof(act));
+            offset += sizeof(act);
         }
-        for (int a = 0; a < record.lowActionCount; ++a) {
-            copyActionToStorage(segment.rule.lowActions[a], record.lowActions[a]);
+        for (int a = 0; a < hdr.lowActionCount; ++a) {
+            StoredRuleAction act{};
+            copyActionToStorage(segment.rule.lowActions[a], act);
+            memcpy(blob + offset, &act, sizeof(act));
+            offset += sizeof(act);
         }
-        record.analogRangeCount = segment.rule.analogRangeCount;
-        for (uint8_t r = 0; r < record.analogRangeCount; ++r) {
-            copyRangeToStorage(segment.rule.analogRanges[r], maxAdcVal, record.analogRanges[r]);
+        for (uint8_t r = 0; r < hdr.analogRangeCount; ++r) {
+            StoredAnalogRangeRule rr{};
+            copyRangeToStorage(segment.rule.analogRanges[r], maxAdcVal, rr);
+            memcpy(blob + offset, &rr, sizeof(rr));
+            offset += sizeof(rr);
         }
 
         snprintf(key, sizeof(key), "%c%d", targetBank, savedCount);
-        if (prefs.putBytes(key, &record, sizeof(record)) != sizeof(record)) {
+        if (prefs.putBytes(key, blob, offset) != offset) {
             writeOk = false;
             Serial.printf("[SegStorage] Failed writing record %s\n", key);
             break;
@@ -703,15 +877,19 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
     }
 
     if (writeOk) {
-        for (int i = savedCount; i < MAX_SEGMENTS; ++i) {
-            snprintf(key, sizeof(key), "%c%d", targetBank, i);
-            prefs.remove(key);
-        }
-
         char countKey[8];
         char versionKey[8];
         snprintf(countKey, sizeof(countKey), "%cCount", targetBank);
         snprintf(versionKey, sizeof(versionKey), "%cVer", targetBank);
+        const int previousBankCount = prefs.getInt(countKey, 0);
+        const int cleanupLimit = (previousBankCount > savedCount && previousBankCount <= MAX_SEGMENTS)
+            ? previousBankCount
+            : savedCount;
+        for (int i = savedCount; i < cleanupLimit; ++i) {
+            snprintf(key, sizeof(key), "%c%d", targetBank, i);
+            prefs.remove(key);
+        }
+
         writeOk = prefs.putInt(countKey, savedCount) == sizeof(int) &&
                   prefs.putUChar(versionKey, STORAGE_VERSION) == sizeof(uint8_t);
     }
@@ -723,7 +901,7 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
 
     prefs.end();
     if (writeOk) {
-        Serial.printf("[SegStorage] Saved %d segments with rules to NVS bank %c\n", savedCount, targetBank);
+        Serial.printf("[SegStorage] Saved %d segments (v6) to NVS bank %c\n", savedCount, targetBank);
     } else {
         Serial.println("[SegStorage] Save failed; previous active NVS bank was preserved");
     }

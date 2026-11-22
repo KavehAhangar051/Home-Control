@@ -73,7 +73,7 @@ HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::Webso
             const int pinIdx = data.indexOf("\"pin\":");
             if (pinIdx >= 0 && _dispatcher != nullptr) {
                 const int pin = atoi(data.c_str() + pinIdx + 6);
-                if (pin >= 0 && pin <= 39) {
+                if (isValidManagedPin(pin)) {
                     AnalogInputReadRequestEvent evt{pin};
                     _dispatcher->dispatch(evt);
                 }
@@ -85,7 +85,7 @@ HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::Webso
             const int pinIdx = data.indexOf("\"pin\":");
             if (pinIdx >= 0 && _dispatcher != nullptr) {
                 const int pin = atoi(data.c_str() + pinIdx + 6);
-                if (pin >= 0 && pin <= 39) {
+                if (isValidManagedPin(pin)) {
                     const int sintIdx = data.indexOf("\"sint\":");
                     const int deltaIdx = data.indexOf("\"delta\":");
                     const int athIdx = data.indexOf("\"ath\":");

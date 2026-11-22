@@ -45,10 +45,21 @@ public:
     bool setPinAnalogValue(int pin, uint16_t value);
     bool setAnalogValueById(const char* id, uint16_t value);
     bool readAnalogInputNow(int pin, AdcSampleResult& outResult);
+    bool injectVirtualInputState(int pin, bool state, unsigned long& outDurationSec, RuleConfig& outRule);
+    bool injectVirtualAnalogInput(int pin, uint16_t rawValue, AnalogInputChange& outChange, RuleConfig& outRule);
 
     HOT_PATH FORCE_INLINE bool getPinState(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
         if (!entry || !entry->active) return false;
+        if (entry->isVirtual) {
+            if (entry->type == SegmentType::Input || entry->type == SegmentType::AnalogInput) {
+                return entry->lastInputState;
+            }
+            if (entry->type == SegmentType::AnalogOutput) {
+                return entry->virtualAnalogValue > 0;
+            }
+            return entry->virtualState;
+        }
         if (entry->type == SegmentType::Input) {
             return entry->lastInputState;
         }
@@ -65,6 +76,12 @@ public:
     HOT_PATH FORCE_INLINE int16_t getPinAnalogValue(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
         if (!entry || !entry->active) return RULE_ANALOG_VALUE_UNSET;
+        if (entry->isVirtual) {
+            if (entry->type == SegmentType::AnalogOutput || entry->type == SegmentType::AnalogInput) {
+                return static_cast<int16_t>(entry->virtualAnalogValue);
+            }
+            return RULE_ANALOG_VALUE_UNSET;
+        }
         if (entry->hasPwm) {
             return static_cast<int16_t>(entry->pwm.getValue());
         }
@@ -76,13 +93,22 @@ public:
 
     HOT_PATH FORCE_INLINE uint16_t getPinLastNonZeroValue(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        if (!entry || !entry->active || !entry->hasPwm) return 0;
+        if (!entry || !entry->active) return 0;
+        if (entry->isVirtual) {
+            return (entry->type == SegmentType::AnalogOutput) ? entry->virtualLastNonZeroValue : 0;
+        }
+        if (!entry->hasPwm) return 0;
         return entry->pwm.getLastNonZeroValue();
     }
 
     HOT_PATH FORCE_INLINE uint8_t getPinAnalogResolution(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
         if (!entry || !entry->active) return 0;
+        if (entry->isVirtual) {
+            if (entry->type == SegmentType::AnalogOutput) return entry->virtualPwmResolution;
+            if (entry->type == SegmentType::AnalogInput) return entry->virtualAdcResolution;
+            return 0;
+        }
         if (entry->hasPwm) return entry->pwm.getResolution();
         if (entry->hasAdc) return entry->adc.getResolution();
         return 0;
@@ -90,54 +116,84 @@ public:
 
     HOT_PATH FORCE_INLINE uint8_t getPinPwmResolution(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        if (!entry || !entry->active || !entry->hasPwm) return 0;
+        if (!entry || !entry->active) return 0;
+        if (entry->isVirtual) {
+            return (entry->type == SegmentType::AnalogOutput) ? entry->virtualPwmResolution : 0;
+        }
+        if (!entry->hasPwm) return 0;
         return entry->pwm.getResolution();
     }
 
     HOT_PATH FORCE_INLINE uint16_t getPinPwmFrequency(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        if (!entry || !entry->active || !entry->hasPwm) return 0;
+        if (!entry || !entry->active) return 0;
+        if (entry->isVirtual) {
+            return (entry->type == SegmentType::AnalogOutput) ? entry->virtualPwmFrequency : 0;
+        }
+        if (!entry->hasPwm) return 0;
         return entry->pwm.getFrequency();
     }
 
     HOT_PATH FORCE_INLINE uint8_t getPinAdcResolution(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        if (!entry || !entry->active || !entry->hasAdc) return 0;
+        if (!entry || !entry->active) return 0;
+        if (entry->isVirtual) {
+            return (entry->type == SegmentType::AnalogInput) ? entry->virtualAdcResolution : 0;
+        }
+        if (!entry->hasAdc) return 0;
         return entry->adc.getResolution();
     }
 
     HOT_PATH FORCE_INLINE uint16_t getPinAdcSampleInterval(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        if (!entry || !entry->active || !entry->hasAdc) return 0;
+        if (!entry || !entry->active) return 0;
+        if (entry->isVirtual) {
+            return (entry->type == SegmentType::AnalogInput) ? entry->virtualAdcSampleIntervalMs : 0;
+        }
+        if (!entry->hasAdc) return 0;
         return entry->adc.getSampleIntervalMs();
     }
 
     HOT_PATH FORCE_INLINE uint16_t getPinAdcDeltaThreshold(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        if (!entry || !entry->active || !entry->hasAdc) return 0;
+        if (!entry || !entry->active) return 0;
+        if (entry->isVirtual) {
+            return (entry->type == SegmentType::AnalogInput) ? entry->virtualAdcDeltaThreshold : 0;
+        }
+        if (!entry->hasAdc) return 0;
         return entry->adc.getDeltaThreshold();
     }
 
     HOT_PATH FORCE_INLINE uint16_t getPinAdcHighThreshold(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        if (!entry || !entry->active || !entry->hasAdc) return 0;
+        if (!entry || !entry->active) return 0;
+        if (entry->isVirtual) {
+            return (entry->type == SegmentType::AnalogInput) ? entry->virtualAdcHighThreshold : 0;
+        }
+        if (!entry->hasAdc) return 0;
         return entry->adc.getHighThreshold();
     }
 
     HOT_PATH FORCE_INLINE uint16_t getPinAdcLowThreshold(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        if (!entry || !entry->active || !entry->hasAdc) return 0;
+        if (!entry || !entry->active) return 0;
+        if (entry->isVirtual) {
+            return (entry->type == SegmentType::AnalogInput) ? entry->virtualAdcLowThreshold : 0;
+        }
+        if (!entry->hasAdc) return 0;
         return entry->adc.getLowThreshold();
     }
 
     HOT_PATH FORCE_INLINE bool isAnalogOutputPin(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        return entry != nullptr && entry->active && entry->type == SegmentType::AnalogOutput && entry->hasPwm;
+        if (entry == nullptr || !entry->active || entry->type != SegmentType::AnalogOutput) return false;
+        return entry->isVirtual || entry->hasPwm;
     }
 
     HOT_PATH FORCE_INLINE bool isAnalogInputPin(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
-        return entry != nullptr && entry->active && entry->type == SegmentType::AnalogInput && entry->hasAdc;
+        if (entry == nullptr || !entry->active || entry->type != SegmentType::AnalogInput) return false;
+        return entry->isVirtual || entry->hasAdc;
     }
 
     /**

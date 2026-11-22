@@ -12,6 +12,7 @@ const char* WIFI_PASSWORD = "85208520";
 uniuno::INetworkManager*   network = nullptr;
 String                     rawConfigPayload = "";
 PinManager                 pinManager;
+AuxNodeManager             auxNodeManager;
 uniuno::AchaemenidMQTT     mqttClient;
 uniuno::Timer*             appTimer = nullptr;
 uniuno::EventDispatcher    eventBus;
@@ -22,6 +23,7 @@ uniuno::MqttCommandDispatcher* mqttDispatcher = nullptr;
 RuleEngine* ruleEngine = nullptr;
 BootManager* bootManager = nullptr;
 uniuno::ISegmentStorage* segmentStorage = nullptr;
+uniuno::IAuxNodeStorage* auxNodeStorage = nullptr;
 
 // =============================================
 // State Variables

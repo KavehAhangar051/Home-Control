@@ -23,6 +23,7 @@
 #include <core/WebSocketServer.h>
 #include <core/WebSocketClient.h>
 #include <NvsSegmentStorage.h>
+#include <NvsAuxNodeStorage.h>
 #include "core/LoopOptimizer.h"
 
 // ============================================================================
@@ -191,6 +192,7 @@ void setup() {
     INFO("[System] Setup completed. Starting Async Boot Sequence...");
 
     segmentStorage = new uniuno::NvsSegmentStorage();
+    auxNodeStorage = new uniuno::NvsAuxNodeStorage();
     bootManager    = new BootManager();
 
     BootContext bootCtx = {
@@ -201,7 +203,9 @@ void setup() {
         appTimer,
         segmentStorage,
         &configLoaded,
-        &rawConfigPayload
+        &rawConfigPayload,
+        &auxNodeManager,
+        auxNodeStorage
     };
     bootManager->startBootSequenceAsync(bootCtx);
 

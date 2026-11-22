@@ -8,6 +8,7 @@
 #include <Preferences.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
+#include <memory>
 
 // In Arduino-ESP32 Core v3+, ESPmDNS.h wraps MDNSResponder and `extern MDNSResponder MDNS;`
 // inside `#ifdef CONFIG_MDNS_MAX_INTERFACES` (which only includes <mdns.h> -> ESP_MDNS_H_ when active).
@@ -790,10 +791,40 @@ HOT_PATH void BootManager::loop() {
  */
 __attribute__((noinline)) void BootManager::loadOfflineConfigFromNvs() {
     INFO("[Boot] Booting up... Loading config from NVS immediately.");
-    static ParseResult nvsResult;
-    nvsResult.reset();
-    if (ctx_.segmentStorage != nullptr && ctx_.segmentStorage->loadSegmentConfig(nvsResult)) {
-        int applied = ConfigApplier::apply(nvsResult, ctx_.pinManager);
+    std::unique_ptr<ParseResult> nvsResult(new (std::nothrow) ParseResult());
+    if (!nvsResult) {
+        ERROR("[Boot] Out of heap memory allocating NVS config buffer.");
+        return;
+    }
+
+    int restoredAuxNodes = 0;
+    if (ctx_.auxNodeStorage != nullptr && ctx_.auxNodeManager != nullptr) {
+        nvsResult->reset();
+        if (ctx_.auxNodeStorage->loadAuxNodes(*nvsResult)) {
+            ctx_.auxNodeManager->clearAllNodes();
+            for (int i = 0; i < nvsResult->auxNodeCount; ++i) {
+                const AuxNodeConfig& node = nvsResult->auxNodes[i];
+                if (!node.valid) continue;
+                ctx_.auxNodeManager->upsertNode(
+                    node.nodeId,
+                    node.mac,
+                    node.pinCapacity,
+                    node.chipType,
+                    node.name
+                );
+            }
+            restoredAuxNodes = ctx_.auxNodeManager->getActiveCount();
+            ctx_.auxNodeManager->printStatus();
+            if (restoredAuxNodes > 0 && ctx_.eventBus != nullptr) {
+                AuxNodesBootstrappedEvent auxEvt{restoredAuxNodes};
+                ctx_.eventBus->dispatch(auxEvt);
+            }
+        }
+    }
+
+    nvsResult->reset();
+    if (ctx_.segmentStorage != nullptr && ctx_.segmentStorage->loadSegmentConfig(*nvsResult)) {
+        int applied = ConfigApplier::apply(*nvsResult, ctx_.pinManager, ctx_.auxNodeManager);
         ctx_.pinManager->printStatus();
         *(ctx_.configLoadedFlag) = true;
 
@@ -803,7 +834,11 @@ __attribute__((noinline)) void BootManager::loadOfflineConfigFromNvs() {
 
         ConfigLoadedEvent evt;
         evt.pinCount = applied;
-        ctx_.eventBus->dispatch(evt);
+        if (ctx_.eventBus != nullptr) {
+            ctx_.eventBus->dispatch(evt);
+        }
+    } else if (restoredAuxNodes > 0) {
+        INFOF("[Boot] Restored %d auxiliary ESP node(s) from NVS; no segments configured yet.", restoredAuxNodes);
     } else {
         WARNING("[Boot] NVS empty or storage unavailable. No configuration loaded. Please push config.");
     }

@@ -71,7 +71,7 @@ void setupMqtt() {
 
 void setupWebSocket() {
     auto stateProvider = []() -> String {
-        return pinManager.exportStateJson();
+        return pinManager.exportStateJson(&auxNodeManager);
     };
 
     wsClient = new uniuno::AchaemenidWebSocketClient(&eventBus, stateProvider);

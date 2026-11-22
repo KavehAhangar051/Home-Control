@@ -3,6 +3,7 @@
 
 #include <INetworkManager.h>
 #include <PinManager.h>
+#include <AuxNodeManager.h>
 #include <AchaemenidMQTT.h>
 #include <Timer/Timer.h>
 #include <Events/EventDispatcher.h>
@@ -13,6 +14,7 @@ namespace uniuno {
     class AchaemenidWebSocketServer;
     class MqttCommandDispatcher;
     class ISegmentStorage;
+    class IAuxNodeStorage;
 }
 class BootManager;
 class RuleEngine;
@@ -29,6 +31,7 @@ extern const char* WIFI_PASSWORD;
 extern uniuno::INetworkManager*   network;
 extern String                     rawConfigPayload;
 extern PinManager                 pinManager;
+extern AuxNodeManager             auxNodeManager;
 extern uniuno::AchaemenidMQTT     mqttClient;
 extern uniuno::Timer*             appTimer;
 extern uniuno::EventDispatcher    eventBus;
@@ -39,6 +42,7 @@ extern uniuno::MqttCommandDispatcher* mqttDispatcher;
 extern RuleEngine* ruleEngine;
 extern BootManager* bootManager;
 extern uniuno::ISegmentStorage* segmentStorage;
+extern uniuno::IAuxNodeStorage* auxNodeStorage;
 
 // =============================================
 // State Variables

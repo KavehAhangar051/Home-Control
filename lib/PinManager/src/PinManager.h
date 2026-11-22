@@ -10,6 +10,8 @@
 #include "timers/PinTimerManager.h"
 #include "state/PinStateManager.h"
 
+class AuxNodeManager;
+
 class PinManager {
 public:
     PinManager();
@@ -43,12 +45,48 @@ public:
         uint16_t adcHighThreshold = 0,
         uint16_t adcLowThreshold = 0
     );
+    bool addVirtualSegment(
+        const char* id,
+        SegmentType type,
+        int virtualPin,
+        uint8_t nodeId,
+        uint8_t remotePin,
+        int autoOffDelay = 0,
+        RuleConfig rule = RuleConfig(),
+        uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION,
+        uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY,
+        uint8_t adcResolution = DEFAULT_ADC_RESOLUTION,
+        uint16_t adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS,
+        uint16_t adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD,
+        uint16_t adcHighThreshold = 0,
+        uint16_t adcLowThreshold = 0
+    );
+    bool upsertVirtualSegment(
+        const char* id,
+        SegmentType type,
+        int virtualPin,
+        uint8_t nodeId,
+        uint8_t remotePin,
+        int autoOffDelay = 0,
+        RuleConfig rule = RuleConfig(),
+        uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION,
+        uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY,
+        uint8_t adcResolution = DEFAULT_ADC_RESOLUTION,
+        uint16_t adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS,
+        uint16_t adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD,
+        uint16_t adcHighThreshold = 0,
+        uint16_t adcLowThreshold = 0
+    );
     bool removeSegment(const char* id);
     bool removeSegmentByPin(int pin);
     bool removeSegmentByIdOrPin(const char* id, int fallbackPin = -1);
+    int removeSegmentsByNodeId(uint8_t nodeId);
     void clearAllSegments();
     bool hasPin(int pin) const;
     bool hasId(const char* id) const;
+    bool isVirtualPinRegistered(int pin) const;
+    bool getVirtualBinding(int pin, uint8_t& outNodeId, uint8_t& outRemotePin) const;
+    SegmentType getSegmentTypeByPin(int pin) const;
     const char* getSegmentIdByPin(int pin) const;
     static int extractPinFromCanonicalId(const char* id);
     bool updateSegmentRule(const char* id, const RuleConfig& rule);
@@ -65,7 +103,7 @@ public:
     int getActiveCount() const;
     void printStatus() const;
     void exportConfig(ParseResult& out) const;
-    String exportStateJson() const;
+    String exportStateJson(const AuxNodeManager* auxNodes = nullptr) const;
 
     // --- State Delegation ---
     HOT_PATH FORCE_INLINE bool setPinState(int pin, bool state) {
@@ -86,6 +124,20 @@ public:
 
     HOT_PATH FORCE_INLINE bool readAnalogInputNow(int pin, AdcSampleResult& outResult) {
         return _stateManager.readAnalogInputNow(pin, outResult);
+    }
+
+    /**
+     * @brief Phase 2 wireless RX hook: inject remote digital input state transition.
+     */
+    bool injectVirtualInputState(int pin, bool state, unsigned long& outDurationSec, RuleConfig& outRule) {
+        return _stateManager.injectVirtualInputState(pin, state, outDurationSec, outRule);
+    }
+
+    /**
+     * @brief Phase 2 wireless RX hook: inject remote analog input sample.
+     */
+    bool injectVirtualAnalogInput(int pin, uint16_t rawValue, AnalogInputChange& outChange, RuleConfig& outRule) {
+        return _stateManager.injectVirtualAnalogInput(pin, rawValue, outChange, outRule);
     }
 
     HOT_PATH FORCE_INLINE bool getPinState(int pin) const {

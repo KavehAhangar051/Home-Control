@@ -9,10 +9,12 @@
 #include <BootManager.h>
 #include <ConfigApplier.h>
 #include <ISegmentStorage.h>
+#include <IAuxNodeStorage.h>
 #include <WiFi.h>
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+#include <memory>
 
 static SemaphoreHandle_t segmentStorageMutex = nullptr;
 
@@ -26,14 +28,66 @@ static void persistCurrentSegmentConfig(const char* reason) {
         xSemaphoreTake(segmentStorageMutex, portMAX_DELAY);
     }
 
-    // ParseResult is ~4.5KB; keep it out of the constrained MQTT/async callback stack.
-    static ParseResult snapshot;
-    pinManager.exportConfig(snapshot);
-    segmentStorage->saveSegmentConfig(snapshot);
+    // Allocate transiently on heap to keep both .dram0.bss and MQTT callback stack lean.
+    std::unique_ptr<ParseResult> snapshot(new (std::nothrow) ParseResult());
+    if (snapshot) {
+        pinManager.exportConfig(*snapshot);
+        segmentStorage->saveSegmentConfig(*snapshot);
+    } else {
+        ERRORF("[SegStorage] Out of memory persisting segments after %s", reason);
+    }
 
     if (segmentStorageMutex != nullptr) {
         xSemaphoreGive(segmentStorageMutex);
     }
+}
+
+static void persistCurrentAuxNodeConfig(const char* reason) {
+    if (auxNodeStorage == nullptr) {
+        WARNINGF("[AuxStorage] Cannot persist after %s: storage unavailable", reason);
+        return;
+    }
+
+    if (segmentStorageMutex != nullptr) {
+        xSemaphoreTake(segmentStorageMutex, portMAX_DELAY);
+    }
+
+    std::unique_ptr<ParseResult> snapshot(new (std::nothrow) ParseResult());
+    if (snapshot) {
+        auxNodeManager.exportConfig(*snapshot);
+        auxNodeStorage->saveAuxNodes(*snapshot);
+    } else {
+        ERRORF("[AuxStorage] Out of memory persisting aux nodes after %s", reason);
+    }
+
+    if (segmentStorageMutex != nullptr) {
+        xSemaphoreGive(segmentStorageMutex);
+    }
+}
+
+static void dispatchVirtualCommandIfApplicable(int pin, bool state, int16_t analogValue, uint8_t resolution) {
+    uint8_t nodeId = AUX_NODE_ID_LOCAL;
+    uint8_t remotePin = REMOTE_PIN_UNSET;
+    if (!pinManager.getVirtualBinding(pin, nodeId, remotePin)) {
+        return;
+    }
+
+    const AuxNodeConfig* node = auxNodeManager.getNodeById(nodeId);
+    VirtualPinCommandEvent cmd{};
+    cmd.virtualPin = pin;
+    cmd.nodeId = nodeId;
+    cmd.remotePin = remotePin;
+    cmd.segmentType = static_cast<uint8_t>(pinManager.getSegmentTypeByPin(pin));
+    cmd.state = state;
+    cmd.analogValue = analogValue;
+    cmd.resolution = resolution;
+    if (node != nullptr) {
+        memcpy(cmd.mac, node->mac, 6);
+    } else {
+        memset(cmd.mac, 0, sizeof(cmd.mac));
+        WARNINGF("[VirtualBus] Virtual pin %d targets unregistered node #%u", pin, nodeId);
+    }
+    eventBus.dispatch(cmd);
 }
 
 /**
@@ -100,6 +154,12 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
                 // Turn off locally (for PWM, sets duty=0 while keeping lastNonZeroValue)
                 if (pinManager.setPinState(pin, false)) {
                     INFOF("[AutoOff] Pin %d turned OFF automatically", pin);
+                    dispatchVirtualCommandIfApplicable(
+                        pin,
+                        false,
+                        pinManager.getPinAnalogValue(pin),
+                        pinManager.getPinPwmResolution(pin)
+                    );
                     
                     // Natural expiry of a Dashboard-owned output timer is intentionally
                     // silent: the Dashboard already runs the matching countdown locally.
@@ -208,11 +268,106 @@ auto onAnalogInputReadRequest = [](AnalogInputReadRequestEvent* evt) {
     }
 };
 
+auto onAuxNodeUpsert = [](AuxNodeUpsertRequestEvent* evt) {
+    if (evt == nullptr) return;
+    if (auxNodeManager.upsertNode(evt->nodeId, evt->mac, evt->pinCapacity, evt->chipType, evt->name)) {
+        persistCurrentAuxNodeConfig("aux node upsert");
+        char macText[18];
+        formatMacAddress(evt->mac, macText, sizeof(macText));
+        char ackBuf[160];
+        snprintf(ackBuf, sizeof(ackBuf),
+                 "{\"type\":\"aux_node_ack\",\"action\":\"upsert\",\"id\":%u,\"mac\":\"%s\",\"cap\":%u,\"chip\":%u}",
+                 evt->nodeId, macText, evt->pinCapacity, static_cast<unsigned int>(evt->chipType));
+        mqttClient.publish(mqttClient.getBaseTopic() + "/State", ackBuf);
+    }
+};
+
+auto onAuxNodeRemove = [](AuxNodeRemoveRequestEvent* evt) {
+    if (evt == nullptr) return;
+    uint8_t removedId = AUX_NODE_ID_LOCAL;
+    const bool removed = auxNodeManager.removeNodeByIdOrMac(
+        evt->nodeId,
+        evt->hasMac ? evt->mac : nullptr,
+        &removedId
+    );
+    if (removed) {
+        if (evt->cascadeSegments && removedId != AUX_NODE_ID_LOCAL) {
+            const int removedSegs = pinManager.removeSegmentsByNodeId(removedId);
+            if (removedSegs > 0) {
+                INFOF("[Event] Cascade-removed %d virtual segment(s) bound to Aux Node #%u", removedSegs, removedId);
+                persistCurrentSegmentConfig("aux node cascade remove");
+            }
+        }
+        persistCurrentAuxNodeConfig("aux node remove");
+        char ackBuf[96];
+        snprintf(ackBuf, sizeof(ackBuf),
+                 "{\"type\":\"aux_node_ack\",\"action\":\"delete\",\"id\":%u}",
+                 removedId);
+        mqttClient.publish(mqttClient.getBaseTopic() + "/State", ackBuf);
+    }
+};
+
+auto onVirtualSegmentAdd = [](VirtualSegmentAddRequestEvent* evt) {
+    if (evt == nullptr || evt->id == nullptr || evt->type == nullptr) return;
+    if (!auxNodeManager.hasNodeId(evt->nodeId)) {
+        WARNINGF("[Event] Rejected virtual segment '%s' (vpin %d): Aux Node #%u is not registered",
+                 evt->id, evt->virtualPin, evt->nodeId);
+        return;
+    }
+
+    const SegmentType sType = parseSegmentType(evt->type);
+    const bool success = pinManager.upsertVirtualSegment(
+        evt->id,
+        sType,
+        evt->virtualPin,
+        evt->nodeId,
+        evt->remotePin,
+        0,
+        RuleConfig(),
+        evt->pwmResolution,
+        evt->pwmFrequency,
+        evt->adcResolution,
+        evt->adcSampleIntervalMs,
+        evt->adcDeltaThreshold,
+        evt->adcHighThreshold,
+        evt->adcLowThreshold
+    );
+    if (success) {
+        if (sType == SegmentType::AnalogOutput && evt->initialValue > 0) {
+            pinManager.setPinAnalogValue(evt->virtualPin, evt->initialValue);
+        }
+        INFOF("[Event] Virtual segment '%s' (%s) active on vpin %d -> node #%u rpin %u",
+              evt->id, segmentTypeToString(sType), evt->virtualPin, evt->nodeId, evt->remotePin);
+        persistCurrentSegmentConfig("virtual segment add");
+    }
+};
+
+auto onVirtualPinCommand = [](VirtualPinCommandEvent* evt) {
+    if (evt == nullptr) return;
+    char macText[18];
+    formatMacAddress(evt->mac, macText, sizeof(macText));
+    INFOF("[VirtualBus] Queued wireless cmd -> node#%u (%s) rpin=%u vpin=%d state=%s val=%d (Phase 2 ESP-NOW hook)",
+          evt->nodeId, macText, evt->remotePin, evt->virtualPin,
+          evt->state ? "ON" : "OFF", static_cast<int>(evt->analogValue));
+};
+
+auto onAuxNodesBootstrapped = [](AuxNodesBootstrappedEvent* evt) {
+    if (evt == nullptr) return;
+    INFOF("[VirtualBus] Restored %d auxiliary ESP node(s) from NVS (ready for Phase 2 ESP-NOW peer init & boot announcement)",
+          evt->nodeCount);
+};
+
 /**
  * @brief Listener: Logs pin state changes (confirmation).
  */
 auto onPinChanged = [](PinStateChangedEvent* evt) {
     if (evt == nullptr) return;
+
+    // Forward outbound virtual segment transitions to the wireless transport hook (Phase 2 ESP-NOW).
+    // Never echo inbound remote PhysicalInput updates back to the auxiliary node.
+    if (evt->origin != PinStateChangeOrigin::PhysicalInput) {
+        dispatchVirtualCommandIfApplicable(evt->pin, evt->state, evt->analogValue, evt->resolution);
+    }
 
     // A command ACK must never be interpreted as a new pin state.
     if (evt->origin == PinStateChangeOrigin::DashboardCommand) {
@@ -269,9 +424,18 @@ auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
     if (evt == nullptr) return;
 
     if (evt->hasParsedConfig && evt->parsed != nullptr) {
+        if (evt->parsed->auxNodesProvided) {
+            auxNodeManager.clearAllNodes();
+            for (int i = 0; i < evt->parsed->auxNodeCount; ++i) {
+                const AuxNodeConfig& node = evt->parsed->auxNodes[i];
+                if (!node.valid) continue;
+                auxNodeManager.upsertNode(node.nodeId, node.mac, node.pinCapacity, node.chipType, node.name);
+            }
+            persistCurrentAuxNodeConfig("full config apply");
+        }
         if (evt->parsed->segmentsProvided) {
             pinManager.clearAllSegments();
-            evt->pinCount = ConfigApplier::apply(*evt->parsed, &pinManager);
+            evt->pinCount = ConfigApplier::apply(*evt->parsed, &pinManager, &auxNodeManager);
             persistCurrentSegmentConfig("full config apply");
         }
         configLoaded = true;
@@ -324,7 +488,7 @@ auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
 auto onStateSyncRequest = [](StateSyncRequestEvent* evt) {
     if (evt == nullptr) return;
     INFO("[Event] Syncing full state to MQTT...");
-    String stateJson = pinManager.exportStateJson();
+    String stateJson = pinManager.exportStateJson(&auxNodeManager);
     mqttClient.publish(mqttClient.getBaseTopic() + "/State", stateJson, false);
 };
 
@@ -372,6 +536,11 @@ void setupEventBus() {
     eventBus.on<SegmentUpdateRuleRequestEvent>(onSegmentUpdateRule);
     eventBus.on<SegmentUpdateAnalogInputConfigRequestEvent>(onSegmentUpdateAnalogInputConfig);
     eventBus.on<AnalogInputReadRequestEvent>(onAnalogInputReadRequest);
+    eventBus.on<AuxNodeUpsertRequestEvent>(onAuxNodeUpsert);
+    eventBus.on<AuxNodeRemoveRequestEvent>(onAuxNodeRemove);
+    eventBus.on<VirtualSegmentAddRequestEvent>(onVirtualSegmentAdd);
+    eventBus.on<VirtualPinCommandEvent>(onVirtualPinCommand);
+    eventBus.on<AuxNodesBootstrappedEvent>(onAuxNodesBootstrapped);
     eventBus.on<PinStateChangedEvent>(onPinChanged);
     eventBus.on<ConfigLoadedEvent>(onConfigLoaded);
     eventBus.on<StateSyncRequestEvent>(onStateSyncRequest);
