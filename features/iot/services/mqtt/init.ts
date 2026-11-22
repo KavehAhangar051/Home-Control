@@ -413,10 +413,15 @@ export function createMqttMessageHandler(
           snapshot.setPinsAnalogValue(syncedValues);
           snapshot.setPinsLastNonZeroValue((prev) => {
             let changed = false;
-            const next = { ...prev };
+            let next = prev;
 
-            for (const [pin, val] of Object.entries(syncedValues)) {
-              if (val > 0 && next[pin] !== val) {
+            for (const pin in syncedValues) {
+              const val = syncedValues[pin];
+              if (val > 0 && prev[pin] !== val) {
+                if (!changed) {
+                  next = { ...prev };
+                  changed = true;
+                }
                 next[pin] = val;
                 changed = true;
               }
