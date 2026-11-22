@@ -5,11 +5,16 @@ import { getSegmentTileDensity } from "../core/segmentTileDensity";
 import type { SegmentData } from "../core/types";
 import CardFooter from "./CardFooter";
 
+type PinToggleButtonProps = Pick<
+  ComponentPropsWithoutRef<"button">,
+  "onClick" | "onPointerDown" | "onPointerUp" | "onPointerLeave" | "onPointerCancel"
+>;
+
 interface PinToggleProps {
   segment: SegmentData;
   isPinOn: boolean;
   isPending?: boolean;
-  buttonProps: Omit<ComponentPropsWithoutRef<typeof Toggle>, "pressed" | "className">;
+  buttonProps: PinToggleButtonProps;
   animationsEnabled?: boolean;
   isCompact?: boolean;
   isUltraCompact?: boolean;
@@ -65,7 +70,7 @@ function PinToggle({
       {...buttonProps}
       aria-label={ariaLabel}
       aria-busy={isPending || undefined}
-      className={`switch-toggle group/tile relative flex flex-col items-stretch justify-between size-full text-right whitespace-normal font-sans transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] cursor-pointer select-none ${radiusClass} ${density.container} ${surfaceTone}`}
+      className={`switch-toggle group/tile relative flex flex-col items-stretch justify-between size-full text-right whitespace-normal font-sans transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] pointer-fine:active:scale-[0.98] cursor-pointer select-none ${radiusClass} ${density.container} ${surfaceTone}`}
     >
       {/* Top Row: Device Icon Badge & Title */}
       <div className={`flex items-center gap-2.5 sm:gap-3 w-full min-w-0 ${topRowInsetClass}`}>

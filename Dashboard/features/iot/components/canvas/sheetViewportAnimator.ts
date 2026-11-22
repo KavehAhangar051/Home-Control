@@ -88,8 +88,8 @@ export interface SheetViewportAnimator {
   startPanInertia: (velocityXPerMs: number, velocityYPerMs: number) => void;
 }
 
-const MIN_INERTIA_SPEED_PX_PER_MS = 0.06;
-const STOP_INERTIA_SPEED_PX_PER_MS = 0.018;
+const MIN_INERTIA_SPEED_PX_PER_MS = 0.32;
+const STOP_INERTIA_SPEED_PX_PER_MS = 0.024;
 const STOP_INERTIA_SPEED_SQUARED = STOP_INERTIA_SPEED_PX_PER_MS ** 2;
 const MAX_INERTIA_SPEED_PX_PER_MS = 3.2;
 
@@ -298,8 +298,8 @@ export function createSheetViewportAnimator(
         activeFrameId = null;
         activeMode = "idle";
         const settled: CanvasViewport = {
-          x: Math.round(floatX),
-          y: Math.round(floatY),
+          x: Math.round(floatX * 10) / 10,
+          y: Math.round(floatY * 10) / 10,
           zoom,
         };
         deps.applyTransientViewport(settled);

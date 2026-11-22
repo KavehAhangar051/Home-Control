@@ -87,7 +87,7 @@ export default function CanvasGroupBody({
   return (
     <div
       data-canvas-scroll-area="true"
-      className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3"
+      className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain p-3"
     >
       {groupSegments.length === 0 ? (
         <div className="flex h-full min-h-[100px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-color p-3 text-center text-xs text-text-muted">

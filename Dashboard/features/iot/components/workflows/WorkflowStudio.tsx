@@ -124,7 +124,7 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
   );
 
   return (
-    <div className="relative flex size-full min-h-[480px] flex-1 flex-col overflow-hidden bg-bg-main">
+    <div className="relative flex size-full min-h-0 flex-1 flex-col overflow-clip bg-bg-main">
       <WorkflowHeaderBar
         workflows={studio.workflows}
         activeWorkflow={wf}
@@ -160,12 +160,17 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
         aria-label="بوم طراحی گردش کار"
         onPointerDown={studio.handleCanvasPointerDown}
         onContextMenu={studio.handleCanvasContextMenu}
+        onScroll={(e) => {
+          if (e.currentTarget.scrollLeft !== 0) e.currentTarget.scrollLeft = 0;
+          if (e.currentTarget.scrollTop !== 0) e.currentTarget.scrollTop = 0;
+        }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleCanvasDrop}
         style={{
           touchAction: "none",
+          overscrollBehavior: "none",
         }}
-        className={`relative min-h-0 w-full flex-1 overflow-hidden select-none ${
+        className={`relative min-h-0 w-full flex-1 overflow-clip select-none ${
           studio.isPanning ? "cursor-grabbing" : "cursor-default"
         }`}
       >
@@ -196,7 +201,7 @@ export default function WorkflowStudio({ onTogglePin, onSetPinState }: WorkflowS
               <button
                 type="button"
                 onClick={() => studio.setConnectingFromId(null)}
-                className="cursor-pointer rounded-md bg-accent3 px-2 py-0.5 text-[10px] text-accent3-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
+                className="cursor-pointer rounded-md bg-accent3 px-2 py-0.5 text-[10px] text-accent3-foreground transition-transform duration-150 ease-out pointer-fine:active:scale-[0.97]"
               >
                 لغو
               </button>

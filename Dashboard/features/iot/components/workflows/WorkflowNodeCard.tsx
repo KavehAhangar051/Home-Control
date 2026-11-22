@@ -207,7 +207,7 @@ function WorkflowNodeBodyRouter({
           <button
             type="button"
             onClick={() => onTriggerManualPulse(node.id)}
-            className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-success px-3 text-xs font-bold text-success-foreground transition-colors hover:bg-success/90 active:scale-[0.98]"
+            className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-success px-3 text-xs font-bold text-success-foreground transition-colors hover:bg-success/90 pointer-fine:active:scale-[0.98]"
           >
             <Play className="size-3.5" aria-hidden="true" />
             <span>ارسال پالس</span>
@@ -395,7 +395,7 @@ export default React.memo(function WorkflowNodeCard({
       data-canvas-node-id={node.id}
       dir="rtl"
       onPointerDown={(e) => {
-        if (e.button !== 2) onSelect(node.id);
+        if (e.button !== 2 && e.pointerType !== "touch") onSelect(node.id);
       }}
       onDragOver={(e) => {
         if (node.kind === "group") {
@@ -413,10 +413,6 @@ export default React.memo(function WorkflowNodeCard({
         contain: "layout style",
         backfaceVisibility: "hidden",
         willChange: isDragging ? "transform" : undefined,
-        transition:
-          shouldAnimateMotion && !isDragging
-            ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)"
-            : undefined,
       }}
       className="absolute top-0 left-0 select-none"
     >
@@ -458,6 +454,7 @@ export default React.memo(function WorkflowNodeCard({
           outputSignal={outputSignal}
           inputCount={inputCount}
           minInputCount={minInputCount}
+          onSelect={onSelect}
           onStartDrag={onStartDrag}
           onChangeInputCount={handleChangeInputCount}
           onDeleteNode={onDeleteNode}
@@ -466,7 +463,7 @@ export default React.memo(function WorkflowNodeCard({
         <div
           className="flex min-h-0 flex-1 flex-col justify-between gap-2 p-3 text-xs"
           onPointerDown={(e) => {
-            if (e.button !== 2) e.stopPropagation();
+            if (e.button !== 2 && e.pointerType !== "touch") e.stopPropagation();
           }}
         >
           <WorkflowNodeBodyRouter

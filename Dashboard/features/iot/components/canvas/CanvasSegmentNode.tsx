@@ -154,6 +154,7 @@ interface CanvasSegmentHeaderProps {
     autoOffButtonRef: React.RefObject<HTMLButtonElement | null>;
     autoOffMenuRef: React.RefObject<HTMLDivElement | null>;
   };
+  onSelect: (nodeId: string) => void;
   onStartDrag: (nodeId: string, e: React.PointerEvent<HTMLElement>) => void;
   onRemoveSegment: (id: string) => void;
   onUpdateSegmentMode?: (id: string, mode: "switch" | "push") => void;
@@ -176,6 +177,7 @@ function CanvasSegmentHeader({
   buttonRef,
   menuRef,
   autoOffMenuProps,
+  onSelect,
   onStartDrag,
   onRemoveSegment,
   onUpdateSegmentMode,
@@ -184,22 +186,43 @@ function CanvasSegmentHeader({
   return (
     <div
       onPointerDown={(e) => {
-        if (e.button === 0) onStartDrag(nodeId, e);
+        if (e.button === 0 && e.pointerType !== "touch") onStartDrag(nodeId, e);
       }}
-      className={`flex h-8 shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-border-color/60 bg-secondary/65 px-3.5 text-[11px] ${
-        isLocked ? "cursor-default" : "cursor-grab active:cursor-grabbing"
+      className={`flex h-8 shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-border-color/60 bg-secondary/65 px-2.5 text-[11px] ${
+        isLocked ? "cursor-default" : "md:cursor-grab md:active:cursor-grabbing"
       }`}
-      style={{ touchAction: "none" }}
     >
-      <div className="flex min-w-0 items-center gap-1.5">
-        <GripHorizontal className="size-3.5 shrink-0 text-text-muted" aria-hidden="true" />
-        <span className="truncate font-semibold text-text-muted">{segment.group || "Test"}</span>
+      <div className="flex min-w-0 flex-1 items-center gap-1">
+        <span
+          data-canvas-drag-handle={isLocked ? undefined : "true"}
+          onPointerDown={
+            isLocked
+              ? undefined
+              : (e) => {
+                  if (e.button === 0) onStartDrag(nodeId, e);
+                }
+          }
+          style={isLocked ? undefined : { touchAction: "none" }}
+          className={`inline-flex size-6 shrink-0 items-center justify-center rounded-md text-text-muted ${
+            isLocked ? "" : "cursor-grab active:cursor-grabbing"
+          }`}
+        >
+          <GripHorizontal className="size-3.5" aria-hidden="true" />
+        </span>
+        <button
+          type="button"
+          onClick={() => onSelect(nodeId)}
+          aria-label={`انتخاب ${segment.title}`}
+          className="flex min-w-0 flex-1 cursor-pointer items-center border-0 bg-transparent p-0 text-right"
+        >
+          <span className="truncate font-semibold text-text-muted">{segment.group || "Test"}</span>
+        </button>
       </div>
 
       <div
         className="flex shrink-0 items-center gap-1"
         onPointerDown={(e) => {
-          if (e.button !== 2) e.stopPropagation();
+          if (e.button !== 2 && e.pointerType !== "touch") e.stopPropagation();
         }}
       >
         {isPlaceholder ? (
@@ -312,7 +335,7 @@ export default React.memo(function CanvasSegmentNode({
       data-canvas-node-id={nodeId}
       dir="rtl"
       onPointerDown={(e) => {
-        if (e.button !== 2) onSelect(nodeId);
+        if (e.button !== 2 && e.pointerType !== "touch") onSelect(nodeId);
       }}
       style={{
         transform: `translate3d(${rect.x}px, ${rect.y}px, 0)`,
@@ -322,10 +345,6 @@ export default React.memo(function CanvasSegmentNode({
         contain: "layout style",
         backfaceVisibility: "hidden",
         willChange: isDragging ? "transform" : undefined,
-        transition:
-          animationsEnabled && !isDragging
-            ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)"
-            : undefined,
       }}
       className="absolute top-0 left-0 flex flex-col select-none"
     >
@@ -368,6 +387,7 @@ export default React.memo(function CanvasSegmentNode({
               autoOffButtonRef,
               autoOffMenuRef,
             }}
+            onSelect={onSelect}
             onStartDrag={onStartDrag}
             onRemoveSegment={onRemoveSegment}
             onUpdateSegmentMode={onUpdateSegmentMode}

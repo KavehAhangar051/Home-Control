@@ -26,7 +26,8 @@ interface AnalogOutputBodyProps {
   isUltraCompact?: boolean;
   hasExternalHeader?: boolean;
   countdown?: number | null;
-  onTogglePower: () => void;
+  onTogglePower: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onPowerPointerDown?: (e: React.PointerEvent<HTMLButtonElement>) => void;
 }
 
 /**
@@ -43,6 +44,7 @@ function AnalogOutputBody({
   hasExternalHeader = false,
   countdown,
   onTogglePower,
+  onPowerPointerDown,
 }: AnalogOutputBodyProps) {
   const dashboard = useOptionalDashboard();
   const handleSetPinAnalogValue = dashboard?.handleSetPinAnalogValue;
@@ -162,10 +164,11 @@ function AnalogOutputBody({
       <div className={`flex items-center gap-2.5 sm:gap-3 w-full min-w-0 ${topRowInsetClass}`}>
         <button
           type="button"
+          onPointerDown={onPowerPointerDown}
           onClick={onTogglePower}
           aria-pressed={effectiveOn}
           aria-label={`${segment.title} - ${effectiveOn ? "خاموش کردن" : "روشن کردن"}`}
-          className={`flex items-center justify-center rounded-lg transition-[background-color,color,transform] duration-150 active:scale-[0.95] cursor-pointer shrink-0 ${density.badge} ${badgeTone}`}
+          className={`flex items-center justify-center rounded-lg transition-[background-color,color,transform] duration-150 pointer-fine:active:scale-[0.95] cursor-pointer shrink-0 ${density.badge} ${badgeTone}`}
         >
           {showEmojiIcon ? (
             <span className="text-sm leading-none flex items-center justify-center size-5">
@@ -180,6 +183,7 @@ function AnalogOutputBody({
           <div className="flex items-center justify-between gap-2 min-w-0">
             <button
               type="button"
+              onPointerDown={onPowerPointerDown}
               onClick={onTogglePower}
               className={`min-w-0 truncate text-right font-sans font-medium text-text-primary leading-snug cursor-pointer hover:text-accent3 transition-colors ${density.title}`}
             >
@@ -229,9 +233,12 @@ function AnalogOutputBody({
         className={`flex items-center gap-2 w-full ${
           hasExternalHeader || isCompact || isUltraCompact ? "pt-1" : "pt-2"
         }`}
-        onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="min-w-0 flex-1">
+        <div
+          className="min-w-0 flex-1"
+          data-canvas-slider="true"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           <DashboardSlider
             defaultVariant="fluid"
             size={isUltraCompact ? "ultra" : "compact"}
@@ -260,10 +267,11 @@ function AnalogOutputBody({
 
         <button
           type="button"
+          onPointerDown={onPowerPointerDown}
           onClick={onTogglePower}
           aria-pressed={effectiveOn}
           aria-label={effectiveOn ? `خاموش کردن ${segment.title}` : `روشن کردن ${segment.title}`}
-          className={`flex shrink-0 items-center justify-center rounded-lg border transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.94] cursor-pointer ${
+          className={`flex shrink-0 items-center justify-center rounded-lg border transition-[background-color,border-color,color,transform] duration-150 pointer-fine:active:scale-[0.94] cursor-pointer ${
             isUltraCompact ? "size-6.5" : isCompact ? "size-7.5" : "size-8.5"
           } ${
             effectiveOn

@@ -127,6 +127,7 @@ interface CanvasGroupHeaderProps {
   activeCount: number;
   isLocked: boolean;
   isCompactContainer: boolean;
+  onSelect: (nodeId: string) => void;
   onStartDrag: (nodeId: string, e: React.PointerEvent<HTMLElement>) => void;
   onAddPlaceholder: (groupName: string) => void;
   onDeleteGroup: (groupName: string) => void;
@@ -140,6 +141,7 @@ function CanvasGroupHeader({
   activeCount,
   isLocked,
   isCompactContainer,
+  onSelect,
   onStartDrag,
   onAddPlaceholder,
   onDeleteGroup,
@@ -147,40 +149,57 @@ function CanvasGroupHeader({
   return (
     <div
       onPointerDown={(e) => {
-        if (e.button === 0) onStartDrag(nodeId, e);
+        if (e.button === 0 && e.pointerType !== "touch") onStartDrag(nodeId, e);
       }}
-      style={{ touchAction: "none" }}
-      className={`flex shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-border-color bg-card-hover-bg px-4 py-2.5 ${
-        isLocked ? "cursor-default" : "cursor-grab active:cursor-grabbing"
+      className={`flex shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-border-color bg-card-hover-bg px-3 py-2.5 ${
+        isLocked ? "cursor-default" : "md:cursor-grab md:active:cursor-grabbing"
       }`}
     >
-      <div className="flex min-w-0 items-center gap-2">
-        <GripHorizontal
-          className="size-4 shrink-0 text-text-muted"
-          aria-hidden="true"
-          strokeWidth={1.5}
-        />
-        <div
-          aria-hidden="true"
-          className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border-color bg-card-bg text-text-secondary"
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <span
+          data-canvas-drag-handle={isLocked ? undefined : "true"}
+          onPointerDown={
+            isLocked
+              ? undefined
+              : (e) => {
+                  if (e.button === 0) onStartDrag(nodeId, e);
+                }
+          }
+          style={isLocked ? undefined : { touchAction: "none" }}
+          className={`inline-flex size-7 shrink-0 items-center justify-center rounded-md text-text-muted ${
+            isLocked ? "" : "cursor-grab active:cursor-grabbing"
+          }`}
         >
-          {renderGroupHeaderIcon(groupIcon)}
-        </div>
+          <GripHorizontal className="size-4" aria-hidden="true" strokeWidth={1.5} />
+        </span>
+        <button
+          type="button"
+          onClick={() => onSelect(nodeId)}
+          aria-label={`انتخاب گروه ${groupName}`}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-right"
+        >
+          <div
+            aria-hidden="true"
+            className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border-color bg-card-bg text-text-secondary"
+          >
+            {renderGroupHeaderIcon(groupIcon)}
+          </div>
 
-        <div className="min-w-0">
-          <h3 className="truncate font-sans text-xs font-medium text-text-primary sm:text-sm">
-            {groupName}
-          </h3>
-          <span className="block text-[11px] font-normal tabular-nums text-text-muted">
-            {segmentCount} قطعه · {activeCount} فعال
-          </span>
-        </div>
+          <div className="min-w-0">
+            <h3 className="truncate font-sans text-xs font-medium text-text-primary sm:text-sm">
+              {groupName}
+            </h3>
+            <span className="block text-[11px] font-normal tabular-nums text-text-muted">
+              {segmentCount} قطعه · {activeCount} فعال
+            </span>
+          </div>
+        </button>
       </div>
 
       <div
         className="flex shrink-0 items-center gap-1"
         onPointerDown={(e) => {
-          if (e.button !== 2) e.stopPropagation();
+          if (e.button !== 2 && e.pointerType !== "touch") e.stopPropagation();
         }}
       >
         <button
@@ -255,7 +274,7 @@ export default React.memo(function CanvasGroupNode({
       data-canvas-node-id={nodeId}
       dir="rtl"
       onPointerDown={(e) => {
-        if (e.button !== 2) onSelect(nodeId);
+        if (e.button !== 2 && e.pointerType !== "touch") onSelect(nodeId);
       }}
       style={{
         transform: `translate3d(${rect.x}px, ${rect.y}px, 0)`,
@@ -265,10 +284,6 @@ export default React.memo(function CanvasGroupNode({
         contain: "layout style",
         backfaceVisibility: "hidden",
         willChange: isDragging ? "transform" : undefined,
-        transition:
-          animationsEnabled && !isDragging
-            ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)"
-            : undefined,
       }}
       className="absolute top-0 left-0 select-none"
     >
@@ -291,6 +306,7 @@ export default React.memo(function CanvasGroupNode({
           activeCount={activeCount}
           isLocked={isLocked}
           isCompactContainer={rect.width < 320}
+          onSelect={onSelect}
           onStartDrag={onStartDrag}
           onAddPlaceholder={onAddPlaceholder}
           onDeleteGroup={onDeleteGroup}

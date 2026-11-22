@@ -31,10 +31,10 @@ export interface UseSheetViewportGesturesOptions {
 }
 
 const LEFT_PAN_DRAG_THRESHOLD_PX = 3.5;
-const TOUCH_PAN_DRAG_THRESHOLD_PX = 6;
-const POST_PINCH_INERTIA_GUARD_MS = 150;
-const POST_PINCH_MIN_FLICK_PX = 28;
-const MIN_PINCH_DISTANCE_PX = 12;
+const TOUCH_PAN_DRAG_THRESHOLD_PX = 10;
+const POST_PINCH_REENTRY_THRESHOLD_PX = 18;
+const POST_PINCH_SETTLE_MS = 90;
+const MIN_PINCH_DISTANCE_PX = 18;
 
 type ActiveGesture =
   | { mode: "idle" }
@@ -44,6 +44,8 @@ type ActiveGesture =
       pointerType: string;
       isRightOrMiddle: boolean;
       startedOnNode: boolean;
+      startedOnInteractiveControl: boolean;
+      scrollAreaEl: HTMLElement | null;
       startX: number;
       startY: number;
       initialVpX: number;
@@ -54,8 +56,7 @@ type ActiveGesture =
       lastTime: number;
       vx: number;
       vy: number;
-      postPinchGuardUntil: number;
-      postPinchTravel: number;
+      postPinchSettleUntil: number;
     }
   | {
       mode: "scroll-child";
@@ -72,6 +73,7 @@ type ActiveGesture =
       p2Id: number;
       startDist: number;
       startZoom: number;
+      lastZoom: number;
       worldX: number;
       worldY: number;
     };
@@ -81,7 +83,7 @@ function isAlwaysBlockedInputTarget(target: HTMLElement | null): boolean {
 
   return Boolean(
     target.closest(
-      "input, textarea, select, [contenteditable='true'], [data-canvas-resize='true'], [data-canvas-chrome='true']",
+      "input, textarea, select, [contenteditable='true'], [role='slider'], [data-canvas-slider='true'], [data-canvas-resize='true'], [data-canvas-chrome='true'], [data-canvas-drag-handle='true']",
     ),
   );
 }
@@ -90,6 +92,21 @@ function isInteractiveControlTarget(target: HTMLElement | null): boolean {
   if (!target) return false;
 
   return Boolean(target.closest("button, a, [role='button'], [role='slider']"));
+}
+
+function canScrollElementVertically(scrollEl: HTMLElement | null, deltaY: number): boolean {
+  if (!scrollEl?.isConnected) return false;
+  if (scrollEl.scrollHeight <= scrollEl.clientHeight + 2) return false;
+
+  if (deltaY > 0) {
+    return scrollEl.scrollTop > 1;
+  }
+
+  if (deltaY < 0) {
+    return scrollEl.scrollTop + scrollEl.clientHeight < scrollEl.scrollHeight - 1;
+  }
+
+  return false;
 }
 
 function installOneShotClickSuppressor(container: HTMLElement) {
@@ -108,14 +125,14 @@ function installOneShotClickSuppressor(container: HTMLElement) {
   };
 
   container.addEventListener("click", suppressClick, true);
-  timerId = window.setTimeout(cleanup, 260);
+  timerId = window.setTimeout(cleanup, 320);
 }
 
 /**
  * Unified infinite-sheet viewport & multi-touch gesture engine.
- * Combines mouse pan/wheel, touch scroll-area delegation, single-finger pan with inertia,
- * and 2-finger pinch-to-zoom inside one pointer-ID-locked state machine so 1<->2 finger
- * transitions never jump to stale pre-pinch coordinates.
+ * Combines mouse pan/wheel, touch scroll-area delegation, finger-locked single-touch pan
+ * (zero surprise inertia drift), and 2-finger pinch-to-zoom inside one pointer-ID-locked
+ * state machine so 1<->2 finger transitions never jump.
  */
 export function useSheetViewportGestures({
   containerRef,
@@ -192,8 +209,8 @@ export function useSheetViewportGestures({
   const commitFinalViewport = React.useCallback(
     (finalVp: CanvasViewport) => {
       const normalized: CanvasViewport = {
-        x: Math.round(finalVp.x),
-        y: Math.round(finalVp.y),
+        x: Math.round(finalVp.x * 10) / 10,
+        y: Math.round(finalVp.y * 10) / 10,
         zoom: clampCanvasZoom(finalVp.zoom),
       };
       viewportRef.current = normalized;
@@ -367,6 +384,7 @@ export function useSheetViewportGestures({
         p2Id,
         startDist: dist,
         startZoom: curr.zoom,
+        lastZoom: curr.zoom,
         worldX: (midX - curr.x) / curr.zoom,
         worldY: (midY - curr.y) / curr.zoom,
       };
@@ -390,29 +408,49 @@ export function useSheetViewportGestures({
           const curr = viewportRef.current;
           gesture.startDist = dist;
           gesture.startZoom = curr.zoom;
+          gesture.lastZoom = curr.zoom;
           gesture.worldX = (midX - curr.x) / curr.zoom;
           gesture.worldY = (midY - curr.y) / curr.zoom;
         }
         return;
       }
 
-      if (dist < 4) return;
+      if (dist < 6) return;
 
+      const candidateZoom = clampCanvasZoom(gesture.startZoom * (dist / gesture.startDist));
+      const frameRatio = candidateZoom / Math.max(0.1, gesture.lastZoom);
+      if (frameRatio > 1.8 || frameRatio < 0.55) {
+        return;
+      }
+
+      gesture.lastZoom = candidateZoom;
       pinchMoved = true;
-      const nextZoom = clampCanvasZoom(gesture.startZoom * (dist / gesture.startDist));
-      const nextX = Math.round((midX - gesture.worldX * nextZoom) * 10) / 10;
-      const nextY = Math.round((midY - gesture.worldY * nextZoom) * 10) / 10;
+      const nextX = Math.round((midX - gesture.worldX * candidateZoom) * 10) / 10;
+      const nextY = Math.round((midY - gesture.worldY * candidateZoom) * 10) / 10;
 
-      applyFastTransientViewport({ x: nextX, y: nextY, zoom: nextZoom });
+      applyFastTransientViewport({ x: nextX, y: nextY, zoom: candidateZoom });
     };
 
     const applyPanMove = (moveEvent: PointerEvent) => {
       if (gesture.mode !== "pan" || moveEvent.pointerId !== gesture.pointerId) return;
 
+      const now = performance.now();
+
+      if (gesture.postPinchSettleUntil > 0 && now < gesture.postPinchSettleUntil) {
+        gesture.startX = moveEvent.clientX;
+        gesture.startY = moveEvent.clientY;
+        gesture.lastX = moveEvent.clientX;
+        gesture.lastY = moveEvent.clientY;
+        gesture.lastTime = now;
+        return;
+      }
+
       const threshold = gesture.isRightOrMiddle
         ? 0
         : gesture.pointerType === "touch"
-          ? TOUCH_PAN_DRAG_THRESHOLD_PX
+          ? gesture.postPinchSettleUntil > 0
+            ? POST_PINCH_REENTRY_THRESHOLD_PX
+            : TOUCH_PAN_DRAG_THRESHOLD_PX
           : LEFT_PAN_DRAG_THRESHOLD_PX;
 
       let dx = moveEvent.clientX - gesture.startX;
@@ -421,12 +459,34 @@ export function useSheetViewportGestures({
       if (!gesture.hasExceededThreshold) {
         if (Math.hypot(dx, dy) < threshold) return;
 
+        // Hand off vertical scroll inside overflowing group bodies to scroll-child when appropriate
+        if (
+          gesture.pointerType === "touch" &&
+          gesture.scrollAreaEl &&
+          Math.abs(dy) >= Math.abs(dx) &&
+          canScrollElementVertically(gesture.scrollAreaEl, dy)
+        ) {
+          installOneShotClickSuppressor(el);
+          gesture = {
+            mode: "scroll-child",
+            pointerId: gesture.pointerId,
+            scrollEl: gesture.scrollAreaEl,
+            startX: gesture.startX,
+            startY: gesture.startY,
+            lastY: moveEvent.clientY,
+            hasExceededThreshold: true,
+          };
+          return;
+        }
+
         gesture.hasExceededThreshold = true;
+        gesture.initialVpX = viewportRef.current.x;
+        gesture.initialVpY = viewportRef.current.y;
         gesture.startX = moveEvent.clientX;
         gesture.startY = moveEvent.clientY;
         gesture.lastX = moveEvent.clientX;
         gesture.lastY = moveEvent.clientY;
-        gesture.lastTime = performance.now();
+        gesture.lastTime = now;
         dx = 0;
         dy = 0;
         primeReadoutCache();
@@ -434,21 +494,17 @@ export function useSheetViewportGestures({
 
         if (gesture.pointerType === "touch") {
           installOneShotClickSuppressor(el);
-        }
-
-        if (!gesture.isRightOrMiddle && !gesture.startedOnNode) {
+        } else if (!gesture.isRightOrMiddle && !gesture.startedOnNode) {
           onBackgroundClickRef.current?.();
         }
       }
 
-      const now = performance.now();
       const dt = Math.max(4, now - gesture.lastTime);
       const frameDx = moveEvent.clientX - gesture.lastX;
       const frameDy = moveEvent.clientY - gesture.lastY;
 
       gesture.vx = gesture.vx * 0.35 + (frameDx / dt) * 0.65;
       gesture.vy = gesture.vy * 0.35 + (frameDy / dt) * 0.65;
-      gesture.postPinchTravel += Math.hypot(frameDx, frameDy);
       gesture.lastX = moveEvent.clientX;
       gesture.lastY = moveEvent.clientY;
       gesture.lastTime = now;
@@ -463,18 +519,6 @@ export function useSheetViewportGestures({
     const applyScrollChildMove = (moveEvent: PointerEvent) => {
       if (gesture.mode !== "scroll-child" || moveEvent.pointerId !== gesture.pointerId) return;
 
-      const totalDx = moveEvent.clientX - gesture.startX;
-      const totalDy = moveEvent.clientY - gesture.startY;
-
-      if (!gesture.hasExceededThreshold) {
-        if (Math.hypot(totalDx, totalDy) < TOUCH_PAN_DRAG_THRESHOLD_PX) return;
-
-        gesture.hasExceededThreshold = true;
-        gesture.lastY = moveEvent.clientY;
-        installOneShotClickSuppressor(el);
-        return;
-      }
-
       const deltaY = moveEvent.clientY - gesture.lastY;
       gesture.lastY = moveEvent.clientY;
       gesture.scrollEl.scrollTop -= deltaY;
@@ -484,16 +528,51 @@ export function useSheetViewportGestures({
       if (e.pointerType !== "touch") return;
 
       // SAFETY: PointerEvent target in DOM is an HTMLElement
-      if (isAlwaysBlockedInputTarget(e.target as HTMLElement | null)) return;
+      const target = e.target as HTMLElement | null;
+      if (isAlwaysBlockedInputTarget(target)) return;
 
       touchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      if (touchPointers.size === 2) {
+      if (touchPointers.size >= 2) {
         initializePinchFromTouches();
+        return;
       }
+
+      if (gesture.mode !== "idle") return;
+
+      animatorRef.current?.cancelAll();
+      primeReadoutCache();
+
+      const scrollArea = target?.closest<HTMLElement>("[data-canvas-scroll-area='true']") ?? null;
+      const validScrollArea =
+        scrollArea && scrollArea.scrollHeight > scrollArea.clientHeight + 2 ? scrollArea : null;
+
+      const curr = viewportRef.current;
+
+      gesture = {
+        mode: "pan",
+        pointerId: e.pointerId,
+        pointerType: "touch",
+        isRightOrMiddle: false,
+        startedOnNode: Boolean(target?.closest("[data-canvas-node='true']")),
+        startedOnInteractiveControl: isInteractiveControlTarget(target),
+        scrollAreaEl: validScrollArea,
+        startX: e.clientX,
+        startY: e.clientY,
+        initialVpX: curr.x,
+        initialVpY: curr.y,
+        hasExceededThreshold: false,
+        lastX: e.clientX,
+        lastY: e.clientY,
+        lastTime: performance.now(),
+        vx: 0,
+        vy: 0,
+        postPinchSettleUntil: 0,
+      };
     };
 
     startSinglePanRef.current = (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.pointerType === "touch") return;
       if (gesture.mode !== "idle") return;
 
       // SAFETY: PointerEvent target in DOM is an HTMLElement
@@ -501,30 +580,9 @@ export function useSheetViewportGestures({
 
       if (isAlwaysBlockedInputTarget(target)) return;
 
-      const isTouch = e.pointerType === "touch";
-      if (isTouch && touchPointers.size >= 2) return;
-
       const isRightOrMiddle = e.button === 2 || e.button === 1;
 
       if (!isRightOrMiddle && e.button !== 0) return;
-
-      // Scrollable group container delegation on touch (even starting on a segment tile)
-      if (isTouch && e.button === 0 && target) {
-        const scrollArea = target.closest<HTMLElement>("[data-canvas-scroll-area='true']");
-        if (scrollArea && scrollArea.scrollHeight > scrollArea.clientHeight + 2) {
-          animatorRef.current?.cancelAll();
-          gesture = {
-            mode: "scroll-child",
-            pointerId: e.pointerId,
-            scrollEl: scrollArea,
-            startX: e.clientX,
-            startY: e.clientY,
-            lastY: e.clientY,
-            hasExceededThreshold: false,
-          };
-          return;
-        }
-      }
 
       const insideNode = Boolean(target?.closest("[data-canvas-node='true']"));
       const onInteractiveControl = isInteractiveControlTarget(target);
@@ -532,8 +590,8 @@ export function useSheetViewportGestures({
       if (!isRightOrMiddle) {
         if (onInteractiveControl) return;
 
-        // Desktop mouse pans on empty background (or locked card space), touch pans on background or any non-button card space
-        if (insideNode && !isTouch && !isLockedRef.current) return;
+        // Desktop mouse pans on empty background (or locked card space)
+        if (insideNode && !isLockedRef.current) return;
       } else {
         e.preventDefault();
       }
@@ -554,6 +612,8 @@ export function useSheetViewportGestures({
         pointerType: e.pointerType,
         isRightOrMiddle,
         startedOnNode: insideNode,
+        startedOnInteractiveControl: onInteractiveControl,
+        scrollAreaEl: null,
         startX: e.clientX,
         startY: e.clientY,
         initialVpX: curr.x,
@@ -564,8 +624,7 @@ export function useSheetViewportGestures({
         lastTime: performance.now(),
         vx: 0,
         vy: 0,
-        postPinchGuardUntil: 0,
-        postPinchTravel: 0,
+        postPinchSettleUntil: 0,
       };
     };
 
@@ -639,20 +698,22 @@ export function useSheetViewportGestures({
             pointerType: "touch",
             isRightOrMiddle: false,
             startedOnNode: true,
+            startedOnInteractiveControl: false,
+            scrollAreaEl: null,
             startX: remPos.x,
             startY: remPos.y,
             initialVpX: postPinchVp.x,
             initialVpY: postPinchVp.y,
-            hasExceededThreshold: true,
+            hasExceededThreshold: false,
             lastX: remPos.x,
             lastY: remPos.y,
             lastTime: now,
             vx: 0,
             vy: 0,
-            postPinchGuardUntil: now + POST_PINCH_INERTIA_GUARD_MS,
-            postPinchTravel: 0,
+            postPinchSettleUntil: now + POST_PINCH_SETTLE_MS,
           };
-          setIsPanning(true);
+          setIsPanning(false);
+          commitFinalViewport(postPinchVp);
           return;
         }
 
@@ -670,7 +731,7 @@ export function useSheetViewportGestures({
       if (gesture.mode === "pan" && endEvent.pointerId === gesture.pointerId) {
         const latestPending = pendingPanEvent;
         cancelFrame();
-        if (allowInertia && latestPending) {
+        if (allowInertia && latestPending && gesture.hasExceededThreshold) {
           applyPanMove(latestPending);
         }
 
@@ -679,17 +740,22 @@ export function useSheetViewportGestures({
         setIsPanning(false);
 
         if (!finished.hasExceededThreshold) {
-          if (!finished.startedOnNode && !finished.isRightOrMiddle) {
+          if (
+            !finished.startedOnNode &&
+            !finished.isRightOrMiddle &&
+            !finished.startedOnInteractiveControl &&
+            finished.postPinchSettleUntil === 0
+          ) {
             onBackgroundClickRef.current?.();
           }
           return;
         }
 
         const now = performance.now();
-        const isPostPinchGuarded =
-          now < finished.postPinchGuardUntil && finished.postPinchTravel < POST_PINCH_MIN_FLICK_PX;
+        const isTouchPointer = finished.pointerType === "touch";
 
-        if (allowInertia && !isPostPinchGuarded && now - finished.lastTime < 65) {
+        // Touch gestures always stop 100% locked where the user lifted their finger (zero surprise drift)
+        if (!isTouchPointer && allowInertia && now - finished.lastTime < 50) {
           animatorRef.current?.startPanInertia(finished.vx, finished.vy);
         } else {
           commitFinalViewport(viewportRef.current);
