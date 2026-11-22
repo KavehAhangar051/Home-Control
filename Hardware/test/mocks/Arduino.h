@@ -170,6 +170,10 @@ public:
     char operator[](size_t idx) const { return idx < _s.size() ? _s[idx] : '\0'; }
 
     String& operator+=(const char* rhs) { if (rhs) _s += rhs; return *this; }
+    String& operator+=(const __FlashStringHelper* rhs) {
+        if (rhs) _s += reinterpret_cast<const char*>(rhs);
+        return *this;
+    }
     String& operator+=(const String& rhs) { _s += rhs._s; return *this; }
     String& operator+=(char c) { _s.push_back(c); return *this; }
     String& operator+=(int v) { _s += std::to_string(v); return *this; }

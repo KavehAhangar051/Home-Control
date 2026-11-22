@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <functional>
 
-enum HTTPMethod { HTTP_GET = 0, HTTP_POST = 1 };
+enum HTTPMethod { HTTP_GET = 0, HTTP_POST = 1, HTTP_ANY = 2 };
 
 class WebServer {
 public:
