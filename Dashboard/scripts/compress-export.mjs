@@ -1,5 +1,5 @@
 import { constants, brotliCompress, gzip } from "node:zlib";
-import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -42,6 +42,22 @@ async function collectFiles(dir) {
   return files;
 }
 
+async function removeCompressedSidecars(dir) {
+  const entries = await readdir(dir, { withFileTypes: true });
+
+  await Promise.all(
+    entries.map(async (entry) => {
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        await removeCompressedSidecars(fullPath);
+      } else if (entry.isFile() && /\.(?:gz|br)$/i.test(entry.name)) {
+        await rm(fullPath, { force: true });
+      }
+    }),
+  );
+}
+
 function formatBytes(bytes) {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -54,6 +70,15 @@ async function main() {
 
   if (!dirInfo?.isDirectory()) {
     console.warn(`[compress-export] Skipping: output directory not found at ${TARGET_DIR}`);
+
+    return;
+  }
+
+  // Capacitor copies every file in out/ into Android assets. Gzip/Brotli
+  // sidecars collide with their original files during Android asset merging.
+  if (process.env.CAPACITOR_BUILD === "true") {
+    await removeCompressedSidecars(TARGET_DIR);
+    console.log("[compress-export] Skipped compressed sidecars for Capacitor Android assets.");
 
     return;
   }
