@@ -86,11 +86,15 @@ private:
 
 public:
     BootManager();
-    void startBootSequenceAsync(BootContext ctx);
+    void startBootSequenceAsync(const BootContext& ctx);
     HOT_PATH void loop();
+    BootState getState() const { return state_; }
     const char* getMdnsHostname() const { return mdnsHostname_; }
     const char* getMdnsFqdn() const { return mdnsFqdn_; }
     const char* getPortalUrl() const { return portalUrl_; }
+#ifdef UNIUNO_NATIVE_TEST
+    WebServer& testServer() { return provisioningServer_; }
+#endif
 };
 
 #endif // BOOT_MANAGER_H
