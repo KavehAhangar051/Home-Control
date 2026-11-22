@@ -148,7 +148,8 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
             static ParseResult parsed;
             parsed.reset();
             if (configParser.parse(text.c_str(), parsed) &&
-                (parsed.segmentsProvided || parsed.wifiProvided || parsed.apProvided || parsed.mqtt.valid)) {
+                (parsed.segmentsProvided || parsed.wifiProvided || parsed.apProvided ||
+                 parsed.mdnsProvided || parsed.mqtt.valid)) {
                 ConfigLoadedEvent event;
                 event.parsed = &parsed;
                 event.hasParsedConfig = true;

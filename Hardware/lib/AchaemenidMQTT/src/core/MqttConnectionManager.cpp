@@ -1,5 +1,6 @@
 #include "MqttConnectionManager.h"
 #include "AchaemenidMQTT.h"
+#include <NetworkConfigHelper.h>
 #include <Arduino.h>
 
 namespace uniuno {
@@ -10,26 +11,36 @@ MqttConnectionManager::MqttConnectionManager(AchaemenidMQTT* mqttClient)
 
 void MqttConnectionManager::onConnect() {
     _reconnectRetries = 0;
+    _reconnectTimer.detach();
 }
 
 void MqttConnectionManager::onDisconnect() {
     if (WiFi.status() == WL_CONNECTED) {
-        _reconnectRetries++;
-        if (_reconnectRetries > 3) {
-            Serial.println("[MQTT] Failed to reconnect 3 times. Restarting ESP...");
-            ESP.restart();
+        if (_reconnectRetries < 255) {
+            _reconnectRetries++;
         }
-        
-        // Exponential backoff: 1s, 2s, 4s
-        float delaySeconds = (float)(1u << (_reconnectRetries - 1));
-        Serial.printf("[MQTT] Reconnecting in %.0fs (attempt %d/3)...\n", delaySeconds, _reconnectRetries);
-        
+
+        const uint32_t delayMs = net_config::computeMqttReconnectDelayMs(_reconnectRetries);
+        const float delaySeconds = static_cast<float>(delayMs) / 1000.0f;
+        Serial.printf("[MQTT] Reconnecting in %.0fs (attempt %u)...\n",
+                      delaySeconds, static_cast<unsigned int>(_reconnectRetries));
+
         _reconnectTimer.once(delaySeconds, MqttConnectionManager::reconnectWrapper, _mqttClient);
     }
 }
 
 void MqttConnectionManager::resetRetries() {
     _reconnectRetries = 0;
+}
+
+void MqttConnectionManager::cancelReconnect() {
+    _reconnectTimer.detach();
+}
+
+void MqttConnectionManager::scheduleImmediateReconnect(float delaySeconds) {
+    _reconnectRetries = 0;
+    _reconnectTimer.detach();
+    _reconnectTimer.once(delaySeconds, MqttConnectionManager::reconnectWrapper, _mqttClient);
 }
 
 void MqttConnectionManager::reconnectWrapper(AchaemenidMQTT* instance) {

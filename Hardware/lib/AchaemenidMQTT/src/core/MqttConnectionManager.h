@@ -18,6 +18,8 @@ public:
     void onConnect();
     void onDisconnect();
     void resetRetries();
+    void cancelReconnect();
+    void scheduleImmediateReconnect(float delaySeconds = 0.15f);
     
 private:
     static void reconnectWrapper(AchaemenidMQTT* instance);

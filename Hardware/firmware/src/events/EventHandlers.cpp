@@ -6,8 +6,10 @@
 #include <core/WebSocketServer.h>
 #include <core/WebSocketClient.h>
 #include <AchaemenidMQTT.h>
+#include <BootManager.h>
 #include <ConfigApplier.h>
 #include <ISegmentStorage.h>
+#include <WiFi.h>
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -278,9 +280,31 @@ auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
     INFOF("[Event] Config loaded with %d pins.", evt->pinCount);
     const bool wifiChanged = saveNetworkConfig(*evt);
 
+    if (evt->hasParsedConfig && evt->parsed != nullptr && evt->parsed->mdnsProvided && bootManager != nullptr) {
+        bootManager->refreshMdnsIdentity();
+    }
+
+    if (wifiChanged && evt->hasParsedConfig) {
+        WARNING("[Network] WiFi credentials changed. Restarting to apply saved networks.");
+        mqttClient.disconnect(true);
+        if (evt->parsed != nullptr && evt->parsed->wifiProvided && evt->wifiCount == 0) {
+            WiFi.disconnect(false, true);
+        }
+        Serial.flush();
+        delay(250);
+        ESP.restart();
+        return;
+    }
+
     if (evt->mqtt.valid) {
         INFOF("[MQTT] Configuring dynamically: host=%s, port=%d, qos=%d", evt->mqtt.host, evt->mqtt.port, evt->mqtt.qos);
-        mqttClient.begin(String(evt->mqtt.host), evt->mqtt.port, String(evt->mqtt.baseTopic), evt->mqtt.qos, "", "");
+        mqttClient.begin(
+            String(evt->mqtt.host),
+            evt->mqtt.port,
+            String(evt->mqtt.baseTopic),
+            evt->mqtt.qos,
+            String(evt->mqtt.user),
+            String(evt->mqtt.password));
         mqttClient.subscribe(String(evt->mqtt.baseTopic) + "/Command");
         mqttClient.connect();
     } else if (mqttClient.getBaseTopic().length() > 0) {
@@ -291,12 +315,6 @@ auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
         mqttClient.begin("broker.emqx.io", 1883, "KamyarIoT/Achaemenid", 1, "", "");
         mqttClient.subscribe("KamyarIoT/Achaemenid/Command");
         mqttClient.connect();
-    }
-
-    if (wifiChanged && evt->hasParsedConfig) {
-        WARNING("[Network] WiFi credentials changed. Restarting to apply saved networks.");
-        delay(250);
-        ESP.restart();
     }
 };
 

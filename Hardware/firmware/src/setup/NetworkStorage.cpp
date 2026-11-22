@@ -1,4 +1,5 @@
 #include "NetworkStorage.h"
+#include <NetworkConfigHelper.h>
 #include <Preferences.h>
 #include <Utilities/logging.h>
 #include <Optimization/StaticString.h>
@@ -16,10 +17,12 @@ bool saveNetworkConfig(const ConfigLoadedEvent& config) {
     // Preserve existing WiFi credentials when this event carries no WiFi update.
     // This is important for the boot-time ConfigLoadedEvent restored from NVS.
     if (config.hasParsedConfig && config.parsed != nullptr && config.parsed->wifiProvided) {
-        int wifiCount = config.wifiCount > 5 ? 5 : config.wifiCount;
+        int wifiCount = config.wifiCount > 5 ? 5 : (config.wifiCount < 0 ? 0 : config.wifiCount);
         int currentCount = prefs.getInt("wifiCount", 0);
-        if (currentCount != wifiCount) wifiChanged = true;
-        prefs.putInt("wifiCount", wifiCount);
+        if (currentCount != wifiCount) {
+            wifiChanged = true;
+            prefs.putInt("wifiCount", wifiCount);
+        }
         for (int i = 0; i < wifiCount; i++) {
             uniuno::StaticString<8> ssidKey("ssid");
             uniuno::StaticString<8> passKey("pass");
@@ -51,13 +54,41 @@ bool saveNetworkConfig(const ConfigLoadedEvent& config) {
     }
 
     if (config.hasParsedConfig && config.parsed != nullptr && config.parsed->apProvided) {
-        prefs.putBool("apConfigured", config.parsed->apValid);
-        if (config.parsed->apValid) {
-            prefs.putString("apSsid", config.parsed->apSsid);
-            prefs.putString("apPass", config.parsed->apPassword);
+        const bool prevApConfigured = prefs.getBool("apConfigured", false);
+        const bool nextApConfigured = config.parsed->apValid;
+        if (prevApConfigured != nextApConfigured) {
+            prefs.putBool("apConfigured", nextApConfigured);
+        }
+        if (nextApConfigured) {
+            const String prevApSsid = prefs.getString("apSsid", "");
+            const String prevApPass = prefs.getString("apPass", "");
+            if (prevApSsid != config.parsed->apSsid) {
+                prefs.putString("apSsid", config.parsed->apSsid);
+                INFOF("[NetworkStorage] Updated custom AP SSID: '%s'", config.parsed->apSsid);
+            }
+            if (prevApPass != config.parsed->apPassword) {
+                prefs.putString("apPass", config.parsed->apPassword);
+                INFO("[NetworkStorage] Updated custom AP password.");
+            }
         } else {
-            prefs.remove("apSsid");
-            prefs.remove("apPass");
+            if (prefs.isKey("apSsid")) prefs.remove("apSsid");
+            if (prefs.isKey("apPass")) prefs.remove("apPass");
+            if (prevApConfigured) {
+                INFO("[NetworkStorage] Cleared custom AP config (reverted to MAC default).");
+            }
+        }
+    }
+
+    if (config.hasParsedConfig && config.parsed != nullptr && config.parsed->mdnsProvided) {
+        const String prevMdns = prefs.getString("mdnsHost", "");
+        if (config.parsed->mdnsHost[0] == '\0') {
+            if (prevMdns.length() > 0) {
+                prefs.remove("mdnsHost");
+                INFO("[NetworkStorage] Reset custom mDNS hostname to default.");
+            }
+        } else if (prevMdns != config.parsed->mdnsHost) {
+            prefs.putString("mdnsHost", config.parsed->mdnsHost);
+            INFOF("[NetworkStorage] Updated mDNS hostname: '%s'", config.parsed->mdnsHost);
         }
     }
 
@@ -66,13 +97,13 @@ bool saveNetworkConfig(const ConfigLoadedEvent& config) {
         String currentHost = prefs.getString("mqHost", "");
         if (currentHost != config.mqtt.host) {
             prefs.putString("mqHost", config.mqtt.host);
-            INFOF("[NetworkStorage] [DEBUG] MQTT Host changed from '%s' to '%s'.", currentHost.c_str(), config.mqtt.host);
+            INFOF("[NetworkStorage] MQTT Host updated: '%s' -> '%s'", currentHost.c_str(), config.mqtt.host);
         }
 
         String currentTopic = prefs.getString("mqTopic", "");
         if (currentTopic != config.mqtt.baseTopic) {
             prefs.putString("mqTopic", config.mqtt.baseTopic);
-            INFOF("[NetworkStorage] [DEBUG] MQTT Topic changed from '%s' to '%s'.", currentTopic.c_str(), config.mqtt.baseTopic);
+            INFOF("[NetworkStorage] MQTT Topic updated: '%s' -> '%s'", currentTopic.c_str(), config.mqtt.baseTopic);
         }
 
         int currentPort = prefs.getInt("mqPort", -1);
@@ -85,7 +116,21 @@ bool saveNetworkConfig(const ConfigLoadedEvent& config) {
             prefs.putInt("mqQos", config.mqtt.qos);
         }
 
-        prefs.putBool("mqValid", true);
+        String currentUser = prefs.getString("mqUser", "");
+        if (currentUser != config.mqtt.user) {
+            if (config.mqtt.user[0] == '\0') prefs.remove("mqUser");
+            else prefs.putString("mqUser", config.mqtt.user);
+        }
+
+        String currentPass = prefs.getString("mqPass", "");
+        if (currentPass != config.mqtt.password) {
+            if (config.mqtt.password[0] == '\0') prefs.remove("mqPass");
+            else prefs.putString("mqPass", config.mqtt.password);
+        }
+
+        if (!prefs.getBool("mqValid", false)) {
+            prefs.putBool("mqValid", true);
+        }
     }
 
     prefs.end();
@@ -94,15 +139,16 @@ bool saveNetworkConfig(const ConfigLoadedEvent& config) {
 }
 
 void loadNetworkConfig(String ssid[5], String pass[5], int& count, MqttConfig& mqttConfig) {
+    mqttConfig.reset();
     bool started = prefs.begin("AchaemenidNet", true); // true = read-only
     if (!started) {
         WARNING("[NetworkStorage] Preferences empty or failed to open");
         count = 0;
-        mqttConfig.valid = false;
         return;
     }
 
     count = prefs.getInt("wifiCount", 0);
+    if (count < 0) count = 0;
     if (count > 5) count = 5;
 
     for (int i = 0; i < count; i++) {
@@ -120,19 +166,31 @@ void loadNetworkConfig(String ssid[5], String pass[5], int& count, MqttConfig& m
     if (mqValid) {
         String host = prefs.getString("mqHost", "");
         String topic = prefs.getString("mqTopic", "");
-        int port = prefs.getInt("mqPort", 1883);
-        int qos = prefs.getInt("mqQos", 1);
+        String user = prefs.getString("mqUser", "");
+        String mqPass = prefs.getString("mqPass", "");
+        int port = uniuno::net_config::sanitizeMqttPort(prefs.getInt("mqPort", uniuno::net_config::kDefaultMqttPort));
+        int qos = uniuno::net_config::sanitizeMqttQos(prefs.getInt("mqQos", uniuno::net_config::kDefaultMqttQos));
 
-        strncpy(mqttConfig.host, host.c_str(), sizeof(mqttConfig.host) - 1);
-        strncpy(mqttConfig.baseTopic, topic.c_str(), sizeof(mqttConfig.baseTopic) - 1);
-        mqttConfig.port = port;
-        mqttConfig.qos = qos;
-        mqttConfig.valid = true;
+        char normalizedTopic[64] = {0};
+        if (uniuno::net_config::isValidMqttHost(host.c_str()) &&
+            uniuno::net_config::normalizeMqttBaseTopic(topic.c_str(), normalizedTopic, sizeof(normalizedTopic))) {
+            uniuno::net_config::copySafeString(mqttConfig.host, sizeof(mqttConfig.host), host.c_str());
+            uniuno::net_config::copySafeString(mqttConfig.baseTopic, sizeof(mqttConfig.baseTopic), normalizedTopic);
+            uniuno::net_config::copySafeString(mqttConfig.user, sizeof(mqttConfig.user), user.c_str());
+            uniuno::net_config::copySafeString(mqttConfig.password, sizeof(mqttConfig.password), mqPass.c_str());
+            mqttConfig.port = port;
+            mqttConfig.qos = qos;
+            mqttConfig.valid = true;
 
-        INFOF("[NetworkStorage] [DEBUG] Stored MQTT Config - Host: '%s', Port: %d, Topic: '%s', QOS: %d", mqttConfig.host, mqttConfig.port, mqttConfig.baseTopic, mqttConfig.qos);
+            INFOF("[NetworkStorage] Stored MQTT Config - Host: '%s', Port: %d, Topic: '%s', QOS: %d",
+                  mqttConfig.host, mqttConfig.port, mqttConfig.baseTopic, mqttConfig.qos);
+        } else {
+            mqttConfig.valid = false;
+            WARNING("[NetworkStorage] Stored MQTT config in NVS is invalid; ignoring.");
+        }
     } else {
         mqttConfig.valid = false;
-        INFO("[NetworkStorage] [DEBUG] No valid MQTT config stored.");
+        INFO("[NetworkStorage] No valid MQTT config stored.");
     }
 
     prefs.end();

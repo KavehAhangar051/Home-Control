@@ -24,6 +24,15 @@ struct MqttConfig {
     bool isValid() const {
         return !server.empty() && !baseTopic.empty();
     }
+
+    bool matchesConnectionParams(const MqttConfig& other) const {
+        return port == other.port &&
+               qos == other.qos &&
+               server == other.server &&
+               baseTopic == other.baseTopic &&
+               user == other.user &&
+               password == other.password;
+    }
 };
 
 } // namespace uniuno

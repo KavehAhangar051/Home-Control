@@ -173,6 +173,8 @@ struct SegmentConfig {
 struct MqttConfig {
     char host[64];
     char baseTopic[64];
+    char user[32];
+    char password[32];
     
     int port;
     int qos;
@@ -182,6 +184,8 @@ struct MqttConfig {
     void reset() {
         host[0] = '\0';
         baseTopic[0] = '\0';
+        user[0] = '\0';
+        password[0] = '\0';
         port = 1883;
         qos = 1;
         valid = false;
@@ -214,8 +218,10 @@ struct ParseResult {
     int count;
     char apSsid[33];
     char apPassword[64];
+    char mdnsHost[33];
     bool apValid;
     bool apProvided;
+    bool mdnsProvided;
     bool wifiProvided;
     bool segmentsProvided;
     bool success : 1;
@@ -232,8 +238,10 @@ struct ParseResult {
         count = 0;
         apSsid[0] = '\0';
         apPassword[0] = '\0';
+        mdnsHost[0] = '\0';
         apValid = false;
         apProvided = false;
+        mdnsProvided = false;
         wifiProvided = false;
         segmentsProvided = false;
         success = false;

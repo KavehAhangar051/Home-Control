@@ -87,6 +87,7 @@ private:
 public:
     BootManager();
     void startBootSequenceAsync(const BootContext& ctx);
+    void refreshMdnsIdentity();
     HOT_PATH void loop();
     BootState getState() const { return state_; }
     const char* getMdnsHostname() const { return mdnsHostname_; }

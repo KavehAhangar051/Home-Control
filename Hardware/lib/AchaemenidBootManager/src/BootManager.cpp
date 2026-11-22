@@ -1,4 +1,5 @@
 #include "BootManager.h"
+#include <NetworkConfigHelper.h>
 #include <Utilities/logging.h>
 #include <ConfigApplier.h>
 #include <AppEvents.h>
@@ -70,6 +71,15 @@ void BootManager::initMdnsIdentity() {
     uniuno::captive_portal::normalizeMdnsHostname(rawHost, mdnsHostname_, sizeof(mdnsHostname_));
     uniuno::captive_portal::buildMdnsFqdn(mdnsHostname_, mdnsFqdn_, sizeof(mdnsFqdn_));
     uniuno::captive_portal::buildPortalUrl(mdnsHostname_, portalUrl_, sizeof(portalUrl_));
+}
+
+void BootManager::refreshMdnsIdentity() {
+    char prevHostname[33];
+    uniuno::net_config::copySafeString(prevHostname, sizeof(prevHostname), mdnsHostname_);
+    initMdnsIdentity();
+    if (strcmp(prevHostname, mdnsHostname_) != 0 && mdnsStarted_) {
+        startMdnsResponder(state_ == BootState::PROVISIONING);
+    }
 }
 
 bool BootManager::startMdnsResponder(bool apMode) {
@@ -652,21 +662,39 @@ void BootManager::startProvisioningPortal() {
     String mac = WiFi.macAddress();
     mac.replace(":", "");
     String suffix = mac.substring(mac.length() > 6 ? mac.length() - 6 : 0);
-    apSsid_ = "Achaemenid-" + suffix;
-    String apPassword = "Setup-" + suffix;
+    String defaultApSsid = "Achaemenid-" + suffix;
+    String defaultApPassword = "Setup-" + suffix;
+    apSsid_ = defaultApSsid;
+    String apPassword = defaultApPassword;
 
     Preferences apPrefs;
     if (apPrefs.begin("AchaemenidNet", true)) {
         if (apPrefs.getBool("apConfigured", false)) {
-            apSsid_ = apPrefs.getString("apSsid", apSsid_);
-            apPassword = apPrefs.getString("apPass", apPassword);
+            String customSsid = apPrefs.getString("apSsid", "");
+            String customPass = apPrefs.getString("apPass", "");
+            if (uniuno::net_config::isValidSoftApCredential(customSsid.c_str(), customPass.c_str())) {
+                apSsid_ = customSsid;
+                apPassword = customPass;
+            } else {
+                WARNING("[Provisioning] Stored custom AP credentials in NVS are invalid; falling back to default MAC AP.");
+            }
         }
         apPrefs.end();
     }
 
     if (!WiFi.softAP(apSsid_.c_str(), apPassword.c_str())) {
-        ERROR("[Provisioning] Could not start setup access point.");
-        return;
+        if (apSsid_ != defaultApSsid) {
+            WARNING("[Provisioning] Custom softAP failed; retrying with default MAC AP.");
+            apSsid_ = defaultApSsid;
+            apPassword = defaultApPassword;
+            if (!WiFi.softAP(apSsid_.c_str(), apPassword.c_str())) {
+                ERROR("[Provisioning] Could not start setup access point.");
+                return;
+            }
+        } else {
+            ERROR("[Provisioning] Could not start setup access point.");
+            return;
+        }
     }
 
     // Start wildcard DNS server (UDP 53) so every OS captive check & achaemenid.local resolve to AP IP

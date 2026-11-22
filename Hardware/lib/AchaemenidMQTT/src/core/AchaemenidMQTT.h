@@ -17,6 +17,8 @@ public:
 
     void begin(const String& server, uint16_t port, const String& baseTopic, uint8_t qos, const String& user, const String& password);
     void connect();
+    void disconnect(bool force = false);
+    bool isConnected() const { return _mqttClient.connected(); }
     
     // Kept for backward compatibility but empty (Zero-Latency mode)
     inline void processQueue() {} 
@@ -29,6 +31,12 @@ public:
     void setCallback(MessageCallback callback);
     void subscribe(const String& topic);
 
+#ifdef UNIUNO_NATIVE_TEST
+    AsyncMqttClient& testMqttClient() { return _mqttClient; }
+    const MqttConfig& testConfig() const { return _config; }
+    bool testHasPendingReconfigureReconnect() const { return _reconnectAfterDisconnect; }
+#endif
+
 private:
     AsyncMqttClient _mqttClient;
     MqttConfig _config;
@@ -38,6 +46,9 @@ private:
     uint8_t _messageBuffer[MAX_COMMAND_PAYLOAD]{};
     size_t _messageTotal = 0;
     size_t _messageReceived = 0;
+    bool _configured = false;
+    bool _reconnectAfterDisconnect = false;
+    bool _subscribed = false;
 
     void _onMqttConnect(bool sessionPresent);
     void _onMqttDisconnect(AsyncMqttClientDisconnectReason reason);
