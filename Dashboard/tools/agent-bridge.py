@@ -37,6 +37,7 @@ EXECUTABLE_TOOLS = (
     ROOT_DIR / "tools" / "rtk.sh",
     ROOT_DIR / "tools" / "te.sh",
     ROOT_DIR / "tools" / "cbm.sh",
+    ROOT_DIR / "tools" / "ov.sh",
     ROOT_DIR / "tools" / "agent-bridge.py",
 )
 
@@ -51,6 +52,12 @@ NON_RTK_SCRIPTS = frozenset(
         "te:status",
         "te:doctor",
         "te:setup",
+        "ov",
+        "ov:setup",
+        "ov:doctor",
+        "ov:server",
+        "ov:mcp",
+        "vikingbot",
         "r",
         "agent:start",
         "agent:end",
@@ -134,12 +141,20 @@ def ensure_ready() -> None:
         and TE_BIN.is_file()
     )
     cbm_ok = Path("/usr/local/bin/codebase-memory-mcp").is_file()
+    ov_ok = (
+        Path("/usr/local/bin/ov").is_file()
+        and Path("/usr/local/bin/openviking-server").is_file()
+        and Path("/usr/local/bin/ov-mcp").is_file()
+        and (Path.home() / ".openviking").is_symlink()
+    )
     if not rtk_ok:
         subprocess.run(["bash", str(ROOT_DIR / "tools" / "rtk.sh"), "ensure"], check=True)
     if not te_ok:
         subprocess.run(["bash", str(ROOT_DIR / "tools" / "te.sh"), "ensure"], check=True)
     if not cbm_ok:
         subprocess.run(["bash", str(ROOT_DIR / "tools" / "cbm.sh"), "ensure"], check=True)
+    if not ov_ok:
+        subprocess.run(["bash", str(ROOT_DIR / "tools" / "ov.sh"), "ensure"], check=True)
 
 
 def _call_hook(event: str, payload: dict) -> dict:
@@ -520,6 +535,7 @@ def check_tools() -> int:
         ("rtk", [_rtk_bin(), "--version"]),
         ("te", [str(TE_BIN), "--cwd", str(ROOT_DIR), "doctor"]),
         ("cbm", ["bash", str(ROOT_DIR / "tools" / "cbm.sh"), "cli", "list_projects"]),
+        ("ov", ["bash", str(ROOT_DIR / "tools" / "ov.sh"), "--version"]),
     ]
     failed = 0
     for name, cmd in checks:

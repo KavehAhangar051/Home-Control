@@ -1,0 +1,26 @@
+{
+  "openviking-memory": {
+    "enabled": true,
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "command -v ov-hook >/dev/null 2>&1 && exec ov-hook session-start antigravity || exec bash ./tools/ov.sh hook session-start antigravity",
+        "timeout": 30
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "command -v ov-hook >/dev/null 2>&1 && exec ov-hook pre-invocation antigravity || exec bash ./tools/ov.sh hook pre-invocation antigravity",
+        "timeout": 20
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "command -v ov-hook >/dev/null 2>&1 && exec ov-hook stop antigravity || exec bash ./tools/ov.sh hook stop antigravity",
+        "timeout": 30
+      }
+    ]
+  }
+}
