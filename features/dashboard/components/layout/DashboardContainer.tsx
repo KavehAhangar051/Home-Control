@@ -72,9 +72,22 @@ export default function DashboardContainer() {
       }, 300);
     });
 
+    const unlockOnFirstGesture = () => {
+      void import("@/lib/audio/context").then(({ audioContextManager }) => {
+        audioContextManager.unlock();
+      });
+      window.removeEventListener("pointerdown", unlockOnFirstGesture);
+      window.removeEventListener("keydown", unlockOnFirstGesture);
+    };
+
+    window.addEventListener("pointerdown", unlockOnFirstGesture, { once: true, passive: true });
+    window.addEventListener("keydown", unlockOnFirstGesture, { once: true, passive: true });
+
     return () => {
       window.cancelAnimationFrame(rafId);
       cancelIdle?.();
+      window.removeEventListener("pointerdown", unlockOnFirstGesture);
+      window.removeEventListener("keydown", unlockOnFirstGesture);
     };
   }, []);
 

@@ -561,4 +561,12 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
   - `handleExecuteMacro` evaluates live store state, dispatches only passing commands to ESP32 (`executeBatchPinUpdate` + `executeAnalogPinUpdate`), and surfaces custom failure messages via `ToastNotification` (upgraded to wrap cleanly up to 2 lines).
   - `MacrosSection`, `MacroActionCard`, and `MacroConditionEditor` allow configuring digital ON/OFF or analog PWM (`<DashboardSlider>` + presets + raw duty input) actions alongside per-action live-preview conditions and custom failure messages.
 
+## 32. First-Run Cookie & Browser Permissions Coordinator (22 November 2026)
 
+- **Coordinator & Cookie Persistence (`lib/permissions.ts`):**
+  - Persists user setup state under the 1-year browser Cookie `hc_permissions_consent_v1` (`Path=/; SameSite=Lax`, plus `Secure` over HTTPS) mirrored to `localStorage` so Web, PWA, embedded frames, and Capacitor Android WebViews retain setup status reliably.
+  - Probes and requests real browser/OS capabilities required by the dashboard: `storage` (`navigator.storage.persist()`), `microphone` (`navigator.mediaDevices.getUserMedia({ audio: true })` with immediate track cleanup for push-to-talk Voice Commands), `audio` (synchronous Web Audio `audioContextManager.unlock()` + tactile confirmation), `notifications` (`Notification.requestPermission()` + `notifyWhenBackgrounded` on hidden-tab ESP32 online/offline transitions), and optional `wakeLock` (`usePreferencesStore.wakeLockEnabled`).
+- **Lazy Onboarding & Settings Integration (`PermissionsOnboardingModal.tsx`, `DeferredPlatformRuntime.tsx`, `DashboardContainer.tsx`, `PermissionsStatusCard.tsx`):**
+  - `DeferredPlatformRuntime` dynamically mounts `PermissionsOnboardingModal` only when `!hasDashboardConsent()` or when triggered via Settings, keeping repeat visits at zero extra bundle cost.
+  - `DashboardContainer` registers a one-time passive `pointerdown`/`keydown` listener to unlock `audioContextManager` cleanly on returning sessions.
+  - `StabilitySection` embeds `PermissionsStatusCard` so users can inspect live permission/cookie status, re-open the setup modal, or reset the consent cookie at any time.
