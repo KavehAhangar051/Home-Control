@@ -5,8 +5,29 @@
 #include <AchaemenidWebSocketClient.h>
 #include <Timer/Optimization/TimerAsm.h>
 #include <Preferences.h>
-#include <ESPmDNS.h>
 #include <WiFi.h>
+#include <ESPmDNS.h>
+
+// In Arduino-ESP32 Core v3+, ESPmDNS.h wraps MDNSResponder and `extern MDNSResponder MDNS;`
+// inside `#ifdef CONFIG_MDNS_MAX_INTERFACES` (which only includes <mdns.h> -> ESP_MDNS_H_ when active).
+// Guard against environments where ESPmDNS.h is Core v3 while sdkconfig.h lacks CONFIG_MDNS_MAX_INTERFACES.
+#if defined(UNIUNO_NATIVE_TEST)
+  #define ACHAEMENID_MDNS_BACKEND_ARDUINO 1
+#elif defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+  #if defined(CONFIG_MDNS_MAX_INTERFACES)
+    #define ACHAEMENID_MDNS_BACKEND_ARDUINO 1
+  #elif defined(CONFIG_MDNS_MAX_SERVICES)
+    #include <mdns.h>
+    #define ACHAEMENID_MDNS_BACKEND_IDF 1
+  #endif
+#else
+  #if defined(ESP_MDNS_H_)
+    #define ACHAEMENID_MDNS_BACKEND_ARDUINO 1
+  #elif defined(CONFIG_MDNS_MAX_SERVICES)
+    #include <mdns.h>
+    #define ACHAEMENID_MDNS_BACKEND_IDF 1
+  #endif
+#endif
 
 namespace {
 
@@ -52,6 +73,7 @@ void BootManager::initMdnsIdentity() {
 }
 
 bool BootManager::startMdnsResponder(bool apMode) {
+#if defined(ACHAEMENID_MDNS_BACKEND_ARDUINO)
     if (mdnsStarted_) {
         MDNS.end();
         mdnsStarted_ = false;
@@ -71,13 +93,47 @@ bool BootManager::startMdnsResponder(bool apMode) {
 
     INFOF("[mDNS] Responder active at %s (%s mode)", portalUrl_, apMode ? "AP" : "STA");
     return true;
+#elif defined(ACHAEMENID_MDNS_BACKEND_IDF)
+    if (mdnsStarted_) {
+        mdns_free();
+        mdnsStarted_ = false;
+    }
+
+    if (mdns_init() != ESP_OK || mdns_hostname_set(mdnsHostname_) != ESP_OK) {
+        WARNINGF("[mDNS] Failed to start ESP-IDF mDNS responder for '%s'.", mdnsFqdn_);
+        return false;
+    }
+
+    mdnsStarted_ = true;
+    mdns_instance_name_set(apMode ? "Achaemenid Wi-Fi Setup" : "Achaemenid IoT Node");
+    mdns_service_add(nullptr, "_http", "_tcp", 80, nullptr, 0);
+    if (!apMode) {
+        mdns_service_add(nullptr, "_ws", "_tcp", 81, nullptr, 0);
+    }
+
+    INFOF("[mDNS] ESP-IDF responder active at %s (%s mode)", portalUrl_, apMode ? "AP" : "STA");
+    return true;
+#else
+    (void)apMode;
+    WARNINGF("[mDNS] ESPmDNS disabled in current sdkconfig (CONFIG_MDNS_MAX_INTERFACES missing); Captive Portal DNS still resolves %s.", mdnsFqdn_);
+    return false;
+#endif
 }
 
 void BootManager::stopMdnsResponder() {
+#if defined(ACHAEMENID_MDNS_BACKEND_ARDUINO)
     if (mdnsStarted_) {
         MDNS.end();
         mdnsStarted_ = false;
     }
+#elif defined(ACHAEMENID_MDNS_BACKEND_IDF)
+    if (mdnsStarted_) {
+        mdns_free();
+        mdnsStarted_ = false;
+    }
+#else
+    mdnsStarted_ = false;
+#endif
 }
 
 bool BootManager::hasSavedWifiCredentials() const {
