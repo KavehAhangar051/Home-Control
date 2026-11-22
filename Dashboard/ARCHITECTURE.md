@@ -581,3 +581,7 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
   - `subscribePinCommandAck` / `notifyPinCommandAck` deliver hardware receipt events strictly to the matching GPIO pin's mounted segment card (`ActiveCard`, `TrellisSegmentTile`, `TrellisSegmentView`, `CanvasSegmentNode`) without mutating Zustand or broadcasting dashboard-wide re-renders.
   - `usePinCommandAck(pin)` briefly lights up only the card's status indicator dot (`isAckFlashing`, 700ms `bg-success ring-4 ring-success/35 scale-125`) across digital `PinToggle`/`CardFooter` and PWM `AnalogOutputBody` tiles without altering switch/slider state.
 
+## 34. Wi-Fi Access Point Explicit Save (`WifiSection.tsx`, 22 November 2026)
+
+- `features/settings/components/wifi-section/WifiSection.tsx` keeps ESP32 Provisioning Access Point inputs (`ssid`, `password`) in local draft state with explicit validation (`1..32` chars SSID and `8..63` chars password, or both empty to reset to MAC default) and commits via a dedicated **«ذخیره اکسس‌پوینت»** button (`setWifiApConfig` + `persistStoreConfigToCloudflare` with `overrides.wifiApConfig`).
+- Access Point, Wi-Fi network, and MQTT broker configurations persist strictly to the Cloudflare Worker (`POST /config`) and local browser cache rather than binary MQTT commands (`MQTT_OPCODES` handles pin, segment, rule, presence, and ADC commands only).

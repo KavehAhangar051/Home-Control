@@ -1,30 +1,124 @@
 import { AnimatePresence } from "motion/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Wifi } from "@/components/ui/hugeicons-groups/controls";
+import { Check, Save, Wifi } from "@/components/ui/hugeicons-groups/controls";
 import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
+import { soundManager } from "@/lib/audio";
 import { WifiNetworkEditCard, WifiNetworkViewCard } from "./WifiNetworkCard";
+
+interface ApDraftOverrides {
+  ssid?: string;
+  password?: string;
+}
 
 export default function WifiSection() {
   const wifiNetworks = useIoTStore((s) => s.wifiNetworks);
   const setWifiNetworks = useIoTStore((s) => s.setWifiNetworks);
   const wifiApConfig = useIoTStore((s) => s.wifiApConfig);
   const setWifiApConfig = useIoTStore((s) => s.setWifiApConfig);
-  const apSsid = wifiApConfig?.ssid ?? "";
-  const apPassword = wifiApConfig?.password ?? "";
+  const showToast = useIoTStore((s) => s.showToast);
+
+  const [apDraft, setApDraft] = useState<ApDraftOverrides>({});
+  const [isSavingAp, setIsSavingAp] = useState(false);
+  const [isApSaved, setIsApSaved] = useState(false);
+  const savedResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (savedResetTimerRef.current !== null) {
+        clearTimeout(savedResetTimerRef.current);
+      }
+    };
+  }, []);
+
+  const apSsid = apDraft.ssid ?? wifiApConfig?.ssid ?? "";
+  const apPassword = apDraft.password ?? wifiApConfig?.password ?? "";
+  const trimmedApSsid = apSsid.trim();
+  const hasAnyApValue = Boolean(trimmedApSsid || apPassword);
+
+  const apSsidError =
+    hasAnyApValue && !trimmedApSsid
+      ? "نام شبکه (SSID) اکسس‌پوینت را وارد کنید."
+      : trimmedApSsid.length > 32
+        ? "نام شبکه (SSID) حداکثر ۳۲ کاراکتر می‌تواند باشد."
+        : undefined;
 
   const apPasswordError =
-    (apSsid.trim() || apPassword) && (!apSsid.trim() || apPassword.length < 8 || apSsid.length > 32)
-      ? "رمز AP سفارشی باید حداقل ۸ کاراکتر باشد."
+    hasAnyApValue && (apPassword.length < 8 || apPassword.length > 63)
+      ? "رمز AP سفارشی باید بین ۸ تا ۶۳ کاراکتر باشد."
       : undefined;
+
+  const hasApErrors = Boolean(apSsidError || apPasswordError);
+  const hasApChanges =
+    trimmedApSsid !== (wifiApConfig?.ssid ?? "").trim() ||
+    apPassword !== (wifiApConfig?.password ?? "");
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempSsid, setTempSsid] = useState("");
   const [tempPassword, setTempPassword] = useState("");
+
+  const scheduleApSavedReset = () => {
+    setIsApSaved(true);
+
+    if (savedResetTimerRef.current !== null) {
+      clearTimeout(savedResetTimerRef.current);
+    }
+
+    savedResetTimerRef.current = setTimeout(() => {
+      savedResetTimerRef.current = null;
+      setIsApSaved(false);
+    }, 2000);
+  };
+
+  const handleSaveAccessPoint = async () => {
+    soundManager.playClick();
+
+    if (apSsidError || apPasswordError) {
+      showToast(apSsidError || apPasswordError || "اطلاعات اکسس‌پوینت نامعتبر است.", "error");
+
+      return;
+    }
+
+    const nextApConfig = {
+      ssid: trimmedApSsid,
+      password: apPassword,
+    };
+
+    setWifiApConfig(nextApConfig);
+    setApDraft({});
+
+    if (!isCloudflareEnabled()) {
+      showToast("تنظیمات اکسس‌پوینت در حافظه داشبورد ذخیره شد.", "success");
+      scheduleApSavedReset();
+
+      return;
+    }
+
+    setIsSavingAp(true);
+
+    try {
+      const { result } = await persistStoreConfigToCloudflare({
+        overrides: { wifiApConfig: nextApConfig },
+        successToast: "تنظیمات اکسس‌پوینت ذخیره شد.",
+        errorToast: "خطا در ذخیره تنظیمات اکسس‌پوینت.",
+      });
+
+      if (result.success) {
+        scheduleApSavedReset();
+      }
+    } catch (error) {
+      console.error("Failed to save Access Point settings to cloud", error);
+      showToast("خطا در ارتباط با سرور کلودفلر.", "error");
+    } finally {
+      setIsSavingAp(false);
+    }
+  };
 
   const handleAddNetwork = () => {
     const newId = `wifi_${Date.now()}`;
@@ -103,13 +197,15 @@ export default function WifiSection() {
             dir="auto"
             maxLength={32}
             value={apSsid}
-            onChange={(event) =>
-              setWifiApConfig({
-                ...(wifiApConfig ?? { ssid: "", password: "" }),
+            onChange={(event) => {
+              setIsApSaved(false);
+              setApDraft((prev) => ({
+                ...prev,
                 ssid: event.target.value,
-              })
-            }
+              }));
+            }}
             placeholder="Achaemenid-XXXXXX"
+            error={apSsidError}
           />
         </div>
         <div className="space-y-1.5">
@@ -120,15 +216,48 @@ export default function WifiSection() {
             dir="ltr"
             maxLength={63}
             value={apPassword}
-            onChange={(event) =>
-              setWifiApConfig({
-                ...(wifiApConfig ?? { ssid: "", password: "" }),
+            onChange={(event) => {
+              setIsApSaved(false);
+              setApDraft((prev) => ({
+                ...prev,
                 password: event.target.value,
-              })
-            }
+              }));
+            }}
             placeholder="حداقل ۸ کاراکتر"
             error={apPasswordError}
           />
+        </div>
+
+        <div className="space-y-2 pt-1">
+          <Button
+            type="button"
+            variant={isApSaved && !hasApChanges ? "outline" : "accent"}
+            disabled={isSavingAp || hasApErrors}
+            onClick={handleSaveAccessPoint}
+            className={`w-full h-auto min-h-11 rounded-xl px-4 py-2.5 text-sm font-bold ${
+              isApSaved && !hasApChanges
+                ? "border-accent4 bg-accent4-soft text-accent4 hover:border-accent4 hover:bg-accent4-soft hover:text-accent4"
+                : ""
+            }`}
+          >
+            {isSavingAp ? (
+              "در حال ذخیره اکسس‌پوینت..."
+            ) : isApSaved && !hasApChanges ? (
+              <>
+                <Check className="size-4" />
+                ذخیره شد
+              </>
+            ) : (
+              <>
+                <Save className="size-4" />
+                ذخیره اکسس‌پوینت
+              </>
+            )}
+          </Button>
+          <p className="text-[11px] leading-relaxed text-text-tertiary">
+            تنظیمات اکسس‌پوینت روی سرور کلودفلر ذخیره می‌شوند (از طریق MQTT ارسال نمی‌شوند) و هنگام
+            همگام‌سازی بعدی یا راه‌اندازی مجدد ESP32 اعمال خواهند شد.
+          </p>
         </div>
       </div>
 
