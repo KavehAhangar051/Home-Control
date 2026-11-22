@@ -39,6 +39,7 @@ export function useAchaemenidState() {
     handleSetPinState,
     handleSetPinAnalogValue,
     handleBatchPinState,
+    handleExecuteMacro,
     handleReadAnalogInput,
   } = usePinOperations();
 
@@ -86,6 +87,7 @@ export function useAchaemenidState() {
     handleSetPinState,
     handleSetPinAnalogValue,
     handleBatchPinState,
+    handleExecuteMacro,
     handleReadAnalogInput,
     handleBypassSync,
     workerUrl,

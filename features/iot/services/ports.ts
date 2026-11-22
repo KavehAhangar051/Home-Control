@@ -5,6 +5,7 @@
  */
 
 import type { EspConfig } from "@/features/iot/services/config/types";
+import type { AnalogRangeRuleFrameInput } from "@/features/iot/services/mqtt/segmentPublishers";
 import type { AnalogInputSegmentOptions } from "@/features/iot/utils/analogInput";
 import type { AnalogSegmentOptions } from "@/features/iot/utils/analogOutput";
 
@@ -36,6 +37,10 @@ export interface IDeviceCommandPort {
   ): void;
   publishUpdateAnalogInputConfig(pin: number, config: AnalogInputSegmentOptions): boolean;
   publishReadAnalogInput(pin: number): boolean;
+  publishUpdateAnalogRangeRules(
+    inputPin: number,
+    ranges: readonly AnalogRangeRuleFrameInput[],
+  ): boolean;
   publishDeleteSegment(id: string): void;
   publishPresence(isVisible: boolean): void;
 }

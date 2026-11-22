@@ -29,6 +29,16 @@ export const DEFAULT_ADC_LOW_THRESHOLD = 0;
 
 export const ADC_REFERENCE_VOLTAGE = 3.3;
 
+export const RULE_TRIGGER_DOUBLE_CLICK = -1 as const;
+export const RULE_ANALOG_VALUE_UNSET = -1 as const;
+export const DEFAULT_DOUBLE_CLICK_WINDOW_MS = 400;
+export const MAX_ANALOG_RANGE_RULES = 6;
+export const ANALOG_RANGE_TRIGGER_ENTER = 0 as const;
+export const ANALOG_RANGE_TRIGGER_EXIT = 1 as const;
+export const DEFAULT_ANALOG_HYSTERESIS_12BIT = 30;
+export const DEFAULT_ANALOG_HYSTERESIS_8BIT = 5;
+export const DIGITAL_HOLD_TIME_VALUES = [0, -1, 3, 5, 10] as const;
+
 export interface AnalogInputSegmentOptions {
   adcResolution?: number;
   adcSampleIntervalMs?: number;
@@ -99,6 +109,11 @@ export function isAnalogInputType(type?: string | null): boolean {
 /** Returns true when a segment record is an ADC1 analog input. */
 export function isAnalogInputSegment(segment?: { type?: string } | null): boolean {
   return Boolean(segment && isAnalogInputType(segment.type));
+}
+
+/** Returns true when a segment record is a digital input (`type === "input"`). */
+export function isDigitalInputSegment(segment?: { type?: string } | null): boolean {
+  return Boolean(segment && segment.type === "input");
 }
 
 /** Returns true when a segment type is read-only (digital `input` or analog `analog_input`). */
@@ -232,4 +247,19 @@ export function adcValueToVoltage(value: number, resolution?: number | null): st
   const clamped = clampAdcValue(value, resolution);
 
   return ((clamped / maxVal) * ADC_REFERENCE_VOLTAGE).toFixed(2);
+}
+
+/** Computes maximum valid hysteresis `floor(maxAdcValue / 2)` for a given resolution. */
+export function getMaxAnalogHysteresis(resolution?: number | null): number {
+  return Math.floor(getAdcMaxValue(resolution) / 2);
+}
+
+/** Returns resolution-aware suggested default hysteresis (`5` for 8-bit, `30` for 12-bit). */
+export function getSuggestedAnalogHysteresis(resolution?: number | null): number {
+  const res = clampAdcResolution(resolution);
+
+  if (res <= 8) return DEFAULT_ANALOG_HYSTERESIS_8BIT;
+  if (res <= 10) return 15;
+
+  return DEFAULT_ANALOG_HYSTERESIS_12BIT;
 }

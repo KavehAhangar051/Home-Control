@@ -18,7 +18,10 @@ import {
   ANALOG_INPUT_CONFIG_BASE_SIZE,
   ANALOG_INPUT_CONFIG_WITH_RES_SIZE,
   ANALOG_INPUT_SEGMENT_EXT_SIZE,
+  ANALOG_RANGE_HEADER_SIZE,
+  ANALOG_RANGE_RECORD_SIZE,
   ANALOG_SEGMENT_EXT_SIZE,
+  MAX_ANALOG_RANGE_RULES,
   MAX_RULE_ACTIONS_PER_SIDE,
   MQTT_OPCODES,
   PIN_STATE_HIGH,
@@ -203,7 +206,7 @@ function writeRuleActionChunk(
   for (let i = 0; i < actions.length; i++) {
     const a = actions[i];
     buf[offset++] = (Number(a.targetPin || -1) | 0) & 0xff;
-    view.setInt32(offset, a.reqHold || 0, true);
+    view.setInt32(offset, a.reqHold ?? 0, true);
     offset += 4;
     buf[offset++] = a.actionOn ? 1 : 0;
     buf[offset++] = a.actionType || 0;
@@ -231,7 +234,7 @@ function writeRuleAnalogActionChunk(
       : RULE_TARGET_VALUE_BOOLEAN;
 
     buf[offset++] = (Number(a.targetPin || -1) | 0) & 0xff;
-    view.setInt32(offset, a.reqHold || 0, true);
+    view.setInt32(offset, a.reqHold ?? 0, true);
     offset += 4;
     buf[offset++] = hasAnalog ? (clampedTargetValue > 0 ? 1 : 0) : a.actionOn ? 1 : 0;
     buf[offset++] = a.actionType || 0;
@@ -305,7 +308,7 @@ export const publishUpdateRuleCommand = (
   inputPin: number,
   highActions: RuleActionFrameInput[] = [],
   lowActions: RuleActionFrameInput[] = [],
-) => {
+): boolean => {
   const usesAnalogTargets =
     highActions.some((a) => hasExplicitAnalogTargetValue(a.targetValue)) ||
     lowActions.some((a) => hasExplicitAnalogTargetValue(a.targetValue));
@@ -314,8 +317,99 @@ export const publishUpdateRuleCommand = (
     ? buildUpdateRuleAnalogFrame(inputPin, highActions, lowActions)
     : buildUpdateRuleFrame(inputPin, highActions, lowActions);
 
-  publishMqttCommand(
+  return publishMqttCommand(
     buf,
     `Published ${usesAnalogTargets ? "update_rule_analog(0x0B)" : "update_rule(0x05)"}: input_gpio=${inputPin} size=${buf.length}b`,
+  );
+};
+
+export interface AnalogRangeRuleFrameInput {
+  minValue: number;
+  maxValue: number;
+  hysteresis?: number;
+  triggerMode: 0 | 1 | number;
+  targetPin: string | number;
+  actionState?: boolean;
+  targetValue?: number | null;
+  actionType?: 0 | 1 | 2 | number;
+  delay?: number;
+  enabled?: boolean;
+}
+
+/**
+ * Encodes Opcode `0x0E` (`UPDATE_ANALOG_RANGE_RULES`) Little-Endian binary frame:
+ * Header: `[0x0E][inputPin:u8][rangeCount:u8]` + `rangeCount * 12` bytes.
+ * Passing zero enabled ranges yields a 3-byte clear-all frame `[0x0E, inputPin, 0x00]`.
+ */
+export const encodeUpdateAnalogRangeRulesFrame = (
+  inputPin: number,
+  ranges: readonly AnalogRangeRuleFrameInput[] = [],
+): Uint8Array => {
+  if (!Number.isInteger(inputPin) || inputPin < 0 || inputPin > 39) {
+    throw new RangeError(`Invalid input GPIO: ${inputPin}`);
+  }
+
+  const activeRanges = ranges.filter((r) => r.enabled !== false).slice(0, MAX_ANALOG_RANGE_RULES);
+  const buf = new Uint8Array(
+    ANALOG_RANGE_HEADER_SIZE + activeRanges.length * ANALOG_RANGE_RECORD_SIZE,
+  );
+  const view = new DataView(buf.buffer);
+
+  buf[0] = MQTT_OPCODES.UPDATE_ANALOG_RANGE_RULES;
+  buf[1] = inputPin & 0xff;
+  buf[2] = activeRanges.length & 0xff;
+
+  let offset = ANALOG_RANGE_HEADER_SIZE;
+
+  for (let i = 0; i < activeRanges.length; i++) {
+    const r = activeRanges[i];
+    const minVal = Math.max(
+      0,
+      Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.round(Math.min(r.minValue, r.maxValue))),
+    );
+    const maxVal = Math.max(
+      0,
+      Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.round(Math.max(r.minValue, r.maxValue))),
+    );
+    const hysteresis = Math.max(0, Math.min(2047, Math.round(r.hysteresis ?? 0)));
+    const parsedTargetPin =
+      typeof r.targetPin === "number"
+        ? r.targetPin
+        : Number.parseInt(String(r.targetPin).trim(), 10);
+    const targetPin = Number.isInteger(parsedTargetPin) ? parsedTargetPin : -1;
+    const hasAnalogTarget = hasExplicitAnalogTargetValue(r.targetValue);
+    const targetValue = hasExplicitAnalogTargetValue(r.targetValue)
+      ? Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.max(0, Math.round(r.targetValue)))
+      : RULE_TARGET_VALUE_BOOLEAN;
+    const actionState = hasAnalogTarget ? targetValue > 0 : Boolean(r.actionState);
+    const actionType = (r.actionType ?? 0) & 0x03;
+    const triggerMode = (r.triggerMode ?? 0) & 0x01;
+    const flags = (actionState ? 0x01 : 0x00) | (actionType << 1) | (triggerMode << 3);
+
+    view.setUint16(offset + 0, minVal, true);
+    view.setUint16(offset + 2, maxVal, true);
+    view.setUint16(offset + 4, hysteresis, true);
+    view.setInt8(offset + 6, targetPin);
+    buf[offset + 7] = flags;
+    buf[offset + 8] = Math.min(60, Math.max(0, Math.round(r.delay ?? 0)));
+    view.setInt16(offset + 9, targetValue, true);
+    buf[offset + 11] = 0;
+    offset += ANALOG_RANGE_RECORD_SIZE;
+  }
+
+  return buf;
+};
+
+export const buildUpdateAnalogRangeRulesFrame = encodeUpdateAnalogRangeRulesFrame;
+
+export const publishUpdateAnalogRangeRulesCommand = (
+  inputPin: number,
+  ranges: readonly AnalogRangeRuleFrameInput[] = [],
+): boolean => {
+  const buf = encodeUpdateAnalogRangeRulesFrame(inputPin, ranges);
+
+  return publishMqttCommand(
+    buf,
+    `Published update_analog_range_rules(0x0E): input_gpio=${inputPin} count=${buf[2]} size=${buf.length}b`,
   );
 };

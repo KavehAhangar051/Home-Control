@@ -20,10 +20,12 @@ import {
   publishPinCommand as mqttPublishPin,
 } from "./mqtt/pinPublishers";
 import {
+  type AnalogRangeRuleFrameInput,
   publishAddSegmentCommand as mqttAddSegment,
   publishDeleteSegmentCommand as mqttDeleteSegment,
   publishReadAnalogInputCommand as mqttReadAnalogInput,
   publishUpdateAnalogInputConfigCommand as mqttUpdateAnalogInputConfig,
+  publishUpdateAnalogRangeRulesCommand as mqttUpdateAnalogRangeRules,
 } from "./mqtt/segmentPublishers";
 import { publishPresence as mqttPublishPresence } from "./mqtt/systemPublishers";
 import type {
@@ -78,6 +80,13 @@ export class DeviceCommandAdapter implements IDeviceCommandPort {
 
   publishReadAnalogInput(pin: number): boolean {
     return mqttReadAnalogInput(pin);
+  }
+
+  publishUpdateAnalogRangeRules(
+    inputPin: number,
+    ranges: readonly AnalogRangeRuleFrameInput[],
+  ): boolean {
+    return mqttUpdateAnalogRangeRules(inputPin, ranges);
   }
 
   publishDeleteSegment(id: string): void {

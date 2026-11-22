@@ -25,6 +25,12 @@ import {
   serializeToCloudflare,
 } from "../features/iot/services/cloudflare/mappers.ts";
 import { InMemoryDeviceSyncAdapter } from "../features/iot/services/deviceGatewayAdapter.ts";
+import {
+  evaluateMacroCondition,
+  evaluateMacroExecution,
+  normalizeMacroRecord,
+  validateMacroDraft,
+} from "../features/iot/utils/macroEngine.ts";
 import { validateEsp32Pin } from "../features/iot/utils/pinValidation.ts";
 
 describe("ESP32 Hardware Pin Validation Contracts", () => {
@@ -74,7 +80,21 @@ describe("ESP32 Hardware Pin Validation Contracts", () => {
       assert.deepEqual(Object.keys(res), expectedKeys);
     }
 
-    for (const badPin of ["0", "2", "4", "5", "6", "12", "13", "14", "15", "18", "25", "26", "27"]) {
+    for (const badPin of [
+      "0",
+      "2",
+      "4",
+      "5",
+      "6",
+      "12",
+      "13",
+      "14",
+      "15",
+      "18",
+      "25",
+      "26",
+      "27",
+    ]) {
       const res = validateEsp32Pin(badPin, "analog_input");
       assert.equal(res.isValid, false, `Expected non-ADC1 GPIO ${badPin} to be rejected`);
       assert.deepEqual(Object.keys(res), expectedKeys);
@@ -343,12 +363,8 @@ describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
         actionOnLow: true,
       }),
       {
-        highActions: [
-          { reqHold: 2, targetPin: "12", actionOn: false, actionType: 0, delay: 0 },
-        ],
-        lowActions: [
-          { reqHold: 0, targetPin: "14", actionOn: true, actionType: 0, delay: 0 },
-        ],
+        highActions: [{ reqHold: 2, targetPin: "12", actionOn: false, actionType: 0, delay: 0 }],
+        lowActions: [{ reqHold: 0, targetPin: "14", actionOn: true, actionType: 0, delay: 0 }],
       },
     );
 
@@ -371,9 +387,7 @@ describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
 
     assert.equal(deserialized.segments[0].group, "Test");
     assert.deepEqual(deserialized.segments[0].rule, {
-      highActions: [
-        { reqHold: 0, targetPin: "5", actionOn: true, actionType: 0, delay: 0 },
-      ],
+      highActions: [{ reqHold: 0, targetPin: "5", actionOn: true, actionType: 0, delay: 0 }],
       lowActions: [],
     });
   });
@@ -405,6 +419,422 @@ describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
     assert.equal(seg.adcHighThreshold, 800);
     assert.equal(seg.adcLowThreshold, 800);
     assert.equal(seg.analogValue, 1023);
+  });
+
+  it("normalizes and round-trips V2 double-click (-1), analogRanges, and rule.active across Cloudflare", () => {
+    const normalizedDoubleClick = normalizeSegmentRule({
+      highActions: [{ requiredHoldTime: -1, targetPin: 2, actionState: true }],
+      lowActions: [],
+    });
+    assert.deepEqual(normalizedDoubleClick, {
+      highActions: [{ reqHold: -1, targetPin: "2", actionOn: true }],
+      lowActions: [],
+    });
+
+    const deserialized = deserializeFromCloudflare({
+      segments_definition: [
+        {
+          id: "seg-adc-v2",
+          pin: "34",
+          title: "سنسور نور V2",
+          type: "analog_input",
+          group: "حیاط",
+          adcResolution: 10,
+          rule: {
+            highActions: [],
+            lowActions: [],
+            analogRanges: [
+              {
+                minValue: 600,
+                maxValue: 200, // swapped -> normalized to 200..600
+                hysteresis: 25,
+                triggerMode: "exit",
+                targetPin: 18,
+                actionState: true,
+                targetValue: 128,
+                actionType: 1,
+                delay: 5,
+                enabled: true,
+              },
+            ],
+          },
+        },
+        {
+          id: "seg-adc-disabled",
+          pin: "35",
+          title: "سنسور غیرفعال",
+          type: "analog_input",
+          group: "حیاط",
+          rule: {
+            highActions: [],
+            lowActions: [],
+            analogRanges: [
+              {
+                minValue: 100,
+                maxValue: 500,
+                hysteresis: 10,
+                triggerMode: 0,
+                targetPin: "2",
+                actionState: false,
+                enabled: false,
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    assert.equal(deserialized.segments[0].rule?.active, true);
+    assert.deepEqual(deserialized.segments[0].rule?.analogRanges, [
+      {
+        minValue: 200,
+        maxValue: 600,
+        hysteresis: 25,
+        triggerMode: 1,
+        targetPin: "18",
+        actionState: true,
+        targetValue: 128,
+        actionType: 1,
+        delay: 5,
+        enabled: true,
+      },
+    ]);
+    assert.equal(deserialized.segments[1].rule?.active, false);
+
+    const built = buildEspConfig({
+      isDark: true,
+      accent3: "#3B82F6",
+      accent4: "#10B981",
+      selectedFont: "vazirmatn",
+      animationsEnabled: true,
+      animationsFps: 60,
+      headerTitle: "تست V2",
+      manualSaveMode: false,
+      groupsOrder: ["حیاط"],
+      groupsCols: 2,
+      groupConfigs: { حیاط: { maxCols: 2 } },
+      segments: deserialized.segments,
+      automations: [],
+      macros: [],
+      voiceCommands: [],
+      wifiNetworks: [],
+      wifiNetworksConfigured: false,
+      wifiApConfig: null,
+      mqttConfig: null,
+    });
+    const serialized = serializeToCloudflare(built);
+    assert.equal(serialized.segments_definition[0].rule?.active, true);
+    assert.equal(serialized.segments_definition[1].rule?.active, false);
+    assert.equal(serialized.segments_definition[0].rule?.analogRanges?.[0].triggerMode, 1);
+  });
+
+  it("round-trips analog_output targetValue and client-side conditions on macros across Cloudflare", () => {
+    const rawMacro = {
+      id: "macro-smart-1",
+      title: "حالت شب هوشمند",
+      icon: "🌙",
+      actions: [
+        {
+          targetPin: "18",
+          actionOn: false, // normalized to true because targetValue > 0
+          targetValue: 180,
+          condition: {
+            enabled: true,
+            parameter: "analog_input",
+            sourcePin: "34",
+            operator: "between",
+            unit: "percent",
+            value: 60,
+            maxValue: 20, // swapped -> normalized to 20..60
+            failureMessage: "نور محیط در بازه مناسب نیست",
+          },
+        },
+        {
+          targetPin: "2",
+          actionOn: true,
+        },
+      ],
+    };
+
+    const deserialized = deserializeFromCloudflare({ macros: [rawMacro] });
+    assert.equal(deserialized.macros?.length, 1);
+    assert.deepEqual(deserialized.macros?.[0].actions[0], {
+      targetPin: "18",
+      actionOn: true,
+      targetValue: 180,
+      condition: {
+        enabled: true,
+        parameter: "analog_input",
+        failureMessage: "نور محیط در بازه مناسب نیست",
+        sourcePin: "34",
+        operator: "between",
+        unit: "percent",
+        value: 20,
+        maxValue: 60,
+      },
+    });
+    // Legacy boolean action remains minimal without extra keys
+    assert.deepEqual(deserialized.macros?.[0].actions[1], {
+      targetPin: "2",
+      actionOn: true,
+    });
+  });
+});
+
+describe("Custom Button (Macro) Analog & Client-Side Condition Engine Contracts", () => {
+  const segments = [
+    { id: "in-door", pin: "4", title: "سنسور در", type: "input" },
+    { id: "adc-ldr", pin: "34", title: "سنسور نور", type: "analog_input", adcResolution: 12 },
+    { id: "rel-lamp", pin: "2", title: "چراغ حیاط", type: "output" },
+    { id: "pwm-dimmer", pin: "18", title: "دیمر سالن", type: "analog_output", pwmResolution: 8 },
+  ];
+
+  it("evaluates overnight and same-day time_range conditions with optional weekdays", () => {
+    const overnightCond = {
+      enabled: true,
+      parameter: "time_range",
+      startTime: "22:00",
+      endTime: "06:00",
+      timeMode: "inside",
+      failureMessage: "فقط شب‌ها مجاز است",
+    };
+
+    assert.equal(
+      evaluateMacroCondition(overnightCond, {
+        segments,
+        pinsState: {},
+        pinsAnalogValue: {},
+        now: new Date(2026, 10, 22, 23, 30),
+      }).passed,
+      true,
+    );
+    assert.equal(
+      evaluateMacroCondition(overnightCond, {
+        segments,
+        pinsState: {},
+        pinsAnalogValue: {},
+        now: new Date(2026, 10, 22, 2, 15),
+      }).passed,
+      true,
+    );
+    assert.equal(
+      evaluateMacroCondition(overnightCond, {
+        segments,
+        pinsState: {},
+        pinsAnalogValue: {},
+        now: new Date(2026, 10, 22, 14, 0),
+      }).passed,
+      false,
+    );
+
+    const outsideCond = { ...overnightCond, timeMode: "outside" };
+    assert.equal(
+      evaluateMacroCondition(outsideCond, {
+        segments,
+        pinsState: {},
+        pinsAnalogValue: {},
+        now: new Date(2026, 10, 22, 14, 0),
+      }).passed,
+      true,
+    );
+  });
+
+  it("evaluates digital_input, analog_input, digital_output, and analog_output conditions accurately", () => {
+    const ctx = {
+      segments,
+      pinsState: { 4: true, 2: false, 18: true },
+      pinsAnalogValue: { 34: 2048, 18: 128 }, // 34: ~50% of 4095, 18: ~50% of 255
+      pinsPwmResolution: { 34: 12, 18: 8 },
+    };
+
+    assert.equal(
+      evaluateMacroCondition(
+        {
+          enabled: true,
+          parameter: "digital_input",
+          sourcePin: "4",
+          expectedState: true,
+          failureMessage: "",
+        },
+        ctx,
+      ).passed,
+      true,
+    );
+    assert.equal(
+      evaluateMacroCondition(
+        {
+          enabled: true,
+          parameter: "digital_output",
+          sourcePin: "2",
+          expectedState: true,
+          failureMessage: "",
+        },
+        ctx,
+      ).passed,
+      false,
+    );
+    assert.equal(
+      evaluateMacroCondition(
+        {
+          enabled: true,
+          parameter: "analog_input",
+          sourcePin: "34",
+          operator: "gte",
+          unit: "percent",
+          value: 50,
+          failureMessage: "",
+        },
+        ctx,
+      ).passed,
+      true,
+    );
+    assert.equal(
+      evaluateMacroCondition(
+        {
+          enabled: true,
+          parameter: "analog_input",
+          sourcePin: "34",
+          operator: "lt",
+          unit: "raw",
+          value: 2000,
+          failureMessage: "",
+        },
+        ctx,
+      ).passed,
+      false,
+    );
+    assert.equal(
+      evaluateMacroCondition(
+        {
+          enabled: true,
+          parameter: "analog_output",
+          sourcePin: "18",
+          operator: "is_on",
+          failureMessage: "",
+        },
+        ctx,
+      ).passed,
+      true,
+    );
+    assert.equal(
+      evaluateMacroCondition(
+        {
+          enabled: true,
+          parameter: "analog_output",
+          sourcePin: "18",
+          operator: "between",
+          unit: "raw",
+          value: 100,
+          maxValue: 150,
+          failureMessage: "",
+        },
+        ctx,
+      ).passed,
+      true,
+    );
+  });
+
+  it("splits passing digital/analog actions and returns custom failure messages for blocked actions", () => {
+    const macro = normalizeMacroRecord({
+      id: "m-mixed",
+      title: "ورود به خانه",
+      actions: [
+        {
+          targetPin: "18",
+          actionOn: true,
+          targetValue: 200,
+          condition: {
+            enabled: true,
+            parameter: "analog_input",
+            sourcePin: "34",
+            operator: "lt",
+            unit: "raw",
+            value: 1500,
+            failureMessage: "هوا به اندازه کافی تاریک نیست",
+          },
+        },
+        {
+          targetPin: "2",
+          actionOn: true,
+          condition: {
+            enabled: true,
+            parameter: "digital_input",
+            sourcePin: "4",
+            expectedState: true,
+            failureMessage: "در بسته است؛ چراغ حیاط روشن نشد",
+          },
+        },
+      ],
+    });
+
+    const plan = evaluateMacroExecution(macro, {
+      segments,
+      pinsState: { 4: false, 2: false, 18: false },
+      pinsAnalogValue: { 34: 800, 18: 0 },
+      pinsPwmResolution: { 34: 12, 18: 8 },
+    });
+
+    assert.equal(plan.passedCount, 1);
+    assert.equal(plan.blockedCount, 1);
+    assert.deepEqual(plan.analogActions, [{ targetPin: "18", targetValue: 200, actionOn: true }]);
+    assert.deepEqual(plan.digitalActions, []);
+    assert.equal(plan.blockedActions[0].message, "در بسته است؛ چراغ حیاط روشن نشد");
+  });
+
+  it("validates macro drafts for PWM bounds and condition parameters", () => {
+    assert.notEqual(
+      validateMacroDraft(
+        "دکمه تست",
+        [{ targetPin: "18", actionOn: true, targetValue: 300 }],
+        segments,
+      ),
+      null,
+    );
+    assert.notEqual(
+      validateMacroDraft(
+        "دکمه تست",
+        [
+          {
+            targetPin: "2",
+            actionOn: true,
+            condition: {
+              enabled: true,
+              parameter: "analog_input",
+              sourcePin: "34",
+              operator: "between",
+              unit: "percent",
+              value: 80,
+              maxValue: 20,
+              failureMessage: "خطا",
+            },
+          },
+        ],
+        segments,
+      ),
+      null,
+    );
+    assert.equal(
+      validateMacroDraft(
+        "دکمه تست",
+        [
+          {
+            targetPin: "18",
+            actionOn: true,
+            targetValue: 150,
+            condition: {
+              enabled: true,
+              parameter: "time_range",
+              startTime: "18:00",
+              endTime: "06:00",
+              timeMode: "inside",
+              failureMessage: "خارج از ساعت مجاز",
+            },
+          },
+        ],
+        segments,
+      ),
+      null,
+    );
   });
 });
 
@@ -749,8 +1179,3 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
     assert.equal(inferAutomationEditType({ id: "3", title: "c" }), "schedule");
   });
 });
-
-
-
-
-

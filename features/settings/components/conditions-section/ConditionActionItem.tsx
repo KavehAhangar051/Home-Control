@@ -83,17 +83,17 @@ export function ConditionActionItem({
       <div className="flex flex-col gap-3 text-xs pr-2">
         <div>
           <Label htmlFor={holdId} className="block font-semibold mb-1.5">
-            زمان نگه‌داشتن:
+            شرط فعال‌سازی:
           </Label>
           <Select
             id={holdId}
-            aria-label="زمان نگه‌داشتن"
+            aria-label="شرط فعال‌سازی"
             value={action.reqHold}
             onChange={(e) => {
               const val = Number.parseInt(e.target.value, 10);
 
               if (actions.some((a, i) => i !== idx && a.reqHold === val)) {
-                showToast("این زمان قبلاً استفاده شده است", "error");
+                showToast("این شرط قبلاً استفاده شده است", "error");
 
                 return;
               }
@@ -102,10 +102,11 @@ export function ConditionActionItem({
             }}
             className="bg-bg-primary p-2.5 rounded-lg text-xs"
           >
-            <option value={0}>بدون نیاز به نگه‌داشتن (فوری)</option>
-            <option value={3}>۳ ثانیه</option>
-            <option value={5}>۵ ثانیه</option>
-            <option value={10}>۱۰ ثانیه</option>
+            <option value={0}>تک کلیک / لحظه‌ای (فوری)</option>
+            <option value={-1}>دابل کلیک (۲ بار فشردن سریع)</option>
+            <option value={3}>نگه‌داشتن ۳ ثانیه</option>
+            <option value={5}>نگه‌داشتن ۵ ثانیه</option>
+            <option value={10}>نگه‌داشتن ۱۰ ثانیه</option>
           </Select>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">

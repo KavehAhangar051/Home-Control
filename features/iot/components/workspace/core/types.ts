@@ -1,3 +1,5 @@
+import type { SegmentRule } from "@/features/iot/hooks/store/types";
+
 export interface IoTWorkspaceProps {
   groupsOrder: string[];
   groupsCols: number;
@@ -16,24 +18,6 @@ export interface IoTWorkspaceProps {
   handleSetPinState: (pin: string, state: boolean, preventMqtt?: boolean) => void;
   handleUpdateSegmentMode: (id: string, mode: "switch" | "push") => void;
   handleUpdateSegmentAutoOff: (id: string, autoOff: number) => void;
-  handleUpdateSegmentRule?: (
-    id: string,
-    rule: {
-      highActions?: Array<{
-        reqHold: number;
-        targetPin: string;
-        actionOn: boolean;
-        actionType?: number;
-        delay?: number;
-      }>;
-      lowActions?: Array<{
-        reqHold: number;
-        targetPin: string;
-        actionOn: boolean;
-        actionType?: number;
-        delay?: number;
-      }>;
-    },
-  ) => void;
+  handleUpdateSegmentRule?: (id: string, rule: SegmentRule) => void;
   handleSetupPlaceholder: (id: string) => void;
 }

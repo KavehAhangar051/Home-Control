@@ -1,5 +1,38 @@
-import type { EspConfig } from "@/features/iot/services/esp32Config";
+import type {
+  EspConfig,
+  Macro,
+  MacroAction,
+  MacroActionCondition,
+  MacroAnalogOutputOperator,
+  MacroConditionParameter,
+  MacroNumericOperator,
+  MacroValueUnit,
+} from "@/features/iot/services/config/types";
 import type { DashboardFontId } from "@/lib/fonts";
+
+export type {
+  Macro,
+  MacroAction,
+  MacroActionCondition,
+  MacroAnalogOutputOperator,
+  MacroConditionParameter,
+  MacroNumericOperator,
+  MacroValueUnit,
+};
+
+/**
+ * Allowed digital input trigger modes:
+ * - `-1`: Double Click (400ms window)
+ * - `0`: Single Click / Immediate
+ * - `3 | 5 | 10`: Hold duration in seconds
+ */
+export type DigitalHoldTime = -1 | 0 | 3 | 5 | 10;
+
+/** Action execution behavior (`0 = immediate`, `1 = after delay`, `2 = for duration`). */
+export type RuleActionType = 0 | 1 | 2;
+
+/** Analog range trigger edge (`0 = enter range`, `1 = exit range`). */
+export type AnalogRangeTriggerMode = 0 | 1;
 
 export interface RuleAction {
   reqHold: number;
@@ -11,9 +44,25 @@ export interface RuleAction {
   targetValue?: number | null;
 }
 
+export interface AnalogRangeRule {
+  minValue: number;
+  maxValue: number;
+  hysteresis: number;
+  triggerMode: AnalogRangeTriggerMode;
+  targetPin: string;
+  actionState: boolean;
+  /** Explicit PWM duty (`0..4095`) for `analog_output` targets; `-1` or null for digital `output`. */
+  targetValue?: number | null;
+  actionType: RuleActionType;
+  delay: number;
+  enabled?: boolean;
+}
+
 export interface SegmentRule {
+  active?: boolean;
   highActions?: RuleAction[];
   lowActions?: RuleAction[];
+  analogRanges?: AnalogRangeRule[];
 }
 
 export interface Segment {
@@ -57,16 +106,6 @@ export interface Automation {
   temperatureThreshold?: number;
   temperatureCondition?: "greater" | "less";
   actions: AutomationAction[];
-}
-
-export interface Macro {
-  id: string;
-  title: string;
-  icon?: string;
-  actions: Array<{
-    targetPin: string;
-    actionOn: boolean;
-  }>;
 }
 
 export interface VoiceCommand {
