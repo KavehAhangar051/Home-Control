@@ -571,3 +571,13 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
   - `DeferredPlatformRuntime` dynamically mounts `PermissionsOnboardingModal` only when `!hasDashboardConsent()` or when triggered via Settings, keeping repeat visits at zero extra bundle cost.
   - `DashboardContainer` registers a one-time passive `pointerdown`/`keydown` listener to unlock `audioContextManager` cleanly on returning sessions.
   - `StabilitySection` embeds `PermissionsStatusCard` so users can inspect live permission/cookie status, re-open the setup modal, or reset the consent cookie at any time.
+
+## 33. ESP32 `command_ack` State Isolation & Per-Pin ACK Indicator (22 November 2026)
+
+- **Strict `command_ack` vs. `pin_update` separation (`messageParser.ts`, `mqtt/init.ts`, `useConnectionStrategy.ts`):**
+  - `ParsedMqttStateMessage` parses `{"type":"command_ack", ...}` as its own `{ kind: "command_ack", pinId, state?, value?, resolution? }` variant (`isAck` removed from `"pin_update"`).
+  - Neither `createMqttMessageHandler` nor `createLocalWebSocketController` routes `"command_ack"` through `queueStateUpdate`, `setPinsState`, `setPinsAnalogValue`, `setPinsLastNonZeroValue`, `setPinsPwmResolution`, `setAutoOffRemaining`, or `stateCallbacks`/`dispatchLocalState`, eliminating Rapid-Toggle Race Condition state reversions while preserving full state updates for genuine `pin_update` and `state_sync` events.
+- **Per-Pin ACK Event Bus & Non-Mutating Status Dot Pulse (`pinAckBus.ts`, `usePinCommandAck.ts`, `CardFooter.tsx`, `AnalogOutputBody.tsx`):**
+  - `subscribePinCommandAck` / `notifyPinCommandAck` deliver hardware receipt events strictly to the matching GPIO pin's mounted segment card (`ActiveCard`, `TrellisSegmentTile`, `TrellisSegmentView`, `CanvasSegmentNode`) without mutating Zustand or broadcasting dashboard-wide re-renders.
+  - `usePinCommandAck(pin)` briefly lights up only the card's status indicator dot (`isAckFlashing`, 700ms `bg-success ring-4 ring-success/35 scale-125`) across digital `PinToggle`/`CardFooter` and PWM `AnalogOutputBody` tiles without altering switch/slider state.
+

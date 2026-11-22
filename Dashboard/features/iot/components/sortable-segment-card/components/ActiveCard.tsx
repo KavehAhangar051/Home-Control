@@ -5,6 +5,7 @@ import { SPRING_LAYOUT, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 import type { SortableSegmentCardProps } from "../core/types";
 import { useAutoOffTimer } from "../hooks/useAutoOffTimer";
 import { useOptimisticPinState } from "../hooks/useOptimisticPinState";
+import { usePinCommandAck } from "../hooks/usePinCommandAck";
 import useSegmentButtonProps from "../hooks/useSegmentButtonProps";
 import CardBody from "./CardBody";
 import CardHeader from "./CardHeader";
@@ -65,6 +66,8 @@ function ActiveCard({
     onSetPinState: handleSetPinStateOptimistic,
   });
 
+  const isAckFlashing = usePinCommandAck(segment.pin);
+
   const { countdown } = useAutoOffTimer({
     isPinOn: effectivePinOn,
     autoOff: segment.auto_off,
@@ -108,6 +111,7 @@ function ActiveCard({
           segment={segment}
           isPinOn={effectivePinOn}
           isPending={isPending}
+          isAckFlashing={isAckFlashing}
           isCompact={isCompact}
           isUltraCompact={isUltraCompact}
           isMobileTwoCol={isMobileTwoCol}

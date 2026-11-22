@@ -7,6 +7,7 @@ import {
   type MinimalLocalSocket,
   setLocalWs,
 } from "@/features/iot/services/localWs/client";
+import { notifyPinCommandAck } from "@/features/iot/services/pinAckBus";
 import { computeFullJitterDelayMs } from "@/lib/resilience";
 
 const LOCAL_WS_RECONNECT_BASE_MS = 1000;
@@ -42,6 +43,7 @@ export interface LocalWebSocketControllerDeps {
   createWebSocket?: (url: string) => LocalWebSocketLike;
   setLocalWs?: (ws: MinimalLocalSocket | null) => void;
   dispatchLocalState?: (pin: string, state: boolean) => void;
+  onCommandAck?: (pinId: string) => void;
   scheduleTimeout?: (fn: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
   clearTimeoutFn?: (id: ReturnType<typeof setTimeout>) => void;
   randomFn?: () => number;
@@ -167,6 +169,9 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
           }
 
           console.log("[LocalWS] Received full state sync:", data.states, synchronizedTimers);
+        } else if (data.type === "command_ack" && data.pin !== undefined) {
+          // Command receipt confirmations NEVER mutate pin state, analog value, or timers.
+          (deps.onCommandAck ?? notifyPinCommandAck)(data.pin.toString());
         } else if (
           data.pin !== undefined &&
           (data.state !== undefined || data.value !== undefined)
@@ -206,10 +211,8 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
             deps.setPinsPwmResolution?.((prev) => ({ ...prev, [pinKey]: res }));
           }
 
-          if (data.type !== "command_ack" || !pinBool) {
-            synchronizedTimers = { ...synchronizedTimers, [pinKey]: 0 };
-            deps.setAutoOffRemaining?.(synchronizedTimers);
-          }
+          synchronizedTimers = { ...synchronizedTimers, [pinKey]: 0 };
+          deps.setAutoOffRemaining?.(synchronizedTimers);
           dispatchLocalStateFn(pinKey, pinBool);
         }
       } catch (e) {

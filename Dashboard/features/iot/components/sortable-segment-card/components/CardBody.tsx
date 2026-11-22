@@ -17,6 +17,7 @@ interface CardBodyProps {
   segment: SegmentData;
   isPinOn: boolean;
   isPending?: boolean;
+  isAckFlashing?: boolean;
   isCompact: boolean;
   isUltraCompact: boolean;
   hasExternalHeader?: boolean;
@@ -132,6 +133,7 @@ function CardBody({
   segment,
   isPinOn,
   isPending = false,
+  isAckFlashing = false,
   isCompact,
   isUltraCompact,
   hasExternalHeader = false,
@@ -169,6 +171,7 @@ function CardBody({
           segment={segment}
           isPinOn={isPinOn}
           isPending={isPending}
+          isAckFlashing={isAckFlashing}
           isCompact={isCompact}
           isUltraCompact={isUltraCompact}
           hasExternalHeader={hasExternalHeader}
@@ -181,6 +184,7 @@ function CardBody({
           segment={segment}
           isPinOn={isPinOn}
           isPending={isPending}
+          isAckFlashing={isAckFlashing}
           mode={mode}
           buttonProps={buttonProps}
           animationsEnabled={animationsEnabled}

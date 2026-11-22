@@ -29,7 +29,13 @@ export type ParsedMqttStateMessage =
       source: "binary" | "json";
       value?: number;
       resolution?: number;
-      isAck?: boolean;
+    }
+  | {
+      kind: "command_ack";
+      pinId: string;
+      state?: boolean;
+      value?: number;
+      resolution?: number;
     }
   | {
       kind: "state_sync";
@@ -63,6 +69,24 @@ function decodePayloadText(payload: Uint8Array): string {
   return textDecoder.decode(payload);
 }
 
+function resolveMqttPinId(rawPin: string | number): string {
+  return Number.isInteger(rawPin) && Number(rawPin) >= 0 && Number(rawPin) < 256
+    ? PIN_ID_STRINGS[Number(rawPin)]
+    : String(rawPin);
+}
+
+function parseOptionalNumericValue(raw: RawPinStateValue): number | undefined {
+  return typeof raw === "number" && Number.isFinite(raw)
+    ? Math.min(4095, Math.max(0, Math.round(raw)))
+    : undefined;
+}
+
+function parseOptionalResolution(raw: RawPinStateValue): number | undefined {
+  return typeof raw === "number" && Number.isFinite(raw) && raw >= 8 && raw <= 12
+    ? Math.round(raw)
+    : undefined;
+}
+
 /**
  * Pure parser for ESP32 MQTT LWT/Status topic payloads (`offline`, `OFFLINE`, or JSON status).
  */
@@ -83,8 +107,7 @@ export function parseMqttStatusMessage(payload: Uint8Array): ParsedMqttStatusMes
       const data = JSON.parse(strPayload) as { status?: unknown; ip?: unknown };
 
       if (data.status === "online") {
-        const ipText =
-          typeof data.ip === "string" ? data.ip : "";
+        const ipText = typeof data.ip === "string" ? data.ip : "";
 
         return {
           kind: "online",
@@ -104,7 +127,7 @@ export function parseMqttStatusMessage(payload: Uint8Array): ParsedMqttStatusMes
 }
 
 /**
- * Pure parser for ESP32 MQTT State topic payloads (binary `0x06` pin frame or JSON events).
+ * Pure parser for ESP32 MQTT State topic payloads (JSON events).
  */
 export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessage {
   if (payload.length === 0) {
@@ -120,30 +143,25 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
       // SAFETY: cmdType === 123 ('{') guarantees JSON object text parsed with field guards below
       const data = JSON.parse(decodePayloadText(payload)) as MqttStateSyncPayload;
 
+      // Command receipt confirmations NEVER mutate pin state or timers; keep them strictly isolated.
+      if (data.type === "command_ack" && data.pin !== undefined) {
+        return {
+          kind: "command_ack",
+          pinId: resolveMqttPinId(data.pin),
+          state: data.state !== undefined ? toBooleanPinState(data.state) : undefined,
+          value: parseOptionalNumericValue(data.value),
+          resolution: parseOptionalResolution(data.resolution),
+        };
+      }
+
       if (
-        (data.type === "pin_update" || data.type === "command_ack") &&
+        data.type === "pin_update" &&
         data.pin !== undefined &&
         (data.state !== undefined || data.value !== undefined)
       ) {
-        const rawPin = data.pin;
-
-        const pinId =
-          Number.isInteger(rawPin) && Number(rawPin) >= 0 && Number(rawPin) < 256
-            ? PIN_ID_STRINGS[Number(rawPin)]
-            : String(rawPin);
-
-        const parsedNumericValue =
-          typeof data.value === "number" && Number.isFinite(data.value)
-            ? Math.min(4095, Math.max(0, Math.round(data.value)))
-            : undefined;
-
-        const parsedResolution =
-          typeof data.resolution === "number" &&
-          Number.isFinite(data.resolution) &&
-          data.resolution >= 8 &&
-          data.resolution <= 12
-            ? Math.round(data.resolution)
-            : undefined;
+        const pinId = resolveMqttPinId(data.pin);
+        const parsedNumericValue = parseOptionalNumericValue(data.value);
+        const parsedResolution = parseOptionalResolution(data.resolution);
 
         const resolvedState =
           data.state !== undefined
@@ -159,7 +177,6 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
           source: "json",
           value: parsedNumericValue,
           resolution: parsedResolution,
-          isAck: data.type === "command_ack" ? true : undefined,
         };
       }
 
