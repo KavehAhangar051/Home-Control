@@ -31,7 +31,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the current source layout, module res
 ## Local development
 
 ```bash
-git clone https://github.com/KamyarAhangar8778/Home-Control-Dashboard.git
+git clone https://github.com/KavehAhangar051/Home-Control-Dashboard.git
 cd Home-Control-Dashboard
 bun install --frozen-lockfile
 bun run dev
