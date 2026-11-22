@@ -253,7 +253,7 @@ export default React.memo(function CanvasChromeBar({
             type="button"
             onClick={onZoomIn}
             aria-label="بزرگ‌نمایی شیت"
-            className="inline-flex size-9 cursor-pointer items-center justify-center rounded-xl text-text-primary transition-colors hover:bg-secondary active:scale-95"
+            className="inline-flex size-9 cursor-pointer items-center justify-center rounded-xl text-text-primary transition-colors hover:bg-secondary pointer-fine:active:scale-95"
           >
             <Plus className="size-4" aria-hidden="true" />
           </button>
@@ -263,7 +263,7 @@ export default React.memo(function CanvasChromeBar({
             data-sheet-zoom-readout="true"
             onClick={onFitView}
             aria-label="نمای کلی و بازنشانی بزرگ‌نمایی"
-            className="inline-flex h-7 min-w-9 cursor-pointer items-center justify-center rounded-lg px-1 text-[10px] font-bold tabular-nums text-text-secondary transition-colors hover:bg-secondary active:scale-95"
+            className="inline-flex h-7 min-w-9 cursor-pointer items-center justify-center rounded-lg px-1 text-[10px] font-bold tabular-nums text-text-secondary transition-colors hover:bg-secondary pointer-fine:active:scale-95"
           >
             {Math.round(zoom * 100)}%
           </button>
@@ -272,7 +272,7 @@ export default React.memo(function CanvasChromeBar({
             type="button"
             onClick={onZoomOut}
             aria-label="کوچک‌نمایی شیت"
-            className="inline-flex size-9 cursor-pointer items-center justify-center rounded-xl text-text-primary transition-colors hover:bg-secondary active:scale-95"
+            className="inline-flex size-9 cursor-pointer items-center justify-center rounded-xl text-text-primary transition-colors hover:bg-secondary pointer-fine:active:scale-95"
           >
             <Minus className="size-4" aria-hidden="true" />
           </button>

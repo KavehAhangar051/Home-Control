@@ -170,7 +170,6 @@ export function useCanvasNodeInteractions({
       if (e.button !== 0 || isLocked) return;
 
       e.stopPropagation();
-      bringNodeToFront(nodeId, { skipPersist: true });
 
       const startRect = nodesRef.current[nodeId];
 
@@ -178,17 +177,16 @@ export function useCanvasNodeInteractions({
 
       const activePointerId = e.pointerId;
       const isTouch = e.pointerType === "touch";
-      const dragThreshold = isTouch ? 4.5 : 0;
+      const dragThreshold = isTouch ? 10 : 3;
       const startClientX = e.clientX;
       const startClientY = e.clientY;
       let lastClientX = e.clientX;
-      let hasExceededThreshold = dragThreshold === 0;
+      let hasExceededThreshold = false;
       const zoom = viewportRef.current.zoom;
       const tiltEl = findNodeTiltElement(nodeId);
 
-      if (hasExceededThreshold) {
-        setDraggingNodeId(nodeId);
-        setNodeDragTiltCssVar(tiltEl, 0);
+      if (!isTouch) {
+        bringNodeToFront(nodeId, { skipPersist: true });
       }
 
       const childInitialRects = collectCascadeGroupChildren(
@@ -208,8 +206,9 @@ export function useCanvasNodeInteractions({
         if (!hasExceededThreshold) {
           if (Math.hypot(rawDx, rawDy) < dragThreshold) return;
           hasExceededThreshold = true;
+          bringNodeToFront(nodeId, { skipPersist: true });
           setDraggingNodeId(nodeId);
-          setNodeDragTiltCssVar(tiltEl, 0);
+          if (!isTouch) setNodeDragTiltCssVar(tiltEl, 0);
         }
 
         const dx = rawDx / zoom;
@@ -219,7 +218,9 @@ export function useCanvasNodeInteractions({
         const appliedDx = nextX - startRect.x;
         const appliedDy = nextY - startRect.y;
 
-        setNodeDragTiltCssVar(tiltEl, computeDragTiltDeg(moveEvent.clientX - lastClientX));
+        if (!isTouch) {
+          setNodeDragTiltCssVar(tiltEl, computeDragTiltDeg(moveEvent.clientX - lastClientX));
+        }
         lastClientX = moveEvent.clientX;
 
         const prev = nodesRef.current;
@@ -346,27 +347,42 @@ export function useCanvasNodeInteractions({
       if (e.button !== 0 || isLocked) return;
 
       e.stopPropagation();
-      e.preventDefault();
-      bringNodeToFront(nodeId, { skipPersist: true });
 
       const startRect = nodesRef.current[nodeId];
 
       if (!startRect) return;
 
-      setDraggingNodeId(nodeId);
-
       const activePointerId = e.pointerId;
+      const isTouch = e.pointerType === "touch";
+      const resizeThreshold = isTouch ? 10 : 0;
       const startClientX = e.clientX;
       const startClientY = e.clientY;
+      let hasExceededThreshold = resizeThreshold === 0;
       const zoom = viewportRef.current.zoom;
       const snappedRightEdge = snapCanvasCoordinate(startRect.x + startRect.width, snapToGrid);
       const snappedBottomEdge = snapCanvasCoordinate(startRect.y + startRect.height, snapToGrid);
 
+      if (!isTouch) {
+        e.preventDefault();
+        bringNodeToFront(nodeId, { skipPersist: true });
+        setDraggingNodeId(nodeId);
+      }
+
       const applyPointerMove = (moveEvent: PointerEvent) => {
         if (moveEvent.pointerId !== activePointerId) return;
 
-        const dx = (moveEvent.clientX - startClientX) / zoom;
-        const dy = (moveEvent.clientY - startClientY) / zoom;
+        const rawDx = moveEvent.clientX - startClientX;
+        const rawDy = moveEvent.clientY - startClientY;
+
+        if (!hasExceededThreshold) {
+          if (Math.hypot(rawDx, rawDy) < resizeThreshold) return;
+          hasExceededThreshold = true;
+          bringNodeToFront(nodeId, { skipPersist: true });
+          setDraggingNodeId(nodeId);
+        }
+
+        const dx = rawDx / zoom;
+        const dy = rawDy / zoom;
         const prev = nodesRef.current;
         const current = prev[nodeId] ?? startRect;
 
@@ -435,7 +451,9 @@ export function useCanvasNodeInteractions({
         window.removeEventListener("pointercancel", handlePointerCancel);
         window.removeEventListener("pointerdown", handleMultiTouchAbort, true);
         window.removeEventListener("blur", handleAbort);
-        replaceStoredCanvasNodes(activeSubMode, nodesRef.current);
+        if (hasExceededThreshold) {
+          replaceStoredCanvasNodes(activeSubMode, nodesRef.current);
+        }
       };
 
       const handlePointerUp = (endEvent: PointerEvent) => {

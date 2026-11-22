@@ -1,5 +1,4 @@
 import React, { type ComponentPropsWithoutRef } from "react";
-import type { Toggle } from "@/components/ui/toggle";
 import { isAnalogInputSegment } from "@/features/iot/utils/analogInput";
 import { isAnalogOutputSegment } from "@/features/iot/utils/analogOutput";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
@@ -9,7 +8,10 @@ import AnalogInputBody from "./AnalogInputBody";
 import AnalogOutputBody from "./AnalogOutputBody";
 import PinToggle from "./PinToggle";
 
-type PinToggleButtonProps = Omit<ComponentPropsWithoutRef<typeof Toggle>, "pressed" | "className">;
+type PinToggleButtonProps = Pick<
+  ComponentPropsWithoutRef<"button">,
+  "onClick" | "onPointerDown" | "onPointerUp" | "onPointerLeave" | "onPointerCancel"
+>;
 
 interface CardBodyProps {
   segment: SegmentData;
@@ -138,10 +140,9 @@ function CardBody({
   animationsEnabled = true,
   countdown,
 }: CardBodyProps) {
-  const handleAnalogPowerToggle = () => {
+  const handleAnalogPowerToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (buttonProps.onClick) {
-      // SAFETY: Analog power button triggers the same click handler prepared by useSegmentButtonProps
-      (buttonProps.onClick as () => void)();
+      buttonProps.onClick(e);
     }
   };
 
@@ -173,6 +174,7 @@ function CardBody({
           hasExternalHeader={hasExternalHeader}
           countdown={countdown}
           onTogglePower={handleAnalogPowerToggle}
+          onPowerPointerDown={buttonProps.onPointerDown}
         />
       ) : (
         <PinToggle

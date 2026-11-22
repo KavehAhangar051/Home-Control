@@ -15,6 +15,7 @@ interface WorkflowNodeHeaderProps {
   inputCount: number;
   minInputCount: number;
   subflowChildCount?: number;
+  onSelect: (nodeId: string) => void;
   onStartDrag: (nodeId: string, e: React.PointerEvent<HTMLElement>) => void;
   onChangeInputCount: (delta: number) => void;
   onToggleSubflowGroup?: (nodeId: string) => void;
@@ -35,6 +36,7 @@ export default function WorkflowNodeHeader({
   inputCount,
   minInputCount,
   subflowChildCount = 0,
+  onSelect,
   onStartDrag,
   onChangeInputCount,
   onToggleSubflowGroup,
@@ -46,49 +48,70 @@ export default function WorkflowNodeHeader({
   return (
     <div
       onPointerDown={(e) => {
-        if (e.button === 0) onStartDrag(node.id, e);
+        if (e.button === 0 && e.pointerType !== "touch") onStartDrag(node.id, e);
       }}
-      style={{ touchAction: "none" }}
-      className={`flex h-8 shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-border-color/70 bg-secondary/70 px-3 ${
-        isLocked ? "cursor-default" : "cursor-grab active:cursor-grabbing"
+      className={`flex h-8 shrink-0 items-center justify-between gap-2 rounded-t-2xl border-b border-border-color/70 bg-secondary/70 px-2.5 ${
+        isLocked ? "cursor-default" : "md:cursor-grab md:active:cursor-grabbing"
       }`}
     >
-      <div className="flex min-w-0 items-center gap-1.5">
-        <GripHorizontal className="size-3.5 shrink-0 text-text-muted" aria-hidden="true" />
-        {!isLogicGate && (
-          <span
-            dir="ltr"
-            className={`inline-flex shrink-0 items-center ${
-              outputSignal ? "text-success" : "text-text-secondary"
-            }`}
-          >
-            <WorkflowSchematicSymbol
-              kind={node.kind}
-              isCustomGroup={node.isCustomGroup}
-              isInputSegment={isInputSegment}
-              className="h-4 w-7"
-            />
-          </span>
-        )}
+      <div className="flex min-w-0 flex-1 items-center gap-1">
         <span
-          dir={isLogicGate ? "ltr" : undefined}
-          className={`truncate text-[11px] font-bold text-text-primary ${
-            isLogicGate ? "font-mono" : ""
+          data-canvas-drag-handle={isLocked ? undefined : "true"}
+          onPointerDown={
+            isLocked
+              ? undefined
+              : (e) => {
+                  if (e.button === 0) onStartDrag(node.id, e);
+                }
+          }
+          style={isLocked ? undefined : { touchAction: "none" }}
+          className={`inline-flex size-6 shrink-0 items-center justify-center rounded-md text-text-muted ${
+            isLocked ? "" : "cursor-grab active:cursor-grabbing"
           }`}
         >
-          {node.label}
+          <GripHorizontal className="size-3.5" aria-hidden="true" />
         </span>
-        {isSubflowContainer && (
-          <span className="shrink-0 font-mono text-[10px] tabular-nums text-accent3">
-            · {subflowChildCount} گره
+        <button
+          type="button"
+          onClick={() => onSelect(node.id)}
+          aria-label={`انتخاب ${node.label}`}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-right"
+        >
+          {!isLogicGate && (
+            <span
+              dir="ltr"
+              className={`inline-flex shrink-0 items-center ${
+                outputSignal ? "text-success" : "text-text-secondary"
+              }`}
+            >
+              <WorkflowSchematicSymbol
+                kind={node.kind}
+                isCustomGroup={node.isCustomGroup}
+                isInputSegment={isInputSegment}
+                className="h-4 w-7"
+              />
+            </span>
+          )}
+          <span
+            dir={isLogicGate ? "ltr" : undefined}
+            className={`truncate text-[11px] font-bold text-text-primary ${
+              isLogicGate ? "font-mono" : ""
+            }`}
+          >
+            {node.label}
           </span>
-        )}
+          {isSubflowContainer && (
+            <span className="shrink-0 font-mono text-[10px] tabular-nums text-accent3">
+              · {subflowChildCount} گره
+            </span>
+          )}
+        </button>
       </div>
 
       <div
         className="flex shrink-0 items-center gap-1"
         onPointerDown={(e) => {
-          if (e.button !== 2) e.stopPropagation();
+          if (e.button !== 2 && e.pointerType !== "touch") e.stopPropagation();
         }}
       >
         {onToggleSubflowGroup && !isLocked && (

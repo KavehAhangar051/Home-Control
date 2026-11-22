@@ -30,7 +30,7 @@ function resolveScrollContainerClass(params: {
     activeWorkspaceView === "automations" && activeAutomationsTab === "workflows";
 
   if (isHomeCanvas || isWorkflowCanvas) {
-    return "overflow-hidden gap-0 p-0";
+    return "overflow-clip overscroll-none gap-0 p-0";
   }
 
   const isTrellisActive =
@@ -40,7 +40,7 @@ function resolveScrollContainerClass(params: {
     return "overflow-hidden gap-3 p-2 pb-20 md:p-4";
   }
 
-  return "overflow-y-auto gap-fluid-sm p-2.5 pb-24 sm:p-fluid-sm md:p-6 md:pb-8 md:px-8";
+  return "overflow-x-hidden overflow-y-auto overscroll-y-contain gap-fluid-sm p-2.5 pb-24 sm:p-fluid-sm md:p-6 md:pb-8 md:px-8";
 }
 
 function shouldDisplayHomeBanner(params: {
@@ -94,7 +94,7 @@ export default function DashboardMain() {
       <div
         id="dashboard-workspace-scroll"
         tabIndex={-1}
-        className={`@container/workspace custom-scrollbar overscroll-y-contain flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col w-full focus:outline-none ${scrollModeClass}`}
+        className={`@container/workspace custom-scrollbar flex-1 min-h-0 min-w-0 flex flex-col w-full focus:outline-none ${scrollModeClass}`}
       >
         {showBanner && (
           <LowDataModeBanner

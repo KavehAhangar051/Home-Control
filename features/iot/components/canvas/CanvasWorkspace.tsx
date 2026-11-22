@@ -116,10 +116,15 @@ export default function CanvasWorkspace({
       }
       onPointerDown={handleCanvasPointerDown}
       onContextMenu={handleCanvasContextMenu}
+      onScroll={(e) => {
+        if (e.currentTarget.scrollLeft !== 0) e.currentTarget.scrollLeft = 0;
+        if (e.currentTarget.scrollTop !== 0) e.currentTarget.scrollTop = 0;
+      }}
       style={{
         touchAction: "none",
+        overscrollBehavior: "none",
       }}
-      className={`relative size-full min-h-[480px] flex-1 overflow-hidden border-0 bg-bg-main select-none ${
+      className={`relative size-full min-h-0 flex-1 overflow-clip border-0 bg-bg-main select-none ${
         isPanning ? "cursor-grabbing" : "cursor-default"
       }`}
     >

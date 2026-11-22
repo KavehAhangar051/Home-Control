@@ -125,9 +125,6 @@ export function useWorkflowInteractions({
 
       if (!startNode) return;
 
-      onRecordUndoSnapshot?.();
-      bringNodeToFront(nodeId, { transient: true });
-
       // Capture any sub-flow child nodes belonging to this group container at drag start
       const childStartPositions = new Map<string, { x: number; y: number }>();
 
@@ -140,27 +137,46 @@ export function useWorkflowInteractions({
       }
 
       const activePointerId = e.pointerId;
+      const isTouch = e.pointerType === "touch";
+      const dragThreshold = isTouch ? 10 : 3;
       const startClientX = e.clientX;
       const startClientY = e.clientY;
       let lastClientX = e.clientX;
       let lastAppliedX = startNode.x;
       let lastAppliedY = startNode.y;
+      let hasExceededThreshold = false;
       const zoom = currentWorkflow.viewport.zoom;
       const tiltEl = findNodeTiltElement(nodeId);
-      setDraggingNodeId(nodeId);
-      setNodeDragTiltCssVar(tiltEl, 0);
+
+      if (!isTouch) {
+        bringNodeToFront(nodeId, { transient: true });
+      }
 
       const applyPointerMove = (moveEvent: PointerEvent) => {
         if (moveEvent.pointerId !== activePointerId) return;
 
-        const dx = (moveEvent.clientX - startClientX) / zoom;
-        const dy = (moveEvent.clientY - startClientY) / zoom;
+        const rawDx = moveEvent.clientX - startClientX;
+        const rawDy = moveEvent.clientY - startClientY;
+
+        if (!hasExceededThreshold) {
+          if (Math.hypot(rawDx, rawDy) < dragThreshold) return;
+          hasExceededThreshold = true;
+          onRecordUndoSnapshot?.();
+          bringNodeToFront(nodeId, { transient: true });
+          setDraggingNodeId(nodeId);
+          if (!isTouch) setNodeDragTiltCssVar(tiltEl, 0);
+        }
+
+        const dx = rawDx / zoom;
+        const dy = rawDy / zoom;
         const nextX = snapCanvasCoordinate(startNode.x + dx, snapToGrid);
         const nextY = snapCanvasCoordinate(startNode.y + dy, snapToGrid);
         const snappedDx = nextX - startNode.x;
         const snappedDy = nextY - startNode.y;
 
-        setNodeDragTiltCssVar(tiltEl, computeDragTiltDeg(moveEvent.clientX - lastClientX));
+        if (!isTouch) {
+          setNodeDragTiltCssVar(tiltEl, computeDragTiltDeg(moveEvent.clientX - lastClientX));
+        }
         lastClientX = moveEvent.clientX;
 
         if (nextX === lastAppliedX && nextY === lastAppliedY) {
@@ -234,6 +250,8 @@ export function useWorkflowInteractions({
         window.removeEventListener("pointercancel", onCancel);
         window.removeEventListener("pointerdown", onMultiTouchAbort, true);
         window.removeEventListener("blur", onAbort);
+
+        if (!hasExceededThreshold) return;
 
         // Auto-parent non-group nodes dropped inside a sub-flow group container
         if (startNode.kind !== "group") {
@@ -328,30 +346,46 @@ export function useWorkflowInteractions({
       if (e.button !== 0 || isLocked || !currentWorkflow) return;
 
       e.stopPropagation();
-      e.preventDefault();
 
       const startNode = currentWorkflow.nodes.find((n) => n.id === nodeId);
 
       if (!startNode) return;
 
-      onRecordUndoSnapshot?.();
-      bringNodeToFront(nodeId, { transient: true });
-      setDraggingNodeId(nodeId);
-
       const activePointerId = e.pointerId;
+      const isTouch = e.pointerType === "touch";
+      const resizeThreshold = isTouch ? 10 : 0;
       const startClientX = e.clientX;
       const startClientY = e.clientY;
       let lastAppliedX = startNode.x;
       let lastAppliedWidth = startNode.width;
       let lastAppliedHeight = startNode.height;
+      let hasExceededThreshold = resizeThreshold === 0;
       const zoom = currentWorkflow.viewport.zoom;
       const snappedRightEdge = snapCanvasCoordinate(startNode.x + startNode.width, snapToGrid);
+
+      if (!isTouch) {
+        e.preventDefault();
+        onRecordUndoSnapshot?.();
+        bringNodeToFront(nodeId, { transient: true });
+        setDraggingNodeId(nodeId);
+      }
 
       const applyPointerMove = (moveEvent: PointerEvent) => {
         if (moveEvent.pointerId !== activePointerId) return;
 
-        const dx = (moveEvent.clientX - startClientX) / zoom;
-        const dy = (moveEvent.clientY - startClientY) / zoom;
+        const rawDx = moveEvent.clientX - startClientX;
+        const rawDy = moveEvent.clientY - startClientY;
+
+        if (!hasExceededThreshold) {
+          if (Math.hypot(rawDx, rawDy) < resizeThreshold) return;
+          hasExceededThreshold = true;
+          onRecordUndoSnapshot?.();
+          bringNodeToFront(nodeId, { transient: true });
+          setDraggingNodeId(nodeId);
+        }
+
+        const dx = rawDx / zoom;
+        const dy = rawDy / zoom;
 
         const clamped = clampWorkflowNodeSize(
           startNode.kind,
@@ -415,7 +449,9 @@ export function useWorkflowInteractions({
         window.removeEventListener("pointercancel", onCancel);
         window.removeEventListener("pointerdown", onMultiTouchAbort, true);
         window.removeEventListener("blur", onAbort);
-        onCommitInteraction();
+        if (hasExceededThreshold) {
+          onCommitInteraction();
+        }
       };
 
       const onUp = (endEvent: PointerEvent) => {
