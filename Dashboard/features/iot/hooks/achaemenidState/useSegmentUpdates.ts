@@ -1,8 +1,12 @@
 import { useCallback } from "react";
 import type { SegmentRule } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { isSegmentRuleActive } from "@/features/iot/services/cloudflare/mappers";
 import { defaultDeviceSyncGateway } from "@/features/iot/services/deviceGatewayAdapter";
-import { publishUpdateRuleCommand } from "@/features/iot/services/mqttService";
+import {
+  publishUpdateAnalogRangeRulesCommand,
+  publishUpdateRuleCommand,
+} from "@/features/iot/services/mqttService";
 import {
   type AnalogInputSegmentOptions,
   isAnalogInputSegment,
@@ -10,7 +14,7 @@ import {
   isValidAdc1Pin,
   normalizeAnalogInputConfig,
 } from "@/features/iot/utils/analogInput";
-import { validateRuleActionList } from "./core/segmentOperations";
+import { validateAnalogRangeRuleList, validateRuleActionList } from "./core/segmentOperations";
 
 export function useSegmentUpdates() {
   const setSegments = useIoTStore((state) => state.setSegments);
@@ -43,28 +47,55 @@ export function useSegmentUpdates() {
 
   const handleUpdateSegmentRule = useCallback(
     (id: string, rule: SegmentRule) => {
+      const store = useIoTStore.getState();
+      const targetSegment = store.segments.find((segment) => segment.id === id);
+      if (!targetSegment || !isReadOnlyInputSegment(targetSegment)) {
+        store.showToast("سگمنت ورودی موردنظر در داشبورد پیدا نشد.", "error");
+        return;
+      }
+
+      const inputPin = Number(targetSegment.pin);
+      if (!Number.isInteger(inputPin) || inputPin < 0 || inputPin > 39) {
+        store.showToast("شماره GPIO سگمنت ورودی معتبر نیست.", "error");
+        return;
+      }
+
+      if (isAnalogInputSegment(targetSegment) && rule.analogRanges !== undefined) {
+        const rangeError = validateAnalogRangeRuleList(
+          rule.analogRanges,
+          targetSegment.pin,
+          targetSegment.adcResolution,
+          store.segments,
+        );
+        if (rangeError !== null) {
+          store.showToast(`خطا در بازه آنالوگ: ${rangeError}`, "error");
+          return;
+        }
+
+        const nextRule: SegmentRule = {
+          ...rule,
+          active: isSegmentRuleActive(rule),
+        };
+        setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, rule: nextRule } : s)));
+        publishUpdateAnalogRangeRulesCommand(inputPin, rule.analogRanges);
+        return;
+      }
+
       const errorMessage =
-        validateRuleActionList(rule.highActions) ?? validateRuleActionList(rule.lowActions);
+        validateRuleActionList(rule.highActions, store.segments) ??
+        validateRuleActionList(rule.lowActions, store.segments);
 
       if (errorMessage !== null) {
-        useIoTStore.getState().showToast(`خطا در پایه: ${errorMessage}`, "error");
+        store.showToast(`خطا در پایه: ${errorMessage}`, "error");
 
         return;
       }
 
-      const targetSegment = useIoTStore.getState().segments.find((segment) => segment.id === id);
-      if (!isReadOnlyInputSegment(targetSegment)) {
-        useIoTStore.getState().showToast("سگمنت ورودی موردنظر در داشبورد پیدا نشد.", "error");
-        return;
-      }
-
-      const inputPin = Number(targetSegment?.pin);
-      if (!Number.isInteger(inputPin) || inputPin < 0 || inputPin > 39) {
-        useIoTStore.getState().showToast("شماره GPIO سگمنت ورودی معتبر نیست.", "error");
-        return;
-      }
-
-      setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, rule } : s)));
+      const nextRule: SegmentRule = {
+        ...rule,
+        active: isSegmentRuleActive(rule),
+      };
+      setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, rule: nextRule } : s)));
       publishUpdateRuleCommand(inputPin, rule.highActions || [], rule.lowActions || []);
     },
     [setSegments],

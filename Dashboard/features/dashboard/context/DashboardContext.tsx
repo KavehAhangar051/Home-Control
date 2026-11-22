@@ -30,6 +30,7 @@ export interface DashboardContextInterface {
     | "handleSetPinState"
     | "handleSetPinAnalogValue"
     | "handleBatchPinState"
+    | "handleExecuteMacro"
     | "handleReadAnalogInput"
     | "handleBypassSync"
     | "setWorkerUrl"
@@ -96,6 +97,7 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       handleSetPinState: resolved.handleSetPinState,
       handleSetPinAnalogValue: resolved.handleSetPinAnalogValue,
       handleBatchPinState: resolved.handleBatchPinState,
+      handleExecuteMacro: resolved.handleExecuteMacro,
       handleReadAnalogInput: resolved.handleReadAnalogInput,
       handleBypassSync: resolved.handleBypassSync,
       setWorkerUrl: resolved.setWorkerUrl,
@@ -121,6 +123,7 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       resolved.handleSetPinState,
       resolved.handleSetPinAnalogValue,
       resolved.handleBatchPinState,
+      resolved.handleExecuteMacro,
       resolved.handleReadAnalogInput,
       resolved.handleBypassSync,
       resolved.setWorkerUrl,

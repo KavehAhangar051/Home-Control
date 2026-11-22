@@ -535,3 +535,30 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 ### Shared slider pointer-frame scheduling (20 November 2026)
 
 `lib/hooks/use-slider.ts` coalesces active pointer X coordinates and runs the shared value update at most once per animation frame. Pointer-down is still immediate, pointer-up flushes the final coordinate before the existing commit callback, and cancellation/blur/lost capture/unmount clear pending work. The change covers the Range, Fluid, and Bubble sliders that use this hook; it preserves step snapping, keyboard input, controlled/uncontrolled behavior, and the existing visual motion. This is a main-thread update-scheduling optimization, not GPU execution or a measured performance result.
+
+## 30. Rule Engine V2 — Double Click & Analog Multi-Range Rules (21 November 2026)
+
+- **Digital Input Double Click (`requiredHoldTime` / `reqHold = -1`):**
+  - `features/iot/utils/analogInput.ts` defines `RULE_TRIGGER_DOUBLE_CLICK = -1`, `DEFAULT_DOUBLE_CLICK_WINDOW_MS = 400`, and `DIGITAL_HOLD_TIME_VALUES = [0, -1, 3, 5, 10]`.
+  - `writeRuleActionChunk` and `writeRuleAnalogActionChunk` (`features/iot/services/mqtt/segmentPublishers.ts`) encode `reqHold = -1` as `int32 LE` (`0xFF 0xFF 0xFF 0xFF`) inside Opcodes `0x05` (`UPDATE_RULE`) and `0x0B` (`UPDATE_RULE_ANALOG`).
+  - `ConditionActionItem.tsx` exposes `"دابل کلیک (۲ بار فشردن سریع)"` (`value={-1}`), and `ConditionActionsList.tsx` displays a 400ms coexistence banner whenever both Single Click (`0`) and Double Click (`-1`) are configured on the same polarity.
+- **Analog Input Multi-Range Rules (`analogRanges`, Opcode `0x0E`):**
+  - **Protocol (`mqtt/protocol.ts`, `segmentPublishers.ts`, `ports.ts`, `deviceGatewayAdapter.ts`):** `MQTT_OPCODES.UPDATE_ANALOG_RANGE_RULES = 0x0e` encodes `[0x0E][inputPin:u8][rangeCount:u8]` + up to `6` 12-byte Little-Endian records (`minValue:u16LE`, `maxValue:u16LE`, `hysteresis:u16LE`, `targetPin:i8`, bit-packed `flags:u8` (`actionState | (actionType << 1) | (triggerMode << 3)`), `delay:u8`, `targetValue:i16LE`, `reserved:u8 = 0`), with zero enabled ranges producing a 3-byte clear-all frame `[0x0E, inputPin, 0x00]`.
+  - **Cloudflare & Domain Validation (`cloudflare/mappers.ts`, `segmentOperations.ts`, `useSegmentUpdates.ts`):** `normalizeAnalogRangeRule`, `normalizeSegmentRule`, and `isSegmentRuleActive` preserve legacy `{ highActions, lowActions }` shapes when unconfigured, normalize `analogRanges` (supporting `"enter"`/`"exit"` aliases, numeric/string `targetPin`, ADC resolution bounds, and per-range `enabled`), and stamp `rule.active` on Cloudflare serialization. `validateAnalogRangeRuleList` enforces max 6 ranges, `0 <= min <= max <= maxAdcValue`, `0 <= hysteresis <= floor(maxAdcValue / 2)`, non-self valid `output`/`analog_output` targets, `delay` bounds (`1..60` for delayed/timed modes), and target PWM resolution limits.
+  - **Conditions UI (`AnalogRangeRuleEditor.tsx`, `AnalogRangeRuleCard.tsx`, `ConditionSegment.tsx`, `ConditionsSection.tsx`, `AnalogInputConfigEditor.tsx`):** `analog_input` segments render a live sensor bar (`pinsAnalogValue`, `%`, `~V`, GPU-composited `scaleX` progress bar with active range overlays, and instant `0x0D` read button) plus up to 6 independent range cards supporting live matching indicator (`"فعال در مقدار فعلی"`), `minValue`/`maxValue`, `hysteresis`, `triggerMode` (`0=ورود` / `1=خروج`), filtered output pin selection (`output`/`analog_output`), digital ON/OFF or PWM `<DashboardSlider>` + presets, `actionType` (`0|1|2`) + `delay`, and enable toggle, saving directly to `0x0E`.
+  - **External boundary:** The Cloudflare Worker (`ESP_CFG_V2` text format generator and KV storage API) resides outside this static-export dashboard repository.
+
+## 31. Custom Buttons (Macros) — Analog PWM Actions & Client-Side Condition Engine (22 November 2026)
+
+- **Schema & Normalization (`features/iot/services/config/types.ts`, `features/iot/hooks/store/types.ts`, `features/iot/services/cloudflare/mappers.ts`):**
+  - `MacroAction` adds optional `targetValue?: number | null` (explicit PWM duty `0..4095` for `analog_output` segments) and optional `condition?: MacroActionCondition` while remaining backward-compatible with legacy `{ targetPin, actionOn }` macros.
+  - `normalizeMacroRecord` / `normalizeMacroActionCondition` normalize persisted macro records at the Cloudflare serialization/deserialization boundary.
+- **Pure Client-Side Evaluation Engine (`features/iot/utils/macroEngine.ts`):**
+  - Evaluates per-action guard conditions strictly inside the browser dashboard at button-click time (completely separate from ESP32 hardware rules `0x05`/`0x0B`/`0x0E`).
+  - Supports extensible condition parameters: `time_range` (click time with overnight window support, inside/outside mode, and optional weekday filters), `digital_input`, `analog_input` (raw ADC or `%` with `gt/gte/lt/lte/eq/between/outside`), `digital_output`, and `analog_output` (`is_on/is_off` or numeric raw/`%` comparisons).
+  - `evaluateMacroExecution` splits passing actions into digital batch (`0x08`) and explicit analog PWM (`0x0A`) dispatch lists and collects each blocked action's user-defined `failureMessage` (or Persian fallback).
+- **Unified Execution & UI (`usePinOperations.ts`, `useAchaemenidState.ts`, `DashboardContext.tsx`, `MacroSidebar/index.tsx`, `MobileDockNav.tsx`, `ToastNotification.tsx`, `features/settings/components/macros-section/{MacrosSection,MacroActionCard,MacroConditionEditor}.tsx`):**
+  - `handleExecuteMacro` evaluates live store state, dispatches only passing commands to ESP32 (`executeBatchPinUpdate` + `executeAnalogPinUpdate`), and surfaces custom failure messages via `ToastNotification` (upgraded to wrap cleanly up to 2 lines).
+  - `MacrosSection`, `MacroActionCard`, and `MacroConditionEditor` allow configuring digital ON/OFF or analog PWM (`<DashboardSlider>` + presets + raw duty input) actions alongside per-action live-preview conditions and custom failure messages.
+
+

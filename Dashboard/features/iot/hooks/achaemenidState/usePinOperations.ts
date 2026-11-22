@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import type { Macro } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { defaultDeviceSyncGateway } from "@/features/iot/services/deviceGatewayAdapter";
 import { onMqttStateChange } from "@/features/iot/services/mqtt/client";
@@ -12,6 +13,7 @@ import {
   getAnalogMaxDuty,
   isAnalogOutputSegment,
 } from "@/features/iot/utils/analogOutput";
+import { evaluateMacroExecution, type MacroExecutionPlan } from "@/features/iot/utils/macroEngine";
 import { soundManager } from "@/lib/audio";
 
 type SetPinsStateFn = (
@@ -360,6 +362,88 @@ export async function executeBatchPinUpdate(
   }
 }
 
+export interface MacroExecutionOutcome {
+  plan: MacroExecutionPlan;
+  delivered: boolean;
+}
+
+/**
+ * Evaluates all per-action dashboard conditions on a custom button (macro),
+ * dispatches only the passing digital (`0x08`) and analog PWM (`0x0A`) commands to ESP32,
+ * and displays user-defined failure messages for any blocked action.
+ */
+export async function executeMacroActions(
+  macro: Macro,
+  setPinsState: SetPinsStateFn,
+  showToast: ShowToastFn,
+  beginLoading: () => void,
+  endLoading: () => void,
+  syncGateway: IDeviceSyncPort = defaultDeviceSyncGateway,
+): Promise<MacroExecutionOutcome> {
+  const store = useIoTStore.getState();
+  const plan = evaluateMacroExecution(macro, {
+    segments: store.segments,
+    pinsState: store.pinsState,
+    pinsAnalogValue: store.pinsAnalogValue,
+    pinsPwmResolution: store.pinsPwmResolution,
+    now: new Date(),
+  });
+
+  const dispatchPromises: Array<Promise<boolean>> = [];
+
+  if (plan.digitalActions.length > 0) {
+    dispatchPromises.push(
+      executeBatchPinUpdate(
+        plan.digitalActions,
+        setPinsState,
+        beginLoading,
+        endLoading,
+        syncGateway,
+      ),
+    );
+  }
+
+  if (plan.analogActions.length > 0) {
+    if (plan.digitalActions.length === 0) {
+      soundManager.playToggleOn();
+    }
+
+    for (let i = 0; i < plan.analogActions.length; i++) {
+      const act = plan.analogActions[i];
+      dispatchPromises.push(
+        executeAnalogPinUpdate(
+          act.targetPin,
+          act.targetValue,
+          { persistToCloud: true },
+          setPinsState,
+          showToast,
+          beginLoading,
+          endLoading,
+          syncGateway,
+        ),
+      );
+    }
+  }
+
+  if (plan.blockedActions.length > 0) {
+    const uniqueMessages = Array.from(
+      new Set(plan.blockedActions.map((item) => item.message.trim()).filter(Boolean)),
+    );
+    if (uniqueMessages.length > 0) {
+      showToast(uniqueMessages.join(" • "), "error");
+    }
+  }
+
+  if (dispatchPromises.length === 0) {
+    return { plan, delivered: false };
+  }
+
+  const results = await Promise.all(dispatchPromises);
+  const delivered = results.some(Boolean);
+
+  return { plan, delivered };
+}
+
 export function usePinOperations() {
   const setPinsState = useIoTStore((state) => state.setPinsState);
   const showToast = useIoTStore((state) => state.showToast);
@@ -483,6 +567,13 @@ export function usePinOperations() {
     [setPinsState, beginLoading, endLoading],
   );
 
+  const handleExecuteMacro = useCallback(
+    async (macro: Macro) => {
+      return executeMacroActions(macro, setPinsState, showToast, beginLoading, endLoading);
+    },
+    [setPinsState, showToast, beginLoading, endLoading],
+  );
+
   const handleReadAnalogInput = useCallback(
     (pin: string): boolean => {
       if (!pin) return false;
@@ -505,6 +596,7 @@ export function usePinOperations() {
     handleSetPinState,
     handleSetPinAnalogValue,
     handleBatchPinState,
+    handleExecuteMacro,
     handleReadAnalogInput,
   };
 }

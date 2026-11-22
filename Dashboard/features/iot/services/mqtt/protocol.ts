@@ -24,6 +24,8 @@ export const MQTT_OPCODES = {
   UPDATE_ANALOG_INPUT_CONFIG: 0x0c,
   /** Force immediate ADC1 sensor readout bypassing sampleIntervalMs/deltaThreshold */
   READ_ANALOG_INPUT: 0x0d,
+  /** Live update multi-range rules (`analogRanges`, max 6 x 12-byte records) for an analog_input pin */
+  UPDATE_ANALOG_RANGE_RULES: 0x0e,
 } as const;
 
 /** Binary byte sizes for protocol framing */
@@ -34,6 +36,9 @@ export const ANALOG_INPUT_SEGMENT_EXT_SIZE = 9;
 export const ANALOG_INPUT_CONFIG_BASE_SIZE = 10;
 export const ANALOG_INPUT_CONFIG_WITH_RES_SIZE = 11;
 export const READ_ANALOG_INPUT_BUFFER_SIZE = 2;
+export const ANALOG_RANGE_HEADER_SIZE = 3;
+export const ANALOG_RANGE_RECORD_SIZE = 12;
+export const MAX_ANALOG_RANGE_RULES = 6;
 export const DEFAULT_TIMER_DISABLED = -1;
 export const MAX_BATCH_ACTIONS = 255;
 export const BATCH_HEADER_SIZE = 2;
@@ -41,6 +46,7 @@ export const BATCH_ACTION_SIZE = 6;
 export const RULE_ACTION_SIZE = 11;
 export const RULE_ANALOG_ACTION_SIZE = 13;
 export const RULE_TARGET_VALUE_BOOLEAN = -1;
+export const RULE_TRIGGER_DOUBLE_CLICK = -1;
 export const MAX_RULE_ACTIONS_PER_SIDE = 4;
 
 /** Binary state encodings */

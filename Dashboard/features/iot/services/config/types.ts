@@ -1,3 +1,59 @@
+export type MacroConditionParameter =
+  | "time_range"
+  | "digital_input"
+  | "analog_input"
+  | "digital_output"
+  | "analog_output";
+
+export type MacroNumericOperator = "gt" | "gte" | "lt" | "lte" | "eq" | "between" | "outside";
+
+export type MacroAnalogOutputOperator = "is_on" | "is_off" | MacroNumericOperator;
+
+export type MacroValueUnit = "raw" | "percent";
+
+export interface MacroActionCondition {
+  enabled: boolean;
+  parameter: MacroConditionParameter;
+  /** Custom user message shown in the dashboard when this condition is not met. */
+  failureMessage: string;
+  /** Start time ("HH:MM") when `parameter === "time_range"`. */
+  startTime?: string;
+  /** End time ("HH:MM") when `parameter === "time_range"` (supports overnight windows). */
+  endTime?: string;
+  /** Match inside or outside the configured time window. */
+  timeMode?: "inside" | "outside";
+  /** Optional JS weekday numbers (0=Sun..6=Sat); empty or omitted matches every day. */
+  days?: number[];
+  /** Source segment GPIO pin for segment-based condition parameters. */
+  sourcePin?: string;
+  /** Expected boolean state for `digital_input` / `digital_output`. */
+  expectedState?: boolean;
+  /** Comparison operator for `analog_input` / `analog_output`. */
+  operator?: MacroAnalogOutputOperator;
+  /** Threshold unit (`"percent"` or `"raw"`) for analog numeric comparisons. */
+  unit?: MacroValueUnit;
+  /** Primary numeric threshold or lower range bound. */
+  value?: number;
+  /** Upper range bound for `"between"` / `"outside"` operators. */
+  maxValue?: number;
+}
+
+export interface MacroAction {
+  targetPin: string;
+  actionOn: boolean;
+  /** Explicit PWM duty (`0..4095`) for `analog_output` targets; omitted/null for digital ON/OFF. */
+  targetValue?: number | null;
+  /** Optional client-side condition evaluated in the dashboard before sending ESP32 commands. */
+  condition?: MacroActionCondition;
+}
+
+export interface Macro {
+  id: string;
+  title: string;
+  icon?: string;
+  actions: MacroAction[];
+}
+
 export interface EspConfig {
   version: string;
   device: {
@@ -57,6 +113,7 @@ export interface EspConfig {
     adcHighThreshold?: number;
     adcLowThreshold?: number;
     rule?: {
+      active?: boolean;
       highActions?: Array<{
         reqHold: number;
         targetPin: string;
@@ -74,6 +131,18 @@ export interface EspConfig {
         delay?: number;
         targetValue?: number | null;
         aval?: number;
+      }>;
+      analogRanges?: Array<{
+        minValue: number;
+        maxValue: number;
+        hysteresis: number;
+        triggerMode: 0 | 1;
+        targetPin: string;
+        actionState: boolean;
+        targetValue?: number | null;
+        actionType: 0 | 1 | 2;
+        delay: number;
+        enabled?: boolean;
       }>;
       targetPinHigh?: string;
       actionOnHigh?: boolean;
@@ -108,15 +177,7 @@ export interface EspConfig {
       actionOn?: boolean;
     }>;
   }>;
-  macros?: Array<{
-    id: string;
-    title: string;
-    icon?: string;
-    actions: Array<{
-      targetPin: string;
-      actionOn: boolean;
-    }>;
-  }>;
+  macros?: Macro[];
   voiceCommands?: Array<{
     id: string;
     phrase: string;

@@ -100,7 +100,7 @@ function DockSubRow({ label, icon: Icon, isActive, onClick }: DockSubRowProps) {
  * custom buttons (macros) launcher, and integrated Voice Command.
  */
 export default function MobileDockNav() {
-  const { handleBatchPinState } = useDashboard();
+  const { handleExecuteMacro: runMacro } = useDashboard();
   const activeWorkspaceView = useIoTStore((s) => s.activeWorkspaceView);
   const setActiveWorkspaceView = useIoTStore((s) => s.setActiveWorkspaceView);
   const activeModulesTab = useIoTStore((s) => s.activeModulesTab);
@@ -138,11 +138,11 @@ export default function MobileDockNav() {
   const handleExecuteMacro = useCallback(
     (macro: Macro) => {
       triggerHaptic("macro");
-      handleBatchPinState(macro.actions);
+      void runMacro(macro);
       setRecentMacroId(macro.id);
       setOpenPanel(null);
     },
-    [handleBatchPinState],
+    [runMacro],
   );
 
   const handleManageMacros = useCallback(() => {

@@ -1,3 +1,5 @@
+import type { SegmentRule } from "@/features/iot/hooks/store/types";
+
 export interface SegmentData {
   id: string;
   type: string;
@@ -17,24 +19,7 @@ export interface SegmentData {
   adcDeltaThreshold?: number;
   adcHighThreshold?: number;
   adcLowThreshold?: number;
-  rule?: {
-    highActions?: Array<{
-      reqHold: number;
-      targetPin: string;
-      actionOn: boolean;
-      actionType?: number;
-      delay?: number;
-      targetValue?: number | null;
-    }>;
-    lowActions?: Array<{
-      reqHold: number;
-      targetPin: string;
-      actionOn: boolean;
-      actionType?: number;
-      delay?: number;
-      targetValue?: number | null;
-    }>;
-  };
+  rule?: SegmentRule;
 }
 
 export interface SortableSegmentCardProps {
@@ -45,25 +30,7 @@ export interface SortableSegmentCardProps {
   onSetPinState?: (pin: string, state: boolean, preventMqtt?: boolean) => void;
   onUpdateSegmentMode?: (id: string, mode: "switch" | "push") => void;
   onUpdateSegmentAutoOff?: (id: string, autoOff: number) => void;
-  onUpdateSegmentRule?: (
-    id: string,
-    rule: {
-      highActions?: Array<{
-        reqHold: number;
-        targetPin: string;
-        actionOn: boolean;
-        actionType?: number;
-        delay?: number;
-      }>;
-      lowActions?: Array<{
-        reqHold: number;
-        targetPin: string;
-        actionOn: boolean;
-        actionType?: number;
-        delay?: number;
-      }>;
-    },
-  ) => void;
+  onUpdateSegmentRule?: (id: string, rule: SegmentRule) => void;
   isLoadingIoT: boolean;
   onSetupPlaceholder?: (id: string) => void;
   parentGroupsCols?: number;

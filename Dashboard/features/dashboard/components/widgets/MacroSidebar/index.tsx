@@ -83,7 +83,7 @@ export function MacroGlyph({
  * without consuming vertical workspace space or overlapping cards.
  */
 export default function MacroSidebar({ compact = false, className = "" }: MacroSidebarProps) {
-  const { handleBatchPinState } = useDashboard();
+  const { handleExecuteMacro } = useDashboard();
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const macros = useIoTStore((s) => s.macros);
   const setActiveSettingsTab = useIoTStore((s) => s.setActiveSettingsTab);
@@ -134,11 +134,11 @@ export default function MacroSidebar({ compact = false, className = "" }: MacroS
   const executeMacro = useCallback(
     (macro: Macro) => {
       triggerHaptic("macro");
-      handleBatchPinState(macro.actions);
+      void handleExecuteMacro(macro);
       setRecentMacroId(macro.id);
       setIsOpen(false);
     },
-    [handleBatchPinState],
+    [handleExecuteMacro],
   );
 
   const handleManageMacros = useCallback(() => {

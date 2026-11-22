@@ -1,9 +1,19 @@
-import type { RuleAction, Segment, SegmentRule } from "@/features/iot/hooks/store/types";
+import type {
+  AnalogRangeRule,
+  AnalogRangeTriggerMode,
+  RuleAction,
+  RuleActionType,
+  Segment,
+  SegmentRule,
+} from "@/features/iot/hooks/store/types";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
 import {
   ANALOG_INPUT_TYPE,
+  clampAdcResolution,
   clampAdcValue,
+  getAdcMaxValue,
   isAnalogInputType,
+  MAX_ANALOG_RANGE_RULES,
   normalizeAnalogInputConfig,
 } from "@/features/iot/utils/analogInput";
 import {
@@ -15,28 +25,43 @@ import {
   isAnalogOutputType,
   MAX_ANALOG_OUTPUT_VALUE,
 } from "@/features/iot/utils/analogOutput";
+import { normalizeMacroRecord } from "@/features/iot/utils/macroEngine";
 import { CANONICAL_CONFIG_VERSION, createDefaultDeviceInfo } from "../config/defaults";
 import { getCloudflareWorkerUrl } from "./config";
 
 const DEFAULT_SEGMENT_GROUP = "Test";
 
 type LegacySingleTargetRule = SegmentRule & {
-  targetPin?: string;
+  targetPin?: string | number;
   triggerState?: boolean;
   actionState?: boolean;
 };
 
 type LegacyDualTargetRule = SegmentRule & {
-  targetPinHigh?: string;
+  targetPinHigh?: string | number;
   reqHoldHigh?: number;
   actionOnHigh?: boolean;
   actionTypeHigh?: number;
   delayHigh?: number;
-  targetPinLow?: string;
+  targetPinLow?: string | number;
   reqHoldLow?: number;
   actionOnLow?: boolean;
   actionTypeLow?: number;
   delayLow?: number;
+};
+
+type RawAnalogRangeInput = Omit<AnalogRangeRule, "targetPin" | "triggerMode" | "actionType"> & {
+  targetPin: string | number;
+  triggerMode: AnalogRangeTriggerMode | "enter" | "exit" | number;
+  actionType?: RuleActionType | number;
+  actionOn?: boolean;
+  aval?: number;
+};
+
+type RawRuleActionInput = RuleAction & {
+  requiredHoldTime?: number;
+  actionState?: boolean;
+  aval?: number;
 };
 
 type LegacyAutomationRecord = NonNullable<EspConfig["automations"]>[number] & {
@@ -63,18 +88,92 @@ export function resolveSegmentGroup(group?: string | null): string {
   return trimmed ? trimmed : DEFAULT_SEGMENT_GROUP;
 }
 
+/** Returns true when a rule defines at least one trigger action or enabled analog range rule. */
+export function isSegmentRuleActive(rule?: SegmentRule | null): boolean {
+  if (!rule) return false;
+
+  return (
+    (rule.highActions?.length ?? 0) > 0 ||
+    (rule.lowActions?.length ?? 0) > 0 ||
+    Boolean(rule.analogRanges?.some((range) => range.enabled !== false))
+  );
+}
+
+function normalizeTriggerMode(raw: AnalogRangeTriggerMode | "enter" | "exit" | number): 0 | 1 {
+  if (raw === 1 || raw === "exit") return 1;
+
+  return 0;
+}
+
+function normalizeRuleActionType(raw?: number): RuleActionType {
+  if (raw === 1 || raw === 2) return raw;
+
+  return 0;
+}
+
+export function normalizeAnalogRangeRule(
+  raw: RawAnalogRangeInput,
+  adcResolution?: number | null,
+): AnalogRangeRule {
+  const maxAdcValue = getAdcMaxValue(adcResolution);
+  const rawMin = Number.isFinite(raw.minValue)
+    ? Math.min(maxAdcValue, Math.max(0, Math.round(raw.minValue)))
+    : 0;
+  const rawMax = Number.isFinite(raw.maxValue)
+    ? Math.min(maxAdcValue, Math.max(0, Math.round(raw.maxValue)))
+    : maxAdcValue;
+  const minValue = Math.min(rawMin, rawMax);
+  const maxValue = Math.max(rawMin, rawMax);
+  const maxHysteresis = Math.floor(maxAdcValue / 2);
+  const hysteresis = Number.isFinite(raw.hysteresis)
+    ? Math.min(maxHysteresis, Math.max(0, Math.round(raw.hysteresis)))
+    : 0;
+
+  const rawTargetValue = raw.targetValue ?? raw.aval;
+  const hasAnalog = hasExplicitAnalogTargetValue(rawTargetValue);
+  const targetValue = hasAnalog
+    ? Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.max(0, Math.round(rawTargetValue)))
+    : rawTargetValue === -1
+      ? -1
+      : undefined;
+  const actionState = hasAnalog
+    ? (targetValue as number) > 0
+    : Boolean(raw.actionState ?? raw.actionOn);
+  const delay = Number.isFinite(raw.delay) ? Math.min(60, Math.max(0, Math.round(raw.delay))) : 0;
+
+  const normalizedRange: AnalogRangeRule = {
+    minValue,
+    maxValue,
+    hysteresis,
+    triggerMode: normalizeTriggerMode(raw.triggerMode),
+    targetPin: String(raw.targetPin ?? "").trim(),
+    actionState,
+    actionType: normalizeRuleActionType(raw.actionType),
+    delay,
+    enabled: raw.enabled !== false,
+  };
+
+  if (targetValue !== undefined) {
+    normalizedRange.targetValue = targetValue;
+  }
+
+  return normalizedRange;
+}
+
 /**
- * Pure normalization of legacy single-target and dual-target segment rules into
- * the canonical `{ highActions, lowActions }` structure without mutating the input.
+ * Pure normalization of legacy single-target, dual-target, and V2 digital/analog-range
+ * segment rules into canonical structure without mutating the input.
  */
 export function normalizeSegmentRule(
   rule?: SegmentRule | LegacySingleTargetRule | LegacyDualTargetRule,
+  adcResolution?: number | null,
 ): SegmentRule | undefined {
   if (!rule) return undefined;
 
   if ("targetPin" in rule) {
     const triggerState = rule.triggerState ?? true;
-    const targetPin = rule.targetPin;
+    const targetPin =
+      rule.targetPin !== undefined && rule.targetPin !== null ? String(rule.targetPin).trim() : "";
 
     return {
       highActions:
@@ -105,38 +204,48 @@ export function normalizeSegmentRule(
   }
 
   if ("targetPinHigh" in rule || "targetPinLow" in rule) {
+    const highPin =
+      rule.targetPinHigh !== undefined && rule.targetPinHigh !== null
+        ? String(rule.targetPinHigh).trim()
+        : "";
+    const lowPin =
+      rule.targetPinLow !== undefined && rule.targetPinLow !== null
+        ? String(rule.targetPinLow).trim()
+        : "";
+
     return {
-      highActions: rule.targetPinHigh
+      highActions: highPin
         ? [
             {
-              reqHold: rule.reqHoldHigh || 0,
-              targetPin: rule.targetPinHigh,
+              reqHold: rule.reqHoldHigh ?? 0,
+              targetPin: highPin,
               actionOn: rule.actionOnHigh ?? true,
-              actionType: rule.actionTypeHigh || 0,
-              delay: rule.delayHigh || 0,
+              actionType: rule.actionTypeHigh ?? 0,
+              delay: rule.delayHigh ?? 0,
             },
           ]
         : [],
-      lowActions: rule.targetPinLow
+      lowActions: lowPin
         ? [
             {
-              reqHold: rule.reqHoldLow || 0,
-              targetPin: rule.targetPinLow,
+              reqHold: rule.reqHoldLow ?? 0,
+              targetPin: lowPin,
               actionOn: rule.actionOnLow ?? false,
-              actionType: rule.actionTypeLow || 0,
-              delay: rule.delayLow || 0,
+              actionType: rule.actionTypeLow ?? 0,
+              delay: rule.delayLow ?? 0,
             },
           ]
         : [],
     };
   }
 
-  const normalizeAction = (action: RuleAction & { aval?: number }): RuleAction => {
+  const normalizeAction = (action: RawRuleActionInput): RuleAction => {
     const rawTargetValue = action.targetValue ?? action.aval;
+    const rawHold = action.reqHold ?? action.requiredHoldTime ?? 0;
     const normalizedAction: RuleAction = {
-      reqHold: action.reqHold,
-      targetPin: action.targetPin,
-      actionOn: action.actionOn,
+      reqHold: Number.isFinite(rawHold) ? Math.round(rawHold) : 0,
+      targetPin: String(action.targetPin ?? "").trim(),
+      actionOn: Boolean(action.actionOn ?? action.actionState),
       ...(action.actionType !== undefined ? { actionType: action.actionType } : {}),
       ...(action.delay !== undefined ? { delay: action.delay } : {}),
     };
@@ -152,10 +261,33 @@ export function normalizeSegmentRule(
     return normalizedAction;
   };
 
-  return {
-    highActions: rule.highActions ? rule.highActions.map(normalizeAction) : [],
-    lowActions: rule.lowActions ? rule.lowActions.map(normalizeAction) : [],
+  const highActions = rule.highActions
+    ? (rule.highActions as RawRuleActionInput[]).map(normalizeAction)
+    : [];
+  const lowActions = rule.lowActions
+    ? (rule.lowActions as RawRuleActionInput[]).map(normalizeAction)
+    : [];
+
+  const analogRanges = Array.isArray(rule.analogRanges)
+    ? (rule.analogRanges as RawAnalogRangeInput[])
+        .slice(0, MAX_ANALOG_RANGE_RULES)
+        .map((range) => normalizeAnalogRangeRule(range, adcResolution))
+    : undefined;
+
+  const normalizedRule: SegmentRule = {
+    highActions,
+    lowActions,
   };
+
+  if (analogRanges !== undefined) {
+    normalizedRule.analogRanges = analogRanges;
+  }
+
+  if (rule.active !== undefined || analogRanges !== undefined) {
+    normalizedRule.active = isSegmentRuleActive(normalizedRule);
+  }
+
+  return normalizedRule;
 }
 
 /**
@@ -163,7 +295,9 @@ export function normalizeSegmentRule(
  * legacy rule schemas, alias types (`pwm_output`), or missing group names.
  */
 export function normalizeSegmentRecord(segment: Segment): Segment {
-  const normalizedRule = normalizeSegmentRule(segment.rule);
+  const isAnalogInput = isAnalogInputType(segment.type);
+  const normalizedAdcRes = isAnalogInput ? clampAdcResolution(segment.adcResolution) : undefined;
+  const normalizedRule = normalizeSegmentRule(segment.rule, normalizedAdcRes);
 
   const normalized: Segment = {
     ...segment,
@@ -188,7 +322,7 @@ export function normalizeSegmentRecord(segment: Segment): Segment {
         clampAnalogValue(segment.lastNonZeroValue, pwmResolution),
       );
     }
-  } else if (isAnalogInputType(segment.type)) {
+  } else if (isAnalogInput) {
     const adcConfig = normalizeAnalogInputConfig({
       adcResolution: segment.adcResolution,
       adcSampleIntervalMs: segment.adcSampleIntervalMs,
@@ -277,9 +411,23 @@ export function serializeToCloudflare(config: Partial<EspConfig>): CloudflareSer
     device: config.device || createDefaultDeviceInfo(),
     preferences: buildNormalizedPreferences(config.preferences),
     layout: buildNormalizedLayout(config.layout),
-    segments_definition: (config.segments || []).map(normalizeSegmentRecord),
+    segments_definition: (config.segments || []).map((seg) => {
+      const normalized = normalizeSegmentRecord(seg);
+
+      if (normalized.rule) {
+        return {
+          ...normalized,
+          rule: {
+            ...normalized.rule,
+            active: isSegmentRuleActive(normalized.rule),
+          },
+        };
+      }
+
+      return normalized;
+    }),
     automations: config.automations || [],
-    macros: config.macros || [],
+    macros: (config.macros || []).map(normalizeMacroRecord),
     voiceCommands: config.voiceCommands || [],
     mqtt: config.mqtt,
     wifi: config.wifi,
@@ -301,7 +449,7 @@ export function deserializeFromCloudflare(cfData: CloudflareRawPayload): EspConf
     layout: buildNormalizedLayout(cfData.layout),
     segments: rawSegments.map(normalizeSegmentRecord),
     automations: (cfData.automations || []).map(normalizeAutomationRecord),
-    macros: cfData.macros || [],
+    macros: (cfData.macros || []).map(normalizeMacroRecord),
     voiceCommands: cfData.voiceCommands || [],
     mqtt: cfData.mqtt,
     wifi: cfData.wifi,

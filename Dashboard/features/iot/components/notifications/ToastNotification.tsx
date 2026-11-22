@@ -99,7 +99,7 @@ export default function ToastNotification() {
                 : TRANSITION_ENTER_STANDARD,
             }}
             onClick={clearToast}
-            className={`pointer-events-auto inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] cursor-pointer touch-pan-x items-center gap-2 rounded-full border bg-sidebar-bg py-1.5 ps-3 pe-2 text-right shadow-lg transition-colors select-none ${
+            className={`pointer-events-auto inline-flex max-w-[min(28rem,calc(100vw-1.5rem))] cursor-pointer touch-pan-x items-center gap-2 rounded-2xl border bg-sidebar-bg py-2 ps-3 pe-2.5 text-right shadow-lg transition-colors select-none ${
               isError
                 ? "border-destructive/60 text-text-primary"
                 : "border-success/55 text-text-primary"
@@ -119,7 +119,7 @@ export default function ToastNotification() {
               />
             )}
 
-            <span className="min-w-0 truncate text-xs font-medium leading-5 text-text-primary">
+            <span className="min-w-0 line-clamp-2 break-words text-xs font-medium leading-5 text-text-primary">
               {toast.message}
             </span>
 

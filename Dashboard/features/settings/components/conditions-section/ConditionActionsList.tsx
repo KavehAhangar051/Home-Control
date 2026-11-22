@@ -1,5 +1,10 @@
+import { Info } from "@/components/ui/hugeicons-groups/controls";
 import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import {
+  DIGITAL_HOLD_TIME_VALUES,
+  RULE_TRIGGER_DOUBLE_CLICK,
+} from "@/features/iot/utils/analogInput";
 import { type ConditionAction, ConditionActionItem } from "./ConditionActionItem";
 
 interface Props {
@@ -18,6 +23,10 @@ export function ConditionActionsList({ type, actions, onUpdate }: Props) {
 
   const containerBg = isHigh ? "bg-accent4-transparent" : "bg-accent3-transparent";
 
+  const hasSingleClick = actions.some((action) => action.reqHold === 0);
+  const hasDoubleClick = actions.some((action) => action.reqHold === RULE_TRIGGER_DOUBLE_CLICK);
+  const hasClickCoexistence = hasSingleClick && hasDoubleClick;
+
   const addAction = () => {
     if (actions.length >= 4) {
       showToast("حداکثر ۴ عملیات برای هر وضعیت مجاز است", "error");
@@ -25,7 +34,7 @@ export function ConditionActionsList({ type, actions, onUpdate }: Props) {
       return;
     }
 
-    const availableHolds = [0, 3, 5, 10].filter(
+    const availableHolds = DIGITAL_HOLD_TIME_VALUES.filter(
       (hold) => !actions.some((action) => action.reqHold === hold),
     );
 
@@ -64,6 +73,18 @@ export function ConditionActionsList({ type, actions, onUpdate }: Props) {
           <Plus aria-hidden="true" className="size-3" /> افزودن
         </button>
       </div>
+      {hasClickCoexistence && (
+        <div
+          role="note"
+          className="mb-3 flex items-start gap-2 rounded-xl border border-warning/40 bg-warning-soft px-3 py-2 text-[11px] text-amber-800 dark:text-amber-300"
+        >
+          <Info aria-hidden="true" className="size-4 shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            هنگام ترکیب تک‌کلیک و دابل‌کلیک روی یک کلید، اجرای تک‌کلیک با تاخیر ۴۰۰ میلی‌ثانیه برای
+            تشخیص کلیک دوم انجام می‌شود.
+          </p>
+        </div>
+      )}
       {actions.length === 0 ? (
         <div className="text-center py-4 text-text-tertiary text-xs bg-card-bg-solid rounded-lg border border-dashed border-border-color">
           هیچ عملیاتی تعریف نشده

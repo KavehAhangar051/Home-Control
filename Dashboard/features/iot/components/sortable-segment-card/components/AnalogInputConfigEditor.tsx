@@ -218,7 +218,7 @@ export default function AnalogInputConfigEditor({
       ) : (
         <p className="text-[10px] text-text-muted leading-4">
           {highThreshold === 0
-            ? "ATH = 0: نمایش عددی بدون تریگر قانون (Rule)."
+            ? "ATH = 0: نمایش عددی و قوانین بازه‌ای چندگانه (0x0E) بدون آستانه دوتایی."
             : `هیسترزیس فعال: بالای ${highThreshold} ← HIGH | پایین ${lowThreshold} ← LOW`}
         </p>
       )}
