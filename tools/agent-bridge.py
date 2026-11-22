@@ -145,7 +145,10 @@ def ensure_ready() -> None:
         Path("/usr/local/bin/ov").is_file()
         and Path("/usr/local/bin/openviking-server").is_file()
         and Path("/usr/local/bin/ov-mcp").is_file()
+        and Path("/usr/local/bin/ollama").is_file()
         and (Path.home() / ".openviking").is_symlink()
+        and (STATE_ROOT / "openviking" / "home" / "ov.conf").is_file()
+        and (STATE_ROOT / "openviking" / "ollama" / "bin" / "ollama").is_file()
     )
     if not rtk_ok:
         subprocess.run(["bash", str(ROOT_DIR / "tools" / "rtk.sh"), "ensure"], check=True)
@@ -208,8 +211,26 @@ def _print_hook_messages(resp: dict) -> None:
             print(ctx.strip())
 
 
+def _recover_openviking_services() -> None:
+    if os.environ.get("OV_NO_AUTOSTART") == "1":
+        return
+    ov_conf = STATE_ROOT / "openviking" / "home" / "ov.conf"
+    if not ov_conf.is_file():
+        return
+    subprocess.run(
+        ["bash", str(ROOT_DIR / "tools" / "ov.sh"), "recover"],
+        env=_tool_env(),
+        cwd=str(ROOT_DIR),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+
+
 def start_session(prompt: str = "AI Studio task", explicit: bool = False) -> dict:
     ensure_ready()
+    if explicit:
+        _recover_openviking_services()
     existing = _read_active_session()
     if existing:
         age = time.time() - float(existing.get("updated_at", existing.get("started_at", 0)))
@@ -536,6 +557,7 @@ def check_tools() -> int:
         ("te", [str(TE_BIN), "--cwd", str(ROOT_DIR), "doctor"]),
         ("cbm", ["bash", str(ROOT_DIR / "tools" / "cbm.sh"), "cli", "list_projects"]),
         ("ov", ["bash", str(ROOT_DIR / "tools" / "ov.sh"), "--version"]),
+        ("ollama", ["bash", str(ROOT_DIR / "tools" / "ov.sh"), "ollama", "status"]),
     ]
     failed = 0
     for name, cmd in checks:
