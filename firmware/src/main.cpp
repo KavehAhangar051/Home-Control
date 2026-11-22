@@ -173,7 +173,13 @@ void setup() {
     }
 
     if (savedMqtt.valid) {
-        mqttClient.begin(String(savedMqtt.host), savedMqtt.port, String(savedMqtt.baseTopic), savedMqtt.qos, "", "");
+        mqttClient.begin(
+            String(savedMqtt.host),
+            savedMqtt.port,
+            String(savedMqtt.baseTopic),
+            savedMqtt.qos,
+            String(savedMqtt.user),
+            String(savedMqtt.password));
         mqttClient.subscribe(String(savedMqtt.baseTopic) + "/Command");
         INFOF("[System] Restored MQTT settings from NVS (Host: %s)", savedMqtt.host);
     } else {

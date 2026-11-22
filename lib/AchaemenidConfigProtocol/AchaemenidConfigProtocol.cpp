@@ -1,4 +1,5 @@
 #include "AchaemenidConfigProtocol.h"
+#include "NetworkConfigHelper.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -297,49 +298,119 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
             // تجزیه تنظیمات MQTT
             char hostBuf[192] = {0};
             char topicBuf[192] = {0};
+            char userBuf[100] = {0};
+            char passBuf[100] = {0};
             
             bool hasHost = kvp.getValue("h", hostBuf, sizeof(hostBuf));
             bool hasTopic = kvp.getValue("t", topicBuf, sizeof(topicBuf));
             
             if (hasHost && hasTopic) {
-                decodeValue(hostBuf, outResult.mqtt.host, sizeof(outResult.mqtt.host));
-                decodeValue(topicBuf, outResult.mqtt.baseTopic, sizeof(outResult.mqtt.baseTopic));
-                outResult.mqtt.port = kvp.getInt("p", 1883);
-                outResult.mqtt.qos = kvp.getInt("q", 1);
-                outResult.mqtt.valid = true;
-                Serial.printf("[ACP] MQTT Config Parsed: host=%s port=%d topic=%s qos=%d\n", 
-                    outResult.mqtt.host, outResult.mqtt.port, outResult.mqtt.baseTopic, outResult.mqtt.qos);
+                char decodedHost[64] = {0};
+                char decodedTopic[64] = {0};
+                char normalizedTopic[64] = {0};
+                decodeValue(hostBuf, decodedHost, sizeof(decodedHost));
+                decodeValue(topicBuf, decodedTopic, sizeof(decodedTopic));
+
+                if (net_config::isValidMqttHost(decodedHost) &&
+                    net_config::normalizeMqttBaseTopic(decodedTopic, normalizedTopic, sizeof(normalizedTopic))) {
+                    net_config::copySafeString(outResult.mqtt.host, sizeof(outResult.mqtt.host), decodedHost);
+                    net_config::copySafeString(outResult.mqtt.baseTopic, sizeof(outResult.mqtt.baseTopic), normalizedTopic);
+                    outResult.mqtt.port = net_config::sanitizeMqttPort(kvp.getInt("p", net_config::kDefaultMqttPort));
+                    outResult.mqtt.qos = net_config::sanitizeMqttQos(kvp.getInt("q", net_config::kDefaultMqttQos));
+
+                    if (kvp.getValue("u", userBuf, sizeof(userBuf))) {
+                        decodeValue(userBuf, outResult.mqtt.user, sizeof(outResult.mqtt.user));
+                    } else {
+                        outResult.mqtt.user[0] = '\0';
+                    }
+                    if (kvp.getValue("pw", passBuf, sizeof(passBuf))) {
+                        decodeValue(passBuf, outResult.mqtt.password, sizeof(outResult.mqtt.password));
+                    } else {
+                        outResult.mqtt.password[0] = '\0';
+                    }
+
+                    outResult.mqtt.valid = true;
+                    Serial.printf("[ACP] MQTT Config Parsed: host=%s port=%d topic=%s qos=%d\n", 
+                        outResult.mqtt.host, outResult.mqtt.port, outResult.mqtt.baseTopic, outResult.mqtt.qos);
+                } else {
+                    outResult.mqtt.reset();
+                    Serial.println("[ACP] Warning: Rejected invalid MQTT config (empty/malformed host or topic).");
+                }
             }
         } else if (strncmp(p, "W ", 2) == 0) {
             // تجزیه تنظیمات وای‌فای
-            char ssidBuf[100] = {0};
-            char passBuf[190] = {0};
+            char ssidBuf[128] = {0};
+            char passBuf[200] = {0};
             
             char markerBuf[4] = {0};
             if (kvp.getValue("n", markerBuf, sizeof(markerBuf))) outResult.wifiProvided = true;
             bool hasSsid = kvp.getValue("s", ssidBuf, sizeof(ssidBuf));
             bool hasPass = kvp.getValue("p", passBuf, sizeof(passBuf));
             
-            if (hasSsid && hasPass) outResult.wifiProvided = true;
-            if (hasSsid && hasPass && outResult.wifiCount < 5) {
-                int c = outResult.wifiCount;
-                decodeValue(ssidBuf, outResult.wifi[c].ssid, sizeof(outResult.wifi[c].ssid));
-                decodeValue(passBuf, outResult.wifi[c].password, sizeof(outResult.wifi[c].password));
-                outResult.wifi[c].valid = true;
-                outResult.wifiCount++;
-                Serial.printf("[ACP] WiFi Config Parsed: ssid=%s\n", outResult.wifi[c].ssid);
+            if (hasSsid) {
+                if (!hasPass) {
+                    passBuf[0] = '\0';
+                }
+                outResult.wifiProvided = true;
+                if (outResult.wifiCount < 5) {
+                    char decodedSsid[33] = {0};
+                    char decodedPass[64] = {0};
+                    decodeValue(ssidBuf, decodedSsid, sizeof(decodedSsid));
+                    decodeValue(passBuf, decodedPass, sizeof(decodedPass));
+
+                    if (net_config::isValidWifiCredential(decodedSsid, decodedPass)) {
+                        int c = outResult.wifiCount;
+                        net_config::copySafeString(outResult.wifi[c].ssid, sizeof(outResult.wifi[c].ssid), decodedSsid);
+                        net_config::copySafeString(outResult.wifi[c].password, sizeof(outResult.wifi[c].password), decodedPass);
+                        outResult.wifi[c].valid = true;
+                        outResult.wifiCount++;
+                        Serial.printf("[ACP] WiFi Config Parsed: ssid=%s\n", outResult.wifi[c].ssid);
+                    } else if (decodedSsid[0] != '\0' || decodedPass[0] != '\0') {
+                        Serial.printf("[ACP] Warning: Skipped invalid WiFi entry (ssid='%s', passLen=%u).\n",
+                                      decodedSsid, static_cast<unsigned int>(strlen(decodedPass)));
+                    }
+                } else {
+                    Serial.println("[ACP] Warning: Max 5 WiFi networks supported; ignoring extra entry.");
+                }
             }
         } else if (strncmp(p, "A ", 2) == 0) {
-            char ssidBuf[100] = {0};
-            char passBuf[190] = {0};
-            if (kvp.getValue("s", ssidBuf, sizeof(ssidBuf)) &&
-                kvp.getValue("p", passBuf, sizeof(passBuf))) {
-                outResult.apProvided = true;
-                decodeValue(ssidBuf, outResult.apSsid, sizeof(outResult.apSsid));
-                decodeValue(passBuf, outResult.apPassword, sizeof(outResult.apPassword));
-                outResult.apValid = outResult.apSsid[0] != '\0' &&
-                    strlen(outResult.apPassword) >= 8 &&
-                    strlen(outResult.apPassword) <= 63;
+            char ssidBuf[128] = {0};
+            char passBuf[200] = {0};
+            char mdnsBuf[128] = {0};
+            const bool hasSsid = kvp.getValue("s", ssidBuf, sizeof(ssidBuf));
+            const bool hasPass = kvp.getValue("p", passBuf, sizeof(passBuf));
+            if (hasSsid && hasPass) {
+                char decodedSsid[33] = {0};
+                char decodedPass[64] = {0};
+                decodeValue(ssidBuf, decodedSsid, sizeof(decodedSsid));
+                decodeValue(passBuf, decodedPass, sizeof(decodedPass));
+
+                const bool isExplicitClear = (decodedSsid[0] == '\0' && decodedPass[0] == '\0');
+                const bool isValidAp = net_config::isValidSoftApCredential(decodedSsid, decodedPass);
+
+                if (isExplicitClear) {
+                    outResult.apProvided = true;
+                    outResult.apValid = false;
+                    outResult.apSsid[0] = '\0';
+                    outResult.apPassword[0] = '\0';
+                } else if (isValidAp) {
+                    outResult.apProvided = true;
+                    outResult.apValid = true;
+                    net_config::copySafeString(outResult.apSsid, sizeof(outResult.apSsid), decodedSsid);
+                    net_config::copySafeString(outResult.apPassword, sizeof(outResult.apPassword), decodedPass);
+                } else {
+                    Serial.println("[ACP] Warning: Ignored partial/invalid AP config (keeping existing NVS AP settings).");
+                }
+            }
+            if (kvp.getValue("m", mdnsBuf, sizeof(mdnsBuf))) {
+                decodeValue(mdnsBuf, outResult.mdnsHost, sizeof(outResult.mdnsHost));
+                outResult.mdnsProvided = true;
+            }
+        } else if (strncmp(p, "N ", 2) == 0) {
+            char mdnsBuf[128] = {0};
+            if (kvp.getValue("m", mdnsBuf, sizeof(mdnsBuf))) {
+                decodeValue(mdnsBuf, outResult.mdnsHost, sizeof(outResult.mdnsHost));
+                outResult.mdnsProvided = true;
             }
         }
 
