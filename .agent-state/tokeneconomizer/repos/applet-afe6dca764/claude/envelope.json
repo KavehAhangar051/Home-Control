@@ -18,10 +18,20 @@
       "stagnation": 0.5,
       "test_runs": 0,
       "turns": 10
+    },
+    {
+      "distinct_edit_files": 0,
+      "edit_churn": 0,
+      "error_outputs": 5,
+      "repeated_fail_sigs": 2,
+      "stagnation": 0.4,
+      "test_runs": 0,
+      "turns": 10
     }
   ],
   "resolved_turns": [
     1,
+    10,
     10
   ]
 }

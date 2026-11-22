@@ -287,10 +287,17 @@ void BootManager::handlePortalRoot() {
         html += F("' type='password' maxlength='63' autocomplete='new-password' placeholder='••••••••'></div>");
     }
 
-    html += F("<button type='submit' class='btn btn-full'>ذخیره و اتصال به وای‌فای</button>"
+    html += F("<div class='slot'><div class='slot-title'>نام محلی دستگاه (mDNS)</div>"
+              "<label for='mdnsHost'>آدرس محلی (بدون .local — پیش‌فرض: achaemenid)</label>"
+              "<input id='mdnsHost' name='mdnsHost' maxlength='32' autocomplete='off' placeholder='achaemenid' value='");
+    pos = 0;
+    uniuno::captive_portal::appendHtmlEscaped(escapedBuf, sizeof(escapedBuf), pos, mdnsHostname_);
+    html += escapedBuf;
+    html += F("'><div class='hint'>پس از اتصال، دستگاه از طریق <code>http://&lt;name&gt;.local/</code> در دسترس خواهد بود.</div></div>"
+              "<button type='submit' class='btn btn-full'>ذخیره و اتصال به وای‌فای</button>"
               "</form>"
-              "<script>"
-              "function fillSsid(name){"
+              "<script>");
+    html += F("function fillSsid(name){"
               "for(var i=0;i<5;i++){var el=document.getElementById('ssid'+i);if(el&&el.value.trim()===''){el.value=name;document.getElementById('pass'+i).focus();return;}}"
               "var f=document.getElementById('ssid0');if(f){f.value=name;document.getElementById('pass0').focus();}}"
               "function scanWifi(){"
@@ -321,8 +328,8 @@ void BootManager::handleWifiScan() {
     // Deduplicate by SSID keeping strongest RSSI (max 15 entries to keep heap small)
     struct ScanEntry {
         String ssid;
-        int32_t rssi;
-        bool open;
+        int32_t rssi = 0;
+        bool open = false;
     };
     ScanEntry entries[15];
     int count = 0;
@@ -413,6 +420,26 @@ void BootManager::handlePortalStatus() {
 void BootManager::handleSaveWifi() {
     touchProvisioningActivity();
 
+    // Load previously saved credentials so leaving password blank on an existing SSID preserves it
+    String prevSsids[5];
+    String prevPasses[5];
+    int prevCount = 0;
+    {
+        Preferences readPrefs;
+        if (readPrefs.begin("AchaemenidNet", true)) {
+            prevCount = readPrefs.getInt("wifiCount", 0);
+            if (prevCount > 5) prevCount = 5;
+            char prevKey[16];
+            for (int i = 0; i < prevCount; ++i) {
+                snprintf(prevKey, sizeof(prevKey), "ssid%d", i);
+                prevSsids[i] = readPrefs.getString(prevKey, "");
+                snprintf(prevKey, sizeof(prevKey), "pass%d", i);
+                prevPasses[i] = readPrefs.getString(prevKey, "");
+            }
+            readPrefs.end();
+        }
+    }
+
     String ssids[5];
     String passwords[5];
     int count = 0;
@@ -425,6 +452,15 @@ void BootManager::handleSaveWifi() {
         String password = provisioningServer_.arg(keyBuf);
         ssid.trim();
         if (ssid.length() == 0) continue;
+
+        if (password.length() == 0) {
+            for (int j = 0; j < prevCount; ++j) {
+                if (prevSsids[j] == ssid && prevPasses[j].length() > 0) {
+                    password = prevPasses[j];
+                    break;
+                }
+            }
+        }
 
         if (!uniuno::captive_portal::isValidWifiCredential(ssid.c_str(), password.c_str())) {
             provisioningServer_.send(
@@ -459,6 +495,14 @@ void BootManager::handleSaveWifi() {
         return;
     }
 
+    String rawMdns = provisioningServer_.arg("mdnsHost");
+    rawMdns.trim();
+    if (rawMdns.length() > 0) {
+        char cleanMdns[33];
+        uniuno::captive_portal::normalizeMdnsHostname(rawMdns.c_str(), cleanMdns, sizeof(cleanMdns));
+        prefs.putString("mdnsHost", cleanMdns);
+    }
+
     prefs.putInt("wifiCount", count);
     for (int i = 0; i < count; ++i) {
         snprintf(keyBuf, sizeof(keyBuf), "ssid%d", i);
@@ -487,8 +531,13 @@ void BootManager::handleSaveWifi() {
         "<h2 style='color:#22c55e'>تنظیمات وای‌فای با موفقیت ذخیره شد</h2>"
         "<p>دستگاه در حال راه‌اندازی مجدد و اتصال به شبکه وای‌فای شماست...</p>"
         "</body></html>");
-    delay(350);
-    ESP.restart();
+
+    if (ctx_.appTimer != nullptr) {
+        ctx_.appTimer->setTimeout(uniuno::makeStaticFunction(&BootManager::restartFn), 600);
+    } else {
+        delay(350);
+        ESP.restart();
+    }
 }
 
 void BootManager::registerCaptivePortalRoutes() {
@@ -676,7 +725,7 @@ __attribute__((noinline)) void BootManager::loadOfflineConfigFromNvs() {
     }
 }
 
-void BootManager::startBootSequenceAsync(BootContext ctx) {
+void BootManager::startBootSequenceAsync(const BootContext& ctx) {
     ctx_ = ctx;
     networkReady_ = (ctx_.network != nullptr);
 

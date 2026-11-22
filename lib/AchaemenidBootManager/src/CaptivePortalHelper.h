@@ -361,7 +361,8 @@ inline bool shouldAutoRetrySavedWifiFromProvisioning(
     if (!hasSavedWifi) return false;
     if (connectedClients > 0) return false;
     if (idleTimeoutMs == 0) return false;
-    return static_cast<unsigned long>(nowMs - lastActivityMs) >= idleTimeoutMs;
+    const uint32_t elapsedMs = static_cast<uint32_t>(nowMs) - static_cast<uint32_t>(lastActivityMs);
+    return elapsedMs >= static_cast<uint32_t>(idleTimeoutMs);
 }
 
 } // namespace captive_portal
