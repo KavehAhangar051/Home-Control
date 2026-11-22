@@ -11,6 +11,7 @@ import SegmentActions from "@/features/iot/components/sortable-segment-card/comp
 import { useAutoOffTimer } from "@/features/iot/components/sortable-segment-card/hooks/useAutoOffTimer";
 import { useCardHeaderLayout } from "@/features/iot/components/sortable-segment-card/hooks/useCardHeaderLayout";
 import { useOptimisticPinState } from "@/features/iot/components/sortable-segment-card/hooks/useOptimisticPinState";
+import { usePinCommandAck } from "@/features/iot/components/sortable-segment-card/hooks/usePinCommandAck";
 import useSegmentButtonProps from "@/features/iot/components/sortable-segment-card/hooks/useSegmentButtonProps";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
@@ -76,6 +77,8 @@ export default React.memo(function TrellisSegmentTile({
     onTogglePin: handleTogglePinOptimistic,
     onSetPinState: handleSetPinStateOptimistic,
   });
+
+  const isAckFlashing = usePinCommandAck(segment.pin);
 
   const { countdown } = useAutoOffTimer({
     isPinOn: effectivePinOn,
@@ -185,6 +188,7 @@ export default React.memo(function TrellisSegmentTile({
           segment={segment}
           isPinOn={effectivePinOn}
           isPending={isPending}
+          isAckFlashing={isAckFlashing}
           isCompact={compact}
           isUltraCompact={false}
           mode={mode}

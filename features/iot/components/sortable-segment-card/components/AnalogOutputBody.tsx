@@ -22,6 +22,7 @@ interface AnalogOutputBodyProps {
   segment: SegmentData;
   isPinOn: boolean;
   isPending?: boolean;
+  isAckFlashing?: boolean;
   isCompact?: boolean;
   isUltraCompact?: boolean;
   hasExternalHeader?: boolean;
@@ -39,6 +40,7 @@ function AnalogOutputBody({
   segment,
   isPinOn,
   isPending = false,
+  isAckFlashing = false,
   isCompact = false,
   isUltraCompact = false,
   hasExternalHeader = false,
@@ -145,11 +147,13 @@ function AnalogOutputBody({
     ? "bg-accent3 text-accent3-foreground dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
     : "bg-secondary text-text-secondary border border-border-color";
 
-  const statusDotClass = isPending
-    ? "bg-accent3 animate-pulse transform-gpu"
-    : effectiveOn
-      ? "bg-success"
-      : "bg-text-muted opacity-45";
+  const statusDotClass = isAckFlashing
+    ? "bg-success ring-4 ring-success/35 scale-125 transform-gpu"
+    : isPending
+      ? "bg-accent3 animate-pulse transform-gpu"
+      : effectiveOn
+        ? "bg-success"
+        : "bg-text-muted opacity-45";
 
   const autoOffValue = segment.auto_off || 0;
   const showAutoOffBadge =
@@ -201,7 +205,9 @@ function AnalogOutputBody({
 
           {!isUltraCompact && (
             <div className="mt-0.5 flex items-center gap-1.5 min-w-0 text-[11px] text-text-muted">
-              <span className={`size-1.5 rounded-full shrink-0 ${statusDotClass}`} />
+              <span
+                className={`size-1.5 rounded-full shrink-0 transition-[background-color,transform,box-shadow,opacity] duration-200 ${statusDotClass}`}
+              />
               <span className="truncate tabular-nums">
                 {countdown !== null && countdown !== undefined
                   ? `${countdown} ثانیه تا خاموشی`

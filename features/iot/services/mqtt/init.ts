@@ -1,3 +1,4 @@
+import { notifyPinCommandAck } from "../pinAckBus";
 import { type IoTStoreBridge, getIoTStoreSnapshot } from "../storeBridge";
 import {
   type StateChangeCallback,
@@ -311,6 +312,7 @@ export interface MqttMessageHandlerDeps {
     state: boolean,
     telemetry?: Omit<PinTelemetryPatch, "state">,
   ) => void;
+  onCommandAck?: (pinId: string) => void;
   flushStateUpdates?: () => void;
   publishFrame: (topic: string, buf: Uint8Array, qos: 0 | 1 | 2) => void;
   scheduleMicrotask?: (fn: () => void) => void;
@@ -385,12 +387,11 @@ export function createMqttMessageHandler(
     } else if (topic === deps.stateTopic) {
       const parsedState = parseMqttStateMessage(payload);
 
-      if (parsedState.kind === "pin_update") {
-        const label = parsedState.isAck
-          ? "command_ack"
-          : parsedState.source === "binary"
-            ? "state update"
-            : "JSON state update";
+      if (parsedState.kind === "command_ack") {
+        logMqttDebug(`[MQTT] Received command_ack from ESP32: pin=${parsedState.pinId}`);
+        (deps.onCommandAck ?? notifyPinCommandAck)(parsedState.pinId);
+      } else if (parsedState.kind === "pin_update") {
+        const label = parsedState.source === "binary" ? "state update" : "JSON state update";
         logMqttDebug(
           `[MQTT] Received ${label} from ESP32: pin=${parsedState.pinId} state=${parsedState.state}${parsedState.value !== undefined ? ` value=${parsedState.value}` : ""}`,
         );
@@ -399,7 +400,7 @@ export function createMqttMessageHandler(
           analogValue: parsedState.value,
           clearAnalogOnOff: parsedState.value === undefined && !parsedState.state,
           resolution: parsedState.resolution,
-          clearAutoOffTimer: !parsedState.isAck || !parsedState.state,
+          clearAutoOffTimer: true,
         });
       } else if (parsedState.kind === "state_sync") {
         const snapshot = deps.getSnapshot();

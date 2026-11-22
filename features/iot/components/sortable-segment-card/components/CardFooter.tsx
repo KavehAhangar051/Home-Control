@@ -5,6 +5,7 @@ interface CardFooterProps {
   segment: SegmentData;
   isPinOn: boolean;
   isPending?: boolean;
+  isAckFlashing?: boolean;
   mode: "switch" | "push";
   countdown?: number | null;
   animationsEnabled?: boolean;
@@ -29,7 +30,14 @@ function getStatusText(
   return isPinOn ? "روشن" : "خاموش";
 }
 
-function getStatusDotClass(isPinOn: boolean, mode: "switch" | "push", isPending = false): string {
+function getStatusDotClass(
+  isPinOn: boolean,
+  mode: "switch" | "push",
+  isPending = false,
+  isAckFlashing = false,
+): string {
+  if (isAckFlashing) return "bg-success ring-4 ring-success/35 scale-125 transform-gpu";
+
   if (isPending) return "bg-accent3 animate-pulse transform-gpu";
 
   if (!isPinOn) return "bg-text-muted opacity-45";
@@ -102,6 +110,7 @@ function CardFooter({
   segment,
   isPinOn,
   isPending = false,
+  isAckFlashing = false,
   mode,
   countdown,
   animationsEnabled = true,
@@ -112,7 +121,7 @@ function CardFooter({
   const autoOffValue = segment.auto_off || 0;
   const isSmallTrack = isCompact || isUltraCompact;
   const statusText = getStatusText(isPinOn, mode, countdown);
-  const dotClass = getStatusDotClass(isPinOn, mode, isPending);
+  const dotClass = getStatusDotClass(isPinOn, mode, isPending, isAckFlashing);
 
   const showAutoOffBadge =
     !isUltraCompact && autoOffValue > 0 && (countdown === null || countdown === undefined);
@@ -126,7 +135,7 @@ function CardFooter({
       {/* RTL Right: Minimal Live Status + Signature GPIO Keycap Metadata */}
       <div className="flex items-center gap-1.5 min-w-0 text-right">
         <span
-          className={`size-2 rounded-full shrink-0 transition-colors duration-150 ${dotClass}`}
+          className={`size-2 rounded-full shrink-0 transition-[background-color,transform,box-shadow,opacity] duration-200 ${dotClass}`}
         />
         <span
           className={`font-sans font-medium tabular-nums truncate ${

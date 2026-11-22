@@ -14,6 +14,7 @@ interface PinToggleProps {
   segment: SegmentData;
   isPinOn: boolean;
   isPending?: boolean;
+  isAckFlashing?: boolean;
   buttonProps: PinToggleButtonProps;
   animationsEnabled?: boolean;
   isCompact?: boolean;
@@ -40,6 +41,7 @@ function PinToggle({
   segment,
   isPinOn,
   isPending = false,
+  isAckFlashing = false,
   buttonProps,
   animationsEnabled = true,
   isCompact = false,
@@ -101,6 +103,7 @@ function PinToggle({
         segment={segment}
         isPinOn={isPinOn}
         isPending={isPending}
+        isAckFlashing={isAckFlashing}
         mode={mode}
         countdown={countdown}
         animationsEnabled={animationsEnabled}
