@@ -84,7 +84,7 @@ function ActiveCard({
       initial={animationsEnabled ? CARD_MOTION_INITIAL : false}
       animate={animationsEnabled ? CARD_MOTION_ANIMATE : false}
       exit={animationsEnabled ? CARD_MOTION_EXIT : undefined}
-      className="relative h-full [backface-visibility:hidden]"
+      className="relative h-full [backface-visibility:hidden] transform-gpu will-change-transform"
     >
       <Card
         className={`@container/segment group relative flex h-full flex-col justify-between !overflow-visible !gap-0 !rounded-xl !p-0 !ring-0 border transition-[border-color,background-color] duration-200 ease-out ${activeSurfaceClass}`}

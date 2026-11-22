@@ -212,18 +212,22 @@
 
   @keyframes fade-in {
     from {
+      transform: translate3d(0, 0, 0);
       opacity: 0;
     }
     to {
+      transform: translate3d(0, 0, 0);
       opacity: 1;
     }
   }
 
   @keyframes fade-out {
     from {
+      transform: translate3d(0, 0, 0);
       opacity: 1;
     }
     to {
+      transform: translate3d(0, 0, 0);
       opacity: 0;
     }
   }
@@ -568,6 +572,20 @@
   backface-visibility: hidden;
 }
 
+/* Hardware-promoted VRAM compositor layers for cards, tiles, toggles and surfaces */
+.switch-toggle,
+.cn-card,
+[data-slot="card"],
+[data-slot="dialog-content"],
+[data-slot="popover-content"],
+[data-slot="dropdown-menu-content"],
+[data-slot="drawer-content"],
+.bezel-shell,
+.bezel-core {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
 /* Native Popover API entry/exit transitions (GPU-composited 3D transforms) */
 [popover] {
   transition:
@@ -610,7 +628,10 @@
 .animate-slide-in,
 .animate-slide-out,
 .animate-dialog-in,
-.animate-dialog-out {
+.animate-dialog-out,
+.animate-fade-in,
+.animate-fade-out {
+  transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
   will-change: transform, opacity;
 }

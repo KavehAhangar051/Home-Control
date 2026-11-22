@@ -90,7 +90,7 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
       >
         <m.div
           className="absolute inset-0 rounded-lg bg-accent3-medium"
-          style={{ x: fillX, willChange: "transform" }}
+          style={{ x: fillX, willChange: "transform", backfaceVisibility: "hidden" }}
         />
       </div>
       {/* Tick centres follow the same inset path as the handle centre. */}
@@ -113,7 +113,7 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
         animate={reduce ? undefined : { scaleY: dragging ? 1.35 : 1 }}
         transition={SPRING_BOUNCY}
         className="absolute left-0 top-1/2 h-6 w-1 rounded-full bg-accent3 outline-none ring-inset ring-accent3/30 focus-visible:ring-4"
-        style={{ x: thumbX, y: "-50%", willChange: "transform" }}
+        style={{ x: thumbX, y: "-50%", willChange: "transform", backfaceVisibility: "hidden" }}
       />
     </div>
   );
