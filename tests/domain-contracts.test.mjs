@@ -19,6 +19,10 @@ import {
 } from "../features/iot/components/workflows/workflowEngine.ts";
 import { buildEspConfig } from "../features/iot/hooks/achaemenidState/core/buildEspConfig.ts";
 import {
+  createHardwareSegmentId,
+  planAddSegment,
+} from "../features/iot/hooks/achaemenidState/core/segmentOperations.ts";
+import {
   deserializeFromCloudflare,
   normalizeSegmentRule,
   resolveSegmentGroup,
@@ -1177,5 +1181,48 @@ describe("n8n Workflow Studio Evaluation & Wiring Contracts", () => {
     assert.equal(inferAutomationEditType({ id: "1", title: "a", intervalMinutes: 15 }), "weather");
     assert.equal(inferAutomationEditType({ id: "2", title: "b", repeatCount: 1 }), "timer");
     assert.equal(inferAutomationEditType({ id: "3", title: "c" }), "schedule");
+  });
+});
+
+describe("Deterministic Hardware Segment ID Generation Contracts", () => {
+  it("generates gpio_<pin> IDs for new hardware segments while keeping placeholders random and honoring createId overrides", () => {
+    assert.equal(createHardwareSegmentId("5"), "gpio_5");
+    assert.equal(createHardwareSegmentId(18), "gpio_18");
+
+    const fallbackRandom = createHardwareSegmentId("", () => 0.123456);
+    assert.equal(fallbackRandom.startsWith("gpio_"), false);
+    assert.ok(fallbackRandom.length > 0);
+
+    const hwDecision = planAddSegment({
+      input: { type: "relay", pin: "5", title: "رله ۵" },
+      segments: [],
+      targetPlaceholderId: null,
+    });
+    assert.equal(hwDecision.ok, true);
+    if (hwDecision.ok) {
+      assert.equal(hwDecision.newSegment.id, "gpio_5");
+    }
+
+    const phDecision = planAddSegment({
+      input: { type: "placeholder", pin: "", title: "جایگاه خالی" },
+      segments: [],
+      targetPlaceholderId: null,
+    });
+    assert.equal(phDecision.ok, true);
+    if (phDecision.ok) {
+      assert.equal(phDecision.newSegment.id.startsWith("gpio_"), false);
+      assert.ok(phDecision.newSegment.id.length > 0);
+    }
+
+    const customDecision = planAddSegment({
+      input: { type: "relay", pin: "5", title: "رله سفارشی" },
+      segments: [],
+      targetPlaceholderId: null,
+      createId: () => "custom_seg_id",
+    });
+    assert.equal(customDecision.ok, true);
+    if (customDecision.ok) {
+      assert.equal(customDecision.newSegment.id, "custom_seg_id");
+    }
   });
 });

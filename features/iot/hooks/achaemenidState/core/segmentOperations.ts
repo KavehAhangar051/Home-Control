@@ -52,6 +52,22 @@ export function createSegmentId(randomFn: () => number = Math.random): string {
 }
 
 /**
+ * Generates deterministic pin-based IDs (`gpio_<pin>`) for physical ESP32 GPIO segments (`0..39`)
+ * so re-added hardware segments match firmware NVS records, falling back to random IDs otherwise.
+ */
+export function createHardwareSegmentId(
+  pin: string | number | undefined,
+  randomFn: () => number = Math.random,
+): string {
+  const parsed = pin !== undefined && String(pin).trim() !== "" ? Number(pin) : Number.NaN;
+  if (Number.isInteger(parsed) && parsed >= 0 && parsed <= 39) {
+    return `gpio_${parsed}`;
+  }
+
+  return createSegmentId(randomFn);
+}
+
+/**
  * Pure domain decision for adding or replacing a placeholder segment.
  * Enforces hardware GPIO validation, preserves placeholder group ownership,
  * and formats deterministic default titles.
@@ -62,7 +78,7 @@ export function planAddSegment(params: {
   targetPlaceholderId: string | null;
   createId?: () => string;
 }): AddSegmentDecision {
-  const { input, segments, targetPlaceholderId, createId = createSegmentId } = params;
+  const { input, segments, targetPlaceholderId, createId } = params;
 
   if (input.pin && input.type !== "placeholder") {
     const validation = validateEsp32Pin(input.pin, input.type);
@@ -87,8 +103,14 @@ export function planAddSegment(params: {
     : undefined;
   const adcConfig = isAnalogInput ? normalizeAnalogInputConfig(input.analogInputConfig) : undefined;
 
+  const resolvedId = createId
+    ? createId()
+    : input.type === "placeholder"
+      ? createSegmentId()
+      : createHardwareSegmentId(input.pin);
+
   const newSegment: Segment = {
-    id: createId(),
+    id: resolvedId,
     type: isAnalogOutput ? ANALOG_OUTPUT_TYPE : isAnalogInput ? ANALOG_INPUT_TYPE : input.type,
     pin: input.pin,
     title:
