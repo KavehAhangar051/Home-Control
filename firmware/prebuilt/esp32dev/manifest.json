@@ -5,7 +5,7 @@
   "flash_mode": "dio",
   "flash_freq": "40m",
   "flash_size": "4MB",
-  "built_at_utc": "2026-11-22T12:22:48Z",
+  "built_at_utc": "2026-11-22T12:44:28Z",
   "images": [
     {
       "offset": "0x1000",
@@ -29,7 +29,7 @@
       "offset": "0x10000",
       "file": "firmware.bin",
       "size": 1171136,
-      "sha256": "cecad54f9f66c7791595b189a6c51296a73c9bee823fe87373d06a0dc32296d2"
+      "sha256": "045c6c37832ca2c1e40d15c78ae53bd8faf2b5e56a1b3bbdb8da45cb40d14fa6"
     }
   ]
 }

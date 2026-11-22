@@ -2,7 +2,7 @@
   "aborts": 0,
   "cwd": "/app/applet",
   "end_reason": "completed",
-  "ended": 1795350296.2648726,
+  "ended": 1795351233.4842942,
   "folded": true,
   "host": "claude",
   "judge_tokens": 0.0,
@@ -11,52 +11,7 @@
   "source": "startup",
   "started": 1795349617.350398,
   "transcript": "/app/applet/.agent-state/tokeneconomizer/transcripts/ais-20261122-121337-f01b67.jsonl",
-  "turn": {
-    "abort_delivered": false,
-    "aborted": false,
-    "cum_turns": 1,
-    "edits": 0,
-    "events": [],
-    "held": null,
-    "judge_calls": 0,
-    "judge_gap": 5,
-    "judge_last": -999,
-    "judge_pending": null,
-    "judge_tokens": 0.0,
-    "last_edit": 0,
-    "last_verify": 0,
-    "last_verify_failed": false,
-    "nudge_ready": null,
-    "nudges_done": 0,
-    "segment": 0,
-    "st": {
-      "edit_counts": {},
-      "edit_order": [],
-      "error_outputs": 0,
-      "fail_sigs": {},
-      "recent": [
-        "  1: $ bash -c 'pio test -e native -f test_boot_captive_portal && pio test -e native_core3 -f tes"
-      ],
-      "repeated_fail_sigs": 0,
-      "test_runs": 0,
-      "turns": 1
-    },
-    "turn_key": "",
-    "verifications": 0,
-    "whole": {
-      "edit_counts": {},
-      "edit_order": [],
-      "error_outputs": 0,
-      "fail_sigs": {},
-      "recent": [
-        "  1: $ bash -c 'pio test -e native -f test_boot_captive_portal && pio test -e native_core3 -f tes"
-      ],
-      "repeated_fail_sigs": 0,
-      "test_runs": 0,
-      "turns": 1
-    },
-    "writer_tokens": 0.0
-  },
+  "turn": null,
   "turns": [
     {
       "aborted": false,
@@ -68,8 +23,19 @@
       "turn_key": "",
       "verifications": 0,
       "writer_tokens": 0.0
+    },
+    {
+      "aborted": false,
+      "edits": 0,
+      "judge_tokens": 0.0,
+      "nudges": 0,
+      "resolved_proxy": true,
+      "tool_calls": 1,
+      "turn_key": "",
+      "verifications": 0,
+      "writer_tokens": 0.0
     }
   ],
-  "updated": 1795350296.6562088,
+  "updated": 1795351233.4842982,
   "writer_tokens": 0.0
 }
