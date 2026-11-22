@@ -215,4 +215,77 @@ struct CloudSyncRequestEvent {
         : pin(p), state(s), analogValue(analogVal), resolution(res) {}
 };
 
+/**
+ * @struct AuxNodeUpsertRequestEvent
+ * @brief Request to register or update an auxiliary ESP node (MAC address, capacity, chip type, name).
+ */
+struct AuxNodeUpsertRequestEvent {
+    static constexpr const char* Name = "aux_node.upsert_request";
+    uint8_t nodeId;
+    uint8_t mac[6];
+    uint8_t pinCapacity;
+    AuxChipType chipType;
+    const char* name;
+};
+
+/**
+ * @struct AuxNodeRemoveRequestEvent
+ * @brief Request to remove an auxiliary ESP node by nodeId or fallback MAC, optionally cascading its virtual segments.
+ */
+struct AuxNodeRemoveRequestEvent {
+    static constexpr const char* Name = "aux_node.remove_request";
+    uint8_t nodeId;
+    uint8_t mac[6];
+    bool hasMac;
+    bool cascadeSegments;
+};
+
+/**
+ * @struct VirtualSegmentAddRequestEvent
+ * @brief Request to dynamically register or replace a virtual segment bound to (nodeId, remotePin).
+ */
+struct VirtualSegmentAddRequestEvent {
+    static constexpr const char* Name = "virtual_segment.add_request";
+    const char* id;
+    const char* type;
+    int virtualPin;
+    uint8_t nodeId;
+    uint8_t remotePin;
+    uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION;
+    uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY;
+    uint16_t initialValue = 0;
+    uint8_t adcResolution = DEFAULT_ADC_RESOLUTION;
+    uint16_t adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
+    uint16_t adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
+    uint16_t adcHighThreshold = 0;
+    uint16_t adcLowThreshold = 0;
+};
+
+/**
+ * @struct VirtualPinCommandEvent
+ * @brief Dispatched when a virtual output/PWM segment changes state on the hub.
+ * Phase 2 ESP-NOW / ESP-MESH transport subscribes to this event to transmit the command to mac[6].
+ */
+struct VirtualPinCommandEvent {
+    static constexpr const char* Name = "virtual_pin.command";
+    int virtualPin;
+    uint8_t nodeId;
+    uint8_t mac[6];
+    uint8_t remotePin;
+    uint8_t segmentType; // Cast of SegmentType
+    bool state;
+    int16_t analogValue;
+    uint8_t resolution;
+};
+
+/**
+ * @struct AuxNodesBootstrappedEvent
+ * @brief Dispatched on hub boot once persisted auxiliary ESP node MACs are restored from NVS.
+ * Phase 2 ESP-NOW transport subscribes to register peers and broadcast hub-online announcements.
+ */
+struct AuxNodesBootstrappedEvent {
+    static constexpr const char* Name = "aux_nodes.bootstrapped";
+    int nodeCount;
+};
+
 #endif // APP_EVENTS_H

@@ -44,7 +44,7 @@ static bool readAction(const uint8_t* payload, size_t len, size_t& offset, RuleA
     }
     offset += actionSize;
 
-    if (targetPin < 0 || targetPin > 39 || !isValidHoldTime(holdTime) ||
+    if (!isValidManagedPin(targetPin) || !isValidHoldTime(holdTime) ||
         actionType > ACTION_FOR_DURATION || delay < 0 || delay > 60) {
         return false;
     }
@@ -88,8 +88,8 @@ HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateRule(
 
     size_t offset = 1;
     const int inputPin = payload[offset++];
-    if (inputPin > 39) {
-        WARNINGF("[MQTT Handler] Rejected UPDATE_RULE: invalid input GPIO %d", inputPin);
+    if (!isValidManagedPin(inputPin)) {
+        WARNINGF("[MQTT Handler] Rejected UPDATE_RULE: invalid input pin %d", inputPin);
         return;
     }
 
@@ -155,7 +155,7 @@ HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateAnalogRangeRules(
 
     const int inputPin = payload[1];
     const uint8_t rangeCount = payload[2];
-    if (inputPin > 39 || rangeCount > MAX_ANALOG_RANGE_RULES) {
+    if (!isValidManagedPin(inputPin) || rangeCount > MAX_ANALOG_RANGE_RULES) {
         WARNINGF("[MQTT Handler] Rejected UPDATE_ANALOG_RANGE_RULES: pin=%d count=%u", inputPin, rangeCount);
         return;
     }
@@ -185,7 +185,7 @@ HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateAnalogRangeRules(
 
         if (minVal > MAX_ANALOG_INPUT_VALUE || maxVal > MAX_ANALOG_INPUT_VALUE ||
             hyst > (MAX_ANALOG_INPUT_VALUE / 2U) ||
-            targetPin < 0 || targetPin > 39 ||
+            !isValidManagedPin(targetPin) ||
             actionType > ACTION_FOR_DURATION || delay > 60) {
             WARNING("[MQTT Handler] Rejected UPDATE_ANALOG_RANGE_RULES: invalid range entry");
             return;

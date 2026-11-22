@@ -109,8 +109,8 @@ HOT_PATH IRAM_ATTR void StateParsers::parseSetAnalogOutput(const uint8_t* payloa
 HOT_PATH IRAM_ATTR void StateParsers::parseReadAnalogInput(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
     if (LIKELY(len >= 2)) {
         const int pinNum = payload[1];
-        if (UNLIKELY(pinNum > 39)) {
-            WARNINGF("[MQTT Handler] Rejected READ_ANALOG_INPUT (0x0D): invalid GPIO %d", pinNum);
+        if (UNLIKELY(!isValidManagedPin(pinNum))) {
+            WARNINGF("[MQTT Handler] Rejected READ_ANALOG_INPUT (0x0D): invalid pin %d", pinNum);
             return;
         }
         AnalogInputReadRequestEvent evt{pinNum};

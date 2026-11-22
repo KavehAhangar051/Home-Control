@@ -63,6 +63,15 @@
       "stagnation": 0.0,
       "test_runs": 0,
       "turns": 54
+    },
+    {
+      "distinct_edit_files": 0,
+      "edit_churn": 0,
+      "error_outputs": 0,
+      "repeated_fail_sigs": 0,
+      "stagnation": 0.0,
+      "test_runs": 3,
+      "turns": 13
     }
   ],
   "resolved_turns": [
@@ -72,6 +81,7 @@
     1,
     8,
     1,
-    54
+    54,
+    13
   ]
 }

@@ -97,6 +97,61 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
             if (kvp.getValue("n", markerBuf, sizeof(markerBuf))) {
                 outResult.segmentsProvided = true;
             }
+        } else if (strncmp(p, "E ", 2) == 0) {
+            char markerBuf[8] = {0};
+            if (kvp.getValue("n", markerBuf, sizeof(markerBuf))) {
+                outResult.auxNodesProvided = true;
+            }
+
+            char macBuf[32] = {0};
+            const int rawNodeId = kvp.getInt("id", 0);
+            const bool hasMac = kvp.getValue("mac", macBuf, sizeof(macBuf));
+            if (hasMac && isValidAuxNodeId(rawNodeId)) {
+                outResult.auxNodesProvided = true;
+                uint8_t parsedMac[6] = {0};
+                const int rawCap = kvp.getInt("cap", 4);
+                const int rawChip = kvp.getInt("chip", 0);
+                char nameEncBuf[96] = {0};
+                char nameBuf[32] = {0};
+                if (kvp.getValue("name", nameEncBuf, sizeof(nameEncBuf))) {
+                    decodeValue(nameEncBuf, nameBuf, sizeof(nameBuf));
+                }
+
+                if (parseMacAddress(macBuf, parsedMac) &&
+                    rawCap >= 1 && rawCap <= static_cast<int>(MAX_AUX_NODE_PIN_CAPACITY)) {
+                    int targetIdx = -1;
+                    for (int idx = 0; idx < outResult.auxNodeCount; ++idx) {
+                        if (outResult.auxNodes[idx].nodeId == static_cast<uint8_t>(rawNodeId) ||
+                            macEquals(outResult.auxNodes[idx].mac, parsedMac)) {
+                            targetIdx = idx;
+                            break;
+                        }
+                    }
+                    if (targetIdx < 0 && outResult.auxNodeCount < MAX_AUX_NODES) {
+                        targetIdx = outResult.auxNodeCount++;
+                    }
+                    if (targetIdx >= 0) {
+                        AuxNodeConfig& node = outResult.auxNodes[targetIdx];
+                        node.reset();
+                        node.nodeId = static_cast<uint8_t>(rawNodeId);
+                        memcpy(node.mac, parsedMac, 6);
+                        node.pinCapacity = static_cast<uint8_t>(rawCap);
+                        node.chipType = (rawChip >= 0 && rawChip <= static_cast<int>(AUX_CHIP_MAX))
+                            ? static_cast<AuxChipType>(rawChip)
+                            : AUX_CHIP_UNKNOWN;
+                        if (nameBuf[0] != '\0') {
+                            net_config::copySafeString(node.name, sizeof(node.name), nameBuf);
+                        } else {
+                            snprintf(node.name, sizeof(node.name), "Node-%d", rawNodeId);
+                        }
+                        node.online = false;
+                        node.valid = true;
+                    }
+                } else {
+                    Serial.printf("[ACP] Warning: Rejected invalid aux node line (id=%d mac=%s cap=%d).\n",
+                                  rawNodeId, macBuf, rawCap);
+                }
+            }
         } else if (strncmp(p, "S ", 2) == 0) {
             segIndex++;
             if (segIndex >= MAX_SEGMENTS) {
@@ -112,8 +167,19 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
             bool hasPin = kvp.getValue("pin", pinBuf, sizeof(pinBuf));
             
             if (hasId && hasType && hasPin) {
-                int pinNum = parsePinNumber(pinBuf);
-                bool valid = (strlen(idBuf) > 0) && (strlen(typeBuf) > 0) && (pinNum >= 0);
+                const int pinNum = parsePinNumber(pinBuf);
+                const int rawVirt = kvp.getInt("virt", 0);
+                const int rawNode = kvp.getInt("node", AUX_NODE_ID_LOCAL);
+                const int rawRpin = kvp.getInt("rpin", -1);
+                const bool isVirt = (rawVirt == 1) || isVirtualPin(pinNum);
+
+                bool valid = (strlen(idBuf) > 0) && (strlen(typeBuf) > 0);
+                if (isVirt) {
+                    valid = valid && isVirtualPin(pinNum) &&
+                            isValidAuxNodeId(rawNode) && isValidAuxRemotePin(rawRpin);
+                } else {
+                    valid = valid && isLocalGpioPin(pinNum);
+                }
                 
                 strncpy(outResult.segments[segIndex].id, idBuf, sizeof(outResult.segments[segIndex].id) - 1);
                 strncpy(outResult.segments[segIndex].type, typeBuf, sizeof(outResult.segments[segIndex].type) - 1);
@@ -151,6 +217,9 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                 if (rawAtl > rawAth) rawAtl = rawAth;
 
                 outResult.segments[segIndex].pin = pinNum;
+                outResult.segments[segIndex].isVirtual = isVirt;
+                outResult.segments[segIndex].nodeId = isVirt ? static_cast<uint8_t>(rawNode) : AUX_NODE_ID_LOCAL;
+                outResult.segments[segIndex].remotePin = isVirt ? static_cast<uint8_t>(rawRpin) : REMOTE_PIN_UNSET;
                 outResult.segments[segIndex].pwmResolution = isAnalogInput
                     ? DEFAULT_PWM_RESOLUTION
                     : static_cast<uint8_t>(rawRes);
@@ -170,6 +239,7 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                     outResult.segmentsProvided = true;
                     outResult.count++;
                 } else {
+                    outResult.segments[segIndex].reset();
                     segIndex--;
                 }
             } else {
@@ -182,7 +252,7 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                 
                 if (kvp.getValue("tgt", tgtBuf, sizeof(tgtBuf))) {
                     int targetPin = parsePinNumber(tgtBuf);
-                    if (targetPin >= 0) {
+                    if (isValidManagedPin(targetPin)) {
                         const int rawAval = kvp.getInt("aval", RULE_ANALOG_VALUE_UNSET);
                         const bool hasAnalogVal = (rawAval >= 0 && rawAval <= MAX_ANALOG_OUTPUT_VALUE);
                         const int16_t targetVal = hasAnalogVal ? static_cast<int16_t>(rawAval) : RULE_ANALOG_VALUE_UNSET;
@@ -239,7 +309,7 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                 if (kvp.getValue("tgt", tgtBuf, sizeof(tgtBuf))) {
                     const int targetPin = parsePinNumber(tgtBuf);
                     const uint8_t c = outResult.segments[segIndex].rule.analogRangeCount;
-                    if (targetPin >= 0 && targetPin <= 39 && c < MAX_ANALOG_RANGE_RULES) {
+                    if (isValidManagedPin(targetPin) && c < MAX_ANALOG_RANGE_RULES) {
                         const uint8_t res = outResult.segments[segIndex].adcResolution;
                         const int maxScale = static_cast<int>((1UL << res) - 1UL);
 

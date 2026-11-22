@@ -17,6 +17,9 @@ private:
     void parseDeleteSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
     void parseDashboardPresence(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
     void parseUpdateAnalogInputConfig(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+    void parseUpsertAuxNode(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+    void parseDeleteAuxNode(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+    void parseAddVirtualSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
 };
 
 } // namespace uniuno

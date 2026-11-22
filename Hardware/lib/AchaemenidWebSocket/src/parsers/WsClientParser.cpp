@@ -5,6 +5,7 @@
 #include <Optimization/CompilerTraits.h>
 #include <AchaemenidConfigProtocol.h>
 #include <cstdlib>
+#include <memory>
 
 namespace uniuno {
 
@@ -64,7 +65,7 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
             const uint16_t atl = static_cast<uint16_t>(static_cast<uint8_t>(data[8])) |
                 (static_cast<uint16_t>(static_cast<uint8_t>(data[9])) << 8);
             const uint8_t res = (len == 11) ? static_cast<uint8_t>(data[10]) : 0;
-            if (pin <= 39 && (res == 0 || (res >= MIN_ADC_RESOLUTION && res <= MAX_ADC_RESOLUTION))) {
+            if (isValidManagedPin(pin) && (res == 0 || (res >= MIN_ADC_RESOLUTION && res <= MAX_ADC_RESOLUTION))) {
                 SegmentUpdateAnalogInputConfigRequestEvent event{pin, sint, delta, ath, atl, res};
                 _dispatcher->dispatch(event);
             }
@@ -72,7 +73,7 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
         // On-demand analog input read: [0x0D][pin:u8]
         else if (len >= 2 && static_cast<uint8_t>(data[0]) == 0x0D) {
             const uint8_t pin = static_cast<uint8_t>(data[1]);
-            if (pin <= 39) {
+            if (isValidManagedPin(pin)) {
                 AnalogInputReadRequestEvent event{pin};
                 _dispatcher->dispatch(event);
             }
@@ -81,7 +82,7 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
         else if (len >= 3 && static_cast<uint8_t>(data[0]) == 0x0E) {
             const uint8_t pin = static_cast<uint8_t>(data[1]);
             const uint8_t rangeCount = static_cast<uint8_t>(data[2]);
-            if (pin <= 39 && rangeCount <= MAX_ANALOG_RANGE_RULES &&
+            if (isValidManagedPin(pin) && rangeCount <= MAX_ANALOG_RANGE_RULES &&
                 len == (3U + static_cast<size_t>(rangeCount) * 12U)) {
                 RuleConfig newRule;
                 bool valid = true;
@@ -107,7 +108,7 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
 
                     if (minVal > MAX_ANALOG_INPUT_VALUE || maxVal > MAX_ANALOG_INPUT_VALUE ||
                         hyst > (MAX_ANALOG_INPUT_VALUE / 2U) ||
-                        targetPin < 0 || targetPin > 39 ||
+                        !isValidManagedPin(targetPin) ||
                         actionType > ACTION_FOR_DURATION || delay > 60 ||
                         (targetValue != RULE_ANALOG_VALUE_UNSET &&
                          (targetValue < 0 || targetValue > MAX_ANALOG_OUTPUT_VALUE))) {
@@ -145,25 +146,29 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
         if (text.startsWith("ESP_CFG_V2")) {
             Serial.println("[WebSocket] Received Config payload");
             AchaemenidConfigProtocol configParser;
-            static ParseResult parsed;
-            parsed.reset();
-            if (configParser.parse(text.c_str(), parsed) &&
-                (parsed.segmentsProvided || parsed.wifiProvided || parsed.apProvided ||
-                 parsed.mdnsProvided || parsed.mqtt.valid)) {
+            std::unique_ptr<ParseResult> parsed(new (std::nothrow) ParseResult());
+            if (!parsed) {
+                Serial.println("[WebSocket] Out of heap memory parsing configuration payload.");
+                return;
+            }
+            parsed->reset();
+            if (configParser.parse(text.c_str(), *parsed) &&
+                (parsed->segmentsProvided || parsed->auxNodesProvided || parsed->wifiProvided ||
+                 parsed->apProvided || parsed->mdnsProvided || parsed->mqtt.valid)) {
                 ConfigLoadedEvent event;
-                event.parsed = &parsed;
+                event.parsed = parsed.get();
                 event.hasParsedConfig = true;
-                event.pinCount = parsed.count;
-                event.mqtt = parsed.mqtt;
-                event.wifiCount = parsed.wifiCount;
-                for (int i = 0; i < parsed.wifiCount; ++i) event.wifi[i] = parsed.wifi[i];
+                event.pinCount = parsed->count;
+                event.mqtt = parsed->mqtt;
+                event.wifiCount = parsed->wifiCount;
+                for (int i = 0; i < parsed->wifiCount; ++i) event.wifi[i] = parsed->wifi[i];
                 _dispatcher->dispatch(event);
             } else {
                 Serial.println("[WebSocket] Rejected invalid configuration payload.");
             }
         } else if (text.indexOf("\"state_sync\"") >= 0) {
             Serial.println("[WebSocket] Received state_sync payload from Cloudflare");
-            StaticJsonDocument<1536> doc;
+            StaticJsonDocument<2048> doc;
             DeserializationError error = deserializeJson(doc, text);
             if (!error) {
                 if (doc.containsKey("states")) {

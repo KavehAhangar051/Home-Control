@@ -3,6 +3,7 @@
 
 #include <INetworkManager.h>
 #include <PinManager.h>
+#include <AuxNodeManager.h>
 #include <Timer/Timer.h>
 #include <Events/IEventDispatcher.h>
 #include <Core/Async/Executor.h>
@@ -11,6 +12,7 @@
 #include <WebServer.h>
 #include <DNSServer.h>
 #include "ISegmentStorage.h"
+#include "IAuxNodeStorage.h"
 #include "CaptivePortalHelper.h"
 
 struct BootContext {
@@ -22,6 +24,8 @@ struct BootContext {
     uniuno::ISegmentStorage* segmentStorage;
     bool* configLoadedFlag;
     String* rawConfigPayload;
+    AuxNodeManager* auxNodeManager = nullptr;
+    uniuno::IAuxNodeStorage* auxNodeStorage = nullptr;
 };
 
 enum class BootState : uint8_t {

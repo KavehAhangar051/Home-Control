@@ -2,8 +2,21 @@
 #define CONFIG_TYPES_H
 
 #include <Arduino.h>
+#include <cstdio>
+#include <cstring>
 
-static const int MAX_SEGMENTS = 16;
+static const int MAX_SEGMENTS = 48;
+static constexpr int LOCAL_GPIO_MIN = 0;
+static constexpr int LOCAL_GPIO_MAX = 39;
+static constexpr int VIRTUAL_PIN_MIN = 40;
+static constexpr int VIRTUAL_PIN_MAX = 127;
+static constexpr int TOTAL_PIN_SLOTS = 128;
+
+static constexpr int MAX_AUX_NODES = 16;
+static constexpr uint8_t MAX_AUX_NODE_PIN_CAPACITY = 32;
+static constexpr uint8_t AUX_NODE_ID_LOCAL = 0;
+static constexpr uint8_t REMOTE_PIN_UNSET = 0xFF;
+
 static constexpr uint8_t DEFAULT_PWM_RESOLUTION = 8;
 static constexpr uint8_t MIN_PWM_RESOLUTION = 8;
 static constexpr uint8_t MAX_PWM_RESOLUTION = 12;
@@ -26,6 +39,124 @@ static constexpr uint16_t MAX_ANALOG_INPUT_VALUE = 4095;
 static constexpr int RULE_TRIGGER_DOUBLE_CLICK = -1; // Double-click trigger condition on digital inputs
 static constexpr uint16_t DEFAULT_DOUBLE_CLICK_WINDOW_MS = 400; // Max inter-click gap for double-click detection
 static constexpr uint8_t MAX_ANALOG_RANGE_RULES = 6; // Max independent value-range rules per analog_input pin
+
+inline constexpr bool isLocalGpioPin(int pin) {
+    return pin >= LOCAL_GPIO_MIN && pin <= LOCAL_GPIO_MAX;
+}
+
+inline constexpr bool isVirtualPin(int pin) {
+    return pin >= VIRTUAL_PIN_MIN && pin <= VIRTUAL_PIN_MAX;
+}
+
+inline constexpr bool isValidManagedPin(int pin) {
+    return pin >= LOCAL_GPIO_MIN && pin <= VIRTUAL_PIN_MAX;
+}
+
+inline constexpr bool isValidAuxNodeId(int nodeId) {
+    return nodeId >= 1 && nodeId <= MAX_AUX_NODES;
+}
+
+inline constexpr bool isValidAuxRemotePin(int remotePin) {
+    return remotePin >= 0 && remotePin <= LOCAL_GPIO_MAX;
+}
+
+enum AuxChipType : uint8_t {
+    AUX_CHIP_UNKNOWN = 0,
+    AUX_CHIP_ESP8266_01 = 1,
+    AUX_CHIP_ESP8266_12 = 2,
+    AUX_CHIP_ESP32 = 3,
+    AUX_CHIP_ESP32_C3 = 4,
+    AUX_CHIP_ESP32_S3 = 5,
+    AUX_CHIP_MAX = 5
+};
+
+inline bool isValidUnicastMac(const uint8_t mac[6]) {
+    if (mac == nullptr) return false;
+    bool allZero = true;
+    bool allFf = true;
+    for (int i = 0; i < 6; ++i) {
+        if (mac[i] != 0x00) allZero = false;
+        if (mac[i] != 0xFF) allFf = false;
+    }
+    if (allZero || allFf) return false;
+    // Reject IEEE 802 multicast MACs (LSB of first octet == 1)
+    if ((mac[0] & 0x01U) != 0U) return false;
+    return true;
+}
+
+inline bool macEquals(const uint8_t a[6], const uint8_t b[6]) {
+    if (a == nullptr || b == nullptr) return false;
+    return memcmp(a, b, 6) == 0;
+}
+
+inline int hexNibbleValue(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
+    if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
+    return -1;
+}
+
+inline bool parseMacAddress(const char* text, uint8_t outMac[6]) {
+    if (text == nullptr || outMac == nullptr) return false;
+    uint8_t parsed[6] = {0, 0, 0, 0, 0, 0};
+    const size_t len = strlen(text);
+    if (len == 17) {
+        const char sep = text[2];
+        if (sep != ':' && sep != '-') return false;
+        for (int i = 0; i < 6; ++i) {
+            const int hi = hexNibbleValue(text[i * 3]);
+            const int lo = hexNibbleValue(text[i * 3 + 1]);
+            if (hi < 0 || lo < 0) return false;
+            if (i < 5 && text[i * 3 + 2] != sep) return false;
+            parsed[i] = static_cast<uint8_t>((hi << 4) | lo);
+        }
+    } else if (len == 12) {
+        for (int i = 0; i < 6; ++i) {
+            const int hi = hexNibbleValue(text[i * 2]);
+            const int lo = hexNibbleValue(text[i * 2 + 1]);
+            if (hi < 0 || lo < 0) return false;
+            parsed[i] = static_cast<uint8_t>((hi << 4) | lo);
+        }
+    } else {
+        return false;
+    }
+
+    if (!isValidUnicastMac(parsed)) return false;
+    memcpy(outMac, parsed, 6);
+    return true;
+}
+
+inline void formatMacAddress(const uint8_t mac[6], char* outBuf, size_t outSize) {
+    if (outBuf == nullptr || outSize == 0) return;
+    if (mac == nullptr || outSize < 18) {
+        outBuf[0] = '\0';
+        return;
+    }
+    snprintf(outBuf, outSize, "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+struct AuxNodeConfig {
+    char name[32];
+    uint8_t mac[6];
+    uint8_t nodeId;
+    uint8_t pinCapacity;
+    AuxChipType chipType;
+    bool online : 1;
+    bool valid : 1;
+
+    void reset() {
+        name[0] = '\0';
+        memset(mac, 0, sizeof(mac));
+        nodeId = AUX_NODE_ID_LOCAL;
+        pinCapacity = 0;
+        chipType = AUX_CHIP_UNKNOWN;
+        online = false;
+        valid = false;
+    }
+
+    AuxNodeConfig() { reset(); }
+};
 
 inline bool isValidDigitalHoldTime(int32_t holdTime) {
     return holdTime == RULE_TRIGGER_DOUBLE_CLICK ||
@@ -68,7 +199,7 @@ struct AnalogRangeRule {
     uint16_t maxValue;                  // Inclusive upper bound (minValue..maxScale)
     uint16_t hysteresis;                // Exit margin to prevent boundary chatter (0..maxScale/2)
     int16_t targetValue;                // -1 = boolean actionState mode, 0..4095 = explicit PWM duty
-    int8_t targetPin;                   // Target output GPIO (0..39), -1 = unset
+    int8_t targetPin;                   // Target output pin (0..39 local or 40..127 virtual), -1 = unset
     uint8_t delay;                      // Seconds for AFTER_DELAY / FOR_DURATION (0..60)
     RuleActionType actionType;          // IMMEDIATE, AFTER_DELAY, FOR_DURATION
     AnalogRangeTriggerMode triggerMode; // RANGE_ON_ENTER (0) or RANGE_ON_EXIT (1)
@@ -145,9 +276,12 @@ struct SegmentConfig {
     uint16_t adcLowThreshold;
     uint8_t pwmResolution;
     uint8_t adcResolution;
+    uint8_t nodeId;
+    uint8_t remotePin;
     
     bool value : 1;
     bool valid : 1;
+    bool isVirtual : 1;
 
     void reset() {
         id[0] = '\0';
@@ -163,8 +297,11 @@ struct SegmentConfig {
         adcLowThreshold = 0;
         pwmResolution = DEFAULT_PWM_RESOLUTION;
         adcResolution = DEFAULT_ADC_RESOLUTION;
+        nodeId = AUX_NODE_ID_LOCAL;
+        remotePin = REMOTE_PIN_UNSET;
         value = false;
         valid = false;
+        isVirtual = false;
     }
 
     SegmentConfig() { reset(); }
@@ -211,11 +348,13 @@ struct WifiNetworkConfig {
 
 struct ParseResult {
     SegmentConfig segments[MAX_SEGMENTS];
+    AuxNodeConfig auxNodes[MAX_AUX_NODES];
     MqttConfig mqtt;
     WifiNetworkConfig wifi[5];
     
     int wifiCount;
     int count;
+    int auxNodeCount;
     char apSsid[33];
     char apPassword[64];
     char mdnsHost[33];
@@ -224,11 +363,15 @@ struct ParseResult {
     bool mdnsProvided;
     bool wifiProvided;
     bool segmentsProvided;
+    bool auxNodesProvided;
     bool success : 1;
 
     void reset() {
         for (int i = 0; i < MAX_SEGMENTS; ++i) {
             segments[i].reset();
+        }
+        for (int i = 0; i < MAX_AUX_NODES; ++i) {
+            auxNodes[i].reset();
         }
         mqtt.reset();
         for (int i = 0; i < 5; ++i) {
@@ -236,6 +379,7 @@ struct ParseResult {
         }
         wifiCount = 0;
         count = 0;
+        auxNodeCount = 0;
         apSsid[0] = '\0';
         apPassword[0] = '\0';
         mdnsHost[0] = '\0';
@@ -244,6 +388,7 @@ struct ParseResult {
         mdnsProvided = false;
         wifiProvided = false;
         segmentsProvided = false;
+        auxNodesProvided = false;
         success = false;
     }
 

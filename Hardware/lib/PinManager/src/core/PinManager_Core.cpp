@@ -1,6 +1,6 @@
 #include "../PinManager.h"
+#include <AuxNodeManager.h>
 #include <Utilities/logging.h>
-#include <Optimization/StaticString.h>
 #include <Timer/Timer.h>
 #include <cstdio>
 #include <cstring>
@@ -40,19 +40,46 @@ void PinManager::exportConfig(ParseResult& out) const {
         segment.autoOffDelay = entry->autoOffDelay;
         segment.value = false;
         segment.analogValue = 0;
-        if (entry->type == SegmentType::AnalogOutput && entry->hasPwm) {
-            segment.pwmResolution = entry->pwm.getResolution();
-            segment.pwmFrequency = entry->pwm.getFrequency();
+        segment.isVirtual = entry->isVirtual;
+        segment.nodeId = entry->isVirtual ? entry->nodeId : AUX_NODE_ID_LOCAL;
+        segment.remotePin = entry->isVirtual ? entry->remotePin : REMOTE_PIN_UNSET;
+
+        if (entry->type == SegmentType::AnalogOutput) {
+            if (entry->isVirtual) {
+                segment.pwmResolution = entry->virtualPwmResolution;
+                segment.pwmFrequency = entry->virtualPwmFrequency;
+            } else if (entry->hasPwm) {
+                segment.pwmResolution = entry->pwm.getResolution();
+                segment.pwmFrequency = entry->pwm.getFrequency();
+            } else {
+                segment.pwmResolution = DEFAULT_PWM_RESOLUTION;
+                segment.pwmFrequency = DEFAULT_PWM_FREQUENCY;
+            }
         } else {
             segment.pwmResolution = DEFAULT_PWM_RESOLUTION;
             segment.pwmFrequency = DEFAULT_PWM_FREQUENCY;
         }
-        if (entry->type == SegmentType::AnalogInput && entry->hasAdc) {
-            segment.adcResolution = entry->adc.getResolution();
-            segment.adcSampleIntervalMs = entry->adc.getSampleIntervalMs();
-            segment.adcDeltaThreshold = entry->adc.getDeltaThreshold();
-            segment.adcHighThreshold = entry->adc.getHighThreshold();
-            segment.adcLowThreshold = entry->adc.getLowThreshold();
+
+        if (entry->type == SegmentType::AnalogInput) {
+            if (entry->isVirtual) {
+                segment.adcResolution = entry->virtualAdcResolution;
+                segment.adcSampleIntervalMs = entry->virtualAdcSampleIntervalMs;
+                segment.adcDeltaThreshold = entry->virtualAdcDeltaThreshold;
+                segment.adcHighThreshold = entry->virtualAdcHighThreshold;
+                segment.adcLowThreshold = entry->virtualAdcLowThreshold;
+            } else if (entry->hasAdc) {
+                segment.adcResolution = entry->adc.getResolution();
+                segment.adcSampleIntervalMs = entry->adc.getSampleIntervalMs();
+                segment.adcDeltaThreshold = entry->adc.getDeltaThreshold();
+                segment.adcHighThreshold = entry->adc.getHighThreshold();
+                segment.adcLowThreshold = entry->adc.getLowThreshold();
+            } else {
+                segment.adcResolution = DEFAULT_ADC_RESOLUTION;
+                segment.adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
+                segment.adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
+                segment.adcHighThreshold = 0;
+                segment.adcLowThreshold = 0;
+            }
         } else {
             segment.adcResolution = DEFAULT_ADC_RESOLUTION;
             segment.adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
@@ -72,6 +99,15 @@ void PinManager::printStatus() const {
     for (int i = 0; i < MAX_PINS; i++) {
         const PinEntry* entry = _registry.getEntryByIndexConst(i);
         if (!entry || !entry->active) continue;
+        if (entry->isVirtual) {
+            Serial.printf("  [%d] VIRTUAL id=%s type=%s vpin=%d -> node#%u rpin=%u state=%s val=%u autoOff=%ds\n",
+                i, entry->segmentId, segmentTypeToString(entry->type),
+                entry->pinNumber, entry->nodeId, entry->remotePin,
+                getPinState(entry->pinNumber) ? "HIGH/ON" : "LOW/OFF",
+                static_cast<unsigned int>(entry->virtualAnalogValue),
+                entry->autoOffDelay);
+            continue;
+        }
         if (entry->type == SegmentType::AnalogOutput) {
             const uint16_t val = entry->hasPwm ? entry->pwm.getValue() : 0;
             const uint16_t maxDuty = entry->hasPwm ? entry->pwm.getMaxDuty() : 255;
@@ -109,23 +145,23 @@ void PinManager::printStatus() const {
     Serial.println("======================================");
 }
 
-template <size_t Capacity>
-static void appendJsonEscaped(uniuno::StaticString<Capacity>& out, const char* text) {
+static void appendJsonEscaped(String& out, const char* text) {
     if (!text) return;
     for (const char* p = text; *p != '\0'; ++p) {
         const unsigned char c = static_cast<unsigned char>(*p);
         if (c == '"' || c == '\\') {
-            char esc[3] = {'\\', static_cast<char>(c), '\0'};
-            out += esc;
+            out += '\\';
+            out += static_cast<char>(c);
         } else if (c >= 0x20) {
-            char ch[2] = {static_cast<char>(c), '\0'};
-            out += ch;
+            out += static_cast<char>(c);
         }
     }
 }
 
-String PinManager::exportStateJson() const {
-    uniuno::StaticString<2048> json("{\"type\":\"state_sync\",\"states\":{");
+String PinManager::exportStateJson(const AuxNodeManager* auxNodes) const {
+    String json;
+    json.reserve(1024);
+    json += "{\"type\":\"state_sync\",\"states\":{";
     bool pinStates[MAX_PINS] = {};
     bool first = true;
 
@@ -133,22 +169,13 @@ String PinManager::exportStateJson() const {
         const PinEntry* entry = _registry.getEntryByIndexConst(i);
         if (entry && entry->active) {
             if (!first) json += ",";
-            char pinText[6];
+            char pinText[8];
             snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
             json += "\"";
             json += pinText;
             json += "\":";
 
-            bool state = false;
-            if (entry->type == SegmentType::Input) {
-                state = entry->lastInputState;
-            } else if (entry->type == SegmentType::AnalogInput) {
-                state = entry->hasAdc ? entry->adc.getThresholdState() : entry->lastInputState;
-            } else if (entry->type == SegmentType::AnalogOutput) {
-                state = entry->hasPwm && entry->pwm.getState();
-            } else {
-                state = entry->hasGpio && entry->gpio.getState();
-            }
+            const bool state = _stateManager.getPinState(entry->pinNumber);
             json += state ? "true" : "false";
             pinStates[i] = state;
             first = false;
@@ -161,20 +188,14 @@ String PinManager::exportStateJson() const {
         const PinEntry* entry = _registry.getEntryByIndexConst(i);
         if (!entry || !entry->active) continue;
 
-        uint16_t analogVal = 0;
-        if (entry->type == SegmentType::AnalogOutput && entry->hasPwm) {
-            analogVal = entry->pwm.getValue();
-        } else if (entry->type == SegmentType::AnalogInput && entry->hasAdc) {
-            analogVal = entry->adc.getValue();
-        } else {
-            continue;
-        }
+        const int16_t analogVal = _stateManager.getPinAnalogValue(entry->pinNumber);
+        if (analogVal < 0) continue;
 
         if (!first) json += ",";
-        char pinText[6];
+        char pinText[8];
         char valText[8];
         snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
-        snprintf(valText, sizeof(valText), "%u", analogVal);
+        snprintf(valText, sizeof(valText), "%d", static_cast<int>(analogVal));
         json += "\"";
         json += pinText;
         json += "\":";
@@ -188,20 +209,14 @@ String PinManager::exportStateJson() const {
         const PinEntry* entry = _registry.getEntryByIndexConst(i);
         if (!entry || !entry->active) continue;
 
-        uint8_t res = 0;
-        if (entry->type == SegmentType::AnalogOutput && entry->hasPwm) {
-            res = entry->pwm.getResolution();
-        } else if (entry->type == SegmentType::AnalogInput && entry->hasAdc) {
-            res = entry->adc.getResolution();
-        } else {
-            continue;
-        }
+        const uint8_t res = _stateManager.getPinAnalogResolution(entry->pinNumber);
+        if (res == 0) continue;
 
         if (!first) json += ",";
-        char pinText[6];
+        char pinText[8];
         char resText[6];
         snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
-        snprintf(resText, sizeof(resText), "%u", res);
+        snprintf(resText, sizeof(resText), "%u", static_cast<unsigned int>(res));
         json += "\"";
         json += pinText;
         json += "\":";
@@ -218,7 +233,7 @@ String PinManager::exportStateJson() const {
         if (!entry || !entry->active || entry->segmentId[0] == '\0') continue;
 
         if (!first) json += ",";
-        char pinText[6];
+        char pinText[8];
         snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
         json += "\"";
         json += pinText;
@@ -228,7 +243,29 @@ String PinManager::exportStateJson() const {
         first = false;
     }
 
-    json += "},\"timers\":{";
+    // Expose live virtual pin -> {node, rpin} bindings
+    json += "},\"virtual\":{";
+    first = true;
+    for (int i = 0; i < MAX_PINS; i++) {
+        const PinEntry* entry = _registry.getEntryByIndexConst(i);
+        if (!entry || !entry->active || !entry->isVirtual) continue;
+
+        if (!first) json += ",";
+        char entryText[48];
+        snprintf(entryText, sizeof(entryText), "\"%d\":{\"node\":%u,\"rpin\":%u}",
+                 entry->pinNumber, entry->nodeId, entry->remotePin);
+        json += entryText;
+        first = false;
+    }
+
+    if (auxNodes != nullptr) {
+        json += "},\"nodes\":";
+        auxNodes->appendNodesJson(json);
+        json += ",\"timers\":{";
+    } else {
+        json += "},\"timers\":{";
+    }
+
     first = true;
     for (int i = 0; i < MAX_PINS; i++) {
         const PinEntry* entry = _registry.getEntryByIndexConst(i);
@@ -241,7 +278,7 @@ String PinManager::exportStateJson() const {
             ? getAutoOffRemainingMsByPin(entry->pinNumber)
             : 0UL;
         if (!first) json += ",";
-        char pinText[6];
+        char pinText[8];
         char remainingText[12];
         snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
         snprintf(remainingText, sizeof(remainingText), "%lu", (remainingMs + 999UL) / 1000UL);
@@ -252,5 +289,5 @@ String PinManager::exportStateJson() const {
         first = false;
     }
     json += "}}";
-    return String(json.c_str());
+    return json;
 }

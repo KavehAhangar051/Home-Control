@@ -52,6 +52,19 @@ bool PinManager::addSegment(
     entry->hasGpio = false;
     entry->hasPwm = false;
     entry->hasAdc = false;
+    entry->isVirtual = false;
+    entry->virtualState = false;
+    entry->nodeId = AUX_NODE_ID_LOCAL;
+    entry->remotePin = REMOTE_PIN_UNSET;
+    entry->virtualAnalogValue = 0;
+    entry->virtualLastNonZeroValue = 0;
+    entry->virtualPwmResolution = DEFAULT_PWM_RESOLUTION;
+    entry->virtualPwmFrequency = DEFAULT_PWM_FREQUENCY;
+    entry->virtualAdcResolution = DEFAULT_ADC_RESOLUTION;
+    entry->virtualAdcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
+    entry->virtualAdcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
+    entry->virtualAdcHighThreshold = 0;
+    entry->virtualAdcLowThreshold = 0;
     entry->lastInputState = false;
 
     if (type == SegmentType::AnalogOutput) {
@@ -164,7 +177,7 @@ bool PinManager::upsertSegment(
         WARNING("[PinManager] Segment ID is empty.");
         return false;
     }
-    if (pin < 0 || pin >= 40) {
+    if (!isLocalGpioPin(pin)) {
         WARNINGF("[PinManager] Pin %d out of ESP32 GPIO range (0..39).", pin);
         return false;
     }
@@ -219,18 +232,221 @@ bool PinManager::upsertSegment(
     );
 }
 
+bool PinManager::addVirtualSegment(
+    const char* id,
+    SegmentType type,
+    int virtualPin,
+    uint8_t nodeId,
+    uint8_t remotePin,
+    int autoOffDelay,
+    RuleConfig rule,
+    uint8_t pwmResolution,
+    uint16_t pwmFrequency,
+    uint8_t adcResolution,
+    uint16_t adcSampleIntervalMs,
+    uint16_t adcDeltaThreshold,
+    uint16_t adcHighThreshold,
+    uint16_t adcLowThreshold
+) {
+    if (id == nullptr || id[0] == '\0') {
+        WARNING("[PinManager] Virtual segment ID is empty.");
+        return false;
+    }
+    if (!isVirtualPin(virtualPin)) {
+        WARNINGF("[PinManager] Virtual pin %d out of range (%d..%d).",
+                 virtualPin, VIRTUAL_PIN_MIN, VIRTUAL_PIN_MAX);
+        return false;
+    }
+    if (!isValidAuxNodeId(nodeId)) {
+        WARNINGF("[PinManager] Invalid auxiliary nodeId %u for virtual segment '%s'.", nodeId, id);
+        return false;
+    }
+    if (!isValidAuxRemotePin(remotePin)) {
+        WARNINGF("[PinManager] Invalid remote GPIO %u for virtual segment '%s'.", remotePin, id);
+        return false;
+    }
+    if (_registry.findById(id) >= 0) {
+        WARNINGF("[PinManager] Virtual segment '%s' already exists.", id);
+        return false;
+    }
+    if (_registry.getEntryByPin(virtualPin) != nullptr) {
+        WARNINGF("[PinManager] Virtual pin %d already in use.", virtualPin);
+        return false;
+    }
+    if (_registry.findVirtualByNodeAndRemotePin(nodeId, remotePin) >= 0) {
+        WARNINGF("[PinManager] Remote pin %u on node #%u already bound to another virtual segment.",
+                 remotePin, nodeId);
+        return false;
+    }
+
+    const int slot = _registry.findEmptySlot();
+    if (slot < 0) {
+        WARNING("[PinManager] No empty slot for new virtual segment.");
+        return false;
+    }
+
+    PinEntry* entry = _registry.getEntryByIndex(slot);
+    if (!entry) return false;
+
+    const uint8_t clampedPwmRes = (pwmResolution < MIN_PWM_RESOLUTION)
+        ? MIN_PWM_RESOLUTION
+        : ((pwmResolution > MAX_PWM_RESOLUTION) ? MAX_PWM_RESOLUTION : pwmResolution);
+    const uint16_t clampedPwmFreq = (pwmFrequency < MIN_PWM_FREQUENCY)
+        ? MIN_PWM_FREQUENCY
+        : ((pwmFrequency > MAX_PWM_FREQUENCY) ? MAX_PWM_FREQUENCY : pwmFrequency);
+    const uint8_t clampedAdcRes = (adcResolution < MIN_ADC_RESOLUTION)
+        ? MIN_ADC_RESOLUTION
+        : ((adcResolution > MAX_ADC_RESOLUTION) ? MAX_ADC_RESOLUTION : adcResolution);
+    const uint16_t maxAdcVal = static_cast<uint16_t>((1UL << clampedAdcRes) - 1UL);
+    const uint16_t clampedSint = (adcSampleIntervalMs < MIN_ADC_SAMPLE_INTERVAL_MS)
+        ? MIN_ADC_SAMPLE_INTERVAL_MS
+        : ((adcSampleIntervalMs > MAX_ADC_SAMPLE_INTERVAL_MS) ? MAX_ADC_SAMPLE_INTERVAL_MS : adcSampleIntervalMs);
+    const uint16_t clampedDelta = (adcDeltaThreshold < MIN_ADC_DELTA_THRESHOLD)
+        ? MIN_ADC_DELTA_THRESHOLD
+        : ((adcDeltaThreshold > maxAdcVal) ? maxAdcVal : adcDeltaThreshold);
+    const uint16_t clampedAth = (adcHighThreshold > maxAdcVal) ? maxAdcVal : adcHighThreshold;
+    const uint16_t clampedAtl = (clampedAth == 0)
+        ? 0
+        : ((adcLowThreshold > clampedAth) ? clampedAth : adcLowThreshold);
+
+    // Virtual segments NEVER touch local ESP32 GPIO, LEDC, or SAR1 ADC hardware registers.
+    entry->hasGpio = false;
+    entry->hasPwm = false;
+    entry->hasAdc = false;
+    entry->isVirtual = true;
+    entry->virtualState = false;
+    entry->lastInputState = false;
+    entry->nodeId = nodeId;
+    entry->remotePin = remotePin;
+    entry->virtualAnalogValue = 0;
+    entry->virtualLastNonZeroValue = static_cast<uint16_t>((1UL << clampedPwmRes) - 1UL);
+    entry->virtualPwmResolution = clampedPwmRes;
+    entry->virtualPwmFrequency = clampedPwmFreq;
+    entry->virtualAdcResolution = clampedAdcRes;
+    entry->virtualAdcSampleIntervalMs = clampedSint;
+    entry->virtualAdcDeltaThreshold = clampedDelta;
+    entry->virtualAdcHighThreshold = clampedAth;
+    entry->virtualAdcLowThreshold = clampedAtl;
+
+    strncpy(entry->segmentId, id, sizeof(entry->segmentId) - 1);
+    entry->segmentId[sizeof(entry->segmentId) - 1] = '\0';
+    entry->type = type;
+    entry->pinNumber = static_cast<int8_t>(virtualPin);
+    entry->autoOffDelay = static_cast<uint16_t>(autoOffDelay < 0 ? 0 : autoOffDelay);
+    entry->autoOffTimer = uniuno::TimerHandle();
+    entry->cloudSyncTimer = uniuno::TimerHandle();
+    entry->ruleActionTimer = uniuno::TimerHandle();
+    entry->holdTimer = uniuno::TimerHandle();
+    entry->doubleClickTimer = uniuno::TimerHandle();
+    entry->pendingRuleActionState = false;
+    entry->pendingRuleActionAnalogValue = RULE_ANALOG_VALUE_UNSET;
+    entry->pendingHoldAction = RuleAction();
+    entry->isHandled = false;
+    entry->clickCount = 0;
+    entry->clickPolarity = false;
+    entry->lastClickTimeMs = 0;
+    entry->analogRangeActiveMask = 0;
+    entry->rule = rule;
+    entry->stateStartTime = millis();
+    entry->lastDebounceTime = millis();
+
+    _registry.mapPin(virtualPin, slot);
+    entry->active = true;
+
+    INFOF("[PinManager] Added VIRTUAL segment '%s' vpin=%d -> node#%u rpin=%u (type=%s)",
+          id, virtualPin, nodeId, remotePin, segmentTypeToString(type));
+    return true;
+}
+
+bool PinManager::upsertVirtualSegment(
+    const char* id,
+    SegmentType type,
+    int virtualPin,
+    uint8_t nodeId,
+    uint8_t remotePin,
+    int autoOffDelay,
+    RuleConfig rule,
+    uint8_t pwmResolution,
+    uint16_t pwmFrequency,
+    uint8_t adcResolution,
+    uint16_t adcSampleIntervalMs,
+    uint16_t adcDeltaThreshold,
+    uint16_t adcHighThreshold,
+    uint16_t adcLowThreshold
+) {
+    if (id == nullptr || id[0] == '\0' || !isVirtualPin(virtualPin) ||
+        !isValidAuxNodeId(nodeId) || !isValidAuxRemotePin(remotePin)) {
+        WARNINGF("[PinManager] Rejected virtual segment upsert (vpin=%d node=%u rpin=%u).",
+                 virtualPin, nodeId, remotePin);
+        return false;
+    }
+
+    const int existingPinIdx = _registry.findIndexByPin(virtualPin);
+    const int existingIdIdx = _registry.findById(id);
+    const int existingRemoteIdx = _registry.findVirtualByNodeAndRemotePin(nodeId, remotePin);
+
+    if (existingPinIdx < 0 && existingIdIdx < 0 && existingRemoteIdx < 0 &&
+        _registry.findEmptySlot() < 0) {
+        WARNING("[PinManager] No empty slot for new virtual segment.");
+        return false;
+    }
+
+    if (existingPinIdx >= 0) {
+        removeSegmentByIndex(existingPinIdx);
+    }
+    if (existingIdIdx >= 0 && existingIdIdx != existingPinIdx) {
+        const PinEntry* moved = _registry.getEntryByIndexConst(existingIdIdx);
+        if (moved && moved->active) {
+            removeSegmentByIndex(existingIdIdx);
+        }
+    }
+    if (existingRemoteIdx >= 0 && existingRemoteIdx != existingPinIdx && existingRemoteIdx != existingIdIdx) {
+        const PinEntry* dupRemote = _registry.getEntryByIndexConst(existingRemoteIdx);
+        if (dupRemote && dupRemote->active) {
+            removeSegmentByIndex(existingRemoteIdx);
+        }
+    }
+
+    return addVirtualSegment(
+        id,
+        type,
+        virtualPin,
+        nodeId,
+        remotePin,
+        autoOffDelay,
+        rule,
+        pwmResolution,
+        pwmFrequency,
+        adcResolution,
+        adcSampleIntervalMs,
+        adcDeltaThreshold,
+        adcHighThreshold,
+        adcLowThreshold
+    );
+}
+
 int PinManager::extractPinFromCanonicalId(const char* id) {
     if (id == nullptr || id[0] == '\0') {
         return -1;
     }
 
+    bool requireVirtual = false;
+    bool requireLocal = false;
     const char* digits = nullptr;
-    if ((id[0] == 'g' || id[0] == 'G') &&
+    if ((id[0] == 'v' || id[0] == 'V') &&
         (id[1] == 'p' || id[1] == 'P') &&
         (id[2] == 'i' || id[2] == 'I') &&
-        (id[3] == 'o' || id[3] == 'O') &&
+        (id[3] == 'n' || id[3] == 'N') &&
         id[4] == '_') {
         digits = id + 5;
+        requireVirtual = true;
+    } else if ((id[0] == 'g' || id[0] == 'G') &&
+               (id[1] == 'p' || id[1] == 'P') &&
+               (id[2] == 'i' || id[2] == 'I') &&
+               (id[3] == 'o' || id[3] == 'O') &&
+               id[4] == '_') {
+        digits = id + 5;
+        requireLocal = true;
     } else if ((id[0] == 'p' || id[0] == 'P') &&
                (id[1] == 'i' || id[1] == 'I') &&
                (id[2] == 'n' || id[2] == 'N') &&
@@ -253,13 +469,15 @@ int PinManager::extractPinFromCanonicalId(const char* id) {
             return -1;
         }
         digitCount++;
-        if (digitCount > 2) {
+        if (digitCount > 3) {
             return -1;
         }
         value = (value * 10) + (*p - '0');
     }
 
-    return (value >= 0 && value < 40) ? value : -1;
+    if (requireVirtual) return isVirtualPin(value) ? value : -1;
+    if (requireLocal) return isLocalGpioPin(value) ? value : -1;
+    return isValidManagedPin(value) ? value : -1;
 }
 
 bool PinManager::removeSegmentByIndex(int idx) {
@@ -270,6 +488,7 @@ bool PinManager::removeSegmentByIndex(int idx) {
     strncpy(removedId, entry->segmentId, sizeof(removedId) - 1);
     removedId[sizeof(removedId) - 1] = '\0';
     const int removedPin = entry->pinNumber;
+    const bool wasVirtual = entry->isVirtual;
 
     if (entry->hasGpio) {
         entry->gpio.turnOff();
@@ -292,7 +511,11 @@ bool PinManager::removeSegmentByIndex(int idx) {
     _registry.unmapPin(entry->pinNumber);
 
     entry->active = false;
+    entry->isVirtual = false;
+    entry->virtualState = false;
     entry->pinNumber = -1;
+    entry->nodeId = AUX_NODE_ID_LOCAL;
+    entry->remotePin = REMOTE_PIN_UNSET;
     entry->type = SegmentType::Output;
     entry->segmentId[0] = '\0';
     entry->autoOffDelay = 0;
@@ -304,6 +527,15 @@ bool PinManager::removeSegmentByIndex(int idx) {
     entry->lastInputState = false;
     entry->pendingRuleActionState = false;
     entry->pendingRuleActionAnalogValue = RULE_ANALOG_VALUE_UNSET;
+    entry->virtualAnalogValue = 0;
+    entry->virtualLastNonZeroValue = 0;
+    entry->virtualPwmResolution = DEFAULT_PWM_RESOLUTION;
+    entry->virtualPwmFrequency = DEFAULT_PWM_FREQUENCY;
+    entry->virtualAdcResolution = DEFAULT_ADC_RESOLUTION;
+    entry->virtualAdcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
+    entry->virtualAdcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
+    entry->virtualAdcHighThreshold = 0;
+    entry->virtualAdcLowThreshold = 0;
     entry->pendingHoldAction = RuleAction();
     entry->isHandled = false;
     entry->clickCount = 0;
@@ -313,8 +545,11 @@ bool PinManager::removeSegmentByIndex(int idx) {
     entry->stateStartTime = 0;
     entry->lastDebounceTime = 0;
 
-    INFOF("[PinManager] Removed segment '%s' (pin %d)", removedId, removedPin);
-    _stateManager.rebuildInputCache();
+    INFOF("[PinManager] Removed %ssegment '%s' (pin %d)",
+          wasVirtual ? "virtual " : "", removedId, removedPin);
+    if (!wasVirtual) {
+        _stateManager.rebuildInputCache();
+    }
     return true;
 }
 
@@ -330,7 +565,7 @@ bool PinManager::removeSegment(const char* id) {
 bool PinManager::removeSegmentByPin(int pin) {
     const int idx = _registry.findIndexByPin(pin);
     if (idx < 0) {
-        WARNINGF("[PinManager] No segment registered on GPIO %d.", pin);
+        WARNINGF("[PinManager] No segment registered on pin %d.", pin);
         return false;
     }
     return removeSegmentByIndex(idx);
@@ -344,11 +579,11 @@ bool PinManager::removeSegmentByIdOrPin(const char* id, int fallbackPin) {
         }
     }
 
-    if (fallbackPin >= 0 && fallbackPin < 40) {
+    if (isValidManagedPin(fallbackPin)) {
         const int pinIdx = _registry.findIndexByPin(fallbackPin);
         if (pinIdx >= 0) {
             const PinEntry* entry = _registry.getEntryByIndexConst(pinIdx);
-            WARNINGF("[PinManager] Segment '%s' not found; resolved via fallback GPIO %d (stored id='%s').",
+            WARNINGF("[PinManager] Segment '%s' not found; resolved via fallback pin %d (stored id='%s').",
                      id ? id : "", fallbackPin, entry ? entry->segmentId : "");
             return removeSegmentByIndex(pinIdx);
         }
@@ -360,7 +595,7 @@ bool PinManager::removeSegmentByIdOrPin(const char* id, int fallbackPin) {
             const int pinIdx = _registry.findIndexByPin(canonicalPin);
             if (pinIdx >= 0) {
                 const PinEntry* entry = _registry.getEntryByIndexConst(pinIdx);
-                WARNINGF("[PinManager] Canonical segment '%s' not found; resolved via GPIO %d (stored id='%s').",
+                WARNINGF("[PinManager] Canonical segment '%s' not found; resolved via pin %d (stored id='%s').",
                          id, canonicalPin, entry ? entry->segmentId : "");
                 return removeSegmentByIndex(pinIdx);
             }
@@ -373,6 +608,23 @@ bool PinManager::removeSegmentByIdOrPin(const char* id, int fallbackPin) {
         WARNINGF("[PinManager] Segment '%s' not found.", id ? id : "");
     }
     return false;
+}
+
+int PinManager::removeSegmentsByNodeId(uint8_t nodeId) {
+    if (!isValidAuxNodeId(nodeId)) return 0;
+    int removed = 0;
+    for (int i = 0; i < MAX_PINS; ++i) {
+        const PinEntry* entry = _registry.getEntryByIndexConst(i);
+        if (entry && entry->active && entry->isVirtual && entry->nodeId == nodeId) {
+            if (removeSegmentByIndex(i)) {
+                ++removed;
+            }
+        }
+    }
+    if (removed > 0) {
+        INFOF("[PinManager] Cascade-removed %d virtual segment(s) bound to aux node #%u", removed, nodeId);
+    }
+    return removed;
 }
 
 void PinManager::clearAllSegments() {
@@ -390,6 +642,28 @@ bool PinManager::hasPin(int pin) const {
 
 bool PinManager::hasId(const char* id) const {
     return _registry.findById(id) >= 0;
+}
+
+bool PinManager::isVirtualPinRegistered(int pin) const {
+    const PinEntry* entry = _registry.getEntryByPinConst(pin);
+    return entry != nullptr && entry->active && entry->isVirtual;
+}
+
+bool PinManager::getVirtualBinding(int pin, uint8_t& outNodeId, uint8_t& outRemotePin) const {
+    const PinEntry* entry = _registry.getEntryByPinConst(pin);
+    if (!entry || !entry->active || !entry->isVirtual) {
+        outNodeId = AUX_NODE_ID_LOCAL;
+        outRemotePin = REMOTE_PIN_UNSET;
+        return false;
+    }
+    outNodeId = entry->nodeId;
+    outRemotePin = entry->remotePin;
+    return true;
+}
+
+SegmentType PinManager::getSegmentTypeByPin(int pin) const {
+    const PinEntry* entry = _registry.getEntryByPinConst(pin);
+    return (entry && entry->active) ? entry->type : SegmentType::Output;
 }
 
 const char* PinManager::getSegmentIdByPin(int pin) const {
@@ -433,7 +707,32 @@ bool PinManager::updateAnalogInputConfigByPin(
     uint8_t resolution
 ) {
     PinEntry* entry = _registry.getEntryByPin(pin);
-    if (!entry || !entry->active || entry->type != SegmentType::AnalogInput || !entry->hasAdc) {
+    if (!entry || !entry->active || entry->type != SegmentType::AnalogInput) {
+        return false;
+    }
+
+    if (entry->isVirtual) {
+        if (resolution >= MIN_ADC_RESOLUTION && resolution <= MAX_ADC_RESOLUTION) {
+            entry->virtualAdcResolution = resolution;
+        }
+        const uint16_t maxAdcVal = static_cast<uint16_t>((1UL << entry->virtualAdcResolution) - 1UL);
+        entry->virtualAdcSampleIntervalMs = (sampleIntervalMs < MIN_ADC_SAMPLE_INTERVAL_MS)
+            ? MIN_ADC_SAMPLE_INTERVAL_MS
+            : ((sampleIntervalMs > MAX_ADC_SAMPLE_INTERVAL_MS) ? MAX_ADC_SAMPLE_INTERVAL_MS : sampleIntervalMs);
+        entry->virtualAdcDeltaThreshold = (deltaThreshold < MIN_ADC_DELTA_THRESHOLD)
+            ? MIN_ADC_DELTA_THRESHOLD
+            : ((deltaThreshold > maxAdcVal) ? maxAdcVal : deltaThreshold);
+        entry->virtualAdcHighThreshold = (highThreshold > maxAdcVal) ? maxAdcVal : highThreshold;
+        entry->virtualAdcLowThreshold = (entry->virtualAdcHighThreshold == 0)
+            ? 0
+            : ((lowThreshold > entry->virtualAdcHighThreshold) ? entry->virtualAdcHighThreshold : lowThreshold);
+        INFOF("[PinManager] Updated virtual analog_input pin=%d (%u-bit sint=%ums delta=%u ath=%u atl=%u)",
+              pin, entry->virtualAdcResolution, entry->virtualAdcSampleIntervalMs,
+              entry->virtualAdcDeltaThreshold, entry->virtualAdcHighThreshold, entry->virtualAdcLowThreshold);
+        return true;
+    }
+
+    if (!entry->hasAdc) {
         return false;
     }
     entry->adc.updateParameters(sampleIntervalMs, deltaThreshold, highThreshold, lowThreshold, resolution);

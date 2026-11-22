@@ -62,8 +62,10 @@ struct PinEntry {
     SegmentType type;
     uint8_t analogRangeActiveMask; // Bit i = 1 iff analogRanges[i] is currently active
     uint8_t clickCount;            // Pending click count for digital double-click detection (0..2)
+    uint8_t nodeId;                // 0 = local ESP32 GPIO, 1..16 = auxiliary ESP node ID
+    uint8_t remotePin;             // Remote GPIO on auxiliary node (0..39), REMOTE_PIN_UNSET for local
     
-    // Bitfield flags (packed into a single byte)
+    // Bitfield flags
     bool hasGpio : 1;
     bool hasPwm : 1;
     bool hasAdc : 1;
@@ -72,6 +74,8 @@ struct PinEntry {
     bool isHandled : 1;
     bool clickPolarity : 1;
     bool active : 1;
+    bool isVirtual : 1;
+    bool virtualState : 1;
 
     // Timestamps for duration tracking, debounce, and double-click detection
     unsigned long stateStartTime;
@@ -80,6 +84,17 @@ struct PinEntry {
 
     uint16_t autoOffDelay;
     int16_t pendingRuleActionAnalogValue;
+
+    // Virtual segment shadow state & configuration (used only when isVirtual == true)
+    uint16_t virtualAnalogValue;
+    uint16_t virtualLastNonZeroValue;
+    uint16_t virtualPwmFrequency;
+    uint16_t virtualAdcSampleIntervalMs;
+    uint16_t virtualAdcDeltaThreshold;
+    uint16_t virtualAdcHighThreshold;
+    uint16_t virtualAdcLowThreshold;
+    uint8_t virtualPwmResolution;
+    uint8_t virtualAdcResolution;
 
     // Rule config used directly on state changes
     RuleConfig rule;
