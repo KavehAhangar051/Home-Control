@@ -22,6 +22,9 @@ function getSegmentCardStyle(
     zIndex: isDragging ? 50 : isSettingsOpen ? 40 : "auto",
     opacity: isDragging ? 0.35 : 1,
     scale: isDragging ? 0.96 : 1,
+    transform: "translate3d(0, 0, 0)",
+    backfaceVisibility: "hidden",
+    willChange: isDragging ? "transform, opacity" : undefined,
     "--segment-span": segmentSpan,
   };
 }
@@ -72,8 +75,8 @@ function SortableSegmentCard(props: SortableSegmentCardProps) {
     index,
     group: segment.group || "Test",
     type: "Segment",
-    accept: (source) =>
-      source.type === "Segment" && source.data.group === (segment.group || "Test"),
+    accept: (source: { type?: string; data?: { group?: string } }) =>
+      source.type === "Segment" && source.data?.group === (segment.group || "Test"),
     data: { group: segment.group || "Test" },
     disabled: props.isOverlayItem,
     transition: animationsEnabled

@@ -38,6 +38,15 @@ function toSixDigitHex(color: string, fallback: string): string {
   return fallback;
 }
 
+function parseTwoHexDigits(str: string, offset: number): number {
+  const c0 = str.charCodeAt(offset);
+  const c1 = str.charCodeAt(offset + 1);
+  const d0 = c0 <= 57 ? c0 - 48 : (c0 | 32) - 87;
+  const d1 = c1 <= 57 ? c1 - 48 : (c1 | 32) - 87;
+
+  return (d0 << 4) | d1;
+}
+
 /**
  * Picks `#0f0f10` or `#ffffff` against a 6-digit hex background using the precomputed
  * WCAG 2.1 sRGB-to-linear LUT (`SRGB_TO_LINEAR_LUT`) with zero runtime `Math.pow`.
@@ -48,9 +57,9 @@ function getContrastingForeground(hexColor: string, fallback: string): string {
   if (!match) return fallback;
 
   const hex = match[1];
-  const r = Number.parseInt(hex.slice(0, 2), 16);
-  const g = Number.parseInt(hex.slice(2, 4), 16);
-  const b = Number.parseInt(hex.slice(4, 6), 16);
+  const r = parseTwoHexDigits(hex, 0);
+  const g = parseTwoHexDigits(hex, 2);
+  const b = parseTwoHexDigits(hex, 4);
   const luminance = lookupRelativeLuminance(r, g, b);
 
   return luminance > 0.36 ? "#0f0f10" : "#ffffff";
@@ -71,9 +80,9 @@ function computeAccentHoverHex(
   if (!match) return isDark ? "#d4d4d8" : "#262626";
 
   const hex = match[1];
-  const r = Number.parseInt(hex.slice(0, 2), 16);
-  const g = Number.parseInt(hex.slice(2, 4), 16);
-  const b = Number.parseInt(hex.slice(4, 6), 16);
+  const r = parseTwoHexDigits(hex, 0);
+  const g = parseTwoHexDigits(hex, 2);
+  const b = parseTwoHexDigits(hex, 4);
 
   // Darken bright accents slightly (keeps #0f0f10 text crisp); lift very dark accents toward white.
   if (foregroundHex === "#0f0f10") {

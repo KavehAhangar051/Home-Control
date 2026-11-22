@@ -175,7 +175,7 @@ export default function SegmentControls({
                 : { opacity: 0, y: -4, scale: 0.96, transition: TRANSITION_EXIT_QUICK }
             }
             transition={reduceMotion ? { duration: 0 } : TRANSITION_ENTER_QUICK}
-            className="absolute top-[calc(100%+8px)] left-0 w-64 origin-top-left transform-gpu bg-card-bg-solid border border-border-color rounded-xl shadow-xl p-3 z-[120] cursor-default text-right"
+            className="absolute top-[calc(100%+8px)] left-0 w-64 origin-top-left transform-gpu [backface-visibility:hidden] bg-card-bg-solid border border-border-color rounded-xl shadow-xl p-3 z-[120] cursor-default text-right"
           >
             <div className="flex justify-between items-center mb-2.5">
               <span className="text-[11px] font-bold text-text-primary tabular-nums">

@@ -43,10 +43,13 @@ function applyChangedCssVars(
   nextVars: Record<string, string>,
   appliedCache: Record<string, string>,
 ): void {
-  for (const [key, value] of Object.entries(nextVars)) {
+  for (const key in nextVars) {
+    if (Object.hasOwn(nextVars, key)) {
+      const value = nextVars[key];
     if (appliedCache[key] !== value) {
       rootStyle.setProperty(key, value);
       appliedCache[key] = value;
+    }
     }
   }
 }
