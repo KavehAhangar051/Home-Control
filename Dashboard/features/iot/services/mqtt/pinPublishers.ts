@@ -15,8 +15,11 @@ import {
 
 const clearSynchronizedTimer = (pinId: string) => {
   const snapshot = getIoTStoreSnapshot();
-  const next = { ...snapshot.autoOffRemaining };
-  delete next[pinId];
+  if (!snapshot.autoOffRemaining[pinId]) return;
+  const next = { ...snapshot.autoOffRemaining, [pinId]: 0 };
+
+
+
   snapshot.setAutoOffRemaining(next);
 };
 
@@ -107,6 +110,7 @@ export const buildBatchPinCommandFrame = (
     offset += BATCH_ACTION_SIZE;
   }
 
+
   return buf;
 };
 
@@ -123,6 +127,7 @@ export const publishBatchPinCommand = (
   if (published) {
     for (const action of actions.slice(0, count)) clearSynchronizedTimer(action.pin);
   }
+
 
   return published;
 };

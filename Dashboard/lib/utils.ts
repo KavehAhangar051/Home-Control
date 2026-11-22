@@ -190,6 +190,11 @@ export function cn(...inputs: Array<string | false | null | undefined>): string 
   const inputsLen = inputs.length;
 
   if (inputsLen === 0) return "";
+  if (inputsLen === 1) {
+    const single = inputs[0];
+    if (!single) return "";
+    if (single.indexOf(" ") === -1) return single;
+  }
 
   const result: string[] = [];
   const groupIndexMap = new Map<string, number>();

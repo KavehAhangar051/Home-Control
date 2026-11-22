@@ -84,7 +84,7 @@ export function parseMqttStatusMessage(payload: Uint8Array): ParsedMqttStatusMes
 
       if (data.status === "online") {
         const ipText =
-          Object.prototype.toString.call(data.ip) === "[object String]" ? String(data.ip) : "";
+          typeof data.ip === "string" ? data.ip : "";
 
         return {
           kind: "online",
@@ -157,9 +157,9 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
           pinId,
           state: resolvedState,
           source: "json",
-          ...(parsedNumericValue !== undefined ? { value: parsedNumericValue } : {}),
-          ...(parsedResolution !== undefined ? { resolution: parsedResolution } : {}),
-          ...(data.type === "command_ack" ? { isAck: true } : {}),
+          value: parsedNumericValue,
+          resolution: parsedResolution,
+          isAck: data.type === "command_ack" ? true : undefined,
         };
       }
 
@@ -220,8 +220,8 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
           kind: "state_sync",
           states: normalizedStates,
           timers: normalizedTimers,
-          ...(normalizedValues !== undefined ? { values: normalizedValues } : {}),
-          ...(normalizedResolutions !== undefined ? { resolutions: normalizedResolutions } : {}),
+          values: normalizedValues,
+          resolutions: normalizedResolutions,
         };
       }
 
