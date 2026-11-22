@@ -75,7 +75,7 @@ function SortableSegmentCard(props: SortableSegmentCardProps) {
     index,
     group: segment.group || "Test",
     type: "Segment",
-    accept: (source: { type?: string; data?: { group?: string } }) =>
+    accept: (source) =>
       source.type === "Segment" && source.data?.group === (segment.group || "Test"),
     data: { group: segment.group || "Test" },
     disabled: props.isOverlayItem,
