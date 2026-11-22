@@ -89,8 +89,8 @@ export class DeviceCommandAdapter implements IDeviceCommandPort {
     return mqttUpdateAnalogRangeRules(inputPin, ranges);
   }
 
-  publishDeleteSegment(id: string): void {
-    mqttDeleteSegment(id);
+  publishDeleteSegment(id: string, pin?: number | string): void {
+    mqttDeleteSegment(id, pin);
   }
 
   publishPresence(isVisible: boolean): void {

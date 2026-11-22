@@ -30,6 +30,24 @@ describe("MQTT state snapshot parsing", () => {
       timers: { 5: 0 },
     });
   });
+
+  it("parses optional ids map in state_sync while preserving legacy payloads without ids", () => {
+    const parsed = parseMqttStateMessage(
+      encode({
+        type: "state_sync",
+        states: { 5: true },
+        ids: { 5: "gpio_5", 9: "  ", 10: 123, 11: "x".repeat(32) },
+        timers: { 5: 0 },
+      }),
+    );
+
+    assert.deepEqual(parsed, {
+      kind: "state_sync",
+      states: { 5: true },
+      timers: { 5: 0 },
+      ids: { 5: "gpio_5" },
+    });
+  });
 });
 
 describe("command_ack parser & pinAckBus isolation", () => {

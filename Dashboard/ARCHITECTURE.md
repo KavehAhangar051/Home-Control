@@ -585,3 +585,15 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 
 - `features/settings/components/wifi-section/WifiSection.tsx` keeps ESP32 Provisioning Access Point inputs (`ssid`, `password`) in local draft state with explicit validation (`1..32` chars SSID and `8..63` chars password, or both empty to reset to MAC default) and commits via a dedicated **«ذخیره اکسس‌پوینت»** button (`setWifiApConfig` + `persistStoreConfigToCloudflare` with `overrides.wifiApConfig`).
 - Access Point, Wi-Fi network, and MQTT broker configurations persist strictly to the Cloudflare Worker (`POST /config`) and local browser cache rather than binary MQTT commands (`MQTT_OPCODES` handles pin, segment, rule, presence, and ADC commands only).
+
+## 35. Segment ID Sync & `DELETE_SEGMENT (0x03)` v2 Protocol (22 November 2026)
+
+- **`DELETE_SEGMENT (0x03)` v2 Binary Pin Fallback (`segmentPublishers.ts`, `ports.ts`, `deviceGatewayAdapter.ts`, `useSegmentManagement.ts`):**
+  - `buildDeleteSegmentFrame(id, pin?)` and `publishDeleteSegmentCommand(id, pin?)` slice `id` to 31 characters and append `[pin:u8]` immediately after the `0x00` terminator when `pin` parses to an integer in `0..39`, preserving v1 `[0x03][id...][0x00]` when `pin` is omitted or invalid.
+  - `IDeviceCommandPort.publishDeleteSegment` and `DeviceCommandAdapter.publishDeleteSegment` accept optional `pin`, and `useSegmentManagement` passes `target.pin` / `segment.pin` during segment and group deletion.
+- **Deterministic Hardware Segment IDs (`segmentOperations.ts`):**
+  - `createHardwareSegmentId(pin)` generates `gpio_<pin>` for valid physical ESP32 GPIO segments (`0..39`), while `planAddSegment` keeps random IDs for `placeholder` tiles, respects custom `createId` overrides, and leaves previously persisted Cloudflare/localStorage segment IDs intact on deserialization.
+- **`state_sync` `ids` Map & Drift Diagnostics (`messageParser.ts`, `mqtt/init.ts`):**
+  - `parseMqttStateMessage` parses optional `ids?: Record<string, string>` (trimmed `1..31` chars) alongside conditional `values`/`resolutions` spreads without emitting `undefined` keys.
+  - `createMqttMessageHandler` logs `logMqttDebug` diagnostics when `parsedState.ids[pin]` differs from the dashboard store's segment ID without mutating dashboard `segment.id` references.
+- **External Worker note:** Cloudflare Worker (`ESP_CFG_V2` serializer returning `C n=<count>` even for `n=0` and preserving `seg.id`) lives outside this repository.

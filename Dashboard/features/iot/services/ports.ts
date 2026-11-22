@@ -41,7 +41,7 @@ export interface IDeviceCommandPort {
     inputPin: number,
     ranges: readonly AnalogRangeRuleFrameInput[],
   ): boolean;
-  publishDeleteSegment(id: string): void;
+  publishDeleteSegment(id: string, pin?: number | string): void;
   publishPresence(isVisible: boolean): void;
 }
 

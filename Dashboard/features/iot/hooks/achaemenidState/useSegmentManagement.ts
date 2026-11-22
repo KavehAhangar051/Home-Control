@@ -195,7 +195,7 @@ export function useSegmentManagement({
       const target = segments.find((segment) => segment.id === id);
       setSegments(segments.filter((s) => s.id !== id));
       if (target && target.type !== "placeholder") {
-        publishDeleteSegmentCommand(id);
+        publishDeleteSegmentCommand(id, target.pin);
       }
     },
     [setSegments],
@@ -206,7 +206,7 @@ export function useSegmentManagement({
       const currentSegments = useIoTStore.getState().segments;
       for (const segment of currentSegments) {
         if (resolveSegmentGroup(segment.group) === groupId && segment.type !== "placeholder") {
-          publishDeleteSegmentCommand(segment.id);
+          publishDeleteSegmentCommand(segment.id, segment.pin);
         }
       }
       setGroupsOrder(

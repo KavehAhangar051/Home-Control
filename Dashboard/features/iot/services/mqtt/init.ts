@@ -435,6 +435,18 @@ export function createMqttMessageHandler(
         if (parsedState.resolutions) {
           snapshot.setPinsPwmResolution(parsedState.resolutions);
         }
+
+        if (parsedState.ids && Array.isArray(snapshot.segments)) {
+          for (const segment of snapshot.segments) {
+            if (segment.type === "placeholder" || !segment.pin) continue;
+            const espId = parsedState.ids[String(segment.pin).trim()];
+            if (espId && segment.id !== espId) {
+              logMqttDebug(
+                `[MQTT] Detected segment ID drift on GPIO ${segment.pin}: dashboard=${segment.id}, esp=${espId}`,
+              );
+            }
+          }
+        }
       } else if (parsedState.kind === "ping") {
         schedule(() => {
           if (!deps.isCurrentGeneration()) return;

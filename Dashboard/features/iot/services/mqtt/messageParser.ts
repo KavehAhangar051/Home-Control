@@ -9,6 +9,7 @@ export interface MqttStateSyncPayload {
   states?: Record<string, RawPinStateValue>;
   values?: Record<string, RawPinStateValue>;
   resolutions?: Record<string, RawPinStateValue>;
+  ids?: Record<string, unknown>;
   timers?: Record<string, RawPinStateValue>;
   pin?: string | number;
   state?: RawPinStateValue;
@@ -43,6 +44,7 @@ export type ParsedMqttStateMessage =
       timers: Record<string, number>;
       values?: Record<string, number>;
       resolutions?: Record<string, number>;
+      ids?: Record<string, string>;
     }
   | { kind: "ping" }
   | { kind: "ignored" }
@@ -233,12 +235,26 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
           }
         }
 
+        let normalizedIds: Record<string, string> | undefined;
+        if (data.ids && typeof data.ids === "object" && !Array.isArray(data.ids)) {
+          normalizedIds = {};
+          for (const key in data.ids) {
+            if (Object.hasOwn(data.ids, key) && typeof data.ids[key] === "string") {
+              const trimmed = data.ids[key].trim();
+              if (trimmed.length > 0 && trimmed.length <= 31) {
+                normalizedIds[key] = trimmed;
+              }
+            }
+          }
+        }
+
         return {
           kind: "state_sync",
           states: normalizedStates,
           timers: normalizedTimers,
-          values: normalizedValues,
-          resolutions: normalizedResolutions,
+          ...(normalizedValues !== undefined ? { values: normalizedValues } : {}),
+          ...(normalizedResolutions !== undefined ? { resolutions: normalizedResolutions } : {}),
+          ...(normalizedIds !== undefined ? { ids: normalizedIds } : {}),
         };
       }
 

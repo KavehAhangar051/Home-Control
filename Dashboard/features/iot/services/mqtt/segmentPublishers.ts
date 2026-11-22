@@ -179,19 +179,32 @@ export const publishReadAnalogInputCommand = (pin: number): boolean => {
   return publishMqttCommand(buf, `Published read_analog_input(0x0D): pin=${pin}`);
 };
 
-export const buildDeleteSegmentFrame = (id: string): Uint8Array => {
-  const idBytes = textEncoder.encode(id);
-  const buf = new Uint8Array(1 + idBytes.length + 1);
+export const buildDeleteSegmentFrame = (id: string, pin?: number | string): Uint8Array => {
+  const idBytes = textEncoder.encode(id.slice(0, 31));
+  const parsedPin =
+    pin !== undefined && pin !== null && String(pin).trim() !== "" ? Number(pin) : Number.NaN;
+  const hasValidPin = Number.isInteger(parsedPin) && parsedPin >= 0 && parsedPin <= 39;
+
+  const buf = new Uint8Array(1 + idBytes.length + 1 + (hasValidPin ? 1 : 0));
   buf[0] = MQTT_OPCODES.DELETE_SEGMENT;
   buf.set(idBytes, 1);
   buf[1 + idBytes.length] = 0;
 
+  if (hasValidPin) {
+    buf[1 + idBytes.length + 1] = parsedPin & 0xff;
+  }
+
   return buf;
 };
 
-export const publishDeleteSegmentCommand = (id: string) => {
-  const buf = buildDeleteSegmentFrame(id);
-  publishMqttCommand(buf, `Published delete_segment: id=${id}`);
+export const publishDeleteSegmentCommand = (id: string, pin?: number | string) => {
+  const buf = buildDeleteSegmentFrame(id, pin);
+  publishMqttCommand(
+    buf,
+    pin !== undefined
+      ? `Published delete_segment: id=${id}, pin=${pin}`
+      : `Published delete_segment: id=${id}`,
+  );
 };
 
 function writeRuleActionChunk(

@@ -127,6 +127,29 @@ describe("Phase 1 Safety Net: MQTT Binary Wire Encoders", () => {
     assert.equal(ruleBuf[18], 1);
     assert.equal(ruleBuf[19], 5);
   });
+
+  it("encodes DELETE_SEGMENT (0x03) v2 with optional pin byte and ignores invalid pins cleanly", () => {
+    const v2Frame = buildDeleteSegmentFrame("jjib4yz", 5);
+    assert.deepEqual(Array.from(v2Frame), [
+      MQTT_OPCODES.DELETE_SEGMENT,
+      ...Array.from(textEncoder.encode("jjib4yz")),
+      0x00,
+      0x05,
+    ]);
+
+    const legacyFrame = buildDeleteSegmentFrame("jjib4yz");
+    assert.deepEqual(Array.from(legacyFrame), [
+      MQTT_OPCODES.DELETE_SEGMENT,
+      ...Array.from(textEncoder.encode("jjib4yz")),
+      0x00,
+    ]);
+
+    for (const invalidPin of [-1, 40, "", undefined, Number.NaN]) {
+      const frame = buildDeleteSegmentFrame("jjib4yz", invalidPin);
+      assert.equal(frame.length, legacyFrame.length);
+      assert.deepEqual(Array.from(frame), Array.from(legacyFrame));
+    }
+  });
 });
 
 describe("Phase 1 Safety Net: MQTT Incoming Payload Parsers", () => {
