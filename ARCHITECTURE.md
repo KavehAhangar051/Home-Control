@@ -613,3 +613,15 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
   - Persists `auxNodes` and virtual segment metadata (`isVirtual`, `nodeId`, `remotePin`) across Cloudflare KV serialization/deserialization and watches `auxNodes` in `useCloudflarePush`.
   - Exports `buildEspCfgV2Text` emitting `E n=...` / `E id=... mac=... cap=... chip=... name=...` records before `C n=...` and appending `virt=1 node=... rpin=...` strictly on virtual `S ...` lines.
 
+## 37. Multi-Step Form Wizards (`ProgressSteps`) & Design-System Unification (23 November 2026)
+
+- **Shared Dissolve-Inspired Stepper (`components/motion/progress-steps.tsx`):**
+  - Implements `ProgressSteps` with Persian step numerals, RTL track progression, a one-shot DPR-scaled `<canvas>` micro-particle grain burst (`DissolveConnector`, zero idle CPU, skipped when `reduceMotion`, `document.hidden`, or `data-perf-tier="lite"`), spring checkmark completion reveal, and direct click navigation across unlocked steps.
+- **Wizardized Dashboard Forms:**
+  - `AddSegmentForm.tsx` + `useAddSegmentForm.ts` + subcomponents (`PinSelector`, `VirtualPinSelector`, `ButtonModeSelector`, `FormDetailsInput`, `AnalogInputSettingsPanel`): Redesigned into a 3-step wizard (`۱. انتخاب نوع` → `۲. پایه و رفتار` → `۳. نام و گروه`) with 2×2 visual type cards, recommended GPIO quick-picks for all 4 segment types, progressive-disclosure accordions for specialist PWM/ADC parameters, a live summary strip on step 3, and step-level validation before advancing.
+  - `AutomationForm/index.tsx` + `useAutomationForm.ts` + `AutomationFields.tsx` + `ActionBuilder.tsx`: Upgraded to a 3-step `ProgressSteps` wizard (`۱. نوع اتوماسیون` → `۲. زمان و شرط` → `۳. عملیات و ثبت`) with visual automation-type cards, direct jump across all steps when editing an existing rule, stable action keys, and corrected `accent3-foreground`/`accent4-foreground`/`destructive-foreground` contrast tokens.
+  - `MacrosSection.tsx` + `MacroConditionEditor.tsx`: Upgraded the inline custom-button editor to a 2-step `ProgressSteps` wizard (`۱. مشخصات دکمه` → `۲. عملیات و شرط‌ها`) with unified HugeIcons and «قطعه» terminology.
+- **Icon, Surface & Terminology Unification:**
+  - Expanded `components/ui/hugeicons-groups/controls.tsx` (and `components/ui/hugeicons.tsx`) with `Activity`, `Cpu`, `Power`, `ShieldCheck`, and `Waves`, migrating drifted `lucide-react` imports across `AddSegmentForm`, `VirtualPinSelector`, `AuxNodeModal`, `WorkspaceSection`, `DashboardBreadcrumb`, `AnalogInputBody`, `AnalogOutputBody`, `TrellisWorkspace`, `ToastNotification`, `MacroConditionEditor`, `AnalogRangeRuleEditor`, `ColorsSection`, `FontSection`, and `SliderStyleSection`.
+  - Removed the static subsection pill above `<h1>` in `WorkspaceSection.tsx`, cleaned raw `(0x0F)` opcodes from `AuxNodeModal.tsx` while adopting `bezel-shell`/`bezel-core`, and standardized user-facing labels to «قطعه».
+

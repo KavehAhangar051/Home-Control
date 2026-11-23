@@ -1,9 +1,10 @@
 "use client";
 
-import { Check, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { DashboardSlider } from "@/components/motion/dashboard-slider";
 import { Grid } from "@/components/ui/grid";
+import { Check } from "@/components/ui/hugeicons-groups/controls";
+import { RefreshCw, Sliders } from "@/components/ui/hugeicons-groups/shell";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import { DEFAULT_SLIDER_STYLE, SLIDER_STYLE_OPTIONS, type SliderVariant } from "@/lib/sliderStyles";
 
@@ -30,7 +31,7 @@ export default function SliderStyleSection() {
     <div className="space-y-3" dir="rtl">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          <SlidersHorizontal className="size-4 text-accent3 shrink-0" aria-hidden="true" />
+          <Sliders className="size-4 text-accent3 shrink-0" aria-hidden="true" />
           <div className="min-w-0">
             <h4 className="text-xs font-semibold text-text-secondary">سبک اسلایدرهای داشبورد</h4>
             <p className="text-[11px] text-text-muted mt-0.5">
@@ -46,7 +47,7 @@ export default function SliderStyleSection() {
             onClick={resetSliderStyle}
             className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors py-1 px-2 rounded-md hover:bg-card-hover-bg shrink-0 whitespace-nowrap cursor-pointer"
           >
-            <RotateCcw className="size-3.5" aria-hidden="true" />
+            <RefreshCw className="size-3.5" aria-hidden="true" />
             <span>بازگشت به هوشمند</span>
           </button>
         )}

@@ -1,8 +1,8 @@
 "use client";
 
-import { CheckCircle2, X, XCircle } from "lucide-react";
 import { AnimatePresence, m, type PanInfo, useReducedMotion } from "motion/react";
 import { useEffect, useEffectEvent } from "react";
+import { CheckCircle, X, XCircle } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { soundManager } from "@/lib/audio";
 import {
@@ -112,7 +112,7 @@ export default function ToastNotification() {
                 className="size-4 shrink-0 text-destructive"
               />
             ) : (
-              <CheckCircle2
+              <CheckCircle
                 aria-hidden="true"
                 strokeWidth={2}
                 className="size-4 shrink-0 text-success"

@@ -285,7 +285,7 @@ export function useAutomationForm() {
     if ("errorMessage" in validation) {
       showToast(validation.errorMessage, "error");
 
-      return;
+      return false;
     }
 
     const newAuto = validation.automation;
@@ -300,6 +300,8 @@ export function useAutomationForm() {
 
     resetForm();
     showToast("اتوماسیون با موفقیت ثبت شد.", "success");
+
+    return true;
   };
 
   const handleDelete = (id: string) => {

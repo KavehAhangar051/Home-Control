@@ -1,21 +1,31 @@
 "use client";
 
+import { Activity01 } from "@/components/animate-ui/icons/hugeicons/activity-01";
 import { Check as CheckIcon } from "@/components/animate-ui/icons/hugeicons/check";
+import { CircuitBoard } from "@/components/animate-ui/icons/hugeicons/circuit-board";
 import { CloudLightning as CloudLightningIcon } from "@/components/animate-ui/icons/hugeicons/cloud-lightning";
 import { ComputerTerminal01 } from "@/components/animate-ui/icons/hugeicons/computer-terminal-01";
 import { Info as InfoIcon } from "@/components/animate-ui/icons/hugeicons/info";
 import { Location01 } from "@/components/animate-ui/icons/hugeicons/location-01";
 import { PencilEdit02 } from "@/components/animate-ui/icons/hugeicons/pencil-edit-02";
+import { Power as PowerIcon } from "@/components/animate-ui/icons/hugeicons/power";
 import { Save as SaveIcon } from "@/components/animate-ui/icons/hugeicons/save";
+import { ShieldCheck as ShieldCheckIcon } from "@/components/animate-ui/icons/hugeicons/shield-check";
 import { SquareX } from "@/components/animate-ui/icons/hugeicons/square-x";
 import { Temperature } from "@/components/animate-ui/icons/hugeicons/temperature";
+import { Waves as WavesIcon } from "@/components/animate-ui/icons/hugeicons/waves";
 import { Wifi01 } from "@/components/animate-ui/icons/hugeicons/wifi-01";
 import { createHugeIcon } from "../hugeicon-factory";
 
+export const Activity = /*#__PURE__*/ createHugeIcon(Activity01, "Activity");
 export const Check = /*#__PURE__*/ createHugeIcon(CheckIcon, "Check");
+export const Cpu = /*#__PURE__*/ createHugeIcon(CircuitBoard, "Cpu");
 export const Edit2 = /*#__PURE__*/ createHugeIcon(PencilEdit02, "Edit2");
+export const Power = /*#__PURE__*/ createHugeIcon(PowerIcon, "Power");
+export const ShieldCheck = /*#__PURE__*/ createHugeIcon(ShieldCheckIcon, "ShieldCheck");
 export const Square = /*#__PURE__*/ createHugeIcon(SquareX, "Square");
 export const Save = /*#__PURE__*/ createHugeIcon(SaveIcon, "Save");
+export const Waves = /*#__PURE__*/ createHugeIcon(WavesIcon, "Waves");
 export const Wifi = /*#__PURE__*/ createHugeIcon(Wifi01, "Wifi");
 export const Wifi01Icon = Wifi;
 export const Server = /*#__PURE__*/ createHugeIcon(ComputerTerminal01, "Server");

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import IconPicker from "./IconPicker";
 
@@ -28,97 +29,117 @@ export default function FormDetailsInput({
   existingGroups,
   lockedGroupName,
 }: FormDetailsInputProps) {
+  const baseId = useId();
+  const titleId = `${baseId}-title`;
+  const groupSelectId = `${baseId}-group-select`;
+  const groupNewId = `${baseId}-group-new`;
   const [isNewGroup, setIsNewGroup] = useState(existingGroups.length === 0);
 
   return (
-    <>
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-text-muted">(اختیاری)</span>
-          <span className="text-xs text-text-secondary font-medium">عنوان دلخواه قطعه</span>
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor={titleId}>نام قطعه</Label>
+            <span className="text-[11px] text-text-muted">(اختیاری)</span>
+          </div>
+          <Input
+            id={titleId}
+            type="text"
+            placeholder="مثال: چراغ پذیرایی یا پمپ حیاط"
+            value={customTitle}
+            onChange={(e) => setCustomTitle(e.target.value)}
+            className="text-start font-sans text-xs"
+          />
+          <p className="text-[11px] leading-5 text-text-muted">
+            اگر خالی بماند، بر اساس نوع و شماره پایه نام‌گذاری می‌شود.
+          </p>
         </div>
-        <Input
-          aria-label="عنوان دلخواه قطعه"
-          type="text"
-          placeholder="مثال: رله پمپ آب حیاط"
-          value={customTitle}
-          onChange={(e) => setCustomTitle(e.target.value)}
-          className="text-xs rounded-lg font-sans text-right"
-        />
+
+        <IconPicker label="آیکون قطعه" selectedIcon={segmentIcon} onSelectIcon={setSegmentIcon} />
       </div>
 
-      <IconPicker label="آیکون قطعه" selectedIcon={segmentIcon} onSelectIcon={setSegmentIcon} />
+      <div className="space-y-3 border-t border-border-color pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label htmlFor={!isNewGroup && existingGroups.length > 0 ? groupSelectId : groupNewId}>
+            گروه و اتاق نمایش
+          </Label>
 
-      <div className="space-y-1.5 pt-2 border-t border-border-color">
-        <div className="text-xs text-text-secondary font-medium block">گروه قطعه</div>
+          {!lockedGroupName && existingGroups.length > 0 && (
+            <fieldset
+              aria-label="نحوه انتخاب گروه"
+              className="inline-grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-bg-main p-1"
+            >
+              <button
+                type="button"
+                aria-pressed={!isNewGroup}
+                onClick={() => setIsNewGroup(false)}
+                className={`min-h-8 cursor-pointer rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+                  !isNewGroup
+                    ? "bg-accent3 text-accent3-foreground"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                گروه موجود
+              </button>
+              <button
+                type="button"
+                aria-pressed={isNewGroup}
+                onClick={() => setIsNewGroup(true)}
+                className={`min-h-8 cursor-pointer rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+                  isNewGroup
+                    ? "bg-accent3 text-accent3-foreground"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                گروه جدید
+              </button>
+            </fieldset>
+          )}
+        </div>
 
         {lockedGroupName ? (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-accent3/30 bg-accent3/10 px-3 py-2 text-xs text-text-primary">
-            <span className="font-medium truncate">{lockedGroupName}</span>
-            <span className="shrink-0 text-[11px] text-text-muted">متصل به گروه برد کمکی</span>
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-border-color bg-bg-main px-3.5 py-2.5 text-xs text-text-primary">
+            <span className="truncate font-semibold">{lockedGroupName}</span>
+            <span className="shrink-0 text-[11px] text-text-muted">گروه اختصاصی برد کمکی</span>
           </div>
+        ) : !isNewGroup && existingGroups.length > 0 ? (
+          <Select
+            id={groupSelectId}
+            aria-label="انتخاب گروه موجود"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            className="font-sans text-xs"
+            dir="rtl"
+          >
+            {existingGroups.map((group) => (
+              <option key={group} value={group} className="bg-card-bg-solid">
+                {group}
+              </option>
+            ))}
+          </Select>
         ) : (
-          <>
-            {existingGroups.length > 0 && (
-              <div className="flex items-center justify-end gap-3 mb-2 px-1">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="segment-group-mode"
-                    checked={isNewGroup}
-                    onChange={() => setIsNewGroup(true)}
-                    className="appearance-none relative size-3.5 rounded-[4px] border border-border-color bg-bg-main checked:border-accent3 checked:bg-accent3 after:content-[''] after:absolute after:inset-[3px] after:rounded-[2px] after:bg-accent3-foreground after:opacity-0 checked:after:opacity-100 transition-colors cursor-pointer"
-                  />
-                  <span className="text-xs text-text-secondary">گروه جدید</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="segment-group-mode"
-                    checked={!isNewGroup}
-                    onChange={() => setIsNewGroup(false)}
-                    className="appearance-none relative size-3.5 rounded-[4px] border border-border-color bg-bg-main checked:border-accent3 checked:bg-accent3 after:content-[''] after:absolute after:inset-[3px] after:rounded-[2px] after:bg-accent3-foreground after:opacity-0 checked:after:opacity-100 transition-colors cursor-pointer"
-                  />
-                  <span className="text-xs text-text-secondary">انتخاب از موجود</span>
-                </label>
-              </div>
-            )}
-
-            {!isNewGroup && existingGroups.length > 0 ? (
-              <Select
-                aria-label="گروه قطعه"
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Input
+                id={groupNewId}
+                aria-label="نام گروه جدید"
+                type="text"
+                placeholder="مثال: پذیرایی، آشپزخانه، حیاط"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                className="text-xs rounded-lg font-sans"
-                dir="rtl"
-              >
-                {existingGroups.map((group) => (
-                  <option key={group} value={group} className="bg-bg-main">
-                    {group}
-                  </option>
-                ))}
-              </Select>
-            ) : (
-              <div className="space-y-3">
-                <Input
-                  aria-label="نام گروه جدید"
-                  type="text"
-                  placeholder="مثال: پذیرایی"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  className="text-xs rounded-lg font-sans text-right"
-                />
+                className="text-start font-sans text-xs"
+              />
+            </div>
 
-                <IconPicker
-                  label="آیکون گروه جدید"
-                  selectedIcon={groupIcon}
-                  onSelectIcon={setGroupIcon}
-                />
-              </div>
-            )}
-          </>
+            <IconPicker
+              label="آیکون گروه جدید"
+              selectedIcon={groupIcon}
+              onSelectIcon={setGroupIcon}
+            />
+          </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

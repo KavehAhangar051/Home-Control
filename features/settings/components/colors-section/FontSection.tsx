@@ -1,7 +1,9 @@
 "use client";
 
-import { Check, RotateCcw, Type } from "lucide-react";
+import { Type } from "lucide-react";
 import { Grid } from "@/components/ui/grid";
+import { Check } from "@/components/ui/hugeicons-groups/controls";
+import { RefreshCw } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { DASHBOARD_FONTS, DEFAULT_DASHBOARD_FONT, getDashboardFontFamilyCss } from "@/lib/fonts";
 
@@ -29,9 +31,9 @@ export default function FontSection() {
           <button
             type="button"
             onClick={resetFont}
-            className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors py-1 px-2 rounded-md hover:bg-card-hover-bg shrink-0 whitespace-nowrap"
+            className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors py-1 px-2 rounded-md hover:bg-card-hover-bg shrink-0 whitespace-nowrap"
           >
-            <RotateCcw className="size-3.5" aria-hidden="true" />
+            <RefreshCw className="size-3.5" aria-hidden="true" />
             <span>بازگشت به دانا</span>
           </button>
         )}

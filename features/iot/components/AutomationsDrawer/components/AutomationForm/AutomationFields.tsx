@@ -68,7 +68,7 @@ export function ScheduleFields({
             <ToggleGroupItem
               key={d.value}
               value={String(d.value)}
-              className="px-3 min-h-10 sm:min-h-8 rounded-lg text-xs font-medium aria-pressed:bg-accent3 aria-pressed:text-bg-main aria-pressed:border-accent3"
+              className="px-3 min-h-10 sm:min-h-8 rounded-lg text-xs font-medium aria-pressed:bg-accent3 aria-pressed:text-accent3-foreground aria-pressed:border-accent3"
             >
               {d.label}
             </ToggleGroupItem>

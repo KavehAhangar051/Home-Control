@@ -1,7 +1,8 @@
 "use client";
 
-import { Clock, ShieldAlert } from "lucide-react";
 import { useId } from "react";
+import { ShieldCheck } from "@/components/ui/hugeicons-groups/controls";
+import { Clock } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -176,7 +177,7 @@ export function MacroConditionEditor({
     <div className="rounded-xl border border-border-color/80 bg-bg-primary/50 p-3 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-text-primary">
-          <ShieldAlert
+          <ShieldCheck
             aria-hidden="true"
             className={`size-3.5 shrink-0 ${isEnabled ? "text-accent4" : "text-text-muted"}`}
           />
@@ -322,7 +323,7 @@ export function MacroConditionEditor({
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center justify-between gap-1.5">
                   <Label htmlFor={sourcePinId} className="font-semibold text-text-secondary">
-                    سگمنت مرجع:
+                    قطعه مرجع:
                   </Label>
                   {liveReadoutText && (
                     <span className="font-mono text-[10px] text-accent3 tabular-nums">
@@ -332,15 +333,15 @@ export function MacroConditionEditor({
                 </div>
                 <Select
                   id={sourcePinId}
-                  aria-label={`سگمنت مرجع شرط عملیات ${index + 1}`}
+                  aria-label={`قطعه مرجع شرط عملیات ${index + 1}`}
                   value={selectedSourcePin}
                   onChange={(e) => patchCondition({ sourcePin: e.target.value })}
                   className="bg-card-bg-solid text-xs"
                 >
                   <option value="">
                     {matchingSegments.length === 0
-                      ? "هیچ سگمنتی از این نوع در داشبورد ثبت نشده است"
-                      : "انتخاب سگمنت..."}
+                      ? "هیچ قطعه‌ای از این نوع در داشبورد ثبت نشده است"
+                      : "انتخاب قطعه..."}
                   </option>
                   {selectedSourcePin &&
                     !matchingSegments.some((s) => s.pin.trim() === selectedSourcePin) && (

@@ -1,7 +1,7 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { RefreshCw } from "@/components/ui/hugeicons-groups/shell";
 import { useOptionalDashboard } from "@/features/dashboard/context/DashboardContext";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {

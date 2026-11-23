@@ -7,13 +7,17 @@ export {
 export {
   Check,
   CloudLightning,
+  Cpu,
   Edit2,
   Info,
   MapPin,
+  Power,
   Save,
   Server,
+  ShieldCheck,
   Square,
   Thermometer,
+  Waves,
   Wifi,
   Wifi01Icon,
 } from "./hugeicons-groups/controls";
