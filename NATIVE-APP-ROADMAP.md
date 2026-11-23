@@ -2,10 +2,10 @@
 
 > مرجع پایدار توسعه اپلیکیشن موبایل مبتنی بر داشبورد فعلی. در هر جلسه، ابتدا این سند و سورس جاری مخزن بررسی شود و کار از آخرین وضعیت ثبت‌شده ادامه یابد.
 
-- آخرین بازبینی: ۲۰ نوامبر ۲۰۲۶
-- مخزن: https://github.com/KavehAhangar051/Home-Control
+- آخرین بازبینی: ۲۳ نوامبر ۲۰۲۶
+- مخزن: https://github.com/KavehAhangar051/Home-Control-Dashboard
 - محدوده: اپلیکیشن موبایل مبتنی بر Dashboard/
-- وضعیت: ممیزی و برنامه‌ریزی؛ Capacitor هنوز نصب نشده است.
+- وضعیت: پایپ‌لاین Capacitor 8.6.2 با اسکریپت‌های android:prepare، android:sync و android:apk راه‌اندازی شده و CI Workflow انتشار Pre-release فعال است؛ تداخل فشرده‌سازی وب در اندروید حل شد.
 
 ---
 
@@ -1670,3 +1670,24 @@ Error: .../sdkmanager failed with exit code 1
 - [ ] نصب و اجرای APK روی گوشی Android و بررسی MQTT و Local WebSocket
 
 **وضعیت:** تغییرات Workflow و مستندات ثبت شده‌اند؛ ایجاد Release واقعی پس از اجرای موفق Workflow جدید قابل تأیید است.
+
+---
+
+## ۱۹. تفکیک فایل‌های فشرده‌سازی وب (.gz و .br) در بیلد و همگام‌سازی Capacitor Android — ۲۲ نوامبر ۲۰۲۶
+
+### صورت مسئله
+اسکریپت `scripts/compress-export.mjs` در زمان اجرای `bun run build`، به ازای تمام فایل‌های استاتیک در پوشه `out/`، فایل‌های جانبی فشرده‌شده با الگوریتم‌های Brotli (`.br`) و Gzip (`.gz`) تولید می‌کرد تا در سرویس‌دهی وب استاتیک مورد استفاده قرار گیرند.
+اما در زمان اجرای `cap sync android` یا بیلد APK با Gradle، پلتفرم Capacitor تمام محتویات `out/` را عینا به عنوان دارایی‌های اندروید (`android/app/src/main/assets/public/`) کپی می‌کند. در نتیجه:
+- فایل‌های `.br` و `.gz` به همراه فایل خام در دارایی‌های اندروید کپی می‌شدند.
+- مرحله `mergeDebugAssets` در Gradle دچار تداخل نام و سربار حجم غیرضروری می‌شد، در حالی که WebView محلی اندروید این سایدکارهای فشرده‌سازی سرور وب را مصرف نمی‌کند.
+
+### راه‌حل و تغییرات اعمال‌شده
+1. **تنظیم متغیر محیطی در `package.json`:**
+   دستور `android:apk` به `CAPACITOR_BUILD=true bun run build && bun run android:sync && cd android && ./gradlew assembleDebug` ارتقا یافت.
+2. **پاکسازی خودکار سایدکارها در `scripts/compress-export.mjs`:**
+   تابع `removeCompressedSidecars(dir)` اضافه شد که در صورت وجود `process.env.CAPACITOR_BUILD === "true"`، فایل‌های `.gz` و `.br` را از `out/` حذف کرده و از تولید مجدد آن‌ها صرف‌نظر می‌کند.
+
+### وضعیت
+- [x] حذف سایدکارهای فشرده‌سازی در زمان بیلد اندروید پیاده‌سازی شد.
+- [x] رفع برخورد Assetها در Gradle و تایید کاهش سربار بیلد.
+- [ ] تست نصب و اجرای APK بدون سایدکارها روی گوشی واقعی.
