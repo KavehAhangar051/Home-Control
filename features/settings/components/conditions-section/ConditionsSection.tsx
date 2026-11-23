@@ -58,7 +58,7 @@ export default function ConditionsSection() {
             const handleSave = () => {
               const inputPin = Number(segment.pin);
               if (!isValidManagedPin(inputPin)) {
-                showToast("شماره پایه سگمنت ورودی معتبر نیست.", "error");
+                showToast("شماره پایه قطعه ورودی معتبر نیست.", "error");
                 return;
               }
 

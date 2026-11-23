@@ -1,7 +1,8 @@
 "use client";
 
-import { CheckCircle2, Download, Share, Smartphone, WifiOff } from "lucide-react";
 import { useState } from "react";
+import { Download, Share, Smartphone } from "@/components/ui/hugeicons-groups/media";
+import { CheckCircle, WifiOff } from "@/components/ui/hugeicons-groups/shell";
 import { soundManager } from "@/lib/audio";
 import { triggerHaptic } from "@/lib/haptics";
 import { useOnlineStatus, usePWAInstall } from "@/lib/hooks/use-pwa";
@@ -29,18 +30,13 @@ export default function PwaInstallCard() {
   };
 
   return (
-    <div className="border-b border-border-color pb-3.5 sm:pb-4 space-y-2.5 sm:space-y-3">
-      <p className="text-[11px] text-text-muted leading-relaxed sm:text-xs sm:text-text-secondary">
-        نصب داشبورد به‌صورت اپلیکیشن مستقل (PWA) با کش آفلاین پوسته، اجرای تمام‌صفحه و همگام‌سازی زنده
-        بین تب‌ها
-      </p>
-
+    <div className="border-b border-border-color pb-3.5 sm:pb-4">
       <div className="w-full p-3 sm:p-4 rounded-xl border border-border-color bg-card-bg flex flex-col gap-3 text-right">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1">
             <span className="font-sans font-medium text-xs flex items-center gap-1.5 text-text-primary">
               {isStandalone ? (
-                <CheckCircle2
+                <CheckCircle
                   strokeWidth={1.6}
                   aria-hidden="true"
                   className="size-4 shrink-0 text-accent3"
@@ -53,20 +49,18 @@ export default function PwaInstallCard() {
                 />
               )}
               <span className="leading-5">
-                {isStandalone
-                  ? "اپلیکیشن نصب شده و در حالت مستقل (Standalone) اجرا می‌شود"
-                  : "نصب اپلیکیشن وب پیشرونده (PWA)"}
+                {isStandalone ? "اپلیکیشن نصب شده است" : "نصب داشبورد به‌صورت اپلیکیشن"}
               </span>
             </span>
 
             <p className="text-[11px] sm:text-xs leading-relaxed font-sans text-text-muted sm:text-text-secondary">
               {isStandalone
-                ? "فایل‌های پوسته و فونت‌ها توسط Service Worker برای بارگذاری سریع و آفلاین آماده هستند."
+                ? "پوسته و فونت‌ها در حافظه آفلاین مرورگر ذخیره شده‌اند"
                 : isInstallable
-                  ? "داشبورد آماده نصب مستقیم روی صفحه اصلی دستگاه بدون نیاز به فروشگاه است."
+                  ? "نصب مستقیم روی صفحه اصلی دستگاه با اجرای تمام‌صفحه"
                   : isIOS
-                    ? "برای نصب در iOS: دکمه Share در نوار پایین Safari را بزنید و گزینه Add to Home Screen را انتخاب کنید."
-                    : "پوسته آفلاین آماده است؛ در مرورگرهای پشتیبان می‌توانید از نوار آدرس یا منو گزینه نصب اپلیکیشن را انتخاب کنید."}
+                    ? "در Safari دکمه Share و سپس Add to Home Screen را بزنید"
+                    : "از منو یا نوار آدرس مرورگر گزینه نصب اپلیکیشن را انتخاب کنید"}
             </p>
           </div>
 
@@ -75,7 +69,7 @@ export default function PwaInstallCard() {
               type="button"
               onClick={handleInstall}
               disabled={isPrompting}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-accent4 text-accent4-foreground hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-accent3 text-accent3-foreground hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
             >
               <Download strokeWidth={1.7} aria-hidden="true" className="size-3.5" />
               <span>{isPrompting ? "در حال نصب..." : "نصب اپ"}</span>
@@ -101,7 +95,7 @@ export default function PwaInstallCard() {
               aria-hidden="true"
               className="size-3.5 shrink-0 text-destructive"
             />
-            <span>اتصال اینترنت قطع است؛ رابط کاربری از کش آفلاین بارگذاری شده است.</span>
+            <span>اتصال اینترنت قطع است؛ نمایش از کش آفلاین</span>
           </div>
         )}
       </div>

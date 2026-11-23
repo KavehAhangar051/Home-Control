@@ -1,17 +1,10 @@
 "use client";
 
-import {
-  Bell,
-  CheckCircle2,
-  HardDrive,
-  Mic,
-  Monitor,
-  RefreshCw,
-  RotateCcw,
-  ShieldCheck,
-  Volume2,
-} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import type { HugeIconComponent } from "@/components/ui/hugeicon-factory";
+import { ShieldCheck } from "@/components/ui/hugeicons-groups/controls";
+import { HardDrive, Monitor, Volume2 } from "@/components/ui/hugeicons-groups/media";
+import { Bell, CheckCircle, Mic, RefreshCw } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { soundManager } from "@/lib/audio";
 import { triggerHaptic } from "@/lib/haptics";
@@ -28,13 +21,13 @@ import {
 const STATUS_ROWS: ReadonlyArray<{
   id: DashboardPermissionId;
   label: string;
-  Icon: typeof HardDrive;
+  Icon: HugeIconComponent;
 }> = [
-  { id: "storage", label: "کوکی و حافظه پایدار", Icon: HardDrive },
-  { id: "microphone", label: "میکروفون (فرمان صوتی)", Icon: Mic },
-  { id: "audio", label: "خروجی صدا (AudioContext)", Icon: Volume2 },
+  { id: "storage", label: "کوکی و حافظه محلی", Icon: HardDrive },
+  { id: "microphone", label: "میکروفون فرمان صوتی", Icon: Mic },
+  { id: "audio", label: "خروجی صدا", Icon: Volume2 },
   { id: "notifications", label: "اعلان‌های پس‌زمینه", Icon: Bell },
-  { id: "wakeLock", label: "بیداری نمایشگر (Wake Lock)", Icon: Monitor },
+  { id: "wakeLock", label: "بیداری نمایشگر", Icon: Monitor },
 ];
 
 function getStatusText(status?: PermissionStateStatus): {
@@ -90,22 +83,16 @@ export default function PermissionsStatusCard() {
   };
 
   return (
-    <div className="border-b border-border-color pb-3.5 sm:pb-4 space-y-2.5 sm:space-y-3">
-      <p className="text-[11px] text-text-muted leading-relaxed sm:text-xs sm:text-text-secondary">
-        مدیریت کوکی راه‌اندازی اولیه و وضعیت مجوزهای مرورگر برای فرمان صوتی، کش آفلاین، صدا و اعلان‌ها
-      </p>
-
+    <div className="border-b border-border-color pb-3.5 sm:pb-4">
       <div className="w-full rounded-xl border border-border-color bg-card-bg p-3 text-right sm:p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 text-xs font-medium text-text-primary">
             {hasCookie ? (
-              <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-accent3" />
+              <CheckCircle aria-hidden="true" className="size-4 shrink-0 text-accent3" />
             ) : (
               <ShieldCheck aria-hidden="true" className="size-4 shrink-0 text-text-secondary" />
             )}
-            <span>
-              {hasCookie ? "کوکی دسترسی‌های داشبورد ثبت شده است" : "در انتظار تایید اولیه"}
-            </span>
+            <span>{hasCookie ? "دسترسی‌های مرورگر" : "دسترسی‌های مرورگر · در انتظار تایید"}</span>
           </span>
 
           <button
@@ -138,7 +125,7 @@ export default function PermissionsStatusCard() {
           <button
             type="button"
             onClick={handleOpenWizard}
-            className="inline-flex min-h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-accent4 px-3 py-2 text-xs font-medium text-accent4-foreground transition-opacity hover:opacity-90 whitespace-nowrap"
+            className="inline-flex min-h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-accent3 px-3 py-2 text-xs font-medium text-accent3-foreground transition-opacity hover:opacity-90 whitespace-nowrap"
           >
             <ShieldCheck aria-hidden="true" className="size-3.5 shrink-0" />
             <span>بررسی و درخواست دسترسی‌ها</span>
@@ -150,8 +137,8 @@ export default function PermissionsStatusCard() {
               onClick={handleResetConsent}
               className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border-color bg-bg-main px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary whitespace-nowrap"
             >
-              <RotateCcw aria-hidden="true" className="size-3.5 shrink-0" />
-              <span>بازنشانی کوکی</span>
+              <RefreshCw aria-hidden="true" className="size-3.5 shrink-0" />
+              <span>بازنشانی</span>
             </button>
           )}
         </div>

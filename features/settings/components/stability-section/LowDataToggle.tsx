@@ -29,7 +29,7 @@ function getLowDataTitleClass(lowDataMode: boolean, _isDark: boolean): string {
 
 function getSwitchTrackClass(lowDataMode: boolean, _isDark: boolean): string {
   if (lowDataMode) {
-    return "bg-accent4 border border-transparent";
+    return "bg-accent3 border border-transparent";
   }
 
   return "bg-bg-main border border-border-color";
@@ -49,18 +49,13 @@ export default function LowDataToggle({
     else soundManager.playToggleOff();
   };
 
-  const statusLabel = lowDataMode ? "حالت کم‌مصرف اینترنت: روشن" : "حالت کم‌مصرف اینترنت: خاموش";
+  const statusLabel = lowDataMode ? "حالت کم‌مصرف اینترنت · روشن" : "حالت کم‌مصرف اینترنت · خاموش";
   const surfaceClass = getLowDataSurfaceClass(lowDataMode, isDark);
   const titleClass = getLowDataTitleClass(lowDataMode, isDark);
   const switchTrackClass = getSwitchTrackClass(lowDataMode, isDark);
 
   return (
-    <div className="border-b border-border-color pb-3.5 sm:pb-4 space-y-2.5 sm:space-y-3">
-      <p className="text-[11px] text-text-muted leading-relaxed sm:text-xs sm:text-text-secondary">
-        در صورت محدودیت حجم اینترنت، سامانه را در حالت کم‌مصرف قرار دهید تا دریافت خودکار پس‌زمینه
-        متوقف شود
-      </p>
-
+    <div className="border-b border-border-color pb-3.5 sm:pb-4">
       <Toggle
         variant="outline"
         pressed={lowDataMode}
@@ -76,12 +71,12 @@ export default function LowDataToggle({
               strokeWidth={1.5}
               className={`size-4 shrink-0 ${lowDataMode ? "text-accent3" : "text-text-secondary"}`}
             />
-            <span className="leading-5">{statusLabel}</span>
+            <span className="leading-5">حالت کم‌مصرف اینترنت</span>
           </span>
           <span className="text-[11px] sm:text-xs block leading-relaxed font-sans text-text-muted sm:text-text-secondary">
             {lowDataMode
-              ? "دریافت اطلاعات فقط با به‌روزرسانی دستی"
-              : "همگام‌سازی خودکار با سرور ابری"}
+              ? "روشن · همگام‌سازی فقط با درخواست دستی"
+              : "خاموش · همگام‌سازی خودکار پس‌زمینه با کلودفلر"}
           </span>
         </div>
 
@@ -93,7 +88,7 @@ export default function LowDataToggle({
               animationsEnabled
                 ? "transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 : ""
-            } ${lowDataMode ? "bg-accent4-foreground -translate-x-5" : "bg-text-secondary translate-x-0"}`}
+            } ${lowDataMode ? "bg-accent3-foreground -translate-x-5" : "bg-text-secondary translate-x-0"}`}
           />
         </div>
       </Toggle>

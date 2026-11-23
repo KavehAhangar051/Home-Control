@@ -1,6 +1,6 @@
 "use client";
 
-import { Monitor } from "lucide-react";
+import { Monitor } from "@/components/ui/hugeicons-groups/media";
 import { Toggle } from "@/components/ui/toggle";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import { soundManager } from "@/lib/audio";
@@ -34,8 +34,8 @@ export default function WakeLockToggle({ animationsEnabled }: WakeLockToggleProp
   };
 
   const statusLabel = wakeLockEnabled
-    ? "بیدار نگه‌داشتن صفحه نمایش (Wake Lock): روشن"
-    : "بیدار نگه‌داشتن صفحه نمایش (Wake Lock): خاموش";
+    ? "بیدار نگه‌داشتن نمایشگر · روشن"
+    : "بیدار نگه‌داشتن نمایشگر · خاموش";
 
   const surfaceClass = wakeLockEnabled
     ? "bg-card-hover-bg aria-pressed:bg-card-hover-bg data-[state=on]:bg-card-hover-bg border-accent3"
@@ -44,16 +44,11 @@ export default function WakeLockToggle({ animationsEnabled }: WakeLockToggleProp
   const titleClass = wakeLockEnabled ? "text-accent3" : "text-text-primary";
 
   const switchTrackClass = wakeLockEnabled
-    ? "bg-accent4 border border-transparent"
+    ? "bg-accent3 border border-transparent"
     : "bg-bg-main border border-border-color";
 
   return (
-    <div className="border-b border-border-color pb-3.5 sm:pb-4 space-y-2.5 sm:space-y-3">
-      <p className="text-[11px] text-text-muted leading-relaxed sm:text-xs sm:text-text-secondary">
-        جلوگیری از خاموش شدن خودکار نمایشگر هنگام باز بودن داشبورد (مناسب تبلت‌های دیواری و پایش
-        مداوم)
-      </p>
-
+    <div className="border-b border-border-color pb-3.5 sm:pb-4">
       <Toggle
         variant="outline"
         pressed={wakeLockEnabled}
@@ -70,14 +65,14 @@ export default function WakeLockToggle({ animationsEnabled }: WakeLockToggleProp
               aria-hidden="true"
               className={`size-4 shrink-0 ${wakeLockEnabled ? "text-accent3" : "text-text-secondary"}`}
             />
-            <span className="leading-5">{statusLabel}</span>
+            <span className="leading-5">بیدار نگه‌داشتن نمایشگر</span>
           </span>
           <span className="text-[11px] sm:text-xs block leading-relaxed font-sans text-text-muted sm:text-text-secondary">
             {supported
               ? wakeLockEnabled
-                ? "قفل بیداری نمایشگر هنگام مشاهده صفحه فعال است و پس از بازگشت خودکار تمدید می‌شود"
-                : "صفحه نمایش مطابق تنظیمات معمول سیستم‌عامل خاموش می‌شود"
-              : "مرورگر فعلی از Screen Wake Lock API پشتیبانی نمی‌کند"}
+                ? "روشن · جلوگیری از خاموش شدن خودکار صفحه"
+                : "خاموش · خاموشی صفحه مطابق تنظیمات سیستم‌عامل"
+              : "این مرورگر از قفل بیداری صفحه پشتیبانی نمی‌کند"}
           </span>
         </div>
 
@@ -89,7 +84,7 @@ export default function WakeLockToggle({ animationsEnabled }: WakeLockToggleProp
               animationsEnabled
                 ? "transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 : ""
-            } ${wakeLockEnabled ? "bg-accent4-foreground -translate-x-5" : "bg-text-secondary translate-x-0"}`}
+            } ${wakeLockEnabled ? "bg-accent3-foreground -translate-x-5" : "bg-text-secondary translate-x-0"}`}
           />
         </div>
       </Toggle>

@@ -1,15 +1,14 @@
 "use client";
 
-import { Download, FolderOpen, Share2 } from "lucide-react";
 import { useState } from "react";
+import { Download, Share } from "@/components/ui/hugeicons-groups/media";
+import { CloudUpload } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
   buildDashboardBackupBundle,
   restoreDashboardBackup,
 } from "@/features/iot/services/configBackupService";
 import {
-  isFileSystemAccessSupported,
-  isWebShareSupported,
   openJsonWithFilePicker,
   saveJsonWithFilePicker,
   shareJsonPayload,
@@ -25,9 +24,6 @@ function buildBackupFilename(): string {
 export default function BackupRestoreSection() {
   const showToast = useIoTStore((s) => s.showToast);
   const [busyAction, setBusyAction] = useState<"export" | "share" | "import" | null>(null);
-
-  const fsSupported = isFileSystemAccessSupported();
-  const shareSupported = isWebShareSupported();
 
   const handleExportBackup = async () => {
     setBusyAction("export");
@@ -118,21 +114,11 @@ export default function BackupRestoreSection() {
 
   return (
     <div className="space-y-3 rounded-xl border border-border-color bg-card-hover-bg p-3 sm:p-3.5 text-right">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <div className="text-xs font-bold text-text-primary">
-            پشتیبان‌گیری و انتقال مستقیم فایل (Backup & Restore)
-          </div>
-          <p className="text-[11px] leading-5 text-text-tertiary">
-            خروجی گرفتن، اشتراک‌گذاری یا بازیابی کامل قطعات (EspConfig)، چیدمان‌های آزاد (Trellis) و
-            سناریوهای گردش کار در یک فایل JSON.
-          </p>
-        </div>
-
-        <span className="hidden sm:inline font-mono text-[10px] tabular-nums text-text-muted shrink-0">
-          {fsSupported ? "File System API" : "Direct JSON"}
-          {shareSupported ? " · Web Share" : ""}
-        </span>
+      <div className="space-y-0.5">
+        <div className="text-xs font-bold text-text-primary">پشتیبان‌گیری و بازیابی</div>
+        <p className="text-[11px] leading-5 text-text-tertiary">
+          ذخیره، اشتراک‌گذاری یا بازیابی کامل قطعات، چیدمان‌ها و گردش‌های کاری در فایل JSON
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -143,7 +129,7 @@ export default function BackupRestoreSection() {
           className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-accent3/35 bg-accent3/15 px-3 py-2 text-xs font-bold text-accent3 transition-colors hover:bg-accent3 hover:text-accent3-foreground disabled:opacity-50"
         >
           <Download className="size-3.5 shrink-0" aria-hidden="true" />
-          <span>{busyAction === "export" ? "در حال ذخیره..." : "ذخیره فایل پشتیبان"}</span>
+          <span>{busyAction === "export" ? "در حال ذخیره..." : "ذخیره پشتیبان"}</span>
         </button>
 
         <button
@@ -152,8 +138,8 @@ export default function BackupRestoreSection() {
           onClick={handleShareBackup}
           className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border-color bg-bg-main px-3 py-2 text-xs font-semibold text-text-primary transition-colors hover:border-accent3 hover:text-accent3 disabled:opacity-50"
         >
-          <Share2 className="size-3.5 shrink-0" aria-hidden="true" />
-          <span>{busyAction === "share" ? "در حال ارسال..." : "اشتراک‌گذاری (Share)"}</span>
+          <Share className="size-3.5 shrink-0" aria-hidden="true" />
+          <span>{busyAction === "share" ? "در حال ارسال..." : "اشتراک‌گذاری"}</span>
         </button>
 
         <button
@@ -162,8 +148,8 @@ export default function BackupRestoreSection() {
           onClick={handleImportBackup}
           className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border-color bg-bg-main px-3 py-2 text-xs font-semibold text-text-primary transition-colors hover:border-accent3 hover:text-accent3 disabled:opacity-50"
         >
-          <FolderOpen className="size-3.5 shrink-0" aria-hidden="true" />
-          <span>{busyAction === "import" ? "در حال بازیابی..." : "بازیابی از فایل (Restore)"}</span>
+          <CloudUpload className="size-3.5 shrink-0" aria-hidden="true" />
+          <span>{busyAction === "import" ? "در حال بازیابی..." : "بازیابی از فایل"}</span>
         </button>
       </div>
     </div>

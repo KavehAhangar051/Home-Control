@@ -56,7 +56,7 @@ export function MqttFormFields({
         </div>
         <div className="sm:col-span-1 space-y-2 text-right">
           <Label htmlFor="mqtt-broker-port" className="px-1 font-bold">
-            پورت (Port)
+            پورت
           </Label>
           <Input
             id="mqtt-broker-port"
@@ -72,7 +72,7 @@ export function MqttFormFields({
 
       <div className="space-y-2 text-right">
         <Label htmlFor="mqtt-base-topic" className="px-1 font-bold">
-          موضوع پایه (Base Topic)
+          مسیر پایه (Base Topic)
         </Label>
         <Input
           id="mqtt-base-topic"

@@ -34,10 +34,10 @@ export function MqttQosSelector({ qos, setQos }: Props) {
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
-      <p className="text-[9px] text-text-muted pt-1 px-1">
-        {qos === 0 && "ارسال حداکثر یکبار. بدون تضمین تحویل."}
-        {qos === 1 && "ارسال حداقل یکبار. تضمین تحویل با احتمال تکرار."}
-        {qos === 2 && "ارسال دقیقا یکبار. امن‌ترین و کندترین حالت."}
+      <p className="text-[11px] text-text-muted pt-1 px-1">
+        {qos === 0 && "حداکثر یک‌بار ارسال · سریع‌ترین حالت بدون تضمین تحویل"}
+        {qos === 1 && "حداقل یک‌بار ارسال · تضمین تحویل با احتمال تکرار"}
+        {qos === 2 && "دقیقاً یک‌بار ارسال · مطمئن‌ترین و کندترین حالت"}
       </p>
     </fieldset>
   );

@@ -1,8 +1,8 @@
 "use client";
 
-import { ChevronDown, Play, Settings2, Zap } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { ChevronDown, Play, Settings2, Zap } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDashboard } from "@/features/dashboard/context/DashboardContext";
 import type { Macro } from "@/features/iot/hooks/store/types";

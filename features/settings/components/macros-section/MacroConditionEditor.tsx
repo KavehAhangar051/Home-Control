@@ -179,9 +179,9 @@ export function MacroConditionEditor({
         <div className="flex items-center gap-1.5 text-xs font-semibold text-text-primary">
           <ShieldCheck
             aria-hidden="true"
-            className={`size-3.5 shrink-0 ${isEnabled ? "text-accent4" : "text-text-muted"}`}
+            className={`size-3.5 shrink-0 ${isEnabled ? "text-accent3" : "text-text-muted"}`}
           />
-          <span>شرط اجرای این عملیات (بررسی در داشبورد)</span>
+          <span>شرط اجرا</span>
         </div>
 
         <button
@@ -192,11 +192,11 @@ export function MacroConditionEditor({
           onClick={handleToggleEnabled}
           className={`rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-colors cursor-pointer ${
             isEnabled
-              ? "border-accent4/60 bg-accent4/15 text-accent4"
+              ? "border-accent3/60 bg-accent3/15 text-accent3"
               : "border-border-color bg-card-bg-solid text-text-muted hover:text-text-primary"
           }`}
         >
-          {isEnabled ? "شرط فعال است" : "+ افزودن شرط"}
+          {isEnabled ? "شرط فعال" : "+ افزودن شرط"}
         </button>
       </div>
 
@@ -205,7 +205,7 @@ export function MacroConditionEditor({
           {/* Parameter Type Selector */}
           <div className="space-y-1">
             <Label htmlFor={paramId} className="font-semibold text-text-secondary">
-              بررسی بر اساس:
+              بررسی بر اساس
             </Label>
             <Select
               id={paramId}
@@ -247,18 +247,18 @@ export function MacroConditionEditor({
                   onClick={() => patchCondition({ timeMode: "outside" })}
                   className={`rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors cursor-pointer ${
                     condition.timeMode === "outside"
-                      ? "bg-accent4 text-accent4-foreground"
+                      ? "bg-accent3 text-accent3-foreground"
                       : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
-                  خارج از این بازه زمانی
+                  خارج از این بازه
                 </button>
               </fieldset>
 
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="space-y-1">
                   <Label htmlFor={startId} className="font-semibold text-text-secondary">
-                    از ساعت:
+                    از ساعت
                   </Label>
                   <Input
                     id={startId}
@@ -271,7 +271,7 @@ export function MacroConditionEditor({
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor={endId} className="font-semibold text-text-secondary">
-                    تا ساعت:
+                    تا ساعت
                   </Label>
                   <Input
                     id={endId}
@@ -323,7 +323,7 @@ export function MacroConditionEditor({
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center justify-between gap-1.5">
                   <Label htmlFor={sourcePinId} className="font-semibold text-text-secondary">
-                    قطعه مرجع:
+                    قطعه مرجع
                   </Label>
                   {liveReadoutText && (
                     <span className="font-mono text-[10px] text-accent3 tabular-nums">
@@ -374,9 +374,7 @@ export function MacroConditionEditor({
                         : "text-text-secondary hover:text-text-primary"
                     }`}
                   >
-                    {condition.parameter === "digital_input"
-                      ? "فعال باشد (HIGH)"
-                      : "روشن باشد (ON)"}
+                    {condition.parameter === "digital_input" ? "فعال باشد" : "روشن باشد"}
                   </button>
                   <button
                     type="button"
@@ -388,9 +386,7 @@ export function MacroConditionEditor({
                         : "text-text-secondary hover:text-text-primary"
                     }`}
                   >
-                    {condition.parameter === "digital_input"
-                      ? "غیرفعال باشد (LOW)"
-                      : "خاموش باشد (OFF)"}
+                    {condition.parameter === "digital_input" ? "غیرفعال باشد" : "خاموش باشد"}
                   </button>
                 </fieldset>
               )}
@@ -402,7 +398,7 @@ export function MacroConditionEditor({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label htmlFor={opId} className="font-semibold text-text-secondary">
-                        شرط مقایسه:
+                        شرط مقایسه
                       </Label>
                       <Select
                         id={opId}
@@ -434,7 +430,7 @@ export function MacroConditionEditor({
 
                     {isAnalogNumeric && (
                       <div className="space-y-1">
-                        <span className="block font-semibold text-text-secondary">واحد مقدار:</span>
+                        <span className="block font-semibold text-text-secondary">واحد مقدار</span>
                         <fieldset
                           aria-label={`واحد مقدار شرط عملیات ${index + 1}`}
                           className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-card-bg-solid p-1"
@@ -495,8 +491,8 @@ export function MacroConditionEditor({
                     >
                       <div className="space-y-1">
                         <Label htmlFor={valId} className="font-semibold text-text-secondary">
-                          {isRangeOperator(condition.operator) ? "از مقدار:" : "مقدار آستانه:"} (0
-                          تا {numericMaxLimit}
+                          {isRangeOperator(condition.operator) ? "از مقدار" : "مقدار آستانه"} (0 تا{" "}
+                          {numericMaxLimit}
                           {unit === "percent" ? "%" : ""})
                         </Label>
                         <Input
@@ -520,7 +516,7 @@ export function MacroConditionEditor({
                       {isRangeOperator(condition.operator) && (
                         <div className="space-y-1">
                           <Label htmlFor={maxValId} className="font-semibold text-text-secondary">
-                            تا مقدار: (0 تا {numericMaxLimit}
+                            تا مقدار (0 تا {numericMaxLimit}
                             {unit === "percent" ? "%" : ""})
                           </Label>
                           <Input
@@ -551,7 +547,7 @@ export function MacroConditionEditor({
           {/* Custom Failure Message */}
           <div className="space-y-1 border-t border-border-color/60 pt-2.5">
             <Label htmlFor={msgId} className="font-semibold text-text-secondary">
-              پیام در صورت برقرار نبودن شرط:
+              پیام در صورت برقرار نبودن شرط
             </Label>
             <Input
               id={msgId}

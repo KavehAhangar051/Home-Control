@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderOpen, Plus } from "lucide-react";
+import { CloudUpload, Plus } from "@/components/ui/hugeicons-groups/shell";
 import { WorkflowSchematicSymbol } from "./WorkflowSchematicSymbols";
 
 interface WorkflowEmptyStateProps {
@@ -30,16 +30,12 @@ export default function WorkflowEmptyState({
             <WorkflowSchematicSymbol kind="logic_and" className="h-9 w-16" />
           </div>
 
-          <div className="space-y-2">
-            <span className="inline-flex items-center rounded-full border border-border-color bg-bg-main px-3 py-1 text-[10px] font-medium tracking-wider text-text-secondary">
-              موتور منطقی بلادرنگ
-            </span>
+          <div className="space-y-1.5">
             <h2 className="text-lg font-bold text-balance text-text-primary sm:text-xl">
-              طراحی مدار و گردش کار اتوماسیون
+              گردش کار اتوماسیون
             </h2>
             <p className="text-xs leading-6 text-text-secondary sm:text-sm">
-              گیت‌های منطقی با استاندارد شماتیک (AND / OR / NOT)، تایمرها، بلوک‌های گروهی و قطعات
-              سخت‌افزاری را روی بوم بچینید و پورت‌ها را به هم سیم‌کشی کنید.
+              گیت‌های منطقی، تایمرها و قطعات خانه را روی بوم قرار دهید و به هم متصل کنید.
             </p>
           </div>
 
@@ -49,8 +45,8 @@ export default function WorkflowEmptyState({
               onClick={onStartDesigning}
               className="group inline-flex h-11 cursor-pointer items-center justify-center gap-2.5 rounded-xl bg-accent3 pr-5 pl-2 text-sm font-bold text-accent3-foreground shadow-xs transition-[transform,opacity] duration-200 ease-out hover:opacity-95 active:scale-[0.98]"
             >
-              <span>ایجاد اولین مدار گردش کار</span>
-              <span className="flex size-7 items-center justify-center rounded-lg bg-accent3-foreground/15 transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-[1px] group-hover:scale-105">
+              <span>ایجاد مدار جدید</span>
+              <span className="flex size-7 items-center justify-center rounded-lg bg-accent3-foreground/15 transition-transform duration-200 ease-out group-hover:scale-105">
                 <Plus className="size-4 shrink-0" aria-hidden="true" />
               </span>
             </button>
@@ -61,8 +57,8 @@ export default function WorkflowEmptyState({
                 onClick={onImportWorkflow}
                 className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border-color bg-bg-main px-4 text-xs font-bold text-text-primary transition-colors hover:border-accent3 hover:text-accent3"
               >
-                <FolderOpen className="size-4 shrink-0" aria-hidden="true" />
-                <span>ورود از فایل JSON</span>
+                <CloudUpload className="size-4 shrink-0" aria-hidden="true" />
+                <span>ورود فایل JSON</span>
               </button>
             )}
           </div>

@@ -63,7 +63,7 @@ export function WifiNetworkEditor({
           type="button"
           onClick={onCancel}
           aria-label="لغو ویرایش شبکه"
-          className="p-2.5 border border-border-color text-text-secondary rounded-xl hover:border-accent4 hover:text-accent4 transition-colors flex items-center justify-center bg-card-bg-solid"
+          className="p-2.5 border border-border-color text-text-secondary rounded-xl hover:border-text-muted hover:text-text-primary transition-colors flex items-center justify-center bg-card-bg-solid"
         >
           <X aria-hidden="true" className="size-4" />
         </button>

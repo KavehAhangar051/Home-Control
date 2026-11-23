@@ -149,7 +149,7 @@ export default function MqttSection() {
         onClick={handleSaveAndReconnect}
         className={`w-full h-auto min-h-12 rounded-xl px-4 py-3.5 text-sm font-bold ${
           isSaved
-            ? "border-accent4 bg-accent4-soft text-accent4 hover:border-accent4 hover:bg-accent4-soft hover:text-accent4"
+            ? "border-success/40 bg-success-soft text-success hover:border-success/40 hover:bg-success-soft hover:text-success"
             : ""
         }`}
       >
