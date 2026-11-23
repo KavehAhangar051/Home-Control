@@ -44,11 +44,7 @@ export default function SegmentList({ segments, onRemoveSegment }: SegmentListPr
             transition={TRANSITION_ENTER_STANDARD}
             className="py-6 px-4 text-center border border-dashed border-border-color rounded-xl bg-card-hover-bg space-y-1"
           >
-            <p className="text-xs font-medium text-text-secondary">هنوز قطعه‌ای اضافه نشده است</p>
-            <p className="text-xs text-text-muted leading-relaxed">
-              از فرم کناری اولین کلید کنترل، خروجی آنالوگ، ورودی دیجیتال یا سنسور آنالوگ خانه را
-              ایجاد کنید
-            </p>
+            <p className="text-xs font-medium text-text-secondary">قطعه‌ای ثبت نشده است</p>
           </m.div>
         ) : (
           <div className="grid grid-cols-1 @xl/seglist:grid-cols-2 gap-2.5 max-h-[360px] overflow-y-auto pe-1">

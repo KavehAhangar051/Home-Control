@@ -128,14 +128,7 @@ export default function MqttSection() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <p className="text-[10px] leading-relaxed text-right text-text-tertiary">
-          تنظیمات ارتباطی داشبورد با ماژول‌های ESP را مدیریت کنید. پس از ذخیره، اتصال مجدداً برقرار
-          می‌شود.
-        </p>
-      </div>
-
+    <div className="space-y-5">
       <div className="space-y-4">
         <MqttFormFields
           brokerWsUrl={brokerWsUrl}

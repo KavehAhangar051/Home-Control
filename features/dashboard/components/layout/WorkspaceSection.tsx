@@ -4,10 +4,9 @@ import type { LucideIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Activity, useDeferredValue } from "react";
 import { Alert } from "@/components/reui/alert";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Container } from "@/components/ui/grid";
 import { Cpu } from "@/components/ui/hugeicons-groups/controls";
-import { Clock3 } from "@/components/ui/hugeicons-groups/shell";
 import { useDashboard, useDashboardActions } from "@/features/dashboard/context/DashboardContext";
 import {
   AUTOMATIONS_TABS,
@@ -156,17 +155,14 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
           <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border-color bg-card-bg text-accent3 dark:shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)] sm:size-10">
             <Icon className="size-4.5 sm:size-5" aria-hidden="true" />
           </div>
-          <div className="min-w-0 space-y-1">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-secondary">
+          <div className="min-w-0 space-y-0.5">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
               <SubsectionIcon className="size-3.5 shrink-0 text-accent3" aria-hidden="true" />
-              <span>{activeSubsection.title}</span>
+              <span>{meta.title}</span>
             </span>
-            <h1 className="text-fluid-xl font-medium leading-7 text-balance text-text-primary">
-              {meta.title}
+            <h1 className="text-fluid-xl font-semibold leading-7 text-balance text-text-primary">
+              {activeSubsection.title}
             </h1>
-            <p className="text-xs leading-5 text-text-secondary sm:text-sm sm:leading-6">
-              {meta.description}
-            </p>
           </div>
         </div>
 
@@ -324,18 +320,6 @@ function AutomationsWorkspace() {
         ariaLabel="زیربخش‌های اتوماسیون‌ها"
       />
 
-      <Alert
-        variant="info"
-        className="!flex !items-start !gap-3 !border-border-color !bg-card-bg text-sm leading-6 text-text-secondary"
-      >
-        <Clock3 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-        <p>
-          {activeAutomationsTab === "create"
-            ? "زمان‌بندی، تایمر یا شرط دمایی جدید را تنظیم و ذخیره کنید"
-            : "اتوماسیون‌های ثبت‌شده را مشاهده، ویرایش و فعال یا غیرفعال کنید"}
-        </p>
-      </Alert>
-
       <AutomationProvider>
         <div className="min-w-0">
           {/* React 19.3 Activity preserves in-progress AutomationForm state when browsing existing rules */}
@@ -419,21 +403,10 @@ function SettingsWorkspace() {
 
       <div className="min-w-0 sm:bezel-shell">
         <Card
-          aria-labelledby="active-settings-heading"
+          aria-label={activeSettings.title}
           className="@container/settings-card bezel-core min-w-0 !gap-0 !overflow-visible !py-0 !ring-0"
         >
-          <CardHeader className="border-b border-border-color px-3 py-3 sm:px-4 sm:py-4 @md/settings-card:px-6">
-            <CardTitle
-              id="active-settings-heading"
-              className="text-sm font-medium leading-6 text-text-primary sm:text-base"
-            >
-              {activeSettings.title}
-            </CardTitle>
-            <CardDescription className="mt-0.5 text-xs leading-5 text-text-secondary sm:mt-1 sm:text-sm sm:leading-6">
-              تنظیمات این بخش را از همین‌جا مدیریت کنید
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="min-w-0 p-3 sm:p-4 @md/settings-card:p-6">
+          <CardContent className="min-w-0 p-3.5 sm:p-5 @md/settings-card:p-6">
             <ActiveSettingsPanel activeTab={deferredActiveTab} />
           </CardContent>
         </Card>

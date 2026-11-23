@@ -25,14 +25,15 @@ export default function ActionBuilder({ actions, setActions }: ActionBuilderProp
   );
 
   return (
-    <div className="col-span-2 space-y-3 pt-2">
-      <div className="block text-xs font-medium text-text-secondary">
-        عملیات‌ها ({actions.length}):
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-medium text-text-secondary">عملیات‌ها</span>
+        <span className="tabular-nums text-text-muted">{actions.length} مورد</span>
       </div>
 
       {actions.length === 0 && (
-        <p className="rounded-xl border border-dashed border-border-color bg-card-bg/60 px-3 py-4 text-center text-xs text-text-muted">
-          هنوز عملیاتی اضافه نشده است؛ یکی از دکمه‌های زیر را بزنید.
+        <p className="rounded-xl border border-dashed border-border-color bg-card-bg/60 px-3 py-5 text-center text-xs text-text-muted">
+          عملیاتی انتخاب نشده است
         </p>
       )}
 
@@ -88,7 +89,7 @@ export default function ActionBuilder({ actions, setActions }: ActionBuilderProp
                       variant="ghost"
                       type="button"
                       onClick={() => updateAction(index, { actionOn: true })}
-                      className={`flex-1 min-h-9 py-1.5 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent4 ${act.actionOn ? "bg-accent4 text-accent4-foreground hover:bg-accent4 hover:text-accent4-foreground" : "bg-transparent text-text-secondary md:hover:bg-accent md:hover:text-foreground"}`}
+                      className={`flex-1 min-h-9 py-1.5 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent3 ${act.actionOn ? "bg-accent3 text-accent3-foreground hover:bg-accent3 hover:text-accent3-foreground" : "bg-transparent text-text-secondary md:hover:bg-accent md:hover:text-foreground"}`}
                     >
                       <Play strokeWidth={1.5} className="size-3.5" aria-hidden="true" /> روشن
                     </Button>

@@ -20,9 +20,9 @@ export default function LayoutSection({ headerTitle, setHeaderTitle }: LayoutSec
 
         <div className="flex flex-col gap-3 rounded-lg border border-border-color bg-card-bg-solid px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <span className="text-xs font-medium text-text-primary">فرم نمایش قطعات و گروه‌ها</span>
+            <span className="text-xs font-medium text-text-primary">حالت نمایش فضا</span>
             <p className="mt-0.5 text-[11px] text-text-muted">
-              انتخاب بین چیدمان ستونی کلاسیک، پنجره‌های آزاد، یا شیت بوم بی‌نهایت (مشابه n8n)
+              ستونی، پنجره‌های آزاد یا بوم بی‌نهایت
             </p>
           </div>
 
@@ -33,12 +33,7 @@ export default function LayoutSection({ headerTitle, setHeaderTitle }: LayoutSec
 
         {workspaceDisplayMode === "grid" && (
           <div className="flex flex-col gap-3 rounded-lg border border-border-color bg-card-bg-solid px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <span className="text-xs font-medium text-text-primary">تعداد ستون گروه‌ها</span>
-              <p className="mt-0.5 text-[11px] text-text-muted">
-                تعیین تعداد ستون‌های نمایش گروه‌ها در حالت ستونی
-              </p>
-            </div>
+            <span className="text-xs font-medium text-text-primary">تعداد ستون گروه‌ها</span>
 
             <div className="shrink-0">
               <GroupColsSelector />

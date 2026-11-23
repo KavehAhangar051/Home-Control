@@ -32,13 +32,7 @@ export default function SliderStyleSection() {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <Sliders className="size-4 text-accent3 shrink-0" aria-hidden="true" />
-          <div className="min-w-0">
-            <h4 className="text-xs font-semibold text-text-secondary">سبک اسلایدرهای داشبورد</h4>
-            <p className="text-[11px] text-text-muted mt-0.5">
-              حالت هوشمند مدل مناسب هر بخش را انتخاب می‌کند؛ در غیر این صورت کل داشبورد یک مدل ثابت
-              می‌گیرد.
-            </p>
-          </div>
+          <h4 className="text-xs font-semibold text-text-secondary">سبک اسلایدرها</h4>
         </div>
 
         {!isDefaultSelected && (
