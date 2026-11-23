@@ -1,4 +1,4 @@
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Check } from "@/components/ui/hugeicons-groups/controls";
 
 interface ButtonModeSelectorProps {
   buttonMode: "switch" | "push";
@@ -6,34 +6,61 @@ interface ButtonModeSelectorProps {
   animationsEnabled?: boolean;
 }
 
+const BUTTON_MODES = [
+  {
+    value: "switch" as const,
+    title: "کلید دوحالته (دائمی)",
+    description: "با هر بار لمس روشن یا خاموش می‌ماند؛ مناسب چراغ، پمپ و پریز",
+  },
+  {
+    value: "push" as const,
+    title: "شستی (لحظه‌ای)",
+    description: "فقط تا زمانی که نگه دارید وصل است؛ مناسب درب‌بازکن یا زنگ",
+  },
+] as const;
+
 export default function ButtonModeSelector({ buttonMode, setButtonMode }: ButtonModeSelectorProps) {
   return (
-    <div className="space-y-1.5">
-      <div className="text-xs text-text-secondary font-medium block">نوع عملکرد کلید کنترل</div>
-      <ToggleGroup
-        variant="outline"
-        spacing={2}
-        value={[buttonMode]}
-        onValueChange={(vals) => {
-          const val = vals[0];
+    <fieldset className="space-y-2.5">
+      <legend className="text-xs font-semibold text-text-primary">رفتار کلید کنترل</legend>
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        {BUTTON_MODES.map((option) => {
+          const isSelected = buttonMode === option.value;
 
-          if (val === "switch" || val === "push") setButtonMode(val);
-        }}
-        className="grid w-full grid-cols-2"
-      >
-        <ToggleGroupItem
-          value="switch"
-          className="h-9 w-full text-xs font-medium font-sans rounded-lg cursor-pointer aria-pressed:bg-card-hover-bg aria-pressed:border-accent3 aria-pressed:text-text-primary"
-        >
-          کلید دوحالته (دائمی)
-        </ToggleGroupItem>
-        <ToggleGroupItem
-          value="push"
-          className="h-9 w-full text-xs font-medium font-sans rounded-lg cursor-pointer aria-pressed:bg-card-hover-bg aria-pressed:border-accent3 aria-pressed:text-text-primary"
-        >
-          شستی (لحظه‌ای)
-        </ToggleGroupItem>
-      </ToggleGroup>
-    </div>
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => setButtonMode(option.value)}
+              className={`flex min-h-11 cursor-pointer items-start justify-between gap-3 rounded-xl border p-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+                isSelected
+                  ? "border-accent3 bg-accent3-transparent text-text-primary"
+                  : "border-border-color bg-bg-main text-text-secondary hover:border-text-muted/60 hover:text-text-primary"
+              }`}
+            >
+              <div className="min-w-0 space-y-1">
+                <span className="block text-xs font-semibold text-text-primary">
+                  {option.title}
+                </span>
+                <span className="block text-[11px] leading-5 text-text-muted">
+                  {option.description}
+                </span>
+              </div>
+              <span
+                aria-hidden="true"
+                className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                  isSelected
+                    ? "border-accent3 bg-accent3 text-accent3-foreground"
+                    : "border-border-color bg-transparent text-transparent"
+                }`}
+              >
+                <Check className="size-3" strokeWidth={2.25} />
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }

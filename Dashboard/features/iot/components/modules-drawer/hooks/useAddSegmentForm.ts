@@ -34,6 +34,7 @@ import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 import type { Segment } from "../core/types";
 
 export type SegmentSourceMode = "local" | "virtual";
+export type AddSegmentWizardStep = 0 | 1 | 2;
 
 export type OnAddSegmentFn = (
   type: string,
@@ -59,15 +60,18 @@ export function useAddSegmentForm(
   const groupsOrder = useIoTStore((s) => s.groupsOrder);
   const auxNodes = useIoTStore((s) => s.auxNodes);
 
-  const [sourceMode, setSourceMode] = useState<SegmentSourceMode>(() =>
+  const [step, setStep] = useState<AddSegmentWizardStep>(0);
+  const [maxUnlockedStep, setMaxUnlockedStep] = useState<AddSegmentWizardStep>(0);
+
+  const [sourceMode, setSourceModeState] = useState<SegmentSourceMode>(() =>
     targetPlaceholder?.isVirtual && targetPlaceholder.nodeId ? "virtual" : "local",
   );
-  const [selectedNodeId, setSelectedNodeId] = useState<number | null>(
+  const [selectedNodeId, setSelectedNodeIdState] = useState<number | null>(
     () => targetPlaceholder?.nodeId ?? auxNodes[0]?.nodeId ?? null,
   );
-  const [remotePin, setRemotePin] = useState("");
-  const [selectedType, setSelectedType] = useState("gpio_toggle");
-  const [targetPin, setTargetPin] = useState("");
+  const [remotePin, setRemotePinState] = useState("");
+  const [selectedType, setSelectedTypeState] = useState("gpio_toggle");
+  const [targetPin, setTargetPinState] = useState("");
   const [customTitle, setCustomTitle] = useState("");
   const [groupName, setGroupName] = useState(
     () => targetPlaceholder?.group || (groupsOrder.length > 0 ? groupsOrder[0] : "Test"),
@@ -88,6 +92,31 @@ export function useAddSegmentForm(
   const [adcLowThreshold, setAdcLowThreshold] = useState<number>(DEFAULT_ADC_LOW_THRESHOLD);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  const setSourceMode = (next: SegmentSourceMode) => {
+    setSourceModeState(next);
+    setErrorText("");
+  };
+
+  const setSelectedNodeId = (next: number | null) => {
+    setSelectedNodeIdState(next);
+    setErrorText("");
+  };
+
+  const setRemotePin = (next: string) => {
+    setRemotePinState(next);
+    setErrorText("");
+  };
+
+  const setSelectedType = (next: string) => {
+    setSelectedTypeState(next);
+    setErrorText("");
+  };
+
+  const setTargetPin = (next: string) => {
+    setTargetPinState(next);
+    setErrorText("");
+  };
+
   const placeholderId = targetPlaceholder?.id ?? null;
   const placeholderIsVirtual = Boolean(targetPlaceholder?.isVirtual);
   const placeholderNodeId = targetPlaceholder?.nodeId ?? null;
@@ -97,13 +126,15 @@ export function useAddSegmentForm(
     if (!placeholderId) return;
 
     setErrorText("");
+    setStep(0);
+    setMaxUnlockedStep(0);
     if (placeholderIsVirtual && placeholderNodeId !== null) {
-      setSourceMode("virtual");
-      setSelectedNodeId(placeholderNodeId);
-      setRemotePin("");
+      setSourceModeState("virtual");
+      setSelectedNodeIdState(placeholderNodeId);
+      setRemotePinState("");
       if (placeholderGroup) setGroupName(placeholderGroup);
     } else {
-      setSourceMode("local");
+      setSourceModeState("local");
       if (placeholderGroup) setGroupName(placeholderGroup);
     }
   }, [placeholderId, placeholderIsVirtual, placeholderNodeId, placeholderGroup]);
@@ -131,26 +162,146 @@ export function useAddSegmentForm(
     setAdcDeltaThreshold(preset.config.adcDeltaThreshold);
     setAdcHighThreshold(preset.config.adcHighThreshold);
     setAdcLowThreshold(preset.config.adcLowThreshold);
+    setErrorText("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  /**
+   * Validates the hardware connection & type-specific configuration step (Step 1)
+   * before allowing progression to the naming/grouping step or final submission.
+   */
+  const validateHardwareStep = (notifyWarning = false): boolean => {
     setErrorText("");
 
     const activeTotal = segments.filter((s) => s.type !== "placeholder").length;
     if (activeTotal >= MAX_TOTAL_SEGMENTS) {
-      setErrorText(`حداکثر ظرفیت کل هاب مرکزی (${MAX_TOTAL_SEGMENTS} سگمنت فعال) تکمیل شده است.`);
+      setErrorText(`حداکثر ظرفیت کل هاب مرکزی (${MAX_TOTAL_SEGMENTS} قطعه فعال) تکمیل شده است.`);
+      return false;
+    }
+
+    const isAnalogInput = isAnalogInputType(selectedType);
+    if (isAnalogInput && adcHighThreshold > 0 && adcLowThreshold > adcHighThreshold) {
+      setErrorText("آستانه پایین (ATL) نمی‌تواند از آستانه بالا (ATH) بزرگ‌تر باشد.");
+      return false;
+    }
+
+    if (sourceMode === "virtual") {
+      if (!selectedAuxNode) {
+        setErrorText("ابتدا یک برد کمکی (ESP) انتخاب یا ثبت کنید.");
+        return false;
+      }
+
+      const usedOnNode = getAuxNodeActiveSegmentCount(segments, selectedAuxNode.nodeId);
+      if (usedOnNode >= selectedAuxNode.pinCapacity) {
+        setErrorText(
+          `ظرفیت برد کمکی «${selectedAuxNode.name}» (${selectedAuxNode.pinCapacity} پایه) تکمیل شده است.`,
+        );
+        return false;
+      }
+
+      const trimmedRemote = remotePin.trim();
+      if (!trimmedRemote) {
+        setErrorText("شماره پایه روی برد کمکی را وارد یا از پایه‌های پیشنهادی انتخاب کنید.");
+        return false;
+      }
+
+      const parsedRemote = Number(trimmedRemote);
+      if (!isValidRemotePin(parsedRemote)) {
+        setErrorText("شماره پایه روی برد کمکی باید عددی صحیح بین ۰ تا ۳۹ باشد.");
+        return false;
+      }
+
+      const occupied = getOccupiedRemotePins(segments, selectedAuxNode.nodeId);
+      if (occupied.has(parsedRemote)) {
+        setErrorText(
+          `پایه GPIO ${parsedRemote} روی برد «${selectedAuxNode.name}» قبلاً استفاده شده است.`,
+        );
+        return false;
+      }
+
+      return true;
+    }
+
+    const finalPin = targetPin.trim();
+    if (!finalPin) {
+      setErrorText("شماره پایه (GPIO) را وارد یا از پایه‌های پیشنهادی انتخاب کنید.");
+      return false;
+    }
+
+    const validation = validateEsp32Pin(finalPin, selectedType);
+    if (!validation.isValid) {
+      setErrorText(validation.message);
+      return false;
+    }
+
+    if (notifyWarning && validation.isWarning) {
+      showToast(validation.message, "success");
+    }
+
+    if (segments.some((s) => s.type !== "placeholder" && s.pin === finalPin)) {
+      setErrorText(`قطعه دیگری برای پایه GPIO ${finalPin} قبلاً ثبت شده است.`);
+      return false;
+    }
+
+    return true;
+  };
+
+  const goToNextStep = () => {
+    setErrorText("");
+
+    if (step === 0) {
+      setStep(1);
+      setMaxUnlockedStep((prev) => Math.max(prev, 1) as AddSegmentWizardStep);
+      return;
+    }
+
+    if (step === 1) {
+      if (!validateHardwareStep(false)) return;
+      setStep(2);
+      setMaxUnlockedStep(2);
+    }
+  };
+
+  const goToPrevStep = () => {
+    setErrorText("");
+    setStep((prev) => (prev > 0 ? ((prev - 1) as AddSegmentWizardStep) : 0));
+  };
+
+  const goToStep = (nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex > 2) return;
+    const clamped = nextIndex as AddSegmentWizardStep;
+
+    if (clamped <= step) {
+      setErrorText("");
+      setStep(clamped);
+      return;
+    }
+
+    if (clamped === 1 && maxUnlockedStep >= 1) {
+      setErrorText("");
+      setStep(1);
+      return;
+    }
+
+    if (clamped === 2 && maxUnlockedStep >= 2 && validateHardwareStep(false)) {
+      setStep(2);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (step < 2) {
+      goToNextStep();
+      return;
+    }
+
+    if (!validateHardwareStep(true)) {
+      setStep(1);
       return;
     }
 
     const isAnalogOutput = isAnalogOutputType(selectedType);
     const isAnalogInput = isAnalogInputType(selectedType);
-
-    if (isAnalogInput && adcHighThreshold > 0 && adcLowThreshold > adcHighThreshold) {
-      setErrorText("آستانه پایین (ATL) نمی‌تواند از آستانه بالا (ATH) بزرگ‌تر باشد.");
-      return;
-    }
-
     const resolvedResolution = clampPwmResolution(pwmResolution);
     const resolvedFrequency = clampPwmFrequency(pwmFrequency);
     const analogConfig: AnalogSegmentOptions | undefined = isAnalogOutput
@@ -171,48 +322,16 @@ export function useAddSegmentForm(
         })
       : undefined;
 
-    if (sourceMode === "virtual") {
-      if (!selectedAuxNode) {
-        setErrorText("لطفاً ابتدا یک برد کمکی (ESP) انتخاب یا ثبت کنید.");
-        return;
-      }
-
-      const usedOnNode = getAuxNodeActiveSegmentCount(segments, selectedAuxNode.nodeId);
-      if (usedOnNode >= selectedAuxNode.pinCapacity) {
-        setErrorText(
-          `ظرفیت برد کمکی «${selectedAuxNode.name}» (${selectedAuxNode.pinCapacity} پایه) تکمیل شده است.`,
-        );
-        return;
-      }
-
-      const trimmedRemote = remotePin.trim();
-      if (!trimmedRemote) {
-        setErrorText("لطفاً شماره پایه روی برد کمکی (Remote GPIO) را مشخص کنید.");
-        return;
-      }
-
-      const parsedRemote = Number(trimmedRemote);
-      if (!isValidRemotePin(parsedRemote)) {
-        setErrorText("شماره پایه روی برد کمکی باید عددی صحیح بین ۰ تا ۳۹ باشد.");
-        return;
-      }
-
-      const occupied = getOccupiedRemotePins(segments, selectedAuxNode.nodeId);
-      if (occupied.has(parsedRemote)) {
-        setErrorText(
-          `پایه GPIO ${parsedRemote} روی برد «${selectedAuxNode.name}» قبلاً استفاده شده است.`,
-        );
-        return;
-      }
-
+    if (sourceMode === "virtual" && selectedAuxNode) {
+      const parsedRemote = Number(remotePin.trim());
       const defaultTitle =
         selectedType === "input"
-          ? `ورودی دیجیتال (Remote GPIO ${parsedRemote})`
+          ? `ورودی دیجیتال (GPIO ${parsedRemote})`
           : isAnalogOutput
-            ? `خروجی آنالوگ PWM (Remote GPIO ${parsedRemote})`
+            ? `دیمر PWM (GPIO ${parsedRemote})`
             : isAnalogInput
-              ? `ورودی آنالوگ ADC (Remote GPIO ${parsedRemote})`
-              : `کنترل پایه دیجیتال (Remote GPIO ${parsedRemote})`;
+              ? `سنسور آنالوگ (GPIO ${parsedRemote})`
+              : `کلید کنترل (GPIO ${parsedRemote})`;
 
       onAddSegment(
         selectedType,
@@ -233,36 +352,14 @@ export function useAddSegmentForm(
       );
     } else {
       const finalPin = targetPin.trim();
-
-      if (!finalPin) {
-        setErrorText("لطفاً شماره پایه را مشخص کنید.");
-        return;
-      }
-
-      const validation = validateEsp32Pin(finalPin, selectedType);
-
-      if (!validation.isValid) {
-        showToast(validation.message, "error");
-        return;
-      }
-
-      if (validation.isWarning) {
-        showToast(validation.message, "success");
-      }
-
-      if (segments.some((s) => s.type !== "placeholder" && s.pin === finalPin)) {
-        setErrorText(`ماژولی برای پایه GPIO ${finalPin} قبلاً اضافه شده است.`);
-        return;
-      }
-
       const defaultTitle =
         selectedType === "input"
           ? `ورودی دیجیتال (GPIO ${finalPin})`
           : isAnalogOutput
-            ? `خروجی آنالوگ PWM (GPIO ${finalPin})`
+            ? `دیمر PWM (GPIO ${finalPin})`
             : isAnalogInput
-              ? `ورودی آنالوگ ADC (GPIO ${finalPin})`
-              : `کنترل پایه دیجیتال (GPIO ${finalPin})`;
+              ? `سنسور آنالوگ (GPIO ${finalPin})`
+              : `کلید کنترل (GPIO ${finalPin})`;
 
       onAddSegment(
         selectedType,
@@ -280,8 +377,8 @@ export function useAddSegmentForm(
 
     setCustomTitle("");
     setGroupName(groupsOrder.length > 0 ? groupsOrder[0] : "Test");
-    setTargetPin("");
-    setRemotePin("");
+    setTargetPinState("");
+    setRemotePinState("");
     setSegmentIcon("");
     setGroupIcon("");
     setButtonMode("switch");
@@ -293,11 +390,19 @@ export function useAddSegmentForm(
     setAdcDeltaThreshold(DEFAULT_ADC_DELTA_THRESHOLD);
     setAdcHighThreshold(DEFAULT_ADC_HIGH_THRESHOLD);
     setAdcLowThreshold(DEFAULT_ADC_LOW_THRESHOLD);
+    setShowAdvanced(false);
     setErrorText("");
+    setStep(0);
+    setMaxUnlockedStep(0);
     onClose();
   };
 
   return {
+    step,
+    maxUnlockedStep,
+    goToNextStep,
+    goToPrevStep,
+    goToStep,
     sourceMode,
     setSourceMode,
     auxNodes,

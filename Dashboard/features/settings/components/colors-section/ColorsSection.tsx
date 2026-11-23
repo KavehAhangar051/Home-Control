@@ -1,6 +1,5 @@
 "use client";
 
-import { RotateCcw } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import {
@@ -17,7 +16,7 @@ import {
 } from "@/components/motion/color-picker";
 import { DashboardSlider } from "@/components/motion/dashboard-slider";
 import { useThemeToggle } from "@/components/motion/theme-toggle";
-import { Moon, Sun } from "@/components/ui/hugeicons-groups/shell";
+import { Moon, RefreshCw, Sun } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import { triggerHaptic } from "@/lib/haptics";
@@ -87,9 +86,9 @@ export default function ColorsSection() {
         <button
           type="button"
           onClick={handleResetAppearance}
-          className="inline-flex min-h-11 sm:min-h-8 items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors py-1.5 px-2.5 rounded-lg hover:bg-card-hover-bg shrink-0"
+          className="inline-flex min-h-11 sm:min-h-8 cursor-pointer items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors py-1.5 px-2.5 rounded-lg hover:bg-card-hover-bg shrink-0"
         >
-          <RotateCcw className="size-3.5" />
+          <RefreshCw className="size-3.5" aria-hidden="true" />
           <span>بازنشانی</span>
         </button>
       </div>

@@ -2,7 +2,8 @@
 
 import { ViewType, Workspace } from "@danfessler/trellis-react";
 import "@danfessler/trellis/style.css";
-import { Cpu, Layers, Plus } from "lucide-react";
+import { Cpu } from "@/components/ui/hugeicons-groups/controls";
+import { Layers, Plus } from "@/components/ui/hugeicons-groups/shell";
 import type { IoTWorkspaceProps } from "@/features/iot/components/workspace/core/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import TrellisChromeBar from "./TrellisChromeBar";

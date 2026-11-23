@@ -1,11 +1,12 @@
 "use client";
 
-import { Cpu, type LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Activity, useDeferredValue } from "react";
 import { Alert } from "@/components/reui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/grid";
+import { Cpu } from "@/components/ui/hugeicons-groups/controls";
 import { Clock3 } from "@/components/ui/hugeicons-groups/shell";
 import { useDashboard, useDashboardActions } from "@/features/dashboard/context/DashboardContext";
 import {
@@ -156,8 +157,8 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
             <Icon className="size-4.5 sm:size-5" aria-hidden="true" />
           </div>
           <div className="min-w-0 space-y-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border-color bg-card-bg px-2.5 py-0.5 text-[10px] font-medium tracking-wider text-text-secondary sm:px-3 sm:py-1">
-              <SubsectionIcon className="size-3 shrink-0 text-accent3" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-secondary">
+              <SubsectionIcon className="size-3.5 shrink-0 text-accent3" aria-hidden="true" />
               <span>{activeSubsection.title}</span>
             </span>
             <h1 className="text-fluid-xl font-medium leading-7 text-balance text-text-primary">
@@ -265,7 +266,7 @@ function ModulesWorkspace() {
         >
           <span>
             {targetPlaceholder.isVirtual && targetPlaceholder.nodeId
-              ? "در حال تخصیص سگمنت مجازی به برد کمکی در گروه "
+              ? "در حال تخصیص قطعه جدید به برد کمکی در گروه "
               : "در حال تخصیص قطعه به جایگاه خالی در گروه "}
             <strong className="font-bold">«{targetPlaceholder.group || "Test"}»</strong>
           </span>

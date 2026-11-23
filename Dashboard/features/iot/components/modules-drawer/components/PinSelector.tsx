@@ -1,3 +1,4 @@
+import { Info } from "@/components/ui/hugeicons-groups/controls";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -8,6 +9,13 @@ import {
 import { isAnalogOutputType, RECOMMENDED_PWM_PINS } from "@/features/iot/utils/analogOutput";
 import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
 import { toAsciiDigits } from "@/lib/persianText";
+
+const RECOMMENDED_DIGITAL_OUTPUT_PINS = [
+  4, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33,
+] as const;
+const RECOMMENDED_DIGITAL_INPUT_PINS = [
+  34, 35, 36, 39, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33,
+] as const;
 
 interface PinSelectorProps {
   customPin: string;
@@ -26,130 +34,130 @@ export default function PinSelector({
   const validation = trimmedPin ? validateEsp32Pin(trimmedPin, selectedType) : null;
   const isAnalogOutput = isAnalogOutputType(selectedType);
   const isAnalogInput = isAnalogInputType(selectedType);
+  const isDigitalInput = selectedType === "input";
   const isInvalid = Boolean(validation && !validation.isValid);
   const hasWarning = Boolean(validation?.isValid && validation.isWarning);
 
+  const suggestedPins: readonly number[] = isAnalogInput
+    ? ADC1_ALLOWED_PINS
+    : isAnalogOutput
+      ? RECOMMENDED_PWM_PINS
+      : isDigitalInput
+        ? RECOMMENDED_DIGITAL_INPUT_PINS
+        : RECOMMENDED_DIGITAL_OUTPUT_PINS;
+
+  const suggestionTitle = isAnalogInput
+    ? "پایه‌های مجاز ADC1 (بدون تداخل با WiFi)"
+    : isAnalogOutput
+      ? "پایه‌های پیشنهادی دیمر (PWM)"
+      : isDigitalInput
+        ? "پایه‌های پیشنهادی ورودی دیجیتال"
+        : "پایه‌های ایمن و پیشنهادی ESP32";
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label htmlFor="esp32-hardware-pin" className="w-full text-start">
-          پایه سخت‌افزاری (GPIO)
-        </Label>
-      </div>
-      <Input
-        id="esp32-hardware-pin"
-        type="text"
-        inputMode="numeric"
-        aria-invalid={isInvalid || undefined}
-        aria-describedby={isInvalid || hasWarning ? "esp32-hardware-pin-feedback" : undefined}
-        placeholder={
-          isAnalogInput ? "مثال: 34 یا 32" : isAnalogOutput ? "مثال: 16 یا 25" : "مثال: 14"
-        }
-        value={customPin}
-        onChange={(e) => setCustomPin(toAsciiDigits(e.target.value).replace(/[^0-9]/g, ""))}
-        className="text-xs font-mono tabular-nums rounded-lg text-start placeholder:font-sans"
-        dir="ltr"
-      />
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="esp32-hardware-pin" className="text-start">
+            شماره پایه سخت‌افزاری (GPIO)
+          </Label>
+          {trimmedPin && validation?.isValid && (
+            <span className="font-mono text-[11px] tabular-nums text-accent3" dir="ltr">
+              GPIO {trimmedPin}
+            </span>
+          )}
+        </div>
 
-      {isInvalid && validation && (
-        <p
-          id="esp32-hardware-pin-feedback"
-          role="alert"
-          className="text-[11px] leading-relaxed text-destructive font-sans"
-        >
-          {validation.message}
-        </p>
-      )}
-      {hasWarning && validation && (
-        <p
-          id="esp32-hardware-pin-feedback"
-          role="status"
-          className="rounded-lg border border-warning/40 bg-warning-soft px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300 font-sans"
-        >
-          {validation.message}
-        </p>
-      )}
+        <Input
+          id="esp32-hardware-pin"
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          spellCheck={false}
+          aria-invalid={isInvalid || undefined}
+          aria-describedby={isInvalid || hasWarning ? "esp32-hardware-pin-feedback" : undefined}
+          placeholder={
+            isAnalogInput
+              ? "مثال: 34 یا 32"
+              : isAnalogOutput
+                ? "مثال: 16 یا 25"
+                : isDigitalInput
+                  ? "مثال: 34 یا 18"
+                  : "مثال: 14 یا 23"
+          }
+          value={customPin}
+          onChange={(e) => setCustomPin(toAsciiDigits(e.target.value).replace(/[^0-9]/g, ""))}
+          className="font-mono text-sm tabular-nums text-start placeholder:font-sans placeholder:text-xs"
+          dir="ltr"
+        />
 
-      {isAnalogInput && (
-        <div className="space-y-1.5 pt-0.5">
-          <span className="block text-[11px] text-text-muted font-sans">
-            پایه‌های مجاز ADC1 (فقط این ۶ پایه با WiFi تداخل ندارند):
-          </span>
-          <div className="flex flex-wrap gap-1.5" dir="ltr">
-            {ADC1_ALLOWED_PINS.map((pinNum) => {
-              const pinStr = String(pinNum);
-              const isSelected = trimmedPin === pinStr;
-              const isUsed = usedPins?.has(pinStr) ?? false;
-              const isInputOnly = ADC_INPUT_ONLY_PINS.has(pinNum);
-
-              return (
-                <button
-                  key={pinNum}
-                  type="button"
-                  disabled={isUsed}
-                  aria-pressed={isSelected}
-                  onClick={() => setCustomPin(pinStr)}
-                  title={
-                    isUsed
-                      ? `GPIO ${pinStr} در حال استفاده است`
-                      : isInputOnly
-                        ? `GPIO ${pinStr} (فقط ورودی — ایده‌آل برای سنسور آنالوگ)`
-                        : `انتخاب GPIO ${pinStr}`
-                  }
-                  className={`min-w-9 rounded-md border px-2 py-1 font-mono text-[11px] tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
-                    isSelected
-                      ? "border-accent3 bg-accent3 text-accent3-foreground font-semibold"
-                      : isUsed
-                        ? "border-border-color/50 bg-secondary/40 text-text-muted/45 line-through cursor-not-allowed"
-                        : "border-border-color bg-secondary text-text-secondary hover:border-accent3/60 hover:text-text-primary cursor-pointer"
-                  }`}
-                >
-                  {pinStr}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[10.5px] leading-relaxed text-text-muted font-sans">
-            پایه‌های ۳۴، ۳۵، ۳۶ و ۳۹ فقط ورودی و بدون مقاومت داخلی هستند؛ بهترین گزینه برای اتصال
-            سنسورهای آنالوگ (ولتاژ ۰ تا ۳.۳ ولت).
+        {isInvalid && validation && (
+          <p
+            id="esp32-hardware-pin-feedback"
+            role="alert"
+            className="flex items-start gap-1.5 text-xs leading-relaxed text-destructive"
+          >
+            <Info className="mt-0.5 size-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            <span>{validation.message}</span>
           </p>
-        </div>
-      )}
+        )}
 
-      {isAnalogOutput && (
-        <div className="space-y-1.5 pt-0.5">
-          <span className="block text-[11px] text-text-muted font-sans">
-            پایه‌های پیشنهادی PWM (انتخاب سریع):
-          </span>
-          <div className="flex flex-wrap gap-1.5" dir="ltr">
-            {RECOMMENDED_PWM_PINS.map((pinNum) => {
-              const pinStr = String(pinNum);
-              const isSelected = trimmedPin === pinStr;
-              const isUsed = usedPins?.has(pinStr) ?? false;
+        {hasWarning && validation && (
+          <p
+            id="esp32-hardware-pin-feedback"
+            role="status"
+            className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning-soft px-3 py-2 text-xs leading-relaxed text-amber-800 dark:text-amber-300"
+          >
+            <Info className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            <span>{validation.message}</span>
+          </p>
+        )}
+      </div>
 
-              return (
-                <button
-                  key={pinNum}
-                  type="button"
-                  disabled={isUsed}
-                  aria-pressed={isSelected}
-                  onClick={() => setCustomPin(pinStr)}
-                  title={isUsed ? `GPIO ${pinStr} در حال استفاده است` : `انتخاب GPIO ${pinStr}`}
-                  className={`min-w-8 rounded-md border px-1.5 py-1 font-mono text-[11px] tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
-                    isSelected
-                      ? "border-accent3 bg-accent3 text-accent3-foreground font-semibold"
-                      : isUsed
-                        ? "border-border-color/50 bg-secondary/40 text-text-muted/45 line-through cursor-not-allowed"
-                        : "border-border-color bg-secondary text-text-secondary hover:border-accent3/60 hover:text-text-primary cursor-pointer"
-                  }`}
-                >
-                  {pinStr}
-                </button>
-              );
-            })}
-          </div>
+      <div className="space-y-2">
+        <span className="block text-xs text-text-secondary">{suggestionTitle}</span>
+        <div className="flex flex-wrap gap-1.5" dir="ltr">
+          {suggestedPins.map((pinNum) => {
+            const pinStr = String(pinNum);
+            const isSelected = trimmedPin === pinStr;
+            const isUsed = usedPins?.has(pinStr) ?? false;
+            const isInputOnly = ADC_INPUT_ONLY_PINS.has(pinNum);
+
+            return (
+              <button
+                key={pinNum}
+                type="button"
+                disabled={isUsed}
+                aria-pressed={isSelected}
+                onClick={() => setCustomPin(pinStr)}
+                title={
+                  isUsed
+                    ? `GPIO ${pinStr} در حال استفاده است`
+                    : isInputOnly
+                      ? `GPIO ${pinStr} (فقط ورودی — ایده‌آل برای سنسور)`
+                      : `انتخاب GPIO ${pinStr}`
+                }
+                className={`min-h-9 min-w-10 rounded-lg border px-2.5 font-mono text-xs tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+                  isSelected
+                    ? "border-accent3 bg-accent3 font-semibold text-accent3-foreground"
+                    : isUsed
+                      ? "cursor-not-allowed border-border-color/60 bg-bg-main text-text-muted/45 line-through"
+                      : "cursor-pointer border-border-color bg-bg-main text-text-secondary hover:border-accent3/60 hover:text-text-primary"
+                }`}
+              >
+                {pinStr}
+              </button>
+            );
+          })}
         </div>
-      )}
+
+        {isAnalogInput && (
+          <p className="text-[11px] leading-relaxed text-text-muted">
+            پایه‌های ۳۴، ۳۵، ۳۶ و ۳۹ فقط ورودی و بدون مقاومت داخلی هستند؛ بهترین انتخاب برای اتصال
+            سنسورهای آنالوگ (۰ تا ۳.۳ ولت).
+          </p>
+        )}
+      </div>
     </div>
   );
 }

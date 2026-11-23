@@ -1,8 +1,7 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
 import { useState } from "react";
-import { Plus } from "@/components/ui/hugeicons-groups/shell";
+import { Plus, RefreshCw } from "@/components/ui/hugeicons-groups/shell";
 import type { AnalogRangeRule, Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { defaultDeviceSyncGateway } from "@/features/iot/services/deviceGatewayAdapter";

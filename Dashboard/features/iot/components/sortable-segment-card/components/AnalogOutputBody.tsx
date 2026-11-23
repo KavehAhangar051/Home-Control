@@ -1,8 +1,8 @@
 "use client";
 
-import { Power } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardSlider } from "@/components/motion/dashboard-slider";
+import { Power } from "@/components/ui/hugeicons-groups/controls";
 import { useOptionalDashboard } from "@/features/dashboard/context/DashboardContext";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {

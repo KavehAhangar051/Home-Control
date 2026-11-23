@@ -1,6 +1,5 @@
 "use client";
 
-import { Cpu } from "lucide-react";
 import GroupFilterSelector from "@/components/MasterHeader/GroupFilterSelector";
 import WorkspaceViewModeSelector from "@/components/MasterHeader/WorkspaceViewModeSelector";
 import {
@@ -11,6 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/reui/breadcrumb";
+import { Cpu } from "@/components/ui/hugeicons-groups/controls";
 import { House } from "@/components/ui/hugeicons-groups/shell";
 import MacroSidebar from "@/features/dashboard/components/widgets/MacroSidebar";
 import {

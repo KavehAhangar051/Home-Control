@@ -1,7 +1,8 @@
 "use client";
 
-import { Cpu, Plus } from "lucide-react";
 import { useMemo } from "react";
+import { Cpu } from "@/components/ui/hugeicons-groups/controls";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -13,6 +14,7 @@ import {
   LOCAL_GPIO_MAX,
   LOCAL_GPIO_MIN,
 } from "@/features/iot/utils/auxNodeUtils";
+import { toAsciiDigits } from "@/lib/persianText";
 import type { Segment } from "../core/types";
 
 interface VirtualPinSelectorProps {
@@ -51,26 +53,23 @@ export default function VirtualPinSelector({
 
   if (auxNodes.length === 0 || !selectedNode) {
     return (
-      <div className="rounded-xl border border-dashed border-border-color bg-secondary/40 p-4 text-center space-y-2.5">
-        <div className="mx-auto flex size-9 items-center justify-center rounded-xl border border-accent3/30 bg-accent3/10 text-accent3">
-          <Cpu className="size-4.5" strokeWidth={1.75} />
+      <div className="space-y-3 rounded-xl border border-dashed border-border-color bg-bg-main p-5 text-center">
+        <div className="mx-auto flex size-10 items-center justify-center rounded-xl border border-border-color bg-card-bg-solid text-accent3">
+          <Cpu className="size-5" strokeWidth={1.75} aria-hidden="true" />
         </div>
         <div className="space-y-1">
-          <p className="text-xs font-medium text-text-primary">
-            هنوز هیچ برد کمکی (ESP) ثبت نشده است
-          </p>
-          <p className="text-[11px] text-text-muted leading-relaxed">
-            ابتدا یک برد کمکی با آدرس MAC ثبت کنید تا پایه‌های آن به صورت سگمنت مجازی در دسترس قرار
-            گیرند.
+          <p className="text-sm font-semibold text-text-primary">هنوز برد کمکی ثبت نشده است</p>
+          <p className="mx-auto max-w-sm text-xs leading-relaxed text-text-muted">
+            ابتدا یک برد کمکی با آدرس MAC ثبت کنید تا پایه‌های آن در این فهرست قابل انتخاب شوند.
           </p>
         </div>
         <button
           type="button"
           onClick={onOpenAuxNodeModal}
-          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-accent3 px-3 text-xs font-medium text-accent3-foreground transition-opacity hover:opacity-90"
+          className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl bg-accent3 px-4 text-xs font-semibold text-accent3-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset"
         >
-          <Plus className="size-3.5" strokeWidth={2} />
-          <span>افزودن برد کمکی (ESP)</span>
+          <Plus className="size-3.5" strokeWidth={2} aria-hidden="true" />
+          <span>ثبت برد کمکی جدید</span>
         </button>
       </div>
     );
@@ -81,21 +80,16 @@ export default function VirtualPinSelector({
   const parsedRemote = remotePin.trim() === "" ? null : Number(remotePin.trim());
 
   return (
-    <div className="space-y-3 rounded-xl border border-border-color bg-secondary/35 p-3">
-      <div className="space-y-1.5">
+    <div className="space-y-5">
+      <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <Label
-            htmlFor="virtual-aux-node-select"
-            className="text-xs font-medium text-text-secondary"
-          >
-            انتخاب برد کمکی (ESP)
-          </Label>
+          <Label htmlFor="virtual-aux-node-select">انتخاب برد کمکی (ESP)</Label>
           <button
             type="button"
             onClick={onOpenAuxNodeModal}
-            className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-accent3 hover:underline"
+            className="inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-accent3 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
           >
-            <Plus className="size-3" strokeWidth={2} />
+            <Plus className="size-3.5" strokeWidth={2} aria-hidden="true" />
             <span>برد جدید</span>
           </button>
         </div>
@@ -111,58 +105,54 @@ export default function VirtualPinSelector({
               onChangeRemotePin("");
             }
           }}
-          className="rounded-lg font-sans text-xs"
+          className="font-sans text-xs"
         >
           {auxNodes.map((node) => {
             const nodeUsed = getAuxNodeActiveSegmentCount(segments, node.nodeId);
             const meta = AUX_CHIP_META[node.chipType];
             return (
               <option key={node.nodeId} value={node.nodeId} className="bg-card-bg-solid">
-                {node.name} ({meta.shortLabel} · {node.mac} · {nodeUsed}/{node.pinCapacity})
+                {node.name} ({meta.shortLabel} · {nodeUsed}/{node.pinCapacity})
               </option>
             );
           })}
         </Select>
 
-        <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] text-text-muted">
-          <span className="font-mono" dir="ltr">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted">
+          <span className="font-mono text-[11px]" dir="ltr">
             {chipMeta.label} · {selectedNode.mac}
           </span>
           <span className={isNodeFull ? "font-medium text-destructive" : "tabular-nums"}>
-            ظرفیت استفاده‌شده: {usedCount} از {selectedNode.pinCapacity}
+            ظرفیت استفاده‌شده: {usedCount} از {selectedNode.pinCapacity} پایه
           </span>
         </div>
       </div>
 
-      <div className="space-y-2 border-t border-border-color/70 pt-2.5">
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between gap-2">
-          <Label
-            htmlFor="virtual-remote-pin-input"
-            className="text-xs font-medium text-text-secondary"
-          >
-            شماره پایه روی برد کمکی (Remote GPIO)
-          </Label>
-          <span className="font-mono text-[10px] text-text-muted" dir="ltr">
-            0..39 · vPin 40..127
+          <Label htmlFor="virtual-remote-pin-input">شماره پایه روی برد کمکی (GPIO)</Label>
+          <span className="font-mono text-[11px] tabular-nums text-text-muted" dir="ltr">
+            {LOCAL_GPIO_MIN}..{LOCAL_GPIO_MAX}
           </span>
         </div>
 
         <Input
           id="virtual-remote-pin-input"
           aria-label="شماره پایه روی برد کمکی"
-          type="number"
-          min={LOCAL_GPIO_MIN}
-          max={LOCAL_GPIO_MAX}
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          spellCheck={false}
           placeholder="مثال: 2"
           dir="ltr"
           value={remotePin}
-          onChange={(e) => onChangeRemotePin(e.target.value)}
-          className="rounded-lg text-left font-mono text-xs tabular-nums"
+          onChange={(e) => onChangeRemotePin(toAsciiDigits(e.target.value).replace(/[^0-9]/g, ""))}
+          className="font-mono text-sm tabular-nums text-start placeholder:font-sans placeholder:text-xs"
         />
 
-        <div className="space-y-1.5">
-          <span className="block text-[11px] text-text-muted">
-            پایه‌های پیشنهادی {chipMeta.shortLabel} (پایه‌های اشغال‌شده غیرفعال هستند):
+        <div className="space-y-2">
+          <span className="block text-xs text-text-secondary">
+            پایه‌های پیشنهادی {chipMeta.shortLabel}
           </span>
           <div className="flex flex-wrap gap-1.5" dir="ltr">
             {chipMeta.suggestedPins.map((pinNum) => {
@@ -176,30 +166,31 @@ export default function VirtualPinSelector({
                   key={pinNum}
                   type="button"
                   disabled={isOccupied}
+                  aria-pressed={isSelected}
                   title={
                     isOccupied
                       ? `GPIO ${pinNum} روی این برد قبلاً اشغال شده است`
-                      : note || `انتخاب Remote GPIO ${pinNum}`
+                      : note || `انتخاب GPIO ${pinNum}`
                   }
                   onClick={() => onChangeRemotePin(String(pinNum))}
-                  className={`inline-flex h-7 min-w-[44px] items-center justify-center gap-1 rounded-lg border px-2 font-mono text-[11px] tabular-nums transition-colors ${
+                  className={`inline-flex min-h-9 min-w-11 items-center justify-center rounded-lg border px-2.5 font-mono text-xs tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
                     isOccupied
-                      ? "cursor-not-allowed border-border-color/50 bg-secondary/40 text-text-muted/45 line-through"
+                      ? "cursor-not-allowed border-border-color/60 bg-bg-main text-text-muted/45 line-through"
                       : isSelected
-                        ? "cursor-pointer border-accent3 bg-accent3 text-accent3-foreground font-semibold"
+                        ? "cursor-pointer border-accent3 bg-accent3 font-semibold text-accent3-foreground"
                         : isRecommended
-                          ? "cursor-pointer border-accent3/40 bg-accent3/10 text-text-primary hover:border-accent3"
-                          : "cursor-pointer border-border-color bg-card-bg-solid text-text-secondary hover:border-accent3/60 hover:text-text-primary"
+                          ? "cursor-pointer border-accent3/40 bg-accent3-transparent text-text-primary hover:border-accent3"
+                          : "cursor-pointer border-border-color bg-bg-main text-text-secondary hover:border-accent3/60 hover:text-text-primary"
                   }`}
                 >
-                  <span>D{pinNum}</span>
+                  D{pinNum}
                 </button>
               );
             })}
           </div>
           {parsedRemote !== null && chipMeta.pinNotes?.[parsedRemote] && (
-            <p className="text-[11px] text-text-muted">
-              توضیح پایه {parsedRemote}: {chipMeta.pinNotes[parsedRemote]}
+            <p className="text-xs leading-relaxed text-text-muted">
+              نکته پایه {parsedRemote}: {chipMeta.pinNotes[parsedRemote]}
             </p>
           )}
         </div>
