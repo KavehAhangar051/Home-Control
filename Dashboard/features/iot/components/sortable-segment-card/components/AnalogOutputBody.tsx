@@ -12,20 +12,12 @@ import {
   getAnalogMaxDuty,
   percentToAnalogDuty,
 } from "@/features/iot/utils/analogOutput";
-import {
-  cancelAnalogRamp,
-  commitAnalogPinRamp,
-  driveAnalogPinRamp,
-  resolveAnalogRampTransportMode,
-} from "@/features/iot/utils/analogRamp";
 import { formatSegmentPinLabel } from "@/features/iot/utils/auxNodeUtils";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
 import { getSegmentTileDensity } from "../core/segmentTileDensity";
 import type { SegmentData } from "../core/types";
 
-const LOCAL_SETTLE_GUARD_MS = 380;
-const MQTT_SETTLE_GUARD_MS = 1400;
-const INITIAL_COMMIT_GUARD_MS = 1800;
+const ANALOG_SLIDER_THROTTLE_MS = 100;
 
 interface AnalogOutputBodyProps {
   segment: SegmentData;
@@ -43,8 +35,7 @@ interface AnalogOutputBodyProps {
 /**
  * Interactive PWM / LEDC dimmer card body for `analog_output` segments.
  * Pairs a fast boolean Power toggle (Opcode `0x01`, restoring `lastNonZeroValue`)
- * with a transport-aware eased PWM ramp (Opcode `0x0A`, QoS 0 intermediate steps +
- * reliable commit on release) and a stale-echo settle guard for high-latency links.
+ * with a 100ms-throttled PWM duty slider (Opcode `0x0A` + immediate flush on release).
  */
 function AnalogOutputBody({
   segment,
@@ -64,7 +55,6 @@ function AnalogOutputBody({
   const liveAnalogValue = useIoTStore((s) => s.pinsAnalogValue[segment.pin]);
   const liveLastNonZero = useIoTStore((s) => s.pinsLastNonZeroValue[segment.pin]);
   const liveResolution = useIoTStore((s) => s.pinsPwmResolution[segment.pin]);
-  const lowDataMode = useIoTStore((s) => s.lowDataMode);
 
   const resolution = clampPwmResolution(liveResolution ?? segment.pwmResolution);
   const maxDuty = getAnalogMaxDuty(resolution);
@@ -77,143 +67,71 @@ function AnalogOutputBody({
         : 0;
 
   const [draftDuty, setDraftDuty] = useState<number | null>(null);
-  const [settledDuty, setSettledDuty] = useState<number | null>(null);
-  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isMountedRef = useRef(true);
-
-  const clearSettleTimer = useCallback(() => {
-    if (settleTimerRef.current !== null) {
-      clearTimeout(settleTimerRef.current);
-      settleTimerRef.current = null;
-    }
-  }, []);
-
-  const armSettleTimer = useCallback(
-    (durationMs: number) => {
-      clearSettleTimer();
-      settleTimerRef.current = setTimeout(() => {
-        settleTimerRef.current = null;
-        if (isMountedRef.current) {
-          setSettledDuty(null);
-        }
-      }, durationMs);
-    },
-    [clearSettleTimer],
-  );
+  const lastSentAtRef = useRef(0);
+  const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestDraftRef = useRef<number>(storeDuty);
 
   useEffect(() => {
-    isMountedRef.current = true;
     return () => {
-      isMountedRef.current = false;
-      clearSettleTimer();
+      if (pendingTimerRef.current !== null) {
+        clearTimeout(pendingTimerRef.current);
+        pendingTimerRef.current = null;
+      }
     };
-  }, [clearSettleTimer]);
+  }, []);
 
-  const displayDuty = draftDuty ?? settledDuty ?? storeDuty;
-  const effectiveOn =
-    draftDuty !== null
-      ? draftDuty > 0
-      : settledDuty !== null
-        ? settledDuty > 0
-        : isPinOn || storeDuty > 0;
+  const displayDuty = draftDuty !== null ? draftDuty : storeDuty;
+  const effectiveOn = draftDuty !== null ? draftDuty > 0 : isPinOn || storeDuty > 0;
   const percent = analogDutyToPercent(displayDuty, resolution);
 
-  const buildDispatchers = useCallback(() => {
-    const pin = segment.pin;
-    return {
-      sendStep: (duty: number) => {
-        if (!handleSetPinAnalogValue || !pin) return;
-        void handleSetPinAnalogValue(pin, duty, {
-          persistToCloud: false,
-          qosOverride: 0,
-          skipStoreUpdate: true,
-        });
-      },
-      sendCommit: (duty: number) => {
-        if (!handleSetPinAnalogValue || !pin) return;
-        const transportMode = resolveAnalogRampTransportMode(lowDataMode);
-        const postCommitGuardMs =
-          transportMode === "local" ? LOCAL_SETTLE_GUARD_MS : MQTT_SETTLE_GUARD_MS;
-        if (isMountedRef.current) {
-          armSettleTimer(postCommitGuardMs);
-        }
-        void handleSetPinAnalogValue(pin, duty, { persistToCloud: true }).then((delivered) => {
-          if (delivered === false && isMountedRef.current) {
-            clearSettleTimer();
-            setSettledDuty(null);
-          }
-        });
-      },
-    };
-  }, [armSettleTimer, clearSettleTimer, handleSetPinAnalogValue, lowDataMode, segment.pin]);
-
-  const dispatchSmoothDuty = useCallback(
+  const dispatchThrottledDuty = useCallback(
     (nextDuty: number) => {
       const clamped = clampAnalogValue(nextDuty, resolution);
-      clearSettleTimer();
-      setSettledDuty(null);
+      latestDraftRef.current = clamped;
       setDraftDuty(clamped);
 
       if (!handleSetPinAnalogValue || !segment.pin) return;
 
-      driveAnalogPinRamp(
-        segment.pin,
-        clamped,
-        resolution,
-        storeDuty,
-        lowDataMode,
-        buildDispatchers(),
-      );
+      const now = Date.now();
+      const elapsed = now - lastSentAtRef.current;
+
+      if (elapsed >= ANALOG_SLIDER_THROTTLE_MS) {
+        if (pendingTimerRef.current !== null) {
+          clearTimeout(pendingTimerRef.current);
+          pendingTimerRef.current = null;
+        }
+        lastSentAtRef.current = now;
+        void handleSetPinAnalogValue(segment.pin, clamped, { persistToCloud: false });
+      } else if (pendingTimerRef.current === null) {
+        pendingTimerRef.current = setTimeout(() => {
+          pendingTimerRef.current = null;
+          lastSentAtRef.current = Date.now();
+          void handleSetPinAnalogValue(segment.pin, latestDraftRef.current, {
+            persistToCloud: false,
+          });
+        }, ANALOG_SLIDER_THROTTLE_MS - elapsed);
+      }
     },
-    [
-      buildDispatchers,
-      clearSettleTimer,
-      handleSetPinAnalogValue,
-      lowDataMode,
-      resolution,
-      segment.pin,
-      storeDuty,
-    ],
+    [handleSetPinAnalogValue, resolution, segment.pin],
   );
 
-  const commitSmoothDuty = useCallback(
+  const commitFinalDuty = useCallback(
     (finalDuty: number) => {
+      if (pendingTimerRef.current !== null) {
+        clearTimeout(pendingTimerRef.current);
+        pendingTimerRef.current = null;
+      }
+
       const clamped = clampAnalogValue(finalDuty, resolution);
+      latestDraftRef.current = clamped;
+      lastSentAtRef.current = Date.now();
       setDraftDuty(null);
-      setSettledDuty(clamped);
-      armSettleTimer(INITIAL_COMMIT_GUARD_MS);
 
-      if (!handleSetPinAnalogValue || !segment.pin) return;
-
-      commitAnalogPinRamp(
-        segment.pin,
-        clamped,
-        resolution,
-        storeDuty,
-        lowDataMode,
-        buildDispatchers(),
-      );
+      if (handleSetPinAnalogValue && segment.pin) {
+        void handleSetPinAnalogValue(segment.pin, clamped, { persistToCloud: true });
+      }
     },
-    [
-      armSettleTimer,
-      buildDispatchers,
-      handleSetPinAnalogValue,
-      lowDataMode,
-      resolution,
-      segment.pin,
-      storeDuty,
-    ],
-  );
-
-  const handlePowerClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      cancelAnalogRamp(segment.pin);
-      clearSettleTimer();
-      setDraftDuty(null);
-      setSettledDuty(null);
-      onTogglePower(e);
-    },
-    [clearSettleTimer, onTogglePower, segment.pin],
+    [handleSetPinAnalogValue, resolution, segment.pin],
   );
 
   const SegmentIcon = getSegmentIcon(segment.icon);
@@ -252,7 +170,7 @@ function AnalogOutputBody({
         <button
           type="button"
           onPointerDown={onPowerPointerDown}
-          onClick={handlePowerClick}
+          onClick={onTogglePower}
           aria-pressed={effectiveOn}
           aria-label={`${segment.title} - ${effectiveOn ? "خاموش کردن" : "روشن کردن"}`}
           className={`flex items-center justify-center rounded-lg transition-[background-color,color,transform] duration-150 pointer-fine:active:scale-[0.95] cursor-pointer shrink-0 ${density.badge} ${badgeTone}`}
@@ -271,7 +189,7 @@ function AnalogOutputBody({
             <button
               type="button"
               onPointerDown={onPowerPointerDown}
-              onClick={handlePowerClick}
+              onClick={onTogglePower}
               className={`min-w-0 truncate text-right font-sans font-medium text-text-primary leading-snug cursor-pointer hover:text-accent3 transition-colors ${density.title}`}
             >
               {segment.title}
@@ -335,8 +253,8 @@ function AnalogOutputBody({
             max={maxDuty}
             step={1}
             value={displayDuty}
-            onValueChange={dispatchSmoothDuty}
-            onValueCommit={commitSmoothDuty}
+            onValueChange={dispatchThrottledDuty}
+            onValueCommit={commitFinalDuty}
             label="شدت"
             format={(val) => `${analogDutyToPercent(val, resolution)}%`}
             unit="%"
@@ -357,7 +275,7 @@ function AnalogOutputBody({
         <button
           type="button"
           onPointerDown={onPowerPointerDown}
-          onClick={handlePowerClick}
+          onClick={onTogglePower}
           aria-pressed={effectiveOn}
           aria-label={effectiveOn ? `خاموش کردن ${segment.title}` : `روشن کردن ${segment.title}`}
           className={`flex shrink-0 items-center justify-center rounded-lg border transition-[background-color,border-color,color,transform] duration-150 pointer-fine:active:scale-[0.94] cursor-pointer ${

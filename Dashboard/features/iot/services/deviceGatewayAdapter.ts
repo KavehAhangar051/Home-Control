@@ -60,13 +60,8 @@ export class DeviceCommandAdapter implements IDeviceCommandPort {
     return mqttPublishPin(pinId, value, timer);
   }
 
-  publishAnalogOutputCommand(
-    pinId: string,
-    value: number,
-    timer?: number,
-    qosOverride?: 0 | 1 | 2,
-  ): boolean {
-    return mqttPublishAnalog(pinId, value, timer, qosOverride);
+  publishAnalogOutputCommand(pinId: string, value: number, timer?: number): boolean {
+    return mqttPublishAnalog(pinId, value, timer);
   }
 
   publishBatchPinCommand(actions: PinAction[]): boolean {
@@ -157,12 +152,7 @@ export interface LiveDeviceSyncDependencies {
   getShowToast?: () => ((message: string, type: "success" | "error") => void) | undefined;
   getLocalWs?: () => LocalWsSocketLike | null;
   publishPinCommand?: (pinId: string, value: boolean, timer?: number) => boolean;
-  publishAnalogOutputCommand?: (
-    pinId: string,
-    value: number,
-    timer?: number,
-    qosOverride?: 0 | 1 | 2,
-  ) => boolean;
+  publishAnalogOutputCommand?: (pinId: string, value: number, timer?: number) => boolean;
   publishBatchPinCommand?: (actions: PinAction[]) => boolean;
   publishReadAnalogInputCommand?: (pin: number) => boolean;
   publishUpdateAnalogInputConfigCommand?: (
@@ -368,18 +358,14 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
       ...(options?.autoOff !== undefined ? { timer: options.autoOff } : {}),
     };
 
-    const shouldPersist = options?.persistToCloud !== false;
-    // Use QoS 0 for transient drag/ramp steps so high-latency/filtered links never stall behind PUBACKs,
-    // while final committed values always use the user's configured reliable QoS.
-    const effectiveQos = options?.qosOverride ?? (shouldPersist ? undefined : 0);
-
     const hardwareSent = this.dispatchHardwareCommand(
       wsPayload,
       () =>
         !options?.preventMqtt &&
-        this.deps.publishAnalogOutputCommand(pin, clampedValue, options?.autoOff, effectiveQos),
+        this.deps.publishAnalogOutputCommand(pin, clampedValue, options?.autoOff),
     );
 
+    const shouldPersist = options?.persistToCloud !== false;
     const toast = options?.showToast || this.deps.getShowToast();
     let cfSucceeded = false;
     let cfAttempted = false;
