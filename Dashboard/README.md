@@ -64,10 +64,8 @@ Do not commit `.env.local`, real credentials, private broker details, or API key
 | `bun run format` | Format source directories in place with Biome |
 | `bun run clean` | Remove `.next`, `out`, and `tsconfig.tsbuildinfo` |
 | `bun run start` | Run the Next.js server; not intended to preview the static `out/` export |
-| `bun run r -- <cmd>` | Run a shell command through the unified `rtk` + `TokenEconomizer` bridge |
-| `bun run ov` / `bun run ov:doctor` | Run OpenViking CLI or verify OpenViking server/plugin/MCP health |
-| `bun run ov:server` / `bun run ov:mcp` | Manage local `openviking-server` daemon or run the OpenViking stdio MCP proxy |
-| `bun run tools:check` | Verify and auto-repair `rtk`, `TokenEconomizer`, `cbm`, `ov`, symlinks, and permissions |
+| `bun run r -- <cmd>` | Run a shell command through the `rtk` Lite Mode bridge |
+| `bun run tools:check` | Verify and auto-repair `rtk`, symlinks, and permissions |
 
 Run `bun run lint`, `bun run typecheck`, and `bun run build` before submitting changes when possible, and update relevant documentation (`ARCHITECTURE.md`, `DESIGN.md`, `docs/*`) immediately after code changes.
 
