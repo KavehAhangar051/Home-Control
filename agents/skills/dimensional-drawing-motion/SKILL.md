@@ -14,9 +14,8 @@ Start from `templates/scene-dialog.js` + `templates/base.css`. It is the referen
 | You are | Use |
 |---|---|
 | Claude on claude.ai with the **Motion** artifact type | `adapters/claude-motion.md`. This is the primary, tuned target. |
-| Any other agent / no Claude | `adapters/headless/`: Playwright draws each frame, ffmpeg encodes. `npm install`, then `node render.mjs --scene … --css … --out film.mp4`. |
 
-The scene is the same file in both. It only needs a tiny `kit` (`seg, lerp, eo, ei, eio, clamp01, stage, h, css, scene`) and must be a **pure function of time**: `render(t)` sets every property from `t` alone, never from the previous frame. That is what lets a headless renderer jump to any frame.
+The scene only needs a tiny `kit` (`seg, lerp, eo, ei, eio, clamp01, stage, h, css, scene`) and must be a **pure function of time**: `render(t)` sets every property from `t` alone, never from the previous frame. That is what lets any frame renderer jump to any frame.
 
 Other animation libraries (Remotion, Motion Canvas, GSAP, Lottie…) are not tested. Porting is possible because the scene is pure, but check the library's license first (Remotion needs a company license above 3 people).
 
@@ -49,7 +48,7 @@ Total ~11 s. Keep films 8–15 s.
 3. List the layers for the exploded view (bottom static ones with `G(z)`, lifting ones with `mg(z, start)`), 0.1 s apart.
 4. Retarget `DW_CAM`: close-up → plan center → exploded center → sheet center (`950, 530`, z ≈ 1).
 5. Check frames at the key beats (0, 1.2, 2.4, 3.3, 4.6, 5, 5.9, 6.6, 8, 10, 11 s scene time). Look for: elements popping instead of drawing, fills flashing, labels outside the frame mid-move, a busy first second.
-6. Render (Motion export, or `render.mjs`).
+6. Render via Motion export.
 
 ## Style rules for motion
 

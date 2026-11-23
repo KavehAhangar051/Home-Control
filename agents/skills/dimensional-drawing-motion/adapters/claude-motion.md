@@ -36,5 +36,4 @@ The scene id in `scenes.json` must match `kit.scene('drawing', …)` and the mod
 ## Iterating
 
 - Small timing change: `str_replace` on the `text` field of `modules/scene-drawing.js` (e.g. the `t / 0.85` factor or a `DW_CAM` key).
-- Before writing, test locally: `adapters/headless/render.mjs --still <t>` renders any frame with the same scene file, so you can look at the key beats without a round trip.
-- Fonts: Motion loads Arimo; the headless renderer falls back to Helvetica/Arial when offline (same metrics).
+- Fonts: Motion loads Arimo (falling back to Helvetica/Arial when offline with the same metrics).
