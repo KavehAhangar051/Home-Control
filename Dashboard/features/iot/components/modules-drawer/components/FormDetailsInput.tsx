@@ -36,12 +36,14 @@ export default function FormDetailsInput({
   const [isNewGroup, setIsNewGroup] = useState(existingGroups.length === 0);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
-            <Label htmlFor={titleId}>نام قطعه</Label>
-            <span className="text-[11px] text-text-muted">(اختیاری)</span>
+            <Label htmlFor={titleId} className="text-sm font-bold text-text-primary">
+              نام قطعه
+            </Label>
+            <span className="text-xs font-normal text-text-secondary">(اختیاری)</span>
           </div>
           <Input
             id={titleId}
@@ -49,16 +51,19 @@ export default function FormDetailsInput({
             placeholder="مثال: چراغ پذیرایی یا پمپ حیاط"
             value={customTitle}
             onChange={(e) => setCustomTitle(e.target.value)}
-            className="text-start font-sans text-xs"
+            className="h-11 text-start font-sans text-base sm:text-sm"
           />
         </div>
 
         <IconPicker label="آیکون قطعه" selectedIcon={segmentIcon} onSelectIcon={setSegmentIcon} />
       </div>
 
-      <div className="space-y-3 border-t border-border-color pt-4">
+      <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Label htmlFor={!isNewGroup && existingGroups.length > 0 ? groupSelectId : groupNewId}>
+          <Label
+            htmlFor={!isNewGroup && existingGroups.length > 0 ? groupSelectId : groupNewId}
+            className="text-sm font-bold text-text-primary"
+          >
             گروه و اتاق نمایش
           </Label>
 
@@ -71,7 +76,7 @@ export default function FormDetailsInput({
                 type="button"
                 aria-pressed={!isNewGroup}
                 onClick={() => setIsNewGroup(false)}
-                className={`min-h-8 cursor-pointer rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+                className={`min-h-8 cursor-pointer rounded-lg px-3 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 sm:text-[13px] ${
                   !isNewGroup
                     ? "bg-accent3 text-accent3-foreground"
                     : "text-text-secondary hover:text-text-primary"
@@ -83,7 +88,7 @@ export default function FormDetailsInput({
                 type="button"
                 aria-pressed={isNewGroup}
                 onClick={() => setIsNewGroup(true)}
-                className={`min-h-8 cursor-pointer rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+                className={`min-h-8 cursor-pointer rounded-lg px-3 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 sm:text-[13px] ${
                   isNewGroup
                     ? "bg-accent3 text-accent3-foreground"
                     : "text-text-secondary hover:text-text-primary"
@@ -96,9 +101,9 @@ export default function FormDetailsInput({
         </div>
 
         {lockedGroupName ? (
-          <div className="flex items-center justify-between gap-2 rounded-xl border border-border-color bg-bg-main px-3.5 py-2.5 text-xs text-text-primary">
-            <span className="truncate font-semibold">{lockedGroupName}</span>
-            <span className="shrink-0 text-[11px] text-text-muted">گروه اختصاصی برد کمکی</span>
+          <div className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-border-color bg-bg-main px-3.5 py-2.5 text-sm text-text-primary">
+            <span className="truncate font-bold">{lockedGroupName}</span>
+            <span className="shrink-0 text-xs text-text-secondary">گروه اختصاصی برد کمکی</span>
           </div>
         ) : !isNewGroup && existingGroups.length > 0 ? (
           <Select
@@ -106,7 +111,7 @@ export default function FormDetailsInput({
             aria-label="انتخاب گروه موجود"
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
-            className="font-sans text-xs"
+            className="h-11 font-sans text-base sm:text-sm"
             dir="rtl"
           >
             {existingGroups.map((group) => (
@@ -118,6 +123,9 @@ export default function FormDetailsInput({
         ) : (
           <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
             <div className="space-y-2">
+              <Label htmlFor={groupNewId} className="block text-sm font-bold text-text-primary">
+                نام گروه جدید
+              </Label>
               <Input
                 id={groupNewId}
                 aria-label="نام گروه جدید"
@@ -125,7 +133,7 @@ export default function FormDetailsInput({
                 placeholder="مثال: پذیرایی، آشپزخانه، حیاط"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                className="text-start font-sans text-xs"
+                className="h-11 text-start font-sans text-base sm:text-sm"
               />
             </div>
 

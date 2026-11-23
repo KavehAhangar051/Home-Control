@@ -211,12 +211,12 @@ export default function AddSegmentForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="min-w-0 sm:bezel-shell">
-        <Card className="bezel-core !gap-5 !p-3.5 sm:!p-5">
-          <div className="border-b border-border-color/80 pb-4 pt-1">
+        <Card className="bezel-core !gap-7 !p-4 sm:!p-6 lg:!p-7">
+          <div className="border-b border-border-color/80 pb-5 pt-1">
             <ProgressSteps
               steps={WIZARD_STEP_LABELS}
               current={step}
-              size="md"
+              size="lg"
               reducedMotion={!animationsEnabled}
               onStepPress={(index) => {
                 if (index <= Math.max(step, maxUnlockedStep)) {
@@ -243,11 +243,15 @@ export default function AddSegmentForm({
                     : { opacity: 0, transition: { duration: 0 } }
                 }
                 transition={animationsEnabled ? { duration: 0.2, ease: EASE_OUT } : { duration: 0 }}
-                className="space-y-5"
+                className="space-y-7"
               >
-                <div className="space-y-2">
-                  <span className="block text-xs font-medium text-text-secondary">نوع قطعه</span>
-                  <fieldset aria-label="نوع قطعه" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <h2 className="text-lg font-bold leading-snug text-balance text-text-primary sm:text-xl">
+                  چه قطعه‌ای اضافه می‌کنید؟
+                </h2>
+
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-text-primary">نوع قطعه</h3>
+                  <fieldset aria-label="نوع قطعه" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {SEGMENT_TYPE_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = selectedType === option.value;
@@ -258,37 +262,41 @@ export default function AddSegmentForm({
                           aria-pressed={isSelected}
                           onClick={() => setSelectedType(option.value)}
                           className={cn(
-                            "group relative flex min-h-16 cursor-pointer items-start gap-3 rounded-xl border p-3 text-start transition-[border-color,background-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset",
+                            "group relative flex min-h-20 cursor-pointer items-start gap-3.5 rounded-xl border p-4 text-start transition-[border-color,background-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset",
                             isSelected
                               ? "border-accent3 bg-accent3/10 ring-1 ring-accent3/25"
-                              : "border-border-color bg-card-bg hover:border-text-muted/40 hover:bg-card-hover-bg",
+                              : "border-border-color bg-bg-main hover:border-text-muted/50 hover:bg-card-hover-bg",
                           )}
                         >
                           <span
                             className={cn(
-                              "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                              "mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl border transition-colors",
                               isSelected
                                 ? "border-accent3/30 bg-accent3 text-accent3-foreground"
-                                : "border-border-color bg-bg-main text-text-secondary group-hover:text-text-primary",
+                                : "border-border-color bg-card-bg-solid text-text-secondary group-hover:text-text-primary",
                             )}
                           >
-                            <Icon className="size-4" strokeWidth={1.75} aria-hidden="true" />
+                            <Icon className="size-5" strokeWidth={1.75} aria-hidden="true" />
                           </span>
 
-                          <div className="min-w-0 flex-1 space-y-0.5">
+                          <div className="min-w-0 flex-1 space-y-1">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="truncate font-sans text-xs font-semibold text-text-primary">
+                              <span className="truncate font-sans text-sm font-bold leading-6 text-text-primary sm:text-[15px]">
                                 {option.label}
                               </span>
-                              {isSelected && (
-                                <Check
-                                  className="size-3.5 shrink-0 text-accent3"
-                                  strokeWidth={2.25}
-                                  aria-hidden="true"
-                                />
-                              )}
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+                                  isSelected
+                                    ? "border-accent3 bg-accent3 text-accent3-foreground"
+                                    : "border-border-color bg-transparent text-transparent",
+                                )}
+                              >
+                                <Check className="size-3" strokeWidth={2.5} />
+                              </span>
                             </div>
-                            <p className="text-[11px] leading-5 text-text-muted">
+                            <p className="text-xs leading-5 text-text-secondary sm:text-[13px]">
                               {option.summary}
                             </p>
                           </div>
@@ -298,12 +306,12 @@ export default function AddSegmentForm({
                   </fieldset>
                 </div>
 
-                <div className="space-y-2 border-t border-border-color/70 pt-4">
-                  <span className="block text-xs font-medium text-text-secondary">برد متصل</span>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-text-primary">برد متصل</h3>
                   <div
                     role="tablist"
                     aria-label="انتخاب برد مبدأ قطعه"
-                    className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
                   >
                     <button
                       type="button"
@@ -311,28 +319,41 @@ export default function AddSegmentForm({
                       aria-selected={sourceMode === "local"}
                       onClick={() => setSourceMode("local")}
                       className={cn(
-                        "flex min-h-12 cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset",
+                        "flex min-h-16 cursor-pointer items-center gap-3.5 rounded-xl border p-4 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset",
                         sourceMode === "local"
-                          ? "border-accent3 bg-accent3/10 text-text-primary"
-                          : "border-border-color bg-card-bg text-text-secondary hover:bg-card-hover-bg hover:text-text-primary",
+                          ? "border-accent3 bg-accent3/10 ring-1 ring-accent3/25"
+                          : "border-border-color bg-bg-main hover:border-text-muted/50 hover:bg-card-hover-bg",
                       )}
                     >
-                      <Server
+                      <span
                         className={cn(
-                          "size-4 shrink-0",
-                          sourceMode === "local" ? "text-accent3" : "text-text-muted",
+                          "flex size-10 shrink-0 items-center justify-center rounded-xl border transition-colors",
+                          sourceMode === "local"
+                            ? "border-accent3/30 bg-accent3 text-accent3-foreground"
+                            : "border-border-color bg-card-bg-solid text-text-secondary",
                         )}
-                        strokeWidth={1.75}
-                        aria-hidden="true"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-semibold">
+                      >
+                        <Server className="size-5" strokeWidth={1.75} aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <span className="block truncate text-sm font-bold text-text-primary sm:text-[15px]">
                           برد مرکزی (ESP32)
                         </span>
-                        <span className="block truncate text-[11px] text-text-muted">
+                        <span className="block truncate text-xs text-text-secondary sm:text-[13px]">
                           پایه‌های هاب اصلی
                         </span>
                       </div>
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+                          sourceMode === "local"
+                            ? "border-accent3 bg-accent3 text-accent3-foreground"
+                            : "border-border-color bg-transparent text-transparent",
+                        )}
+                      >
+                        <Check className="size-3" strokeWidth={2.5} />
+                      </span>
                     </button>
 
                     <button
@@ -341,33 +362,48 @@ export default function AddSegmentForm({
                       aria-selected={sourceMode === "virtual"}
                       onClick={() => setSourceMode("virtual")}
                       className={cn(
-                        "flex min-h-12 cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset",
+                        "flex min-h-16 cursor-pointer items-center gap-3.5 rounded-xl border p-4 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset",
                         sourceMode === "virtual"
-                          ? "border-accent3 bg-accent3/10 text-text-primary"
-                          : "border-border-color bg-card-bg text-text-secondary hover:bg-card-hover-bg hover:text-text-primary",
+                          ? "border-accent3 bg-accent3/10 ring-1 ring-accent3/25"
+                          : "border-border-color bg-bg-main hover:border-text-muted/50 hover:bg-card-hover-bg",
                       )}
                     >
-                      <Cpu
+                      <span
                         className={cn(
-                          "size-4 shrink-0",
-                          sourceMode === "virtual" ? "text-accent3" : "text-text-muted",
+                          "flex size-10 shrink-0 items-center justify-center rounded-xl border transition-colors",
+                          sourceMode === "virtual"
+                            ? "border-accent3/30 bg-accent3 text-accent3-foreground"
+                            : "border-border-color bg-card-bg-solid text-text-secondary",
                         )}
-                        strokeWidth={1.75}
-                        aria-hidden="true"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="truncate text-xs font-semibold">برد کمکی بی‌سیم</span>
+                      >
+                        <Cpu className="size-5" strokeWidth={1.75} aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-bold text-text-primary sm:text-[15px]">
+                            برد کمکی بی‌سیم
+                          </span>
                           {auxNodes.length > 0 && (
-                            <span className="rounded-md bg-accent3/15 px-1.5 py-0.5 font-mono text-[10px] leading-none tabular-nums text-accent3">
+                            <span className="rounded-md bg-accent3/15 px-1.5 py-0.5 font-mono text-xs leading-none font-semibold tabular-nums text-accent3">
                               {auxNodes.length}
                             </span>
                           )}
                         </div>
-                        <span className="block truncate text-[11px] text-text-muted">
+                        <span className="block truncate text-xs text-text-secondary sm:text-[13px]">
                           ماژول جانبی متصل به هاب
                         </span>
                       </div>
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+                          sourceMode === "virtual"
+                            ? "border-accent3 bg-accent3 text-accent3-foreground"
+                            : "border-border-color bg-transparent text-transparent",
+                        )}
+                      >
+                        <Check className="size-3" strokeWidth={2.5} />
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -389,8 +425,12 @@ export default function AddSegmentForm({
                     : { opacity: 0, transition: { duration: 0 } }
                 }
                 transition={animationsEnabled ? { duration: 0.2, ease: EASE_OUT } : { duration: 0 }}
-                className="space-y-5"
+                className="space-y-7"
               >
+                <h2 className="text-lg font-bold leading-snug text-balance text-text-primary sm:text-xl">
+                  پایه و تنظیمات سخت‌افزاری
+                </h2>
+
                 {sourceMode === "virtual" ? (
                   <VirtualPinSelector
                     auxNodes={auxNodes}
@@ -411,24 +451,22 @@ export default function AddSegmentForm({
                 )}
 
                 {selectedType === "gpio_toggle" && (
-                  <div className="border-t border-border-color/70 pt-4">
-                    <ButtonModeSelector
-                      buttonMode={buttonMode}
-                      setButtonMode={setButtonMode}
-                      animationsEnabled={animationsEnabled}
-                    />
-                  </div>
+                  <ButtonModeSelector
+                    buttonMode={buttonMode}
+                    setButtonMode={setButtonMode}
+                    animationsEnabled={animationsEnabled}
+                  />
                 )}
 
                 {isAnalogOutput && (
-                  <div className="space-y-4 border-t border-border-color/70 pt-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2 text-xs">
-                        <span className="font-medium text-text-secondary">
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-bold text-text-primary">
                           شدت اولیه هنگام ساخت
                         </span>
                         <span
-                          className="font-mono text-[11px] tabular-nums text-text-primary"
+                          className="font-mono text-sm font-semibold tabular-nums text-text-primary"
                           dir="ltr"
                         >
                           {initialPercent}% ({initialDuty}/{maxDuty})
@@ -449,20 +487,24 @@ export default function AddSegmentForm({
                       />
                     </div>
 
-                    <div className="border-t border-border-color/70 pt-3">
+                    <div>
                       <button
                         type="button"
                         onClick={() => setShowPwmAdvanced((prev) => !prev)}
                         aria-expanded={showPwmAdvanced}
-                        className="flex min-h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-lg py-1 text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+                        className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-border-color bg-bg-main px-3.5 py-2.5 text-sm font-semibold text-text-primary transition-colors hover:border-text-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
                       >
-                        <span className="flex items-center gap-2 text-xs font-medium">
-                          <Settings2 className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                        <span className="flex items-center gap-2">
+                          <Settings2
+                            className="size-4 text-accent3"
+                            strokeWidth={1.75}
+                            aria-hidden="true"
+                          />
                           تنظیمات تخصصی PWM (دقت و فرکانس)
                         </span>
                         <ChevronDown
                           className={cn(
-                            "size-4 transition-transform duration-200",
+                            "size-4 text-text-secondary transition-transform duration-200",
                             showPwmAdvanced && "rotate-180",
                           )}
                           strokeWidth={1.75}
@@ -492,9 +534,12 @@ export default function AddSegmentForm({
                             className="overflow-hidden"
                             style={{ contain: "layout style", backfaceVisibility: "hidden" }}
                           >
-                            <div className="grid grid-cols-1 gap-3 pt-3 sm:grid-cols-2">
-                              <div className="space-y-1.5">
-                                <Label htmlFor="pwm-resolution-select" className="block text-xs">
+                            <div className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label
+                                  htmlFor="pwm-resolution-select"
+                                  className="block text-sm font-bold text-text-primary"
+                                >
                                   دقت خروجی (بیت)
                                 </Label>
                                 <Select
@@ -504,7 +549,7 @@ export default function AddSegmentForm({
                                   onChange={(e) =>
                                     setPwmResolution(Number.parseInt(e.target.value, 10))
                                   }
-                                  className="rounded-lg font-sans text-xs"
+                                  className="h-11 rounded-xl font-sans text-base sm:text-sm"
                                 >
                                   <option value={8} className="bg-card-bg-solid">
                                     ۸ بیت (۰ تا ۲۵۵ — پیش‌فرض)
@@ -524,8 +569,11 @@ export default function AddSegmentForm({
                                 </Select>
                               </div>
 
-                              <div className="space-y-1.5">
-                                <Label htmlFor="pwm-frequency-input" className="block text-xs">
+                              <div className="space-y-2">
+                                <Label
+                                  htmlFor="pwm-frequency-input"
+                                  className="block text-sm font-bold text-text-primary"
+                                >
                                   فرکانس (هرتز)
                                 </Label>
                                 <Input
@@ -540,20 +588,20 @@ export default function AddSegmentForm({
                                     const parsed = Number.parseInt(e.target.value, 10);
                                     if (!Number.isNaN(parsed)) setPwmFrequency(parsed);
                                   }}
-                                  className="rounded-lg text-right font-mono text-xs tabular-nums"
+                                  className="h-11 rounded-xl text-right font-mono text-base tabular-nums sm:text-sm"
                                   dir="ltr"
                                 />
-                                <div className="flex items-center gap-1.5" dir="ltr">
+                                <div className="flex items-center gap-2" dir="ltr">
                                   {PWM_FREQUENCY_PRESETS.map((preset) => (
                                     <button
                                       key={preset}
                                       type="button"
                                       onClick={() => setPwmFrequency(preset)}
                                       className={cn(
-                                        "min-h-7 cursor-pointer rounded-md border px-2 py-0.5 font-mono text-[11px] tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3",
+                                        "min-h-8 cursor-pointer rounded-lg border px-2.5 py-1 font-mono text-xs font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3",
                                         pwmFrequency === preset
                                           ? "border-accent3 bg-accent3 font-semibold text-accent3-foreground"
-                                          : "border-border-color bg-card-bg-solid text-text-muted hover:text-text-primary",
+                                          : "border-border-color bg-card-bg-solid text-text-secondary hover:text-text-primary",
                                       )}
                                     >
                                       {preset >= 1000 ? `${preset / 1000}kHz` : `${preset}Hz`}
@@ -570,22 +618,20 @@ export default function AddSegmentForm({
                 )}
 
                 {isAnalogInput && (
-                  <div className="border-t border-border-color/70 pt-4">
-                    <AnalogInputSettingsPanel
-                      adcResolution={adcResolution}
-                      onResolutionChange={handleAdcResolutionChange}
-                      adcSampleIntervalMs={adcSampleIntervalMs}
-                      setAdcSampleIntervalMs={setAdcSampleIntervalMs}
-                      adcDeltaThreshold={adcDeltaThreshold}
-                      setAdcDeltaThreshold={setAdcDeltaThreshold}
-                      adcHighThreshold={adcHighThreshold}
-                      setAdcHighThreshold={setAdcHighThreshold}
-                      adcLowThreshold={adcLowThreshold}
-                      setAdcLowThreshold={setAdcLowThreshold}
-                      onApplyPreset={applyAdcPreset}
-                      animationsEnabled={animationsEnabled}
-                    />
-                  </div>
+                  <AnalogInputSettingsPanel
+                    adcResolution={adcResolution}
+                    onResolutionChange={handleAdcResolutionChange}
+                    adcSampleIntervalMs={adcSampleIntervalMs}
+                    setAdcSampleIntervalMs={setAdcSampleIntervalMs}
+                    adcDeltaThreshold={adcDeltaThreshold}
+                    setAdcDeltaThreshold={setAdcDeltaThreshold}
+                    adcHighThreshold={adcHighThreshold}
+                    setAdcHighThreshold={setAdcHighThreshold}
+                    adcLowThreshold={adcLowThreshold}
+                    setAdcLowThreshold={setAdcLowThreshold}
+                    onApplyPreset={applyAdcPreset}
+                    animationsEnabled={animationsEnabled}
+                  />
                 )}
               </m.div>
             )}
@@ -605,21 +651,35 @@ export default function AddSegmentForm({
                     : { opacity: 0, transition: { duration: 0 } }
                 }
                 transition={animationsEnabled ? { duration: 0.2, ease: EASE_OUT } : { duration: 0 }}
-                className="space-y-4"
+                className="space-y-6"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border-color/80 bg-secondary/35 px-3 py-2.5 text-xs">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <SelectedTypeIcon
-                      className="size-4 shrink-0 text-accent3"
-                      strokeWidth={1.75}
-                      aria-hidden="true"
-                    />
-                    <span className="truncate font-semibold text-text-primary">
-                      {customTitle.trim() || selectedTypeMeta.label}
+                <h2 className="text-lg font-bold leading-snug text-balance text-text-primary sm:text-xl">
+                  نام‌گذاری و محل نمایش
+                </h2>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-color bg-secondary/40 px-4 py-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-color bg-card-bg-solid text-accent3">
+                      <SelectedTypeIcon
+                        className="size-4.5"
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                      />
                     </span>
+                    <div className="min-w-0">
+                      <span className="block truncate text-sm font-bold text-text-primary">
+                        {customTitle.trim() || selectedTypeMeta.label}
+                      </span>
+                      <span className="block truncate text-xs text-text-secondary">
+                        {selectedTypeMeta.label}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-text-muted">
-                    <span className="font-mono tabular-nums" dir="ltr">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-text-secondary sm:text-[13px]">
+                    <span
+                      className="font-mono font-medium tabular-nums text-text-primary"
+                      dir="ltr"
+                    >
                       {resolvedPinSummary}
                     </span>
                     <span aria-hidden="true">•</span>
@@ -665,17 +725,17 @@ export default function AddSegmentForm({
                   ...TRANSITION_ENTER_QUICK,
                   x: { duration: DURATION.slow, ease: EASE_IN_OUT },
                 }}
-                className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                className="flex items-start gap-2.5 rounded-xl border border-destructive/35 bg-destructive/10 px-4 py-3 text-sm text-destructive"
               >
                 <Info className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-                <span className="font-sans leading-5">{errorText}</span>
+                <span className="font-sans leading-6">{errorText}</span>
               </m.div>
             )}
           </AnimatePresence>
 
           <div
             className={cn(
-              "flex items-center gap-2.5 border-t border-border-color/80 pt-4",
+              "flex items-center gap-3 border-t border-border-color/80 pt-5",
               step > 0 ? "justify-between" : "justify-end",
             )}
           >
@@ -683,7 +743,7 @@ export default function AddSegmentForm({
               <button
                 type="button"
                 onClick={handlePrev}
-                className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border-color bg-card-bg px-4 text-xs font-medium text-text-secondary transition-colors hover:bg-card-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+                className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border-color bg-bg-main px-4 text-sm font-semibold text-text-primary transition-colors hover:bg-card-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
               >
                 <ChevronRight className="size-4" strokeWidth={1.75} aria-hidden="true" />
                 <span>مرحله قبل</span>
@@ -697,7 +757,7 @@ export default function AddSegmentForm({
                 onClick={handleNext}
                 whileTap={animationsEnabled ? { scale: 0.98 } : undefined}
                 transition={SPRING_PRESS}
-                className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-accent3 px-5 font-sans text-xs font-semibold text-accent3-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset"
+                className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-accent3 px-5 font-sans text-sm font-bold text-accent3-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset"
               >
                 <span>مرحله بعد</span>
                 <ChevronLeft className="size-4" strokeWidth={2} aria-hidden="true" />
@@ -708,11 +768,11 @@ export default function AddSegmentForm({
                 type="submit"
                 whileTap={animationsEnabled ? { scale: 0.98 } : undefined}
                 transition={SPRING_PRESS}
-                className="group inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent3 py-2 pr-5 pl-2.5 font-sans text-xs font-semibold text-accent3-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset"
+                className="group inline-flex min-h-11 cursor-pointer items-center justify-center gap-2.5 rounded-xl bg-accent3 py-2 pr-5 pl-2.5 font-sans text-sm font-bold text-accent3-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset"
               >
                 <span>ایجاد قطعه</span>
                 <span className="flex size-7 items-center justify-center rounded-lg bg-accent3-foreground/15 transition-transform duration-200 ease-out group-hover:scale-105">
-                  <Plus strokeWidth={2} className="size-3.5" aria-hidden="true" />
+                  <Plus strokeWidth={2.25} className="size-4" aria-hidden="true" />
                 </span>
               </m.button>
             )}

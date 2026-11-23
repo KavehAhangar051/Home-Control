@@ -55,14 +55,17 @@ export default function PinSelector({
         : "پایه‌های ایمن و پیشنهادی ESP32";
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
+    <div className="space-y-5">
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="esp32-hardware-pin" className="text-start">
+          <Label
+            htmlFor="esp32-hardware-pin"
+            className="text-start text-sm font-bold text-text-primary"
+          >
             شماره پایه سخت‌افزاری (GPIO)
           </Label>
           {trimmedPin && validation?.isValid && (
-            <span className="font-mono text-[11px] tabular-nums text-accent3" dir="ltr">
+            <span className="font-mono text-xs font-semibold tabular-nums text-accent3" dir="ltr">
               GPIO {trimmedPin}
             </span>
           )}
@@ -87,7 +90,7 @@ export default function PinSelector({
           }
           value={customPin}
           onChange={(e) => setCustomPin(toAsciiDigits(e.target.value).replace(/[^0-9]/g, ""))}
-          className="font-mono text-sm tabular-nums text-start placeholder:font-sans placeholder:text-xs"
+          className="h-11 font-mono text-base tabular-nums text-start placeholder:font-sans placeholder:text-sm sm:text-sm sm:placeholder:text-xs"
           dir="ltr"
         />
 
@@ -95,9 +98,9 @@ export default function PinSelector({
           <p
             id="esp32-hardware-pin-feedback"
             role="alert"
-            className="flex items-start gap-1.5 text-xs leading-relaxed text-destructive"
+            className="flex items-start gap-2 text-xs leading-6 text-destructive sm:text-[13px]"
           >
-            <Info className="mt-0.5 size-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            <Info className="mt-1 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
             <span>{validation.message}</span>
           </p>
         )}
@@ -106,7 +109,7 @@ export default function PinSelector({
           <p
             id="esp32-hardware-pin-feedback"
             role="status"
-            className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning-soft px-3 py-2 text-xs leading-relaxed text-amber-800 dark:text-amber-300"
+            className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning-soft px-3.5 py-2.5 text-xs leading-6 text-amber-800 dark:text-amber-300 sm:text-[13px]"
           >
             <Info className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
             <span>{validation.message}</span>
@@ -114,9 +117,11 @@ export default function PinSelector({
         )}
       </div>
 
-      <div className="space-y-2">
-        <span className="block text-xs text-text-secondary">{suggestionTitle}</span>
-        <div className="flex flex-wrap gap-1.5" dir="ltr">
+      <div className="space-y-2.5">
+        <span className="block text-xs font-semibold text-text-secondary sm:text-[13px]">
+          {suggestionTitle}
+        </span>
+        <div className="flex flex-wrap gap-2" dir="ltr">
           {suggestedPins.map((pinNum) => {
             const pinStr = String(pinNum);
             const isSelected = trimmedPin === pinStr;
@@ -137,12 +142,12 @@ export default function PinSelector({
                       ? `GPIO ${pinStr} (فقط ورودی — ایده‌آل برای سنسور)`
                       : `انتخاب GPIO ${pinStr}`
                 }
-                className={`min-h-9 min-w-10 rounded-lg border px-2.5 font-mono text-xs tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+                className={`min-h-10 min-w-11 rounded-xl border px-3 font-mono text-sm font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
                   isSelected
-                    ? "border-accent3 bg-accent3 font-semibold text-accent3-foreground"
+                    ? "border-accent3 bg-accent3 font-bold text-accent3-foreground"
                     : isUsed
                       ? "cursor-not-allowed border-border-color/60 bg-bg-main text-text-muted/45 line-through"
-                      : "cursor-pointer border-border-color bg-bg-main text-text-secondary hover:border-accent3/60 hover:text-text-primary"
+                      : "cursor-pointer border-border-color bg-bg-main text-text-primary hover:border-accent3/60 hover:bg-card-hover-bg"
                 }`}
               >
                 {pinStr}
@@ -152,7 +157,7 @@ export default function PinSelector({
         </div>
 
         {isAnalogInput && (
-          <p className="text-[11px] leading-relaxed text-text-muted">
+          <p className="text-xs leading-6 text-text-secondary">
             پایه‌های ۳۴، ۳۵، ۳۶ و ۳۹ فقط ورودی و بدون مقاومت داخلی هستند؛ بهترین انتخاب برای اتصال
             سنسورهای آنالوگ (۰ تا ۳.۳ ولت).
           </p>

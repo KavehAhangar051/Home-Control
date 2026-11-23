@@ -150,17 +150,17 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
       className="@container/workspace max-w-5xl space-y-3.5 px-0 py-1.5 text-right sm:space-y-6 sm:px-4 sm:py-6 lg:px-6 @lg/workspace:py-8"
       dir="rtl"
     >
-      <header className="flex flex-col gap-2.5 border-b border-border-color pb-3.5 sm:pb-5 @sm/workspace:flex-row @sm/workspace:items-end @sm/workspace:justify-between">
-        <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border-color bg-card-bg text-accent3 dark:shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)] sm:size-10">
-            <Icon className="size-4.5 sm:size-5" aria-hidden="true" />
+      <header className="flex flex-col gap-3 border-b border-border-color pb-4 sm:pb-6 @sm/workspace:flex-row @sm/workspace:items-end @sm/workspace:justify-between">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border-color bg-card-bg text-accent3 dark:shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)] sm:size-12">
+            <Icon className="size-5 sm:size-6" aria-hidden="true" />
           </div>
-          <div className="min-w-0 space-y-0.5">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
+          <div className="min-w-0 space-y-1">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary">
               <SubsectionIcon className="size-3.5 shrink-0 text-accent3" aria-hidden="true" />
               <span>{meta.title}</span>
             </span>
-            <h1 className="text-fluid-xl font-semibold leading-7 text-balance text-text-primary">
+            <h1 className="text-2xl font-bold leading-snug tracking-tight text-balance text-text-primary sm:text-[1.75rem] lg:text-[2rem]">
               {activeSubsection.title}
             </h1>
           </div>
@@ -170,7 +170,7 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
           <button
             type="button"
             onClick={() => openAuxNodeModal()}
-            className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border-color bg-card-bg px-3 text-xs font-medium text-text-primary transition-colors duration-150 hover:border-accent3 hover:bg-accent3 hover:text-accent3-foreground"
+            className="inline-flex min-h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border-color bg-card-bg px-4 text-sm font-medium text-text-primary transition-colors duration-150 hover:border-accent3 hover:bg-accent3 hover:text-accent3-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
           >
             <Cpu className="size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
             <span>افزودن برد کمکی (ESP)</span>
