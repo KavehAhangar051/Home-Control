@@ -6,8 +6,6 @@ Patterns learned in one codebase that apply to another. One line per fact. Addit
 |---|---|---|---|
 | python3-store-stub | On this machine `python3` is a Microsoft Store stub that fails silently; use `py -3` instead | offline-converter | any bash hook/script on Windows |
 | git-bash-pwd-normalize | `$PWD` in Git Bash is `/c/...`; normalize to `C:/...` before matching repo prefixes | offline-converter | any hook mapping cwd→project |
-| sse-data-strip | codebase-memory MCP over HTTP returns `data: {json}` SSE lines; strip prefix before parsing | offline-converter | any MCP-via-curl hook |
-| graph-row-is-array | `query_graph` rows are arrays (not dicts); index `r[0]`/`r[1]` not `r.get(...)` | offline-converter | any graph-query consumer |
 | posttooluse-no-inject | PostToolUse output is never injected into model context — reminders must go via UserPromptSubmit/PreCompact | offline-converter | hook design, any project |
 | copytree-skip-git | Plugin caches contain locked `.git` dirs; skip them in backup copytrees or `PermissionError` aborts | harness-backup | backup/restore, any project |
 | cvavr-entry-spill | CodeVisionAVR spills register locals at function ENTRY before any branch, so a hot function's cheap early-exit path pays it too; keep the fast path local-free and push locals into a callee | AsyncDelay | any embedded hot path with an early return |

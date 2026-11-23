@@ -16,13 +16,12 @@ description: Token-optimized CLI proxy (Rust Token Killer - rtk-ai/rtk) permanen
 
 ---
 
-## 2. When to Use `rtk` vs Native Tools vs `codebase-memory-mcp`
+## 2. When to Use `rtk` vs Native Tools
 
 | Task | Best Tool | Why |
 |------|-----------|-----|
 | **Reading known source files for editing** | Native `view_file` (in parallel) | ~2ms latency, exact 1-indexed line numbers for `replace_file_content`. |
 | **Listing a single directory** | Native `list_dir` | ~2ms native tool call. |
-| **Unknown symbol discovery / call tracing** | `bun run cbm <tool> --project app-applet` | Pre-indexed AST graph (`search_graph`, `trace_path`, `detect_changes`). |
 | **All shell / CLI commands in `run_command`** | **`rtk <cmd>`** (`rtk git`, `rtk tsc`, `rtk bun`, `rtk next`, `rtk grep`, `rtk diff`, `rtk err`, `rtk test`) | Cuts terminal stdout/stderr noise by 60–90% in `<10ms`. |
 
 ---

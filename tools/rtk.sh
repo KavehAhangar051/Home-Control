@@ -32,7 +32,6 @@ ignore_dirs = [
     "node_modules",
     ".next",
     "out",
-    ".codebase-memory",
     ".agent-state",
     "target",
     "__pycache__",

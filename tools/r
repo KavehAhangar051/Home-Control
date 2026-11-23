@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Unified shell wrapper: auto-restores rtk + TokenEconomizer if container reset,
-# compresses output via rtk (Lite Mode), and records tool telemetry + LoopGuard + micro-skills.
+# Unified shell wrapper: auto-restores rtk if container reset,
+# and compresses output via rtk (Lite Mode).
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 exec python3 "$ROOT_DIR/tools/agent-bridge.py" run "$@"

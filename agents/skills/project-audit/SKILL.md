@@ -18,31 +18,25 @@ Assess a project's structural health, config consistency, documentation quality,
 
 ## Phase 1 — Structure Assessment
 
-Use `codebase-memory-mcp` tools (NOT grep/glob):
-
-```
-1. get_architecture(aspects=["overview","clusters","hotspots","boundaries","languages","file_tree"])
-2. index_status() — verify project is indexed
-3. If not indexed: index_repository() first
-```
+Inspect the repository layout, module boundaries, and root configs directly (using directory listing, file reads, and targeted search).
 
 ### Scoring Dimensions
 
 | Dimension | Weight | What to check |
 |---|---|---|
-| **Modularity** | 25% | Feature-based folders, cohesion scores, no circular deps |
+| **Modularity** | 25% | Feature-based folders, high cohesion, no circular deps |
 | **Separation of Concerns** | 20% | Core/hooks/views split, business logic vs UI |
-| **AI-Agent Readability** | 20% | AGENTS.md exists, MCP indexed, typed interfaces, JSDoc |
+| **AI-Agent Readability** | 20% | AGENTS.md exists, typed interfaces, clear entry points, JSDoc |
 | **Documentation** | 15% | Root docs current, ARCHITECTURE.md accurate, DESIGN.md complete |
 | **Config Consistency** | 10% | Config files don't contradict project architecture |
 | **Testing** | 10% | Tests colocated, coverage of core utils, test commands documented |
 
-### Cluster Analysis
+### Module & Boundary Analysis
 
-From `get_architecture` clusters, check:
-- **High cohesion (>=0.8)** = well-bounded module
-- **Low cohesion (<0.6)** = mixed concerns, needs refactoring
-- **fan-in=0, fan-out=0** = orphan module (not wired into the app)
+Check feature folders and shared layers for:
+- **High cohesion** = well-bounded module
+- **Mixed concerns** = candidates for refactoring
+- **Orphan modules** = unused files not wired into the app
 - **Circular boundaries** = architectural debt
 
 ## Phase 2 — Config Consistency Audit
@@ -96,8 +90,7 @@ After presenting findings:
 
 1. **Fix config drift** — update metadata.json, .env.example, components.json, package.json
 2. **Rewrite docs** — apply LLM-readability principles
-3. **Re-index** — `index_repository()` after all changes
-4. **Verify** — run test, lint, and build commands
+3. **Verify** — run test, lint, and build commands
 
 ### Verification Commands (by framework)
 
@@ -109,12 +102,10 @@ After presenting findings:
 
 ## Pitfalls
 
-1. **Graph tree can hide nested files** — `get_architecture` file_tree may show directories as empty when they contain deeply nested files. Always verify with `search_files(target="files")` before concluding a folder is empty.
+1. **Nested files can be overlooked** — inspect subdirectories recursively before concluding a folder is empty.
 
 2. **Do not over-rewrite** — if docs are already concise and accurate, do not rewrite for the sake of it. The goal is signal density, not different text.
 
 3. **Config files may be external tool artifacts** — `metadata.json` from Jules/AI Studio, `components.json` from shadcn CLI. Updating them is fine but understand their source so you don't break the tool that generated them.
 
-4. **Re-index is mandatory** — after changing any source files, re-index via codebase-memory MCP so the graph stays accurate. Skip this and future sessions will have stale data.
-
-5. **Honest scoring** — when rating a project, give specific reasons for deductions. "8.5/10 with these 5 issues" is more useful than vague praise. Users ask "why not 10?" and deserve a concrete answer.
+4. **Honest scoring** — when rating a project, give specific reasons for deductions. "8.5/10 with these 5 issues" is more useful than vague praise. Users ask "why not 10?" and deserve a concrete answer.
