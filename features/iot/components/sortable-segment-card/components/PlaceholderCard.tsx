@@ -88,10 +88,20 @@ export default function PlaceholderCard({
           {!isUltraCompact && (
             <div className="relative z-10 flex flex-col items-center gap-0.5">
               <span className="block font-sans font-medium text-xs text-text-primary">
-                {isCompact ? "افزودن قطعه" : "تخصیص قطعه هوشمند"}
+                {segment.isVirtual && segment.nodeId
+                  ? isCompact
+                    ? "پایه برد کمکی"
+                    : segment.title || "تخصیص پایه برد کمکی"
+                  : isCompact
+                    ? "افزودن قطعه"
+                    : "تخصیص قطعه هوشمند"}
               </span>
               {!isCompact && (
-                <span className="block text-xs text-text-muted">انتخاب پایه و نوع قطعه</span>
+                <span className="block text-xs text-text-muted">
+                  {segment.isVirtual && segment.nodeId
+                    ? "انتخاب پایه روی برد کمکی"
+                    : "انتخاب پایه و نوع قطعه"}
+                </span>
               )}
             </div>
           )}

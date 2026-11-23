@@ -31,6 +31,7 @@ function selectWatchedConfigSlice(state: IoTStoreState) {
     automations: state.automations,
     macros: state.macros,
     voiceCommands: state.voiceCommands,
+    auxNodes: state.auxNodes,
     wifiNetworks: state.wifiNetworks,
     wifiNetworksConfigured: state.wifiNetworksConfigured,
     wifiApConfig: state.wifiApConfig,

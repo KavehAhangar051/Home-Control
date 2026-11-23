@@ -1,6 +1,7 @@
 import React, { type ComponentPropsWithoutRef } from "react";
 import { isAnalogInputSegment } from "@/features/iot/utils/analogInput";
 import { isAnalogOutputSegment } from "@/features/iot/utils/analogOutput";
+import { formatSegmentPinLabel } from "@/features/iot/utils/auxNodeUtils";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
 import { getSegmentTileDensity } from "../core/segmentTileDensity";
 import type { SegmentData } from "../core/types";
@@ -114,7 +115,7 @@ export function InputSegmentBody({
               className="rounded border border-border-color bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-normal tabular-nums text-text-muted shrink-0"
               dir="ltr"
             >
-              GPIO {segment.pin}
+              {formatSegmentPinLabel(segment, isCompact)}
             </span>
           )}
         </div>

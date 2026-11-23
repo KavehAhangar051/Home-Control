@@ -19,6 +19,55 @@ import {
 import type { ConfigSlice, IoTStoreState } from "../types";
 
 export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice> = (set, get) => ({
+  auxNodes: [],
+
+  setAuxNodes: (nodes) =>
+    set((state) => ({
+      auxNodes: typeof nodes === "function" ? nodes(state.auxNodes) : nodes,
+    })),
+
+  upsertAuxNode: (node) =>
+    set((state) => {
+      const exists = state.auxNodes.some((n) => n.nodeId === node.nodeId);
+      return {
+        auxNodes: exists
+          ? state.auxNodes.map((n) => (n.nodeId === node.nodeId ? node : n))
+          : [...state.auxNodes, node],
+      };
+    }),
+
+  removeAuxNode: (nodeId) =>
+    set((state) => ({
+      auxNodes: state.auxNodes.filter((n) => n.nodeId !== nodeId),
+    })),
+
+  updateAuxNodesOnlineStatus: (nodes) =>
+    set((state) => {
+      if (state.auxNodes.length === 0 || nodes.length === 0) return state;
+
+      const statusById = new Map<number, boolean>();
+      for (let i = 0; i < nodes.length; i++) {
+        const entry = nodes[i];
+        if (typeof entry.online === "boolean") {
+          statusById.set(entry.id, entry.online);
+        }
+      }
+
+      if (statusById.size === 0) return state;
+
+      let changed = false;
+      const next = state.auxNodes.map((node) => {
+        const nextOnline = statusById.get(node.nodeId);
+        if (nextOnline !== undefined && node.online !== nextOnline) {
+          changed = true;
+          return { ...node, online: nextOnline };
+        }
+        return node;
+      });
+
+      return changed ? { auxNodes: next } : state;
+    }),
+
   applyEspConfig: (config) => {
     if (!config) return;
 
@@ -125,6 +174,7 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
 
       return {
         segments: normalizedSegments,
+        auxNodes: Array.isArray(config.auxNodes) ? config.auxNodes : [],
         groupsOrder: config.layout?.groups_order || [],
         groupConfigs: config.layout?.group_configs || {},
         groupsCols: config.layout?.groups_cols || 1,

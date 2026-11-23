@@ -12,6 +12,7 @@ import {
   getAnalogMaxDuty,
   percentToAnalogDuty,
 } from "@/features/iot/utils/analogOutput";
+import { formatSegmentPinLabel } from "@/features/iot/utils/auxNodeUtils";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
 import { getSegmentTileDensity } from "../core/segmentTileDensity";
 import type { SegmentData } from "../core/types";
@@ -219,7 +220,7 @@ function AnalogOutputBody({
                 className="rounded border border-border-color bg-secondary px-1 py-0 font-mono text-[10px] tabular-nums text-text-muted shrink-0"
                 dir="ltr"
               >
-                GPIO {segment.pin}
+                {formatSegmentPinLabel(segment, isCompact)}
               </span>
               {showAutoOffBadge && (
                 <span

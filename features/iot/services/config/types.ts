@@ -54,6 +54,49 @@ export interface Macro {
   actions: MacroAction[];
 }
 
+export type AuxChipType =
+  | "unknown"
+  | "esp8266_01"
+  | "esp8266_12"
+  | "esp32"
+  | "esp32_c3"
+  | "esp32_s3";
+
+export const AUX_CHIP_CODE_MAP: Record<AuxChipType, number> = {
+  unknown: 0,
+  esp8266_01: 1,
+  esp8266_12: 2,
+  esp32: 3,
+  esp32_c3: 4,
+  esp32_s3: 5,
+};
+
+export const AUX_CHIP_FROM_CODE: Record<number, AuxChipType> = {
+  0: "unknown",
+  1: "esp8266_01",
+  2: "esp8266_12",
+  3: "esp32",
+  4: "esp32_c3",
+  5: "esp32_s3",
+};
+
+export interface AuxNodeConfig {
+  /** شناسه ۱ تا ۱۶ تخصیص‌یافته به برد کمکی */
+  nodeId: number;
+  /** نام نمایشی برد کمکی (مثلاً «پارکینگ ESP-01») — حداکثر ۳۱ بایت UTF-8 */
+  name: string;
+  /** آدرس MAC نرمال‌شده با حروف بزرگ (مثلاً "AA:BB:CC:DD:EE:FF") */
+  mac: string;
+  /** تعداد پایه‌های مجاز برای این برد کمکی (۱ تا ۳۲) */
+  pinCapacity: number;
+  /** نوع چیپ برای پیشنهاد پایه‌های مجاز در UI */
+  chipType: AuxChipType;
+  /** نام گروه متناظر در layout.groups_order (به‌طور پیش‌فرض برابر name) */
+  groupName: string;
+  /** وضعیت آنلاین آخرین تله‌متری از برد مرکزی (در فاز ۲ فعال می‌شود) */
+  online?: boolean;
+}
+
 export interface EspConfig {
   version: string;
   device: {
@@ -91,8 +134,9 @@ export interface EspConfig {
   layout: {
     groups_order: string[];
     groups_cols: number;
-    group_configs: Record<string, { maxCols: number }>;
+    group_configs: Record<string, { maxCols: number; icon?: string }>;
   };
+  auxNodes?: AuxNodeConfig[];
   segments: Array<{
     id: string;
     type: string;
@@ -112,6 +156,9 @@ export interface EspConfig {
     adcDeltaThreshold?: number;
     adcHighThreshold?: number;
     adcLowThreshold?: number;
+    isVirtual?: boolean;
+    nodeId?: number;
+    remotePin?: number;
     rule?: {
       active?: boolean;
       highActions?: Array<{

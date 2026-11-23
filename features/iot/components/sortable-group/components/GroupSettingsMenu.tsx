@@ -1,9 +1,11 @@
+import { Pencil } from "lucide-react";
 import { m, useReducedMotion } from "motion/react";
 import type React from "react";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import type { AuxNodeConfig } from "@/features/iot/services/config/types";
 import { TRANSITION_ENTER_QUICK, TRANSITION_EXIT_QUICK } from "@/lib/ease";
 import LayoutSelector from "./LayoutSelector";
 
@@ -17,6 +19,8 @@ interface GroupSettingsMenuProps {
   onDeleteGroup: (groupId: string) => void;
   setIsSettingsOpen: (open: boolean) => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
+  auxNode?: AuxNodeConfig;
+  onEditAuxNode?: () => void;
 }
 
 /**
@@ -32,6 +36,8 @@ export default function GroupSettingsMenu({
   onDeleteGroup,
   setIsSettingsOpen,
   menuRef,
+  auxNode,
+  onEditAuxNode,
 }: GroupSettingsMenuProps) {
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const prefersReduced = useReducedMotion();
@@ -75,6 +81,21 @@ export default function GroupSettingsMenu({
         </div>
 
         <div className="flex flex-col gap-1.5 pt-2 border-t border-border-color">
+          {auxNode && onEditAuxNode && (
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => {
+                setIsSettingsOpen(false);
+                onEditAuxNode();
+              }}
+              className="flex items-center justify-start gap-2 px-3 py-2 text-xs font-bold text-accent3 bg-accent3/12 rounded-xl md:hover:bg-accent3/20 transition-colors w-full cursor-pointer"
+            >
+              <Pencil className="size-3.5 shrink-0" />
+              <span>ویرایش برد کمکی (ESP)</span>
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             type="button"
@@ -89,7 +110,9 @@ export default function GroupSettingsMenu({
           </Button>
 
           <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-secondary">
-            <span className="text-xs font-bold text-destructive truncate">حذف کامل این گروه</span>
+            <span className="text-xs font-bold text-destructive truncate">
+              {auxNode ? "حذف برد کمکی و سگمنت‌ها" : "حذف کامل این گروه"}
+            </span>
             <DeleteButton
               size="sm"
               resetAfter={0}
@@ -97,7 +120,7 @@ export default function GroupSettingsMenu({
                 setIsSettingsOpen(false);
                 onDeleteGroup(id);
               }}
-              label={`حذف کامل گروه ${id}`}
+              label={auxNode ? `حذف برد کمکی ${id}` : `حذف کامل گروه ${id}`}
             />
           </div>
         </div>

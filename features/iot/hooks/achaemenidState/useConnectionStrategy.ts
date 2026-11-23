@@ -39,6 +39,8 @@ export interface LocalWebSocketControllerDeps {
   setPinsPwmResolution?: (
     updater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>),
   ) => void;
+  updateAuxNodesOnlineStatus?: (nodes: Array<{ id: number; online: boolean }>) => void;
+  showToast?: (message: string, type: "error" | "success") => void;
   isNativeRuntime?: () => boolean;
   createWebSocket?: (url: string) => LocalWebSocketLike;
   setLocalWs?: (ws: MinimalLocalSocket | null) => void;
@@ -168,7 +170,26 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
             deps.setPinsPwmResolution?.(syncedResolutions);
           }
 
+          if (Array.isArray(data.nodes)) {
+            const parsedNodes: Array<{ id: number; online: boolean }> = [];
+            for (const entry of data.nodes) {
+              if (!entry || typeof entry !== "object") continue;
+              const id = Number(entry.id);
+              if (!Number.isInteger(id) || id < 1 || id > 16) continue;
+              parsedNodes.push({ id, online: Boolean(entry.online) });
+            }
+            if (parsedNodes.length > 0) {
+              deps.updateAuxNodesOnlineStatus?.(parsedNodes);
+            }
+          }
+
           console.log("[LocalWS] Received full state sync:", data.states, synchronizedTimers);
+        } else if (data.type === "aux_node_ack") {
+          const actionText =
+            data.action === "delete"
+              ? `برد کمکی #${data.id ?? ""} از ESP32 مرکزی حذف شد.`
+              : `برد کمکی #${data.id ?? ""} در حافظه ESP32 مرکزی ذخیره شد.`;
+          deps.showToast?.(actionText, "success");
         } else if (data.type === "command_ack" && data.pin !== undefined) {
           // Command receipt confirmations NEVER mutate pin state, analog value, or timers.
           (deps.onCommandAck ?? notifyPinCommandAck)(data.pin.toString());
@@ -277,6 +298,8 @@ export function useConnectionStrategy() {
   const setPinsAnalogValue = useIoTStore((state) => state.setPinsAnalogValue);
   const setPinsLastNonZeroValue = useIoTStore((state) => state.setPinsLastNonZeroValue);
   const setPinsPwmResolution = useIoTStore((state) => state.setPinsPwmResolution);
+  const updateAuxNodesOnlineStatus = useIoTStore((state) => state.updateAuxNodesOnlineStatus);
+  const showToast = useIoTStore((state) => state.showToast);
 
   useEffect(() => {
     if (!localIp) return;
@@ -289,6 +312,8 @@ export function useConnectionStrategy() {
       setPinsAnalogValue,
       setPinsLastNonZeroValue,
       setPinsPwmResolution,
+      updateAuxNodesOnlineStatus,
+      showToast,
     });
   }, [
     localIp,
@@ -298,5 +323,7 @@ export function useConnectionStrategy() {
     setPinsAnalogValue,
     setPinsLastNonZeroValue,
     setPinsPwmResolution,
+    updateAuxNodesOnlineStatus,
+    showToast,
   ]);
 }

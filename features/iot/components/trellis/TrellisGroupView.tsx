@@ -1,6 +1,7 @@
 "use client";
 
 import { useView, useViewBadge, useViewTitle, useWorkspace } from "@danfessler/trellis-react";
+import { Pencil } from "lucide-react";
 import React from "react";
 import { useShallow } from "zustand/react/shallow";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -8,6 +9,11 @@ import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import {
+  AUX_CHIP_META,
+  findAuxNodeByGroup,
+  getAuxNodeActiveSegmentCount,
+} from "@/features/iot/utils/auxNodeUtils";
 import { getSegmentIcon, hasIcon, ICON_MAP } from "@/features/iot/utils/icons";
 import TrellisSegmentTile, { type TrellisSegmentHandlers } from "./TrellisSegmentTile";
 import { segmentViewId } from "./trellisLayout";
@@ -57,6 +63,11 @@ export default function TrellisGroupView({
   );
 
   const groupIcon = useIoTStore((s) => s.groupConfigs[groupName]?.icon);
+  const auxNode = useIoTStore((s) => findAuxNodeByGroup(s.auxNodes, groupName));
+  const auxUsedCount = useIoTStore((s) =>
+    auxNode ? getAuxNodeActiveSegmentCount(s.segments, auxNode.nodeId) : 0,
+  );
+  const openAuxNodeModal = useIoTStore((s) => s.openAuxNodeModal);
 
   const activeCount = useIoTStore(
     React.useCallback(
@@ -122,13 +133,48 @@ export default function TrellisGroupView({
             <h3 className="truncate font-sans text-xs font-medium text-text-primary @sm/trellis-group:text-sm">
               {groupName}
             </h3>
-            <span className="block text-[11px] font-normal tabular-nums text-text-muted">
-              {groupSegments.length} قطعه · {activeCount} فعال
-            </span>
+            {auxNode ? (
+              <span
+                dir="ltr"
+                className="mt-0.5 inline-flex max-w-full items-center gap-1 rounded border border-accent3/30 bg-accent3/10 px-1.5 py-0 font-mono text-[10px] tabular-nums text-text-secondary"
+              >
+                <span
+                  className={`size-1.5 shrink-0 rounded-full ${
+                    auxNode.online ? "bg-success" : "bg-text-muted/60"
+                  }`}
+                />
+                <span className="truncate">
+                  {AUX_CHIP_META[auxNode.chipType].shortLabel} · {auxNode.mac} · {auxUsedCount}/
+                  {auxNode.pinCapacity}
+                </span>
+              </span>
+            ) : (
+              <span className="block text-[11px] font-normal tabular-nums text-text-muted">
+                {groupSegments.length} قطعه · {activeCount} فعال
+              </span>
+            )}
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
+          {auxNode && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    onClick={() => openAuxNodeModal(auxNode.nodeId)}
+                    aria-label={`ویرایش برد کمکی ${auxNode.name}`}
+                    className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg border border-border-color bg-card-bg text-text-secondary transition-colors duration-150 md:hover:border-accent3 md:hover:text-accent3"
+                  >
+                    <Pencil className="size-3.5 shrink-0" strokeWidth={1.75} />
+                  </button>
+                }
+              />
+              <TooltipContent>ویرایش برد کمکی</TooltipContent>
+            </Tooltip>
+          )}
+
           <Tooltip>
             <TooltipTrigger
               render={
@@ -151,7 +197,7 @@ export default function TrellisGroupView({
             left
             resetAfter={0}
             onConfirm={() => onDeleteGroup(groupName)}
-            label={`حذف گروه ${groupName}`}
+            label={auxNode ? `حذف برد کمکی ${groupName}` : `حذف گروه ${groupName}`}
           />
         </div>
       </div>

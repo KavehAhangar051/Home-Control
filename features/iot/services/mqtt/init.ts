@@ -387,7 +387,17 @@ export function createMqttMessageHandler(
     } else if (topic === deps.stateTopic) {
       const parsedState = parseMqttStateMessage(payload);
 
-      if (parsedState.kind === "command_ack") {
+      if (parsedState.kind === "aux_node_ack") {
+        logMqttDebug(
+          `[MQTT] Received aux_node_ack: action=${parsedState.action} nodeId=${parsedState.nodeId}`,
+        );
+        const snapshot = deps.getSnapshot();
+        const toastMsg =
+          parsedState.action === "delete"
+            ? `برد کمکی #${parsedState.nodeId} از حافظه برد مرکزی حذف شد.`
+            : `برد کمکی #${parsedState.nodeId} در برد مرکزی ثبت و همگام‌سازی شد.`;
+        snapshot.showToast(toastMsg, "success");
+      } else if (parsedState.kind === "command_ack") {
         logMqttDebug(`[MQTT] Received command_ack from ESP32: pin=${parsedState.pinId}`);
         (deps.onCommandAck ?? notifyPinCommandAck)(parsedState.pinId);
       } else if (parsedState.kind === "pin_update") {
@@ -434,6 +444,10 @@ export function createMqttMessageHandler(
 
         if (parsedState.resolutions) {
           snapshot.setPinsPwmResolution(parsedState.resolutions);
+        }
+
+        if (parsedState.nodes && parsedState.nodes.length > 0) {
+          snapshot.updateAuxNodesOnlineStatus?.(parsedState.nodes);
         }
 
         if (parsedState.ids && Array.isArray(snapshot.segments)) {

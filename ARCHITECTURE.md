@@ -593,3 +593,21 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
   - `parseMqttStateMessage` parses optional `ids?: Record<string, string>` (trimmed `1..31` chars) alongside conditional `values`/`resolutions` spreads without emitting `undefined` keys.
   - `createMqttMessageHandler` logs `logMqttDebug` diagnostics when `parsedState.ids[pin]` differs from the dashboard store's segment ID without mutating dashboard `segment.id` references.
 - **External Worker note:** Cloudflare Worker (`ESP_CFG_V2` serializer returning `C n=<count>` even for `n=0` and preserving `seg.id`) lives outside this repository.
+
+## 36. Auxiliary ESP Nodes & Virtual Segments — Phase 1 (23 November 2026)
+
+- **Unified Pin Space & Domain Module (`features/iot/utils/auxNodeUtils.ts`, `pinValidation.ts`, `config/types.ts`, `createConfigSlice.ts`):**
+  - Extends managed pins to `0..39` (local ESP32 GPIO, deterministic ID `gpio_<pin>`) and `40..127` (virtual segments on auxiliary ESP boards, deterministic ID `vpin_<pin>`), supporting up to `16` auxiliary nodes (`nodeId: 1..16`), `1..32` pins per node, and `48` total active segments across the central hub.
+  - Defines `AuxChipType` (`unknown | esp8266_01 | esp8266_12 | esp32 | esp32_c3 | esp32_s3`), `AUX_CHIP_CODE_MAP` (`0..5`), `AuxNodeConfig`, optional `isVirtual`/`nodeId`/`remotePin` on `Segment`, and `auxNodes` CRUD + live `online` sync in `ConfigSlice`.
+  - Provides strict IEEE 802 MAC validation (`parseAndValidateMac`, rejecting all-zero, broadcast, and multicast addresses), UTF-8 byte-safe 31-byte name truncation, and pure lifecycle planners (`planCreateAuxNode`, `planUpdateAuxNode`, `planRemoveSegmentWithAuxRestore`).
+- **Binary MQTT Opcodes & State Sync (`protocol.ts`, `segmentPublishers.ts`, `ports.ts`, `deviceGatewayAdapter.ts`, `messageParser.ts`, `mqtt/init.ts`, `useConnectionStrategy.ts`):**
+  - Adds `UPSERT_AUX_NODE (0x0F)`, `DELETE_AUX_NODE (0x10)` (with cascade flag & optional 6-byte MAC fallback), and `ADD_VIRTUAL_SEGMENT (0x11)` (with shared 5-byte PWM / 9-byte ADC trailing metadata).
+  - Widens pin guards on `0x03`, `0x05`, `0x0B`, `0x0C`, `0x0D`, and `0x0E` from `0..39` to `0..127`.
+  - Parses optional `virtual` & `nodes` fields in `state_sync` (updating `auxNodes[].online`) and `aux_node_ack` confirmation messages on both MQTT and Local WebSocket transports while staying backward-compatible with legacy payloads.
+- **Dashboard UX (`AuxNodeModal.tsx`, `VirtualPinSelector.tsx`, `AddSegmentForm.tsx`, `GroupHeader.tsx`, `TrellisGroupView.tsx`, `CanvasGroupNode.tsx`, `CardFooter.tsx`, `CardBody.tsx`, `AnalogOutputBody.tsx`, `AnalogInputBody.tsx`):**
+  - Users can register/edit auxiliary ESP boards via the header, sidebar, or Modules workspace (`افزودن برد کمکی (ESP)`), automatically creating a dedicated group with `pinCapacity` virtual placeholder slots (`isVirtual: true, nodeId`) and displaying a compact `chip · MAC · used/cap` badge with online dot on Grid, Trellis, and Canvas group headers.
+  - Clicking a virtual placeholder opens `AddSegmentForm` pre-configured in **برد کمکی (مجازی)** mode for that board with chip-filtered Remote GPIO buttons (disabling occupied remote pins); active virtual cards display `Remote GPIO X · vPin Y`, deleting a virtual segment sends `0x03` and restores its placeholder slot, and deleting an auxiliary group sends cascading `0x10`.
+- **Cloudflare & `ESP_CFG_V2` (`mappers.ts`, `buildEspConfig.ts`, `useCloudflarePush.ts`):**
+  - Persists `auxNodes` and virtual segment metadata (`isVirtual`, `nodeId`, `remotePin`) across Cloudflare KV serialization/deserialization and watches `auxNodes` in `useCloudflarePush`.
+  - Exports `buildEspCfgV2Text` emitting `E n=...` / `E id=... mac=... cap=... chip=... name=...` records before `C n=...` and appending `virt=1 node=... rpin=...` strictly on virtual `S ...` lines.
+

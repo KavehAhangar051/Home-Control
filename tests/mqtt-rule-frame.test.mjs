@@ -87,7 +87,10 @@ describe("MQTT input rule frame", () => {
   });
 
   it("rejects invalid input GPIO values", () => {
-    assert.throws(() => buildUpdateRuleFrame(40), RangeError);
+    assert.doesNotThrow(() => buildUpdateRuleFrame(40));
+    assert.doesNotThrow(() => buildUpdateRuleFrame(127));
+    assert.throws(() => buildUpdateRuleFrame(-1), RangeError);
+    assert.throws(() => buildUpdateRuleFrame(128), RangeError);
   });
 });
 

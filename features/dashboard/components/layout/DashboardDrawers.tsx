@@ -9,12 +9,20 @@ const AutomationsDrawer = dynamic(() => import("@/features/iot/components/Automa
   ssr: false,
 });
 
+const AuxNodeModal = dynamic(
+  () => import("@/features/iot/components/modules-drawer/components/AuxNodeModal"),
+  { ssr: false },
+);
+
 export default function DashboardDrawers() {
   const isAutomationsMenuOpen = useIoTStore((s) => s.isAutomationsMenuOpen);
   const setIsAutomationsMenuOpen = useIoTStore((s) => s.setIsAutomationsMenuOpen);
+  const isAuxNodeModalOpen = useIoTStore((s) => s.isAuxNodeModalOpen);
+  const closeAuxNodeModal = useIoTStore((s) => s.closeAuxNodeModal);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const isDark = useIoTStore((s) => s.isDark);
   const [hasOpenedAutomations, setHasOpenedAutomations] = React.useState(isAutomationsMenuOpen);
+  const [hasOpenedAuxModal, setHasOpenedAuxModal] = React.useState(isAuxNodeModalOpen);
 
   React.useEffect(() => {
     if (isAutomationsMenuOpen) {
@@ -22,22 +30,40 @@ export default function DashboardDrawers() {
     }
   }, [isAutomationsMenuOpen]);
 
+  React.useEffect(() => {
+    if (isAuxNodeModalOpen) {
+      setHasOpenedAuxModal(true);
+    }
+  }, [isAuxNodeModalOpen]);
+
   return (
-    <ErrorBoundary
-      fallbackTitle="خطا در پنل اتوماسیون"
-      resetKeys={[isAutomationsMenuOpen]}
-      onReset={() => setIsAutomationsMenuOpen(false)}
-    >
-      <React.Suspense fallback={null}>
-        {(hasOpenedAutomations || isAutomationsMenuOpen) && (
-          <AutomationsDrawer
-            isOpen={isAutomationsMenuOpen}
-            onClose={() => setIsAutomationsMenuOpen(false)}
-            isDark={isDark}
-            animationsEnabled={animationsEnabled}
-          />
-        )}
-      </React.Suspense>
-    </ErrorBoundary>
+    <>
+      <ErrorBoundary
+        fallbackTitle="خطا در پنل اتوماسیون"
+        resetKeys={[isAutomationsMenuOpen]}
+        onReset={() => setIsAutomationsMenuOpen(false)}
+      >
+        <React.Suspense fallback={null}>
+          {(hasOpenedAutomations || isAutomationsMenuOpen) && (
+            <AutomationsDrawer
+              isOpen={isAutomationsMenuOpen}
+              onClose={() => setIsAutomationsMenuOpen(false)}
+              isDark={isDark}
+              animationsEnabled={animationsEnabled}
+            />
+          )}
+        </React.Suspense>
+      </ErrorBoundary>
+
+      <ErrorBoundary
+        fallbackTitle="خطا در پنجره برد کمکی"
+        resetKeys={[isAuxNodeModalOpen]}
+        onReset={closeAuxNodeModal}
+      >
+        <React.Suspense fallback={null}>
+          {(hasOpenedAuxModal || isAuxNodeModalOpen) && <AuxNodeModal />}
+        </React.Suspense>
+      </ErrorBoundary>
+    </>
   );
 }

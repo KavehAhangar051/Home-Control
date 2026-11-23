@@ -17,6 +17,8 @@ export interface DashboardContextInterface {
     | "clearTargetPlaceholder"
     | "handleApplyEspConfig"
     | "handleAddSegment"
+    | "handleCreateAuxNode"
+    | "handleUpdateAuxNode"
     | "handleAddPlaceholder"
     | "handleSetupPlaceholder"
     | "handleGroupColsChange"
@@ -84,6 +86,8 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       clearTargetPlaceholder: resolved.clearTargetPlaceholder,
       handleApplyEspConfig: resolved.handleApplyEspConfig,
       handleAddSegment: resolved.handleAddSegment,
+      handleCreateAuxNode: resolved.handleCreateAuxNode,
+      handleUpdateAuxNode: resolved.handleUpdateAuxNode,
       handleAddPlaceholder: resolved.handleAddPlaceholder,
       handleSetupPlaceholder: resolved.handleSetupPlaceholder,
       handleGroupColsChange: resolved.handleGroupColsChange,
@@ -110,6 +114,8 @@ export function DashboardProvider({ children, value }: DashboardProviderProps) {
       resolved.clearTargetPlaceholder,
       resolved.handleApplyEspConfig,
       resolved.handleAddSegment,
+      resolved.handleCreateAuxNode,
+      resolved.handleUpdateAuxNode,
       resolved.handleAddPlaceholder,
       resolved.handleSetupPlaceholder,
       resolved.handleGroupColsChange,

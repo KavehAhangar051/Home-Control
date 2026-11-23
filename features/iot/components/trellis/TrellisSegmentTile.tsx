@@ -113,7 +113,9 @@ export default React.memo(function TrellisSegmentTile({
               <Plus className="size-4" strokeWidth={2.5} />
             </div>
             <span className="block font-sans text-xs font-bold text-text-primary">
-              تخصیص قطعه هوشمند
+              {segment.isVirtual && segment.nodeId
+                ? segment.title || "تخصیص پایه برد کمکی"
+                : "تخصیص قطعه هوشمند"}
             </span>
           </button>
         </Card>

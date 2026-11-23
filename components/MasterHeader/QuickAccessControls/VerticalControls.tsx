@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, type LucideIcon } from "lucide-react";
+import { ChevronLeft, Cpu, type LucideIcon } from "lucide-react";
 import { AnimatePresence, m, useReducedMotion, type Variants } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,7 @@ export default function VerticalControls({
   const setActiveAutomationsTab = useIoTStore((s) => s.setActiveAutomationsTab);
   const rawActiveSettingsTab = useIoTStore((s) => s.activeSettingsTab);
   const setActiveSettingsTab = useIoTStore((s) => s.setActiveSettingsTab);
+  const openAuxNodeModal = useIoTStore((s) => s.openAuxNodeModal);
 
   const activeSettingsTab = resolveSettingsTabId(rawActiveSettingsTab);
   const prefersReduced = useReducedMotion();
@@ -298,6 +299,21 @@ export default function VerticalControls({
       )}
 
       {PRIMARY_NAV_VIEWS.map(renderNavItem)}
+
+      <SidebarTooltip label="افزودن برد کمکی (ESP)" enabled={Boolean(isSidebarCollapsed)}>
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={() => openAuxNodeModal()}
+          className={itemClass}
+          aria-label="افزودن برد کمکی (ESP)"
+        >
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Cpu className="size-4 shrink-0 text-accent3" strokeWidth={1.6} aria-hidden="true" />
+            {!isSidebarCollapsed && <span className="truncate text-sm">برد کمکی (ESP)</span>}
+          </div>
+        </Button>
+      </SidebarTooltip>
 
       <VoiceCommandButton
         animationsEnabled={animationsEnabled}

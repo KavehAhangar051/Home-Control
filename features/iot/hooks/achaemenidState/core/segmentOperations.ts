@@ -1,4 +1,9 @@
-import type { AnalogRangeRule, GroupsSlice, Segment } from "@/features/iot/hooks/store/types";
+import type {
+  AnalogRangeRule,
+  AuxNodeConfig,
+  GroupsSlice,
+  Segment,
+} from "@/features/iot/hooks/store/types";
 import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
 import {
   ANALOG_INPUT_TYPE,
@@ -22,7 +27,16 @@ import {
   isAnalogOutputType,
   MAX_ANALOG_OUTPUT_VALUE,
 } from "@/features/iot/utils/analogOutput";
-import { validateEsp32Pin } from "@/features/iot/utils/pinValidation";
+import {
+  allocateNextVirtualPin,
+  getAuxNodeActiveSegmentCount,
+  isLocalGpioPin,
+  isValidRemotePin,
+  isVirtualPin,
+  MAX_AUX_NODES,
+  MAX_TOTAL_SEGMENTS,
+} from "@/features/iot/utils/auxNodeUtils";
+import { validateEsp32Pin, validateManagedPin } from "@/features/iot/utils/pinValidation";
 
 export interface AddSegmentInput {
   type: string;
@@ -35,6 +49,9 @@ export interface AddSegmentInput {
   groupIcon?: string;
   analogConfig?: AnalogSegmentOptions;
   analogInputConfig?: AnalogInputSegmentOptions;
+  isVirtual?: boolean;
+  nodeId?: number;
+  remotePin?: number;
 }
 
 export type AddSegmentDecision =
@@ -52,43 +69,142 @@ export function createSegmentId(randomFn: () => number = Math.random): string {
 }
 
 /**
- * Generates deterministic pin-based IDs (`gpio_<pin>`) for physical ESP32 GPIO segments (`0..39`)
- * so re-added hardware segments match firmware NVS records, falling back to random IDs otherwise.
+ * Generates deterministic pin-based IDs:
+ * - `gpio_<0..39>` for local ESP32 GPIO segments
+ * - `vpin_<40..127>` for virtual auxiliary-node segments
+ * Falls back to random IDs otherwise.
  */
 export function createHardwareSegmentId(
   pin: string | number | undefined,
   randomFn: () => number = Math.random,
 ): string {
   const parsed = pin !== undefined && String(pin).trim() !== "" ? Number(pin) : Number.NaN;
-  if (Number.isInteger(parsed) && parsed >= 0 && parsed <= 39) {
+
+  if (isLocalGpioPin(parsed)) {
     return `gpio_${parsed}`;
+  }
+
+  if (isVirtualPin(parsed)) {
+    return `vpin_${parsed}`;
   }
 
   return createSegmentId(randomFn);
 }
 
 /**
- * Pure domain decision for adding or replacing a placeholder segment.
- * Enforces hardware GPIO validation, preserves placeholder group ownership,
- * and formats deterministic default titles.
+ * Pure domain decision for adding or replacing a placeholder segment (local ESP32 or virtual Auxiliary ESP).
+ * Enforces hardware GPIO validation, 48-segment firmware cap, auxiliary node capacity & remotePin uniqueness,
+ * preserves placeholder group ownership, and formats deterministic default titles.
  */
 export function planAddSegment(params: {
   input: AddSegmentInput;
   segments: readonly Segment[];
   targetPlaceholderId: string | null;
+  auxNodes?: readonly AuxNodeConfig[];
   createId?: () => string;
 }): AddSegmentDecision {
-  const { input, segments, targetPlaceholderId, createId } = params;
+  const { input, segments, targetPlaceholderId, auxNodes, createId } = params;
 
-  if (input.pin && input.type !== "placeholder") {
-    const validation = validateEsp32Pin(input.pin, input.type);
+  const targetPlaceholder = targetPlaceholderId
+    ? segments.find((s) => s.id === targetPlaceholderId)
+    : undefined;
+
+  const isVirtual = Boolean(input.isVirtual || targetPlaceholder?.isVirtual);
+  const resolvedNodeId = input.nodeId ?? targetPlaceholder?.nodeId;
+
+  if (input.type !== "placeholder") {
+    const activeCount = segments.filter((s) => s.type !== "placeholder").length;
+    if (activeCount >= MAX_TOTAL_SEGMENTS) {
+      return {
+        ok: false,
+        errorMessage: `حداکثر ${MAX_TOTAL_SEGMENTS} سگمنت فعال (محلی + مجازی) در برد مرکزی پشتیبانی می‌شود.`,
+      };
+    }
+  }
+
+  let finalPin = input.pin.trim();
+  let resolvedRemotePin: number | undefined;
+  let ownerNode: AuxNodeConfig | undefined;
+
+  if (isVirtual && input.type !== "placeholder") {
+    if (
+      resolvedNodeId === undefined ||
+      !Number.isInteger(resolvedNodeId) ||
+      resolvedNodeId < 1 ||
+      resolvedNodeId > MAX_AUX_NODES
+    ) {
+      return { ok: false, errorMessage: "برد کمکی معتبر انتخاب نشده است." };
+    }
+
+    if (auxNodes) {
+      ownerNode = auxNodes.find((n) => n.nodeId === resolvedNodeId);
+      if (!ownerNode) {
+        return { ok: false, errorMessage: "برد کمکی انتخاب‌شده در لیست بردها پیدا نشد." };
+      }
+
+      const nodeActiveCount = getAuxNodeActiveSegmentCount(segments, ownerNode.nodeId);
+      if (nodeActiveCount >= ownerNode.pinCapacity) {
+        return {
+          ok: false,
+          errorMessage: `ظرفیت پایه‌های برد «${ownerNode.name}» (${ownerNode.pinCapacity} پایه) تکمیل شده است.`,
+        };
+      }
+    }
+
+    const parsedRemotePin =
+      input.remotePin !== undefined
+        ? Number(input.remotePin)
+        : finalPin !== ""
+          ? Number(finalPin)
+          : Number.NaN;
+
+    if (!isValidRemotePin(parsedRemotePin)) {
+      return {
+        ok: false,
+        errorMessage: "شماره پایه روی برد کمکی (Remote GPIO) باید عددی صحیح بین ۰ تا ۳۹ باشد.",
+      };
+    }
+
+    resolvedRemotePin = parsedRemotePin;
+
+    const duplicateRemote = segments.some(
+      (s) =>
+        s.type !== "placeholder" &&
+        s.isVirtual &&
+        s.nodeId === resolvedNodeId &&
+        s.remotePin === resolvedRemotePin,
+    );
+    if (duplicateRemote) {
+      return {
+        ok: false,
+        errorMessage: `پایه GPIO ${resolvedRemotePin} روی این برد کمکی قبلاً تخصیص داده شده است.`,
+      };
+    }
+
+    const explicitVirtualPin = finalPin !== "" ? Number(finalPin) : Number.NaN;
+    const allocatedVirtualPin =
+      isVirtualPin(explicitVirtualPin) &&
+      !segments.some((s) => s.type !== "placeholder" && Number(s.pin) === explicitVirtualPin)
+        ? explicitVirtualPin
+        : allocateNextVirtualPin(segments);
+
+    if (allocatedVirtualPin === null) {
+      return {
+        ok: false,
+        errorMessage: "ظرفیت پایه‌های مجازی (vPin 40 تا 127) تکمیل شده است.",
+      };
+    }
+
+    finalPin = String(allocatedVirtualPin);
+  } else if (finalPin && input.type !== "placeholder") {
+    const validation = validateEsp32Pin(finalPin, input.type);
 
     if (!validation.isValid) {
       return { ok: false, errorMessage: validation.message };
     }
   }
 
-  const finalGroup = resolveSegmentGroup(input.group);
+  const finalGroup = ownerNode?.groupName || resolveSegmentGroup(input.group);
   const isAnalogOutput = isAnalogOutputType(input.type);
   const isAnalogInput = isAnalogInputType(input.type);
 
@@ -107,23 +223,37 @@ export function planAddSegment(params: {
     ? createId()
     : input.type === "placeholder"
       ? createSegmentId()
-      : createHardwareSegmentId(input.pin);
+      : createHardwareSegmentId(finalPin);
+
+  const displayPinForTitle =
+    isVirtual && resolvedRemotePin !== undefined
+      ? `Remote GPIO ${resolvedRemotePin}`
+      : `GPIO ${finalPin}`;
 
   const newSegment: Segment = {
     id: resolvedId,
     type: isAnalogOutput ? ANALOG_OUTPUT_TYPE : isAnalogInput ? ANALOG_INPUT_TYPE : input.type,
-    pin: input.pin,
+    pin: finalPin,
     title:
       input.title ||
       (isAnalogOutput
-        ? `خروجی آنالوگ PWM (GPIO ${input.pin})`
+        ? `خروجی آنالوگ PWM (${displayPinForTitle})`
         : isAnalogInput
-          ? `ورودی آنالوگ ADC (GPIO ${input.pin})`
-          : `کنترل پایه دیجیتال (GPIO ${input.pin})`),
+          ? `ورودی آنالوگ ADC (${displayPinForTitle})`
+          : input.type === "input"
+            ? `ورودی دیجیتال (${displayPinForTitle})`
+            : `کنترل پایه دیجیتال (${displayPinForTitle})`),
     group: finalGroup,
     mode: isAnalogOutput || isAnalogInput ? "switch" : input.mode || "switch",
     auto_off: isAnalogInput ? 0 : input.auto_off || 0,
     icon: input.icon,
+    ...(isVirtual && resolvedNodeId !== undefined
+      ? {
+          isVirtual: true,
+          nodeId: resolvedNodeId,
+          ...(resolvedRemotePin !== undefined ? { remotePin: resolvedRemotePin } : {}),
+        }
+      : {}),
     ...(isAnalogOutput && analogResolution !== undefined && analogFrequency !== undefined
       ? {
           pwmResolution: analogResolution,
@@ -156,7 +286,7 @@ export function planAddSegment(params: {
     const index = nextSegments.findIndex((s) => s.id === targetPlaceholderId);
 
     if (index !== -1) {
-      newSegment.group = resolveSegmentGroup(nextSegments[index].group);
+      newSegment.group = ownerNode?.groupName || resolveSegmentGroup(nextSegments[index].group);
       nextSegments[index] = newSegment;
       replacedPlaceholder = true;
     } else {
@@ -169,7 +299,7 @@ export function planAddSegment(params: {
   return {
     ok: true,
     newSegment,
-    finalGroup,
+    finalGroup: newSegment.group,
     nextSegments,
     replacedPlaceholder,
   };
@@ -239,7 +369,7 @@ export function validateRuleActionList(
       return `پایه GPIO ${targetPin} به‌عنوان ورودی تعریف شده و نمی‌تواند هدف خروجی باشد.`;
     }
 
-    const validation = validateEsp32Pin(
+    const validation = validateManagedPin(
       targetPin,
       isAnalogOutputType(matchedSeg?.type) ? "analog_output" : "output",
     );
@@ -347,7 +477,7 @@ export function validateAnalogRangeRuleList(
       return `بازه ${indexLabel}: خروجی هدف با GPIO ${targetPin} در لیست قطعات پیدا نشد.`;
     }
 
-    const pinValidation = validateEsp32Pin(
+    const pinValidation = validateManagedPin(
       targetPin,
       isAnalogOutputType(matchedSeg?.type) ? "analog_output" : "output",
     );

@@ -13,6 +13,8 @@ export const createMenuSlice: StateCreator<IoTStoreState, [], [], MenuSlice> = (
   isMenuOpen: false,
   isEspDrawerOpen: false,
   isAutomationsMenuOpen: false,
+  isAuxNodeModalOpen: false,
+  editingAuxNodeId: null,
   activeSettingsTab: "layout",
   activeModulesTab: "add",
   activeAutomationsTab: "create",
@@ -21,6 +23,16 @@ export const createMenuSlice: StateCreator<IoTStoreState, [], [], MenuSlice> = (
   setIsMenuOpen: (o) => set({ isMenuOpen: o }),
   setIsEspDrawerOpen: (o) => set({ isEspDrawerOpen: o }),
   setIsAutomationsMenuOpen: (o) => set({ isAutomationsMenuOpen: o }),
+  openAuxNodeModal: (editingNodeId = null) =>
+    set({
+      isAuxNodeModalOpen: true,
+      editingAuxNodeId: editingNodeId ?? null,
+    }),
+  closeAuxNodeModal: () =>
+    set({
+      isAuxNodeModalOpen: false,
+      editingAuxNodeId: null,
+    }),
   setActiveSettingsTab: (t) => set({ activeSettingsTab: t === "voice-commands" ? "voice" : t }),
   setActiveModulesTab: (activeModulesTab) => set({ activeModulesTab }),
   setActiveAutomationsTab: (activeAutomationsTab) => set({ activeAutomationsTab }),
