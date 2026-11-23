@@ -2,7 +2,7 @@
 // beui.dev/components/motion/range-slider
 
 import { m, useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo } from "react";
 import { SPRING_GLIDE } from "@/lib/ease";
 import { type SliderOptions, useSlider } from "@/lib/hooks/use-slider";
 import { TOUCH_GESTURE_CLASS } from "@/lib/touch";
@@ -20,7 +20,7 @@ export interface RangeSliderProps extends SliderOptions {
 export function RangeSlider({ showTicks = true, className, ...options }: RangeSliderProps) {
   const reduce = useReducedMotion();
   const { percent, dragging, min, max, step, trackProps, sliderProps } = useSlider(options);
-  const [trackWidth, setTrackWidth] = useState(292);
+  const trackWidth = useMotionValue(0);
 
   useLayoutEffect(() => {
     const track = trackProps.ref.current;
@@ -28,9 +28,10 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
     if (!track) return;
 
     const measure = () => {
-      const width = track.getBoundingClientRect().width;
+      // clientWidth stays in local CSS coordinates even inside a CSS-scaled Canvas sheet
+      const width = track.clientWidth;
 
-      if (width > 0) setTrackWidth((previous) => (previous === width ? previous : width));
+      if (width > 0 && trackWidth.get() !== width) trackWidth.set(width);
     };
 
     measure();
@@ -39,7 +40,7 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
     observer.observe(track);
 
     return () => observer.disconnect();
-  }, [trackProps.ref]);
+  }, [trackProps.ref, trackWidth]);
 
   // Spring-smoothed position drives both the thumb and the fill.
   const target = useMotionValue(percent);
@@ -50,13 +51,15 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
 
   const smooth = useSpring(target, SPRING_GLIDE);
   const pos = reduce ? target : smooth;
-  const thumbX = useTransform(pos, (p) => 8 + (Math.max(0, trackWidth - 20) * p) / 100);
+  const thumbX = useTransform([pos, trackWidth], ([p, w]: number[]) => {
+    return 8 + (Math.max(0, w - 20) * p) / 100;
+  });
 
   // Match InlineSlider: the 4px handle starts 8px inside the track, and
   // the rounded fill extends 8px past its left edge. Translate a full-size
   // fill inside the 2px inset clip so its corner never stretches.
-  const fillX = useTransform(pos, (p) =>
-    p >= 100 ? 0 : ((p - 100) / 100) * Math.max(0, trackWidth - 4) + 14 - 0.16 * p,
+  const fillX = useTransform([pos, trackWidth], ([p, w]: number[]) =>
+    p >= 100 ? 0 : ((p - 100) / 100) * Math.max(0, w - 4) + 14 - 0.16 * p,
   );
 
   // Floor rather than round, so a range the step does not divide (0 to 10 by 4)

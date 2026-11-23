@@ -70,11 +70,13 @@ export const publishAnalogOutputCommand = (
   pinId: string,
   value: number,
   timer?: number,
+  qosOverride?: 0 | 1 | 2,
 ): boolean => {
   const buf = buildAnalogOutputCommandFrame(pinId, value, timer);
   const published = publishMqttCommand(
     buf,
     `Published analog_output command: pin=${buf[1]} value=${value} timer=${timer}`,
+    qosOverride !== undefined ? { qosOverride } : undefined,
   );
 
   if (published) clearSynchronizedTimer(pinId);

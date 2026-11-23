@@ -84,6 +84,8 @@ export interface PublishMqttCommandDeps {
   initClient?: () => void;
   warn?: (message: string) => void;
   log?: (message: string) => void;
+  /** Optional per-command QoS override (e.g. QoS 0 for transient PWM ramp frames). */
+  qosOverride?: 0 | 1 | 2;
 }
 
 /**
@@ -123,9 +125,10 @@ export const publishMqttCommand = (
   if (activeClient?.connected) {
     const settings = deps.getSettings ? deps.getSettings() : getMqttSettings();
     const commandTopic = `${settings.baseTopic}/Command`;
+    const publishQos = deps.qosOverride ?? settings.qos;
 
     // SAFETY: mqtt.js publish method accepts Uint8Array or Buffer as payload
-    activeClient.publish(commandTopic, buf as Buffer, { qos: settings.qos });
+    activeClient.publish(commandTopic, buf as Buffer, { qos: publishQos });
 
     if (logLabel) {
       log(`[MQTT Binary] ${logLabel}`);

@@ -13,6 +13,7 @@ import {
   getAnalogMaxDuty,
   isAnalogOutputSegment,
 } from "@/features/iot/utils/analogOutput";
+import { cancelAnalogRamp } from "@/features/iot/utils/analogRamp";
 import { evaluateMacroExecution, type MacroExecutionPlan } from "@/features/iot/utils/macroEngine";
 import { soundManager } from "@/lib/audio";
 
@@ -144,6 +145,7 @@ export async function executeSinglePinUpdate(
 
   if (isReadOnlyInputSegment(segment)) return false;
 
+  cancelAnalogRamp(pin);
   beginLoading();
   const isAnalog = isAnalogOutputSegment(segment);
   const prevAnalogValue = initialStore.pinsAnalogValue[pin];
@@ -208,6 +210,9 @@ export interface SetPinAnalogOptions {
   persistToCloud?: boolean;
   preventMqtt?: boolean;
   timer?: number;
+  qosOverride?: 0 | 1 | 2;
+  /** When true, streams an intermediate hardware ramp frame without mutating optimistic UI store state. */
+  skipStoreUpdate?: boolean;
 }
 
 /**
@@ -234,6 +239,25 @@ export async function executeAnalogPinUpdate(
   const resolution = resolveAnalogPinResolution(pin);
   const clampedValue = clampAnalogValue(value, resolution);
   const nextBoolState = clampedValue > 0;
+  const effectiveTimer =
+    options?.timer !== undefined ? options.timer : nextBoolState ? segment?.auto_off : 0;
+
+  if (options?.skipStoreUpdate) {
+    try {
+      return await syncGateway.syncAnalogPin(pin, clampedValue, {
+        preventMqtt: options.preventMqtt,
+        autoOff: effectiveTimer,
+        persistToCloud: false,
+        qosOverride: options.qosOverride ?? 0,
+        showToast,
+      });
+    } catch (error) {
+      console.error("Failed to dispatch analog ramp step:", error);
+      return false;
+    }
+  }
+
+  cancelAnalogRamp(pin);
   const persistToCloud = options?.persistToCloud !== false;
 
   if (persistToCloud) beginLoading();
@@ -256,13 +280,11 @@ export async function executeAnalogPinUpdate(
       prev[pin] === nextBoolState ? prev : { ...prev, [pin]: nextBoolState },
     );
 
-    const effectiveTimer =
-      options?.timer !== undefined ? options.timer : nextBoolState ? segment?.auto_off : 0;
-
     const delivered = await syncGateway.syncAnalogPin(pin, clampedValue, {
       preventMqtt: options?.preventMqtt,
       autoOff: effectiveTimer,
       persistToCloud,
+      qosOverride: options?.qosOverride,
       showToast,
     });
 
@@ -315,6 +337,7 @@ export async function executeBatchPinUpdate(
 
     for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
+      cancelAnalogRamp(action.targetPin);
 
       if (!previousSnapshots.has(action.targetPin)) {
         previousSnapshots.set(action.targetPin, initialPinsState[action.targetPin]);
