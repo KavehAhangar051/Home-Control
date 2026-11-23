@@ -10,7 +10,7 @@ import {
   useTransform,
   useVelocity,
 } from "motion/react";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { SPRING_GLIDE, SPRING_PANEL, SPRING_PRESS } from "@/lib/ease";
 import { type SliderOptions, useSlider } from "@/lib/hooks/use-slider";
 import { TOUCH_GESTURE_CLASS } from "@/lib/touch";
@@ -41,7 +41,7 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
     formatValueText: options.formatValueText ?? format,
   });
 
-  const [trackWidth, setTrackWidth] = useState(252);
+  const trackWidth = useMotionValue(0);
 
   useLayoutEffect(() => {
     const track = trackProps.ref.current;
@@ -49,9 +49,10 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
     if (!track) return;
 
     const measure = () => {
-      const width = track.getBoundingClientRect().width;
+      // clientWidth stays in local CSS coordinates even inside a CSS-scaled Canvas sheet
+      const width = track.clientWidth;
 
-      if (width > 0) setTrackWidth((current) => (current === width ? current : width));
+      if (width > 0 && trackWidth.get() !== width) trackWidth.set(width);
     };
 
     measure();
@@ -60,7 +61,7 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
     observer.observe(track);
 
     return () => observer.disconnect();
-  }, [trackProps.ref]);
+  }, [trackProps.ref, trackWidth]);
 
   // The value is already snapped to the step — rounding here would only make
   // the bubble disagree with aria-valuenow on a fractional scale.
@@ -74,7 +75,7 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
   const smooth = useSpring(target, SPRING_GLIDE);
   const pos = reduce ? target : smooth;
   const fillScaleX = useTransform(pos, (v) => v / 100);
-  const thumbX = useTransform(pos, (v) => (v / 100) * trackWidth);
+  const thumbX = useTransform([pos, trackWidth], ([v, w]: number[]) => (v / 100) * w);
 
   // One spring drives the whole reaction: lean is signed, squash reads its
   // magnitude. Two springs off the same velocity would just run twice.

@@ -29,7 +29,12 @@ export interface AckResponse {
  */
 export interface IDeviceCommandPort {
   publishPinCommand(pinId: string, value: boolean, timer?: number): boolean;
-  publishAnalogOutputCommand(pinId: string, value: number, timer?: number): boolean;
+  publishAnalogOutputCommand(
+    pinId: string,
+    value: number,
+    timer?: number,
+    qosOverride?: 0 | 1 | 2,
+  ): boolean;
   publishBatchPinCommand(actions: PinAction[]): boolean;
   publishAddSegment(
     id: string,
@@ -76,6 +81,8 @@ export interface AnalogPinSyncOptions {
   autoOff?: number;
   /** When false (e.g. during live slider drag), skips Cloudflare HTTP write until commit. */
   persistToCloud?: boolean;
+  /** Optional MQTT QoS override (transient drag/ramp steps default to QoS 0 to avoid PUBACK stalls). */
+  qosOverride?: 0 | 1 | 2;
   showToast?: (message: string, type: "success" | "error") => void;
 }
 

@@ -2,7 +2,7 @@
 // beui.dev/components/motion/range-slider
 
 import { m, useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect } from "react";
 import { SPRING_GLIDE, SPRING_PRESS } from "@/lib/ease";
 import { type SliderOptions, useSlider } from "@/lib/hooks/use-slider";
 import { TOUCH_GESTURE_CLASS } from "@/lib/touch";
@@ -13,19 +13,23 @@ export interface FluidSliderProps extends SliderOptions {
   label?: string;
   /** Formats the value shown on the right. */
   format?: (value: number) => string;
+  /** Uses tighter padding & font sizing for compact/ultra IoT cards. */
+  compact?: boolean;
   className?: string;
 }
 
 /**
  * Thumbless slider: the whole pill is the control. The fill glides to the new
  * value behind a rounded liquid cap, and the label reads inverted wherever the
- * fill has covered it — composited purely via GPU transforms with zero `clip-path` repaints.
+ * fill has covered it — composited purely via percentage GPU transforms so it
+ * stays exact at any container width or Canvas zoom level with zero layout reads.
  */
 export function FluidSlider({
   label,
   // The value arrives already snapped to the step. Rounding it again would
   // only make the label and the announcement disagree with aria-valuenow.
   format = (v) => `${v}%`,
+  compact = false,
   className,
   ...options
 }: FluidSliderProps) {
@@ -34,27 +38,6 @@ export function FluidSlider({
     ...options,
     formatValueText: options.formatValueText ?? format,
   });
-
-  const [trackWidth, setTrackWidth] = useState(292);
-
-  useLayoutEffect(() => {
-    const track = trackProps.ref.current;
-
-    if (!track) return;
-
-    const measure = () => {
-      const width = track.getBoundingClientRect().width;
-
-      if (width > 0) setTrackWidth((current) => (current === width ? current : width));
-    };
-
-    measure();
-    const observer = new ResizeObserver(measure);
-
-    observer.observe(track);
-
-    return () => observer.disconnect();
-  }, [trackProps.ref]);
 
   const target = useMotionValue(percent);
 
@@ -65,11 +48,15 @@ export function FluidSlider({
   const smooth = useSpring(target, SPRING_GLIDE);
   const pos = reduce ? target : smooth;
 
-  // Slide a full-width rounded fill layer and counter-slide the inverted label inside it
-  // by exact negated pixel offset: preserves the rounded liquid right cap and exact
-  // glyph-for-glyph alignment strictly on the GPU compositor without `clip-path`.
-  const fillX = useTransform(pos, (v) => ((v - 100) / 100) * trackWidth);
-  const labelCounterX = useTransform(fillX, (x) => -x);
+  // Percentage transforms are relative to each layer's own padding-box width,
+  // making fill and counter-translated inverted label exact at any CSS scale/zoom
+  // without ResizeObserver or getBoundingClientRect() double-scaling bugs.
+  const fillX = useTransform(pos, (v) => `${v - 100}%`);
+  const labelCounterX = useTransform(pos, (v) => `${100 - v}%`);
+
+  const labelRowClass = compact
+    ? "px-3 text-xs font-medium"
+    : "px-4 sm:px-5 text-xs sm:text-sm font-medium";
 
   const row = (
     <>
@@ -88,7 +75,8 @@ export function FluidSlider({
     <m.div
       {...trackProps}
       dir="ltr"
-      animate={reduce ? undefined : { scale: dragging ? 1.03 : 1 }}
+      // Scale only on Y during drag so horizontal pointer hit edges never shift.
+      animate={reduce ? undefined : { scaleY: dragging ? 1.04 : 1 }}
       transition={SPRING_PRESS}
       style={{ willChange: dragging ? "transform" : undefined }}
       className={cn(
@@ -99,7 +87,12 @@ export function FluidSlider({
       )}
     >
       {/* uncovered label — sits on the muted track */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-between gap-2 px-4 sm:px-5 text-xs sm:text-sm font-medium text-text-primary">
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 flex items-center justify-between gap-2 text-text-primary",
+          labelRowClass,
+        )}
+      >
         {row}
       </div>
 
@@ -110,7 +103,10 @@ export function FluidSlider({
         style={{ x: fillX, willChange: "transform", backfaceVisibility: "hidden" }}
       >
         <m.div
-          className="pointer-events-none absolute inset-0 flex items-center justify-between gap-2 px-4 sm:px-5 text-xs sm:text-sm font-medium text-accent3-foreground"
+          className={cn(
+            "pointer-events-none absolute inset-0 flex items-center justify-between gap-2 text-accent3-foreground",
+            labelRowClass,
+          )}
           style={{ x: labelCounterX, willChange: "transform", backfaceVisibility: "hidden" }}
         >
           {row}

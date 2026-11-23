@@ -113,6 +113,7 @@ export function DashboardSlider({
           {...sharedOptions}
           label={isUltra ? undefined : label}
           format={format ?? ((v) => (unit ? `${v} ${unit}` : `${v}%`))}
+          compact={isCompact || isUltra}
           className={cn(heightClass, className)}
         />
       );

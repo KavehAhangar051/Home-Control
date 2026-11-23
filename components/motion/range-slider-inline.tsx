@@ -96,9 +96,11 @@ export function InlineSlider({
   const [dragging, setDragging] = useState(false);
   const dragFrame = useRef<number | null>(null);
   const pendingDragValue = useRef<number | null>(null);
+  const trackWidthMv = useMotionValue(292);
   const gesture = useRef<{
     id: number;
     left: number;
+    scale: number;
     offset: number;
     x: number;
   } | null>(null);
@@ -111,14 +113,17 @@ export function InlineSlider({
     if (!track || !labelElement || !readout) return;
 
     const measure = () => {
-      const width = track.getBoundingClientRect().width;
+      // clientWidth/offsetWidth remain in local CSS pixels even inside a CSS-scaled Canvas sheet
+      const width = track.clientWidth;
 
       if (!width) return;
 
+      if (trackWidthMv.get() !== width) trackWidthMv.set(width);
+
       const next = {
         width,
-        labelWidth: labelElement.getBoundingClientRect().width,
-        readoutWidth: readout.getBoundingClientRect().width,
+        labelWidth: labelElement.offsetWidth,
+        readoutWidth: readout.offsetWidth,
       };
 
       setGeometry((previous) =>
@@ -138,7 +143,7 @@ export function InlineSlider({
     observer.observe(readout);
 
     return () => observer.disconnect();
-  }, [trackProps.ref]);
+  }, [trackProps.ref, trackWidthMv]);
 
   // Each stop owns both a value and a physical position. As in RangeSlider,
   // the stops span the entire track at even intervals; text only affects
@@ -197,11 +202,16 @@ export function InlineSlider({
     [handleX],
   );
 
-  const fillRight = useTransform(handleX, (x) => (x >= endX ? geometry.width - 2 : x + 8));
+  const fillRight = useTransform([handleX, trackWidthMv], ([x, width]: number[]) => {
+    const localEndX = Math.max(HANDLE_START, width - HANDLE_END_INSET);
+    return x >= localEndX ? width - 2 : x + 8;
+  });
 
   // Slide a fixed-size fill inside the inset clipping window. The labels and
   // dots stay above it, and only transforms animate.
-  const fillX = useTransform(fillRight, (right) => right - geometry.width + 2);
+  const fillX = useTransform([fillRight, trackWidthMv], ([right, width]: number[]) => {
+    return right - width + 2;
+  });
 
   // Part progressively over six pixels at each text edge instead of
   // toggling the stem on/off in a single pointer frame. The thumb uses the
@@ -271,7 +281,10 @@ export function InlineSlider({
     if (!options.disabled && geometry.width > 0) {
       const x =
         event.type === "pointerup"
-          ? Math.min(endX, Math.max(HANDLE_START, event.clientX - active.left - active.offset))
+          ? Math.min(
+              endX,
+              Math.max(HANDLE_START, (event.clientX - active.left) / active.scale - active.offset),
+            )
           : active.x;
 
       if (snapToStops) {
@@ -323,12 +336,14 @@ export function InlineSlider({
         if (!rect.width) return;
 
         event.preventDefault();
-        const pointerX = event.clientX - rect.left;
+        const localWidth = event.currentTarget.clientWidth || geometry.width;
+        const scale = localWidth > 0 ? rect.width / localWidth : 1;
+        const pointerX = (event.clientX - rect.left) / scale;
         const thumbX = handleX.get();
         // Grabbing the thumb preserves the exact grab point. A track click
         // waits for release, so it glides to a dot without an intermediate jump.
         const offset = Math.abs(pointerX - thumbX - 2) <= 12 ? pointerX - thumbX : 2;
-        gesture.current = { id: event.pointerId, left: rect.left, offset, x: thumbX };
+        gesture.current = { id: event.pointerId, left: rect.left, scale, offset, x: thumbX };
         setDragging(true);
         handleX.stop();
         cancelDragCommit();
@@ -344,7 +359,7 @@ export function InlineSlider({
 
         const x = Math.min(
           endX,
-          Math.max(HANDLE_START, event.clientX - active.left - active.offset),
+          Math.max(HANDLE_START, (event.clientX - active.left) / active.scale - active.offset),
         );
         active.x = x;
         handleX.set(x);
