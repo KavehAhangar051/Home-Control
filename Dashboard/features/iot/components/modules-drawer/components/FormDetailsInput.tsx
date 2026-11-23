@@ -51,9 +51,6 @@ export default function FormDetailsInput({
             onChange={(e) => setCustomTitle(e.target.value)}
             className="text-start font-sans text-xs"
           />
-          <p className="text-[11px] leading-5 text-text-muted">
-            اگر خالی بماند، بر اساس نوع و شماره پایه نام‌گذاری می‌شود.
-          </p>
         </div>
 
         <IconPicker label="آیکون قطعه" selectedIcon={segmentIcon} onSelectIcon={setSegmentIcon} />

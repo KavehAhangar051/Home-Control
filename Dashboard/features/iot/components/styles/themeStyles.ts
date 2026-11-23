@@ -214,6 +214,18 @@ export function computeThemeCssVariables({
     "--shadow-border-hover": isDark
       ? "0 0 0 1px oklch(1 0 0 / 0.13)"
       : "0px 0px 0px 1px oklch(0 0 0 / 0.08), 0px 1px 2px -1px oklch(0 0 0 / 0.06)",
+    "--dissolve-background": palette.cardSolid,
+    "--dissolve-surface": palette.cardHover,
+    "--dissolve-surface-2": palette.bg,
+    "--dissolve-foreground": isDark ? "#ededed" : "#171717",
+    "--dissolve-muted": mutedTextColor,
+    "--dissolve-primary": resolvedAccent3,
+    "--dissolve-primary-foreground": resolvedAccent3Foreground,
+    "--dissolve-success": isDark ? "oklch(72.3% 0.16 160)" : "oklch(62.7% 0.194 149.2)",
+    "--dissolve-danger": isDark ? "oklch(62.8% 0.225 25.3)" : "oklch(57.7% 0.245 27.3)",
+    "--dissolve-danger-foreground": isDark ? "#ededed" : "#ffffff",
+    "--dissolve-accent": resolvedAccent3,
+    "--dissolve-border": palette.border,
   };
 }
 

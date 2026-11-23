@@ -1,7 +1,6 @@
 import { AnimatePresence, m } from "motion/react";
 import { useState } from "react";
-import { Mic, Plus } from "@/components/ui/hugeicons-groups/shell";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { VoiceCommandEditCard, VoiceCommandViewCard } from "./VoiceCommandCard";
 import { VoiceTranscriptOverlay } from "./VoiceTranscriptOverlay";
@@ -60,52 +59,33 @@ export default function VoiceCommandsSection() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 text-right">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold flex items-center gap-2 text-text-primary">
-          <Mic className="size-5 text-accent3" />
-          مدیریت دستورات صوتی
-        </h3>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                onClick={handleAddCommand}
-                className="bg-accent3 text-accent3-foreground p-2 rounded-xl hover:bg-accent3-dark transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] shadow-xs"
-                aria-label="افزودن دستور صوتی جدید"
-              >
-                <Plus className="size-4" strokeWidth={2} />
-              </button>
-            }
-          />
-          <TooltipContent>افزودن دستور صوتی جدید</TooltipContent>
-        </Tooltip>
+    <div className="space-y-4 text-right">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="text-xs font-medium tabular-nums text-text-muted">
+          {(voiceCommands || []).length} دستور ثبت‌شده
+        </span>
+        <button
+          type="button"
+          onClick={handleAddCommand}
+          className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-accent3 px-4 py-2 text-xs font-semibold text-accent3-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset"
+        >
+          <Plus className="size-3.5" strokeWidth={2} aria-hidden="true" />
+          <span>دستور جدید</span>
+        </button>
       </div>
-
-      <p className="text-sm text-text-secondary opacity-80 leading-relaxed">
-        برای هر عبارت صوتی، یک یا چند فرمان (روشن و خاموش کردن قطعات یا اجرای ماکروها) تعریف کنید تا
-        هم‌زمان اجرا شوند.
-      </p>
 
       <VoiceTranscriptOverlay isListening={isListening} voiceTranscript={voiceTranscript} />
 
-      <div className="space-y-3 mt-4">
+      <div className="space-y-3">
         <AnimatePresence initial={false}>
           {(!voiceCommands || voiceCommands.length === 0) && (
             <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center py-7 px-4 bg-card-bg-solid border border-dashed border-border-color rounded-2xl space-y-1.5"
+              className="text-center py-7 px-4 bg-card-bg-solid border border-dashed border-border-color rounded-2xl space-y-1"
             >
-              <p className="text-sm font-semibold text-text-primary">
-                هنوز دستور صوتی تعریف نشده است
-              </p>
-              <p className="text-xs text-text-secondary max-w-xs mx-auto leading-relaxed">
-                روی دکمه «+» در بالا بزنید و عبارتی مانند «چراغ پذیرایی روشن» را به عملیات دلخواه
-                متصل کنید.
-              </p>
+              <p className="text-xs font-medium text-text-secondary">دستور صوتی ثبت نشده است</p>
             </m.div>
           )}
 

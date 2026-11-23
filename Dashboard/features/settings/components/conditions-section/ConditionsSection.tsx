@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Info } from "@/components/ui/hugeicons-groups/controls";
 import { Settings2 } from "@/components/ui/hugeicons-groups/shell";
 import {
   validateAnalogRangeRuleList,
@@ -30,25 +29,13 @@ export default function ConditionsSection() {
   const inputSegments = segments.filter((s) => isReadOnlyInputSegment(s));
 
   return (
-    <div className="space-y-6">
-      <div className="bg-accent3-transparent border border-accent3 text-accent3 p-4 rounded-xl text-xs flex gap-3 items-start">
-        <Info className="size-5 shrink-0 mt-0.5" />
-        <p className="leading-relaxed font-medium">
-          برای ورودی‌های دیجیتال می‌توانید عملیات تک‌کلیک، دابل‌کلیک (۲ بار فشردن سریع) و نگه‌داشتن (۳، ۵
-          و ۱۰ ثانیه) و برای سنسورهای آنالوگ (ADC) تا ۶ بازه شرطی مستقل با هیسترزیس مجزا روی
-          خروجی‌های دیجیتال یا PWM تعریف کنید.
-        </p>
-      </div>
-
+    <div className="space-y-5">
       {inputSegments.length === 0 ? (
         <div className="text-center py-8 px-4 bg-card-bg-solid rounded-2xl border border-dashed border-border-color space-y-1.5">
-          <Settings2 className="size-7 mx-auto text-text-secondary opacity-45" />
-          <p className="text-sm font-semibold text-text-primary">
-            هنوز قطعه ورودی در داشبورد ثبت نشده است
-          </p>
-          <p className="text-xs text-text-secondary max-w-sm mx-auto leading-relaxed">
-            ابتدا از بخش «پالایه و ماژول‌ها» یک قطعه از نوع «ورودی دیجیتال» یا «ورودی آنالوگ (ADC)»
-            بسازید تا بتوانید برای آن شرط تعریف کنید.
+          <Settings2 className="size-6 mx-auto text-text-muted opacity-50" />
+          <p className="text-sm font-medium text-text-primary">قطعه ورودی ثبت نشده است</p>
+          <p className="text-xs text-text-muted max-w-sm mx-auto leading-relaxed">
+            ابتدا در بخش «پالایه و ماژول‌ها» یک ورودی دیجیتال یا سنسور آنالوگ بسازید
           </p>
         </div>
       ) : (

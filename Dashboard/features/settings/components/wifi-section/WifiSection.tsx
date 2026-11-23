@@ -152,41 +152,11 @@ export default function WifiSection() {
 
   return (
     <div className="space-y-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-lg font-bold text-text-primary">
-          <Wifi className="size-5 text-accent3" />
-          تنظیمات شبکه‌های وای‌فای
-        </h3>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                onClick={handleAddNetwork}
-                variant="accent"
-                size="icon"
-                className="rounded-xl"
-                aria-label="افزودن شبکه جدید"
-                type="button"
-              >
-                <Plus className="size-4" />
-              </Button>
-            }
-          />
-          <TooltipContent>افزودن شبکه جدید</TooltipContent>
-        </Tooltip>
-      </div>
-
-      <p className="mb-4 text-sm leading-relaxed text-text-secondary">
-        اطلاعات شبکه‌های وای‌فای (SSID و رمز عبور) را برای ESP32 ثبت کنید. تراشه هنگام راه‌اندازی به
-        ترتیب به این شبکه‌ها وصل می‌شود.
-      </p>
-
       <div className="surface-panel space-y-3 p-4">
         <div>
-          <h4 className="text-sm font-bold text-text-primary">اکسس‌پوینت راه‌اندازی ESP32</h4>
-          <p className="mt-1 text-xs leading-relaxed text-text-secondary">
-            این نام و رمز هنگام فعال شدن حالت Provisioning استفاده می‌شوند. اگر هر دو فیلد خالی
-            باشند، مقادیر پیش‌فرض مبتنی بر MAC دستگاه استفاده می‌شوند.
+          <h4 className="text-sm font-semibold text-text-primary">اکسس‌پوینت راه‌اندازی (AP)</h4>
+          <p className="mt-1 text-xs leading-5 text-text-muted">
+            برای حالت Provisioning؛ در صورت خالی بودن از مقدار پیش‌فرض MAC استفاده می‌شود
           </p>
         </div>
         <div className="space-y-1.5">
@@ -254,14 +224,36 @@ export default function WifiSection() {
               </>
             )}
           </Button>
-          <p className="text-[11px] leading-relaxed text-text-tertiary">
-            تنظیمات اکسس‌پوینت روی سرور کلودفلر ذخیره می‌شوند (از طریق MQTT ارسال نمی‌شوند) و هنگام
-            همگام‌سازی بعدی یا راه‌اندازی مجدد ESP32 اعمال خواهند شد.
+          <p className="text-[11px] leading-5 text-text-muted">
+            روی کلودفلر ذخیره و در همگام‌سازی بعدی ESP32 اعمال می‌شود
           </p>
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="text-xs font-semibold text-text-secondary">
+            شبکه‌های ذخیره‌شده ({wifiNetworks.length})
+          </h4>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  onClick={handleAddNetwork}
+                  variant="accent"
+                  size="sm"
+                  className="rounded-xl gap-1.5 text-xs"
+                  type="button"
+                >
+                  <Plus className="size-3.5" />
+                  <span>افزودن شبکه</span>
+                </Button>
+              }
+            />
+            <TooltipContent>افزودن شبکه جدید</TooltipContent>
+          </Tooltip>
+        </div>
+
         <AnimatePresence initial={false}>
           {wifiNetworks.map((net) =>
             editingId === net.id ? (
@@ -286,13 +278,9 @@ export default function WifiSection() {
         </AnimatePresence>
 
         {wifiNetworks.length === 0 && (
-          <div className="space-y-2 rounded-2xl border border-dashed border-border-color bg-card-bg-solid p-6 text-center">
-            <Wifi className="mx-auto size-7 text-text-secondary opacity-45" />
-            <p className="text-sm font-semibold text-text-primary">هنوز شبکه وای‌فای ثبت نشده است</p>
-            <p className="mx-auto max-w-xs text-xs leading-relaxed text-text-secondary">
-              نام شبکه (SSID) و رمز عبور مودم را اضافه کنید تا برد ESP32 هنگام راه‌اندازی به آن متصل
-              شود.
-            </p>
+          <div className="space-y-1.5 rounded-2xl border border-dashed border-border-color bg-card-bg-solid p-6 text-center">
+            <Wifi className="mx-auto size-6 text-text-muted opacity-50" />
+            <p className="text-xs font-medium text-text-secondary">شبکه وای‌فای ثبت نشده است</p>
           </div>
         )}
       </div>

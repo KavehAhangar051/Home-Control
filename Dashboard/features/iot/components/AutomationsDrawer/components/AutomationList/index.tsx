@@ -31,19 +31,14 @@ export default function AutomationList({
 
   return (
     <div className="@container/autolist space-y-4">
-      <div className="flex items-center justify-between px-1">
-        <h3 className="font-medium text-sm text-text-primary">مدیریت اتوماسیون‌ها</h3>
-        <span className="text-xs tabular-nums text-text-secondary">{automations.length} مورد</span>
+      <div className="flex items-center justify-end px-1">
+        <span className="text-xs tabular-nums text-text-muted">{automations.length} مورد</span>
       </div>
 
       {automations.length === 0 ? (
         <Card className="!gap-2 !items-center !justify-center !rounded-2xl !border-dashed !bg-card-bg-solid !p-8 text-center shadow-none">
           <Clock strokeWidth={1.5} className="size-7 text-text-muted opacity-40" />
-          <p className="text-sm font-medium text-text-primary">هنوز اتوماسیونی ثبت نشده است</p>
-          <p className="text-xs text-text-secondary max-w-xs leading-relaxed">
-            از بخش «افزودن اتوماسیون جدید» یک زمان‌بندی، تایمر یا شرط دمایی تعریف کنید تا تجهیزات
-            خودکار عمل کنند
-          </p>
+          <p className="text-sm font-medium text-text-primary">اتوماسیونی ثبت نشده است</p>
         </Card>
       ) : (
         <ResponsiveGrid minItemWidth="20rem" gap="0.875rem">

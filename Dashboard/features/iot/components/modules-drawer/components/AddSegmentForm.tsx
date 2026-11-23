@@ -2,8 +2,8 @@
 
 import { AnimatePresence, m } from "motion/react";
 import { useMemo, useState } from "react";
+import { ProgressSteps } from "@/components/dissolve/progress-steps";
 import { DashboardSlider } from "@/components/motion/dashboard-slider";
-import { type ProgressStepItem, ProgressSteps } from "@/components/motion/progress-steps";
 import { Card } from "@/components/ui/card";
 import {
   Activity,
@@ -54,23 +54,7 @@ import VirtualPinSelector from "./VirtualPinSelector";
 
 const PWM_FREQUENCY_PRESETS = [1000, 5000, 20000] as const;
 
-const WIZARD_STEPS: readonly ProgressStepItem[] = [
-  {
-    id: "type",
-    title: "انتخاب نوع",
-    description: "نوع قطعه و بردی که به آن متصل می‌شود را انتخاب کنید",
-  },
-  {
-    id: "hardware",
-    title: "پایه و رفتار",
-    description: "شماره پایه سخت‌افزاری و نحوه عملکرد قطعه را مشخص کنید",
-  },
-  {
-    id: "details",
-    title: "نام و گروه",
-    description: "نام، آیکون و گروه نمایش قطعه در داشبورد را تعیین کنید",
-  },
-];
+const WIZARD_STEP_LABELS = ["نوع قطعه", "پایه و رفتار", "نام و گروه"];
 
 interface SegmentTypeOption {
   value: "gpio_toggle" | "analog_output" | "input" | "analog_input";
@@ -83,25 +67,25 @@ const SEGMENT_TYPE_OPTIONS: readonly SegmentTypeOption[] = [
   {
     value: "gpio_toggle",
     label: "کلید کنترل",
-    summary: "خاموش و روشن کردن چراغ، رله یا پمپ",
+    summary: "چراغ، رله یا پمپ",
     icon: Power,
   },
   {
     value: "analog_output",
-    label: "دیمر و شدت (PWM)",
-    summary: "تنظیم پیوسته نور، سرعت فن یا دور موتور",
+    label: "دیمر (PWM)",
+    summary: "نور، فن یا دور موتور",
     icon: Sliders,
   },
   {
     value: "input",
     label: "ورودی دیجیتال",
-    summary: "خواندن وضعیت کلید، سنسور حرکت یا درب",
+    summary: "کلید، سنسور حرکت یا درب",
     icon: Activity,
   },
   {
     value: "analog_input",
     label: "سنسور آنالوگ",
-    summary: "اندازه‌گیری نور، رطوبت خاک، گاز یا ولتاژ",
+    summary: "نور، رطوبت، گاز یا ولتاژ",
     icon: Waves,
   },
 ];
@@ -227,24 +211,18 @@ export default function AddSegmentForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="min-w-0 sm:bezel-shell">
         <Card className="bezel-core !gap-5 !p-3.5 sm:!p-5">
-          <div className="space-y-4 border-b border-border-color/80 pb-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-text-primary">
-                <Plus strokeWidth={1.75} className="size-4 text-accent3" aria-hidden="true" />
-                <span className="font-sans text-sm font-semibold">افزودن قطعه جدید</span>
-              </div>
-              <span className="text-[11px] font-medium tabular-nums text-text-muted">
-                مرحله {step + 1} از {WIZARD_STEPS.length}
-              </span>
-            </div>
-
+          <div className="border-b border-border-color/80 pb-4 pt-1">
             <ProgressSteps
-              steps={WIZARD_STEPS}
-              currentStep={step}
-              maxReachableStep={maxUnlockedStep}
-              onStepClick={handleStepClick}
-              animationsEnabled={animationsEnabled}
-              ariaLabel="مراحل افزودن قطعه جدید"
+              steps={WIZARD_STEP_LABELS}
+              current={step}
+              size="md"
+              reducedMotion={!animationsEnabled}
+              onStepPress={(index) => {
+                if (index <= Math.max(step, maxUnlockedStep)) {
+                  handleStepClick(index);
+                }
+              }}
+              labelClassName="font-sans"
             />
           </div>
 
@@ -267,9 +245,7 @@ export default function AddSegmentForm({
                 className="space-y-5"
               >
                 <div className="space-y-2">
-                  <span className="block text-xs font-medium text-text-secondary">
-                    ۱. چه نوع قطعه‌ای اضافه می‌کنید؟
-                  </span>
+                  <span className="block text-xs font-medium text-text-secondary">نوع قطعه</span>
                   <fieldset aria-label="نوع قطعه" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {SEGMENT_TYPE_OPTIONS.map((option) => {
                       const Icon = option.icon;
@@ -322,9 +298,7 @@ export default function AddSegmentForm({
                 </div>
 
                 <div className="space-y-2 border-t border-border-color/70 pt-4">
-                  <span className="block text-xs font-medium text-text-secondary">
-                    ۲. قطعه به کدام برد وصل است؟
-                  </span>
+                  <span className="block text-xs font-medium text-text-secondary">برد متصل</span>
                   <div
                     role="tablist"
                     aria-label="انتخاب برد مبدأ قطعه"
@@ -355,7 +329,7 @@ export default function AddSegmentForm({
                           برد مرکزی (ESP32)
                         </span>
                         <span className="block truncate text-[11px] text-text-muted">
-                          اتصال مستقیم به پایه‌های هاب اصلی
+                          پایه‌های هاب اصلی
                         </span>
                       </div>
                     </button>
@@ -390,7 +364,7 @@ export default function AddSegmentForm({
                           )}
                         </div>
                         <span className="block truncate text-[11px] text-text-muted">
-                          ماژول‌های جانبی متصل به هاب مرکزی
+                          ماژول جانبی متصل به هاب
                         </span>
                       </div>
                     </button>
@@ -442,20 +416,6 @@ export default function AddSegmentForm({
                       setButtonMode={setButtonMode}
                       animationsEnabled={animationsEnabled}
                     />
-                  </div>
-                )}
-
-                {selectedType === "input" && (
-                  <div className="flex items-start gap-2 rounded-xl border border-border-color/80 bg-secondary/35 px-3 py-2.5 text-xs text-text-secondary">
-                    <Info
-                      className="mt-0.5 size-4 shrink-0 text-accent3"
-                      strokeWidth={1.75}
-                      aria-hidden="true"
-                    />
-                    <p className="leading-5">
-                      این قطعه فقط وضعیت دیجیتال (۰ یا ۱) را از پایه می‌خواند و نیازی به تنظیمات
-                      اضافی ندارد.
-                    </p>
                   </div>
                 )}
 
@@ -712,8 +672,13 @@ export default function AddSegmentForm({
             )}
           </AnimatePresence>
 
-          <div className="flex items-center justify-between gap-2.5 border-t border-border-color/80 pt-4">
-            {step > 0 ? (
+          <div
+            className={cn(
+              "flex items-center gap-2.5 border-t border-border-color/80 pt-4",
+              step > 0 ? "justify-between" : "justify-end",
+            )}
+          >
+            {step > 0 && (
               <button
                 type="button"
                 onClick={handlePrev}
@@ -722,8 +687,6 @@ export default function AddSegmentForm({
                 <ChevronRight className="size-4" strokeWidth={1.75} aria-hidden="true" />
                 <span>مرحله قبل</span>
               </button>
-            ) : (
-              <span className="text-[11px] text-text-muted">پس از انتخاب، به تعیین پایه بروید</span>
             )}
 
             {step < 2 ? (

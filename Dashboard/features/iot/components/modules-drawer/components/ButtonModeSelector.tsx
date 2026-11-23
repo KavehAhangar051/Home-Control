@@ -9,13 +9,13 @@ interface ButtonModeSelectorProps {
 const BUTTON_MODES = [
   {
     value: "switch" as const,
-    title: "کلید دوحالته (دائمی)",
-    description: "با هر بار لمس روشن یا خاموش می‌ماند؛ مناسب چراغ، پمپ و پریز",
+    title: "کلید دوحالته",
+    description: "با هر لمس روشن یا خاموش می‌ماند",
   },
   {
     value: "push" as const,
-    title: "شستی (لحظه‌ای)",
-    description: "فقط تا زمانی که نگه دارید وصل است؛ مناسب درب‌بازکن یا زنگ",
+    title: "شستی لحظه‌ای",
+    description: "فقط هنگام نگه‌داشتن وصل است",
   },
 ] as const;
 

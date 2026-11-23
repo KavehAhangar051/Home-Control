@@ -74,33 +74,20 @@ export default function ColorsSection() {
 
   return (
     <div className="space-y-6 text-right" dir="rtl">
-      {/* هدر بخش با دکمه بازنشانی ساده */}
-      <div className="flex items-center justify-between pb-3 border-b border-border-color">
-        <div>
-          <h3 className="text-sm font-semibold text-text-primary">شخصی‌سازی ظاهر داشبورد</h3>
-          <p className="text-xs text-text-muted mt-0.5">
-            تنظیم فونت داشبورد، سبک اسلایدرها، رنگ‌های جانبی و درجه تیرگی و روشنایی تم
-          </p>
-        </div>
-
+      <div className="flex items-center justify-end">
         <button
           type="button"
           onClick={handleResetAppearance}
-          className="inline-flex min-h-11 sm:min-h-8 cursor-pointer items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors py-1.5 px-2.5 rounded-lg hover:bg-card-hover-bg shrink-0"
+          className="inline-flex min-h-10 sm:min-h-8 cursor-pointer items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors py-1.5 px-2.5 rounded-lg hover:bg-card-hover-bg shrink-0"
         >
           <RefreshCw className="size-3.5" aria-hidden="true" />
-          <span>بازنشانی</span>
+          <span>بازنشانی پیش‌فرض</span>
         </button>
       </div>
 
-      {/* ۰. تغییر تم شب و روز (ویژه موبایل؛ در دسکتاپ دکمه تم در فوتر باقی می‌ماند) */}
+      {/* تغییر تم شب و روز (ویژه موبایل؛ در دسکتاپ دکمه تم در فوتر باقی می‌ماند) */}
       <div className="space-y-2.5 pb-4 border-b border-border-color md:hidden">
-        <div>
-          <h4 className="text-xs font-semibold text-text-secondary">تم و حالت نمایش</h4>
-          <p className="text-[11px] text-text-muted mt-0.5">
-            جابه‌جایی بین حالت روز (روشن) و حالت شب (تاریک) داشبورد
-          </p>
-        </div>
+        <h4 className="text-xs font-semibold text-text-secondary">حالت نمایش</h4>
 
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -241,8 +228,8 @@ export default function ColorsSection() {
         {/* مقدار سیاهی حالت شب */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 px-3 rounded-lg border border-border-color bg-card-bg-solid">
           <div>
-            <span className="text-xs font-medium text-text-primary">مقدار سیاهی (حالت شب)</span>
-            <p className="text-[11px] text-text-muted mt-0.5">از مشکی خالص OLED تا خاکستری ذغالی</p>
+            <span className="text-xs font-medium text-text-primary">سیاهی حالت شب</span>
+            <p className="text-[11px] text-text-muted mt-0.5">از OLED مشکی تا خاکستری ذغالی</p>
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-64">
@@ -270,7 +257,7 @@ export default function ColorsSection() {
         {/* مقدار سفیدی حالت روز */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 px-3 rounded-lg border border-border-color bg-card-bg-solid">
           <div>
-            <span className="text-xs font-medium text-text-primary">مقدار سفیدی (حالت روز)</span>
+            <span className="text-xs font-medium text-text-primary">سفیدی حالت روز</span>
             <p className="text-[11px] text-text-muted mt-0.5">از سفید خالص تا خاکستری روشن</p>
           </div>
 

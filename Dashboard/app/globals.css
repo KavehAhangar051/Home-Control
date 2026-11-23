@@ -751,3 +751,46 @@ html[data-perf-tier="lite"] [class*="backdrop-blur"] {
 .trellis-rtl-host .trellis .trellis-menu-item {
   text-align: right;
 }
+
+/* dissolve:theme:start */
+/* dissolve theme: aligned with Home Control Dashboard dark/light and custom accent tokens. */
+:root,
+.dark,
+.light {
+  --dissolve-background: var(--card-bg-solid);
+  --dissolve-surface: var(--secondary);
+  --dissolve-surface-2: var(--card-hover-bg);
+  --dissolve-foreground: var(--text-primary);
+  --dissolve-muted: var(--text-muted);
+  --dissolve-primary: var(--accent3);
+  --dissolve-primary-foreground: var(--accent3-foreground);
+  --dissolve-success: var(--success);
+  --dissolve-danger: var(--destructive);
+  --dissolve-danger-foreground: var(--destructive-foreground);
+  --dissolve-accent: var(--accent3);
+  --dissolve-border: var(--border-color);
+  --dissolve-chart-1: var(--accent3);
+  --dissolve-chart-2: var(--text-secondary);
+  --dissolve-chart-3: var(--warning);
+}
+
+@layer theme {
+  @theme inline {
+    --color-dissolve-background: var(--dissolve-background);
+    --color-dissolve-surface: var(--dissolve-surface);
+    --color-dissolve-surface-2: var(--dissolve-surface-2);
+    --color-dissolve-foreground: var(--dissolve-foreground);
+    --color-dissolve-muted: var(--dissolve-muted);
+    --color-dissolve-primary: var(--dissolve-primary);
+    --color-dissolve-primary-foreground: var(--dissolve-primary-foreground);
+    --color-dissolve-success: var(--dissolve-success);
+    --color-dissolve-danger: var(--dissolve-danger);
+    --color-dissolve-danger-foreground: var(--dissolve-danger-foreground);
+    --color-dissolve-accent: var(--dissolve-accent);
+    --color-dissolve-border: var(--dissolve-border);
+    --color-dissolve-chart-1: var(--dissolve-chart-1);
+    --color-dissolve-chart-2: var(--dissolve-chart-2);
+    --color-dissolve-chart-3: var(--dissolve-chart-3);
+  }
+}
+/* dissolve:theme:end */

@@ -28,7 +28,7 @@ export function ScheduleFields({
     <>
       <div className="col-span-2 md:col-span-1">
         <Label htmlFor={timeId} className="block mb-1">
-          زمان (ساعت):
+          ساعت اجرا
         </Label>
         <Input
           id={timeId}
@@ -41,7 +41,7 @@ export function ScheduleFields({
       </div>
       <div className="col-span-2 md:col-span-1">
         <Label htmlFor={repeatId} className="block mb-1">
-          تعداد تکرار:
+          تعداد تکرار
         </Label>
         <Input
           id={repeatId}
@@ -54,7 +54,7 @@ export function ScheduleFields({
         />
       </div>
       <div className="col-span-2">
-        <div className="block text-xs font-medium text-text-secondary mb-2">روزهای هفته:</div>
+        <div className="block text-xs font-medium text-text-secondary mb-2">روزهای هفته</div>
         <ToggleGroup
           multiple
           variant="outline"
@@ -96,7 +96,7 @@ export function TimerFields({
     <>
       <div className="col-span-2 md:col-span-1">
         <Label htmlFor={hoursId} className="block mb-1">
-          تاخیر (ساعت):
+          تاخیر (ساعت)
         </Label>
         <Input
           id={hoursId}
@@ -110,7 +110,7 @@ export function TimerFields({
       </div>
       <div className="col-span-2 md:col-span-1">
         <Label htmlFor={minutesId} className="block mb-1">
-          تاخیر (دقیقه):
+          تاخیر (دقیقه)
         </Label>
         <Input
           id={minutesId}
@@ -136,7 +136,7 @@ export function WeatherIntervalFields({
   return (
     <div className="col-span-2">
       <Label htmlFor={intervalId} className="block mb-1">
-        دوره بررسی (ساعت):
+        بازه بررسی
       </Label>
       <Select
         id={intervalId}
@@ -188,7 +188,7 @@ export function WeatherConditionFields({
     <>
       <div className="col-span-2">
         <Label htmlFor={cityId} className="block mb-1">
-          نام شهر یا مختصات (انگلیسی):
+          شهر یا مختصات
         </Label>
         <div className="flex min-w-0 gap-2">
           <Input
@@ -231,7 +231,7 @@ export function WeatherConditionFields({
       <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex-1">
           <Label htmlFor={conditionId} className="block mb-1">
-            شرط دما:
+            شرط دما
           </Label>
           <Select
             id={conditionId}
@@ -251,7 +251,7 @@ export function WeatherConditionFields({
         </div>
         <div className="flex-1">
           <Label htmlFor={thresholdId} className="block mb-1">
-            دما (°C):
+            دما (°C)
           </Label>
           <Input
             id={thresholdId}
