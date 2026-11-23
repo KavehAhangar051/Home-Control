@@ -1,6 +1,6 @@
 "use client";
 
-import { Vibrate } from "lucide-react";
+import { Waves } from "@/components/ui/hugeicons-groups/controls";
 import { Toggle } from "@/components/ui/toggle";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import { soundManager } from "@/lib/audio";
@@ -31,9 +31,7 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
     }
   };
 
-  const statusLabel = hapticsEnabled
-    ? "بازخورد لمسی (لرزش موبایل): روشن"
-    : "بازخورد لمسی (لرزش موبایل): خاموش";
+  const statusLabel = hapticsEnabled ? "بازخورد لمسی · روشن" : "بازخورد لمسی · خاموش";
 
   const surfaceClass = hapticsEnabled
     ? "bg-card-hover-bg aria-pressed:bg-card-hover-bg data-[state=on]:bg-card-hover-bg border-accent3"
@@ -42,15 +40,11 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
   const titleClass = hapticsEnabled ? "text-accent3" : "text-text-primary";
 
   const switchTrackClass = hapticsEnabled
-    ? "bg-accent4 border border-transparent"
+    ? "bg-accent3 border border-transparent"
     : "bg-bg-main border border-border-color";
 
   return (
-    <div className="border-b border-border-color pb-3.5 sm:pb-4 space-y-2.5 sm:space-y-3">
-      <p className="text-[11px] text-text-muted leading-relaxed sm:text-xs sm:text-text-secondary">
-        ایجاد لرزش کوتاه و ظریف روی موبایل هنگام لمس کلیدها، اجرای ماکرو، فرمان صوتی و اعلان‌ها
-      </p>
-
+    <div className="border-b border-border-color pb-3.5 sm:pb-4">
       <Toggle
         variant="outline"
         pressed={hapticsEnabled}
@@ -62,19 +56,19 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
           <span
             className={`font-sans font-medium text-xs flex items-center gap-1.5 w-full justify-start transition-colors duration-150 ${titleClass}`}
           >
-            <Vibrate
+            <Waves
               strokeWidth={1.6}
               aria-hidden="true"
               className={`size-4 shrink-0 ${hapticsEnabled ? "text-accent3" : "text-text-secondary"}`}
             />
-            <span className="leading-5">{statusLabel}</span>
+            <span className="leading-5">بازخورد لمسی</span>
           </span>
           <span className="text-[11px] sm:text-xs block leading-relaxed font-sans text-text-muted sm:text-text-secondary">
             {supported
               ? hapticsEnabled
-                ? "لرزش ظریف هنگام تعامل با کنترل‌ها فعال است"
-                : "بازخورد لمسی در این مرورگر غیرفعال است"
-              : "ذخیره محلی برای دستگاه‌های دارای پشتیبانی لرزش (مرورگر فعلی بدون ویبره)"}
+                ? "روشن · لرزش کوتاه هنگام لمس کلیدها و ماکروها"
+                : "خاموش · بدون لرزش لمسی"
+              : "ذخیره می‌شود؛ این مرورگر از لرزش پشتیبانی نمی‌کند"}
           </span>
         </div>
 
@@ -86,7 +80,7 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
               animationsEnabled
                 ? "transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 : ""
-            } ${hapticsEnabled ? "bg-accent4-foreground -translate-x-5" : "bg-text-secondary translate-x-0"}`}
+            } ${hapticsEnabled ? "bg-accent3-foreground -translate-x-5" : "bg-text-secondary translate-x-0"}`}
           />
         </div>
       </Toggle>

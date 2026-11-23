@@ -42,7 +42,7 @@ export const WORKSPACE_VIEW_META: Record<WorkspaceView, WorkspaceViewMeta> = {
   modules: {
     id: "modules",
     title: "پالایه و ماژول‌ها",
-    description: "افزودن، مشاهده و مدیریت سگمنت‌های متصل به خانه",
+    description: "افزودن، مشاهده و مدیریت قطعات متصل به خانه",
     navIcon: Layers,
     sectionIcon: Layers,
   },

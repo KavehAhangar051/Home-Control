@@ -58,7 +58,7 @@ export function VoiceCommandEditor({
               <button
                 type="button"
                 onClick={onCancel}
-                className="p-2.5 border border-border-color text-text-secondary rounded-xl hover:border-accent4 hover:text-accent4 transition-colors bg-card-bg-solid"
+                className="p-2.5 border border-border-color text-text-secondary rounded-xl hover:border-text-muted hover:text-text-primary transition-colors bg-card-bg-solid"
                 aria-label="انصراف از ویرایش دستور صوتی"
               >
                 <X className="size-4" />

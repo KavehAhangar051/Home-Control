@@ -125,7 +125,7 @@ export function AnalogRangeRuleEditor({ segment, ranges, onUpdate }: AnalogRange
       <div className="rounded-xl border border-border-color bg-bg-primary p-3.5 space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold text-text-primary">وضعیت زنده سنسور:</span>
+            <span className="font-semibold text-text-primary">وضعیت زنده سنسور</span>
             <span
               dir="ltr"
               className="rounded-md border border-border-color bg-card-bg-solid px-2 py-0.5 font-mono text-xs font-bold tabular-nums text-accent3"
@@ -178,7 +178,7 @@ export function AnalogRangeRuleEditor({ segment, ranges, onUpdate }: AnalogRange
               <div
                 key={`band-${rowKey}`}
                 className={`absolute inset-y-0 border-x ${
-                  isActive ? "bg-success/30 border-success" : "bg-accent4/20 border-accent4/60"
+                  isActive ? "bg-success/30 border-success" : "bg-accent3/15 border-accent3/50"
                 }`}
                 style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
               />
@@ -221,14 +221,8 @@ export function AnalogRangeRuleEditor({ segment, ranges, onUpdate }: AnalogRange
 
       {/* Ranges List or Empty State */}
       {ranges.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border-color bg-bg-primary/50 p-6 text-center space-y-1.5">
-          <p className="text-xs font-semibold text-text-primary">
-            هنوز هیچ بازه‌ای برای این سنسور تعریف نشده است
-          </p>
-          <p className="text-[11px] text-text-muted max-w-md mx-auto leading-relaxed">
-            می‌توانید تا ۶ بازه مستقل با هیسترزیس مجزا تعریف کنید (مثلاً: محدوده کم، متوسط، بالا) یا
-            با دکمه «ثبت و ارسال» قوانین قبلی دستگاه را پاک کنید.
-          </p>
+        <div className="rounded-xl border border-dashed border-border-color bg-bg-primary/50 p-5 text-center">
+          <p className="text-xs text-text-muted">بازه‌ای برای این سنسور تعریف نشده است.</p>
         </div>
       ) : (
         <div className="space-y-3">

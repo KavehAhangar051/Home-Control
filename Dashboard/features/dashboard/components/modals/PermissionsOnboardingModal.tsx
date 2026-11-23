@@ -1,22 +1,14 @@
 "use client";
 
-import {
-  AlertTriangle,
-  Bell,
-  Check,
-  HardDrive,
-  Lock,
-  Mic,
-  Monitor,
-  ShieldCheck,
-  Volume2,
-  X,
-} from "lucide-react";
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import type { HugeIconComponent } from "@/components/ui/hugeicon-factory";
+import { Check, Info, ShieldCheck } from "@/components/ui/hugeicons-groups/controls";
+import { HardDrive, Monitor, Volume2 } from "@/components/ui/hugeicons-groups/media";
+import { Bell, Lock, Mic, X } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { soundManager } from "@/lib/audio";
 import { DURATION, EASE_OUT, TRANSITION_ENTER_STANDARD, TRANSITION_EXIT_QUICK } from "@/lib/ease";
@@ -39,40 +31,39 @@ interface PermissionDescriptor {
   title: string;
   description: string;
   required?: boolean;
-  Icon: typeof HardDrive;
+  Icon: HugeIconComponent;
 }
 
 const PERMISSION_ITEMS: readonly PermissionDescriptor[] = [
   {
     id: "storage",
-    title: "کوکی، حافظه محلی و کش آفلاین",
-    description:
-      "ثبت تایید شما در کوکی و ماندگاری کش پیکربندی ESP32، فونت‌ها و پوسته آفلاین در مرورگر.",
+    title: "کوکی و حافظه محلی",
+    description: "ذخیره تنظیمات، فونت‌ها و کش آفلاین داشبورد در مرورگر",
     required: true,
     Icon: HardDrive,
   },
   {
     id: "microphone",
-    title: "میکروفون برای فرمان صوتی",
-    description: "دریافت مجوز پیش‌فرض تا دکمه فرمان صوتی از همان اولین نگه‌داشتن بدون وقفه عمل کند.",
+    title: "میکروفون فرمان صوتی",
+    description: "اجرای مستقیم دستورات صوتی بدون نیاز به تایید مجدد",
     Icon: Mic,
   },
   {
     id: "audio",
-    title: "آماده‌سازی خروجی صدا و ویبره",
-    description: "باز کردن قفل سخت‌افزاری AudioContext جهت افکت‌های لمسی و پخش بدون بریدگی صدا.",
+    title: "خروجی صدا و بازخورد لمسی",
+    description: "پخش افکت‌های صوتی و لرزش لمسی هنگام کنترل قطعات",
     Icon: Volume2,
   },
   {
     id: "notifications",
-    title: "اعلان‌های پس‌زمینه وضعیت دستگاه",
-    description: "اطلاع‌رسانی تغییر وضعیت آنلاین یا قطع اتصال ESP32 زمانی که تب داشبورد بسته است.",
+    title: "اعلان‌های پس‌زمینه",
+    description: "نمایش تغییر وضعیت اتصال ESP32 هنگام بسته بودن تب",
     Icon: Bell,
   },
   {
     id: "wakeLock",
-    title: "بیدار نگه‌داشتن صفحه نمایش (اختیاری)",
-    description: "ممانعت از خاموش شدن خودکار نمایشگر؛ مناسب تبلت‌های دیواری و پایش مداوم.",
+    title: "بیدار نگه‌داشتن نمایشگر",
+    description: "جلوگیری از خاموش شدن خودکار صفحه روی تبلت یا نمایشگر ثابت",
     Icon: Monitor,
   },
 ];
@@ -254,24 +245,19 @@ export default function PermissionsOnboardingModal() {
                 <CardHeader className="border-b border-border-color pb-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
-                      <div className="flex items-center gap-2 text-xs font-medium text-accent3">
+                      <CardTitle
+                        id="permissions-modal-title"
+                        className="flex items-center gap-2 text-base font-semibold text-balance text-text-primary sm:text-lg"
+                      >
                         <ShieldCheck
                           strokeWidth={1.8}
                           aria-hidden="true"
-                          className="size-4 shrink-0"
+                          className="size-4.5 shrink-0 text-accent3"
                         />
-                        <span>آماده‌سازی اولیه و مجوزهای داشبورد</span>
-                      </div>
-                      <CardTitle
-                        id="permissions-modal-title"
-                        className="text-base font-semibold text-balance text-text-primary sm:text-lg"
-                      >
-                        تنظیم یک‌باره دسترسی‌ها و ذخیره در کوکی
+                        <span>دسترسی‌های داشبورد</span>
                       </CardTitle>
                       <p className="text-xs leading-6 text-text-secondary">
-                        برای عملکرد بی‌وقفه فرمان صوتی، بازخورد صوتی، کش آفلاین و اعلان‌ها از همان
-                        لحظه اول، دسترسی‌های زیر را تایید کنید. نتیجه در کوکی مرورگر ذخیره می‌شود تا
-                        این پنجره دوباره نمایش داده نشود.
+                        مجوزهای دلخواه را انتخاب کنید؛ تصمیم شما در مرورگر ذخیره می‌شود.
                       </p>
                     </div>
 
@@ -320,7 +306,7 @@ export default function PermissionsOnboardingModal() {
                                     <Check aria-hidden="true" className="size-3 shrink-0" />
                                   )}
                                   {snapshot?.status === "denied" && (
-                                    <AlertTriangle aria-hidden="true" className="size-3 shrink-0" />
+                                    <Info aria-hidden="true" className="size-3 shrink-0" />
                                   )}
                                   {statusMeta.text}
                                 </span>
@@ -349,14 +335,14 @@ export default function PermissionsOnboardingModal() {
                               onClick={() => handleToggleItem(id)}
                               className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-[9px] p-0.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 disabled:cursor-not-allowed disabled:opacity-45 ${
                                 isChecked
-                                  ? "border border-transparent bg-accent4"
+                                  ? "border border-transparent bg-accent3"
                                   : "border border-border-color bg-bg-main"
                               }`}
                             >
                               <span
                                 className={`pointer-events-none inline-block h-[20px] w-[20px] rounded-[6px] shadow-sm transition-transform duration-200 ${
                                   isChecked
-                                    ? "-translate-x-5 bg-accent4-foreground"
+                                    ? "-translate-x-5 bg-accent3-foreground"
                                     : "translate-x-0 bg-text-secondary"
                                 }`}
                               />
@@ -370,11 +356,11 @@ export default function PermissionsOnboardingModal() {
                   {hasReviewedOnce && blockedIds.length > 0 && (
                     <div className="border-t border-border-color px-4 py-3 sm:px-6">
                       <Alert variant="warning" dir="rtl">
-                        <AlertTriangle aria-hidden="true" className="size-4" />
-                        <AlertTitle>برخی دسترسی‌ها توسط مرورگر مسدود شده‌اند</AlertTitle>
+                        <Info aria-hidden="true" className="size-4" />
+                        <AlertTitle>برخی دسترسی‌ها در مرورگر مسدود شده‌اند</AlertTitle>
                         <AlertDescription>
-                          برای فعال‌سازی کامل، از آیکون قفل یا تنظیمات کنار نوار آدرس مرورگر مجوزهای
-                          مسدودشده را روی Allow قرار دهید یا با کلیک روی دکمه زیر وارد داشبورد شوید.
+                          از تنظیمات کنار نوار آدرس مرورگر مجوزهای مسدودشده را آزاد کنید یا مستقیم
+                          وارد داشبورد شوید.
                         </AlertDescription>
                       </Alert>
                     </div>
@@ -389,28 +375,26 @@ export default function PermissionsOnboardingModal() {
                     disabled={isSubmitting}
                     className="min-h-11 w-full whitespace-nowrap shrink-0 sm:w-auto"
                   >
-                    فقط موارد ضروری و ذخیره کوکی
+                    فقط موارد ضروری
                   </Button>
 
                   {hasReviewedOnce && blockedIds.length > 0 ? (
                     <Button
                       type="button"
                       onClick={() => setIsOpen(false)}
-                      className="min-h-11 w-full bg-accent4 text-accent4-foreground hover:opacity-90 whitespace-nowrap shrink-0 sm:w-auto"
+                      className="min-h-11 w-full bg-accent3 text-accent3-foreground hover:opacity-90 whitespace-nowrap shrink-0 sm:w-auto"
                     >
-                      ادامه ورود به داشبورد
+                      ورود به داشبورد
                     </Button>
                   ) : (
                     <Button
                       type="button"
                       onClick={() => void handleGrantAll()}
                       disabled={isSubmitting}
-                      className="min-h-11 w-full bg-accent4 text-accent4-foreground hover:opacity-90 whitespace-nowrap shrink-0 sm:w-auto"
+                      className="min-h-11 w-full bg-accent3 text-accent3-foreground hover:opacity-90 whitespace-nowrap shrink-0 sm:w-auto"
                     >
                       <ShieldCheck aria-hidden="true" className="size-4 shrink-0" />
-                      <span>
-                        {isSubmitting ? "در حال دریافت مجوزها..." : "تایید و فعال‌سازی دسترسی‌ها"}
-                      </span>
+                      <span>{isSubmitting ? "در حال دریافت مجوزها..." : "تایید و فعال‌سازی"}</span>
                     </Button>
                   )}
                 </CardFooter>

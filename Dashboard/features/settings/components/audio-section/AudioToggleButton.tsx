@@ -9,11 +9,7 @@ interface Props {
 
 export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
   return (
-    <div className="space-y-2">
-      <p className="text-[10px] text-text-tertiary leading-relaxed text-right">
-        پخش پیوسته موزیک پس‌زمینه برای افزایش تمرکز و آرامش حین استفاده از داشبورد هوشمند.
-      </p>
-
+    <div>
       <Toggle
         variant="outline"
         pressed={isMusicOn}

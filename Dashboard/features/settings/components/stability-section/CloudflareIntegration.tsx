@@ -60,12 +60,9 @@ export default function CloudflareIntegration({
   return (
     <div className="pt-1 sm:pt-2 space-y-3.5 sm:space-y-4 text-right">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="font-bold text-xs text-accent3">اتصال کلودفلر</span>
+        <span className="font-bold text-xs text-accent3">آدرس ورکر کلودفلر</span>
         <span className="text-[11px] text-text-tertiary">همگام‌سازی ابری تنظیمات و چیدمان</span>
       </div>
-      <p className="text-[11px] sm:text-xs text-text-tertiary leading-relaxed">
-        برای ذخیره‌سازی ابری چیدمان و پایش وضعیت کلیدها، آدرس ورکر کلودفلر خود را وارد کنید:
-      </p>
       <div className="flex flex-col-reverse sm:flex-row gap-2">
         <button
           type="button"

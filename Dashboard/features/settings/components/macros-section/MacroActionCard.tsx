@@ -90,7 +90,7 @@ export function MacroActionCard({
             {isAnalogTarget ? `خروجی آنالوگ PWM (${pwmResolution} بیت)` : "خروجی دیجیتال"}
           </span>
           {action.condition?.enabled && (
-            <span className="rounded-md border border-accent4/40 bg-accent4/15 px-2 py-0.5 text-[10px] font-semibold text-accent4">
+            <span className="rounded-md border border-accent3/40 bg-accent3/15 px-2 py-0.5 text-[10px] font-semibold text-accent3">
               شرط‌دار
             </span>
           )}
@@ -107,7 +107,7 @@ export function MacroActionCard({
       {/* Target Output Selection */}
       <div className="space-y-1.5 text-xs">
         <Label htmlFor={targetPinId} className="font-semibold text-text-secondary">
-          سگمنت خروجی هدف:
+          قطعه هدف
         </Label>
         <Select
           id={targetPinId}
@@ -129,7 +129,7 @@ export function MacroActionCard({
       {isAnalogTarget ? (
         <div className="space-y-2.5 rounded-xl border border-border-color bg-bg-primary/60 p-3">
           <div className="flex items-center justify-between gap-2 text-[11px]">
-            <span className="font-semibold text-text-secondary">مقدار خروجی آنالوگ (PWM):</span>
+            <span className="font-semibold text-text-secondary">مقدار خروجی PWM</span>
             <span dir="ltr" className="font-mono font-semibold tabular-nums text-accent3">
               {currentPercent}% ({currentDuty}/{maxDuty})
             </span>
@@ -218,7 +218,7 @@ export function MacroActionCard({
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
-            روشن (ON)
+            روشن
           </button>
           <button
             type="button"
@@ -230,7 +230,7 @@ export function MacroActionCard({
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
-            خاموش (OFF)
+            خاموش
           </button>
         </fieldset>
       )}

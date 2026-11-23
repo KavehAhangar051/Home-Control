@@ -205,7 +205,7 @@ export function AnalogRangeRuleCard({
           <div>
             <div className="mb-1.5 flex items-center justify-between gap-1">
               <Label htmlFor={minId} className="font-semibold">
-                حداقل مقدار (Min):
+                حداقل
               </Label>
               <span dir="ltr" className="font-mono text-[11px] text-text-muted tabular-nums">
                 {minPercent}%
@@ -233,7 +233,7 @@ export function AnalogRangeRuleCard({
           <div>
             <div className="mb-1.5 flex items-center justify-between gap-1">
               <Label htmlFor={maxId} className="font-semibold">
-                حداکثر مقدار (Max):
+                حداکثر
               </Label>
               <span dir="ltr" className="font-mono text-[11px] text-text-muted tabular-nums">
                 {maxPercent}%
@@ -261,7 +261,7 @@ export function AnalogRangeRuleCard({
           <div>
             <div className="mb-1.5 flex items-center justify-between gap-1">
               <Label htmlFor={hystId} className="font-semibold">
-                هیسترزیس (Hyst):
+                هیسترزیس
               </Label>
               <span dir="ltr" className="font-mono text-[10px] text-text-muted tabular-nums">
                 0..{maxHysteresis}
@@ -299,7 +299,7 @@ export function AnalogRangeRuleCard({
         {/* Trigger Mode & Target Output */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <span className="block font-semibold mb-1.5">زمان اجرا (Trigger):</span>
+            <span className="block font-semibold mb-1.5">زمان اجرا</span>
             <fieldset
               aria-label={`زمان اجرای بازه ${index + 1}`}
               className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-bg-primary p-1"
@@ -322,7 +322,7 @@ export function AnalogRangeRuleCard({
                 onClick={() => onUpdate({ triggerMode: 1 as AnalogRangeTriggerMode })}
                 className={`rounded-lg px-2 py-2 text-[11px] font-semibold transition-colors cursor-pointer ${
                   rule.triggerMode === 1
-                    ? "bg-accent4 text-accent4-foreground"
+                    ? "bg-accent3 text-accent3-foreground"
                     : "text-text-secondary hover:text-text-primary"
                 }`}
               >
@@ -333,7 +333,7 @@ export function AnalogRangeRuleCard({
 
           <div>
             <Label htmlFor={targetPinId} className="block font-semibold mb-1.5">
-              خروجی هدف:
+              خروجی هدف
             </Label>
             <Select
               id={targetPinId}
@@ -449,7 +449,7 @@ export function AnalogRangeRuleCard({
         ) : (
           <div>
             <Label htmlFor={stateId} className="block font-semibold mb-1.5">
-              وضعیت خروجی دیجیتال:
+              وضعیت خروجی
             </Label>
             <Select
               id={stateId}
@@ -463,8 +463,8 @@ export function AnalogRangeRuleCard({
               }
               className="bg-bg-primary p-2.5 rounded-lg text-xs"
             >
-              <option value="1">روشن (ON / HIGH)</option>
-              <option value="0">خاموش (OFF / LOW)</option>
+              <option value="1">روشن</option>
+              <option value="0">خاموش</option>
             </Select>
           </div>
         )}
@@ -473,7 +473,7 @@ export function AnalogRangeRuleCard({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label htmlFor={actionTypeId} className="block font-semibold mb-1.5">
-              نوع عملیات:
+              نوع عملیات
             </Label>
             <Select
               id={actionTypeId}
@@ -497,7 +497,7 @@ export function AnalogRangeRuleCard({
           {rule.actionType > 0 && (
             <div>
               <Label htmlFor={delayId} className="block font-semibold mb-1.5">
-                {rule.actionType === 1 ? "تاخیر (۱ تا ۶۰ ثانیه):" : "مدت زمان (۱ تا ۶۰ ثانیه):"}
+                {rule.actionType === 1 ? "تاخیر (۱ تا ۶۰ ثانیه)" : "مدت زمان (۱ تا ۶۰ ثانیه)"}
               </Label>
               <Input
                 id={delayId}

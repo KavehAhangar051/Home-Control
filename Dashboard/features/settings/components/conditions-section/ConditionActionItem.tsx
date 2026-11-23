@@ -83,7 +83,7 @@ export function ConditionActionItem({
       <div className="flex flex-col gap-3 text-xs pr-2">
         <div>
           <Label htmlFor={holdId} className="block font-semibold mb-1.5">
-            شرط فعال‌سازی:
+            شرط فعال‌سازی
           </Label>
           <Select
             id={holdId}
@@ -112,7 +112,7 @@ export function ConditionActionItem({
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <Label htmlFor={pinId} className="block font-semibold mb-1.5">
-              پایه هدف (GPIO):
+              پایه هدف (GPIO)
             </Label>
             <Input
               id={pinId}
@@ -136,7 +136,7 @@ export function ConditionActionItem({
           {!isExactPwmMode && (
             <div className="flex-1">
               <Label htmlFor={stateId} className="block font-semibold mb-1.5">
-                وضعیت:
+                وضعیت
               </Label>
               <Select
                 id={stateId}
@@ -150,10 +150,8 @@ export function ConditionActionItem({
                 }
                 className="bg-bg-primary p-2.5 rounded-lg text-xs"
               >
-                <option value="1">
-                  {isAnalogTarget ? "روشن (بازیابی آخرین شدت)" : "روشن (HIGH)"}
-                </option>
-                <option value="0">خاموش (LOW)</option>
+                <option value="1">{isAnalogTarget ? "روشن (بازیابی آخرین شدت)" : "روشن"}</option>
+                <option value="0">خاموش</option>
               </Select>
             </div>
           )}
@@ -162,7 +160,7 @@ export function ConditionActionItem({
         {isAnalogTarget && (
           <div className="space-y-2.5 rounded-xl border border-border-color bg-bg-primary/60 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-semibold text-text-secondary">حالت فرمان PWM:</span>
+              <span className="font-semibold text-text-secondary">حالت فرمان PWM</span>
               <div className="inline-flex rounded-lg border border-border-color bg-card-bg-solid p-0.5">
                 <button
                   type="button"
@@ -260,7 +258,7 @@ export function ConditionActionItem({
 
         <div>
           <Label htmlFor={typeId} className="block font-semibold mb-1.5">
-            نوع عملیات:
+            نوع عملیات
           </Label>
           <Select
             id={typeId}
@@ -269,15 +267,15 @@ export function ConditionActionItem({
             onChange={(e) => onUpdate({ actionType: Number.parseInt(e.target.value, 10) })}
             className="bg-bg-primary p-2.5 rounded-lg text-xs"
           >
-            <option value={0}>همان لحظه تغییر کند</option>
-            <option value={1}>بعد از زمان تعیین‌شده تغییر کند</option>
-            <option value={2}>فقط برای مدت معین بماند</option>
+            <option value={0}>فوری</option>
+            <option value={1}>اجرا پس از تاخیر</option>
+            <option value={2}>اجرا برای مدت مشخص</option>
           </Select>
         </div>
         {(action.actionType || 0) > 0 && (
           <div>
             <Label htmlFor={delayId} className="block font-semibold mb-1.5">
-              زمان عملیات (ثانیه):
+              زمان عملیات (ثانیه)
             </Label>
             <Input
               id={delayId}

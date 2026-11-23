@@ -113,7 +113,7 @@ export default function AuxNodeModal() {
 
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setFormError("لطفاً نام برد کمکی / نام گروه را وارد کنید.");
+      setFormError("نام برد کمکی را وارد کنید.");
       return;
     }
 
@@ -200,15 +200,8 @@ export default function AuxNodeModal() {
                       id="aux-node-modal-title"
                       className="truncate font-sans text-sm font-semibold text-text-primary"
                     >
-                      {isEditMode
-                        ? `ویرایش برد کمکی #${editingNode.nodeId}`
-                        : "افزودن برد کمکی (ESP)"}
+                      {isEditMode ? `ویرایش برد کمکی #${editingNode.nodeId}` : "افزودن برد کمکی"}
                     </h2>
-                    <p className="truncate text-[11px] text-text-muted">
-                      {isEditMode
-                        ? "تغییر مشخصات و همگام‌سازی خودکار با برد مرکزی"
-                        : "ثبت آدرس MAC در هاب مرکزی و ساخت خودکار گروه اختصاصی"}
-                    </p>
                   </div>
                 </div>
 
@@ -354,19 +347,12 @@ export default function AuxNodeModal() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border-color bg-secondary/45 px-3 py-2.5 text-[11px] leading-relaxed text-text-secondary">
-                  <div className="flex items-center justify-between gap-2">
-                    <span>پایه‌های پیشنهادی {chipMeta.shortLabel}:</span>
-                    <span className="font-mono text-[10px] text-text-muted" dir="ltr">
-                      {chipMeta.suggestedPins.slice(0, 8).join(", ")}
-                      {chipMeta.suggestedPins.length > 8 ? "…" : ""}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-text-muted">
-                    {isEditMode
-                      ? `این برد هم‌اکنون ${activeSegmentCount} قطعه فعال دارد؛ ظرفیت جایگاه‌های گروه با عدد جدید هماهنگ می‌شود.`
-                      : `پس از ثبت، گروه «${name.trim() || "نام برد"}» با ${Math.max(1, Math.min(MAX_AUX_PIN_CAPACITY, Math.trunc(pinCapacity || 1)))} جایگاه خالی آماده تخصیص ایجاد می‌شود.`}
-                  </p>
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-border-color bg-secondary/45 px-3 py-2.5 text-[11px] text-text-secondary">
+                  <span>پایه‌های پیشنهادی {chipMeta.shortLabel}</span>
+                  <span className="font-mono text-[10px] text-text-muted" dir="ltr">
+                    {chipMeta.suggestedPins.slice(0, 8).join(", ")}
+                    {chipMeta.suggestedPins.length > 8 ? "…" : ""}
+                  </span>
                 </div>
 
                 {formError && (

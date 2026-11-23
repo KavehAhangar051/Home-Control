@@ -190,7 +190,8 @@ export default function AddSegmentForm({
       ? selectedAuxNode?.groupName || "—"
       : groupName.trim() || groupsOrder[0] || "Test";
 
-  const handleNext = () => {
+  const handleNext = (event?: React.MouseEvent<HTMLButtonElement>) => {
+    event?.preventDefault();
     setStepDirection(1);
     goToNextStep();
   };
@@ -691,6 +692,7 @@ export default function AddSegmentForm({
 
             {step < 2 ? (
               <m.button
+                key="add-segment-next-btn"
                 type="button"
                 onClick={handleNext}
                 whileTap={animationsEnabled ? { scale: 0.98 } : undefined}
@@ -702,6 +704,7 @@ export default function AddSegmentForm({
               </m.button>
             ) : (
               <m.button
+                key="add-segment-submit-btn"
                 type="submit"
                 whileTap={animationsEnabled ? { scale: 0.98 } : undefined}
                 transition={SPRING_PRESS}
