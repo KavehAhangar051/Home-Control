@@ -64,18 +64,19 @@ export default function AnalogInputSettingsPanel({
     )?.id ?? null;
 
   return (
-    <div className="space-y-4 border-t border-border-color pt-4">
-      <div className="space-y-2">
+    <div className="space-y-6">
+      <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-text-primary">
-            تنظیم آماده بر اساس نوع سنسور
-          </span>
-          <span className="font-mono text-[11px] tabular-nums text-text-muted" dir="ltr">
+          <span className="text-sm font-bold text-text-primary">تنظیم آماده بر اساس نوع سنسور</span>
+          <span
+            className="font-mono text-xs font-medium tabular-nums text-text-secondary"
+            dir="ltr"
+          >
             {adcResolution}-bit · 0..{maxVal}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {ANALOG_INPUT_PRESETS.map((preset) => {
             const isSelected = activePresetId === preset.id;
 
@@ -85,29 +86,27 @@ export default function AnalogInputSettingsPanel({
                 type="button"
                 aria-pressed={isSelected}
                 onClick={() => onApplyPreset(preset)}
-                className={`flex min-h-11 cursor-pointer items-start justify-between gap-2 rounded-xl border px-3 py-2.5 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
+                className={`flex min-h-16 cursor-pointer items-start justify-between gap-2.5 rounded-xl border p-3.5 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 ${
                   isSelected
-                    ? "border-accent3 bg-accent3-transparent text-text-primary"
-                    : "border-border-color bg-bg-main text-text-secondary hover:border-text-muted/60 hover:text-text-primary"
+                    ? "border-accent3 bg-accent3/10 ring-1 ring-accent3/25"
+                    : "border-border-color bg-bg-main hover:border-text-muted/50 hover:bg-card-hover-bg"
                 }`}
               >
-                <div className="min-w-0 space-y-0.5">
-                  <span className="block text-xs font-semibold text-text-primary">
-                    {preset.label}
-                  </span>
-                  <span className="block text-[11px] leading-4 text-text-muted">
+                <div className="min-w-0 space-y-1">
+                  <span className="block text-sm font-bold text-text-primary">{preset.label}</span>
+                  <span className="block text-xs leading-5 text-text-secondary">
                     {preset.description}
                   </span>
                 </div>
                 <span
                   aria-hidden="true"
-                  className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                  className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
                     isSelected
                       ? "border-accent3 bg-accent3 text-accent3-foreground"
                       : "border-border-color text-transparent"
                   }`}
                 >
-                  <Check className="size-2.5" strokeWidth={2.5} />
+                  <Check className="size-3" strokeWidth={2.5} />
                 </span>
               </button>
             );
@@ -120,7 +119,7 @@ export default function AnalogInputSettingsPanel({
           type="button"
           aria-expanded={showAdvancedAdc || hasInvalidThresholds}
           onClick={() => setShowAdvancedAdc((prev) => !prev)}
-          className="flex min-h-10 w-full cursor-pointer items-center justify-between rounded-xl border border-border-color bg-bg-main px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-text-muted/60 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+          className="flex min-h-11 w-full cursor-pointer items-center justify-between rounded-xl border border-border-color bg-bg-main px-3.5 py-2.5 text-sm font-semibold text-text-primary transition-colors hover:border-text-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
         >
           <span className="flex items-center gap-2">
             <Settings2 strokeWidth={1.75} className="size-4 text-accent3" aria-hidden="true" />
@@ -129,7 +128,7 @@ export default function AnalogInputSettingsPanel({
           <ChevronDown
             strokeWidth={1.75}
             aria-hidden="true"
-            className={`size-4 transition-transform duration-200 ${showAdvancedAdc || hasInvalidThresholds ? "rotate-180" : ""}`}
+            className={`size-4 text-text-secondary transition-transform duration-200 ${showAdvancedAdc || hasInvalidThresholds ? "rotate-180" : ""}`}
           />
         </button>
 
@@ -155,16 +154,21 @@ export default function AnalogInputSettingsPanel({
               className="overflow-hidden"
               style={{ contain: "layout style", backfaceVisibility: "hidden" }}
             >
-              <div className="space-y-4 pt-3.5">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="adc-resolution-select">دقت خواندن (Resolution)</Label>
+              <div className="space-y-4 pt-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="adc-resolution-select"
+                      className="text-sm font-bold text-text-primary"
+                    >
+                      دقت خواندن (Resolution)
+                    </Label>
                     <Select
                       id="adc-resolution-select"
                       aria-label="دقت ADC"
                       value={adcResolution}
                       onChange={(e) => onResolutionChange(Number.parseInt(e.target.value, 10))}
-                      className="font-sans text-xs"
+                      className="h-11 font-sans text-base sm:text-sm"
                     >
                       <option value={12} className="bg-card-bg-solid">
                         ۱۲ بیت (۰ تا ۴۰۹۵ — پیش‌فرض)
@@ -184,8 +188,13 @@ export default function AnalogInputSettingsPanel({
                     </Select>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="adc-interval-input">فاصله نمونه‌برداری (میلی‌ثانیه)</Label>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="adc-interval-input"
+                      className="text-sm font-bold text-text-primary"
+                    >
+                      فاصله نمونه‌برداری (میلی‌ثانیه)
+                    </Label>
                     <Input
                       id="adc-interval-input"
                       aria-label="بازه نمونه‌برداری بر حسب میلی‌ثانیه"
@@ -198,15 +207,20 @@ export default function AnalogInputSettingsPanel({
                         const parsed = Number.parseInt(e.target.value, 10);
                         if (!Number.isNaN(parsed)) setAdcSampleIntervalMs(parsed);
                       }}
-                      className="font-mono text-xs tabular-nums text-start"
+                      className="h-11 font-mono text-base tabular-nums text-start sm:text-sm"
                       dir="ltr"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="adc-delta-input">حساسیت تغییر (Delta)</Label>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="adc-delta-input"
+                      className="text-sm font-bold text-text-primary"
+                    >
+                      حساسیت تغییر (Delta)
+                    </Label>
                     <Input
                       id="adc-delta-input"
                       aria-label="حداقل تغییر برای ارسال مقدار جدید"
@@ -218,13 +232,18 @@ export default function AnalogInputSettingsPanel({
                         const parsed = Number.parseInt(e.target.value, 10);
                         if (!Number.isNaN(parsed)) setAdcDeltaThreshold(parsed);
                       }}
-                      className="font-mono text-xs tabular-nums text-start"
+                      className="h-11 font-mono text-base tabular-nums text-start sm:text-sm"
                       dir="ltr"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="adc-high-threshold-input">آستانه بالا (ATH)</Label>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="adc-high-threshold-input"
+                      className="text-sm font-bold text-text-primary"
+                    >
+                      آستانه بالا (ATH)
+                    </Label>
                     <Input
                       id="adc-high-threshold-input"
                       aria-label="آستانه بالای تریگر"
@@ -244,13 +263,18 @@ export default function AnalogInputSettingsPanel({
                           setAdcLowThreshold(nextHigh);
                         }
                       }}
-                      className="font-mono text-xs tabular-nums text-start"
+                      className="h-11 font-mono text-base tabular-nums text-start sm:text-sm"
                       dir="ltr"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="adc-low-threshold-input">آستانه پایین (ATL)</Label>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="adc-low-threshold-input"
+                      className="text-sm font-bold text-text-primary"
+                    >
+                      آستانه پایین (ATL)
+                    </Label>
                     <Input
                       id="adc-low-threshold-input"
                       aria-label="آستانه پایین تریگر"
@@ -263,19 +287,22 @@ export default function AnalogInputSettingsPanel({
                         const parsed = Number.parseInt(e.target.value, 10);
                         setAdcLowThreshold(Number.isNaN(parsed) ? 0 : Math.max(0, parsed));
                       }}
-                      className="font-mono text-xs tabular-nums text-start disabled:opacity-45"
+                      className="h-11 font-mono text-base tabular-nums text-start disabled:opacity-45 sm:text-sm"
                       dir="ltr"
                     />
                   </div>
                 </div>
 
                 {hasInvalidThresholds ? (
-                  <p role="alert" className="flex items-start gap-1.5 text-xs text-destructive">
-                    <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                  <p
+                    role="alert"
+                    className="flex items-start gap-2 text-xs leading-6 text-destructive sm:text-[13px]"
+                  >
+                    <Info className="mt-1 size-4 shrink-0" aria-hidden="true" />
                     <span>آستانه پایین (ATL) باید کوچک‌تر یا مساوی آستانه بالا (ATH) باشد.</span>
                   </p>
                 ) : (
-                  <p className="text-[11px] leading-relaxed text-text-muted">
+                  <p className="text-xs leading-6 text-text-secondary">
                     {adcHighThreshold === 0
                       ? "با مقدار ۰ برای ATH فقط عدد سنسور نمایش داده می‌شود. برای اجرای شرط، آستانه بالا و پایین را تنظیم کنید."
                       : `تریگر هیسترزیس فعال است: بالای ${adcHighThreshold} وضعیت فعال و پایین ${adcLowThreshold} وضعیت غیرفعال می‌شود.`}

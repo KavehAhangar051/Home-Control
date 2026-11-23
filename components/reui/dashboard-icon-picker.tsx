@@ -78,14 +78,10 @@ export function DashboardIconPicker({
   };
 
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <div className="flex items-center justify-between gap-2">
-        {isOptional ? (
-          <span className="text-xs text-text-muted">(اختیاری)</span>
-        ) : (
-          <span aria-hidden="true" />
-        )}
-        <span className="block text-xs font-medium text-text-secondary">{label}</span>
+    <div className={cn("space-y-2", className)}>
+      <div className="flex items-center gap-1.5">
+        <span className="block text-sm font-bold text-text-primary">{label}</span>
+        {isOptional && <span className="text-xs font-normal text-text-secondary">(اختیاری)</span>}
       </div>
 
       <button
@@ -98,17 +94,19 @@ export function DashboardIconPicker({
           warmIconCatalog();
           setShowIcons((prev) => !prev);
         }}
-        className="flex h-10 w-full items-center justify-between rounded-lg border border-border-color bg-bg-main px-3 font-sans text-xs text-text-primary transition-colors hover:border-accent3"
+        className="flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-border-color bg-bg-main px-3.5 font-sans text-sm text-text-primary transition-colors hover:border-accent3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
       >
-        <ChevronDown
-          strokeWidth={1.5}
-          aria-hidden="true"
-          className={`size-4 opacity-60 transition-transform duration-200 ${showIcons ? "rotate-180" : "rotate-0"}`}
-        />
-        <div className="flex items-center gap-2">
-          <span>{selectedIcon ? "آیکون انتخاب شد" : "انتخاب آیکون یا ایموجی"}</span>
+        <div className="flex min-w-0 items-center gap-2.5">
           {renderSelectedGlyph(selectedIcon)}
+          <span className={selectedIcon ? "truncate font-medium" : "truncate text-text-secondary"}>
+            {selectedIcon ? "آیکون انتخاب شد" : "انتخاب آیکون یا ایموجی"}
+          </span>
         </div>
+        <ChevronDown
+          strokeWidth={1.75}
+          aria-hidden="true"
+          className={`size-4 shrink-0 text-text-secondary transition-transform duration-200 ${showIcons ? "rotate-180" : "rotate-0"}`}
+        />
       </button>
 
       <AnimatePresence initial={false}>

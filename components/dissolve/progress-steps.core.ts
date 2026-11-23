@@ -158,13 +158,13 @@ const CSS = `
 :where(.dissolve-steps-check) svg { display: block; width: 100%; height: 100%; }
 :where(.dissolve-steps-ring) { border-radius: 50%; border-style: solid; box-sizing: border-box; will-change: transform, opacity; }
 :where(.dissolve-steps-grains) { pointer-events: none; }
-:where(.dissolve-steps-labels) { display: flex; margin-top: 8px; }
+:where(.dissolve-steps-labels) { display: flex; margin-top: 10px; }
 :where(.dissolve-steps-label) {
-  flex: 1; min-width: 0; padding: 0 2px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-width: 0; padding: 0 4px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   letter-spacing: -0.006em; color: var(--dissolve-muted, var(--text-muted)); font-weight: 500;
 }
-:where(.dissolve-steps-label.is-reached) { color: var(--text-secondary, var(--dissolve-foreground)); }
-:where(.dissolve-steps-label.is-current) { color: var(--dissolve-foreground, var(--text-primary)); font-weight: 600; }
+:where(.dissolve-steps-label.is-reached) { color: var(--text-secondary, var(--dissolve-foreground)); font-weight: 500; }
+:where(.dissolve-steps-label.is-current) { color: var(--dissolve-foreground, var(--text-primary)); font-weight: 700; }
 :where(.dissolve-steps-hit) { position: absolute; top: 0; bottom: 0; outline: none; }
 :where(.dissolve-steps-hit:focus:not(:focus-visible)) { outline: none; }
 :where(.dissolve-steps-hit:focus-visible) { outline: 2px solid var(--ring, var(--dissolve-accent)); outline-offset: 2px; border-radius: 10px; }

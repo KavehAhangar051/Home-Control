@@ -29,7 +29,13 @@ Use ChatGPT and Cloudflare Dashboard as interaction references, not as assets or
 
 - **Dana** (`--font-dana`, bundled locally via `next/font/local` with Persian `FaNum` glyphs) is the default UI font.
 - Five selectable secondary fonts (`Vazirmatn`, `IBM Plex Sans Arabic`, `Noto Sans Arabic`, `Rubik`, `Readex Pro`) are configured in `app/layout.tsx` (`preload: false`) and managed through `lib/fonts.ts` so users only fetch non-default webfonts when chosen.
-- Use a consistent type scale (`text-fluid-*` / tabular numbers for telemetry and counters). Keep Persian labels concise, direct, free of raw Markdown punctuation or translationese shells, and consistent on «قطعه» (rather than mixing «سگمنت» and «ماژول») across user-facing controls and hints.
+- Use a clear descending typographic hierarchy that guides visual attention without dim or undersized primary controls:
+  - Page `<h1>` (`WorkspaceSection.tsx`): `24px–32px` bold (`text-2xl sm:text-[1.75rem] lg:text-[2rem] font-bold tracking-tight text-text-primary`) under a crisp `text-xs font-medium text-text-secondary` section eyebrow.
+  - Step / panel `<h2>` (`AddSegmentForm.tsx`): `18px–20px` bold (`text-lg sm:text-xl font-bold text-text-primary`).
+  - Field labels, group legends & `<h3>` headers: `14px` bold (`text-sm font-bold text-text-primary`) — never dim `text-xs text-text-secondary`.
+  - Selectable card titles: `14px–15px` bold (`text-sm sm:text-[15px] font-bold text-text-primary`) with readable `text-xs sm:text-[13px] text-text-secondary` summaries (avoiding faint `text-[11px] text-text-muted` on primary options).
+  - Form inputs & selects: `h-11 text-base sm:text-sm` (`16px` mobile floor preventing iOS auto-zoom, `14px` desktop) with tabular monospace figures (`font-mono tabular-nums`) for GPIO pins, frequencies, timers, and counters.
+  - Group distinct form sections with generous whitespace (`space-y-7` inter-group vs `space-y-3` intra-group) rather than stacking horizontal rules, and align `DashboardIconPicker` labels and triggers cleanly in RTL. Keep Persian labels concise, direct, free of raw Markdown punctuation or translationese shells, and consistent on «قطعه» (rather than mixing «سگمنت» and «ماژول») across user-facing controls and hints.
 
 ## Layout and responsive behavior
 
