@@ -1,14 +1,19 @@
 "use client";
 
-import { GripHorizontal } from "lucide-react";
+import { GripHorizontal, Pencil } from "lucide-react";
 import { m } from "motion/react";
 import React from "react";
 import { useShallow } from "zustand/react/shallow";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus } from "@/components/ui/hugeicons-groups/shell";
-import type { Segment } from "@/features/iot/hooks/store/types";
+import type { AuxNodeConfig, Segment } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
+import {
+  AUX_CHIP_META,
+  findAuxNodeByGroup,
+  getAuxNodeActiveSegmentCount,
+} from "@/features/iot/utils/auxNodeUtils";
 import { getSegmentIcon, hasIcon, ICON_MAP } from "@/features/iot/utils/icons";
 import { SPRING_MOUSE, SPRING_PANEL } from "@/lib/ease";
 import CanvasGroupBody from "./CanvasGroupBody";
@@ -125,6 +130,9 @@ interface CanvasGroupHeaderProps {
   groupIcon?: string;
   segmentCount: number;
   activeCount: number;
+  auxNode?: AuxNodeConfig;
+  auxUsedCount?: number;
+  onEditAuxNode?: () => void;
   isLocked: boolean;
   isCompactContainer: boolean;
   onSelect: (nodeId: string) => void;
@@ -139,6 +147,9 @@ function CanvasGroupHeader({
   groupIcon,
   segmentCount,
   activeCount,
+  auxNode,
+  auxUsedCount = 0,
+  onEditAuxNode,
   isLocked,
   isCompactContainer,
   onSelect,
@@ -189,9 +200,26 @@ function CanvasGroupHeader({
             <h3 className="truncate font-sans text-xs font-medium text-text-primary sm:text-sm">
               {groupName}
             </h3>
-            <span className="block text-[11px] font-normal tabular-nums text-text-muted">
-              {segmentCount} قطعه · {activeCount} فعال
-            </span>
+            {auxNode ? (
+              <span
+                dir="ltr"
+                className="mt-0.5 inline-flex max-w-full items-center gap-1 rounded border border-accent3/30 bg-accent3/10 px-1.5 py-0 font-mono text-[10px] tabular-nums text-text-secondary"
+              >
+                <span
+                  className={`size-1.5 shrink-0 rounded-full ${
+                    auxNode.online ? "bg-success" : "bg-text-muted/60"
+                  }`}
+                />
+                <span className="truncate">
+                  {AUX_CHIP_META[auxNode.chipType].shortLabel} · {auxNode.mac} · {auxUsedCount}/
+                  {auxNode.pinCapacity}
+                </span>
+              </span>
+            ) : (
+              <span className="block text-[11px] font-normal tabular-nums text-text-muted">
+                {segmentCount} قطعه · {activeCount} فعال
+              </span>
+            )}
           </div>
         </button>
       </div>
@@ -202,6 +230,17 @@ function CanvasGroupHeader({
           if (e.button !== 2 && e.pointerType !== "touch") e.stopPropagation();
         }}
       >
+        {auxNode && onEditAuxNode && (
+          <button
+            type="button"
+            onClick={onEditAuxNode}
+            aria-label={`ویرایش برد کمکی ${auxNode.name}`}
+            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg border border-border-color bg-card-bg text-text-secondary transition-colors duration-150 hover:border-accent3 hover:text-accent3"
+          >
+            <Pencil className="size-3.5 shrink-0" strokeWidth={1.75} />
+          </button>
+        )}
+
         <button
           type="button"
           onClick={() => onAddPlaceholder(groupName)}
@@ -217,7 +256,7 @@ function CanvasGroupHeader({
           left
           resetAfter={0}
           onConfirm={() => onDeleteGroup(groupName)}
-          label={`حذف گروه ${groupName}`}
+          label={auxNode ? `حذف برد کمکی ${groupName}` : `حذف گروه ${groupName}`}
         />
       </div>
     </div>
@@ -248,6 +287,11 @@ export default React.memo(function CanvasGroupNode({
   onSetupPlaceholder,
 }: CanvasGroupNodeProps) {
   const groupIcon = useIoTStore((s) => s.groupConfigs[groupName]?.icon);
+  const auxNode = useIoTStore((s) => findAuxNodeByGroup(s.auxNodes, groupName));
+  const auxUsedCount = useIoTStore((s) =>
+    auxNode ? getAuxNodeActiveSegmentCount(s.segments, auxNode.nodeId) : 0,
+  );
+  const openAuxNodeModal = useIoTStore((s) => s.openAuxNodeModal);
 
   const { activeCount, controllableCount } = useIoTStore(
     useShallow(
@@ -304,6 +348,9 @@ export default React.memo(function CanvasGroupNode({
           groupIcon={groupIcon}
           segmentCount={groupSegments.length}
           activeCount={activeCount}
+          auxNode={auxNode}
+          auxUsedCount={auxUsedCount}
+          onEditAuxNode={auxNode ? () => openAuxNodeModal(auxNode.nodeId) : undefined}
           isLocked={isLocked}
           isCompactContainer={rect.width < 320}
           onSelect={onSelect}

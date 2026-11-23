@@ -1,3 +1,4 @@
+import { Cpu, Server } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { useMemo } from "react";
 import { DashboardSlider } from "@/components/motion/dashboard-slider";
@@ -6,12 +7,9 @@ import { ChevronDown, Plus, Settings2 } from "@/components/ui/hugeicons-groups/s
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { isAnalogInputType } from "@/features/iot/utils/analogInput";
 import {
-  type AnalogInputSegmentOptions,
-  isAnalogInputType,
-} from "@/features/iot/utils/analogInput";
-import {
-  type AnalogSegmentOptions,
   getAnalogMaxDuty,
   isAnalogOutputType,
   MAX_PWM_FREQUENCY,
@@ -27,30 +25,21 @@ import {
   TRANSITION_EXIT_QUICK,
 } from "@/lib/ease";
 import type { Segment } from "../core/types";
-import { useAddSegmentForm } from "../hooks/useAddSegmentForm";
+import { type OnAddSegmentFn, useAddSegmentForm } from "../hooks/useAddSegmentForm";
 import AnalogInputSettingsPanel from "./AnalogInputSettingsPanel";
 import ButtonModeSelector from "./ButtonModeSelector";
 import FormDetailsInput from "./FormDetailsInput";
 import PinSelector from "./PinSelector";
+import VirtualPinSelector from "./VirtualPinSelector";
 
 const PWM_FREQUENCY_PRESETS = [1000, 5000, 20000] as const;
 
 interface AddSegmentFormProps {
-  onAddSegment: (
-    type: string,
-    pin: string,
-    title?: string,
-    group?: string,
-    mode?: "switch" | "push",
-    auto_off?: number,
-    icon?: string,
-    groupIcon?: string,
-    analogConfig?: AnalogSegmentOptions,
-    analogInputConfig?: AnalogInputSegmentOptions,
-  ) => void;
+  onAddSegment: OnAddSegmentFn;
   onClose: () => void;
   segments: Segment[];
   animationsEnabled: boolean;
+  targetPlaceholder?: Segment;
 }
 
 export default function AddSegmentForm({
@@ -58,8 +47,18 @@ export default function AddSegmentForm({
   onClose,
   segments,
   animationsEnabled,
+  targetPlaceholder,
 }: AddSegmentFormProps) {
+  const openAuxNodeModal = useIoTStore((s) => s.openAuxNodeModal);
   const {
+    sourceMode,
+    setSourceMode,
+    auxNodes,
+    selectedNodeId,
+    setSelectedNodeId,
+    selectedAuxNode,
+    remotePin,
+    setRemotePin,
     selectedType,
     setSelectedType,
     targetPin,
@@ -96,7 +95,7 @@ export default function AddSegmentForm({
     setShowAdvanced,
     groupsOrder,
     handleSubmit,
-  } = useAddSegmentForm(segments, onAddSegment, onClose);
+  } = useAddSegmentForm(segments, onAddSegment, onClose, targetPlaceholder);
 
   const isAnalogOutput = isAnalogOutputType(selectedType);
   const isAnalogInput = isAnalogInputType(selectedType);
@@ -121,6 +120,58 @@ export default function AddSegmentForm({
             <Plus strokeWidth={1.5} className="size-4 text-accent3" />
             <span className="text-sm font-medium font-sans">افزودن قطعه جدید</span>
           </div>
+
+          <div className="space-y-1.5">
+            <span className="block text-xs font-medium text-text-secondary">
+              مبدأ سخت‌افزاری پایه
+            </span>
+            <div
+              role="tablist"
+              aria-label="انتخاب برد مبدأ قطعه"
+              className="grid grid-cols-2 gap-1.5 rounded-xl border border-border-color bg-secondary/50 p-1"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sourceMode === "local"}
+                onClick={() => setSourceMode("local")}
+                className={`flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors ${
+                  sourceMode === "local"
+                    ? "bg-card-bg-solid text-text-primary shadow-2xs ring-1 ring-border-color"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                <Server
+                  className={`size-3.5 shrink-0 ${sourceMode === "local" ? "text-accent3" : "text-text-muted"}`}
+                  strokeWidth={1.75}
+                />
+                <span className="truncate">برد مرکزی (ESP32)</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sourceMode === "virtual"}
+                onClick={() => setSourceMode("virtual")}
+                className={`flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors ${
+                  sourceMode === "virtual"
+                    ? "bg-card-bg-solid text-text-primary shadow-2xs ring-1 ring-border-color"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                <Cpu
+                  className={`size-3.5 shrink-0 ${sourceMode === "virtual" ? "text-accent3" : "text-text-muted"}`}
+                  strokeWidth={1.75}
+                />
+                <span className="truncate">برد کمکی (مجازی)</span>
+                {auxNodes.length > 0 && (
+                  <span className="rounded bg-accent3/15 px-1.5 py-0 font-mono text-[10px] tabular-nums text-accent3">
+                    {auxNodes.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="segment-monitoring-type" className="block">
               نوع قطعه
@@ -147,12 +198,24 @@ export default function AddSegmentForm({
             </Select>
           </div>
 
-          <PinSelector
-            customPin={targetPin}
-            setCustomPin={setTargetPin}
-            selectedType={selectedType}
-            usedPins={usedPins}
-          />
+          {sourceMode === "virtual" ? (
+            <VirtualPinSelector
+              auxNodes={auxNodes}
+              selectedNodeId={selectedNodeId}
+              onSelectNodeId={setSelectedNodeId}
+              remotePin={remotePin}
+              onChangeRemotePin={setRemotePin}
+              segments={segments}
+              onOpenAuxNodeModal={() => openAuxNodeModal()}
+            />
+          ) : (
+            <PinSelector
+              customPin={targetPin}
+              setCustomPin={setTargetPin}
+              selectedType={selectedType}
+              usedPins={usedPins}
+            />
+          )}
 
           <FormDetailsInput
             customTitle={customTitle}
@@ -164,6 +227,7 @@ export default function AddSegmentForm({
             groupIcon={groupIcon}
             setGroupIcon={setGroupIcon}
             existingGroups={groupsOrder}
+            lockedGroupName={sourceMode === "virtual" ? selectedAuxNode?.groupName : undefined}
           />
 
           <AnimatePresence initial={false}>

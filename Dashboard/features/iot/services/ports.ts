@@ -4,8 +4,12 @@
  * external delivery, hardware protocols (MQTT / WebSocket), and cloud APIs.
  */
 
-import type { EspConfig } from "@/features/iot/services/config/types";
-import type { AnalogRangeRuleFrameInput } from "@/features/iot/services/mqtt/segmentPublishers";
+import type { AuxNodeConfig, EspConfig } from "@/features/iot/services/config/types";
+import type {
+  AddVirtualSegmentFrameInput,
+  AnalogRangeRuleFrameInput,
+  UpsertAuxNodeFrameInput,
+} from "@/features/iot/services/mqtt/segmentPublishers";
 import type { AnalogInputSegmentOptions } from "@/features/iot/utils/analogInput";
 import type { AnalogSegmentOptions } from "@/features/iot/utils/analogOutput";
 
@@ -35,6 +39,9 @@ export interface IDeviceCommandPort {
     analogOptions?: AnalogSegmentOptions,
     analogInputOptions?: AnalogInputSegmentOptions,
   ): void;
+  publishAddVirtualSegment(input: AddVirtualSegmentFrameInput): boolean;
+  publishUpsertAuxNode(node: UpsertAuxNodeFrameInput | AuxNodeConfig): boolean;
+  publishDeleteAuxNode(nodeId: number, cascadeSegments?: boolean, mac?: string): boolean;
   publishUpdateAnalogInputConfig(pin: number, config: AnalogInputSegmentOptions): boolean;
   publishReadAnalogInput(pin: number): boolean;
   publishUpdateAnalogRangeRules(

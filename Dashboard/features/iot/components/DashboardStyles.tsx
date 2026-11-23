@@ -46,10 +46,10 @@ function applyChangedCssVars(
   for (const key in nextVars) {
     if (Object.hasOwn(nextVars, key)) {
       const value = nextVars[key];
-    if (appliedCache[key] !== value) {
-      rootStyle.setProperty(key, value);
-      appliedCache[key] = value;
-    }
+      if (appliedCache[key] !== value) {
+        rootStyle.setProperty(key, value);
+        appliedCache[key] = value;
+      }
     }
   }
 }

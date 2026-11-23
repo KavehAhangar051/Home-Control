@@ -1,8 +1,10 @@
+import { Pencil } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import type React from "react";
 import { Plus, Settings } from "@/components/ui/hugeicons-groups/shell";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { AuxNodeConfig } from "@/features/iot/services/config/types";
 import GroupSettingsMenu from "./GroupSettingsMenu";
 import LayoutSelector from "./LayoutSelector";
 
@@ -19,6 +21,8 @@ interface GroupActionsProps {
   parentGroupsCols: number;
   buttonRef: React.RefObject<HTMLButtonElement | null>;
   menuRef: React.RefObject<HTMLDivElement | null>;
+  auxNode?: AuxNodeConfig;
+  onEditAuxNode?: () => void;
 }
 
 /**
@@ -40,12 +44,34 @@ export default function GroupActions({
   parentGroupsCols,
   buttonRef,
   menuRef,
+  auxNode,
+  onEditAuxNode,
 }: GroupActionsProps) {
   const isDenseHeader = parentGroupsCols === 3;
   const showAddLabel = !isDenseHeader && !isCompact && !isMobile;
 
   return (
     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 relative">
+      {auxNode && onEditAuxNode && (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                onClick={onEditAuxNode}
+                aria-label={`ویرایش برد کمکی ${auxNode.name}`}
+                className={`inline-flex items-center justify-center rounded-lg border border-border-color bg-card-bg text-text-secondary md:hover:border-accent3 md:hover:text-accent3 transition-colors duration-150 cursor-pointer ${
+                  isDenseHeader ? "size-7" : "size-8"
+                }`}
+              >
+                <Pencil className="size-3.5 shrink-0" strokeWidth={1.75} />
+              </button>
+            }
+          />
+          <TooltipContent>ویرایش مشخصات برد کمکی</TooltipContent>
+        </Tooltip>
+      )}
+
       {/* Quick Add Segment Button */}
       <Tooltip>
         <TooltipTrigger
@@ -115,6 +141,8 @@ export default function GroupActions({
               onDeleteGroup={onDeleteGroup}
               setIsSettingsOpen={setIsSettingsOpen}
               menuRef={menuRef}
+              auxNode={auxNode}
+              onEditAuxNode={onEditAuxNode}
             />
           )}
         </AnimatePresence>

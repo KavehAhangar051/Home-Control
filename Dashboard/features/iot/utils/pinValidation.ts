@@ -1,3 +1,23 @@
+import {
+  isLocalGpioPin,
+  isValidManagedPin,
+  isVirtualPin,
+  LOCAL_GPIO_MAX,
+  LOCAL_GPIO_MIN,
+  VIRTUAL_PIN_MAX,
+  VIRTUAL_PIN_MIN,
+} from "./auxNodeUtils";
+
+export {
+  isLocalGpioPin,
+  isValidManagedPin,
+  isVirtualPin,
+  LOCAL_GPIO_MAX,
+  LOCAL_GPIO_MIN,
+  VIRTUAL_PIN_MAX,
+  VIRTUAL_PIN_MIN,
+};
+
 export interface PinValidationResult {
   isValid: boolean;
   message: string;
@@ -124,4 +144,19 @@ export const validateEsp32Pin = (pinStr: string, type: string): PinValidationRes
   }
 
   return RESULT_VALID;
+};
+
+/**
+ * Validates any managed pin in the unified space (`0..39` local ESP32 GPIO or `40..127` virtual pin).
+ * Local pins enforce full ESP32 hardware rules; virtual pins (`40..127`) pass directly.
+ */
+export const validateManagedPin = (pinStr: string, type: string): PinValidationResult => {
+  const trimmed = pinStr.trim();
+  const numeric = trimmed !== "" ? Number(trimmed) : Number.NaN;
+
+  if (isVirtualPin(numeric)) {
+    return RESULT_VALID;
+  }
+
+  return validateEsp32Pin(trimmed, type);
 };

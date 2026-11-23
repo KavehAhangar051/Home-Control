@@ -1,4 +1,6 @@
 import type {
+  AuxChipType,
+  AuxNodeConfig,
   EspConfig,
   Macro,
   MacroAction,
@@ -11,6 +13,8 @@ import type {
 import type { DashboardFontId } from "@/lib/fonts";
 
 export type {
+  AuxChipType,
+  AuxNodeConfig,
   Macro,
   MacroAction,
   MacroActionCondition,
@@ -84,6 +88,9 @@ export interface Segment {
   adcDeltaThreshold?: number;
   adcHighThreshold?: number;
   adcLowThreshold?: number;
+  isVirtual?: boolean;
+  nodeId?: number;
+  remotePin?: number;
   rule?: SegmentRule;
 }
 
@@ -167,8 +174,10 @@ export interface GroupsSlice {
   setGroupsOrder: (order: string[] | ((prev: string[]) => string[])) => void;
   setGroupConfigs: (
     configs:
-      | Record<string, { maxCols: number }>
-      | ((prev: Record<string, { maxCols: number }>) => Record<string, { maxCols: number }>),
+      | Record<string, { maxCols: number; icon?: string }>
+      | ((
+          prev: Record<string, { maxCols: number; icon?: string }>,
+        ) => Record<string, { maxCols: number; icon?: string }>),
   ) => void;
   setGroupsCols: (cols: number) => void;
 }
@@ -243,6 +252,8 @@ export interface MenuSlice {
   isMenuOpen: boolean;
   isEspDrawerOpen: boolean;
   isAutomationsMenuOpen: boolean;
+  isAuxNodeModalOpen: boolean;
+  editingAuxNodeId: number | null;
   activeSettingsTab: string;
   activeModulesTab: ModulesSubTab;
   activeAutomationsTab: AutomationsSubTab;
@@ -250,6 +261,8 @@ export interface MenuSlice {
   setIsMenuOpen: (o: boolean) => void;
   setIsEspDrawerOpen: (o: boolean) => void;
   setIsAutomationsMenuOpen: (o: boolean) => void;
+  openAuxNodeModal: (editingNodeId?: number | null) => void;
+  closeAuxNodeModal: () => void;
   setActiveSettingsTab: (t: string) => void;
   setActiveModulesTab: (tab: ModulesSubTab) => void;
   setActiveAutomationsTab: (tab: AutomationsSubTab) => void;
@@ -283,6 +296,11 @@ export interface AestheticSlice {
 }
 
 export interface ConfigSlice {
+  auxNodes: AuxNodeConfig[];
+  setAuxNodes: (nodes: AuxNodeConfig[] | ((prev: AuxNodeConfig[]) => AuxNodeConfig[])) => void;
+  upsertAuxNode: (node: AuxNodeConfig) => void;
+  removeAuxNode: (nodeId: number) => void;
+  updateAuxNodesOnlineStatus: (nodes: ReadonlyArray<{ id: number; online?: boolean }>) => void;
   applyEspConfig: (config: EspConfig) => void;
 }
 

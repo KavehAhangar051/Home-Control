@@ -15,6 +15,7 @@ import {
   publishUpdateRuleCommand,
 } from "@/features/iot/services/mqttService";
 import { isAnalogInputSegment, isReadOnlyInputSegment } from "@/features/iot/utils/analogInput";
+import { isValidManagedPin } from "@/features/iot/utils/auxNodeUtils";
 import type { ConditionAction } from "./ConditionActionItem";
 import { ConditionSegment } from "./ConditionSegment";
 
@@ -69,8 +70,8 @@ export default function ConditionsSection() {
 
             const handleSave = () => {
               const inputPin = Number(segment.pin);
-              if (!Number.isInteger(inputPin) || inputPin < 0 || inputPin > 39) {
-                showToast("شماره GPIO سگمنت ورودی معتبر نیست.", "error");
+              if (!isValidManagedPin(inputPin)) {
+                showToast("شماره پایه سگمنت ورودی معتبر نیست.", "error");
                 return;
               }
 

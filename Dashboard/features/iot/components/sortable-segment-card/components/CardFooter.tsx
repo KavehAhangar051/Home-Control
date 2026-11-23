@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { formatSegmentPinLabel } from "@/features/iot/utils/auxNodeUtils";
 import type { SegmentData } from "../core/types";
 
 interface CardFooterProps {
@@ -149,7 +150,7 @@ function CardFooter({
             className="rounded border border-border-color bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-normal tabular-nums text-text-muted shrink-0"
             dir="ltr"
           >
-            GPIO {segment.pin}
+            {formatSegmentPinLabel(segment, isCompact)}
           </span>
         )}
         {showAutoOffBadge && (

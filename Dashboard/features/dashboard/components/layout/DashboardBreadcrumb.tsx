@@ -1,5 +1,6 @@
 "use client";
 
+import { Cpu } from "lucide-react";
 import GroupFilterSelector from "@/components/MasterHeader/GroupFilterSelector";
 import WorkspaceViewModeSelector from "@/components/MasterHeader/WorkspaceViewModeSelector";
 import {
@@ -33,6 +34,7 @@ export default function DashboardBreadcrumb() {
   const selectedGroupFilter = useIoTStore((s) => s.selectedGroupFilter);
   const setSelectedGroupFilter = useIoTStore((s) => s.setSelectedGroupFilter);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
+  const openAuxNodeModal = useIoTStore((s) => s.openAuxNodeModal);
   const activeMeta = WORKSPACE_VIEW_META[activeView];
   const ActiveIcon = activeMeta.navIcon;
 
@@ -113,9 +115,21 @@ export default function DashboardBreadcrumb() {
               isCompact
             />
           </div>
-          <div className="relative z-10 hidden shrink-0 items-center gap-2 md:flex">
-            {isDesktop && <MacroSidebar />}
-            <WorkspaceViewModeSelector compact />
+          <div className="relative z-10 flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => openAuxNodeModal()}
+              aria-label="افزودن برد کمکی (ESP)"
+              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-border-color bg-card-bg px-2.5 text-xs font-medium text-text-primary transition-colors duration-150 hover:border-accent3 hover:bg-accent3 hover:text-accent3-foreground"
+            >
+              <Cpu className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+              <span className="hidden sm:inline">افزودن برد کمکی (ESP)</span>
+              <span className="sm:hidden">برد کمکی</span>
+            </button>
+            <div className="hidden shrink-0 items-center gap-2 md:flex">
+              {isDesktop && <MacroSidebar />}
+              <WorkspaceViewModeSelector compact />
+            </div>
           </div>
         </>
       )}

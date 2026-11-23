@@ -111,10 +111,12 @@ function CanvasSegmentGraphOverlay({
 
 function CanvasPlaceholderBody({
   segmentId,
+  label,
   isUltraCompact,
   onSetupPlaceholder,
 }: {
   segmentId: string;
+  label: string;
   isUltraCompact: boolean;
   onSetupPlaceholder?: (segmentId: string) => void;
 }) {
@@ -128,7 +130,7 @@ function CanvasPlaceholderBody({
         <Plus className="size-4" strokeWidth={2.5} />
       </div>
       {!isUltraCompact && (
-        <span className="font-sans text-xs font-bold text-text-primary">تخصیص قطعه هوشمند</span>
+        <span className="font-sans text-xs font-bold text-text-primary">{label}</span>
       )}
     </button>
   );
@@ -401,6 +403,11 @@ export default React.memo(function CanvasSegmentNode({
             {isPlaceholder ? (
               <CanvasPlaceholderBody
                 segmentId={segment.id}
+                label={
+                  segment.isVirtual && segment.nodeId
+                    ? segment.title || "تخصیص پایه برد کمکی"
+                    : "تخصیص قطعه هوشمند"
+                }
                 isUltraCompact={isUltraCompact}
                 onSetupPlaceholder={onSetupPlaceholder}
               />

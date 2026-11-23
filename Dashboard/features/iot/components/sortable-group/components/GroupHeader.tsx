@@ -3,7 +3,13 @@
 import React from "react";
 import { GripVertical } from "@/components/ui/hugeicons-groups/shell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { useMediaQuery } from "@/features/iot/hooks/useMediaQuery";
+import {
+  AUX_CHIP_META,
+  findAuxNodeByGroup,
+  getAuxNodeActiveSegmentCount,
+} from "@/features/iot/utils/auxNodeUtils";
 import { getSegmentIcon, hasIcon, ICON_MAP } from "@/features/iot/utils/icons";
 import { useGroupHeaderLayout } from "../hooks/useGroupHeaderLayout";
 import GroupActions from "./GroupActions";
@@ -59,6 +65,11 @@ export default function GroupHeader({
   handleRef,
 }: GroupHeaderProps) {
   const isMobile = useMediaQuery("(max-width: 639px)");
+  const auxNode = useIoTStore((state) => findAuxNodeByGroup(state.auxNodes, id));
+  const auxUsedCount = useIoTStore((state) =>
+    auxNode ? getAuxNodeActiveSegmentCount(state.segments, auxNode.nodeId) : 0,
+  );
+  const openAuxNodeModal = useIoTStore((state) => state.openAuxNodeModal);
 
   const {
     isCompact,
@@ -71,6 +82,7 @@ export default function GroupHeader({
   } = useGroupHeaderLayout();
 
   const isDenseHeader = parentGroupsCols === 3;
+  const auxChipLabel = auxNode ? AUX_CHIP_META[auxNode.chipType].shortLabel : "";
 
   return (
     <div
@@ -118,7 +130,7 @@ export default function GroupHeader({
           </div>
 
           <div className="min-w-0 flex-1 text-right leading-tight">
-            <div className="flex items-center gap-1.5 @sm/group:gap-2 min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 @sm/group:gap-2 min-w-0">
               <h2
                 ref={titleTextRef}
                 className={`font-sans font-medium text-text-primary truncate ${
@@ -127,9 +139,28 @@ export default function GroupHeader({
               >
                 {id}
               </h2>
-              <span className="hidden @xs/group:inline-flex items-center text-xs font-normal tabular-nums text-text-muted shrink-0">
-                · {segmentCount} قطعه
-              </span>
+              {auxNode ? (
+                <span
+                  dir="ltr"
+                  title={`برد کمکی #${auxNode.nodeId} (${AUX_CHIP_META[auxNode.chipType].label}) · ${auxNode.mac} · ${auxNode.online ? "آنلاین" : "آفلاین"}`}
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-accent3/30 bg-accent3/10 px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums text-text-secondary shrink-0"
+                >
+                  <span
+                    className={`size-1.5 shrink-0 rounded-full ${
+                      auxNode.online ? "bg-success" : "bg-text-muted/60"
+                    }`}
+                  />
+                  <span className="truncate">
+                    {auxChipLabel}
+                    <span className="hidden @sm/group:inline"> · {auxNode.mac}</span> ·{" "}
+                    {auxUsedCount}/{auxNode.pinCapacity}
+                  </span>
+                </span>
+              ) : (
+                <span className="hidden @xs/group:inline-flex items-center text-xs font-normal tabular-nums text-text-muted shrink-0">
+                  · {segmentCount} قطعه
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -149,6 +180,8 @@ export default function GroupHeader({
         parentGroupsCols={parentGroupsCols}
         buttonRef={buttonRef}
         menuRef={menuRef}
+        auxNode={auxNode}
+        onEditAuxNode={auxNode ? () => openAuxNodeModal(auxNode.nodeId) : undefined}
       />
     </div>
   );

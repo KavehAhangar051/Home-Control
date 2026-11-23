@@ -12,6 +12,7 @@ import {
   clampPwmResolution,
   isAnalogOutputSegment,
 } from "@/features/iot/utils/analogOutput";
+import { formatSegmentPinLabel } from "@/features/iot/utils/auxNodeUtils";
 import { getStaggerDelay, TRANSITION_ENTER_STANDARD, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
 import type { Segment } from "../core/types";
 
@@ -81,7 +82,11 @@ export default function SegmentList({ segments, onRemoveSegment }: SegmentListPr
                   </span>
                   <span className="block text-xs tabular-nums text-text-muted mt-0.5">
                     <span className="font-mono text-[11px]" dir="ltr">
-                      GPIO {seg.pin}
+                      {seg.type === "placeholder"
+                        ? seg.isVirtual
+                          ? "جایگاه برد کمکی"
+                          : "جایگاه خالی"
+                        : formatSegmentPinLabel(seg)}
                     </span>{" "}
                     ·{" "}
                     {seg.type === "input"

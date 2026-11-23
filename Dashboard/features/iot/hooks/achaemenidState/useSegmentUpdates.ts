@@ -14,6 +14,7 @@ import {
   isValidAdc1Pin,
   normalizeAnalogInputConfig,
 } from "@/features/iot/utils/analogInput";
+import { isValidManagedPin, isVirtualSegment } from "@/features/iot/utils/auxNodeUtils";
 import { validateAnalogRangeRuleList, validateRuleActionList } from "./core/segmentOperations";
 
 export function useSegmentUpdates() {
@@ -55,8 +56,8 @@ export function useSegmentUpdates() {
       }
 
       const inputPin = Number(targetSegment.pin);
-      if (!Number.isInteger(inputPin) || inputPin < 0 || inputPin > 39) {
-        store.showToast("شماره GPIO سگمنت ورودی معتبر نیست.", "error");
+      if (!isValidManagedPin(inputPin)) {
+        store.showToast("شماره پایه سگمنت ورودی معتبر نیست.", "error");
         return;
       }
 
@@ -111,7 +112,7 @@ export function useSegmentUpdates() {
         return false;
       }
 
-      if (!isValidAdc1Pin(targetSegment.pin)) {
+      if (!isVirtualSegment(targetSegment) && !isValidAdc1Pin(targetSegment.pin)) {
         store.showToast("پایه انتخاب‌شده جزء کانال‌های مجاز ADC1 نیست.", "error");
         return false;
       }

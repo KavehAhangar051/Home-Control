@@ -12,7 +12,7 @@ import {
   updateBatchPinsOnCloudflare,
   updatePinOnCloudflare,
 } from "./cloudflareService";
-import type { EspConfig } from "./config/types";
+import type { AuxNodeConfig, EspConfig } from "./config/types";
 import { getLocalWs } from "./localWs/client";
 import {
   publishAnalogOutputCommand as mqttPublishAnalog,
@@ -20,12 +20,17 @@ import {
   publishPinCommand as mqttPublishPin,
 } from "./mqtt/pinPublishers";
 import {
+  type AddVirtualSegmentFrameInput,
   type AnalogRangeRuleFrameInput,
   publishAddSegmentCommand as mqttAddSegment,
+  publishAddVirtualSegmentCommand as mqttAddVirtualSegment,
+  publishDeleteAuxNodeCommand as mqttDeleteAuxNode,
   publishDeleteSegmentCommand as mqttDeleteSegment,
   publishReadAnalogInputCommand as mqttReadAnalogInput,
   publishUpdateAnalogInputConfigCommand as mqttUpdateAnalogInputConfig,
   publishUpdateAnalogRangeRulesCommand as mqttUpdateAnalogRangeRules,
+  publishUpsertAuxNodeCommand as mqttUpsertAuxNode,
+  type UpsertAuxNodeFrameInput,
 } from "./mqtt/segmentPublishers";
 import { publishPresence as mqttPublishPresence } from "./mqtt/systemPublishers";
 import type {
@@ -72,6 +77,18 @@ export class DeviceCommandAdapter implements IDeviceCommandPort {
     analogInputOptions?: AnalogInputSegmentOptions,
   ): void {
     mqttAddSegment(id, type, pin, value, analogOptions, analogInputOptions);
+  }
+
+  publishAddVirtualSegment(input: AddVirtualSegmentFrameInput): boolean {
+    return mqttAddVirtualSegment(input);
+  }
+
+  publishUpsertAuxNode(node: UpsertAuxNodeFrameInput | AuxNodeConfig): boolean {
+    return mqttUpsertAuxNode(node);
+  }
+
+  publishDeleteAuxNode(nodeId: number, cascadeSegments = true, mac?: string): boolean {
+    return mqttDeleteAuxNode(nodeId, cascadeSegments, mac);
   }
 
   publishUpdateAnalogInputConfig(pin: number, config: AnalogInputSegmentOptions): boolean {

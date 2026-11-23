@@ -1,4 +1,4 @@
-import type { Segment } from "@/features/iot/hooks/store/types";
+import type { AuxNodeConfig, Segment } from "@/features/iot/hooks/store/types";
 import type { EspConfig } from "./config/types";
 
 export type PinsStateUpdater =
@@ -19,6 +19,7 @@ export interface IoTStoreBridge {
   isPageVisible: boolean;
   localIp: string | null;
   segments: Segment[];
+  auxNodes?: AuxNodeConfig[];
   mqttConfig: EspConfig["mqtt"] | null;
   showToast: (message: string, type: "success" | "error") => void;
   setIsLocal: (val: boolean) => void;
@@ -32,6 +33,7 @@ export interface IoTStoreBridge {
   setPinsPwmResolution: (updater: PinsNumberUpdater) => void;
   autoOffRemaining: Record<string, number>;
   setAutoOffRemaining: (timers: Record<string, number>) => void;
+  updateAuxNodesOnlineStatus?: (nodes: ReadonlyArray<{ id: number; online?: boolean }>) => void;
 }
 
 const NOOP_BRIDGE: IoTStoreBridge = {
@@ -39,6 +41,7 @@ const NOOP_BRIDGE: IoTStoreBridge = {
   isPageVisible: true,
   localIp: null,
   segments: [],
+  auxNodes: [],
   mqttConfig: null,
   showToast: () => {},
   setIsLocal: () => {},
@@ -52,6 +55,7 @@ const NOOP_BRIDGE: IoTStoreBridge = {
   setPinsPwmResolution: () => {},
   autoOffRemaining: {},
   setAutoOffRemaining: () => {},
+  updateAuxNodesOnlineStatus: () => {},
 };
 
 let storeSnapshotProvider: (() => IoTStoreBridge) | null = null;

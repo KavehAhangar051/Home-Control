@@ -1,4 +1,9 @@
 import {
+  AUX_CHIP_CODE_MAP,
+  type AuxChipType,
+  type AuxNodeConfig,
+} from "@/features/iot/services/config/types";
+import {
   type AnalogInputSegmentOptions,
   clampAdcResolution,
   isAnalogInputType,
@@ -13,6 +18,16 @@ import {
   isAnalogOutputType,
   MAX_ANALOG_OUTPUT_VALUE,
 } from "@/features/iot/utils/analogOutput";
+import {
+  AUX_NODE_NAME_MAX_BYTES,
+  isValidManagedPin,
+  isValidRemotePin,
+  isVirtualPin,
+  MAX_AUX_NODES,
+  MAX_AUX_PIN_CAPACITY,
+  parseAndValidateMac,
+  truncateUtf8Bytes,
+} from "@/features/iot/utils/auxNodeUtils";
 import { publishMqttCommand } from "./client";
 import {
   ANALOG_INPUT_CONFIG_BASE_SIZE,
@@ -21,6 +36,7 @@ import {
   ANALOG_RANGE_HEADER_SIZE,
   ANALOG_RANGE_RECORD_SIZE,
   ANALOG_SEGMENT_EXT_SIZE,
+  AUX_NODE_DELETE_CASCADE_FLAG,
   MAX_ANALOG_RANGE_RULES,
   MAX_RULE_ACTIONS_PER_SIDE,
   MQTT_OPCODES,
@@ -43,6 +59,60 @@ export interface RuleActionFrameInput {
   targetValue?: number | null;
 }
 
+export interface UpsertAuxNodeFrameInput {
+  nodeId: number;
+  mac: string;
+  pinCapacity: number;
+  chipType: AuxChipType;
+  name: string;
+}
+
+export interface AddVirtualSegmentFrameInput {
+  virtualPin: number;
+  nodeId: number;
+  remotePin: number;
+  id: string;
+  type: string;
+  initState?: boolean;
+  analogOptions?: AnalogSegmentOptions;
+  analogInputOptions?: AnalogInputSegmentOptions;
+}
+
+function writeTrailingSegmentMetadata(
+  buf: Uint8Array,
+  startOffset: number,
+  isAnalogOutput: boolean,
+  isAnalogInput: boolean,
+  analogOptions?: AnalogSegmentOptions,
+  analogInputOptions?: AnalogInputSegmentOptions,
+): void {
+  let offset = startOffset;
+
+  if (isAnalogOutput) {
+    const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    const resolution = clampPwmResolution(analogOptions?.pwmResolution);
+    const frequency = clampPwmFrequency(analogOptions?.pwmFrequency);
+    const initialValue = clampAnalogValue(analogOptions?.initialValue ?? 0, resolution);
+
+    buf[offset++] = resolution;
+    view.setUint16(offset, frequency, true);
+    offset += 2;
+    view.setUint16(offset, initialValue, true);
+  } else if (isAnalogInput) {
+    const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    const normalized = normalizeAnalogInputConfig(analogInputOptions);
+
+    buf[offset++] = normalized.adcResolution;
+    view.setUint16(offset, normalized.adcSampleIntervalMs, true);
+    offset += 2;
+    view.setUint16(offset, normalized.adcDeltaThreshold, true);
+    offset += 2;
+    view.setUint16(offset, normalized.adcHighThreshold, true);
+    offset += 2;
+    view.setUint16(offset, normalized.adcLowThreshold, true);
+  }
+}
+
 export const buildAddSegmentFrame = (
   id: string,
   type: string,
@@ -51,8 +121,8 @@ export const buildAddSegmentFrame = (
   analogOptions?: AnalogSegmentOptions,
   analogInputOptions?: AnalogInputSegmentOptions,
 ): Uint8Array => {
-  const idBytes = textEncoder.encode(id);
-  const typeBytes = textEncoder.encode(type);
+  const idBytes = truncateUtf8Bytes(id, 31);
+  const typeBytes = truncateUtf8Bytes(type, 31);
   const isAnalogOutput = isAnalogOutputType(type);
   const isAnalogInput = isAnalogInputType(type);
   const baseSize = 3 + idBytes.length + 1 + typeBytes.length + 1;
@@ -75,29 +145,14 @@ export const buildAddSegmentFrame = (
   offset += typeBytes.length;
   buf[offset++] = 0;
 
-  if (isAnalogOutput) {
-    const view = new DataView(buf.buffer);
-    const resolution = clampPwmResolution(analogOptions?.pwmResolution);
-    const frequency = clampPwmFrequency(analogOptions?.pwmFrequency);
-    const initialValue = clampAnalogValue(analogOptions?.initialValue ?? 0, resolution);
-
-    buf[offset++] = resolution;
-    view.setUint16(offset, frequency, true);
-    offset += 2;
-    view.setUint16(offset, initialValue, true);
-  } else if (isAnalogInput) {
-    const view = new DataView(buf.buffer);
-    const normalized = normalizeAnalogInputConfig(analogInputOptions);
-
-    buf[offset++] = normalized.adcResolution;
-    view.setUint16(offset, normalized.adcSampleIntervalMs, true);
-    offset += 2;
-    view.setUint16(offset, normalized.adcDeltaThreshold, true);
-    offset += 2;
-    view.setUint16(offset, normalized.adcHighThreshold, true);
-    offset += 2;
-    view.setUint16(offset, normalized.adcLowThreshold, true);
-  }
+  writeTrailingSegmentMetadata(
+    buf,
+    offset,
+    isAnalogOutput,
+    isAnalogInput,
+    analogOptions,
+    analogInputOptions,
+  );
 
   return buf;
 };
@@ -112,6 +167,188 @@ export const publishAddSegmentCommand = (
 ) => {
   const buf = buildAddSegmentFrame(id, type, pin, value, analogOptions, analogInputOptions);
   publishMqttCommand(buf, `Published add_segment: pin=${pin} id=${id} type=${type}`);
+};
+
+/**
+ * Builds Opcode `0x0F` (`UPSERT_AUX_NODE`) binary frame:
+ * `[0x0F][nodeId:u8 (1..16)][mac:6B][pinCapacity:u8 (1..32)][chipType:u8 (0..5)][name_utf8(<=31B)...][0x00]`.
+ */
+export const buildUpsertAuxNodeFrame = (
+  node: UpsertAuxNodeFrameInput | AuxNodeConfig,
+): Uint8Array => {
+  if (!Number.isInteger(node.nodeId) || node.nodeId < 1 || node.nodeId > MAX_AUX_NODES) {
+    throw new RangeError(`Invalid auxiliary nodeId: ${node.nodeId}`);
+  }
+
+  if (
+    !Number.isInteger(node.pinCapacity) ||
+    node.pinCapacity < 1 ||
+    node.pinCapacity > MAX_AUX_PIN_CAPACITY
+  ) {
+    throw new RangeError(`Invalid auxiliary pinCapacity: ${node.pinCapacity}`);
+  }
+
+  const macRes = parseAndValidateMac(node.mac);
+  if (!macRes.ok) {
+    throw new RangeError(macRes.error);
+  }
+
+  const chipCode = AUX_CHIP_CODE_MAP[node.chipType] ?? 0;
+  const nameBytes = truncateUtf8Bytes(node.name, AUX_NODE_NAME_MAX_BYTES);
+
+  // Header: 1 (opcode) + 1 (nodeId) + 6 (mac) + 1 (pinCapacity) + 1 (chipType) = 10 bytes
+  const buf = new Uint8Array(10 + nameBytes.length + 1);
+  buf[0] = MQTT_OPCODES.UPSERT_AUX_NODE;
+  buf[1] = node.nodeId & 0xff;
+  buf.set(macRes.bytes, 2);
+  buf[8] = node.pinCapacity & 0xff;
+  buf[9] = chipCode & 0xff;
+  buf.set(nameBytes, 10);
+  buf[10 + nameBytes.length] = 0;
+
+  return buf;
+};
+
+export const publishUpsertAuxNodeCommand = (
+  node: UpsertAuxNodeFrameInput | AuxNodeConfig,
+): boolean => {
+  const buf = buildUpsertAuxNodeFrame(node);
+
+  return publishMqttCommand(
+    buf,
+    `Published upsert_aux_node(0x0F): nodeId=${node.nodeId} mac=${node.mac} cap=${node.pinCapacity}`,
+  );
+};
+
+export interface DeleteAuxNodeFrameOptions {
+  cascadeSegments?: boolean;
+  mac?: string;
+}
+
+/**
+ * Builds Opcode `0x10` (`DELETE_AUX_NODE`) binary frame:
+ * `[0x10][nodeId:u8 (0..16)][flags:u8 (bit0=cascadeSegments)][optional mac:6B]`.
+ */
+export const buildDeleteAuxNodeFrame = (
+  nodeId: number,
+  cascadeOrOptions: boolean | DeleteAuxNodeFrameOptions = true,
+  macArg?: string,
+): Uint8Array => {
+  if (!Number.isInteger(nodeId) || nodeId < 0 || nodeId > MAX_AUX_NODES) {
+    throw new RangeError(`Invalid auxiliary nodeId: ${nodeId}`);
+  }
+
+  const cascadeSegments =
+    typeof cascadeOrOptions === "object"
+      ? (cascadeOrOptions.cascadeSegments ?? true)
+      : cascadeOrOptions;
+  const mac = typeof cascadeOrOptions === "object" ? cascadeOrOptions.mac : macArg;
+
+  const parsedMac = mac ? parseAndValidateMac(mac) : null;
+  const hasValidMac = Boolean(parsedMac?.ok);
+
+  if (nodeId === 0 && !hasValidMac) {
+    throw new RangeError("Deleting auxiliary node requires a valid nodeId (1..16) or MAC address.");
+  }
+
+  const flags = cascadeSegments ? AUX_NODE_DELETE_CASCADE_FLAG : 0x00;
+  const buf = new Uint8Array(hasValidMac ? 9 : 3);
+  buf[0] = MQTT_OPCODES.DELETE_AUX_NODE;
+  buf[1] = nodeId & 0xff;
+  buf[2] = flags;
+
+  if (parsedMac?.ok) {
+    buf.set(parsedMac.bytes, 3);
+  }
+
+  return buf;
+};
+
+export const publishDeleteAuxNodeCommand = (
+  nodeId: number,
+  cascadeOrOptions: boolean | DeleteAuxNodeFrameOptions = true,
+  macArg?: string,
+): boolean => {
+  const cascadeSegments =
+    typeof cascadeOrOptions === "object"
+      ? (cascadeOrOptions.cascadeSegments ?? true)
+      : cascadeOrOptions;
+  const mac = typeof cascadeOrOptions === "object" ? cascadeOrOptions.mac : macArg;
+  const buf = buildDeleteAuxNodeFrame(nodeId, cascadeSegments, mac);
+
+  return publishMqttCommand(
+    buf,
+    `Published delete_aux_node(0x10): nodeId=${nodeId} cascade=${cascadeSegments}${mac ? ` mac=${mac}` : ""}`,
+  );
+};
+
+/**
+ * Builds Opcode `0x11` (`ADD_VIRTUAL_SEGMENT`) binary frame:
+ * `[0x11][virtualPin:u8 (40..127)][nodeId:u8 (1..16)][remotePin:u8 (0..39)][initState:u8][id...][0x00][type...][0x00][optional 5B PWM or 9B ADC metadata]`.
+ */
+export const buildAddVirtualSegmentFrame = (input: AddVirtualSegmentFrameInput): Uint8Array => {
+  if (!isVirtualPin(input.virtualPin)) {
+    throw new RangeError(`Invalid virtualPin (expected 40..127): ${input.virtualPin}`);
+  }
+
+  if (!Number.isInteger(input.nodeId) || input.nodeId < 1 || input.nodeId > MAX_AUX_NODES) {
+    throw new RangeError(`Invalid auxiliary nodeId (expected 1..16): ${input.nodeId}`);
+  }
+
+  if (!isValidRemotePin(input.remotePin)) {
+    throw new RangeError(`Invalid remotePin (expected 0..39): ${input.remotePin}`);
+  }
+
+  const idBytes = truncateUtf8Bytes(input.id, 31);
+  const typeBytes = truncateUtf8Bytes(input.type, 31);
+  const isAnalogOutput = isAnalogOutputType(input.type);
+  const isAnalogInput = isAnalogInputType(input.type);
+  const baseSize = 5 + idBytes.length + 1 + typeBytes.length + 1;
+  const extSize = isAnalogOutput
+    ? ANALOG_SEGMENT_EXT_SIZE
+    : isAnalogInput
+      ? ANALOG_INPUT_SEGMENT_EXT_SIZE
+      : 0;
+  const buf = new Uint8Array(baseSize + extSize);
+
+  buf[0] = MQTT_OPCODES.ADD_VIRTUAL_SEGMENT;
+  buf[1] = input.virtualPin & 0xff;
+  buf[2] = input.nodeId & 0xff;
+  buf[3] = input.remotePin & 0xff;
+  buf[4] =
+    isAnalogOutput || isAnalogInput
+      ? PIN_STATE_LOW
+      : input.initState
+        ? PIN_STATE_HIGH
+        : PIN_STATE_LOW;
+
+  let offset = 5;
+  buf.set(idBytes, offset);
+  offset += idBytes.length;
+  buf[offset++] = 0;
+  buf.set(typeBytes, offset);
+  offset += typeBytes.length;
+  buf[offset++] = 0;
+
+  writeTrailingSegmentMetadata(
+    buf,
+    offset,
+    isAnalogOutput,
+    isAnalogInput,
+    input.analogOptions,
+    input.analogInputOptions,
+  );
+
+  return buf;
+};
+
+export const publishAddVirtualSegmentCommand = (input: AddVirtualSegmentFrameInput): boolean => {
+  const buf = buildAddVirtualSegmentFrame(input);
+
+  return publishMqttCommand(
+    buf,
+    `Published add_virtual_segment(0x11): vPin=${input.virtualPin} nodeId=${input.nodeId} rPin=${input.remotePin} id=${input.id} type=${input.type}`,
+  );
 };
 
 /**
@@ -183,7 +420,7 @@ export const buildDeleteSegmentFrame = (id: string, pin?: number | string): Uint
   const idBytes = textEncoder.encode(id.slice(0, 31));
   const parsedPin =
     pin !== undefined && pin !== null && String(pin).trim() !== "" ? Number(pin) : Number.NaN;
-  const hasValidPin = Number.isInteger(parsedPin) && parsedPin >= 0 && parsedPin <= 39;
+  const hasValidPin = isValidManagedPin(parsedPin);
 
   const buf = new Uint8Array(1 + idBytes.length + 1 + (hasValidPin ? 1 : 0));
   buf[0] = MQTT_OPCODES.DELETE_SEGMENT;
@@ -268,8 +505,8 @@ export const buildUpdateRuleFrame = (
   const highLen = highActions.length;
   const lowLen = lowActions.length;
 
-  if (!Number.isInteger(inputPin) || inputPin < 0 || inputPin > 39) {
-    throw new RangeError(`Invalid input GPIO: ${inputPin}`);
+  if (!isValidManagedPin(inputPin)) {
+    throw new RangeError(`Invalid input pin (expected 0..127): ${inputPin}`);
   }
 
   const bufSize = 4 + highLen * RULE_ACTION_SIZE + lowLen * RULE_ACTION_SIZE;
@@ -296,8 +533,8 @@ export const buildUpdateRuleAnalogFrame = (
   highActions: RuleActionFrameInput[] = [],
   lowActions: RuleActionFrameInput[] = [],
 ): Uint8Array => {
-  if (!Number.isInteger(inputPin) || inputPin < 0 || inputPin > 39) {
-    throw new RangeError(`Invalid input GPIO: ${inputPin}`);
+  if (!isValidManagedPin(inputPin)) {
+    throw new RangeError(`Invalid input pin (expected 0..127): ${inputPin}`);
   }
 
   const hi = highActions.slice(0, MAX_RULE_ACTIONS_PER_SIDE);
@@ -332,7 +569,7 @@ export const publishUpdateRuleCommand = (
 
   return publishMqttCommand(
     buf,
-    `Published ${usesAnalogTargets ? "update_rule_analog(0x0B)" : "update_rule(0x05)"}: input_gpio=${inputPin} size=${buf.length}b`,
+    `Published ${usesAnalogTargets ? "update_rule_analog(0x0B)" : "update_rule(0x05)"}: input_pin=${inputPin} size=${buf.length}b`,
   );
 };
 
@@ -358,8 +595,8 @@ export const encodeUpdateAnalogRangeRulesFrame = (
   inputPin: number,
   ranges: readonly AnalogRangeRuleFrameInput[] = [],
 ): Uint8Array => {
-  if (!Number.isInteger(inputPin) || inputPin < 0 || inputPin > 39) {
-    throw new RangeError(`Invalid input GPIO: ${inputPin}`);
+  if (!isValidManagedPin(inputPin)) {
+    throw new RangeError(`Invalid input pin (expected 0..127): ${inputPin}`);
   }
 
   const activeRanges = ranges.filter((r) => r.enabled !== false).slice(0, MAX_ANALOG_RANGE_RULES);
@@ -423,6 +660,6 @@ export const publishUpdateAnalogRangeRulesCommand = (
 
   return publishMqttCommand(
     buf,
-    `Published update_analog_range_rules(0x0E): input_gpio=${inputPin} count=${buf[2]} size=${buf.length}b`,
+    `Published update_analog_range_rules(0x0E): input_pin=${inputPin} count=${buf[2]} size=${buf.length}b`,
   );
 };

@@ -16,4 +16,7 @@ export interface Segment {
   adcDeltaThreshold?: number;
   adcHighThreshold?: number;
   adcLowThreshold?: number;
+  isVirtual?: boolean;
+  nodeId?: number;
+  remotePin?: number;
 }

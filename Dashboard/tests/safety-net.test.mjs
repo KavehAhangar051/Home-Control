@@ -144,7 +144,7 @@ describe("Phase 1 Safety Net: MQTT Binary Wire Encoders", () => {
       0x00,
     ]);
 
-    for (const invalidPin of [-1, 40, "", undefined, Number.NaN]) {
+    for (const invalidPin of [-1, 128, "", undefined, Number.NaN]) {
       const frame = buildDeleteSegmentFrame("jjib4yz", invalidPin);
       assert.equal(frame.length, legacyFrame.length);
       assert.deepEqual(Array.from(frame), Array.from(legacyFrame));

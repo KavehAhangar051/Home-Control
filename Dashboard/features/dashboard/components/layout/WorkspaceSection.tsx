@@ -1,6 +1,6 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
+import { Cpu, type LucideIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Activity, useDeferredValue } from "react";
 import { Alert } from "@/components/reui/alert";
@@ -138,6 +138,7 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
   const activeSubsection = useActiveSubsectionMeta(view);
   const SubsectionIcon = activeSubsection.icon;
   const activeAutomationsTab = useIoTStore((state) => state.activeAutomationsTab);
+  const openAuxNodeModal = useIoTStore((state) => state.openAuxNodeModal);
 
   if (view === "automations" && activeAutomationsTab === "workflows") {
     return <WorkflowsCanvasSection />;
@@ -167,6 +168,17 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
             </p>
           </div>
         </div>
+
+        {view === "modules" && (
+          <button
+            type="button"
+            onClick={() => openAuxNodeModal()}
+            className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border-color bg-card-bg px-3 text-xs font-medium text-text-primary transition-colors duration-150 hover:border-accent3 hover:bg-accent3 hover:text-accent3-foreground"
+          >
+            <Cpu className="size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            <span>افزودن برد کمکی (ESP)</span>
+          </button>
+        )}
       </header>
 
       {view === "modules" && <ModulesWorkspace />}
@@ -252,7 +264,9 @@ function ModulesWorkspace() {
           className="!flex !flex-wrap !items-center !justify-between !gap-3 !border-accent3-medium !bg-accent3-transparent text-sm text-text-primary"
         >
           <span>
-            در حال تخصیص قطعه به جایگاه خالی در گروه{" "}
+            {targetPlaceholder.isVirtual && targetPlaceholder.nodeId
+              ? "در حال تخصیص سگمنت مجازی به برد کمکی در گروه "
+              : "در حال تخصیص قطعه به جایگاه خالی در گروه "}
             <strong className="font-bold">«{targetPlaceholder.group || "Test"}»</strong>
           </span>
           <button
@@ -280,6 +294,7 @@ function ModulesWorkspace() {
             }}
             segments={segments}
             animationsEnabled={animationsEnabled}
+            targetPlaceholder={targetPlaceholder}
           />
         </div>
       </Activity>

@@ -26,9 +26,16 @@ export const MQTT_OPCODES = {
   READ_ANALOG_INPUT: 0x0d,
   /** Live update multi-range rules (`analogRanges`, max 6 x 12-byte records) for an analog_input pin */
   UPDATE_ANALOG_RANGE_RULES: 0x0e,
+  /** Register or update an Auxiliary ESP node (MAC + capacity + chip + name) */
+  UPSERT_AUX_NODE: 0x0f,
+  /** Delete an Auxiliary ESP node (with optional cascade deletion of virtual segments & MAC fallback) */
+  DELETE_AUX_NODE: 0x10,
+  /** Add a virtual segment bound to an Auxiliary ESP node & remote GPIO */
+  ADD_VIRTUAL_SEGMENT: 0x11,
 } as const;
 
-/** Binary byte sizes for protocol framing */
+/** Binary byte sizes and flags for protocol framing */
+export const AUX_NODE_DELETE_CASCADE_FLAG = 0x01;
 export const PIN_COMMAND_BUFFER_SIZE = 7;
 export const ANALOG_COMMAND_BUFFER_SIZE = 8;
 export const ANALOG_SEGMENT_EXT_SIZE = 5;

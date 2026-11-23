@@ -25,6 +25,12 @@ import {
   isAnalogOutputType,
   MAX_ANALOG_OUTPUT_VALUE,
 } from "@/features/iot/utils/analogOutput";
+import {
+  isValidRemotePin,
+  isVirtualPin,
+  MAX_AUX_NODES,
+  normalizeAuxNodeRecord,
+} from "@/features/iot/utils/auxNodeUtils";
 import { normalizeMacroRecord } from "@/features/iot/utils/macroEngine";
 import { CANONICAL_CONFIG_VERSION, createDefaultDeviceInfo } from "../config/defaults";
 import { getCloudflareWorkerUrl } from "./config";
@@ -346,6 +352,55 @@ export function normalizeSegmentRecord(segment: Segment): Segment {
     normalized.rule = normalizedRule;
   }
 
+  const parsedPin = Number(segment.pin);
+  const inferredVirtual =
+    segment.isVirtual === true || (segment.pin !== "" && isVirtualPin(parsedPin));
+
+  if (inferredVirtual) {
+    normalized.isVirtual = true;
+
+    const parsedNodeId = Number(segment.nodeId);
+    if (Number.isInteger(parsedNodeId) && parsedNodeId >= 1 && parsedNodeId <= MAX_AUX_NODES) {
+      normalized.nodeId = parsedNodeId;
+    } else {
+      delete normalized.nodeId;
+    }
+
+    const parsedRemotePin = Number(segment.remotePin);
+    if (
+      segment.remotePin !== undefined &&
+      Number.isInteger(parsedRemotePin) &&
+      isValidRemotePin(parsedRemotePin)
+    ) {
+      normalized.remotePin = parsedRemotePin;
+    } else {
+      delete normalized.remotePin;
+    }
+  } else {
+    delete normalized.isVirtual;
+    delete normalized.nodeId;
+    delete normalized.remotePin;
+  }
+
+  return normalized;
+}
+
+function normalizeAuxNodesList(
+  rawNodes?: EspConfig["auxNodes"],
+): NonNullable<EspConfig["auxNodes"]> {
+  if (!Array.isArray(rawNodes)) return [];
+
+  const seenIds = new Set<number>();
+  const normalized: NonNullable<EspConfig["auxNodes"]> = [];
+
+  for (const rawNode of rawNodes) {
+    if (!rawNode || typeof rawNode !== "object") continue;
+    const clean = normalizeAuxNodeRecord(rawNode);
+    if (!clean || seenIds.has(clean.nodeId)) continue;
+    seenIds.add(clean.nodeId);
+    normalized.push(clean);
+  }
+
   return normalized;
 }
 
@@ -429,6 +484,7 @@ export function serializeToCloudflare(config: Partial<EspConfig>): CloudflareSer
     automations: config.automations || [],
     macros: (config.macros || []).map(normalizeMacroRecord),
     voiceCommands: config.voiceCommands || [],
+    auxNodes: normalizeAuxNodesList(config.auxNodes),
     mqtt: config.mqtt,
     wifi: config.wifi,
     worker_url: config.worker_url || getCloudflareWorkerUrl(),
@@ -451,6 +507,7 @@ export function deserializeFromCloudflare(cfData: CloudflareRawPayload): EspConf
     automations: (cfData.automations || []).map(normalizeAutomationRecord),
     macros: (cfData.macros || []).map(normalizeMacroRecord),
     voiceCommands: cfData.voiceCommands || [],
+    auxNodes: normalizeAuxNodesList(cfData.auxNodes),
     mqtt: cfData.mqtt,
     wifi: cfData.wifi,
     worker_url: cfData.worker_url || undefined,

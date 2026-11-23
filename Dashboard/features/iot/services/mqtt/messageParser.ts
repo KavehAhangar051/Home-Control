@@ -1,8 +1,27 @@
 export type RawPinStateValue = boolean | number | string | null | undefined;
 
+export interface ParsedStateSyncVirtualEntry {
+  node: number;
+  rpin: number;
+}
+
+export interface ParsedStateSyncNodeEntry {
+  id: number;
+  mac: string;
+  cap: number;
+  chip: number;
+  name: string;
+  online?: boolean;
+}
+
 export interface MqttStateSyncPayload {
   type?: string;
   command?: string;
+  action?: string;
+  nodeId?: number | string;
+  mac?: string;
+  cap?: number | string;
+  chip?: number | string;
   id?: string | number;
   value?: RawPinStateValue;
   resolution?: RawPinStateValue;
@@ -11,6 +30,8 @@ export interface MqttStateSyncPayload {
   resolutions?: Record<string, RawPinStateValue>;
   ids?: Record<string, unknown>;
   timers?: Record<string, RawPinStateValue>;
+  virtual?: Record<string, unknown>;
+  nodes?: unknown[];
   pin?: string | number;
   state?: RawPinStateValue;
   source?: string;
@@ -39,12 +60,23 @@ export type ParsedMqttStateMessage =
       resolution?: number;
     }
   | {
+      kind: "aux_node_ack";
+      action: "upsert" | "delete";
+      id: number;
+      nodeId: number;
+      mac?: string;
+      cap?: number;
+      chip?: number;
+    }
+  | {
       kind: "state_sync";
       states: Record<string, boolean>;
       timers: Record<string, number>;
       values?: Record<string, number>;
       resolutions?: Record<string, number>;
       ids?: Record<string, string>;
+      virtual?: Record<string, ParsedStateSyncVirtualEntry>;
+      nodes?: ParsedStateSyncNodeEntry[];
     }
   | { kind: "ping" }
   | { kind: "ignored" }
@@ -144,6 +176,33 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
     if (cmdType === 123) {
       // SAFETY: cmdType === 123 ('{') guarantees JSON object text parsed with field guards below
       const data = JSON.parse(decodePayloadText(payload)) as MqttStateSyncPayload;
+
+      if (
+        data.type === "aux_node_ack" &&
+        (data.action === "upsert" || data.action === "delete") &&
+        (data.id !== undefined || data.nodeId !== undefined)
+      ) {
+        const parsedNodeId = Number(data.id ?? data.nodeId);
+        if (Number.isInteger(parsedNodeId) && parsedNodeId >= 0 && parsedNodeId <= 16) {
+          const parsedCap = Number(data.cap);
+          const parsedChip = Number(data.chip);
+          return {
+            kind: "aux_node_ack",
+            action: data.action,
+            id: parsedNodeId,
+            nodeId: parsedNodeId,
+            ...(typeof data.mac === "string" && data.mac.trim().length > 0
+              ? { mac: data.mac.trim().toUpperCase() }
+              : {}),
+            ...(Number.isInteger(parsedCap) && parsedCap >= 1 && parsedCap <= 32
+              ? { cap: parsedCap }
+              : {}),
+            ...(Number.isInteger(parsedChip) && parsedChip >= 0 && parsedChip <= 5
+              ? { chip: parsedChip }
+              : {}),
+          };
+        }
+      }
 
       // Command receipt confirmations NEVER mutate pin state or timers; keep them strictly isolated.
       if (data.type === "command_ack" && data.pin !== undefined) {
@@ -248,6 +307,63 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
           }
         }
 
+        let normalizedVirtual: Record<string, ParsedStateSyncVirtualEntry> | undefined;
+        if (data.virtual && typeof data.virtual === "object" && !Array.isArray(data.virtual)) {
+          normalizedVirtual = {};
+          for (const key in data.virtual) {
+            if (!Object.hasOwn(data.virtual, key)) continue;
+            const rawEntry = data.virtual[key];
+            if (rawEntry && typeof rawEntry === "object" && !Array.isArray(rawEntry)) {
+              const record = rawEntry as { node?: unknown; rpin?: unknown };
+              const node = Number(record.node);
+              const rpin = Number(record.rpin);
+              if (
+                Number.isInteger(node) &&
+                node >= 1 &&
+                node <= 16 &&
+                Number.isInteger(rpin) &&
+                rpin >= 0 &&
+                rpin <= 39
+              ) {
+                normalizedVirtual[key] = { node, rpin };
+              }
+            }
+          }
+        }
+
+        let normalizedNodes: ParsedStateSyncNodeEntry[] | undefined;
+        if (Array.isArray(data.nodes)) {
+          normalizedNodes = [];
+          for (let i = 0; i < data.nodes.length; i++) {
+            const rawNode = data.nodes[i];
+            if (!rawNode || typeof rawNode !== "object" || Array.isArray(rawNode)) continue;
+            const rec = rawNode as {
+              id?: unknown;
+              mac?: unknown;
+              cap?: unknown;
+              chip?: unknown;
+              name?: unknown;
+              online?: unknown;
+            };
+            const id = Number(rec.id);
+            const cap = Number(rec.cap);
+            const chip = Number(rec.chip);
+            const mac = typeof rec.mac === "string" ? rec.mac.trim().toUpperCase() : "";
+            const name = typeof rec.name === "string" ? rec.name.trim() : "";
+
+            if (Number.isInteger(id) && id >= 1 && id <= 16 && mac.length > 0) {
+              normalizedNodes.push({
+                id,
+                mac,
+                cap: Number.isInteger(cap) && cap >= 1 && cap <= 32 ? cap : 4,
+                chip: Number.isInteger(chip) && chip >= 0 && chip <= 5 ? chip : 0,
+                name,
+                ...(typeof rec.online === "boolean" ? { online: rec.online } : {}),
+              });
+            }
+          }
+        }
+
         return {
           kind: "state_sync",
           states: normalizedStates,
@@ -255,6 +371,8 @@ export function parseMqttStateMessage(payload: Uint8Array): ParsedMqttStateMessa
           ...(normalizedValues !== undefined ? { values: normalizedValues } : {}),
           ...(normalizedResolutions !== undefined ? { resolutions: normalizedResolutions } : {}),
           ...(normalizedIds !== undefined ? { ids: normalizedIds } : {}),
+          ...(normalizedVirtual !== undefined ? { virtual: normalizedVirtual } : {}),
+          ...(normalizedNodes !== undefined ? { nodes: normalizedNodes } : {}),
         };
       }
 
