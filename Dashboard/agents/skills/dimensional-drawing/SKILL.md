@@ -51,7 +51,7 @@ Draw one subject the way Apple's accessory dimensional drawings do (developer.ap
 
 ## Measuring a UI component
 
-Read the real source (repo file, Storybook story, design-canvas file, artifact, URL). Strip zoom and template holes, render in Playwright, wait for fonts, walk the box tree (`getBoundingClientRect` + `getComputedStyle`: padding, gap, radius, border, min-height, flex-shrink, min-width). Survey every instance with grep counts so the variables reflect the system, not one example.
+Read the real source (repo file, Storybook story, design-canvas file, artifact, URL). Extract real padding, gap, radius, border, min-height, flex-shrink, and min-width values from the styles and layout code, and survey every instance with grep counts so the variables reflect the system, not one example.
 
 ## Drawing kit (SVG, inline JS)
 
@@ -76,7 +76,7 @@ Pitfalls: a CSS `fill` rule on a class overrides a `fill="url(#hatch)"` attribut
 
 - Every code on the drawing exists in a table; every formula closes (header = 2·S1 + H3, overall = sum of regions).
 - No brand text; no color (grep for hex values outside the gray tokens); no content-dependent widths.
-- Render once with Playwright at 1800 px wide, look at the screenshot for overlapping labels and elements crossing the sheet border, fix in one pass, then deliver (publish as an Artifact on claude.ai, or save the .html).
+- Inspect the sheet at 1800 px wide for overlapping labels and elements crossing the sheet border, fix in one pass, then deliver (publish as an Artifact on claude.ai, or save the .html).
 
 To animate the finished sheet, use the `dimensional-drawing-motion` skill.
 
