@@ -12,6 +12,20 @@ namespace xtensa_asm {
  * @brief Xtensa-accelerated 32-bit word copier using interleaved dual-word l32i/s32i
  * inside a zero-overhead hardware loop (loopnez). Zero call8 memcpy overhead.
  */
+/**
+ * @brief Xtensa-accelerated 32-bit zeroer for word-aligned memory blocks.
+ */
+FORCE_INLINE void asm_zero_words(uint32_t* __restrict__ dst, uint32_t words) {
+  if (UNLIKELY(words == 0)) return;
+#if defined(__XTENSA__) || defined(ESP32)
+  for (uint32_t i = 0; i < words; ++i) {
+    dst[i] = 0;
+  }
+#else
+  std::memset(dst, 0, static_cast<std::size_t>(words) * 4);
+#endif
+}
+
 FORCE_INLINE void asm_copy_words(uint32_t* __restrict__ dst, const uint32_t* __restrict__ src, uint32_t words) {
   if (UNLIKELY(words == 0)) return;
 #if defined(__XTENSA__) || defined(ESP32)
