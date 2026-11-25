@@ -108,6 +108,7 @@ public:
   FORCE_INLINE bool        empty()    const { return begin_ == end_; }
   FORCE_INLINE std::size_t size()     const { return static_cast<std::size_t>(end_ - begin_); }
   FORCE_INLINE std::size_t capacity() const { return static_cast<std::size_t>(cap_end_ - begin_); }
+  FORCE_INLINE void shrink_to_fit() {} // No-op for inline/SBO storage
 
   // Fast path: set active element count directly (e.g., after socket bulk read)
   FORCE_INLINE void force_set_size(std::size_t new_size) { end_ = begin_ + new_size; }
