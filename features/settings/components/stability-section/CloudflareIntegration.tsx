@@ -73,6 +73,7 @@ export default function CloudflareIntegration({
           {isSavingUrl ? "در حال ذخیره..." : "ذخیره آدرس"}
         </button>
         <div className="relative flex-1 min-w-0">
+          <p className="mb-2 text-xs leading-5 text-text-secondary">نشانی پایه Cloudflare Worker را وارد کنید؛ داشبورد برای خواندن و ذخیره تنظیمات ابری از این سرویس استفاده می‌کند.</p>
           <Label htmlFor="cloudflare-worker-url" className="sr-only">
             آدرس Cloudflare Worker
           </Label>
