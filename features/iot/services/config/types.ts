@@ -250,6 +250,8 @@ export interface EspConfig {
     city?: string;
     temperatureThreshold?: number;
     temperatureCondition?: "greater" | "less";
+    segmentConditions?: RuleGuardCondition[];
+    segmentConditionLogic?: ConditionLogic;
     actions: Array<{
       targetPin?: string;
       targetMacro?: string;

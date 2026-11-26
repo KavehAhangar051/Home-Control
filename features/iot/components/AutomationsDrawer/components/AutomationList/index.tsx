@@ -114,6 +114,18 @@ export default function AutomationList({
 
                   <div className="flex flex-wrap items-center gap-1.5 text-xs tabular-nums text-text-secondary">
                     <span>{scheduleTypeLabel}</span>
+                    {Array.isArray(auto.segmentConditions) &&
+                    auto.segmentConditions.some((c) => c.enabled !== false) ? (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>
+                          {auto.segmentConditions.filter((c) => c.enabled !== false).length} شرط سگمنت
+                          {auto.segmentConditions.filter((c) => c.enabled !== false).length > 1
+                            ? ` (${auto.segmentConditionLogic === "or" ? "OR" : "AND"})`
+                            : ""}
+                        </span>
+                      </>
+                    ) : null}
                     {auto.intervalMinutes ? (
                       <>
                         <span aria-hidden="true">·</span>
