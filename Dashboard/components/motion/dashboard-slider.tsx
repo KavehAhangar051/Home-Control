@@ -173,7 +173,7 @@ export function DashboardSlider({
           size={isCompact || isUltra ? "sm" : "md"}
           formatValue={format ?? ((current) => (unit ? `${current} ${unit}` : String(current)))}
           formatValueText={formatValueText}
-          icon
+          icon={icon}
           showTicks={showTicks}
           showValue={showValue}
           haptics={hapticsEnabled}
