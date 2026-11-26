@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "@/components/ui/hugeicons-groups/controls";
 import { X } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
@@ -25,8 +25,18 @@ export function WifiNetworkEditor({
   onCancel,
 }: Props) {
   const [showPassword, setShowPassword] = useState(false);
+  const ssidInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
   const ssidBytes = getUtf8ByteLength(tempSsid.trim());
   const passwordBytes = getUtf8ByteLength(tempPassword);
+
+  useEffect(() => {
+    if (errors.ssid) {
+      ssidInputRef.current?.focus();
+    } else if (errors.password) {
+      passwordInputRef.current?.focus();
+    }
+  }, [errors.ssid, errors.password]);
 
   return (
     <div className="space-y-4">
@@ -39,6 +49,7 @@ export function WifiNetworkEditor({
         </div>
         <Input
           id="wifi-network-ssid"
+          ref={ssidInputRef}
           name="wifi-network-ssid"
           type="text"
           autoComplete="off"
@@ -75,6 +86,7 @@ export function WifiNetworkEditor({
         </div>
         <Input
           id="wifi-network-password"
+          ref={passwordInputRef}
           name="wifi-network-password"
           type={showPassword ? "text" : "password"}
           autoComplete="new-password"

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "@/components/ui/hugeicons-groups/controls";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,19 @@ export function WifiAccessPointEditor({
   onCancel,
   onSave,
 }: Props) {
+  const ssidInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!hasAttemptedSave) return;
+
+    if (errors.ssid) {
+      ssidInputRef.current?.focus();
+    } else if (errors.password) {
+      passwordInputRef.current?.focus();
+    }
+  }, [errors.ssid, errors.password, hasAttemptedSave]);
+
   return (
     <div className="space-y-4">
       <div className="space-y-1">
@@ -55,6 +69,7 @@ export function WifiAccessPointEditor({
         </div>
         <Input
           id="esp-ap-ssid"
+          ref={ssidInputRef}
           name="esp-ap-ssid"
           type="text"
           dir="auto"
@@ -90,6 +105,7 @@ export function WifiAccessPointEditor({
         </div>
         <Input
           id="esp-ap-password"
+          ref={passwordInputRef}
           name="esp-ap-password"
           type={showPassword ? "text" : "password"}
           dir="ltr"
