@@ -1,7 +1,8 @@
 "use client";
 
-import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
+import { ToggleIndicator } from "@/components/dissolve/toggle";
 import { Monitor } from "@/components/ui/hugeicons-groups/media";
+import { Toggle } from "@/components/ui/toggle";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import { soundManager } from "@/lib/audio";
 import { triggerHaptic } from "@/lib/haptics";
@@ -31,11 +32,17 @@ export default function WakeLockToggle({ animationsEnabled }: WakeLockToggleProp
 
   return (
     <div className="border-b border-border-color pb-3.5 sm:pb-4">
-      <div
-        className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right sm:p-4 ${
+      <Toggle
+        variant="outline"
+        pressed={wakeLockEnabled}
+        onPressedChange={handleToggle}
+        aria-label={wakeLockEnabled
+          ? "بیدار نگه‌داشتن نمایشگر · روشن"
+          : "بیدار نگه‌داشتن نمایشگر · خاموش"}
+        className={`switch-toggle flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
           wakeLockEnabled
             ? "border-accent3 bg-card-hover-bg"
-            : "border-border-color bg-card-bg"
+            : "border-border-color bg-card-bg hover:bg-card-hover-bg"
         }`}
       >
         <div className="min-w-0 flex-1 space-y-1 text-right">
@@ -57,18 +64,15 @@ export default function WakeLockToggle({ animationsEnabled }: WakeLockToggleProp
               : "این مرورگر از قفل بیداری صفحه پشتیبانی نمی‌کند"}
           </span>
         </div>
-        <DissolveToggle
+        <ToggleIndicator
           value={wakeLockEnabled}
-          onValueChange={handleToggle}
           size="sm"
           onColor="var(--accent3)"
           offColor="var(--bg-main)"
-          haptics={false}
           reducedMotion={!animationsEnabled}
-          accessibilityLabel="بیدار نگه‌داشتن نمایشگر"
           className="shrink-0"
         />
-      </div>
+      </Toggle>
     </div>
   );
 }
