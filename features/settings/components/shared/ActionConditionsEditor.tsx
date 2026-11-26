@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { triggerHaptic } from "@/lib/haptics";
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { GrainToggleEffect } from "@/components/dissolve/toggle";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { ShieldCheck } from "@/components/ui/hugeicons-groups/controls";
 import { Clock, Plus } from "@/components/ui/hugeicons-groups/shell";
@@ -231,7 +231,7 @@ function ConditionRow({
             }`}
           >
             <span>{isEnabled ? "فعال" : "غیرفعال"}</span>
-            <ToggleIndicator
+            <GrainToggleEffect
               value={isEnabled}
               size="sm"
               onColor="var(--accent3)"
