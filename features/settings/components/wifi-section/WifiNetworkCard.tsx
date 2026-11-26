@@ -36,7 +36,7 @@ export function WifiNetworkViewCard({ net, onEditStart, onDelete }: WifiNetworkV
             size="sm"
             onClick={onEditStart}
             className="min-h-11 gap-1.5 px-3 text-xs"
-            aria-label={"ویرایش شبکه " + net.ssid}
+            aria-label={`ویرایش شبکه ${net.ssid}`}
           >
             <Edit2 className="size-4" aria-hidden="true" />
             ویرایش
@@ -45,7 +45,7 @@ export function WifiNetworkViewCard({ net, onEditStart, onDelete }: WifiNetworkV
             size="sm"
             resetAfter={0}
             onConfirm={onDelete}
-            label={"حذف شبکه " + net.ssid}
+            label={`حذف شبکه ${net.ssid}`}
             className="min-h-11 min-w-11 shrink-0"
           />
         </div>
