@@ -85,7 +85,8 @@ export default function VoiceCommandsSection() {
               exit={{ opacity: 0 }}
               className="text-center py-7 px-4 bg-card-bg-solid border border-dashed border-border-color rounded-2xl space-y-1"
             >
-              <p className="text-xs font-medium text-text-secondary">دستور صوتی ثبت نشده است</p>
+              <p className="text-xs font-medium text-text-secondary">دستوری ثبت نشده است</p>
+              <p className="text-xs leading-5 text-text-muted">یک عبارت تعریف کنید و عملیات موردنظر را به آن وصل کنید.</p>
             </m.div>
           )}
 
