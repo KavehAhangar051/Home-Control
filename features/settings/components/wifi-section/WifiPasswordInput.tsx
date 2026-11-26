@@ -18,7 +18,7 @@ export function WifiPasswordInput({
   ...inputProps
 }: Props) {
   return (
-    <div className="relative">
+    <div className="relative" dir="ltr">
       <Input
         {...inputProps}
         id={id}
@@ -32,9 +32,10 @@ export function WifiPasswordInput({
         size="icon-lg"
         onClick={onTogglePassword}
         disabled={inputProps.disabled}
-        className="absolute end-0 top-1/2 size-11 -translate-y-1/2 rounded-xl text-text-secondary hover:text-text-primary"
+        className="absolute end-0 top-1/2 size-11 -translate-y-1/2 rounded-none bg-transparent p-0 text-text-secondary shadow-none hover:bg-transparent hover:text-text-primary active:scale-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent3"
         aria-label={showPassword ? "مخفی کردن رمز عبور" : "نمایش رمز عبور"}
         aria-controls={id}
+        aria-pressed={showPassword}
         title={showPassword ? "مخفی کردن رمز عبور" : "نمایش رمز عبور"}
       >
         <span className="relative inline-flex size-5 items-center justify-center">
