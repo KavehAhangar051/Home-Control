@@ -25,7 +25,20 @@ export type ToggleProps = CoreProps & {
 
 export function Toggle({ className, style, onClick, ...props }: ToggleProps) {
   const { host } = useDissolveCore(createToggle, props);
-  return <button ref={host} type="button" className={className} style={style} onClick={onClick} />;
+  return (
+    <button
+      ref={host}
+      type="button"
+      role="switch"
+      aria-checked={Boolean(props.value ?? props.defaultValue)}
+      aria-label={props.accessibilityLabel}
+      aria-disabled={props.disabled || undefined}
+      disabled={props.disabled}
+      className={className}
+      style={style}
+      onClick={onClick}
+    />
+  );
 }
 
 /** Props for a non-interactive grain switch inside an owning control. */

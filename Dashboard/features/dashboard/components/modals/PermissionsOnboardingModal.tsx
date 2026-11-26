@@ -3,7 +3,7 @@
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { HugeIconComponent } from "@/components/ui/hugeicon-factory";
@@ -327,28 +327,18 @@ export default function PermissionsOnboardingModal() {
                               ضروری
                             </span>
                           ) : (
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={isChecked}
-                              aria-label={title}
+                            <DissolveToggle
+                              value={isChecked}
+                              onValueChange={() => handleToggleItem(id)}
                               disabled={isUnsupported || isSubmitting}
-                              onClick={() => handleToggleItem(id)}
-                              className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-[9px] p-0.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 disabled:cursor-not-allowed disabled:opacity-45 ${
-                                isChecked
-                                  ? "border border-transparent bg-accent3"
-                                  : "border border-border-color bg-bg-main"
-                              }`}
-                            >
-                              <ToggleIndicator
-                                value={isChecked}
-                                size="sm"
-                                onColor="var(--accent3)"
-                                offColor="var(--bg-main)"
-                                reducedMotion={reduceMotion}
-                                className="scale-[0.95]"
-                              />
-                            </button>
+                              size="sm"
+                              onColor="var(--accent3)"
+                              offColor="var(--bg-main)"
+                              haptics={false}
+                              reducedMotion={reduceMotion}
+                              accessibilityLabel={title}
+                              className="shrink-0"
+                            />
                           )}
                         </div>
                       );

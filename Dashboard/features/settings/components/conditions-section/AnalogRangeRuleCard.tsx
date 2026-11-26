@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { useReducedMotion } from "motion/react";
 import { triggerHaptic } from "@/lib/haptics";
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
 import { DashboardSlider } from "@/components/motion/dashboard-slider";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Input } from "@/components/ui/input";
@@ -159,32 +159,25 @@ export function AnalogRangeRuleCard({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isEnabled}
-            aria-label={`وضعیت بازه ${index + 1}`}
-            onClick={() => {
-              const nextEnabled = !isEnabled;
-              onUpdate({ enabled: nextEnabled });
-              triggerHaptic(nextEnabled ? "toggleOn" : "toggleOff");
-            }}
-            className={`rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-colors cursor-pointer ${
-              isEnabled
-                ? "border-accent3/50 bg-accent3/15 text-accent3"
-                : "border-border-color bg-bg-primary text-text-muted"
-            }`}
-          >
-            <span>{isEnabled ? "فعال" : "غیرفعال"}</span>
-            <ToggleIndicator
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-text-secondary">
+              {isEnabled ? "فعال" : "غیرفعال"}
+            </span>
+            <DissolveToggle
               value={isEnabled}
+              onValueChange={(enabled) => {
+                onUpdate({ enabled });
+                triggerHaptic(enabled ? "toggleOn" : "toggleOff");
+              }}
               size="sm"
               onColor="var(--accent3)"
               offColor="var(--bg-main)"
+              haptics={false}
               reducedMotion={Boolean(prefersReducedMotion)}
-              className="scale-[0.75]"
+              accessibilityLabel={`وضعیت بازه ${index + 1}`}
+              className="shrink-0"
             />
-          </button>
+          </div>
           <DeleteButton
             size="sm"
             resetAfter={0}
