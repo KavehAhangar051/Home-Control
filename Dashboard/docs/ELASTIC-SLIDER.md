@@ -22,6 +22,27 @@ export function VolumeControl() {
 }
 ```
 
+## Use it across the dashboard
+
+Dashboard controls should use the shared facade so the user's global style preference applies consistently:
+
+```tsx
+import { DashboardSlider } from "@/components/motion/dashboard-slider";
+
+<DashboardSlider
+  defaultVariant="fluid"
+  label="روشنایی"
+  value={brightness}
+  onValueChange={setBrightness}
+  min={0}
+  max={100}
+  unit="%"
+  format={(value) => `${value}%`}
+/>
+```
+
+When «کشسان و غلتان» is selected in Settings → Appearance → Slider Style, this control automatically renders as `ElasticSlider`. The `defaultVariant` is used again when the preference is reset to «هوشمند».
+
 ## Props
 
 | Prop | Type | Default | Description |

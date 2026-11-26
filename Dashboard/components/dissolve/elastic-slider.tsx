@@ -386,7 +386,7 @@ export function ElasticSlider({
   useEffect(() => {
     percentageRef.current = percentage;
     requestDraw();
-  }, [requestDraw, percentage]);
+  }, [requestDraw, percentage, safeMin, safeMax, safeStep]);
 
   useEffect(
     () => () => {

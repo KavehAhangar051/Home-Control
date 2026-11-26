@@ -30,9 +30,9 @@ export interface DashboardSliderProps extends SliderOptions {
   variantOverride?: SliderVariant;
   /** Compact inline label shown inside InlineSlider and FluidSlider. */
   label?: string;
-  /** Formats numeric values shown inside InlineSlider, FluidSlider, and BubbleSlider. */
+  /** Formats numeric values shown inside InlineSlider, FluidSlider, BubbleSlider, and ElasticSlider. */
   format?: (value: number) => string;
-  /** Optional unit label shown in RulerSlider when no custom rulerScale is provided. */
+  /** Optional unit label shown by RulerSlider and ElasticSlider when no custom formatter is provided. */
   unit?: string;
   /** Controls tick dots in RangeSlider and InlineSlider (defaults to true). */
   showTicks?: boolean;
