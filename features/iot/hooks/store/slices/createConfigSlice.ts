@@ -205,6 +205,16 @@ export const createConfigSlice: StateCreator<IoTStoreState, [], [], ConfigSlice>
             : state.manualSaveMode,
         accent3: config.preferences?.accent_color_3 || state.accent3,
         accent4: config.preferences?.accent_color_4 || state.accent4,
+        darkBlackness:
+          typeof config.preferences?.dark_blackness === "number" &&
+          Number.isFinite(config.preferences.dark_blackness)
+            ? Math.min(100, Math.max(0, Math.round(config.preferences.dark_blackness)))
+            : state.darkBlackness,
+        lightWhiteness:
+          typeof config.preferences?.light_whiteness === "number" &&
+          Number.isFinite(config.preferences.light_whiteness)
+            ? Math.min(100, Math.max(0, Math.round(config.preferences.light_whiteness)))
+            : state.lightWhiteness,
         unsavedChangesCount: 0,
         pinsState: hasSeededPin ? mergedPinsState : state.pinsState,
         pinsAnalogValue: hasSeededAnalog ? mergedAnalog : state.pinsAnalogValue,

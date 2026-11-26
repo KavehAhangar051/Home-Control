@@ -19,6 +19,8 @@ function selectWatchedConfigSlice(state: IoTStoreState) {
     isDark: state.isDark,
     accent3: state.accent3,
     accent4: state.accent4,
+    darkBlackness: state.darkBlackness,
+    lightWhiteness: state.lightWhiteness,
     animationsEnabled: state.animationsEnabled,
     animationsFps: state.animationsFps,
     headerTitle: state.headerTitle,

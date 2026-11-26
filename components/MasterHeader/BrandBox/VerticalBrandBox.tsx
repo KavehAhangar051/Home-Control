@@ -73,7 +73,7 @@ export default function VerticalBrandBox({ headerTitle }: Omit<BrandBoxProps, "v
 
   return (
     <div data-animate-icon-parent className="flex min-w-0 flex-1 items-center gap-2.5">
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-control-bg text-sidebar-text">
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-accent4/40 bg-accent4-transparent text-accent4">
         <HousePlug aria-label="Home Control" className="size-4" strokeWidth={1.5} />
       </div>
       <div

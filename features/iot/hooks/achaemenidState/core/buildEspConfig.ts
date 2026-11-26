@@ -48,6 +48,8 @@ export type EspConfigBuildSource = Pick<
   headerAnimationType?: "fade" | "chase";
   headerPosition?: "top" | "left";
   dashboardBgColor?: string;
+  darkBlackness?: number;
+  lightWhiteness?: number;
   dashboardBgOpacity?: number;
 };
 
@@ -78,6 +80,14 @@ export function buildEspConfig(params: EspConfigBuildSource): EspConfig {
       header_title: params.headerTitle,
       header_position: params.headerPosition || "top",
       dashboard_bg_color: params.dashboardBgColor,
+      dark_blackness:
+        typeof params.darkBlackness === "number" && Number.isFinite(params.darkBlackness)
+          ? Math.min(100, Math.max(0, Math.round(params.darkBlackness)))
+          : 70,
+      light_whiteness:
+        typeof params.lightWhiteness === "number" && Number.isFinite(params.lightWhiteness)
+          ? Math.min(100, Math.max(0, Math.round(params.lightWhiteness)))
+          : 70,
       dashboard_bg_opacity: params.dashboardBgOpacity,
       manual_save_mode: params.manualSaveMode,
     },

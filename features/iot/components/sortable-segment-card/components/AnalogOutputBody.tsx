@@ -224,7 +224,7 @@ function AnalogOutputBody({
               </span>
               {showAutoOffBadge && (
                 <span
-                  className="rounded border border-border-color bg-secondary px-1 py-0 font-mono text-[10px] tabular-nums text-text-secondary shrink-0"
+                  className="rounded border border-accent4/35 bg-accent4-transparent px-1 py-0 font-mono text-[10px] font-medium tabular-nums text-accent4 shrink-0"
                   dir="ltr"
                 >
                   {autoOffValue}s
