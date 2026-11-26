@@ -28,6 +28,7 @@ export default function CloudflareIntegration({
   const showToast = useIoTStore((s) => s.showToast);
   const manualSaveMode = useIoTStore((s) => s.manualSaveMode);
   const setManualSaveMode = useIoTStore((s) => s.setManualSaveMode);
+  const [isRefreshingConfig, setIsRefreshingConfig] = useState(false);
 
   const handleManualSaveModeChange = (enabled: boolean) => {
     setManualSaveMode(enabled);
@@ -62,6 +63,31 @@ export default function CloudflareIntegration({
     }
 
     setIsSavingUrl(false);
+  };
+
+  const handleRefreshConfig = async () => {
+    if (!isCloudflareEnabled()) {
+      showToast("ابتدا نشانی معتبر Cloudflare Worker را تنظیم کنید.", "error");
+      return;
+    }
+
+    setIsRefreshingConfig(true);
+    try {
+      const refreshed = await new Promise<boolean>((resolve) => {
+        window.dispatchEvent(
+          new CustomEvent("home-control:refresh-cloudflare-config", { detail: { resolve } }),
+        );
+      });
+      if (!refreshed) {
+        showToast("دریافت تنظیمات از سرور انجام نشد؛ نسخه فعلی حفظ شد.", "error");
+        triggerHaptic("error");
+        return;
+      }
+      showToast("آخرین تنظیمات سرور اعمال و کش قبلی جایگزین شد.", "success");
+      triggerHaptic("success");
+    } finally {
+      setIsRefreshingConfig(false);
+    }
   };
 
   const isCfConnected = isCloudflareEnabled();
@@ -129,6 +155,19 @@ export default function CloudflareIntegration({
             </span>
           </span>
         </label>
+      </div>
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={handleRefreshConfig}
+          disabled={isRefreshingConfig || !isCfConnected}
+          className="w-full min-h-11 rounded-xl border border-accent3/35 bg-accent3/15 px-4 py-2.5 text-xs font-bold text-accent3 transition-colors hover:bg-accent3 hover:text-accent3-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isRefreshingConfig ? "در حال دریافت و اعمال تنظیمات..." : "دریافت و اعمال آخرین تنظیمات از سرور"}
+        </button>
+        <p className="text-[11px] leading-5 text-text-tertiary">
+          تنظیمات فعلی سرور دریافت می‌شود، جایگزین کش قبلی خواهد شد و بدون استفاده از نسخه قدیمی دوباره روی داشبورد اعمال می‌شود.
+        </p>
       </div>
       <div
         className={`p-3 rounded-xl border flex items-center justify-between text-right text-xs ${isCfConnected ? "bg-success-soft border-success/40 text-success" : "bg-card-hover-bg border-border-color text-text-tertiary"}`}

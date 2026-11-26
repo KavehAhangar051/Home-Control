@@ -75,23 +75,24 @@ function isValidCachedConfig(config: EspConfig | null): config is EspConfig {
 }
 
 /**
- * Coordinates initial Cloudflare configuration hydration with Stale-While-Revalidate
- * cache fast-path, bounded retries, offline short-circuiting, and bypass cancellation safety.
+ * Uses local configuration only as an instant/offline fallback; every successful Worker
+ * response is authoritative and replaces the cached snapshot.
  */
 export async function executeCloudflareInitSync(
   deps: CloudflareInitSyncDeps,
+  options?: { hydrateCache?: boolean },
 ): Promise<CloudflareInitSyncOutcome> {
   const maxAttempts = Math.max(1, deps.maxAttempts ?? 2);
+  const hydrateCache = options?.hydrateCache ?? true;
 
   const sleep =
     deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
 
   let hasAppliedCache = false;
-  let cachedSignature: string | null = null;
 
   if (!deps.configLocalCacheEnabled) {
     deps.clearLocalCache();
-  } else {
+  } else if (hydrateCache) {
     const cachedConfig = deps.readLocalCache();
 
     if (isValidCachedConfig(cachedConfig)) {
@@ -103,7 +104,6 @@ export async function executeCloudflareInitSync(
       deps.onBumpRemoteEpoch();
       deps.onReady();
       hasAppliedCache = true;
-      cachedSignature = JSON.stringify(cachedConfig);
       deps.info?.("ConfigSync", "Hydrated instant configuration from local SWR cache.", {
         segments: cachedConfig.segments.length,
         groups: cachedConfig.layout?.groups_order?.length ?? 0,
@@ -162,23 +162,19 @@ export async function executeCloudflareInitSync(
           deps.writeLocalCache(cfConfig);
         }
 
-        const remoteSignature = hasAppliedCache ? JSON.stringify(cfConfig) : null;
-
-        if (!hasAppliedCache || remoteSignature !== cachedSignature) {
-          deps.applyConfig(cfConfig);
-          deps.onBumpRemoteEpoch();
-        }
-
-        deps.onSyncStatus(false, 100, "همگام‌سازی تنظیمات انجام شد.");
+        // A successful Worker response is authoritative, even if its signature matches the cache.
+        deps.applyConfig(cfConfig);
+        deps.onBumpRemoteEpoch();
+        deps.onSyncStatus(false, 100, "آخرین تنظیمات دریافتی از سرور اعمال و کش شد.");
 
         if (!hasAppliedCache) {
           deps.onReady();
         }
 
-        deps.info?.("ConfigSync", "Cloud configuration applied.", {
+        deps.info?.("ConfigSync", "Authoritative Cloud configuration applied.", {
           segments: cfConfig.segments.length,
           groups: cfConfig.layout?.groups_order?.length ?? 0,
-          revalidated: hasAppliedCache,
+          replacedFallback: hasAppliedCache,
         });
 
         return { kind: "remote_applied", attempts: attemptCount };
@@ -212,8 +208,8 @@ export async function executeCloudflareInitSync(
     return { kind: "aborted_by_bypass" };
   }
 
-  if (hasAppliedCache) {
-    deps.onSyncStatus(false, 100, "اتصال به سرور برقرار نیست؛ تنظیمات کش‌شده بارگذاری شد.");
+  if (hasAppliedCache || (hydrateCache && isValidCachedConfig(deps.readLocalCache()))) {
+    deps.onSyncStatus(false, 100, "اتصال به سرور برقرار نیست؛ آخرین تنظیمات کش‌شده حفظ شد.");
 
     return { kind: "cache_recovered" };
   }
