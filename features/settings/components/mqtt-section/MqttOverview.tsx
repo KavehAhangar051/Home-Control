@@ -14,16 +14,6 @@ interface Props {
   onReconnect: () => void;
 }
 
-const BROKER_STATUS_COPY: Record<MqttConnectionStatus, { label: string; tone: string }> = {
-  starting: { label: "در انتظار راه‌اندازی کلاینت", tone: "bg-text-muted" },
-  connecting: { label: "در حال اتصال به بروکر", tone: "bg-amber-500" },
-  connected: { label: "متصل به بروکر", tone: "bg-success" },
-  reconnecting: { label: "در حال اتصال مجدد", tone: "bg-amber-500" },
-  disconnected: { label: "ارتباط با بروکر قطع شده", tone: "bg-red-500" },
-  offline: { label: "شبکه در دسترس نیست", tone: "bg-red-500" },
-  error: { label: "خطا در اتصال به بروکر", tone: "bg-red-500" },
-};
-
 const QOS_COPY = {
   0: "QoS 0 · بدون تأیید",
   1: "QoS 1 · تحویل با تأیید",
@@ -61,7 +51,6 @@ export function MqttOverview({
   onEdit,
   onReconnect,
 }: Props) {
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
