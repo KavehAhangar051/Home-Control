@@ -112,6 +112,7 @@ export default function MqttSection() {
   const setMqttConfig = useIoTStore((state) => state.setMqttConfig);
   const showToast = useIoTStore((state) => state.showToast);
   const isEsp32Online = useIoTStore((state) => state.isLocal);
+  const hasReceivedMqttStatus = useIoTStore((state) => state.hasReceivedMqttStatus);
   const esp32Ip = useIoTStore((state) => state.localIp);
   const { status: brokerStatus, retry: retryBrokerConnection } = useMqttConnectionStatus();
 
@@ -262,6 +263,7 @@ export default function MqttSection() {
       <MqttOverview
         brokerStatus={brokerStatus}
         isEsp32Online={isEsp32Online}
+        hasReceivedMqttStatus={hasReceivedMqttStatus}
         esp32Ip={esp32Ip}
         brokerWsUrl={brokerWsUrl}
         brokerHost={brokerHost}

@@ -336,6 +336,7 @@ export function createMqttConnectHandler(deps: {
     if (!deps.isCurrentGeneration()) return;
 
     logMqttDebug(`[MQTT] Connected to ${deps.brokerUrl}!`);
+    deps.getSnapshot().setHasReceivedMqttStatus(false);
     deps.subscribeTopic(deps.stateTopic);
     deps.subscribeTopic(deps.statusTopic);
 
@@ -356,7 +357,9 @@ export function createMqttMessageHandler(
   const schedule = deps.scheduleMicrotask ?? queueMicrotask;
 
   const markEspStatus = (isOnline: boolean) => {
-    deps.getSnapshot().setIsLocal(isOnline);
+    const snapshot = deps.getSnapshot();
+    snapshot.setIsLocal(isOnline);
+    snapshot.setHasReceivedMqttStatus(true);
 
     if (isOnline) {
       logMqttDebug("[MQTT] ESP32 is ONLINE.");
