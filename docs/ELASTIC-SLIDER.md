@@ -51,11 +51,11 @@ When «کشسان و غلتان» is selected in Settings → Appearance → Sli
 | `value` | `number` | — | Controlled value |
 | `defaultValue` | `number` | `min` | Initial uncontrolled value; defaults to the minimum |
 | `onValueChange` | `(value: number) => void` | — | Fires when the value changes |
-| `onValueCommit` | `(value: number) => void` | — | Dashboard adapter alias for Dissolve's `onSlidingComplete` callback |
+| `onSlidingComplete` | `(value: number) => void` | — | Official Dissolve callback when a pointer gesture ends or a key changes the value |\n| `onValueCommit` | `(value: number) => void` | — | Dashboard-friendly alias for `onSlidingComplete` |
 | `min / max / step` | `number` | `0 / 100 / 1` | Value range and increment |
 | `formatValue` | `(value: number) => string` | `String(value)` | Visible value formatting |
 | `formatValueText` | `(value: number) => string` | visible formatted value | Optional screen-reader value announcement |
-| `icon` | `({ color, size }) => ReactNode` | — | Optional leading icon; receives the correct foreground for each fill layer |
+| `icon` | `ReactNode | (({ color, size }) => ReactNode)` | — | Optional leading icon; receives the correct foreground for each fill layer |
 | `size` | `"sm" | "md" | "lg"` | `"md"` | Track height preset (32 / 44 / 56px) |
 | `showValue` | `boolean` | `true` | Hides the visible value when false |
 | `showTicks` | `boolean` | `true` | Shows boundary and per-step dots when the range has at most 20 steps |
