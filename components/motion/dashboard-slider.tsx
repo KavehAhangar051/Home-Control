@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { ElasticSlider } from "@/components/dissolve/elastic-slider";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import type { SliderOptions } from "@/lib/hooks/use-slider";
@@ -38,6 +39,8 @@ export interface DashboardSliderProps extends SliderOptions {
   showTicks?: boolean;
   /** Displays the formatted value in the ElasticSlider track (defaults to true). */
   showValue?: boolean;
+  /** Optional leading icon rendered with the correct inverted color by ElasticSlider. */
+  icon?: ReactNode | ((props: { color: string; size: number }) => ReactNode);
   /** Sizing density for tiles, popovers, and forms. */
   size?: "default" | "compact" | "ultra";
   /** Optional scale adapter for RulerSlider when raw values span > 120 ticks (e.g. 12-bit PWM). */
@@ -59,6 +62,7 @@ export function DashboardSlider({
   unit,
   showTicks = true,
   showValue = true,
+  icon,
   size = "default",
   rulerScale,
   className,
@@ -169,6 +173,7 @@ export function DashboardSlider({
           size={isCompact || isUltra ? "sm" : "md"}
           formatValue={format ?? ((current) => (unit ? `${current} ${unit}` : String(current)))}
           formatValueText={formatValueText}
+          icon
           showTicks={showTicks}
           showValue={showValue}
           haptics={hapticsEnabled}
