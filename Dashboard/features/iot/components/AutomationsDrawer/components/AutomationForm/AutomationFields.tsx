@@ -52,7 +52,9 @@ export function ScheduleFields({
           placeholder="0 (بی‌نهایت)"
           className="bg-card-bg"
         />
-        <p className="mt-1 text-xs leading-5 text-text-secondary">۰ یعنی بدون محدودیت؛ مقدارهای دیگر حداکثر دفعات اجرای اتوماسیون را مشخص می‌کنند.</p>
+        <p className="mt-1 text-xs leading-5 text-text-secondary">
+          ۰ یعنی بدون محدودیت؛ مقدارهای دیگر حداکثر دفعات اجرای اتوماسیون را مشخص می‌کنند.
+        </p>
       </div>
       <div className="col-span-2">
         <div className="block text-xs font-medium text-text-secondary mb-2">روزهای هفته</div>
