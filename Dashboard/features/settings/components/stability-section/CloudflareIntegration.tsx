@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { useToast } from "@/components/dissolve/toast";
 import {
   getCloudflareWorkerUrl,
   isCloudflareEnabled,
@@ -25,7 +26,7 @@ export default function CloudflareIntegration({
 }: CloudflareIntegrationProps) {
   const [cfUrl, setCfUrl] = useState(() => getCloudflareWorkerUrl());
   const prefersReducedMotion = useReducedMotion();
-  const showToast = useIoTStore((s) => s.showToast);
+  const toast = useToast();
   const manualSaveMode = useIoTStore((s) => s.manualSaveMode);
   const setManualSaveMode = useIoTStore((s) => s.setManualSaveMode);
   const [isRefreshingConfig, setIsRefreshingConfig] = useState(false);
@@ -39,7 +40,7 @@ export default function CloudflareIntegration({
 
   const handleSaveUrl = async () => {
     if (!cfUrl || cfUrl.includes("YOUR_SUBDOMAIN") || cfUrl.length < 10) {
-      showToast("لطفاً یک آدرس معتبر وارد کنید.", "error");
+      toast.show({ title: "لطفاً یک آدرس معتبر وارد کنید.", tone: "error" });
 
       return;
     }
@@ -67,7 +68,7 @@ export default function CloudflareIntegration({
 
   const handleRefreshConfig = async () => {
     if (!isCloudflareEnabled()) {
-      showToast("ابتدا نشانی معتبر Cloudflare Worker را تنظیم کنید.", "error");
+      toast.show({ title: "ابتدا نشانی معتبر Cloudflare Worker را تنظیم کنید.", tone: "error" });
       return;
     }
 
@@ -79,11 +80,11 @@ export default function CloudflareIntegration({
         );
       });
       if (!refreshed) {
-        showToast("دریافت تنظیمات از سرور انجام نشد؛ نسخه فعلی حفظ شد.", "error");
+        toast.show({ title: "دریافت تنظیمات از سرور انجام نشد؛ نسخه فعلی حفظ شد.", tone: "error" });
         triggerHaptic("error");
         return;
       }
-      showToast("آخرین تنظیمات سرور اعمال و کش قبلی جایگزین شد.", "success");
+      toast.show({ title: "آخرین تنظیمات سرور اعمال و کش قبلی جایگزین شد.", tone: "success" });
       triggerHaptic("success");
     } finally {
       setIsRefreshingConfig(false);
