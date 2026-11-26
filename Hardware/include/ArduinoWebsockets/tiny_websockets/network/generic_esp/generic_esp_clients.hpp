@@ -14,15 +14,13 @@ namespace websockets { namespace network {
     GenericEspTcpClient() {}
 
     bool connect(const WSString& host, const int port) {
-      yield();
       auto didConnect = client.connect(host.c_str(), port);
       client.setNoDelay(true);
       return didConnect;
     }
 
-    bool poll() {
-      yield();
-      return client.available();
+    bool poll() override {
+      return client.available() > 0;
     }
 
     bool available() override {
@@ -30,21 +28,15 @@ namespace websockets { namespace network {
     }
 
     void send(const WSString& data) override {
-      yield();
-      client.write(reinterpret_cast<uint8_t*>(const_cast<char*>(data.c_str())), data.size());
-      yield();
+      client.write(reinterpret_cast<const uint8_t*>(data.c_str()), data.size());
     }
 
     void send(const WSString&& data) override {
-      yield();
-      client.write(reinterpret_cast<uint8_t*>(const_cast<char*>(data.c_str())), data.size());
-      yield();
+      client.write(reinterpret_cast<const uint8_t*>(data.c_str()), data.size());
     }
 
     void send(const uint8_t* data, const uint32_t len) override {
-      yield();
       client.write(data, len);
-      yield();
     }
     
     WSString readLine() override {
@@ -64,12 +56,12 @@ namespace websockets { namespace network {
     }
 
     uint32_t read(uint8_t* buffer, const uint32_t len) override {
-      yield();
-      return client.read(buffer, len);
+      if (len == 0U) return 0U;
+      const int r = client.read(buffer, len);
+      return (r > 0) ? static_cast<uint32_t>(r) : 0U;
     }
 
     void close() override {
-      yield();
       client.stop();
     }
 

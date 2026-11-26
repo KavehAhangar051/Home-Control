@@ -34,12 +34,10 @@ namespace websockets { namespace network {
   public:
     Esp32TcpServer() {}
     bool poll() override {
-      yield();
       return server.hasClient();
     }
 
     bool listen(const uint16_t port) override {
-      yield();
       server = WiFiServer(port);
       server.begin(port);
       return available();
@@ -47,7 +45,7 @@ namespace websockets { namespace network {
     
     TcpClient* accept() override {
       while(available()) {
-        auto client = server.available();
+        auto client = server.accept();
         if(client) {
           return new Esp32TcpClient{client};
         }
@@ -56,12 +54,10 @@ namespace websockets { namespace network {
     }
 
     bool available() override {
-      yield();
       return static_cast<bool>(server);
     }
     
     void close() override {
-      yield();
       server.close();
     }
 

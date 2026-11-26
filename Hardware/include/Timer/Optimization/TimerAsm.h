@@ -15,6 +15,7 @@
 #pragma once
 
 #include <cstdint>
+#include "Optimization/CompilerTraits.h"
 
 namespace uniuno {
 namespace asm_opt {
@@ -28,7 +29,7 @@ namespace asm_opt {
  * OPTIMIZATION: Uses direct comparison without function call overhead
  * SPEED: 2x faster than C++ comparison
  */
-inline bool is_timer_expired(unsigned long current_time, unsigned long next_call_ms) {
+FORCE_INLINE bool is_timer_expired(unsigned long current_time, unsigned long next_call_ms) {
     // INPUT: a2 = current_time, a3 = next_call_ms
     // OUTPUT: a2 = result (1 if expired, 0 if not)
     // LOGIC: return (current_time >= next_call_ms)
@@ -85,92 +86,70 @@ inline uint32_t bit_to_slot_index(uint32_t single_bit) {
  * OPTIMIZATION: Single instruction bit test
  * SPEED: 3x faster than C++ bit operations
  */
-inline bool test_bitmap_bit(uint32_t bitmap, size_t index) {
-    // INPUT: a2 = bitmap, a3 = index
-    // OUTPUT: a2 = result (1 if set, 0 if clear)
-    
-    if (index >= 32) return false;
-    
+FORCE_INLINE bool test_bitmap_bit(uint32_t bitmap, size_t index) {
+    if (UNLIKELY(index >= 32)) return false;
+#if defined(__XTENSA__) || defined(ESP32)
+    uint32_t shifted;
     bool result;
-    
-    #if defined(__XTENSA__) || defined(ESP32)
     asm volatile (
-        "ssr    %[idx]                 \n"  // Set shift amount register
-        "srl    a4, %[bmp]             \n"  // Shift right by index
-        "extui  %[res], a4, 0, 1       \n"  // Extract bit 0
-        : [res] "=r" (result)
+        "ssr    %[idx]                 \n"
+        "srl    %[sh], %[bmp]          \n"
+        "extui  %[res], %[sh], 0, 1    \n"
+        : [res] "=r" (result), [sh] "=&r" (shifted)
         : [bmp] "r" (bitmap), [idx] "r" (index)
-        : "a4"
     );
-    #else
-    result = (bitmap & (1UL << index)) != 0;
-    #endif
-    
     return result;
+#else
+    return (bitmap & (1UL << index)) != 0;
+#endif
 }
 
 /**
- * @brief Fast bitmap bit set
- * @param bitmap Reference to 32-bit bitmap
- * @param index Bit position (0-31)
- * 
- * OPTIMIZATION: Single instruction bit set
- * SPEED: 2x faster than C++ bit operations
+ * @brief Fast bitmap bit set (compiler-allocated registers, no hardcoded clobbers)
  */
-inline void set_bitmap_bit(uint32_t& bitmap, size_t index) {
-    // INPUT: a2 = &bitmap, a3 = index
-    // SIDE EFFECT: Sets bit at index in bitmap
-    
-    if (index >= 32) return;
-    
-    #if defined(__XTENSA__) || defined(ESP32)
+FORCE_INLINE void set_bitmap_bit(uint32_t& bitmap, size_t index) {
+    if (UNLIKELY(index >= 32)) return;
+#if defined(__XTENSA__) || defined(ESP32)
+    uint32_t mask, val;
     asm volatile (
-        "movi   a4, 1                  \n"  // a4 = 1
-        "ssl    %[idx]                 \n"  // Set shift amount register
-        "sll    a4, a4                 \n"  // a4 = 1 << index
-        "l32i   a5, %[bmp], 0          \n"  // Load bitmap
-        "or     a5, a5, a4             \n"  // Set bit
-        "s32i   a5, %[bmp], 0          \n"  // Store bitmap
-        :
+        "movi   %[m], 1                \n"
+        "ssl    %[idx]                 \n"
+        "sll    %[m], %[m]             \n"
+        "l32i   %[v], %[bmp], 0        \n"
+        "or     %[v], %[v], %[m]       \n"
+        "s32i   %[v], %[bmp], 0        \n"
+        : [m] "=&r" (mask), [v] "=&r" (val)
         : [bmp] "r" (&bitmap), [idx] "r" (index)
-        : "a4", "a5", "memory"
+        : "memory"
     );
-    #else
+#else
     bitmap |= (1UL << index);
-    #endif
+#endif
 }
 
 /**
- * @brief Fast bitmap bit clear
- * @param bitmap Reference to 32-bit bitmap
- * @param index Bit position (0-31)
- * 
- * OPTIMIZATION: Single instruction bit clear
- * SPEED: 2x faster than C++ bit operations
+ * @brief Fast bitmap bit clear (compiler-allocated registers, no hardcoded clobbers)
  */
-inline void clear_bitmap_bit(uint32_t& bitmap, size_t index) {
-    // INPUT: a2 = &bitmap, a3 = index
-    // SIDE EFFECT: Clears bit at index in bitmap
-    
-    if (index >= 32) return;
-    
-    #if defined(__XTENSA__) || defined(ESP32)
+FORCE_INLINE void clear_bitmap_bit(uint32_t& bitmap, size_t index) {
+    if (UNLIKELY(index >= 32)) return;
+#if defined(__XTENSA__) || defined(ESP32)
+    uint32_t mask, val;
     asm volatile (
-        "movi   a4, 1                  \n"  // a4 = 1
-        "ssl    %[idx]                 \n"  // Set shift amount register
-        "sll    a4, a4                 \n"  // a4 = 1 << index
-        "movi   a5, -1                 \n"  // a5 = -1 (0xFFFFFFFF)
-        "xor    a4, a4, a5             \n"  // a4 = ~a4 (invert mask)
-        "l32i   a5, %[bmp], 0          \n"  // Load bitmap
-        "and    a5, a5, a4             \n"  // Clear bit
-        "s32i   a5, %[bmp], 0          \n"  // Store bitmap
-        :
+        "movi   %[m], 1                \n"
+        "ssl    %[idx]                 \n"
+        "sll    %[m], %[m]             \n"
+        "movi   %[v], -1               \n"
+        "xor    %[m], %[m], %[v]       \n"
+        "l32i   %[v], %[bmp], 0        \n"
+        "and    %[v], %[v], %[m]       \n"
+        "s32i   %[v], %[bmp], 0        \n"
+        : [m] "=&r" (mask), [v] "=&r" (val)
         : [bmp] "r" (&bitmap), [idx] "r" (index)
-        : "a4", "a5", "memory"
+        : "memory"
     );
-    #else
+#else
     bitmap &= ~(1UL << index);
-    #endif
+#endif
 }
 
 /**
@@ -258,7 +237,7 @@ inline void fast_process_call(ManagerType* manager, unsigned long cached_time) {
  * OPTIMIZATION: Direct special register read without function or division overhead
  * SPEED: 1 CPU cycle (~4.16ns at 240MHz)
  */
-inline uint32_t get_cpu_cycle_count() {
+FORCE_INLINE uint32_t get_cpu_cycle_count() {
     uint32_t ccount;
 #if defined(__XTENSA__) || defined(ESP32)
     asm volatile("rsr %0, ccount" : "=r"(ccount));
@@ -286,7 +265,7 @@ constexpr uint32_t ms_to_cycles(uint32_t ms) {
  * Uses full unsigned 32-bit modular subtraction (wrap-safe up to ~17.89s at 240MHz).
  * Must be called consistently on the same CPU core (e.g. Arduino loopTask on Core 1).
  */
-inline bool is_cycle_interval_elapsed(uint32_t now_cycles, uint32_t& last_cycle, uint32_t interval_cycles) {
+FORCE_INLINE bool is_cycle_interval_elapsed(uint32_t now_cycles, uint32_t& last_cycle, uint32_t interval_cycles) {
 #if defined(__XTENSA__) || defined(ESP32)
     if (static_cast<uint32_t>(now_cycles - last_cycle) >= interval_cycles) {
         last_cycle = now_cycles;

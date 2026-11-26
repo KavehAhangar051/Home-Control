@@ -20,9 +20,10 @@ namespace websockets {
     // This message can be partial (so practically this is a Frame and not a message)
     struct WebsocketsMessage {
         WebsocketsMessage(MessageType msgType, const WSString& msgData, MessageRole msgRole = MessageRole::Complete) : _type(msgType), _length(msgData.size()), _data(msgData), _role(msgRole) {}
-        WebsocketsMessage() : WebsocketsMessage(MessageType::Empty, "", MessageRole::Complete) {}
+        WebsocketsMessage(MessageType msgType, WSString&& msgData, MessageRole msgRole = MessageRole::Complete) : _type(msgType), _length(msgData.size()), _data(std::move(msgData)), _role(msgRole) {}
+        WebsocketsMessage() : WebsocketsMessage(MessageType::Empty, WSString(), MessageRole::Complete) {}
 
-        static WebsocketsMessage CreateFromFrame(internals::WebsocketsFrame frame, MessageType overrideType = MessageType::Empty) {
+        static WebsocketsMessage CreateFromFrame(internals::WebsocketsFrame&& frame, MessageType overrideType = MessageType::Empty) {
             auto type = overrideType;
             if(type == MessageType::Empty) {
                 type = messageTypeFromOpcode(frame.opcode);
@@ -78,7 +79,7 @@ namespace websockets {
         public:
             StreamBuilder(bool dummyMode = false) : _dummyMode(dummyMode), _empty(true) {}
 
-            void first(const internals::WebsocketsFrame& frame) {
+            void first(internals::WebsocketsFrame& frame) {
                 if(this->_empty == false) {
                     badFragment();
                     return;
@@ -102,7 +103,7 @@ namespace websockets {
                 }
             }
 
-            void append(const internals::WebsocketsFrame& frame) {
+            void append(internals::WebsocketsFrame& frame) {
                 if(isErrored()) return;
                 if(isEmpty() || isComplete()) {
                     badFragment();
@@ -111,14 +112,14 @@ namespace websockets {
 
                 if(frame.isContinuesFragment()) {
                     if(this->_dummyMode == false) {
-                        this->_content += std::move(frame.payload);
+                        this->_content += frame.payload;
                     }
                 } else {
                     badFragment();
                 }
             }
 
-            void end(const internals::WebsocketsFrame& frame) {
+            void end(internals::WebsocketsFrame& frame) {
                 if(isErrored()) return;
                 if(isEmpty() || isComplete()) {
                     badFragment();
@@ -127,7 +128,7 @@ namespace websockets {
 
                 if(frame.isEndOfFragmentsStream()) {
                     if(this->_dummyMode == false) {
-                        this->_content += std::move(frame.payload);
+                        this->_content += frame.payload;
                     }
                     this->_isComplete = true;
                 } else {

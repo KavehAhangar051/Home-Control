@@ -4,37 +4,30 @@ Ultra-optimized, zero-heap asynchronous TCP library for Espressif ESP32 dual-cor
 
 ---
 
-## 🚀 5-Stage Optimization Architecture
+## 🚀 5-Stage Hot-Path Optimization Architecture (Pass 2 Deepening)
 
-### 1. Integration with Custom Optimization Infrastructure
-- **`FastFunction<..., 64>` Callbacks**: Replaced all 8 instances of standard `std::function` with 64-byte Small Buffer Optimization (SBO) closures, eliminating heap allocations for lambdas with captures.
-- **Hardware Loop Memory Copying**: Integrated `uniuno::xtensa_asm::asm_copy_words` with Xtensa zero-overhead hardware loops (`loopnez`) and dual-word interleaved `l32i`/`s32i`.
-- **Branchless Hardware Timer Expiration**: Integrated `uniuno::asm_opt::is_timer_expired` for connection and ACK timeout checks.
+### 1. Zero-Heap Two-Priority DRAM Event Ring & TaskNotify ([`AsyncEventRing.h`](AsyncEventRing.h))
+- Replaced the dual overhead of `s_event_packet_pool`/`s_pool_stack` + FreeRTOS `xQueueSend`/`xQueueReceive` with a bounded power-of-2 DRAM ring buffer pair (`kNormRingCap = 256`, `kHighRingCap = 32`) in `MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT`.
+- Added **sleeping-state coalesced wakeups** (`xTaskNotifyGive` / `ulTaskNotifyTake`): producer callbacks on Core 0 only notify `async_tcp` when it is asleep; during packet bursts, zero FreeRTOS kernel wakeup calls occur.
+- Added **Batch Drain loop** inside `_async_service_task` to drain all ready queued packets continuously before sleeping.
+- Fixed null-pointer crash risks on extreme queue bursts (`ERR_MEM` returned cleanly to LwIP `_tcp_recv` so `refused_data` retains the `pbuf` without dropping/leaking data) and fixed `pbuf` leaks during `clear_events_for_arg()`.
 
-### 2. Memory-for-Speed (RAM Sacrifice)
-- **Static DRAM Object Pool**: Pre-allocated 256-element packet pool (`s_event_packet_pool[256]`) eliminating 100% of dynamic `malloc()` and `free()` operations on network event paths.
-- **Spinlock Protected Allocation**: Replaced FreeRTOS binary semaphores with `portMUX_TYPE` fast spinlocks (~15 CPU cycles per allocation).
-- **Eliminated WDT Bookkeeping Overhead**: Subscribed the background task to the task watchdog once at creation and reset periodically, saving 33µs to 200µs on every event packet.
-- **Look-Up Tables (LUT)**: Replaced linear switch statements in `stateToString()` and `errorToString()` with $O(1)$ constant-time DRAM arrays.
-- **Chained PBUF Batch ACKs**: Aggregates chained multi-segment `pbuf` chunks and issues a single `_tcp_recved` IPC call per chain.
+### 2. Coalesced Non-Blocking RX Window ACK (`_tcp_recved` without `sys_sem` allocation)
+- Because Arduino-ESP32 `sdkconfig.h` compiles `liblwip.a` with `LWIP_NETCONN_SEM_PER_THREAD = 0` and `LWIP_TCPIP_CORE_LOCKING = 0`, every `tcpip_api_call` allocates and deletes a FreeRTOS semaphore inside LwIP and blocks Core 1.
+- Added `AsyncSlotEntry s_slots[CONFIG_LWIP_MAX_ACTIVE_TCP]` tracking generation IDs, active `pcb`, and `pending_recved` bytes; `_tcp_recved` coalesces multiple RX ACKs and schedules a single non-blocking `tcpip_try_callback` (`_tcp_recved_async_cb`), allocating closed slots on both outgoing `_connect()` and incoming server `_accept()`.
+- Fixed `ackPacket()` to use `pb->tot_len` for multi-segment `pbuf` chains.
 
-### 3. Architecture & Infrastructure Refactoring
-- **Atomic Combined Write & Output (`_tcp_write_and_output`)**: Merged `add()` and `send()` into an atomic LwIP IPC call inside `AsyncClient::write()`, slashing cross-core FreeRTOS task switches and semaphore waits by **50%**.
-- **Dual-Core Pipelined Affinity (`CONFIG_ASYNC_TCP_RUNNING_CORE = 1`)**: Pinned `async_tcp` service task to Core 1. Core 0 is 100% dedicated to hardware Wi-Fi PHY/MAC and LwIP networking, eliminating task migration and L1 CPU cache invalidation.
-- **Selective Smart Polling (`hasPollInterest()`)**: Skips `LWIP_TCP_POLL` event allocation when sockets are idle without pending timeouts or callbacks, preventing hundreds of background wakeups per second.
-- **Deadlock Immunity**: Protected queue operations with bounded timeouts rather than `portMAX_DELAY`.
+### 3. Division-Free Hot-Path Timestamps & Single-Shot Loop Timing ([`AsyncTcpAsm.h`](AsyncTcpAsm.h))
+- Replaced `millis()` (which performs 64-bit software division `__udivdi3` on Xtensa LX6) in RX/TX/write/send/poll hot paths with `fast_millis()` reading `xTaskGetTickCount()` directly (`CONFIG_FREERTOS_HZ == 1000`).
+- Moved timestamp capture out of the inner chained-`pbuf` loop in `AsyncClient::_recv`.
 
-### 4. Low-Level Xtensa LX6 Hardware Assembly
-- **`AsyncTcpAsm.h`**:
-  - `asm_min`: Branchless conditional move (`movltz`) calculating minimum buffer sizes with zero branch mispredictions.
-  - `asm_in_range`: Single-instruction unsigned range check replacing two conditional branches.
-- **Streamlined Packet Dispatch**: Direct fall-through path for `LWIP_TCP_RECV` and `LWIP_TCP_SENT` (99.5% of network traffic), bypassing indirect jump table lookups (`jx`).
-- **Timer Call Reduction**: Consolidated redundant 64-bit hardware timer divisions in `_sent` into a single register-cached timestamp.
+### 4. Low-Level Xtensa LX6 ASM & Cache-Line Packing ([`AsyncTcpAsm.h`](AsyncTcpAsm.h), [`AsyncTCP.h`](AsyncTCP.h))
+- Added 4-byte aligned `asm_strlen()` (Mycroft zero-byte word detection) for `AsyncClient::write(const char*)` alongside `asm_min()` (`movltz`), `asm_in_range()`, and `uniuno::xtensa_asm::asm_copy_words` (`loopnez`) for 32-byte event ring transfers.
+- Packed `AsyncClient` hot scalar fields (`_pcb`, `_closed_slot`, `_ack_pcb`, `_tx_last_packet`, `_rx_ack_len`, `_rx_last_packet`, `_rx_timeout`, `_rx_last_ack`, `_ack_timeout`) into the first 32-byte cache line ahead of cold callbacks.
 
-### 5. OOP Cleanliness, Modularity & Portability
-- Self-contained in `Hardware/include/AsyncTCP/`.
-- Original upstream code preserved in `Hardware/include/AsyncTCP/original/` for regression reference.
-- Standard Doxygen documentation for all public and private contracts.
+### 5. Hot-Path Inlining (`AsyncTCP.h`) & Build Verification
+- Removed unused `<functional>` header and moved hot queries (`canSend()`, `space()`, `state()`, `connected()`, `freeable()`, `hasPollInterest()`, `getMss()`) to `FORCE_INLINE` definitions inside `AsyncTCP.h` (requires `#include "lwip/tcp.h"`).
+- **Verified Build (`esp32dev`, PlatformIO):** `[SUCCESS]` — zero warnings in `AsyncTCP` files; `RAM: 36.3% (119,028 B)`, `Flash: 62.2% (1,223,597 B)`. Note: runtime on physical ESP32 hardware was not executed here.
 
 ---
 

@@ -24,7 +24,7 @@
 
 #include "IPAddress.h"
 #include "IPv6Address.h"
-#include <functional>
+    // <functional> removed: all callbacks use zero-heap FastFunction SBO
 #include "lwip/ip_addr.h"
 #include "lwip/ip6_addr.h"
 
@@ -33,6 +33,7 @@
 extern "C" {
     #include "freertos/semphr.h"
     #include "lwip/pbuf.h"
+    #include "lwip/tcp.h"
 }
 #else
 extern "C" {
@@ -94,8 +95,13 @@ class AsyncClient {
     int8_t abort();
     bool free();
 
-    bool canSend();//ack is not pending
-    size_t space();//space available in the TCP window
+    FORCE_INLINE bool canSend() { return space() > 0; } //ack is not pending
+    FORCE_INLINE size_t space() { //space available in the TCP window
+        if (LIKELY((_pcb != nullptr) && (_pcb->state == 4))) {
+            return tcp_sndbuf(_pcb);
+        }
+        return 0;
+    }
     size_t add(const char* data, size_t size, uint8_t apiflags=ASYNC_WRITE_FLAG_COPY);//add for sending
     bool send();//send all data added with the method above
 
@@ -103,15 +109,22 @@ class AsyncClient {
     size_t write(const char* data);
     size_t write(const char* data, size_t size, uint8_t apiflags=ASYNC_WRITE_FLAG_COPY); //only when canSend() == true
 
-    uint8_t state();
+    FORCE_INLINE uint8_t state() { return _pcb ? _pcb->state : 0; }
     bool connecting();
-    bool connected();
+    FORCE_INLINE bool connected() { return LIKELY(_pcb != nullptr) && (_pcb->state == 4); }
     bool disconnecting();
     bool disconnected();
-    bool freeable();//disconnected or disconnecting
-    bool hasPollInterest() const;
+    FORCE_INLINE bool freeable() { return (!_pcb) || (_pcb->state == 0 || _pcb->state > 4); } //disconnected or disconnecting
+    FORCE_INLINE bool hasPollInterest() const {
+        if (static_cast<bool>(_poll_cb) || _rx_timeout != 0) return true;
+        if (_ack_timeout != 0) {
+            const uint32_t one_day = 86400000U;
+            if ((_rx_last_ack - _tx_last_packet + one_day) < one_day) return true;
+        }
+        return false;
+    }
 
-    uint16_t getMss();
+    FORCE_INLINE uint16_t getMss() { return _pcb ? tcp_mss(_pcb) : 0; }
 
     uint32_t getRxTimeout();
     void setRxTimeout(uint32_t timeout);//no RX data timeout for the connection in seconds
@@ -171,34 +184,37 @@ class AsyncClient {
   protected:
     bool _connect(ip_addr_t addr, uint16_t port);
 
+    // Cache-line packed hot scalar fields (first 32B cache line)
     tcp_pcb* _pcb;
-    int8_t  _closed_slot;
-
-    AcConnectHandler _connect_cb;
-    void* _connect_cb_arg;
-    AcConnectHandler _discard_cb;
-    void* _discard_cb_arg;
-    AcAckHandler _sent_cb;
-    void* _sent_cb_arg;
-    AcErrorHandler _error_cb;
-    void* _error_cb_arg;
-    AcDataHandler _recv_cb;
-    void* _recv_cb_arg;
-    AcPacketHandler _pb_cb;
-    void* _pb_cb_arg;
-    AcTimeoutHandler _timeout_cb;
-    void* _timeout_cb_arg;
-    AcConnectHandler _poll_cb;
-    void* _poll_cb_arg;
-
-    bool _ack_pcb;
+    int8_t   _closed_slot;
+    bool     _ack_pcb;
+    uint16_t _connect_port;
     uint32_t _tx_last_packet;
     uint32_t _rx_ack_len;
     uint32_t _rx_last_packet;
     uint32_t _rx_timeout;
     uint32_t _rx_last_ack;
     uint32_t _ack_timeout;
-    uint16_t _connect_port;
+
+    // Hot-path callbacks clustered immediately after hot scalars
+    AcDataHandler    _recv_cb;
+    void*            _recv_cb_arg;
+    AcAckHandler     _sent_cb;
+    void*            _sent_cb_arg;
+    AcConnectHandler _poll_cb;
+    void*            _poll_cb_arg;
+
+    // Lifecycle / cold callbacks
+    AcPacketHandler  _pb_cb;
+    void*            _pb_cb_arg;
+    AcConnectHandler _connect_cb;
+    void*            _connect_cb_arg;
+    AcConnectHandler _discard_cb;
+    void*            _discard_cb_arg;
+    AcErrorHandler   _error_cb;
+    void*            _error_cb_arg;
+    AcTimeoutHandler _timeout_cb;
+    void*            _timeout_cb_arg;
 
     int8_t _close();
     void _free_closed_slot();

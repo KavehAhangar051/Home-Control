@@ -10,10 +10,26 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include <Optimization/CompilerTraits.h>
+#include <Optimization/XtensaMemAsm.h>
 
 namespace uniuno {
 namespace asyncmqtt_asm {
+
+/**
+ * @brief Division-free millisecond timestamp using FreeRTOS 1000Hz tick count.
+ */
+FORCE_INLINE uint32_t fast_millis() {
+#if defined(CONFIG_FREERTOS_HZ) && (CONFIG_FREERTOS_HZ == 1000)
+    return static_cast<uint32_t>(xTaskGetTickCount());
+#elif defined(portTICK_PERIOD_MS)
+    return static_cast<uint32_t>(xTaskGetTickCount() * portTICK_PERIOD_MS);
+#else
+    return 0U;
+#endif
+}
 
 /**
  * @brief Fast branchless minimum calculation.

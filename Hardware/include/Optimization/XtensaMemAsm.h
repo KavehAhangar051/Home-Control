@@ -18,12 +18,50 @@ namespace xtensa_asm {
 FORCE_INLINE void asm_zero_words(uint32_t* __restrict__ dst, uint32_t words) {
   if (UNLIKELY(words == 0)) return;
 #if defined(__XTENSA__) || defined(ESP32)
-  for (uint32_t i = 0; i < words; ++i) {
-    dst[i] = 0;
+  const uint32_t pairs = words >> 1;
+  if (LIKELY(pairs > 0)) {
+    uint32_t z = 0;
+    asm volatile (
+      "loopnez %[cnt], 1f     \n"
+      "s32i    %[z], %[d], 0  \n"
+      "s32i    %[z], %[d], 4  \n"
+      "addi    %[d], %[d], 8  \n"
+      "1:                     \n"
+      : [d] "+&r" (dst)
+      : [cnt] "r" (pairs), [z] "r" (z)
+      : "memory"
+    );
+  }
+  if (words & 1U) {
+    *dst = 0;
   }
 #else
   std::memset(dst, 0, static_cast<std::size_t>(words) * 4);
 #endif
+}
+
+/**
+ * @brief Fast 4-byte aligned string length scanner (word-wise Mycroft zero-byte check).
+ */
+FORCE_INLINE std::size_t asm_strlen(const char* str) {
+  if (UNLIKELY(str == nullptr)) return 0;
+  const char* p = str;
+  while ((reinterpret_cast<std::uintptr_t>(p) & 3U) != 0U) {
+    if (*p == '\0') return static_cast<std::size_t>(p - str);
+    ++p;
+  }
+  const uint32_t* wp = reinterpret_cast<const uint32_t*>(p);
+  for (;;) {
+    const uint32_t v = *wp;
+    if (UNLIKELY(((v - 0x01010101U) & ~v & 0x80808080U) != 0U)) {
+      const char* bp = reinterpret_cast<const char*>(wp);
+      if (bp[0] == '\0') return static_cast<std::size_t>(bp - str);
+      if (bp[1] == '\0') return static_cast<std::size_t>(bp + 1 - str);
+      if (bp[2] == '\0') return static_cast<std::size_t>(bp + 2 - str);
+      return static_cast<std::size_t>(bp + 3 - str);
+    }
+    ++wp;
+  }
 }
 
 FORCE_INLINE void asm_copy_words(uint32_t* __restrict__ dst, const uint32_t* __restrict__ src, uint32_t words) {

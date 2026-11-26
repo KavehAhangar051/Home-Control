@@ -1,4 +1,5 @@
 #include <tiny_websockets/internals/ws_common.hpp>
+#include <Optimization/XtensaMemAsm.h>
 #include <tiny_websockets/network/tcp_client.hpp>
 #include <tiny_websockets/message.hpp>
 #include <tiny_websockets/client.hpp>
@@ -368,12 +369,16 @@ namespace websockets {
 
     bool WebsocketsClient::poll() {
         bool messageReceived = false;
-        while(available() && _endpoint.poll()) {
+        static constexpr uint8_t kMaxFramesPerPoll = 8U;
+        uint8_t frames = 0U;
+        while(frames < kMaxFramesPerPoll && available() && _endpoint.poll()) {
             auto msg = _endpoint.recv();
             if(msg.isEmpty()) {
-                continue;
+                // Non-blocking: partial frame waiting for remaining bytes over socket
+                break;
             }
             messageReceived = true;
+            ++frames;
 
             if(msg.isBinary() || msg.isText()) {
                 this->_messagesCallback(*this, std::move(msg));
@@ -405,24 +410,20 @@ namespace websockets {
     }
 
     bool WebsocketsClient::send(const WSInterfaceString& data) {
-        auto str = internals::fromInterfaceString(data);
-        return this->send(str.c_str(), str.size());
+        return this->send(data.c_str(), data.length());
     }
 
     bool WebsocketsClient::send(const WSInterfaceString&& data) {
-        auto str = internals::fromInterfaceString(data);
-        return this->send(str.c_str(), str.size());
+        return this->send(data.c_str(), data.length());
     }
 
     bool WebsocketsClient::send(const char* data) {
-        return this->send(data, strlen(data));
+        return this->send(data, uniuno::xtensa_asm::asm_strlen(data));
     }
 
     bool WebsocketsClient::send(const char* data, const size_t len) {
-        if(available()) {
-            // if in normal mode
-            if(this->_sendMode == SendMode_Normal) {
-                // send a normal message
+        if(LIKELY(available())) {
+            if(LIKELY(this->_sendMode == SendMode_Normal)) {
                 return _endpoint.send(
                     data,
                     len,
@@ -430,9 +431,7 @@ namespace websockets {
                     true
                 );
             }
-            // if in streaming mode
             else if(this->_sendMode == SendMode_Streaming) {
-                // send a continue frame
                 return _endpoint.send(
                     data,
                     len,
@@ -444,16 +443,13 @@ namespace websockets {
         return false;
     }
 
-    bool WebsocketsClient::sendBinary(WSInterfaceString data) {
-        auto str = internals::fromInterfaceString(data);
-        return this->sendBinary(str.c_str(), str.size());
+    bool WebsocketsClient::sendBinary(const WSInterfaceString& data) {
+        return this->sendBinary(data.c_str(), data.length());
     }
 
     bool WebsocketsClient::sendBinary(const char* data, const size_t len) {
-        if(available()) {
-            // if in normal mode
-            if(this->_sendMode == SendMode_Normal) {
-                // send a normal message
+        if(LIKELY(available())) {
+            if(LIKELY(this->_sendMode == SendMode_Normal)) {
                 return _endpoint.send(
                     data,
                     len,
@@ -461,9 +457,7 @@ namespace websockets {
                     true
                 );
             }
-            // if in streaming mode
             else if(this->_sendMode == SendMode_Streaming) {
-                // send a continue frame
                 return _endpoint.send(
                     data,
                     len,
@@ -475,11 +469,12 @@ namespace websockets {
         return false;
     }
 
-    bool WebsocketsClient::stream(const WSInterfaceString data) {
+    bool WebsocketsClient::stream(const WSInterfaceString& data) {
         if(available() && this->_sendMode == SendMode_Normal) {
             this->_sendMode = SendMode_Streaming;
             return _endpoint.send(
-                internals::fromInterfaceString(data),
+                data.c_str(),
+                data.length(),
                 internals::ContentType::Text,
                 false
             );
@@ -488,11 +483,12 @@ namespace websockets {
     }
 
 
-    bool WebsocketsClient::streamBinary(const WSInterfaceString data) {
+    bool WebsocketsClient::streamBinary(const WSInterfaceString& data) {
         if(available() && this->_sendMode == SendMode_Normal) {
             this->_sendMode = SendMode_Streaming;
             return _endpoint.send(
-                internals::fromInterfaceString(data),
+                data.c_str(),
+                data.length(),
                 internals::ContentType::Binary,
                 false
             );
@@ -500,11 +496,12 @@ namespace websockets {
         return false;
     }
 
-    bool WebsocketsClient::end(const WSInterfaceString data) {
+    bool WebsocketsClient::end(const WSInterfaceString& data) {
         if(available() && this->_sendMode == SendMode_Streaming) {
             this->_sendMode = SendMode_Normal;
             return _endpoint.send(
-                internals::fromInterfaceString(data),
+                data.c_str(),
+                data.length(),
                 internals::ContentType::Continuation,
                 true
             );
@@ -517,13 +514,13 @@ namespace websockets {
     }
 
     bool WebsocketsClient::available(const bool activeTest) {
-        if(activeTest)  {
-            _endpoint.ping("");
+        if(UNLIKELY(activeTest))  {
+            _endpoint.ping("", 0U);
         }
 
-        bool updatedConnectionOpen = this->_connectionOpen && this->_client && this->_client->available();
+        const bool updatedConnectionOpen = this->_connectionOpen && this->_client && this->_client->available();
 
-        if(updatedConnectionOpen != this->_connectionOpen) {
+        if(UNLIKELY(updatedConnectionOpen != this->_connectionOpen)) {
             _endpoint.close(CloseReason_AbnormalClosure);
             this->_eventsCallback(*this, WebsocketsEvent::ConnectionClosed, "");
         }
@@ -532,16 +529,16 @@ namespace websockets {
         return this->_connectionOpen;
     }
 
-    bool WebsocketsClient::ping(const WSInterfaceString data) {
-        if(available()) {
-            return _endpoint.ping(internals::fromInterfaceString(data));
+    bool WebsocketsClient::ping(const WSInterfaceString& data) {
+        if(LIKELY(available())) {
+            return _endpoint.ping(data.c_str(), data.length());
         }
         return false;
     }
 
-    bool WebsocketsClient::pong(const WSInterfaceString data) {
-        if(available()) {
-            return _endpoint.pong(internals::fromInterfaceString(data));
+    bool WebsocketsClient::pong(const WSInterfaceString& data) {
+        if(LIKELY(available())) {
+            return _endpoint.pong(data.c_str(), data.length());
         }
         return false;
     }

@@ -378,8 +378,9 @@ void AsyncMqttClient::_onAck(AsyncClient* client, size_t len, uint32_t time) {
   (void)time;
 }
 
-void AsyncMqttClient::_onData(AsyncClient* client, uint8_t* data, size_t len) {
+HOT_PATH void AsyncMqttClient::_onData(AsyncClient* client, uint8_t* data, size_t len) {
   (void)client;
+  const uint32_t now = uniuno::asyncmqtt_asm::fast_millis();
   size_t currentBytePosition = 0;
   uint8_t currentByte;
   do {
@@ -388,7 +389,7 @@ void AsyncMqttClient::_onData(AsyncClient* client, uint8_t* data, size_t len) {
         currentByte = data[currentBytePosition++];
         uniuno::asyncmqtt_asm::asm_extract_header(currentByte, _parsingInformation.packetType, _parsingInformation.packetFlags);
         _parsingInformation.bufferState = AsyncMqttClientInternals::BufferState::REMAINING_LENGTH;
-        _lastServerActivity = millis();
+        _lastServerActivity = now;
         switch (_parsingInformation.packetType) {
           case AsyncMqttClientInternals::PacketType.CONNACK:
             _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::ConnAckPacket(&_parsingInformation, [this](bool sessionPresent, uint8_t connectReturnCode) {
@@ -471,24 +472,21 @@ void AsyncMqttClient::_onData(AsyncClient* client, uint8_t* data, size_t len) {
   } while (currentBytePosition != len);
 }
 
-void AsyncMqttClient::_onPoll(AsyncClient* client) {
+HOT_PATH void AsyncMqttClient::_onPoll(AsyncClient* client) {
   if (!_connected) return;
 
-  // if there is too much time the client has sent a ping request without a response, disconnect client to avoid half open connections
-  if (_lastPingRequestTime != 0 && (millis() - _lastPingRequestTime) >= (_keepAlive * 1000 * 2)) {
+  const uint32_t now = uniuno::asyncmqtt_asm::fast_millis();
+  const uint32_t ka2x = static_cast<uint32_t>(_keepAlive) * 2000U;
+  const uint32_t ka70 = static_cast<uint32_t>(_keepAlive) * 700U;
+
+  // Disconnect if ping response overdue
+  if (UNLIKELY(_lastPingRequestTime != 0 && (now - _lastPingRequestTime) >= ka2x)) {
     disconnect();
     return;
-  // send ping to ensure the server will receive at least one message inside keepalive window
-  } else if (_lastPingRequestTime == 0 && (millis() - _lastClientActivity) >= (_keepAlive * 1000 * 0.7)) {
-    _sendPing();
-
-  // send ping to verify if the server is still there (ensure this is not a half connection)
-  } else if (_connected && _lastPingRequestTime == 0 && (millis() - _lastServerActivity) >= (_keepAlive * 1000 * 0.7)) {
+  } else if (_lastPingRequestTime == 0 &&
+             ((now - _lastClientActivity) >= ka70 || (now - _lastServerActivity) >= ka70)) {
     _sendPing();
   }
-
-
-  // handle to send ack packets
 
   _sendAcks();
 
@@ -533,7 +531,7 @@ void AsyncMqttClient::_onMessage(char* topic, char* payload, uint8_t qos, bool d
   bool notifyPublish = true;
 
   if (qos == 2) {
-    for (AsyncMqttClientInternals::PendingPubRel pendingPubRel : _pendingPubRels) {
+    for (const auto& pendingPubRel : _pendingPubRels) {
       if (pendingPubRel.packetId == packetId) {
         notifyPublish = false;
         break;
@@ -566,7 +564,7 @@ void AsyncMqttClient::_onPublish(uint16_t packetId, uint8_t qos) {
     _toSendAcks.push_back(pendingAck);
 
     bool pubRelAwaiting = false;
-    for (AsyncMqttClientInternals::PendingPubRel pendingPubRel : _pendingPubRels) {
+    for (const auto& pendingPubRel : _pendingPubRels) {
       if (pendingPubRel.packetId == packetId) {
         pubRelAwaiting = true;
         break;
@@ -596,8 +594,8 @@ void AsyncMqttClient::_onPubRel(uint16_t packetId) {
 
   for (size_t i = 0; i < _pendingPubRels.size(); i++) {
     if (_pendingPubRels[i].packetId == packetId) {
-      _pendingPubRels.erase(_pendingPubRels.begin() + i);
-      _pendingPubRels.shrink_to_fit();
+      _pendingPubRels.erase_unordered(i);
+      break;
     }
   }
 
@@ -629,53 +627,57 @@ void AsyncMqttClient::_onPubComp(uint16_t packetId) {
 }
 
 bool AsyncMqttClient::_sendPing() {
-  char fixedHeader[2];
-  fixedHeader[0] = AsyncMqttClientInternals::PacketType.PINGREQ;
-  fixedHeader[0] = fixedHeader[0] << 4;
-  fixedHeader[0] = fixedHeader[0] | AsyncMqttClientInternals::HeaderFlag.PINGREQ_RESERVED;
-  fixedHeader[1] = 0;
-
-  size_t neededSpace = 2;
+  const char fixedHeader[2] = {
+    static_cast<char>((AsyncMqttClientInternals::PacketType.PINGREQ << 4) | AsyncMqttClientInternals::HeaderFlag.PINGREQ_RESERVED),
+    0
+  };
 
   SEMAPHORE_TAKE(false);
-  if (_client.space() < neededSpace) { SEMAPHORE_GIVE(); return false; }
+  if (_client.space() < 2U) { SEMAPHORE_GIVE(); return false; }
 
-  _client.add(fixedHeader, 2);
-  _client.send();
-  _lastClientActivity = millis();
-  _lastPingRequestTime = millis();
+  _client.write(fixedHeader, 2U);
+  const uint32_t now = uniuno::asyncmqtt_asm::fast_millis();
+  _lastClientActivity = now;
+  _lastPingRequestTime = now;
 
   SEMAPHORE_GIVE();
   return true;
 }
 
 void AsyncMqttClient::_sendAcks() {
-  uint8_t neededAckSpace = 2 + 2;
+  if (_toSendAcks.empty()) return;
 
   SEMAPHORE_TAKE();
-  for (size_t i = 0; i < _toSendAcks.size(); i++) {
-    if (_client.space() < neededAckSpace) break;
+  const size_t totalAcks = _toSendAcks.size();
+  const size_t availSpace = _client.space();
+  const size_t maxBySpace = availSpace >> 2;
+  const size_t sendCount = uniuno::asyncmqtt_asm::asm_min(totalAcks, maxBySpace);
 
-    AsyncMqttClientInternals::PendingAck pendingAck = _toSendAcks[i];
+  if (sendCount > 0U) {
+    // Batch up to 32 ACKs (128 bytes) into one atomic tcp_write+tcp_output IPC
+    char ackBuf[128];
+    size_t idx = 0U;
+    while (idx < sendCount) {
+      const size_t batch = uniuno::asyncmqtt_asm::asm_min(sendCount - idx, static_cast<size_t>(32U));
+      for (size_t j = 0U; j < batch; ++j) {
+        const auto& pendingAck = _toSendAcks[idx + j];
+        char* p = ackBuf + (j << 2);
+        p[0] = static_cast<char>((pendingAck.packetType << 4) | pendingAck.headerFlag);
+        p[1] = 2;
+        uniuno::asyncmqtt_asm::asm_split_uint16(pendingAck.packetId, p[2], p[3]);
+      }
+      _client.write(ackBuf, batch << 2);
+      idx += batch;
+    }
 
-    char fixedHeader[2];
-    fixedHeader[0] = pendingAck.packetType;
-    fixedHeader[0] = fixedHeader[0] << 4;
-    fixedHeader[0] = fixedHeader[0] | pendingAck.headerFlag;
-    fixedHeader[1] = 2;
-
-    char packetIdBytes[2];
-    packetIdBytes[0] = pendingAck.packetId >> 8;
-    packetIdBytes[1] = pendingAck.packetId & 0xFF;
-
-    _client.add(fixedHeader, 2);
-    _client.add(packetIdBytes, 2);
-    _client.send();
-
-    _toSendAcks.erase(_toSendAcks.begin() + i);
-    _toSendAcks.shrink_to_fit();
-
-    _lastClientActivity = millis();
+    if (LIKELY(sendCount == totalAcks)) {
+      _toSendAcks.clear();
+    } else {
+      for (size_t rem = sendCount; rem > 0U; --rem) {
+        _toSendAcks.erase(static_cast<std::size_t>(0));
+      }
+    }
+    _lastClientActivity = uniuno::asyncmqtt_asm::fast_millis();
   }
   SEMAPHORE_GIVE();
 }
@@ -786,11 +788,18 @@ uint16_t AsyncMqttClient::subscribe(const char* topic, uint8_t qos) {
   subHeaderBuf[subHLen++] = topicLengthBytes[0];
   subHeaderBuf[subHLen++] = topicLengthBytes[1];
 
-  _client.add(subHeaderBuf, subHLen);
-  _client.add(topic, topicLength);
-  _client.add(qosByte, 1);
-  _client.send();
-  _lastClientActivity = millis();
+  if (LIKELY(neededSpace <= 256U)) {
+    char txBuf[256];
+    memcpy(txBuf, subHeaderBuf, subHLen);
+    memcpy(txBuf + subHLen, topic, topicLength);
+    txBuf[subHLen + topicLength] = qosByte[0];
+    _client.write(txBuf, neededSpace);
+  } else {
+    _client.add(subHeaderBuf, subHLen);
+    _client.add(topic, topicLength);
+    _client.write(qosByte, 1);
+  }
+  _lastClientActivity = uniuno::asyncmqtt_asm::fast_millis();
 
   SEMAPHORE_GIVE();
   return packetId;
@@ -831,65 +840,86 @@ uint16_t AsyncMqttClient::unsubscribe(const char* topic) {
   unsubHeaderBuf[unsubHLen++] = topicLengthBytes[0];
   unsubHeaderBuf[unsubHLen++] = topicLengthBytes[1];
 
-  _client.add(unsubHeaderBuf, unsubHLen);
-  _client.add(topic, topicLength);
-  _client.send();
-  _lastClientActivity = millis();
+  if (LIKELY(neededSpace <= 256U)) {
+    char txBuf[256];
+    memcpy(txBuf, unsubHeaderBuf, unsubHLen);
+    memcpy(txBuf + unsubHLen, topic, topicLength);
+    _client.write(txBuf, neededSpace);
+  } else {
+    _client.add(unsubHeaderBuf, unsubHLen);
+    _client.write(topic, topicLength);
+  }
+  _lastClientActivity = uniuno::asyncmqtt_asm::fast_millis();
 
   SEMAPHORE_GIVE();
   return packetId;
 }
 
-uint16_t AsyncMqttClient::publish(const char* topic, uint8_t qos, bool retain, const char* payload, size_t length, bool dup, uint16_t message_id) {
-  if (!_connected) return 0;
+HOT_PATH uint16_t AsyncMqttClient::publish(const char* topic, uint8_t qos, bool retain, const char* payload, size_t length, bool dup, uint16_t message_id) {
+  if (UNLIKELY(!_connected)) return 0;
 
   char fixedHeader[5];
   fixedHeader[0] = static_cast<char>(0x30 | ((dup & 1) << 3) | ((qos & 0x03) << 1) | (retain & 1));
 
-  uint16_t topicLength = strlen(topic);
+  const uint16_t topicLength = static_cast<uint16_t>(uniuno::xtensa_asm::asm_strlen(topic));
   char topicLengthBytes[2];
   uniuno::asyncmqtt_asm::asm_split_uint16(topicLength, topicLengthBytes[0], topicLengthBytes[1]);
 
-  uint32_t payloadLength = length;
-  if (payload != nullptr && payloadLength == 0) payloadLength = strlen(payload);
+  uint32_t payloadLength = static_cast<uint32_t>(length);
+  if (payload != nullptr && payloadLength == 0U) {
+    payloadLength = static_cast<uint32_t>(uniuno::xtensa_asm::asm_strlen(payload));
+  }
 
-  uint32_t remainingLength = 2 + topicLength + payloadLength;
-  if (qos != 0) remainingLength += 2;
-  uint8_t remainingLengthLength = AsyncMqttClientInternals::Helpers::encodeRemainingLength(remainingLength, fixedHeader + 1);
+  uint32_t remainingLength = 2U + topicLength + payloadLength;
+  if (qos != 0) remainingLength += 2U;
+  const uint8_t remainingLengthLength = AsyncMqttClientInternals::Helpers::encodeRemainingLength(remainingLength, fixedHeader + 1);
 
-  size_t neededSpace = 0;
-  neededSpace += 1 + remainingLengthLength;
-  neededSpace += 2;
-  neededSpace += topicLength;
-  if (qos != 0) neededSpace += 2;
-  if (payload != nullptr) neededSpace += payloadLength;
+  const size_t headerLen = static_cast<size_t>(1U + remainingLengthLength);
+  const size_t prefixLen = headerLen + 2U;
+  const size_t neededSpace = prefixLen + topicLength + ((qos != 0) ? 2U : 0U) + ((payload != nullptr) ? payloadLength : 0U);
 
   SEMAPHORE_TAKE(0);
-  if (_client.space() < neededSpace) { SEMAPHORE_GIVE(); return 0; }
+  if (UNLIKELY(_client.space() < neededSpace)) { SEMAPHORE_GIVE(); return 0; }
 
   uint16_t packetId = 0;
   char packetIdBytes[2];
   if (qos != 0) {
-    if (dup && message_id > 0) {
-      packetId = message_id;
-    } else {
-      packetId = _getNextPacketId();
-    }
-
+    packetId = (dup && message_id > 0) ? message_id : _getNextPacketId();
     uniuno::asyncmqtt_asm::asm_split_uint16(packetId, packetIdBytes[0], packetIdBytes[1]);
   }
 
-  char pubHeaderBuf[9];
-  memcpy(pubHeaderBuf, fixedHeader, 1 + remainingLengthLength);
-  pubHeaderBuf[1 + remainingLengthLength] = topicLengthBytes[0];
-  pubHeaderBuf[1 + remainingLengthLength + 1] = topicLengthBytes[1];
-
-  _client.add(pubHeaderBuf, 1 + remainingLengthLength + 2);
-  _client.add(topic, topicLength);
-  if (qos != 0) _client.add(packetIdBytes, 2);
-  if (payload != nullptr) _client.add(payload, payloadLength);
-  _client.send();
-  _lastClientActivity = millis();
+  // Coalesce up to 512B publishes into one single atomic tcp_write+tcp_output IPC
+  if (LIKELY(neededSpace <= 512U)) {
+    char txBuf[512];
+    memcpy(txBuf, fixedHeader, headerLen);
+    txBuf[headerLen]      = topicLengthBytes[0];
+    txBuf[headerLen + 1U] = topicLengthBytes[1];
+    size_t pos = prefixLen;
+    memcpy(txBuf + pos, topic, topicLength);
+    pos += topicLength;
+    if (qos != 0) {
+      txBuf[pos++] = packetIdBytes[0];
+      txBuf[pos++] = packetIdBytes[1];
+    }
+    if (payload != nullptr && payloadLength > 0U) {
+      memcpy(txBuf + pos, payload, payloadLength);
+    }
+    _client.write(txBuf, neededSpace);
+  } else {
+    char pubHeaderBuf[9];
+    memcpy(pubHeaderBuf, fixedHeader, headerLen);
+    pubHeaderBuf[headerLen]      = topicLengthBytes[0];
+    pubHeaderBuf[headerLen + 1U] = topicLengthBytes[1];
+    _client.add(pubHeaderBuf, prefixLen);
+    _client.add(topic, topicLength);
+    if (qos != 0) _client.add(packetIdBytes, 2U);
+    if (payload != nullptr && payloadLength > 0U) {
+      _client.write(payload, payloadLength);
+    } else {
+      _client.send();
+    }
+  }
+  _lastClientActivity = uniuno::asyncmqtt_asm::fast_millis();
 
   SEMAPHORE_GIVE();
   if (qos != 0) {

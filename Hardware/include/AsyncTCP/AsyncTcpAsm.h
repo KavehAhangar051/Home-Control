@@ -14,10 +14,58 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "Optimization/CompilerTraits.h"
 
 namespace uniuno {
 namespace asynctcp_asm {
+
+/**
+ * @brief Division-free millisecond timestamp for ESP32 FreeRTOS (1000 Hz tick).
+ * @return uint32_t Current uptime in milliseconds.
+ * @note Avoids 64-bit software division (__udivdi3 in millis()) inside packet hot paths.
+ */
+FORCE_INLINE uint32_t fast_millis() {
+#if defined(CONFIG_FREERTOS_HZ) && (CONFIG_FREERTOS_HZ == 1000)
+    return static_cast<uint32_t>(xTaskGetTickCount());
+#elif defined(portTICK_PERIOD_MS)
+    return static_cast<uint32_t>(xTaskGetTickCount() * portTICK_PERIOD_MS);
+#else
+    return 0U;
+#endif
+}
+
+/**
+ * @brief Fast 4-byte aligned string length scanner for AsyncClient::write(const char*).
+ * @param str Null-terminated C-string.
+ * @return size_t Number of characters before null terminator.
+ * @note Uses word-wise zero-byte detection to scan 4 bytes per iteration.
+ */
+FORCE_INLINE size_t asm_strlen(const char* str) {
+    if (UNLIKELY(str == nullptr)) {
+        return 0;
+    }
+    const char* p = str;
+    while ((reinterpret_cast<uintptr_t>(p) & 3U) != 0U) {
+        if (*p == '\0') {
+            return static_cast<size_t>(p - str);
+        }
+        ++p;
+    }
+    const uint32_t* wp = reinterpret_cast<const uint32_t*>(p);
+    for (;;) {
+        const uint32_t v = *wp;
+        if (UNLIKELY(((v - 0x01010101U) & ~v & 0x80808080U) != 0U)) {
+            const char* bp = reinterpret_cast<const char*>(wp);
+            if (bp[0] == '\0') return static_cast<size_t>(bp - str);
+            if (bp[1] == '\0') return static_cast<size_t>(bp + 1 - str);
+            if (bp[2] == '\0') return static_cast<size_t>(bp + 2 - str);
+            return static_cast<size_t>(bp + 3 - str);
+        }
+        ++wp;
+    }
+}
 
 /**
  * @brief Branchless minimum calculation using Xtensa LX6 movltz conditional move instruction.

@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <Optimization/CompilerTraits.h>
+#include <Optimization/XtensaMemAsm.h>
 
 #ifdef __XTENSA__
 #include <esp_system.h>
@@ -19,19 +21,51 @@
 namespace websockets {
 namespace asm_opt {
 
+FORCE_INLINE uint16_t bswap16(uint16_t v) {
+    return __builtin_bswap16(v);
+}
+
+FORCE_INLINE uint32_t bswap32(uint32_t v) {
+    return __builtin_bswap32(v);
+}
+
+FORCE_INLINE uint64_t bswap64(uint64_t v) {
+    return __builtin_bswap64(v);
+}
+
 /**
- * @brief Xtensa LX6 32-bit word pipeline for aligned memory blocks.
- * Processes 4 bytes per cycle using 32-bit registers.
- * 
- * @param p32 4-byte aligned data pointer
- * @param num_words Number of 32-bit words
- * @param mask32 Pre-rotated 32-bit masking key
+ * @brief Xtensa LX6 hardware-loop 32-bit word XOR pipeline for aligned memory blocks.
+ * Processes 16 bytes per iteration via zero-overhead `loopnez`.
  */
-inline void mask_words_aligned(uint32_t* __restrict__ p32, size_t num_words, uint32_t mask32) {
+FORCE_INLINE void mask_words_aligned(uint32_t* __restrict__ p32, size_t num_words, uint32_t mask32) {
     size_t n4 = num_words >> 2;
     size_t rem = num_words & 3;
 
-    // 4x unrolled block: Xtensa LX6 pipeline dual-issue friendly
+#if defined(__XTENSA__) || defined(ESP32)
+    if (LIKELY(n4 > 0)) {
+        uint32_t t0, t1, t2, t3;
+        asm volatile (
+            "loopnez %[cnt], 1f     \n"
+            "l32i    %[t0], %[p], 0 \n"
+            "l32i    %[t1], %[p], 4 \n"
+            "l32i    %[t2], %[p], 8 \n"
+            "l32i    %[t3], %[p], 12\n"
+            "xor     %[t0], %[t0], %[m]\n"
+            "xor     %[t1], %[t1], %[m]\n"
+            "xor     %[t2], %[t2], %[m]\n"
+            "xor     %[t3], %[t3], %[m]\n"
+            "s32i    %[t0], %[p], 0 \n"
+            "s32i    %[t1], %[p], 4 \n"
+            "s32i    %[t2], %[p], 8 \n"
+            "s32i    %[t3], %[p], 12\n"
+            "addi    %[p],  %[p], 16\n"
+            "1:                     \n"
+            : [p] "+&r" (p32), [t0] "=&r" (t0), [t1] "=&r" (t1), [t2] "=&r" (t2), [t3] "=&r" (t3)
+            : [cnt] "r" (n4), [m] "r" (mask32)
+            : "memory"
+        );
+    }
+#else
     while (n4--) {
         p32[0] ^= mask32;
         p32[1] ^= mask32;
@@ -39,6 +73,7 @@ inline void mask_words_aligned(uint32_t* __restrict__ p32, size_t num_words, uin
         p32[3] ^= mask32;
         p32 += 4;
     }
+#endif
 
     while (rem--) {
         *p32++ ^= mask32;
@@ -47,47 +82,38 @@ inline void mask_words_aligned(uint32_t* __restrict__ p32, size_t num_words, uin
 
 /**
  * @brief Memory-safe, high-speed WebSocket masking routine.
- * Handles head alignment, executes 32-bit word XOR, and processes tail bytes.
- * Prevents Xtensa LoadStoreAlignmentCause exceptions while delivering maximum throughput.
- * 
- * @param data Target buffer (in-situ)
- * @param len Length in bytes
- * @param mask 4-byte masking key
+ * Uses register bit-rotation (no stack temp array) and Xtensa loopnez 32-bit XOR.
  */
-inline void fast_mask(uint8_t* data, size_t len, const uint8_t* mask) {
-    if (!data || len == 0 || !mask) return;
+FORCE_INLINE void fast_mask(uint8_t* data, size_t len, const uint8_t* mask) {
+    if (UNLIKELY(!data || len == 0 || !mask)) return;
 
     size_t i = 0;
-    // 1. Align data pointer to 4-byte boundary
-    uintptr_t addr = reinterpret_cast<uintptr_t>(data);
-    size_t align_offset = addr & 3;
-    if (align_offset != 0) {
-        size_t lead = 4 - align_offset;
+    const uintptr_t addr = reinterpret_cast<uintptr_t>(data);
+    const size_t align_offset = addr & 3U;
+    if (align_offset != 0U) {
+        size_t lead = 4U - align_offset;
         if (lead > len) lead = len;
         for (; i < lead; ++i) {
-            data[i] ^= mask[i & 3];
+            data[i] ^= mask[i & 3U];
         }
     }
 
-    // 2. Process aligned 32-bit words
-    if (i + 4 <= len) {
-        size_t mask_idx = i & 3;
+    if (i + 4U <= len) {
+        // Little-endian Xtensa: byte-shift key in 1 register instead of stack loop+memcpy
         uint32_t m32;
-        uint8_t rotated_mask[4];
-        for (size_t k = 0; k < 4; ++k) {
-            rotated_mask[k] = mask[(mask_idx + k) & 3];
+        memcpy(&m32, mask, 4U);
+        const uint32_t rot_bits = static_cast<uint32_t>((i & 3U) << 3U);
+        if (rot_bits != 0U) {
+            m32 = (m32 >> rot_bits) | (m32 << (32U - rot_bits));
         }
-        memcpy(&m32, rotated_mask, 4);
 
-        size_t remaining_bytes = len - i;
-        size_t words = remaining_bytes >> 2;
+        const size_t words = (len - i) >> 2U;
         mask_words_aligned(reinterpret_cast<uint32_t*>(data + i), words, m32);
-        i += (words << 2);
+        i += (words << 2U);
     }
 
-    // 3. Process remaining tail bytes (0..3 bytes)
     for (; i < len; ++i) {
-        data[i] ^= mask[i & 3];
+        data[i] ^= mask[i & 3U];
     }
 }
 
