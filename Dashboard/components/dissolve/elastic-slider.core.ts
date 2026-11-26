@@ -207,7 +207,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     inked.t.style.width = W + 'px';
     inked.t.style.transform = `translateX(${-shift}px)`;
   };
-  const fillP = value(sc, (last - p().min) / span(), render);
+  const fillP = value(sc, (last - range().min) / span(), render);
   const over = value(sc, 0, render);
   const press = value(sc, 0, render);
 
@@ -265,6 +265,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     fill.style.background = o.fillColor ?? fg;
     base.t.style.color = fg;
     inked.t.style.color = bg;
+    render();
   }
 
   function layout() {
@@ -295,13 +296,14 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     if (v === last) return;
     last = v;
     const o = p();
-    if (o.haptics && (v === o.min || v === o.max || steps() <= 20)) vibrate(4);
+    const { min, max } = range();
+    if (o.haptics && (v === min || v === max || steps() <= 20)) vibrate(4);
     if (o.value === undefined) inner = v;
     o.onValueChange?.(v);
     writeValue();
   }
   const settle = () => {
-    const to = (last - p().min) / span();
+    const to = (last - range().min) / span();
     if (reducedMotion()) fillP.set(to);
     else fillP.spring(to, SETTLE);
   };
@@ -309,7 +311,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
   // Pointer: drag moves by the distance, past the ends the track stretches; a click jumps.
   let ptr: { id: number; x: number; y: number; q0: number; drag: boolean } | null = null;
   const onDown = (e: PointerEvent) => {
-    if (e.button > 0 || p().disabled) return;
+    if (ptr || e.button > 0 || p().disabled) return;
     W = host.clientWidth;
     ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, q0: fillP.v, drag: false };
     if (reducedMotion()) press.set(1);
@@ -328,14 +330,14 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     const raw = ptr.q0 + dx / W, q = Math.min(1, Math.max(0, raw));
     fillP.set(q);
     over.set(reducedMotion() ? 0 : rubber((raw - q) * W));
-    emit(snap(p().min + q * span()));
+    emit(snap(range().min + q * span()));
   };
   function end(e: PointerEvent, commit = true) {
     if (!ptr || ptr.id !== e.pointerId) return;
     const wasTap = !ptr.drag && Math.abs(e.clientX - ptr.x) < TAP && Math.abs(e.clientY - ptr.y) < TAP;
     if (commit && wasTap && e.type === 'pointerup') {
       const r = host.getBoundingClientRect();
-      emit(snap(p().min + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * span()));
+      emit(snap(range().min + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * span()));
     }
     ptr = null;
     host.style.cursor = 'pointer';
@@ -345,14 +347,16 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     if (commit) p().onSlidingComplete?.(last);
   }
   const onEnd = (e: PointerEvent) => end(e, e.type === 'pointerup');
+  const onLostCapture = (e: PointerEvent) => end(e, true);
   const onKey = (e: KeyboardEvent) => {
     if (p().disabled) return;
-    const o = p(), big = Math.max(o.step, (o.max - o.min) / 10);
-    const d: Record<string, number> = { ArrowRight: o.step, ArrowUp: o.step, ArrowLeft: -o.step, ArrowDown: -o.step, PageUp: big, PageDown: -big };
+    const { min, max, step } = range();
+    const big = Math.max(step, (max - min) / 10);
+    const d: Record<string, number> = { ArrowRight: step, ArrowUp: step, ArrowLeft: -step, ArrowDown: -step, PageUp: big, PageDown: -big };
     let v: number | null = null;
     if (e.key in d) v = snap(last + d[e.key]);
-    else if (e.key === 'Home') v = o.min;
-    else if (e.key === 'End') v = o.max;
+    else if (e.key === 'Home') v = min;
+    else if (e.key === 'End') v = max;
     if (v === null) return;
     e.preventDefault();
     emit(v);
@@ -363,7 +367,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
   host.addEventListener('pointermove', onMove);
   host.addEventListener('pointerup', onEnd);
   host.addEventListener('pointercancel', onEnd);
-  host.addEventListener('lostpointercapture', onEnd);
+  host.addEventListener('lostpointercapture', onLostCapture);
   const onWindowBlur = () => {
     if (!ptr) return;
     const pointerId = ptr.id;
@@ -414,7 +418,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
       host.removeEventListener('pointermove', onMove);
       host.removeEventListener('pointerup', onEnd);
       host.removeEventListener('pointercancel', onEnd);
-      host.removeEventListener('lostpointercapture', onEnd);
+      host.removeEventListener('lostpointercapture', onLostCapture);
       window.removeEventListener('blur', onWindowBlur);
       host.removeEventListener('keydown', onKey);
       track.remove();
