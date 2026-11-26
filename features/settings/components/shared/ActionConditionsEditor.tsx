@@ -782,30 +782,33 @@ export function RuleGuardConditionsEditor({
 }: RuleGuardConditionsEditorProps) {
   return (
     <div className="space-y-2">
-      <p className="text-xs leading-5 text-text-secondary">این شرط‌ها روی خود ESP32 و پیش از اجرای عملیات بررسی می‌شوند؛ برای اجرای آن‌ها به اتصال لحظه‌ای داشبورد نیاز نیست.</p>
+      <p className="text-xs leading-5 text-text-secondary">
+        این شرط‌ها روی خود ESP32 و پیش از اجرای عملیات بررسی می‌شوند؛ برای اجرای آن‌ها به اتصال
+        لحظه‌ای داشبورد نیاز نیست.
+      </p>
       <ActionConditionsEditor
-      actionLabel={actionLabel}
-      title="شرط‌های پیش‌نیاز روی ESP32"
-      conditions={(conditions ?? []).map((c) => ({ ...c, failureMessage: "" }))}
-      conditionLogic={conditionLogic}
-      segments={segments}
-      allowTimeRange={false}
-      allowFailureMessage={false}
-      excludeSourcePin={excludeSourcePin}
-      maxConditions={MAX_RULE_CONDITIONS_PER_ACTION}
-      onChange={(nextConds, nextLogic) => {
-        const guardConds: RuleGuardCondition[] = nextConds
-          .filter((c) => c.parameter !== "time_range")
-          .map(({ failureMessage: _ignored, parameter, sourcePin, ...rest }) => ({
-            ...rest,
-            parameter: parameter as SegmentConditionParameter,
-            sourcePin: sourcePin ?? "",
-          }));
-        onChange(
-          guardConds.length > 0 ? guardConds : undefined,
-          guardConds.length > 1 ? nextLogic : undefined,
-        );
-      }}
+        actionLabel={actionLabel}
+        title="شرط‌های پیش‌نیاز روی ESP32"
+        conditions={(conditions ?? []).map((c) => ({ ...c, failureMessage: "" }))}
+        conditionLogic={conditionLogic}
+        segments={segments}
+        allowTimeRange={false}
+        allowFailureMessage={false}
+        excludeSourcePin={excludeSourcePin}
+        maxConditions={MAX_RULE_CONDITIONS_PER_ACTION}
+        onChange={(nextConds, nextLogic) => {
+          const guardConds: RuleGuardCondition[] = nextConds
+            .filter((c) => c.parameter !== "time_range")
+            .map(({ failureMessage: _ignored, parameter, sourcePin, ...rest }) => ({
+              ...rest,
+              parameter: parameter as SegmentConditionParameter,
+              sourcePin: sourcePin ?? "",
+            }));
+          onChange(
+            guardConds.length > 0 ? guardConds : undefined,
+            guardConds.length > 1 ? nextLogic : undefined,
+          );
+        }}
       />
     </div>
   );
