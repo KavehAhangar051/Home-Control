@@ -214,6 +214,10 @@ public:
         return _stateManager.getRuleByPin(pin);
     }
 
+    HOT_PATH FORCE_INLINE const RuleConfig* getRuleByPinPtr(int pin) const {
+        return _stateManager.getRuleByPinPtr(pin);
+    }
+
     HOT_PATH FORCE_INLINE bool getIsHandledByPin(int pin) const {
         return _stateManager.getIsHandledByPin(pin);
     }

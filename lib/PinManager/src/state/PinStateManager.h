@@ -264,6 +264,19 @@ public:
 
     HOT_PATH FORCE_INLINE RuleConfig getRuleByPin(int pin) const {
         const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        return entry ? entry->getRuleRef() : RuleConfig();
+    }
+
+    HOT_PATH FORCE_INLINE const RuleConfig* getRuleByPinPtr(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        return entry ? entry->rule : nullptr;
+    }
+
+    HOT_PATH FORCE_INLINE const RuleConfig* getRuleByPinPtr(int pin) const {
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
+        return entry ? &entry->rule : nullptr;
+    }
+        const PinEntry* entry = _registry.getEntryByPinConst(pin);
         return entry ? entry->rule : RuleConfig();
     }
 

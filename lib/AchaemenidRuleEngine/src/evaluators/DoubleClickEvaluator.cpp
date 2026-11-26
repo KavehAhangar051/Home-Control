@@ -49,11 +49,8 @@ HOT_PATH bool DoubleClickEvaluator::onStateStart(
         _ctx.pinManager->setIsHandledByPin(sourcePin, true);
 
         INFOF("[Rule] DOUBLE CLICK detected on GPIO%d (%s)", sourcePin, newState ? "HIGH" : "LOW");
-        for (int i = 0; i < startCount; ++i) {
-            if (startActions[i].requiredHoldTime == RULE_TRIGGER_DOUBLE_CLICK) {
-                ActionExecutor::execute(startActions[i], sourcePin, _ctx);
-            }
-        }
+        ActionExecutor::executeMatchingHold(
+            startActions, startCount, RULE_TRIGGER_DOUBLE_CLICK, sourcePin, _ctx);
         return true;
     }
 
@@ -112,15 +109,11 @@ HOT_PATH bool DoubleClickEvaluator::onStateRelease(
                 ctxCopy.pinManager->setClickCountByPin(sourcePin, 0);
 
                 // Execute deferred single-click (requiredHoldTime == 0) actions if still configured
-                const RuleConfig liveRule = ctxCopy.pinManager->getRuleByPin(sourcePin);
-                if (!liveRule.active) return;
-                const RuleAction* acts = releasedState ? liveRule.highActions : liveRule.lowActions;
-                const int cnt = releasedState ? liveRule.highActionCount : liveRule.lowActionCount;
-                for (int i = 0; i < cnt; ++i) {
-                    if (acts[i].requiredHoldTime == 0) {
-                        ActionExecutor::execute(acts[i], sourcePin, ctxCopy);
-                    }
-                }
+                const RuleConfig* liveRule = ctxCopy.pinManager->getRuleByPinPtr(sourcePin);
+                if (liveRule == nullptr || !liveRule->active) return;
+                const RuleAction* acts = releasedState ? liveRule->highActions : liveRule->lowActions;
+                const int cnt = releasedState ? liveRule->highActionCount : liveRule->lowActionCount;
+                ActionExecutor::executeMatchingHold(acts, cnt, 0, sourcePin, ctxCopy);
             },
             DEFAULT_DOUBLE_CLICK_WINDOW_MS
         );

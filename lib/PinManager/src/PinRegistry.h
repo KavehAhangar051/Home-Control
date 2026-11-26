@@ -50,9 +50,16 @@ public:
             _entries[i].stateStartTime = 0;
             _entries[i].lastDebounceTime = 0;
             _entries[i].lastClickTimeMs = 0;
+            _entries[i].rule = nullptr;
         }
         for (int i = 0; i < TOTAL_PIN_SLOTS; i++) {
             _pinToIndex[i] = -1;
+        }
+    }
+
+    ~PinRegistry() {
+        for (int i = 0; i < MAX_PINS; i++) {
+            _entries[i].clearRule();
         }
     }
 

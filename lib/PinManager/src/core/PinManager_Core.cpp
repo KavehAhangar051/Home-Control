@@ -87,7 +87,7 @@ void PinManager::exportConfig(ParseResult& out) const {
             segment.adcHighThreshold = 0;
             segment.adcLowThreshold = 0;
         }
-        segment.rule = entry->rule;
+        segment.rule = entry->getRuleRef();
         segment.valid = true;
     }
     out.count = target;
@@ -128,9 +128,9 @@ void PinManager::printStatus() const {
                 entry->hasAdc ? entry->adc.getHighThreshold() : 0,
                 entry->hasAdc ? entry->adc.getLowThreshold() : 0,
                 thrState ? "HIGH" : "LOW",
-                entry->rule.active ? "active" : "inactive",
-                entry->rule.highActionCount, entry->rule.lowActionCount,
-                static_cast<unsigned int>(entry->rule.analogRangeCount));
+                entry->getRuleRef().active ? "active" : "inactive",
+                entry->getRuleRef().highActionCount, entry->getRuleRef().lowActionCount,
+                static_cast<unsigned int>(entry->getRuleRef().analogRangeCount));
         } else {
             const bool state = (entry->type == SegmentType::Input)
                 ? entry->lastInputState
@@ -138,8 +138,8 @@ void PinManager::printStatus() const {
             Serial.printf("  [%d] id=%s type=%s pin=%d state=%s autoOff=%ds rule=%s (high=%d low=%d)\n",
                 i, entry->segmentId, entry->type == SegmentType::Input ? "input" : "output",
                 entry->pinNumber, state ? "HIGH/ON" : "LOW/OFF", entry->autoOffDelay,
-                entry->rule.active ? "active" : "inactive",
-                entry->rule.highActionCount, entry->rule.lowActionCount);
+                entry->getRuleRef().active ? "active" : "inactive",
+                entry->getRuleRef().highActionCount, entry->getRuleRef().lowActionCount);
         }
     }
     Serial.println("======================================");

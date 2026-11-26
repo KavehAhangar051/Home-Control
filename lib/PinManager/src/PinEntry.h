@@ -8,6 +8,7 @@
 #include <AchaemenidConfigProtocol.h>
 #include <Timer/TimerHandle.h>
 #include <cstring>
+#include <new>
 
 enum class SegmentType : uint8_t {
     Output = 0,
@@ -96,8 +97,35 @@ struct PinEntry {
     uint8_t virtualPwmResolution;
     uint8_t virtualAdcResolution;
 
-    // Rule config used directly on state changes
-    RuleConfig rule;
+    // Heap-allocated RuleConfig (nullptr when segment has no active rules — saves ~32KB .dram0.bss)
+    RuleConfig* rule;
+
+    static const RuleConfig& emptyRule() {
+        static const RuleConfig kEmpty{};
+        return kEmpty;
+    }
+
+    HOT_PATH FORCE_INLINE const RuleConfig& getRuleRef() const {
+        return (rule != nullptr) ? *rule : emptyRule();
+    }
+
+    void setRule(const RuleConfig& nextRule) {
+        if (!nextRule.hasAnyRule()) {
+            clearRule();
+            return;
+        }
+        if (rule == nullptr) {
+            rule = new (std::nothrow) RuleConfig();
+        }
+        if (rule != nullptr) {
+            *rule = nextRule;
+        }
+    }
+
+    void clearRule() {
+        delete rule;
+        rule = nullptr;
+    }
 
     // --- SECONDARY DRIVER OBJECTS ---
     GpioSwitch gpio;

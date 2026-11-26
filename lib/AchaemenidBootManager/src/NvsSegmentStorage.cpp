@@ -9,7 +9,8 @@ static constexpr uint8_t STORAGE_VERSION_V2 = 2;
 static constexpr uint8_t STORAGE_VERSION_V3 = 3;
 static constexpr uint8_t STORAGE_VERSION_V4 = 4;
 static constexpr uint8_t STORAGE_VERSION_V5 = 5;
-static constexpr uint8_t STORAGE_VERSION = 6;
+static constexpr uint8_t STORAGE_VERSION_V6 = 6;
+static constexpr uint8_t STORAGE_VERSION = 7;
 static constexpr char NVS_NAMESPACE[] = "AchaemenidSeg";
 
 #pragma pack(push, 1)
@@ -129,15 +130,30 @@ struct StoredSegmentHeaderV6 {
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
+struct StoredRuleCondition {
+    uint16_t value;
+    uint16_t maxValue;
+    int8_t sourcePin;
+    uint8_t op;
+};
+#pragma pack(pop)
+
 static constexpr size_t MAX_V6_BLOB_SIZE =
     sizeof(StoredSegmentHeaderV6) +
     (4U * sizeof(StoredRuleAction)) +
     (4U * sizeof(StoredRuleAction)) +
     (MAX_ANALOG_RANGE_RULES * sizeof(StoredAnalogRangeRule));
 
+static constexpr size_t MAX_V7_BLOB_SIZE =
+    sizeof(StoredSegmentHeaderV6) +
+    (2U * MAX_RULE_ACTIONS_PER_SIDE * (sizeof(StoredRuleAction) + 1U + (MAX_RULE_CONDITIONS_PER_ACTION * sizeof(StoredRuleCondition)))) +
+    (MAX_ANALOG_RANGE_RULES * (sizeof(StoredAnalogRangeRule) + (MAX_RULE_CONDITIONS_PER_ACTION * sizeof(StoredRuleCondition))));
+
 static_assert(sizeof(StoredRuleActionV2) == 11, "Unexpected stored RuleActionV2 layout");
 static_assert(sizeof(StoredRuleAction) == 13, "Unexpected stored RuleAction layout");
 static_assert(sizeof(StoredAnalogRangeRule) == 12, "Unexpected stored AnalogRangeRule layout");
+static_assert(sizeof(StoredRuleCondition) == 6, "Unexpected stored RuleCondition layout");
 static_assert(sizeof(StoredSegmentHeaderV6) == 70, "Unexpected stored StoredSegmentHeaderV6 layout");
 
 void copyActionToStorage(const RuleAction& source, StoredRuleAction& target) {
@@ -175,6 +191,9 @@ bool copyActionFromStorage(const StoredRuleAction& source, RuleAction& target) {
     if (source.targetValue != RULE_ANALOG_VALUE_UNSET &&
         (source.targetValue < 0 || source.targetValue > MAX_ANALOG_OUTPUT_VALUE)) return false;
 
+    target.requiredHoldTime = source.requiredHoldTime;
+    target.targetPin = source.targetPin;
+    target.reset();
     target.requiredHoldTime = source.requiredHoldTime;
     target.targetPin = source.targetPin;
     target.actionState = source.actionState != 0;
@@ -232,8 +251,72 @@ bool copyRangeFromStorage(const StoredAnalogRangeRule& source, uint16_t maxAdcVa
     target.delay = source.delay;
     target.actionType = static_cast<RuleActionType>(actionType);
     target.triggerMode = static_cast<AnalogRangeTriggerMode>(triggerMode);
+    target.reset();
+    target.minValue = source.minValue;
+    target.maxValue = source.maxValue;
+    target.hysteresis = source.hysteresis;
+    target.targetValue = source.targetValue;
+    target.targetPin = source.targetPin;
+    target.delay = source.delay;
+    target.actionType = static_cast<RuleActionType>(actionType);
+    target.triggerMode = static_cast<AnalogRangeTriggerMode>(triggerMode);
     target.actionState = (source.flags & 0x01U) != 0U;
     target.enabled = (source.flags & 0x10U) != 0U;
+    return true;
+}
+
+uint8_t encodeConditionMeta(uint8_t count, uint8_t logic) {
+    const uint8_t safeCount = count <= MAX_RULE_CONDITIONS_PER_ACTION ? count : MAX_RULE_CONDITIONS_PER_ACTION;
+    const uint8_t safeLogic = (logic == COND_LOGIC_OR) ? 1U : 0U;
+    return static_cast<uint8_t>((safeCount & 0x0FU) | (safeLogic << 4));
+}
+
+size_t writeConditionsToBlob(
+    const RuleCondition* conditions,
+    uint8_t count,
+    uint8_t* dst,
+    size_t offset
+) {
+    const uint8_t safeCount = count <= MAX_RULE_CONDITIONS_PER_ACTION ? count : MAX_RULE_CONDITIONS_PER_ACTION;
+    for (uint8_t i = 0; i < safeCount; ++i) {
+        StoredRuleCondition sc{};
+        sc.value = conditions[i].value;
+        sc.maxValue = conditions[i].maxValue;
+        sc.sourcePin = conditions[i].sourcePin;
+        sc.op = conditions[i].op;
+        memcpy(dst + offset, &sc, sizeof(sc));
+        offset += sizeof(sc);
+    }
+    return offset;
+}
+
+bool readConditionsFromBlob(
+    const uint8_t* src,
+    size_t blobLen,
+    size_t& offset,
+    uint8_t condMeta,
+    RuleCondition* outConds,
+    uint8_t& outCount,
+    uint8_t& outLogic
+) {
+    const uint8_t count = static_cast<uint8_t>(condMeta & 0x0FU);
+    const uint8_t logic = static_cast<uint8_t>((condMeta >> 4) & 0x01U);
+    if (count > MAX_RULE_CONDITIONS_PER_ACTION) return false;
+    if (offset + static_cast<size_t>(count) * sizeof(StoredRuleCondition) > blobLen) return false;
+    outCount = count;
+    outLogic = (logic == COND_LOGIC_OR) ? COND_LOGIC_OR : COND_LOGIC_AND;
+    for (uint8_t i = 0; i < count; ++i) {
+        StoredRuleCondition sc{};
+        memcpy(&sc, src + offset, sizeof(sc));
+        offset += sizeof(sc);
+        RuleCondition cond;
+        cond.value = sc.value;
+        cond.maxValue = sc.maxValue;
+        cond.sourcePin = sc.sourcePin;
+        cond.op = sc.op;
+        if (!isValidRuleCondition(cond)) return false;
+        outConds[i] = cond;
+    }
     return true;
 }
 
@@ -252,9 +335,9 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
 
     const int count = prefs.getInt(countKey, -1);
     const uint8_t version = prefs.getUChar(versionKey, 0);
-    if ((version != STORAGE_VERSION && version != STORAGE_VERSION_V5 &&
-         version != STORAGE_VERSION_V4 && version != STORAGE_VERSION_V3 &&
-         version != STORAGE_VERSION_V2) ||
+    if ((version != STORAGE_VERSION && version != STORAGE_VERSION_V6 &&
+         version != STORAGE_VERSION_V5 && version != STORAGE_VERSION_V4 &&
+         version != STORAGE_VERSION_V3 && version != STORAGE_VERSION_V2) ||
         count < 0 || count > MAX_SEGMENTS) {
         return false;
     }
@@ -264,7 +347,7 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
         StoredSegmentV3 v3;
         StoredSegmentV4 v4;
         StoredSegmentV5 v5;
-        uint8_t v6Buf[MAX_V6_BLOB_SIZE];
+        uint8_t v7Buf[MAX_V7_BLOB_SIZE];
     } recordBuf;
 
     char key[16];
@@ -579,24 +662,28 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             continue;
         }
 
-        // V6 compact variable-length record
+        // V6 / V7 compact variable-length record
+        const bool isV6 = (version == STORAGE_VERSION_V6);
+        const size_t maxBlob = isV6 ? MAX_V6_BLOB_SIZE : MAX_V7_BLOB_SIZE;
         const size_t blobLen = prefs.getBytesLength(key);
-        if (blobLen < sizeof(StoredSegmentHeaderV6) || blobLen > MAX_V6_BLOB_SIZE) {
-            Serial.printf("[SegStorage] Bank %c (v6) rejected: invalid blob size %u for %s\n",
-                          bank, static_cast<unsigned int>(blobLen), key);
+        if (blobLen < sizeof(StoredSegmentHeaderV6) || blobLen > maxBlob) {
+            Serial.printf("[SegStorage] Bank %c (v%u) rejected: invalid blob size %u for %s\n",
+                          bank, static_cast<unsigned int>(version), static_cast<unsigned int>(blobLen), key);
             return false;
         }
 
-        memset(recordBuf.v6Buf, 0, blobLen);
-        if (prefs.getBytes(key, recordBuf.v6Buf, blobLen) != blobLen) {
-            Serial.printf("[SegStorage] Bank %c (v6) rejected: failed reading %s\n", bank, key);
+        memset(recordBuf.v7Buf, 0, blobLen);
+        if (prefs.getBytes(key, recordBuf.v7Buf, blobLen) != blobLen) {
+            Serial.printf("[SegStorage] Bank %c (v%u) rejected: failed reading %s\n",
+                          bank, static_cast<unsigned int>(version), key);
             return false;
         }
 
         StoredSegmentHeaderV6 hdr{};
-        memcpy(&hdr, recordBuf.v6Buf, sizeof(hdr));
+        memcpy(&hdr, recordBuf.v7Buf, sizeof(hdr));
 
-        const size_t expectedLen =
+        const uint8_t maxActionsPerSide = isV6 ? 4U : MAX_RULE_ACTIONS_PER_SIDE;
+        const size_t expectedV6Len =
             sizeof(StoredSegmentHeaderV6) +
             static_cast<size_t>(hdr.highActionCount) * sizeof(StoredRuleAction) +
             static_cast<size_t>(hdr.lowActionCount) * sizeof(StoredRuleAction) +
@@ -615,7 +702,7 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             ? (isValidAuxNodeId(hdr.nodeId) && isValidAuxRemotePin(hdr.remotePin))
             : (hdr.nodeId == AUX_NODE_ID_LOCAL);
 
-        if (blobLen != expectedLen || !idTerminated || !typeTerminated ||
+        if ((isV6 && blobLen != expectedV6Len) || !idTerminated || !typeTerminated ||
             hdr.id[0] == '\0' || hdr.type[0] == '\0' || !pinValid || !bindingValid ||
             hdr.pwmResolution < MIN_PWM_RESOLUTION || hdr.pwmResolution > MAX_PWM_RESOLUTION ||
             hdr.pwmFrequency < MIN_PWM_FREQUENCY || hdr.pwmFrequency > MAX_PWM_FREQUENCY ||
@@ -626,22 +713,25 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
             hdr.adcDeltaThreshold > maxAdcVal ||
             hdr.adcHighThreshold > maxAdcVal ||
             hdr.adcLowThreshold > hdr.adcHighThreshold ||
-            hdr.highActionCount > 4 || hdr.lowActionCount > 4 ||
+            hdr.highActionCount > maxActionsPerSide || hdr.lowActionCount > maxActionsPerSide ||
             hdr.analogRangeCount > MAX_ANALOG_RANGE_RULES) {
-            Serial.printf("[SegStorage] Bank %c (v6) rejected: invalid segment record %s\n", bank, key);
+            Serial.printf("[SegStorage] Bank %c (v%u) rejected: invalid segment record %s\n",
+                          bank, static_cast<unsigned int>(version), key);
             return false;
         }
 
         for (int previous = 0; previous < out.count; ++previous) {
             if (out.segments[previous].pin == hdr.pin ||
                 strcmp(out.segments[previous].id, hdr.id) == 0) {
-                Serial.printf("[SegStorage] Bank %c (v6) rejected: duplicate ID or pin in %s\n", bank, key);
+                Serial.printf("[SegStorage] Bank %c (v%u) rejected: duplicate ID or pin in %s\n",
+                              bank, static_cast<unsigned int>(version), key);
                 return false;
             }
             if (isVirtual && out.segments[previous].isVirtual &&
                 out.segments[previous].nodeId == hdr.nodeId &&
                 out.segments[previous].remotePin == hdr.remotePin) {
-                Serial.printf("[SegStorage] Bank %c (v6) rejected: duplicate remote binding in %s\n", bank, key);
+                Serial.printf("[SegStorage] Bank %c (v%u) rejected: duplicate remote binding in %s\n",
+                              bank, static_cast<unsigned int>(version), key);
                 return false;
             }
         }
@@ -667,37 +757,71 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
 
         size_t offset = sizeof(StoredSegmentHeaderV6);
         for (int a = 0; a < hdr.highActionCount; ++a) {
+            if (offset + sizeof(StoredRuleAction) + (isV6 ? 0U : 1U) > blobLen) return false;
             StoredRuleAction rawAction{};
-            memcpy(&rawAction, recordBuf.v6Buf + offset, sizeof(rawAction));
+            memcpy(&rawAction, recordBuf.v7Buf + offset, sizeof(rawAction));
             offset += sizeof(rawAction);
             RuleAction action;
             if (!copyActionFromStorage(rawAction, action)) {
-                Serial.printf("[SegStorage] Bank %c (v6) rejected: invalid HIGH action in %s\n", bank, key);
+                Serial.printf("[SegStorage] Bank %c (v%u) rejected: invalid HIGH action in %s\n",
+                              bank, static_cast<unsigned int>(version), key);
                 return false;
+            }
+            if (!isV6) {
+                const uint8_t condMeta = recordBuf.v7Buf[offset++];
+                if (!readConditionsFromBlob(recordBuf.v7Buf, blobLen, offset, condMeta,
+                                          action.conditions, action.conditionCount, action.conditionLogic)) {
+                    Serial.printf("[SegStorage] Bank %c (v%u) rejected: invalid HIGH conditions in %s\n",
+                                  bank, static_cast<unsigned int>(version), key);
+                    return false;
+                }
             }
             segment.rule.highActions[segment.rule.highActionCount++] = action;
         }
         for (int a = 0; a < hdr.lowActionCount; ++a) {
+            if (offset + sizeof(StoredRuleAction) + (isV6 ? 0U : 1U) > blobLen) return false;
             StoredRuleAction rawAction{};
-            memcpy(&rawAction, recordBuf.v6Buf + offset, sizeof(rawAction));
+            memcpy(&rawAction, recordBuf.v7Buf + offset, sizeof(rawAction));
             offset += sizeof(rawAction);
             RuleAction action;
             if (!copyActionFromStorage(rawAction, action)) {
-                Serial.printf("[SegStorage] Bank %c (v6) rejected: invalid LOW action in %s\n", bank, key);
+                Serial.printf("[SegStorage] Bank %c (v%u) rejected: invalid LOW action in %s\n",
+                              bank, static_cast<unsigned int>(version), key);
                 return false;
+            }
+            if (!isV6) {
+                const uint8_t condMeta = recordBuf.v7Buf[offset++];
+                if (!readConditionsFromBlob(recordBuf.v7Buf, blobLen, offset, condMeta,
+                                          action.conditions, action.conditionCount, action.conditionLogic)) {
+                    Serial.printf("[SegStorage] Bank %c (v%u) rejected: invalid LOW conditions in %s\n",
+                                  bank, static_cast<unsigned int>(version), key);
+                    return false;
+                }
             }
             segment.rule.lowActions[segment.rule.lowActionCount++] = action;
         }
         for (uint8_t r = 0; r < hdr.analogRangeCount; ++r) {
+            if (offset + sizeof(StoredAnalogRangeRule) > blobLen) return false;
             StoredAnalogRangeRule rawRange{};
-            memcpy(&rawRange, recordBuf.v6Buf + offset, sizeof(rawRange));
+            memcpy(&rawRange, recordBuf.v7Buf + offset, sizeof(rawRange));
             offset += sizeof(rawRange);
             AnalogRangeRule rr;
             if (!copyRangeFromStorage(rawRange, maxAdcVal, rr)) {
-                Serial.printf("[SegStorage] Bank %c (v6) rejected: invalid analog range rule in %s\n", bank, key);
+                Serial.printf("[SegStorage] Bank %c (v%u) rejected: invalid analog range rule in %s\n",
+                              bank, static_cast<unsigned int>(version), key);
+                return false;
+            }
+            if (!isV6 && !readConditionsFromBlob(recordBuf.v7Buf, blobLen, offset, rawRange.reserved,
+                                                rr.conditions, rr.conditionCount, rr.conditionLogic)) {
+                Serial.printf("[SegStorage] Bank %c (v%u) rejected: invalid range conditions in %s\n",
+                              bank, static_cast<unsigned int>(version), key);
                 return false;
             }
             segment.rule.analogRanges[segment.rule.analogRangeCount++] = rr;
+        }
+        if (!isV6 && offset != blobLen) {
+            Serial.printf("[SegStorage] Bank %c (v7) rejected: trailing bytes in %s\n", bank, key);
+            return false;
         }
 
         if (segment.rule.highActionCount == 0 && segment.rule.lowActionCount == 0 &&
@@ -776,7 +900,7 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
     char key[16];
     int savedCount = 0;
     bool writeOk = true;
-    uint8_t blob[MAX_V6_BLOB_SIZE];
+    uint8_t blob[MAX_V7_BLOB_SIZE];
 
     for (int i = 0; i < MAX_SEGMENTS; ++i) {
         if (!parsed.segments[i].valid) continue;
@@ -792,7 +916,7 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
             (isValidAuxNodeId(segment.nodeId) && isValidAuxRemotePin(segment.remotePin));
 
         if (segment.id[0] == '\0' || !pinValid || !bindingValid ||
-            segment.rule.highActionCount > 4 || segment.rule.lowActionCount > 4 ||
+            segment.rule.highActionCount > MAX_RULE_ACTIONS_PER_SIDE || segment.rule.lowActionCount > MAX_RULE_ACTIONS_PER_SIDE ||
             segment.rule.analogRangeCount > MAX_ANALOG_RANGE_RULES) {
             writeOk = false;
             Serial.printf("[SegStorage] Refusing invalid segment at slot %d\n", i);
@@ -849,22 +973,31 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
         offset += sizeof(hdr);
 
         for (int a = 0; a < hdr.highActionCount; ++a) {
+            const RuleAction& srcAct = segment.rule.highActions[a];
             StoredRuleAction act{};
-            copyActionToStorage(segment.rule.highActions[a], act);
+            copyActionToStorage(srcAct, act);
             memcpy(blob + offset, &act, sizeof(act));
             offset += sizeof(act);
+            blob[offset++] = encodeConditionMeta(srcAct.conditionCount, srcAct.conditionLogic);
+            offset = writeConditionsToBlob(srcAct.conditions, srcAct.conditionCount, blob, offset);
         }
         for (int a = 0; a < hdr.lowActionCount; ++a) {
+            const RuleAction& srcAct = segment.rule.lowActions[a];
             StoredRuleAction act{};
-            copyActionToStorage(segment.rule.lowActions[a], act);
+            copyActionToStorage(srcAct, act);
             memcpy(blob + offset, &act, sizeof(act));
             offset += sizeof(act);
+            blob[offset++] = encodeConditionMeta(srcAct.conditionCount, srcAct.conditionLogic);
+            offset = writeConditionsToBlob(srcAct.conditions, srcAct.conditionCount, blob, offset);
         }
         for (uint8_t r = 0; r < hdr.analogRangeCount; ++r) {
+            const AnalogRangeRule& srcRange = segment.rule.analogRanges[r];
             StoredAnalogRangeRule rr{};
-            copyRangeToStorage(segment.rule.analogRanges[r], maxAdcVal, rr);
+            copyRangeToStorage(srcRange, maxAdcVal, rr);
+            rr.reserved = encodeConditionMeta(srcRange.conditionCount, srcRange.conditionLogic);
             memcpy(blob + offset, &rr, sizeof(rr));
             offset += sizeof(rr);
+            offset = writeConditionsToBlob(srcRange.conditions, srcRange.conditionCount, blob, offset);
         }
 
         snprintf(key, sizeof(key), "%c%d", targetBank, savedCount);
@@ -901,7 +1034,7 @@ void NvsSegmentStorage::saveSegmentConfig(const ParseResult& parsed) {
 
     prefs.end();
     if (writeOk) {
-        Serial.printf("[SegStorage] Saved %d segments (v6) to NVS bank %c\n", savedCount, targetBank);
+        Serial.printf("[SegStorage] Saved %d segments (v7) to NVS bank %c\n", savedCount, targetBank);
     } else {
         Serial.println("[SegStorage] Save failed; previous active NVS bank was preserved");
     }

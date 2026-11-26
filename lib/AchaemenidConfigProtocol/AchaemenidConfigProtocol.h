@@ -22,6 +22,13 @@ private:
     int parsePinNumber(const char* pinStr);
 };
 
+namespace rule_codec {
+
+bool parseBinaryRuleUpdate(const uint8_t* payload, size_t len, int& outInputPin, RuleConfig& outRule);
+bool parseBinaryAnalogRangeUpdate(const uint8_t* payload, size_t len, int& outInputPin, RuleConfig& outRule);
+
+} // namespace rule_codec
+
 } // namespace uniuno
 
 #endif // ACHAEMENID_CONFIG_PROTOCOL_H

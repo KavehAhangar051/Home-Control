@@ -117,7 +117,7 @@ bool PinManager::addSegment(
     entry->clickPolarity = false;
     entry->lastClickTimeMs = 0;
     entry->analogRangeActiveMask = 0;
-    entry->rule = rule;
+    entry->setRule(rule);
     if (type == SegmentType::AnalogInput && entry->hasAdc && rule.active && rule.analogRangeCount > 0) {
         // Seed initial range membership from boot baseline so power-on never fires spurious enter events
         const uint16_t baseline = entry->adc.getValue();
@@ -148,7 +148,7 @@ bool PinManager::addSegment(
         INFOF("[PinManager] Added segment '%s' on pin %d (Type: analog_input, %u-bit sint=%ums delta=%u ath=%u atl=%u ranges=%u)",
               id, pin, entry->adc.getResolution(), entry->adc.getSampleIntervalMs(),
               entry->adc.getDeltaThreshold(), entry->adc.getHighThreshold(), entry->adc.getLowThreshold(),
-              static_cast<unsigned int>(entry->rule.analogRangeCount));
+              static_cast<unsigned int>(entry->getRuleRef().analogRangeCount));
     } else {
         INFOF("[PinManager] Added segment '%s' on pin %d (Type: %s)",
               id, pin, (type == SegmentType::Input ? "input" : "output"));
@@ -346,7 +346,7 @@ bool PinManager::addVirtualSegment(
     entry->clickPolarity = false;
     entry->lastClickTimeMs = 0;
     entry->analogRangeActiveMask = 0;
-    entry->rule = rule;
+    entry->setRule(rule);
     entry->stateStartTime = millis();
     entry->lastDebounceTime = millis();
 
@@ -542,6 +542,7 @@ bool PinManager::removeSegmentByIndex(int idx) {
     entry->clickPolarity = false;
     entry->lastClickTimeMs = 0;
     entry->analogRangeActiveMask = 0;
+    entry->clearRule();
     entry->stateStartTime = 0;
     entry->lastDebounceTime = 0;
 
@@ -680,7 +681,7 @@ bool PinManager::updateSegmentRule(const char* id, const RuleConfig& rule) {
     entry->doubleClickTimer = uniuno::TimerHandle();
     entry->clickCount = 0;
     entry->analogRangeActiveMask = 0;
-    entry->rule = rule;
+    entry->setRule(rule);
     return true;
 }
 
@@ -694,7 +695,7 @@ bool PinManager::updateSegmentRuleByPin(int pin, const RuleConfig& rule) {
     entry->doubleClickTimer = uniuno::TimerHandle();
     entry->clickCount = 0;
     entry->analogRangeActiveMask = 0;
-    entry->rule = rule;
+    entry->setRule(rule);
     return true;
 }
 
