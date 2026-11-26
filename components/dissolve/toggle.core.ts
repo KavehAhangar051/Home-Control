@@ -170,8 +170,13 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
     const bg = rgbOf(token(host, 'background', 'rgb(255 255 255)')), fg = rgbOf(token(host, 'foreground', 'rgb(28 28 30)'));
     const dark = (0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2]) / 255 < 0.5;
     host.style.background = o.offColor ?? `rgba(${fg[0]}, ${fg[1]}, ${fg[2]}, ${dark ? 0.2 : 0.1})`;
+    host.style.border = p().shape === 'square' && !target ? '1px solid var(--border-color)' : '1px solid transparent';
     onLayer.style.background = o.onColor ?? token(host, 'success', 'rgb(52 199 89)');
-    thumbColor = o.thumbColor ?? 'rgb(255, 255, 255)';
+    const styles = getComputedStyle(host);
+    const stateThumbColor = target
+      ? styles.getPropertyValue('--accent3-foreground').trim()
+      : styles.getPropertyValue('--text-secondary').trim();
+    thumbColor = o.thumbColor ?? stateThumbColor || 'rgb(255, 255, 255)';
     ghost.style.background = thumb.style.background = thumbColor;
     ghost.style.boxShadow = thumb.style.boxShadow = SHADOW;
   }
@@ -270,6 +275,7 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
     if (user && (!p().interactive || p().disabled)) return;
     if (t === target) return;
     target = t;
+    paint();
     req = true;
     syncAria();
     kick();
