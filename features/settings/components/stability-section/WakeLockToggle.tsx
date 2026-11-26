@@ -70,8 +70,8 @@ export default function WakeLockToggle({ animationsEnabled }: WakeLockToggleProp
           <span className="text-[11px] sm:text-xs block leading-relaxed font-sans text-text-muted sm:text-text-secondary">
             {supported
               ? wakeLockEnabled
-                ? "روشن · جلوگیری از خاموش شدن خودکار صفحه"
-                : "خاموش · خاموشی صفحه مطابق تنظیمات سیستم‌عامل"
+                ? "روشن · جلوگیری از خاموش‌شدن خودکار نمایشگر"
+                : "خاموش · نمایشگر طبق زمان‌بندی سیستم‌عامل خاموش می‌شود"
               : "این مرورگر از قفل بیداری صفحه پشتیبانی نمی‌کند"}
           </span>
         </div>
