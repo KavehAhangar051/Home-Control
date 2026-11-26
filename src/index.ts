@@ -23,7 +23,7 @@ export default {
 
 		// WebSocket upgrade → به DO ارسال می‌شود
 		if (path[0] === "ws") {
-			if (request.headers.get("Upgrade") !== "websocket") {
+			if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
 				return new Response("Expected Upgrade: websocket", { status: 426 });
 			}
 			const stub = env.MY_DURABLE_OBJECT.get(
