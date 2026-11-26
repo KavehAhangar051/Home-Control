@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { triggerHaptic } from "@/lib/haptics";
-import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
+import { ToggleIndicator } from "@/components/dissolve/toggle";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { ShieldCheck } from "@/components/ui/hugeicons-groups/controls";
 import { Clock, Plus } from "@/components/ui/hugeicons-groups/shell";
@@ -214,25 +214,32 @@ function ConditionRow({
         </span>
 
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold text-text-secondary">
-              {isEnabled ? "فعال" : "غیرفعال"}
-            </span>
-            <DissolveToggle
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isEnabled}
+            aria-label={`وضعیت شرط ${conditionIndex + 1} برای ${actionLabel}`}
+            onClick={() => {
+              const nextEnabled = !isEnabled;
+              patchCondition({ enabled: nextEnabled });
+              triggerHaptic(nextEnabled ? "toggleOn" : "toggleOff");
+            }}
+            className={`rounded-lg border px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${
+              isEnabled
+                ? "border-accent3/50 bg-accent3/15 text-accent3"
+                : "border-border-color bg-bg-primary text-text-muted"
+            }`}
+          >
+            <span>{isEnabled ? "فعال" : "غیرفعال"}</span>
+            <ToggleIndicator
               value={isEnabled}
-              onValueChange={(enabled) => {
-                patchCondition({ enabled });
-                triggerHaptic(enabled ? "toggleOn" : "toggleOff");
-              }}
               size="sm"
               onColor="var(--accent3)"
               offColor="var(--bg-main)"
-              haptics={false}
               reducedMotion={Boolean(prefersReducedMotion)}
-              accessibilityLabel={`وضعیت شرط ${conditionIndex + 1} برای ${actionLabel}`}
-              className="shrink-0"
+              className="scale-[0.75]"
             />
-          </div>
+          </button>
           <DeleteButton
             size="sm"
             resetAfter={0}
