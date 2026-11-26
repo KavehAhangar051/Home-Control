@@ -148,8 +148,9 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     tickNodes.forEach((node) => node.remove());
     tickNodes = [];
     const { min, max, step } = range();
-    const count = Math.floor((max - min) / step);
-    if (!p().showTicks || count > 20) return;
+    const totalSteps = (max - min) / step;
+    const count = Math.floor(totalSteps);
+    if (!p().showTicks || totalSteps > 20) return;
     const values = Array.from({ length: count + 1 }, (_, i) => min + i * step);
     if (values[values.length - 1] < max) values.push(max);
     tickNodes = values.map((v) => {
