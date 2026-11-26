@@ -136,7 +136,7 @@ export function WifiAccessPointCard() {
             </h3>
             <p className="text-xs leading-5 text-text-secondary">
               {isDefaultAccessPoint
-                ? "از نام و رمز پیش‌فرض مبتنی بر MAC دستگاه استفاده می‌شود."
+                ? "اکسس‌پوینت از تنظیمات پیش‌فرض دستگاه استفاده می‌کند."
                 : `نام شبکه: ${wifiApConfig?.ssid || "ثبت نشده"}`}
             </p>
             <p className="text-xs text-text-muted">
