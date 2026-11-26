@@ -16,8 +16,7 @@
 
 #include "TimerConfig.h"
 #include "TimerCore.h"
-
-class ITimer;
+#include "ITimer.h"
 
 #ifdef ARDUINO
 #include <esp_timer.h>

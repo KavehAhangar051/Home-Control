@@ -13,7 +13,6 @@
 #include <DNSServer.h>
 #include "ISegmentStorage.h"
 #include "IAuxNodeStorage.h"
-#include "CaptivePortalHelper.h"
 
 struct BootContext {
   uniuno::INetworkManager* network;

@@ -72,7 +72,7 @@ public:
    * @brief Add timer to group by ID
    * @param id Timer ID
    */
-  void add(unsigned int id) { timer_ids_.push_back(id); }
+  void add(TimerId id) { timer_ids_.push_back(id); }
 
   /**
    * @brief Add timer to group by Handle
@@ -85,7 +85,7 @@ public:
    * @param id Timer ID
    * @return true if found and removed
    */
-  bool remove(unsigned int id) {
+  bool remove(TimerId id) {
     auto it = timer_ids_.begin();
     while (it != timer_ids_.end()) {
       if (*it == id) {
@@ -174,7 +174,7 @@ public:
    * @param id Timer ID
    * @return true if in group
    */
-  bool contains(unsigned int id) const {
+  bool contains(TimerId id) const {
     for (auto timer_id : timer_ids_) {
       if (timer_id == id) return true;
     }
@@ -183,7 +183,7 @@ public:
 
 private:
   Timer* timer_;
-  GroupVector<unsigned int> timer_ids_;
+  GroupVector<TimerId> timer_ids_;
 };
 
 } // namespace uniuno

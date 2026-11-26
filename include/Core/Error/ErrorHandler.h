@@ -51,6 +51,10 @@
 #include <Optimization/SmallVector.h>
 #include <Optimization/StaticString.h>
 
+#ifdef ARDUINO
+#include <Arduino.h>
+#endif
+
 namespace uniuno {
 
 class IErrorPolicy; // Forward declaration

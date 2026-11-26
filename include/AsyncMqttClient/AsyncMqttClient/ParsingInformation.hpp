@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 namespace AsyncMqttClientInternals {
 enum class BufferState : uint8_t { NONE = 0, REMAINING_LENGTH = 2, VARIABLE_HEADER = 3, PAYLOAD = 4 };
 

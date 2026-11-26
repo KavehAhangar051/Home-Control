@@ -1046,7 +1046,7 @@ void AsyncClient::_dns_found(struct ip_addr* ipaddr) {
   if (ipaddr && IP_IS_V4(ipaddr)) {
     connect(IPAddress(ip_addr_get_ip4_u32(ipaddr)), _connect_port);
 #if LWIP_IPV6
-  } else if (ipaddr && ipaddr->u_addr.ip6.addr) {
+  } else if (ipaddr && IP_IS_V6(ipaddr)) {
     connect(IPv6Address(ipaddr->u_addr.ip6.addr), _connect_port);
 #endif
   } else {
