@@ -29,14 +29,15 @@ export function MqttMessageSettingsStep({
         </p>
         <Input
           id="mqtt-base-topic"
-          aria-describedby="mqtt-base-topic-help"
           type="text"
           dir="ltr"
           autoCapitalize="none"
           spellCheck={false}
           required
           aria-invalid={Boolean(errors.baseTopic)}
-          aria-describedby={errors.baseTopic ? "mqtt-base-topic-help mqtt-base-topic-error" : "mqtt-base-topic-help"}
+          aria-describedby={
+            errors.baseTopic ? "mqtt-base-topic-help mqtt-base-topic-error" : "mqtt-base-topic-help"
+          }
           value={baseTopic}
           onChange={(event) => setBaseTopic(event.target.value)}
           className="h-11 font-mono text-base sm:text-sm"
