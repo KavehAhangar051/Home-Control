@@ -364,7 +364,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     e.preventDefault();
     emit(v);
     settle();
-    o.onSlidingComplete?.(v);
+    p().onSlidingComplete?.(v);
   };
   host.addEventListener('pointerdown', onDown);
   host.addEventListener('pointermove', onMove);
