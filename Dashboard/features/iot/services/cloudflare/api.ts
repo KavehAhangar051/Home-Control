@@ -64,8 +64,11 @@ async function fetchCloudflareConfigOnce(
   try {
     const fetchInit: RequestInit & { priority?: "high" | "low" | "auto" } = {
       method: "GET",
+      cache: "no-store",
       headers: {
         Accept: "application/json",
+        "Cache-Control": "no-cache, no-store, max-age=0",
+        Pragma: "no-cache",
       },
       priority: "high",
       signal: timeout.signal,
@@ -92,7 +95,7 @@ async function fetchCloudflareConfigOnce(
 }
 
 /**
- * Fetch the latest config from Cloudflare Worker with timeout, circuit breaker, and idempotent retry+jitter.
+ * Fetch the latest Worker configuration without reusing browser HTTP cache or ordinary URL-keyed edge entries.
  */
 export async function fetchConfigFromCloudflare(
   options?: CloudflareRequestOptions,
@@ -100,7 +103,8 @@ export async function fetchConfigFromCloudflare(
   if (!isCloudflareEnabled()) return null;
 
   const baseUrl = getCloudflareWorkerUrl();
-  const url = `${baseUrl}/config`;
+  const url = new URL(`${baseUrl}/config`);
+  url.searchParams.set("_fresh", String(Date.now()));
   const executeFetch = options?.fetchFn ?? globalThis.fetch;
   const breaker = options?.circuitBreaker ?? cloudflareCircuitBreaker;
   const timeoutMs = options?.timeoutMs ?? REQUEST_TIMEOUT_MS;
@@ -111,7 +115,7 @@ export async function fetchConfigFromCloudflare(
   try {
     const config = await breaker.execute(
       () =>
-        retryWithBackoff(() => fetchCloudflareConfigOnce(url, executeFetch, timeoutMs), {
+        retryWithBackoff(() => fetchCloudflareConfigOnce(url.toString(), executeFetch, timeoutMs), {
           maxAttempts: retryAttempts,
           baseDelayMs: 250,
           maxDelayMs: 2000,
