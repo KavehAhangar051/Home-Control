@@ -95,7 +95,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     async (options?: { hydrateCache?: boolean }) => {
       bypassedRef.current = false;
 
-      await executeCloudflareInitSync({
+      return executeCloudflareInitSync({
       configLocalCacheEnabled: FEATURE_FLAGS.configLocalCache,
       isCloudflareEnabled,
       isOnline: () => globalThis.navigator?.onLine !== false,
@@ -108,6 +108,7 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
         cancelIdleStorageWrite("cached_esp_config");
 
         try {
+          localStorage.removeItem("cached_esp_config");
           localStorage.setItem("cached_esp_config", JSON.stringify(cfConfig));
         } catch (error) {
           debugLog.error("ConfigSync", "Could not replace configuration cache.", error);

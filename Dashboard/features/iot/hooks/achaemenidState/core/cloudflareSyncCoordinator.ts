@@ -149,7 +149,7 @@ export async function executeCloudflareInitSync(
       const timeoutMs = attemptCount === 1 ? 3000 : 1800;
       const cfConfig = await deps.fetchConfig(timeoutMs);
 
-      if (cfConfig && Array.isArray(cfConfig.segments)) {
+      if (cfConfig && Array.isArray(cfConfig.segments) && cfConfig.layout) {
         if (deps.isBypassed()) {
           return { kind: "aborted_by_bypass" };
         }
