@@ -38,7 +38,7 @@ interface TriggerModeOption {
 const TRIGGER_MODE_OPTIONS: readonly TriggerModeOption[] = [
   { value: "schedule", label: "زمان‌بندی", icon: Clock3 },
   { value: "timer", label: "تایمر", icon: Clock },
-  { value: "weather", label: "دما", icon: Thermometer },
+  { value: "weather", label: "آب‌وهوا", icon: Thermometer },
 ];
 
 interface AutomationFormProps {
