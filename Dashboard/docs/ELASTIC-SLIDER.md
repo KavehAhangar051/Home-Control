@@ -57,7 +57,7 @@ When «کشسان و غلتان» is selected in Settings → Appearance → Sli
 | `formatValueText` | `(value: number) => string` | `formatValue` result | Accessible value announcement, including units or localized text |
 | `icon` | `({ color, size }) => ReactNode` | — | Optional leading icon; receives the correct foreground for each fill layer |
 | `size` | `"sm" | "md" | "lg"` | `"md"` | Track height preset (32 / 44 / 56px) |
-| `showValue` | `boolean` | `true` | Hides the visible value when false |
+| `showValue` | `boolean` | `true` | Hides the visible value when false |\n| `showTicks` | `boolean` | `true` | Shows boundary and per-step dots when the range has at most 20 steps |\n| `formatValueText` | `(value: number) => string` | formatted value | Optional screen-reader value text |
 | `haptics` | `boolean` | `true` | Enables short haptic feedback at endpoints and on ranges with 20 steps or fewer |
 | `disabled` | `boolean` | `false` | Disables pointer and keyboard input |
 | `className` | `string` | — | Adds a class to the root |
@@ -71,7 +71,7 @@ When «کشسان و غلتان» is selected in Settings → Appearance → Sli
 - Haptic feedback is controlled by the upstream `haptics` prop and only runs after browser user activation.
 - Arrow keys adjust by one step; Shift + Arrow and Page Up/Down use a larger increment; Home and End select the bounds.
 - The slider exposes `role="slider"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, and a separately formatted `aria-valuetext`.
-- The upstream web component uses haptic feedback at endpoints and on every step when the range has 20 steps or fewer; it does not draw visual tick marks.
+- Haptic feedback runs at endpoints and on every step when the range has 20 steps or fewer. This dashboard extension also draws small boundary and per-step dots for ranges of 20 steps or fewer.
 - In dashboard usage, `size="sm"` is selected for compact/ultra controls; the upstream component uses its natural parent width.
 
 The fill direction is intentionally left-to-right, independent of the dashboard's RTL document direction. Colors inherit from `--dissolve-background` and `--dissolve-foreground`; the fill uses the foreground token and the empty track derives a low-alpha foreground tint.

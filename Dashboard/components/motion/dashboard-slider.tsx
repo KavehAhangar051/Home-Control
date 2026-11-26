@@ -167,6 +167,8 @@ export function DashboardSlider({
           step={step}
           size={isCompact || isUltra ? "sm" : "md"}
           formatValue={format ?? ((current) => (unit ? `${current} ${unit}` : String(current)))}
+          formatValueText={formatValueText}
+          showTicks={showTicks}
           showValue={showValue}
           disabled={disabled}
           className={cn("dashboard-elastic-slider", className)}

@@ -40,6 +40,10 @@ export type ElasticSliderProps = {
   showValue?: boolean;
   /** Turns the value into the shown text. Default: the number. */
   formatValue?: (value: number) => string;
+  /** Optional, separately formatted screen-reader announcement. */
+  formatValueText?: (value: number) => string;
+  /** Shows boundary and per-step dots when the range has at most 20 steps. */
+  showTicks?: boolean;
   /** Track height and type size: 32, 44 or 56 px. Default 'md'. */
   size?: ElasticSliderSize;
   /** A short vibration at the ends, and on every step when there are 20 steps or fewer. Default true. */
@@ -62,7 +66,7 @@ export type ElasticSliderInstance = {
   destroy: () => void;
 };
 
-const DEFAULTS = { min: 0, max: 100, step: 1, showValue: true, size: 'md' as ElasticSliderSize, haptics: true, disabled: false };
+const DEFAULTS = { min: 0, max: 100, step: 1, showValue: true, showTicks: true, size: 'md' as ElasticSliderSize, haptics: true, disabled: false };
 
 /** How far the track can stretch past an end, in px. */
 const REACH = 46;
@@ -84,6 +88,8 @@ const CSS = `
 :where([data-dissolve="elastic-slider"]:focus-visible) { outline: 2px solid var(--dissolve-accent, rgb(10 132 255)); outline-offset: 3px; border-radius: 14px; }
 :where(.dissolve-es-track) { position: absolute; inset: 0; overflow: hidden; will-change: transform; }
 :where(.dissolve-es-fill) { position: absolute; inset: 0; will-change: transform; }
+:where(.dissolve-es-ticks) { position: absolute; inset: 0; pointer-events: none; }
+:where(.dissolve-es-tick) { position: absolute; top: 50%; width: 2px; height: 2px; border-radius: 50%; transform: translate(-50%, -50%); }
 :where(.dissolve-es-text) {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between;
   font-weight: 600; letter-spacing: -0.012em; white-space: nowrap; pointer-events: none;
@@ -131,20 +137,55 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
   const clip = el('div', 'dissolve-es-clip');
   const inked = mkText();
   clip.append(inked.t);
+  const ticksLayer = el('div', 'dissolve-es-ticks');
+  ticksLayer.setAttribute('aria-hidden', 'true');
+  track.append(ticksLayer);
   host.append(track, base.t, clip);
-
-  const snap = (v: number) => {
-    const { min, max, step } = p();
-    return Math.min(max, Math.max(min, min + Math.round((v - min) / step) * step));
+  let tickNodes: HTMLElement[] = [];
+  let tickColors = { filled: 'rgb(255 255 255)', empty: 'rgb(28 28 30)' };
+  const updateTicks = () => {
+    tickNodes.forEach((node) => node.remove());
+    tickNodes = [];
+    const { min, max, step } = range();
+    const count = Math.floor((max - min) / step);
+    if (!p().showTicks || count > 20) return;
+    const values = Array.from({ length: count + 1 }, (_, i) => min + i * step);
+    if (values[values.length - 1] < max) values.push(max);
+    tickNodes = values.map((v) => {
+      const dot = el('span', 'dissolve-es-tick');
+      dot.style.left = `${((v - min) / (max - min)) * 100}%`;
+      ticksLayer.append(dot);
+      return dot;
+    });
   };
-  const span = () => Math.max(1e-9, p().max - p().min);
-  let inner = snap(p().defaultValue ?? p().min);
+
+  const range = () => {
+    const min = Number.isFinite(p().min) ? p().min! : 0;
+    const max = Number.isFinite(p().max) && p().max! > min ? p().max! : min + 100;
+    const step = Number.isFinite(p().step) && p().step! > 0 ? p().step! : 1;
+    return { min, max, step };
+  };
+  const snap = (v: number) => {
+    const { min, max, step } = range();
+    const precision = Math.min(8, ...[min, max, step].map((n) => (String(n).split('.')[1] ?? '').length));
+    const stepped = min + Math.round((v - min) / step) * step;
+    return Number(Math.min(max, Math.max(min, stepped)).toFixed(precision));
+  };
+  const span = () => {
+    const { min, max } = range();
+    return max - min;
+  };
+  let inner = snap(p().defaultValue ?? range().min);
   const shown = () => (p().value !== undefined ? snap(p().value!) : inner);
   let last = shown();
   let W = 0;
 
   const render = () => {
     const o = over.v, q = fillP.v, pr = press.v;
+    tickNodes.forEach((dot) => {
+      const position = Number.parseFloat(dot.style.left) / 100;
+      dot.style.background = position <= q ? tickColors.filled : tickColors.empty;
+    });
     // Only the end being pulled moves (the right one when full, the left one when empty), the other
     // stays anchored, through the bounce too: e > 0 stretches, e < 0 is the bounce squeezing back in.
     const side = q > 0.5 ? 1 : -1, e = side * o;
@@ -211,12 +252,13 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
       for (const span of Array.from(x.val.querySelectorAll<HTMLElement>('.dissolve-es-digit > span > span, .dissolve-es-value > span:not(.dissolve-es-digit)'))) span.style.height = span.style.lineHeight = line + 'px';
     }
     host.setAttribute('aria-valuenow', String(v));
-    host.setAttribute('aria-valuetext', text);
+    host.setAttribute('aria-valuetext', o.formatValueText?.(v) ?? text);
   }
 
   function paint() {
     const o = p();
     const bg = token(host, 'background', 'rgb(255 255 255)'), fg = token(host, 'foreground', 'rgb(28 28 30)');
+    tickColors = { filled: bg, empty: fg };
     const b = rgbOf(bg), f = rgbOf(fg);
     const dark = (0.2126 * b[0] + 0.7152 * b[1] + 0.0722 * b[2]) / 255 < 0.5;
     track.style.background = o.trackColor ?? `rgba(${f[0]}, ${f[1]}, ${f[2]}, ${dark ? 0.14 : 0.08})`;
@@ -236,16 +278,18 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
       x.left.style.gap = Math.round(s.font * 0.55) + 'px';
       x.icon.style.width = x.icon.style.height = Math.round(s.font * 1.2) + 'px';
     }
-    host.setAttribute('aria-valuemin', String(o.min));
-    host.setAttribute('aria-valuemax', String(o.max));
+    const { min, max } = range();
+    host.setAttribute('aria-valuemin', String(min));
+    host.setAttribute('aria-valuemax', String(max));
     if (o.label) host.setAttribute('aria-label', o.label);
     else host.removeAttribute('aria-label');
     W = host.clientWidth;
+    updateTicks();
     writeValue();
     render();
   }
 
-  const steps = () => span() / p().step;
+  const steps = () => span() / range().step;
   /** A new stepped value from the user: tick, state, onValueChange. */
   function emit(v: number) {
     if (v === last) return;
@@ -354,7 +398,8 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     icon: (on) => (on ? inked : base).icon,
     update(next) {
       const changed = props.update(next);
-      if ((['size', 'label', 'min', 'max', 'step', 'showValue', 'formatValue'] as const).some((k) => changed.has(k))) layout();
+      if ((['size', 'label', 'min', 'max', 'step', 'showValue', 'showTicks', 'formatValue'] as const).some((k) => changed.has(k))) layout();
+      if (changed.has('formatValueText')) writeValue();
       if (changed.has('value') && p().value !== undefined && !ptr) {
         const v = shown();
         if (v !== last) { last = v; writeValue(); settle(); }
@@ -373,6 +418,8 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
       window.removeEventListener('blur', onWindowBlur);
       host.removeEventListener('keydown', onKey);
       track.remove();
+      ticksLayer.remove();
+      tickNodes = [];
       base.t.remove();
       clip.remove();
       for (const k of ['touch-action', 'cursor', 'height', 'opacity']) host.style.removeProperty(k);
