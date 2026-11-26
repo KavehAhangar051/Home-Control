@@ -541,7 +541,7 @@ export default function AddSegmentForm({
                                   htmlFor="pwm-resolution-select"
                                   className="block text-sm font-bold text-text-primary"
                                 >
-                                  وضوح PWM (بیت)
+                                  دقت PWM (بیت)
                                 </Label>
                                 <Select
                                   id="pwm-resolution-select"
