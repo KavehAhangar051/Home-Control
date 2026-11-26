@@ -6,7 +6,8 @@
 
 import { getNextTriggerTimestamp } from "../utils/scheduler";
 import { getCurrentTemperature } from "../utils/weather";
-import type { Automation, Macro } from "../types";
+import { evaluateAutomationSegmentConditions } from "../utils/segment-conditions";
+import type { Automation, Macro, PinConfig, PinState } from "../types";
 
 /** ساختار داخلی برای نگه‌داشتن زمان محاسبه‌شده هر اتوماسیون */
 interface ScheduledEntry {
@@ -151,6 +152,8 @@ export async function fireAlarm(
 	const sockets = getWebSockets();
 	let automationsChanged = false;
 	const weatherCache = new Map<string, number | null>();
+	const pinStateCache = new Map<string, PinState>();
+	const segmentMetaPromise: { cached?: Promise<Map<number, PinConfig>> } = {};
 	const allPendingPins: PendingAutomationPin[] = [];
 
 	for (const auto of fired) {
@@ -173,6 +176,24 @@ export async function fireAlarm(
 					console.log(`[Automation] Skipped ${auto.id} due to weather condition (${currentTemp}°C vs threshold ${auto.temperatureThreshold}°C)`);
 					continue;
 				}
+			}
+		}
+
+		if (Array.isArray(auto.segmentConditions) && auto.segmentConditions.length > 0) {
+			const segmentConditionsMet = await evaluateAutomationSegmentConditions(
+				auto.segmentConditions,
+				auto.segmentConditionLogic,
+				env,
+				pinStateCache,
+				segmentMetaPromise
+			);
+			if (!segmentConditionsMet) {
+				console.log(`[Automation] Skipped ${auto.id} due to segment condition(s)`);
+				broadcastText(
+					sockets,
+					`[Worker][Automation] Skipped "${auto.title || auto.id}" (segment condition not met)`
+				);
+				continue;
 			}
 		}
 
