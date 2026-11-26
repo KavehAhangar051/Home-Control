@@ -1,9 +1,10 @@
 "use client";
 
-import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
+import { ToggleIndicator } from "@/components/dissolve/toggle";
 import { Activity, VolumeX } from "@/components/ui/hugeicons-groups/media";
-import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
+import { Toggle } from "@/components/ui/toggle";
 import { useReducedMotion } from "motion/react";
+import { triggerHaptic } from "@/lib/haptics";
 
 interface Props {
   isMusicOn: boolean;
@@ -13,31 +14,33 @@ interface Props {
 
 export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
   const prefersReducedMotion = useReducedMotion();
-  const hapticsEnabled = usePreferencesStore((s) => s.hapticsEnabled);
+
+  const handleToggle = () => {
+    if (isLoading) return;
+    triggerHaptic(isMusicOn ? "toggleOff" : "toggleOn");
+    onToggle();
+  };
 
   return (
     <div>
-      <div
-        onClick={() => {
-          if (!isLoading) onToggle();
-        }}
-        className={`flex min-h-[5.5rem] w-full flex-row-reverse items-center justify-between gap-3 rounded-2xl border p-4 text-right transition-colors duration-200 hover:bg-card-hover-bg hover:text-text-primary ${
+      <Toggle
+        variant="outline"
+        pressed={isMusicOn}
+        onPressedChange={handleToggle}
+        disabled={isLoading}
+        aria-label="موزیک پس‌زمینه"
+        className={`switch-toggle flex min-h-[5.5rem] w-full flex-row-reverse items-center justify-between gap-3 whitespace-normal rounded-2xl border p-4 text-right transition-colors duration-200 hover:bg-card-hover-bg hover:text-text-primary focus-visible:ring-accent3 ${
           isMusicOn
             ? "border-accent3 bg-accent3-transparent shadow-accent3-transparent"
             : "border-border-color bg-card-bg-solid hover:border-text-muted"
         } ${isLoading ? "cursor-not-allowed opacity-70" : ""}`}
       >
-        <DissolveToggle
+        <ToggleIndicator
           value={isMusicOn}
-          onValueChange={() => onToggle()}
-          onClick={(event) => event.stopPropagation()}
-          disabled={isLoading}
           size="sm"
           onColor="var(--accent3)"
           offColor="var(--card-hover-bg)"
-          haptics={hapticsEnabled}
           reducedMotion={Boolean(prefersReducedMotion)}
-          accessibilityLabel="موزیک پس‌زمینه"
           className="shrink-0"
         />
 
@@ -65,7 +68,7 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
             <VolumeX className="size-5" aria-hidden="true" />
           )}
         </div>
-      </div>
+      </Toggle>
     </div>
   );
 }

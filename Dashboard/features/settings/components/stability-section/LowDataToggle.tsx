@@ -1,9 +1,10 @@
 "use client";
 
-import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
+import { ToggleIndicator } from "@/components/dissolve/toggle";
 import { WifiOff } from "@/components/ui/hugeicons-groups/shell";
-import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
+import { Toggle } from "@/components/ui/toggle";
 import { soundManager } from "@/lib/audio";
+import { triggerHaptic } from "@/lib/haptics";
 
 interface LowDataToggleProps {
   lowDataMode: boolean;
@@ -17,20 +18,22 @@ export default function LowDataToggle({
   setLowDataMode,
   animationsEnabled,
 }: LowDataToggleProps) {
-  const hapticsEnabled = usePreferencesStore((s) => s.hapticsEnabled);
-
   const handleToggle = () => {
     const nextVal = !lowDataMode;
     setLowDataMode(nextVal);
     if (nextVal) soundManager.playToggleOn();
     else soundManager.playToggleOff();
+    triggerHaptic(nextVal ? "toggleOn" : "toggleOff");
   };
 
   return (
     <div className="border-b border-border-color pb-3.5 sm:pb-4">
-      <div
-        onClick={handleToggle}
-        className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
+      <Toggle
+        variant="outline"
+        pressed={lowDataMode}
+        onPressedChange={handleToggle}
+        aria-label={lowDataMode ? "حالت کم‌مصرف اینترنت · روشن" : "حالت کم‌مصرف اینترنت · خاموش"}
+        className={`switch-toggle flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
           lowDataMode
             ? "border-accent3 bg-card-hover-bg"
             : "border-border-color bg-card-bg hover:bg-card-hover-bg"
@@ -53,19 +56,15 @@ export default function LowDataToggle({
               : "خاموش · همگام‌سازی خودکار پس‌زمینه با کلودفلر"}
           </span>
         </div>
-        <DissolveToggle
+        <ToggleIndicator
           value={lowDataMode}
-          onValueChange={handleToggle}
-          onClick={(event) => event.stopPropagation()}
           size="sm"
           onColor="var(--accent3)"
           offColor="var(--bg-main)"
-          haptics={hapticsEnabled}
           reducedMotion={!animationsEnabled}
-          accessibilityLabel="حالت کم‌مصرف اینترنت"
           className="shrink-0"
         />
-      </div>
+      </Toggle>
     </div>
   );
 }

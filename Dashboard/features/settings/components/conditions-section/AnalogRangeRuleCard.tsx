@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import { useReducedMotion } from "motion/react";
+import { triggerHaptic } from "@/lib/haptics";
 import { ToggleIndicator } from "@/components/dissolve/toggle";
 import { DashboardSlider } from "@/components/motion/dashboard-slider";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -163,7 +164,11 @@ export function AnalogRangeRuleCard({
             role="switch"
             aria-checked={isEnabled}
             aria-label={`وضعیت بازه ${index + 1}`}
-            onClick={() => onUpdate({ enabled: !isEnabled })}
+            onClick={() => {
+              const nextEnabled = !isEnabled;
+              onUpdate({ enabled: nextEnabled });
+              triggerHaptic(nextEnabled ? "toggleOn" : "toggleOff");
+            }}
             className={`rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-colors cursor-pointer ${
               isEnabled
                 ? "border-accent3/50 bg-accent3/15 text-accent3"

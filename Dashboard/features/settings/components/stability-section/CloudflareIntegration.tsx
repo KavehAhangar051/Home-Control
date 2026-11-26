@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ToggleIndicator } from "@/components/dissolve/toggle";
 import { useReducedMotion } from "motion/react";
+import { triggerHaptic } from "@/lib/haptics";
 import { CloudLightning, Server } from "@/components/ui/hugeicons-groups/controls";
 import { Globe } from "@/components/ui/hugeicons-groups/media";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,11 @@ export default function CloudflareIntegration({
   const showToast = useIoTStore((s) => s.showToast);
   const manualSaveMode = useIoTStore((s) => s.manualSaveMode);
   const setManualSaveMode = useIoTStore((s) => s.setManualSaveMode);
+
+  const handleManualSaveModeChange = (enabled: boolean) => {
+    setManualSaveMode(enabled);
+    triggerHaptic(enabled ? "toggleOn" : "toggleOff");
+  };
 
   const [isSavingUrl, setIsSavingUrl] = useState(false);
 
@@ -105,7 +111,7 @@ export default function CloudflareIntegration({
               type="checkbox"
               className="sr-only"
               checked={manualSaveMode}
-              onChange={(e) => setManualSaveMode(e.target.checked)}
+              onChange={(e) => handleManualSaveModeChange(e.target.checked)}
             />
             <ToggleIndicator
               value={manualSaveMode}
