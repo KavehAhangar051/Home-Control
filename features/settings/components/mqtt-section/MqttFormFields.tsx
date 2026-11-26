@@ -26,9 +26,9 @@ export function MqttFormFields({
     <>
       <div className="space-y-2 text-right">
         <Label htmlFor="mqtt-broker-ws-url" className="px-1 font-bold">
-          آدرس WebSocket بروکر برای داشبورد
+          نشانی WebSocket بروکر MQTT برای داشبورد
         </Label>
-        <p className="px-1 text-xs leading-5 text-text-secondary">مرورگر داشبورد از این نشانی و پروتکل WebSocket به بروکر وصل می‌شود.</p>
+        <p className="px-1 text-xs leading-5 text-text-secondary">این نشانی، اتصال مرورگر داشبورد به بروکر MQTT را از طریق WebSocket مشخص می‌کند.</p>
         <Input
           id="mqtt-broker-ws-url"
           type="text"
@@ -43,9 +43,9 @@ export function MqttFormFields({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="sm:col-span-2 space-y-2 text-right">
           <Label htmlFor="mqtt-broker-host" className="px-1 font-bold">
-            میزبان بروکر برای ESP32 (TCP)
+            میزبان بروکر MQTT برای ESP32
           </Label>
-          <p className="px-1 text-xs leading-5 text-text-secondary">نام میزبان یا IP بروکری که برد ESP32 از طریق TCP به آن وصل می‌شود.</p>
+          <p className="px-1 text-xs leading-5 text-text-secondary">ESP32 از طریق TCP به این میزبان و پورت متصل می‌شود.</p>
           <Input
             id="mqtt-broker-host"
             type="text"
@@ -58,7 +58,7 @@ export function MqttFormFields({
         </div>
         <div className="sm:col-span-1 space-y-2 text-right">
           <Label htmlFor="mqtt-broker-port" className="px-1 font-bold">
-            پورت
+            پورت TCP بروکر
           </Label>
           <Input
             id="mqtt-broker-port"
@@ -76,7 +76,7 @@ export function MqttFormFields({
         <Label htmlFor="mqtt-base-topic" className="px-1 font-bold">
           پیشوند موضوع‌های MQTT (Base Topic)
         </Label>
-        <p className="px-1 text-xs leading-5 text-text-secondary">این پیشوند در ساخت موضوع‌های فرمان و وضعیت استفاده می‌شود؛ مقدار آن باید با تنظیمات فریمور یکسان باشد.</p>
+        <p className="px-1 text-xs leading-5 text-text-secondary">این پیشوند به موضوع‌های فرمان و وضعیت اضافه می‌شود و باید با مقدار تنظیم‌شده در فریمور ESP32 یکسان باشد.</p>
         <Input
           id="mqtt-base-topic"
           type="text"
