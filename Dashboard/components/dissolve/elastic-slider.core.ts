@@ -118,6 +118,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
   const sc = scope();
 
   host.dataset.dissolve = 'elastic-slider';
+  host.dir = 'ltr';
   host.setAttribute('role', 'slider');
   host.tabIndex = p().disabled ? -1 : 0;
   Object.assign(host.style, { touchAction: 'pan-y', cursor: 'pointer' });
@@ -319,6 +320,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
   };
   const onMove = (e: PointerEvent) => {
     if (!ptr || ptr.id !== e.pointerId || W <= 0) return;
+    if (p().disabled) return end(e, false);
     const dx = e.clientX - ptr.x, dy = e.clientY - ptr.y;
     if (!ptr.drag) {
       if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) return end(e, false);
@@ -389,6 +391,17 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
   onThemeChange(sc, paint);
 
   const disable = () => {
+    if (p().disabled && ptr) {
+      const pointerId = ptr.id;
+      ptr = null;
+      try {
+        if (host.hasPointerCapture(pointerId)) host.releasePointerCapture(pointerId);
+      } catch {}
+      host.style.cursor = 'pointer';
+      settle();
+      if (reducedMotion()) { over.set(0); press.set(0); }
+      else { over.spring(0, BOUNCE); press.spring(0, SETTLE); }
+    }
     host.style.opacity = p().disabled ? '0.5' : '';
     host.setAttribute('aria-disabled', String(p().disabled));
     host.tabIndex = p().disabled ? -1 : 0;
@@ -427,7 +440,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
       base.t.remove();
       clip.remove();
       for (const k of ['touch-action', 'cursor', 'height', 'opacity']) host.style.removeProperty(k);
-      for (const a of ['role', 'tabindex', 'aria-valuemin', 'aria-valuemax', 'aria-valuenow', 'aria-valuetext', 'aria-label', 'aria-disabled', 'data-dissolve']) host.removeAttribute(a);
+      for (const a of ['role', 'tabindex', 'aria-valuemin', 'aria-valuemax', 'aria-valuenow', 'aria-valuetext', 'aria-label', 'aria-disabled', 'data-dissolve', 'dir']) host.removeAttribute(a);
     },
   };
 }
