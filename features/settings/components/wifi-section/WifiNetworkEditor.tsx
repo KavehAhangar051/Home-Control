@@ -22,8 +22,8 @@ export function WifiNetworkEditor({
 }: Props) {
   return (
     <div className="space-y-4">
-      <div>
-        <Label htmlFor="wifi-network-ssid" className="block text-xs text-text-secondary mb-1">
+      <div className="space-y-2">
+        <Label htmlFor="wifi-network-ssid" className="text-sm font-bold">
           نام شبکه Wi-Fi (SSID)
         </Label>
         <Input
@@ -32,12 +32,12 @@ export function WifiNetworkEditor({
           value={tempSsid}
           onChange={(e) => setTempSsid(e.target.value)}
           placeholder="نام شبکه"
-          className="w-full bg-card-bg-solid border-border-color rounded-xl px-4 py-2.5 text-sm text-text-primary focus:border-accent3"
-          dir="ltr"
+          className="h-11 bg-card-bg-solid text-base sm:text-sm"
+          dir="auto"
         />
       </div>
-      <div>
-        <Label htmlFor="wifi-network-password" className="block text-xs text-text-secondary mb-1">
+      <div className="space-y-2">
+        <Label htmlFor="wifi-network-password" className="text-sm font-bold">
           رمز عبور شبکه
         </Label>
         <Input
@@ -45,8 +45,7 @@ export function WifiNetworkEditor({
           type="password"
           value={tempPassword}
           onChange={(e) => setTempPassword(e.target.value)}
-          placeholder="رمز عبور شبکه"
-          className="w-full bg-card-bg-solid border-border-color rounded-xl px-4 py-2.5 text-sm text-text-primary focus:border-accent3"
+          className="h-11 bg-card-bg-solid text-base sm:text-sm"
           dir="ltr"
         />
       </div>
@@ -54,7 +53,7 @@ export function WifiNetworkEditor({
         <button
           type="button"
           onClick={onSave}
-          className="flex-1 p-2.5 bg-accent3 text-accent3-foreground rounded-xl hover:bg-accent3-dark transition-colors flex items-center justify-center gap-2 shadow-xs"
+          className="flex-1 min-h-11 p-2.5 bg-accent3 text-accent3-foreground rounded-xl hover:bg-accent3-dark transition-colors flex items-center justify-center gap-2 shadow-xs"
         >
           <Check aria-hidden="true" className="size-4" />
           <span className="text-sm font-bold">ذخیره</span>
@@ -63,7 +62,7 @@ export function WifiNetworkEditor({
           type="button"
           onClick={onCancel}
           aria-label="لغو ویرایش شبکه"
-          className="p-2.5 border border-border-color text-text-secondary rounded-xl hover:border-text-muted hover:text-text-primary transition-colors flex items-center justify-center bg-card-bg-solid"
+          className="size-11 shrink-0 border border-border-color text-text-secondary rounded-xl hover:border-text-muted hover:text-text-primary transition-colors flex items-center justify-center bg-card-bg-solid"
         >
           <X aria-hidden="true" className="size-4" />
         </button>
