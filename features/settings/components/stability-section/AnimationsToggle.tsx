@@ -12,49 +12,36 @@ interface AnimationsToggleProps {
   isDark?: boolean;
 }
 
-function getToggleSurfaceClass(animationsEnabled: boolean, _isDark: boolean): string {
-  if (animationsEnabled) {
-    return "bg-card-hover-bg border-accent3";
-  }
-
-  return "bg-card-bg border-border-color hover:bg-card-hover-bg";
-}
-
-function getTitleTextClass(animationsEnabled: boolean, _isDark: boolean): string {
-  if (animationsEnabled) return "text-accent3";
-
-  return "text-text-primary";
-}
-
 export default function AnimationsToggle({
   animationsEnabled,
   setAnimationsEnabled,
   animationsFps = 60,
   setAnimationsFps,
-  isDark = true,
 }: AnimationsToggleProps) {
   const handleToggle = () => {
     const nextVal = !animationsEnabled;
     setAnimationsEnabled(nextVal);
-
     if (nextVal) soundManager.playToggleOn();
     else soundManager.playToggleOff();
   };
 
-    const surfaceClass = getToggleSurfaceClass(animationsEnabled, isDark);
-  const titleClass = getTitleTextClass(animationsEnabled, isDark);
-
   return (
     <div className="space-y-3 border-b border-border-color pb-3.5 sm:space-y-3.5 sm:pb-4">
-      <div className={`w-full h-auto gap-3 p-3 sm:p-4 rounded-xl border whitespace-normal transition-[background-color,border-color] duration-150 flex items-center justify-between cursor-pointer text-right group ${surfaceClass}`}>
-
-        <span className="min-w-0 flex-1 text-right space-y-1">
-          <span
-            className={`font-sans font-medium text-xs block leading-5 transition-colors duration-150 ${titleClass}`}
-          >
+      <div
+        onClick={handleToggle}
+        className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
+          animationsEnabled
+            ? "border-accent3 bg-card-hover-bg"
+            : "border-border-color bg-card-bg hover:bg-card-hover-bg"
+        }`}
+      >
+        <span className="min-w-0 flex-1 space-y-1 text-right">
+          <span className={`block font-sans text-xs font-medium leading-5 transition-colors duration-150 ${
+            animationsEnabled ? "text-accent3" : "text-text-primary"
+          }`}>
             انیمیشن‌های رابط کاربری
           </span>
-          <span className="text-[11px] sm:text-xs block leading-relaxed font-sans text-text-muted sm:text-text-secondary">
+          <span className="block font-sans text-[11px] leading-relaxed text-text-muted sm:text-xs sm:text-text-secondary">
             {animationsEnabled
               ? "فعال · جابه‌جایی نرم کارت‌ها و کنترل‌ها"
               : "غیرفعال · کاهش بار پردازشی دستگاه"}
@@ -63,6 +50,7 @@ export default function AnimationsToggle({
         <DissolveToggle
           value={animationsEnabled}
           onValueChange={handleToggle}
+          onClick={(event) => event.stopPropagation()}
           size="sm"
           onColor="var(--accent3)"
           offColor="var(--bg-main)"
@@ -73,8 +61,8 @@ export default function AnimationsToggle({
         />
       </div>
       {animationsEnabled && setAnimationsFps && (
-        <div className="px-0.5 sm:px-2 flex flex-wrap justify-between items-center gap-2">
-          <span className="text-xs text-text-secondary font-medium">نرخ فریم انیمیشن</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 sm:px-2">
+          <span className="text-xs font-medium text-text-secondary">نرخ فریم انیمیشن</span>
           <ToggleGroup
             variant="outline"
             size="sm"
@@ -92,7 +80,7 @@ export default function AnimationsToggle({
               <ToggleGroupItem
                 key={fps}
                 value={String(fps)}
-                className="px-3 text-xs font-mono font-medium tabular-nums rounded-lg aria-pressed:bg-accent3 aria-pressed:text-accent3-foreground aria-pressed:border-accent3"
+                className="rounded-lg px-3 text-xs font-mono font-medium tabular-nums aria-pressed:border-accent3 aria-pressed:bg-accent3 aria-pressed:text-accent3-foreground"
               >
                 {fps} FPS
               </ToggleGroupItem>
