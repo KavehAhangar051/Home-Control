@@ -222,7 +222,7 @@ export default function MacroSidebar({ compact = false, className = "" }: MacroS
               >
                 ماکروها
               </span>
-              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-md bg-secondary px-1 font-mono text-[10px] font-semibold tabular-nums text-text-secondary">
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-md border border-accent4/35 bg-accent4-transparent px-1 font-mono text-[10px] font-semibold tabular-nums text-accent4">
                 {visibleMacros.length}
               </span>
               <ChevronDown
