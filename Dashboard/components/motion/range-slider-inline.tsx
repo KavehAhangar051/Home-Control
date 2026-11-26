@@ -410,7 +410,7 @@ export function InlineSlider({
       </div>
       <m.div
         aria-hidden="true"
-        animate={reduce ? undefined : { scaleY: dragging ? 1.35 : 1 }}
+        animate={reduce ? undefined : { scaleX: dragging ? 1.12 : 1, scaleY: dragging ? 1.35 : 1 }}
         transition={SPRING_BOUNCY}
         className="pointer-events-none absolute left-0 top-1/2 h-6 w-1 text-accent3"
         style={{ x: handleX, y: "-50%", willChange: "transform", backfaceVisibility: "hidden" }}
