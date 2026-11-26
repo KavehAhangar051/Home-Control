@@ -9,7 +9,7 @@ import {
   setCloudflareWorkerUrl,
 } from "@/features/iot/services/cloudflareService";
 import type { EspConfig } from "@/features/iot/services/esp32Config";
-import { cancelIdleStorageWrite, scheduleIdleStorageWrite } from "@/lib/asyncScheduler";
+import { cancelIdleStorageWrite } from "@/lib/asyncScheduler";
 import { debugLog } from "@/lib/debug";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
 
