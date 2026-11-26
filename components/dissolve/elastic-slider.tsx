@@ -40,6 +40,7 @@ export interface ElasticSliderProps {
   size?: SliderSize;
   showValue?: boolean;
   formatValue?: (value: number) => string;
+  formatValueText?: (value: number) => string;
   icon?: (props: SliderIconProps) => ReactNode;
   disabled?: boolean;
   className?: string;
@@ -115,6 +116,7 @@ export function ElasticSlider({
   size = "md",
   showValue = true,
   formatValue = (current) => String(current),
+  formatValueText,
   icon,
   disabled = false,
   className,
@@ -135,6 +137,7 @@ export function ElasticSlider({
   );
   const percentage = ((currentValue - safeMin) / (safeMax - safeMin)) * 100;
   const formattedValue = formatValue(currentValue);
+  const accessibleValue = formatValueText?.(currentValue) ?? formattedValue;
   const trackRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -143,7 +146,14 @@ export function ElasticSlider({
   const sizeRef = useRef({ width: 1, height: size === "sm" ? 28 : 36 });
   const percentageRef = useRef(percentage);
   percentageRef.current = percentage;
-  const colorsRef = useRef({ track: "#444444", fill: "#999999" });
+  const rangeRef = useRef({ min: safeMin, max: safeMax, step: safeStep });
+  rangeRef.current = { min: safeMin, max: safeMax, step: safeStep };
+  const colorsRef = useRef({
+    track: "#444444",
+    fill: "#999999",
+    foreground: "#ffffff",
+    fillForeground: "#ffffff",
+  });
   const valueRef = useRef(currentValue);
   valueRef.current = currentValue;
 
@@ -185,8 +195,31 @@ export function ElasticSlider({
 
     context.fillStyle = trackColor;
     drawRoundRect(0, 0, width, height, radius);
+    const fillWidth = width * (percentageRef.current / 100);
     context.fillStyle = fillColor;
-    drawRoundRect(0, 0, width * (percentageRef.current / 100), height, radius);
+    drawRoundRect(0, 0, fillWidth, height, radius);
+
+    const { min: rangeMin, max: rangeMax, step: rangeStep } = rangeRef.current;
+    const stepCount = Math.floor((rangeMax - rangeMin) / rangeStep);
+    if (stepCount <= 20) {
+      const drawTick = (x: number) => {
+        context.beginPath();
+        context.arc(x, height / 2, 1.25, 0, Math.PI * 2);
+        context.fillStyle = x <= fillWidth
+          ? colorsRef.current.fillForeground
+          : colorsRef.current.foreground;
+        context.globalAlpha = 0.58;
+        context.fill();
+        context.globalAlpha = 1;
+      };
+
+      for (let index = 0; index <= stepCount; index += 1) {
+        drawTick((index / (rangeMax - rangeMin) * rangeStep) * width);
+      }
+
+      const lastStepValue = rangeMin + stepCount * rangeStep;
+      if (lastStepValue < rangeMax) drawTick(width);
+    }
   }, []);
 
   const requestDraw = useCallback(() => {
@@ -331,6 +364,8 @@ export function ElasticSlider({
       colorsRef.current = {
         track: styles.getPropertyValue("--dissolve-surface").trim() || styles.getPropertyValue("--border-color").trim() || "#444444",
         fill: styles.getPropertyValue("--dissolve-primary").trim() || styles.getPropertyValue("--accent3").trim() || "#999999",
+        foreground: styles.getPropertyValue("--dissolve-foreground").trim() || "#ffffff",
+        fillForeground: styles.getPropertyValue("--dissolve-primary-foreground").trim() || "#ffffff",
       };
       draw();
     };
@@ -371,7 +406,7 @@ export function ElasticSlider({
       aria-valuemin={safeMin}
       aria-valuemax={safeMax}
       aria-valuenow={currentValue}
-      aria-valuetext={formattedValue}
+      aria-valuetext={accessibleValue}
       aria-disabled={disabled || undefined}
       data-disabled={disabled || undefined}
       data-size={size}
@@ -424,7 +459,7 @@ export function ElasticSlider({
           </span>
         </>
       )}
-      <span className="sr-only">{label}: {formattedValue}</span>
+      <span className="sr-only">{label}: {accessibleValue}</span>
     </div>
   );
 }
