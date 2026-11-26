@@ -38,7 +38,7 @@ export function VolumeControl() {
 | `showValue` | `boolean` | `true` | Hides the visible value when false |
 | `disabled` | `boolean` | `false` | Disables pointer and keyboard input |
 | `className` | `string` | — | Adds a class to the root |
-| `partClassNames` | `Partial<Record<SliderPart, string>>` | — | Styles individual parts |
+| `partClassNames` | `Partial<Record<ElasticSliderPart, string>>` | — | Styles individual parts |
 
 ## Interaction
 
