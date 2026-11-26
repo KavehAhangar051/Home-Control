@@ -14,7 +14,7 @@ public:
   BaseEventDispatcher() : dispatch_depth_(0), next_listener_id_(1) {}
   virtual ~BaseEventDispatcher() = default;
 
-  uint32_t addListener(uint32_t event_hash, FastFunction<void(void*)> callback, bool is_once = false) {
+  uint32_t addListener(uint32_t event_hash, EventCallback callback, bool is_once = false) {
     if (UNLIKELY(!callback)) return 0;
 
     uint32_t id = next_listener_id_++;

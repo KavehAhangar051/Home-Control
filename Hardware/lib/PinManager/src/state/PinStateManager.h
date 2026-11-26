@@ -17,14 +17,19 @@
  */
 class PinStateManager {
 public:
+  // ESP32 has 6 WiFi-safe ADC1 channels (GPIO 32,33,34,35,36,39); 8 slots fit all + 2 spare in 2 L1 cache lines.
+  static constexpr uint8_t MAX_ANALOG_SLOTS = 8;
+
   PinStateManager(PinRegistry& registry)
       : _registry(registry), _inputMask0_31(0), _inputMask32_39(0), _lastInputs0_31(0), _lastInputs32_39(0),
         _nextAnalogSampleTime(0), _lastAnalogGateCycle(0), _activeAdcStartCycle(0), _numInputs(0), _numAnalogInputs(0),
         _activeAdcSlot(-1), _analogRoundRobin(0), _hasAnalogSchedule(false) {
     for (int i = 0; i < MAX_PINS; ++i) {
       _inputIndices[i] = 0;
+    }
+    for (uint8_t i = 0; i < MAX_ANALOG_SLOTS; ++i) {
       _analogEntries[i] = nullptr;
-      for (int j = 0; j < MAX_PINS; ++j) {
+      for (uint8_t j = 0; j < MAX_ANALOG_SLOTS; ++j) {
         _analogSlotOrder[i][j] = 0;
       }
     }
@@ -46,7 +51,7 @@ public:
         return entry->lastInputState;
       }
       if (entry->type == SegmentType::AnalogOutput) {
-        return entry->virtualAnalogValue > 0;
+        return entry->virt.analogValue > 0;
       }
       return entry->virtualState;
     }
@@ -68,7 +73,7 @@ public:
     if (!entry || !entry->active) return RULE_ANALOG_VALUE_UNSET;
     if (entry->isVirtual) {
       if (entry->type == SegmentType::AnalogOutput || entry->type == SegmentType::AnalogInput) {
-        return static_cast<int16_t>(entry->virtualAnalogValue);
+        return static_cast<int16_t>(entry->virt.analogValue);
       }
       return RULE_ANALOG_VALUE_UNSET;
     }
@@ -85,7 +90,7 @@ public:
     const PinEntry* entry = _registry.getEntryByPinConst(pin);
     if (!entry || !entry->active) return 0;
     if (entry->isVirtual) {
-      return (entry->type == SegmentType::AnalogOutput) ? entry->virtualLastNonZeroValue : 0;
+      return (entry->type == SegmentType::AnalogOutput) ? entry->virt.lastNonZeroValue : 0;
     }
     if (!entry->hasPwm) return 0;
     return entry->pwm.getLastNonZeroValue();
@@ -95,8 +100,8 @@ public:
     const PinEntry* entry = _registry.getEntryByPinConst(pin);
     if (!entry || !entry->active) return 0;
     if (entry->isVirtual) {
-      if (entry->type == SegmentType::AnalogOutput) return entry->virtualPwmResolution;
-      if (entry->type == SegmentType::AnalogInput) return entry->virtualAdcResolution;
+      if (entry->type == SegmentType::AnalogOutput) return entry->virt.pwmResolution;
+      if (entry->type == SegmentType::AnalogInput) return entry->virt.adcResolution;
       return 0;
     }
     if (entry->hasPwm) return entry->pwm.getResolution();
@@ -108,7 +113,7 @@ public:
     const PinEntry* entry = _registry.getEntryByPinConst(pin);
     if (!entry || !entry->active) return 0;
     if (entry->isVirtual) {
-      return (entry->type == SegmentType::AnalogOutput) ? entry->virtualPwmResolution : 0;
+      return (entry->type == SegmentType::AnalogOutput) ? entry->virt.pwmResolution : 0;
     }
     if (!entry->hasPwm) return 0;
     return entry->pwm.getResolution();
@@ -118,7 +123,7 @@ public:
     const PinEntry* entry = _registry.getEntryByPinConst(pin);
     if (!entry || !entry->active) return 0;
     if (entry->isVirtual) {
-      return (entry->type == SegmentType::AnalogOutput) ? entry->virtualPwmFrequency : 0;
+      return (entry->type == SegmentType::AnalogOutput) ? entry->virt.pwmFrequency : 0;
     }
     if (!entry->hasPwm) return 0;
     return entry->pwm.getFrequency();
@@ -128,7 +133,7 @@ public:
     const PinEntry* entry = _registry.getEntryByPinConst(pin);
     if (!entry || !entry->active) return 0;
     if (entry->isVirtual) {
-      return (entry->type == SegmentType::AnalogInput) ? entry->virtualAdcResolution : 0;
+      return (entry->type == SegmentType::AnalogInput) ? entry->virt.adcResolution : 0;
     }
     if (!entry->hasAdc) return 0;
     return entry->adc.getResolution();
@@ -138,7 +143,7 @@ public:
     const PinEntry* entry = _registry.getEntryByPinConst(pin);
     if (!entry || !entry->active) return 0;
     if (entry->isVirtual) {
-      return (entry->type == SegmentType::AnalogInput) ? entry->virtualAdcSampleIntervalMs : 0;
+      return (entry->type == SegmentType::AnalogInput) ? entry->virt.adcSampleIntervalMs : 0;
     }
     if (!entry->hasAdc) return 0;
     return entry->adc.getSampleIntervalMs();
@@ -148,7 +153,7 @@ public:
     const PinEntry* entry = _registry.getEntryByPinConst(pin);
     if (!entry || !entry->active) return 0;
     if (entry->isVirtual) {
-      return (entry->type == SegmentType::AnalogInput) ? entry->virtualAdcDeltaThreshold : 0;
+      return (entry->type == SegmentType::AnalogInput) ? entry->virt.adcDeltaThreshold : 0;
     }
     if (!entry->hasAdc) return 0;
     return entry->adc.getDeltaThreshold();
@@ -158,7 +163,7 @@ public:
     const PinEntry* entry = _registry.getEntryByPinConst(pin);
     if (!entry || !entry->active) return 0;
     if (entry->isVirtual) {
-      return (entry->type == SegmentType::AnalogInput) ? entry->virtualAdcHighThreshold : 0;
+      return (entry->type == SegmentType::AnalogInput) ? entry->virt.adcHighThreshold : 0;
     }
     if (!entry->hasAdc) return 0;
     return entry->adc.getHighThreshold();
@@ -168,7 +173,7 @@ public:
     const PinEntry* entry = _registry.getEntryByPinConst(pin);
     if (!entry || !entry->active) return 0;
     if (entry->isVirtual) {
-      return (entry->type == SegmentType::AnalogInput) ? entry->virtualAdcLowThreshold : 0;
+      return (entry->type == SegmentType::AnalogInput) ? entry->virt.adcLowThreshold : 0;
     }
     if (!entry->hasAdc) return 0;
     return entry->adc.getLowThreshold();
@@ -187,29 +192,43 @@ public:
   }
 
   /**
-   * @brief Ultra-fast pipeline-interleaved Xtensa assembly bitmask change check.
-   * Interleaves Bank 0 (GPIO 0-31) and Bank 1 (GPIO 32-39) ALU ops to avoid
-   * Read-After-Write pipeline bubbles. Returns false in ~5 cycles with zero branches
-   * when no inputs changed (also handles _numInputs == 0 naturally since masks are 0).
+   * @brief Single-pass pipeline-interleaved Xtensa assembly GPIO edge check.
+   * Captures current register snapshots and diff masks in ~5 cycles so the transition
+   * handler never re-reads the slow APB GPIO.in / GPIO.in1.val registers a second time.
    */
-  HOT_PATH FORCE_INLINE bool hasInputsChanged() const {
+  HOT_PATH FORCE_INLINE bool pollInputsChanged(uint32_t& outCur0, uint32_t& outCur1, uint32_t& outDiff0,
+                                               uint32_t& outDiff1) const {
 #if defined(__XTENSA__) || defined(ESP32)
     const uint32_t in0 = GPIO.in;
     const uint32_t in1 = GPIO.in1.val;
-    uint32_t diff;
-    uint32_t tmp;
-    asm volatile("xor    %[d], %[in0], %[last0]  \n"
-                 "xor    %[t], %[in1], %[last1]  \n"
-                 "and    %[d], %[d],   %[mask0]  \n"
-                 "and    %[t], %[t],   %[mask1]  \n"
-                 "or     %[d], %[d],   %[t]      \n"
-                 : [d] "=&r"(diff), [t] "=&r"(tmp)
+    uint32_t diff0;
+    uint32_t diff1;
+    uint32_t any;
+    asm volatile("xor    %[d0], %[in0], %[last0] \n"
+                 "xor    %[d1], %[in1], %[last1] \n"
+                 "and    %[d0], %[d0],  %[mask0] \n"
+                 "and    %[d1], %[d1],  %[mask1] \n"
+                 "or     %[any], %[d0], %[d1]    \n"
+                 : [d0] "=&r"(diff0), [d1] "=&r"(diff1), [any] "=&r"(any)
                  : [in0] "r"(in0), [last0] "r"(_lastInputs0_31), [mask0] "r"(_inputMask0_31), [in1] "r"(in1),
                    [last1] "r"(_lastInputs32_39), [mask1] "r"(_inputMask32_39));
-    return diff != 0;
+    outCur0 = in0;
+    outCur1 = in1;
+    outDiff0 = diff0;
+    outDiff1 = diff1;
+    return any != 0;
 #else
+    outCur0 = 0;
+    outCur1 = 0;
+    outDiff0 = 0;
+    outDiff1 = 0;
     return true;
 #endif
+  }
+
+  HOT_PATH FORCE_INLINE bool hasInputsChanged() const {
+    uint32_t cur0, cur1, diff0, diff1;
+    return pollInputsChanged(cur0, cur1, diff0, diff1);
   }
 
   /**
@@ -248,6 +267,9 @@ public:
 
   HOT_PATH void
   processInputs(const uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>& onInputChanged);
+  HOT_PATH void
+  processInputsChanged(uint32_t current0_31, uint32_t current32_39, uint32_t changed0_31, uint32_t changed32_39,
+                       const uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>& onInputChanged);
   HOT_PATH void
   processAnalogInputs(const uniuno::StaticFunction<void, const AnalogInputChange&, const RuleConfig&>& onAnalogChanged);
   void rebuildInputCache();
@@ -352,13 +374,13 @@ private:
   mutable uint32_t _lastAnalogGateCycle;
   uint32_t _activeAdcStartCycle;
   uint8_t _inputIndices[MAX_PINS];
-  // Space-for-Time direct pointer cache: zero index lookup or bounds checking in hot loop
-  PinEntry* _analogEntries[MAX_PINS];
+  // Space-for-Time direct pointer cache & LUT sized to ESP32 ADC1 hardware (8 slots -> 2 L1 cache lines!)
+  PinEntry* _analogEntries[MAX_ANALOG_SLOTS];
   uint8_t _numInputs;
   uint8_t _numAnalogInputs;
   int8_t _activeAdcSlot; // Index into _analogEntries[] owning SAR1 right now, or -1 if idle
   uint8_t _analogRoundRobin;
-  uint8_t _analogSlotOrder[MAX_PINS][MAX_PINS];
+  uint8_t _analogSlotOrder[MAX_ANALOG_SLOTS][MAX_ANALOG_SLOTS];
   bool _hasAnalogSchedule;
 };
 

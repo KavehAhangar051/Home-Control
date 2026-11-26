@@ -25,7 +25,7 @@ public:
 
   uint32_t registerListener(const char* event_name, void (*callback)(void*), bool is_once = false) override {
     if (UNLIKELY(!event_name || !callback)) return 0;
-    auto func = FastFunction<void(void*)>([callback](void* event) { callback(event); });
+    auto func = EventCallback([callback](void* event) { callback(event); });
     return this->addListener(hash_event_name(event_name), std::move(func), is_once);
   }
 

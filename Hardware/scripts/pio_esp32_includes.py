@@ -40,3 +40,9 @@ if framework_dir:
         src_dir = os.path.join(libs_dir, lib_name, "src")
         if os.path.isdir(src_dir):
             env.Append(CPPPATH=[src_dir])
+
+# Apply -fno-rtti strictly to C++ units before lib_deps environments are cloned
+env.AppendUnique(CXXFLAGS=["-fno-rtti"])
+
+
+

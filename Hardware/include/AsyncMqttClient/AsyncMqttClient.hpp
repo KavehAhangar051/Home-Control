@@ -149,18 +149,28 @@ private:
   std::vector<std::array<uint8_t, SHA1_SIZE>> _secureServerFingerprints;
 #endif
 
-  // Zero-Heap Callback Vectors (Max-Velocity SmallVector)
-  uniuno::SmallVector<AsyncMqttClientInternals::OnConnectUserCallback, 2> _onConnectUserCallbacks;
-  uniuno::SmallVector<AsyncMqttClientInternals::OnDisconnectUserCallback, 2> _onDisconnectUserCallbacks;
-  uniuno::SmallVector<AsyncMqttClientInternals::OnSubscribeUserCallback, 2> _onSubscribeUserCallbacks;
-  uniuno::SmallVector<AsyncMqttClientInternals::OnUnsubscribeUserCallback, 2> _onUnsubscribeUserCallbacks;
-  uniuno::SmallVector<AsyncMqttClientInternals::OnMessageUserCallback, 2> _onMessageUserCallbacks;
-  uniuno::SmallVector<AsyncMqttClientInternals::OnPublishUserCallback, 2> _onPublishUserCallbacks;
+  // Zero-Heap Callback Vectors (Max-Velocity SmallVector; inline capacity 1 fits single subscriber with 0 heap)
+  uniuno::SmallVector<AsyncMqttClientInternals::OnConnectUserCallback, 1> _onConnectUserCallbacks;
+  uniuno::SmallVector<AsyncMqttClientInternals::OnDisconnectUserCallback, 1> _onDisconnectUserCallbacks;
+  uniuno::SmallVector<AsyncMqttClientInternals::OnSubscribeUserCallback, 1> _onSubscribeUserCallbacks;
+  uniuno::SmallVector<AsyncMqttClientInternals::OnUnsubscribeUserCallback, 1> _onUnsubscribeUserCallbacks;
+  uniuno::SmallVector<AsyncMqttClientInternals::OnMessageUserCallback, 1> _onMessageUserCallbacks;
+  uniuno::SmallVector<AsyncMqttClientInternals::OnPublishUserCallback, 1> _onPublishUserCallbacks;
 
-  // Zero-Heap Placement-New Packet Storage
+  // Zero-Heap Placement-New Packet Storage (exact 16-byte aligned size for largest packet)
   AsyncMqttClientInternals::ParsingInformation _parsingInformation;
   AsyncMqttClientInternals::Packet* _currentParsedPacket;
-  alignas(16) uint8_t _packetStorage[384];
+  static constexpr size_t kPacketStorageSize = (sizeof(AsyncMqttClientInternals::PublishPacket) + 15U) & ~size_t(15U);
+  static_assert(kPacketStorageSize >= sizeof(AsyncMqttClientInternals::ConnAckPacket) &&
+                    kPacketStorageSize >= sizeof(AsyncMqttClientInternals::SubAckPacket) &&
+                    kPacketStorageSize >= sizeof(AsyncMqttClientInternals::UnsubAckPacket) &&
+                    kPacketStorageSize >= sizeof(AsyncMqttClientInternals::PublishPacket) &&
+                    kPacketStorageSize >= sizeof(AsyncMqttClientInternals::PubRelPacket) &&
+                    kPacketStorageSize >= sizeof(AsyncMqttClientInternals::PubAckPacket) &&
+                    kPacketStorageSize >= sizeof(AsyncMqttClientInternals::PubRecPacket) &&
+                    kPacketStorageSize >= sizeof(AsyncMqttClientInternals::PubCompPacket),
+                "AsyncMqttClient _packetStorage must fit every packet type");
+  alignas(16) uint8_t _packetStorage[kPacketStorageSize];
   uint8_t _remainingLengthBufferPosition;
   char _remainingLengthBuffer[4];
 

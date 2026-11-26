@@ -45,8 +45,8 @@ void PinManager::exportConfig(ParseResult& out) const {
 
     if (entry->type == SegmentType::AnalogOutput) {
       if (entry->isVirtual) {
-        segment.pwmResolution = entry->virtualPwmResolution;
-        segment.pwmFrequency = entry->virtualPwmFrequency;
+        segment.pwmResolution = entry->virt.pwmResolution;
+        segment.pwmFrequency = entry->virt.pwmFrequency;
       } else if (entry->hasPwm) {
         segment.pwmResolution = entry->pwm.getResolution();
         segment.pwmFrequency = entry->pwm.getFrequency();
@@ -61,11 +61,11 @@ void PinManager::exportConfig(ParseResult& out) const {
 
     if (entry->type == SegmentType::AnalogInput) {
       if (entry->isVirtual) {
-        segment.adcResolution = entry->virtualAdcResolution;
-        segment.adcSampleIntervalMs = entry->virtualAdcSampleIntervalMs;
-        segment.adcDeltaThreshold = entry->virtualAdcDeltaThreshold;
-        segment.adcHighThreshold = entry->virtualAdcHighThreshold;
-        segment.adcLowThreshold = entry->virtualAdcLowThreshold;
+        segment.adcResolution = entry->virt.adcResolution;
+        segment.adcSampleIntervalMs = entry->virt.adcSampleIntervalMs;
+        segment.adcDeltaThreshold = entry->virt.adcDeltaThreshold;
+        segment.adcHighThreshold = entry->virt.adcHighThreshold;
+        segment.adcLowThreshold = entry->virt.adcLowThreshold;
       } else if (entry->hasAdc) {
         segment.adcResolution = entry->adc.getResolution();
         segment.adcSampleIntervalMs = entry->adc.getSampleIntervalMs();
@@ -102,7 +102,7 @@ void PinManager::printStatus() const {
       Serial.printf("  [%d] VIRTUAL id=%s type=%s vpin=%d -> node#%u rpin=%u state=%s val=%u autoOff=%ds\n", i,
                     entry->segmentId, segmentTypeToString(entry->type), entry->pinNumber, entry->nodeId,
                     entry->remotePin, getPinState(entry->pinNumber) ? "HIGH/ON" : "LOW/OFF",
-                    static_cast<unsigned int>(entry->virtualAnalogValue), entry->autoOffDelay);
+                    static_cast<unsigned int>(entry->virt.analogValue), entry->autoOffDelay);
       continue;
     }
     if (entry->type == SegmentType::AnalogOutput) {

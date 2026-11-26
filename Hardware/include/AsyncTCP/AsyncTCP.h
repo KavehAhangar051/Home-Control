@@ -70,13 +70,13 @@ class AsyncClient;
 #include <Optimization/FastFunction.h>
 #include <Optimization/CompilerTraits.h>
 
-// Max-Velocity Power-of-2 SBO callbacks from Optimization library (replaces std::function)
-typedef uniuno::FastFunction<void(void*, AsyncClient*), 64> AcConnectHandler;
-typedef uniuno::FastFunction<void(void*, AsyncClient*, size_t len, uint32_t time), 64> AcAckHandler;
-typedef uniuno::FastFunction<void(void*, AsyncClient*, int8_t error), 64> AcErrorHandler;
-typedef uniuno::FastFunction<void(void*, AsyncClient*, void* data, size_t len), 64> AcDataHandler;
-typedef uniuno::FastFunction<void(void*, AsyncClient*, struct pbuf* pb), 64> AcPacketHandler;
-typedef uniuno::FastFunction<void(void*, AsyncClient*, uint32_t time), 64> AcTimeoutHandler;
+// Max-Velocity 32-byte Power-of-2 SBO callbacks (16B inline = 4 pointers, zero heap)
+typedef uniuno::FastFunction<void(void*, AsyncClient*), 16> AcConnectHandler;
+typedef uniuno::FastFunction<void(void*, AsyncClient*, size_t len, uint32_t time), 16> AcAckHandler;
+typedef uniuno::FastFunction<void(void*, AsyncClient*, int8_t error), 16> AcErrorHandler;
+typedef uniuno::FastFunction<void(void*, AsyncClient*, void* data, size_t len), 16> AcDataHandler;
+typedef uniuno::FastFunction<void(void*, AsyncClient*, struct pbuf* pb), 16> AcPacketHandler;
+typedef uniuno::FastFunction<void(void*, AsyncClient*, uint32_t time), 16> AcTimeoutHandler;
 
 struct tcp_pcb;
 struct ip_addr;

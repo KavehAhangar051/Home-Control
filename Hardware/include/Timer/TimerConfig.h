@@ -134,7 +134,7 @@
  *
  * @see Timer::set_immediate()
  */
-#define TIMER_ENABLE_IMMEDIATE
+// #define TIMER_ENABLE_IMMEDIATE
 
 /**
  * @def TIMER_ENABLE_INTERVAL_UNTIL
@@ -147,7 +147,7 @@
  *
  * @see Timer::set_interval_until()
  */
-#define TIMER_ENABLE_INTERVAL_UNTIL
+// #define TIMER_ENABLE_INTERVAL_UNTIL
 
 /**
  * @def TIMER_ENABLE_ON_LOOP
@@ -193,7 +193,7 @@
  *   group.resumeAll();
  * @endcode
  */
-#define TIMER_ENABLE_GROUPS
+// #define TIMER_ENABLE_GROUPS
 
 // ============================================
 // ASYNC/FUTURE SUPPORT (Optional)

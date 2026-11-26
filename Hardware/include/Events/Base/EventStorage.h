@@ -40,8 +40,8 @@ template <size_t MaxListeners = 8> struct EventGroup {
  * 3. Generation tracking for Template Static Group Cache synchronization.
  */
 template <size_t MaxEvents = 32, size_t MaxListeners = 8> class EventStorage {
-  // 128 buckets for zero-collision fast-path hashing
-  static constexpr size_t kBuckets = (MaxEvents <= 32) ? 128 : (MaxEvents <= 64) ? 256 : 512;
+  // 64 buckets for <=20 events (~25% load factor), 128 for <=32 events
+  static constexpr size_t kBuckets = (MaxEvents <= 20) ? 64 : (MaxEvents <= 32) ? 128 : (MaxEvents <= 64) ? 256 : 512;
 
   struct HashBucket {
     uint32_t hash;
