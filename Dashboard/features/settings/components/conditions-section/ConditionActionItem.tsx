@@ -28,6 +28,8 @@ export interface ConditionAction {
   delay?: number;
   /** Optional explicit PWM duty cycle (`0..4095`). `-1` / null preserves boolean mode. */
   targetValue?: number | null;
+  conditions?: RuleGuardCondition[];
+  conditionLogic?: ConditionLogic;
 }
 
 const PWM_RULE_PERCENT_PRESETS = [0, 25, 50, 75, 100] as const;
