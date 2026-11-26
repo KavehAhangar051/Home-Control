@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { GrainToggleEffect } from "@/components/dissolve/toggle";
 import { formatSegmentPinLabel } from "@/features/iot/utils/auxNodeUtils";
 import type { SegmentData } from "../core/types";
 
@@ -73,7 +73,7 @@ function SwitchModeTrack({
   animationsEnabled: boolean;
 }) {
   return (
-    <ToggleIndicator
+    <GrainToggleEffect
       value={isPinOn}
       size="sm"
       onColor="var(--accent3)"
