@@ -4,6 +4,7 @@ import type { MqttConnectionStatus } from "./useMqttConnectionStatus";
 interface Props {
   brokerStatus: MqttConnectionStatus;
   isEsp32Online: boolean;
+  hasReceivedMqttStatus: boolean;
   esp32Ip: string | null;
   onReconnect: () => void;
 }
@@ -21,6 +22,7 @@ const BROKER_STATUS_COPY: Record<MqttConnectionStatus, { label: string; tone: st
 export function MqttConnectionStatusPanel({
   brokerStatus,
   isEsp32Online,
+  hasReceivedMqttStatus,
   esp32Ip,
   onReconnect,
 }: Props) {
@@ -29,18 +31,16 @@ export function MqttConnectionStatusPanel({
   const canRetry = brokerStatus === "disconnected" || brokerStatus === "offline" || brokerStatus === "error";
   const esp32Status = !isBrokerConnected
     ? "نامشخص تا اتصال بروکر"
-    : isEsp32Online
-      ? "آنلاین"
-      : esp32Ip
-        ? "آفلاین"
-        : "هنوز گزارشی دریافت نشده";
-  const esp32Tone = !isBrokerConnected
+    : !hasReceivedMqttStatus
+      ? "هنوز گزارشی دریافت نشده"
+      : isEsp32Online
+        ? "آنلاین"
+        : "آفلاین";
+  const esp32Tone = !isBrokerConnected || !hasReceivedMqttStatus
     ? "bg-text-muted"
     : isEsp32Online
       ? "bg-success"
-      : esp32Ip
-        ? "bg-red-500"
-        : "bg-text-muted";
+      : "bg-red-500";
 
   return (
     <section aria-label="وضعیت اتصال" className="space-y-4 rounded-xl border border-border-color bg-bg-main p-4">
@@ -64,7 +64,7 @@ export function MqttConnectionStatusPanel({
         <p className="text-xs leading-5 text-text-secondary">
           تا زمانی که داشبورد به بروکر متصل نباشد، وضعیت آنلاین یا آفلاین ESP32 قابل تأیید نیست.
         </p>
-      ) : !isEsp32Online && !esp32Ip ? (
+      ) : !hasReceivedMqttStatus ? (
         <p className="text-xs leading-5 text-text-secondary">
           پس از دریافت اولین پیام وضعیت از ESP32، وضعیت آنلاین یا آفلاین آن نمایش داده می‌شود.
         </p>

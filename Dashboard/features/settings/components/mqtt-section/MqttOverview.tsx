@@ -4,6 +4,7 @@ import type { MqttConnectionStatus } from "./useMqttConnectionStatus";
 interface Props {
   brokerStatus: MqttConnectionStatus;
   isEsp32Online: boolean;
+  hasReceivedMqttStatus: boolean;
   esp32Ip: string | null;
   brokerWsUrl: string;
   brokerHost: string;
@@ -42,6 +43,7 @@ function SummaryItem({
 export function MqttOverview({
   brokerStatus,
   isEsp32Online,
+  hasReceivedMqttStatus,
   esp32Ip,
   brokerWsUrl,
   brokerHost,
@@ -72,6 +74,7 @@ export function MqttOverview({
       <MqttConnectionStatusPanel
         brokerStatus={brokerStatus}
         isEsp32Online={isEsp32Online}
+        hasReceivedMqttStatus={hasReceivedMqttStatus}
         esp32Ip={esp32Ip}
         onReconnect={onReconnect}
       />
