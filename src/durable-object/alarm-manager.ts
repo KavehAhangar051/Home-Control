@@ -6,8 +6,12 @@
 
 import { getNextTriggerTimestamp } from "../utils/scheduler";
 import { getCurrentTemperature } from "../utils/weather";
-import { evaluateAutomationSegmentConditions } from "../utils/segment-conditions";
-import type { Automation, Macro, PinConfig, PinState } from "../types";
+import {
+	evaluateAutomationSegmentConditions,
+	fetchPinStatesIntoCache,
+	loadSegmentLookup,
+} from "../utils/segment-conditions";
+import type { Automation, Macro, MacroHttpRequestConfig, PinConfig, PinState } from "../types";
 
 /** ساختار داخلی برای نگه‌داشتن زمان محاسبه‌شده هر اتوماسیون */
 interface ScheduledEntry {
@@ -116,6 +120,102 @@ function encodeAnalogFrame(pin: number, value: number): Uint8Array {
 	return new Uint8Array([0x0a, pin & 0xff, clamped & 0xff, (clamped >> 8) & 0xff]);
 }
 
+async function resolveExtendedMacroPinAction(
+	ma: Macro["actions"][number],
+	env: Env | undefined,
+	pinStateCache: Map<string, PinState>,
+	segmentMetaPromise: { cached?: Promise<Map<number, PinConfig>> }
+): Promise<PendingAutomationPin | null> {
+	const pin = Number.parseInt(ma.targetPin ?? "", 10);
+	if (!Number.isInteger(pin) || pin < 0 || pin > 127) return null;
+	const pinKey = String(pin);
+
+	if (ma.analogMode === "step" && typeof ma.stepDelta === "number" && Number.isFinite(ma.stepDelta) && ma.stepDelta !== 0) {
+		if (!segmentMetaPromise.cached) {
+			segmentMetaPromise.cached = loadSegmentLookup(env?.DASH_KV);
+		}
+		const [segmentByPin] = await Promise.all([
+			segmentMetaPromise.cached,
+			fetchPinStatesIntoCache([pinKey], env, pinStateCache),
+		]);
+		const seg = segmentByPin.get(pin);
+		const liveState = pinStateCache.get(pinKey);
+		const resRaw = Number(liveState?.resolution ?? seg?.pwmResolution ?? 8);
+		const resolution = Number.isFinite(resRaw) ? Math.min(12, Math.max(8, Math.round(resRaw))) : 8;
+		const maxDuty = (1 << resolution) - 1;
+		const isOff = liveState?.value === false;
+		const baseDuty = isOff
+			? 0
+			: Math.min(
+					maxDuty,
+					Math.max(0, Math.round(Number(liveState?.analogValue ?? seg?.analogValue ?? 0) || 0))
+			  );
+		const delta = Math.round(ma.stepDelta);
+		const nextDuty =
+			ma.stepUnit === "raw"
+				? Math.min(maxDuty, Math.max(0, baseDuty + delta))
+				: Math.round(
+						(Math.min(100, Math.max(0, Math.round((baseDuty / maxDuty) * 100) + delta)) / 100) * maxDuty
+				  );
+		pinStateCache.set(pinKey, { ...liveState, value: nextDuty > 0, analogValue: nextDuty, resolution });
+		return { pin, state: nextDuty > 0, analogValue: nextDuty };
+	}
+
+	if (ma.analogMode === "power") {
+		if (ma.powerToggle) {
+			await fetchPinStatesIntoCache([pinKey], env, pinStateCache);
+			const liveState = pinStateCache.get(pinKey);
+			const nextOn = !(liveState?.value === true);
+			pinStateCache.set(pinKey, { ...liveState, value: nextOn });
+			return { pin, state: nextOn };
+		}
+		return { pin, state: !!ma.actionOn };
+	}
+
+	if (typeof ma.targetValue === "number" && Number.isFinite(ma.targetValue) && ma.targetValue >= 0) {
+		const clamped = Math.min(4095, Math.round(ma.targetValue));
+		return { pin, state: clamped > 0, analogValue: clamped };
+	}
+
+	return { pin, state: !!ma.actionOn };
+}
+
+async function executeMacroHttpRequest(req: MacroHttpRequestConfig | undefined): Promise<boolean> {
+	if (!req || !req.url) return false;
+	const trimmedUrl = req.url.trim();
+	if (!/^https?:\/\//i.test(trimmedUrl)) return false;
+
+	const controller = new AbortController();
+	const timeoutMs =
+		typeof req.timeoutMs === "number" && Number.isFinite(req.timeoutMs)
+			? Math.min(15000, Math.max(500, Math.round(req.timeoutMs)))
+			: 5000;
+	const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+	try {
+		const headers = new Headers();
+		if (req.contentType && req.method !== "GET" && req.body) {
+			headers.set("Content-Type", req.contentType);
+		}
+		for (const h of req.headers ?? []) {
+			if (h?.key?.trim()) headers.set(h.key.trim(), String(h.value ?? ""));
+		}
+
+		const resp = await fetch(trimmedUrl, {
+			method: req.method || "GET",
+			headers,
+			body: req.method !== "GET" && req.body ? req.body : undefined,
+			signal: controller.signal,
+		});
+		return resp.ok;
+	} catch (err) {
+		console.warn(`[Automation] HTTP macro request failed (${trimmedUrl}):`, err);
+		return false;
+	} finally {
+		clearTimeout(timer);
+	}
+}
+
 async function syncUpdatedAutomationsToKv(dashKv: KVNamespace | undefined, automations: Automation[]): Promise<void> {
 	if (!dashKv) return;
 	try {
@@ -207,6 +307,7 @@ export async function fireAlarm(
 		}
 
 		const allPins: PendingAutomationPin[] = [];
+		const httpRequests: MacroHttpRequestConfig[] = [];
 
 		const pushPinAction = (rawPin: string | undefined, actionOn: boolean | undefined, targetValue?: number | null) => {
 			if (!rawPin) return;
@@ -227,7 +328,12 @@ export async function fireAlarm(
 					const m = macros.find((macro) => macro.id === action.targetMacro);
 					if (m?.actions) {
 						for (const ma of m.actions) {
-							pushPinAction(ma.targetPin, ma.actionOn, ma.targetValue);
+							if (ma.actionKind === "http") {
+								if (ma.httpRequest) httpRequests.push(ma.httpRequest);
+								continue;
+							}
+							const resolved = await resolveExtendedMacroPinAction(ma, env, pinStateCache, segmentMetaPromise);
+							if (resolved) allPins.push(resolved);
 						}
 					}
 				} else {
@@ -236,7 +342,19 @@ export async function fireAlarm(
 			}
 		}
 
-		if (allPins.length === 0) continue;
+		if (httpRequests.length > 0) {
+			await Promise.allSettled(httpRequests.map((req) => executeMacroHttpRequest(req)));
+		}
+
+		if (allPins.length === 0) {
+			if (httpRequests.length > 0) {
+				broadcastText(
+					sockets,
+					`[Worker][Automation] Executed "${auto.title || auto.id}" (${httpRequests.length} HTTP request(s))`
+				);
+			}
+			continue;
+		}
 
 		const digitalPins = allPins.filter((p) => p.analogValue === undefined);
 		const analogPins = allPins.filter((p) => p.analogValue !== undefined);

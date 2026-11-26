@@ -97,7 +97,7 @@ function evaluateSingleCondition(
 	return compareNumeric(actualRaw, op, threshold, maxThreshold);
 }
 
-async function loadSegmentLookup(dashKv: KVNamespace | undefined): Promise<Map<number, PinConfig>> {
+export async function loadSegmentLookup(dashKv: KVNamespace | undefined): Promise<Map<number, PinConfig>> {
 	const map = new Map<number, PinConfig>();
 	if (!dashKv) return map;
 	try {
@@ -120,6 +120,28 @@ async function loadSegmentLookup(dashKv: KVNamespace | undefined): Promise<Map<n
 	return map;
 }
 
+export async function fetchPinStatesIntoCache(
+	pins: Iterable<string>,
+	env: Env | undefined,
+	pinStateCache: Map<string, PinState>
+): Promise<void> {
+	if (!env?.MY_DURABLE_OBJECT) return;
+	const missing = Array.from(new Set(pins)).filter((pinKey) => !pinStateCache.has(pinKey));
+	if (missing.length === 0) return;
+
+	await Promise.all(
+		missing.map(async (pinKey) => {
+			try {
+				const stub = env.MY_DURABLE_OBJECT.get(env.MY_DURABLE_OBJECT.idFromName("pin_" + pinKey));
+				const state = (await (stub as any).getState()) as PinState;
+				pinStateCache.set(pinKey, state ?? {});
+			} catch {
+				pinStateCache.set(pinKey, {});
+			}
+		})
+	);
+}
+
 /**
  * ارزیابی لیست شرط‌های سگمنت یک اتوماسیون با استفاده از آخرین وضعیت ذخیره‌شده در DO.
  */
@@ -134,13 +156,10 @@ export async function evaluateAutomationSegmentConditions(
 	if (active.length === 0) return true;
 	if (!env?.MY_DURABLE_OBJECT) return false;
 
-	const uniquePins = new Set<string>();
+	const requiredPins: string[] = [];
 	for (const cond of active) {
 		const pinNum = parseManagedPin(cond.sourcePin);
-		if (pinNum !== null) {
-			const key = String(pinNum);
-			if (!pinStateCache.has(key)) uniquePins.add(key);
-		}
+		if (pinNum !== null) requiredPins.push(String(pinNum));
 	}
 
 	if (!segmentMetaPromise.cached) {
@@ -149,19 +168,7 @@ export async function evaluateAutomationSegmentConditions(
 
 	const [segmentByPin] = await Promise.all([
 		segmentMetaPromise.cached,
-		Promise.all(
-			Array.from(uniquePins).map(async (pinKey) => {
-				try {
-					const stub = env.MY_DURABLE_OBJECT.get(
-						env.MY_DURABLE_OBJECT.idFromName("pin_" + pinKey)
-					);
-					const state = (await (stub as any).getState()) as PinState;
-					pinStateCache.set(pinKey, state ?? {});
-				} catch {
-					pinStateCache.set(pinKey, {});
-				}
-			})
-		),
+		fetchPinStatesIntoCache(requiredPins, env, pinStateCache),
 	]);
 
 	const results: boolean[] = [];

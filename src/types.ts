@@ -147,13 +147,31 @@ export interface Automation {
 	}>;
 }
 
+/** تنظیمات عملیات HTTP/HTTPS در ماکروها (مثلاً کنترل WLED یا وب‌هوک‌ها) */
+export interface MacroHttpRequestConfig {
+	label?: string;
+	method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+	url: string;
+	contentType?: string;
+	headers?: Array<{ key: string; value: string }>;
+	body?: string;
+	timeoutMs?: number;
+}
+
 /** یک ماکرو (دکمه سفارشی) */
 export interface Macro {
 	id: string;
 	title: string;
+	icon?: string;
 	actions: Array<{
+		actionKind?: "segment" | "http";
 		targetPin: string;
 		actionOn: boolean;
 		targetValue?: number | null;
+		analogMode?: "set" | "step" | "power";
+		stepDelta?: number;
+		stepUnit?: "percent" | "raw";
+		powerToggle?: boolean;
+		httpRequest?: MacroHttpRequestConfig;
 	}>;
 }
