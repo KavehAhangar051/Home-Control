@@ -142,12 +142,12 @@ export function WifiAccessPointCard() {
             <p className="text-xs text-text-muted">
               {isDefaultAccessPoint ? "تنظیم پیش‌فرض دستگاه" : "رمز عبور سفارشی ذخیره شده"}
             </p>
-            {isApSaved && (
+            {isApSaved ? (
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
                 <Check className="size-3.5" aria-hidden="true" />
                 ذخیره شد
               </span>
-            )}
+            ) : null}
           </div>
           <Button
             type="button"
@@ -159,10 +159,6 @@ export function WifiAccessPointCard() {
           </Button>
         </div>
       ) : (
-        <>
-          <div className="space-y-1">
-            <h3 id="wifi-ap-heading" className="text-sm font-bold text-text-primary">
-              اکسس‌پو      ) : (
         <WifiAccessPointEditor
           ssid={apSsid}
           password={apPassword}
@@ -185,3 +181,7 @@ export function WifiAccessPointCard() {
           onCancel={handleCancelAccessPointEdit}
           onSave={handleSaveAccessPoint}
         />
+      )}
+    </section>
+  );
+}
