@@ -1,6 +1,7 @@
 import React, { type ComponentPropsWithoutRef } from "react";
 import { Toggle } from "@/components/ui/toggle";
 import { getSegmentIcon, hasIcon } from "@/features/iot/utils/icons";
+import { triggerHaptic } from "@/lib/haptics";
 import { getSegmentTileDensity } from "../core/segmentTileDensity";
 import type { SegmentData } from "../core/types";
 import CardFooter from "./CardFooter";
@@ -54,6 +55,11 @@ function PinToggle({
   const density = getSegmentTileDensity(isUltraCompact, isCompact, hasExternalHeader);
   const ariaLabel = getPinToggleAriaLabel(segment.title, isPinOn, mode);
 
+  const handleToggleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    buttonProps.onClick?.(event);
+    triggerHaptic(mode === "push" ? "push" : isPinOn ? "toggleOff" : "toggleOn");
+  };
+
   const surfaceTone = isPinOn
     ? "bg-accent3-transparent hover:bg-accent3-transparent aria-pressed:bg-accent3-transparent data-[state=on]:bg-accent3-transparent text-text-primary dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
     : "bg-transparent hover:bg-card-hover-bg aria-pressed:bg-transparent data-[state=on]:bg-transparent text-text-primary";
@@ -70,6 +76,7 @@ function PinToggle({
     <Toggle
       pressed={isPinOn}
       {...buttonProps}
+      onClick={handleToggleClick}
       aria-label={ariaLabel}
       aria-busy={isPending || undefined}
       className={`switch-toggle group/tile relative flex flex-col items-stretch justify-between size-full text-right whitespace-normal font-sans transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] pointer-fine:active:scale-[0.98] cursor-pointer select-none ${radiusClass} ${density.container} ${surfaceTone}`}
