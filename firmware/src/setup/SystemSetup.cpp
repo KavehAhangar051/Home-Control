@@ -77,7 +77,7 @@ void setupWebSocket() {
     wsClient = new uniuno::AchaemenidWebSocketClient(&eventBus, stateProvider);
     wsServer = new uniuno::AchaemenidWebSocketServer(&eventBus, stateProvider);
 
-    wsClient->begin("wss://home-control-db.kamyarahangar157.workers.dev/ws");
+    wsClient->begin("wss://db.home-control.enddev.ir/ws");
 }
 
 void setupRuleEngine() {

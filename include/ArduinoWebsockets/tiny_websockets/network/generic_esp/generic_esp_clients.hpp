@@ -15,7 +15,9 @@ namespace websockets { namespace network {
 
     bool connect(const WSString& host, const int port) {
       auto didConnect = client.connect(host.c_str(), port);
-      client.setNoDelay(true);
+      if (didConnect) {
+        client.setNoDelay(true);
+      }
       return didConnect;
     }
 
