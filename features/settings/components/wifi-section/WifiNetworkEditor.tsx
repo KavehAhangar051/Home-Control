@@ -61,7 +61,6 @@ export function WifiNetworkEditor({
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
-          maxLength={32}
           value={tempSsid}
           onChange={(event) => setTempSsid(event.target.value)}
           placeholder="نام شبکه"

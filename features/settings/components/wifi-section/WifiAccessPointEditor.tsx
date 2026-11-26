@@ -76,7 +76,6 @@ export function WifiAccessPointEditor({
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
-          maxLength={32}
           disabled={isSaving}
           value={ssid}
           onChange={(event) => onSsidChange(event.target.value)}
