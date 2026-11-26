@@ -84,7 +84,7 @@ export function WifiAccessPointEditor({
         </div>
 
         <div className="min-w-0 space-y-2">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex min-h-11 items-center justify-between gap-3">
             <Label htmlFor="esp-ap-password" className="min-w-0 text-sm font-bold">
               رمز عبور اکسس‌پوینت
             </Label>
