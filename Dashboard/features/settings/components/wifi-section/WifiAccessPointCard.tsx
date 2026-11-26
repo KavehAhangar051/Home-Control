@@ -127,23 +127,14 @@ export function WifiAccessPointCard() {
   const apPasswordByteLength = getUtf8ByteLength(apPassword);
 
   return (
-    <section aria-labelledby="wifi-ap-heading" className="surface-panel space-y-4 p-4">
+    <section aria-labelledby="wifi-ap-heading" className="space-y-4">
       {!isApEditing ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <h3 id="wifi-ap-heading" className="text-sm font-bold text-text-primary">
-              اکسس‌پوینت راه‌اندازی (AP)
-            </h3>
-            <p className="text-xs leading-5 text-text-secondary">
-              {isDefaultAccessPoint
-                ? "اکسس‌پوینت از تنظیمات پیش‌فرض دستگاه استفاده می‌کند."
-                : `نام شبکه: ${wifiApConfig?.ssid || "ثبت نشده"}`}
-            </p>
-            <p className="text-xs text-text-muted">
-              {isDefaultAccessPoint ? "نام و رمز پیش‌فرض دستگاه بر اساس شناسهٔ سخت‌افزاری ساخته می‌شود." : "نام و رمز سفارشی برای شبکهٔ راه‌اندازی ذخیره شده است."}
-            </p>
-            <p className="max-w-2xl text-xs leading-5 text-text-secondary">
-              این اکسس‌پوینت یک شبکهٔ مستقل برای اتصال مستقیم به ESP32 است؛ با شبکهٔ روتر خانه که در فهرست بالا ثبت می‌کنید تفاوت دارد.
+            <h3 id="wifi-ap-heading" className="text-base font-bold text-text-primary">اکسس‌پوینت راه‌اندازی (AP)</h3>
+            <p className="text-xs leading-5 text-text-secondary">شبکهٔ مستقلی برای اتصال مستقیم به ESP32؛ جدا از شبکهٔ روتر خانه.</p>
+            <p className="text-sm font-semibold text-text-primary">
+              {isDefaultAccessPoint ? "استفاده از مقادیر پیش‌فرض دستگاه" : wifiApConfig?.ssid || "نام شبکه ثبت نشده"}
             </p>
             {isApSaved ? (
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
