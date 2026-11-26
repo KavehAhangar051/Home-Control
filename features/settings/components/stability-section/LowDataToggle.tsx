@@ -1,6 +1,6 @@
 "use client";
 
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { GrainToggleEffect } from "@/components/dissolve/toggle";
 import { WifiOff } from "@/components/ui/hugeicons-groups/shell";
 import { Toggle } from "@/components/ui/toggle";
 import { soundManager } from "@/lib/audio";
@@ -56,7 +56,7 @@ export default function LowDataToggle({
               : "خاموش · همگام‌سازی خودکار پس‌زمینه با کلودفلر"}
           </span>
         </div>
-        <ToggleIndicator
+        <GrainToggleEffect
           value={lowDataMode}
           size="sm"
           onColor="var(--accent3)"
