@@ -1,6 +1,6 @@
 "use client";
 
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { GrainToggleEffect } from "@/components/dissolve/toggle";
 import { Waves } from "@/components/ui/hugeicons-groups/controls";
 import { Toggle } from "@/components/ui/toggle";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
@@ -57,7 +57,7 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
               : "این مرورگر از لرزش لمسی پشتیبانی نمی‌کند"}
           </span>
         </div>
-        <ToggleIndicator
+        <GrainToggleEffect
           value={hapticsEnabled}
           size="sm"
           onColor="var(--accent3)"

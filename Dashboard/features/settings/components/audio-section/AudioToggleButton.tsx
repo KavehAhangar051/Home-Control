@@ -1,6 +1,6 @@
 "use client";
 
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { GrainToggleEffect } from "@/components/dissolve/toggle";
 import { Activity, VolumeX } from "@/components/ui/hugeicons-groups/media";
 import { Toggle } from "@/components/ui/toggle";
 import { useReducedMotion } from "motion/react";
@@ -35,7 +35,7 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
             : "border-border-color bg-card-bg-solid hover:border-text-muted"
         } ${isLoading ? "cursor-not-allowed opacity-70" : ""}`}
       >
-        <ToggleIndicator
+        <GrainToggleEffect
           value={isMusicOn}
           size="sm"
           onColor="var(--accent3)"

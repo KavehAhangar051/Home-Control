@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { useReducedMotion } from "motion/react";
 import { triggerHaptic } from "@/lib/haptics";
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { GrainToggleEffect } from "@/components/dissolve/toggle";
 import { DashboardSlider } from "@/components/motion/dashboard-slider";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Input } from "@/components/ui/input";
@@ -176,7 +176,7 @@ export function AnalogRangeRuleCard({
             }`}
           >
             <span>{isEnabled ? "فعال" : "غیرفعال"}</span>
-            <ToggleIndicator
+            <GrainToggleEffect
               value={isEnabled}
               size="sm"
               onColor="var(--accent3)"
