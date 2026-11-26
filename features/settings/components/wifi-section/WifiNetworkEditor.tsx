@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Check } from "@/components/ui/hugeicons-groups/controls";
-import { X } from "@/components/ui/hugeicons-groups/shell";
+import { Save } from "@/components/ui/hugeicons-groups/controls";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getUtf8ByteLength, type WifiCredentialErrors } from "./wifiValidation";
@@ -39,12 +39,10 @@ export function WifiNetworkEditor({
   }, [errors.ssid, errors.password]);
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
+    <div className="space-y-6">
+      <div className="space-y-1">
         <h4 className="text-sm font-bold text-text-primary">اطلاعات اتصال به روتر</h4>
-        <p className="text-xs leading-5 text-text-secondary">
-          نام و رمز شبکه‌ای را وارد کنید که می‌خواهید ESP32 از طریق آن به شبکهٔ محلی وصل شود؛ این اطلاعات با نام و رمز اکسس‌پوینت راه‌اندازی متفاوت است.
-        </p>
+        <p className="text-xs leading-5 text-text-secondary">ESP32 با این اطلاعات به شبکهٔ محلی وصل می‌شود.</p>
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
@@ -70,7 +68,7 @@ export function WifiNetworkEditor({
           error={errors.ssid}
         />
         <p id="wifi-network-ssid-help" className="text-xs leading-5 text-text-muted">
-          نامی را دقیقاً مطابق نام Wi-Fi روتر وارد کنید. پس از حذف فاصله‌های ابتدا و انتها، حداکثر ۳۲ بایت UTF-8 مجاز است.
+          نام را مطابق تنظیمات روتر وارد کنید؛ حداکثر ۳۲ بایت UTF-8.
         </p>
       </div>
 
@@ -106,30 +104,17 @@ export function WifiNetworkEditor({
           error={errors.password}
         />
         <p id="wifi-network-password-help" className="text-xs leading-5 text-text-muted">
-          این رمز برای ورود ESP32 به روتر استفاده می‌شود. اگر شبکه باز است، فیلد را خالی بگذارید؛ در غیر این صورت رمز باید ۸ تا ۶۳ بایت باشد.
+          رمز ورود به روتر است. برای شبکهٔ بدون رمز، این فیلد را خالی بگذارید؛ در غیر این صورت ۸ تا ۶۳ بایت.
           <span className="ms-1 tabular-nums">({passwordBytes}/۶۳ بایت)</span>
         </p>
       </div>
 
-      <div className="flex items-center gap-2 pt-1">
-        <button
-          type="button"
-          onClick={onSave}
-          className="flex-1 min-h-11 rounded-xl bg-accent3 p-2.5 text-accent3-foreground shadow-xs transition-colors hover:bg-accent3-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2"
-        >
-          <span className="flex items-center justify-center gap-2 text-sm font-bold">
-            <Check aria-hidden="true" className="size-4" />
-            ذخیره شبکه
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-border-color bg-card-bg-solid px-4 text-sm font-semibold text-text-secondary transition-colors hover:border-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
-        >
-          <X aria-hidden="true" className="size-4" />
-          لغو
-        </button>
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border-color/70 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel} className="min-h-11">لغو</Button>
+        <Button type="button" variant="accent" onClick={onSave} className="min-h-11">
+          <Save className="size-4" aria-hidden="true" />
+          ذخیره شبکه
+        </Button>
       </div>
     </div>
   );

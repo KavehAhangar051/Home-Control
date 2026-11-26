@@ -1,4 +1,3 @@
-import { AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Wifi } from "@/components/ui/hugeicons-groups/controls";
@@ -77,35 +76,34 @@ export function WifiNetworksSection() {
   const canAddNetwork = wifiNetworks.length < MAX_WIFI_NETWORKS && editingId === null;
 
   return (
-    <section aria-labelledby="wifi-networks-heading" className="space-y-3">
+    <section aria-labelledby="wifi-networks-heading" className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
-          <h3 id="wifi-networks-heading" className="text-sm font-bold text-text-primary">
+          <h3 id="wifi-networks-heading" className="text-lg font-bold text-text-primary sm:text-xl">
             شبکه‌های Wi-Fi
           </h3>
           <p className="text-xs text-text-secondary">
-            این فهرست، شبکه‌هایی را نگه می‌دارد که ESP32 برای اتصال به روتر امتحان می‌کند. برای هر شبکه، نام Wi-Fi (SSID) و در صورت نیاز رمز همان شبکه را وارد کنید.
+            ESP32 برای اتصال به شبکهٔ محلی، این فهرست را به‌ترتیب بررسی می‌کند.
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={handleAddNetwork}
-          variant="accent"
-          size="sm"
-          disabled={!canAddNetwork}
-          className="min-h-11 rounded-xl gap-1.5 text-xs"
-        >
-          <Plus className="size-3.5" />
-          افزودن شبکه
-        </Button>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="text-xs tabular-nums text-text-secondary">
+            {wifiNetworks.length} از {MAX_WIFI_NETWORKS}
+          </span>
+          <Button
+            type="button"
+            onClick={handleAddNetwork}
+            variant="accent"
+            size="sm"
+            disabled={!canAddNetwork}
+            className="min-h-11 gap-1.5 rounded-xl text-xs"
+          >
+            <Plus className="size-3.5" />
+            افزودن شبکه
+          </Button>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-border-color bg-card-bg-solid px-3 py-2.5">
-        <span className="text-xs text-text-secondary">ظرفیت شبکه‌های ذخیره‌شده روی ESP32</span>
-        <span className="text-sm font-bold tabular-nums text-text-primary">
-          {wifiNetworks.length} از {MAX_WIFI_NETWORKS}
-        </span>
-      </div>
 
       {wifiNetworks.length === 1 ? (
         <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-xs leading-5 text-amber-800 dark:text-amber-300">
@@ -113,7 +111,7 @@ export function WifiNetworksSection() {
         </p>
       ) : null}
 
-      <AnimatePresence initial={false}>
+      <div className="divide-y divide-border-color/70">
         {draftNewNetwork && editingId === draftNewNetwork.id ? (
           <WifiNetworkEditCard
             key={draftNewNetwork.id}
@@ -147,15 +145,15 @@ export function WifiNetworksSection() {
             />
           ),
         )}
-      </AnimatePresence>
+      </div>
 
       {wifiNetworks.length === 0 && !draftNewNetwork ? (
-        <div className="space-y-3 rounded-2xl border border-dashed border-border-color bg-card-bg-solid p-6 text-center">
+        <div className="space-y-3 rounded-xl bg-bg-main p-5 text-center">
           <Wifi className="mx-auto size-7 text-text-muted" aria-hidden="true" />
           <div className="space-y-1">
             <p className="text-sm font-semibold text-text-primary">شبکه‌ای اضافه نشده است</p>
             <p className="text-xs leading-5 text-text-secondary">
-              اطلاعات شبکهٔ روتر خانه یا محل کار را وارد کنید تا ESP32 بتواند از طریق Wi-Fi به شبکهٔ محلی متصل شود.
+              برای اتصال ESP32 به روتر، نام شبکه و رمز آن را ثبت کنید.
             </p>
           </div>
           <Button
@@ -173,7 +171,7 @@ export function WifiNetworksSection() {
 
       {wifiNetworks.length >= MAX_WIFI_NETWORKS ? (
         <p className="text-xs text-text-muted">
-          حافظهٔ پیکربندی ESP32 حداکثر ۵ شبکه را نگه می‌دارد. برای ثبت شبکهٔ جدید، ابتدا یکی از شبکه‌های فعلی را حذف کنید.
+          ظرفیت ذخیره‌سازی ESP32 تکمیل شده است؛ برای افزودن شبکه، یکی از موارد فعلی را حذف کنید.
         </p>
       ) : null}
     </section>
