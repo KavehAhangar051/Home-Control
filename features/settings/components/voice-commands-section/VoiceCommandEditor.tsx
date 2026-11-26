@@ -31,10 +31,10 @@ export function VoiceCommandEditor({
       <div className="flex items-center gap-2">
         <Input
           type="text"
-          aria-label="عبارت صوتی"
+          aria-label="عبارت فرمان صوتی"
           value={newCommandPhrase}
           onChange={(e) => setNewCommandPhrase(e.target.value)}
-          placeholder="عبارت صوتی (مثلاً: رقص نور)..."
+          placeholder="عبارتی که می‌گویید؛ مثلاً: رقص نور"
           className="flex-1 bg-card-bg-solid border-border-color rounded-xl px-4 py-2.5 text-sm text-text-primary focus:border-accent3"
         />
         <Tooltip>
@@ -44,7 +44,7 @@ export function VoiceCommandEditor({
                 type="button"
                 onClick={onSave}
                 className="p-2.5 bg-accent3 text-accent3-foreground rounded-xl hover:bg-accent3-dark transition-colors shadow-xs"
-                aria-label="ذخیره دستور صوتی"
+                aria-label="ذخیره فرمان صوتی"
               >
                 <Check className="size-4" />
               </button>
@@ -59,7 +59,7 @@ export function VoiceCommandEditor({
                 type="button"
                 onClick={onCancel}
                 className="p-2.5 border border-border-color text-text-secondary rounded-xl hover:border-text-muted hover:text-text-primary transition-colors bg-card-bg-solid"
-                aria-label="انصراف از ویرایش دستور صوتی"
+                aria-label="لغو ویرایش فرمان صوتی"
               >
                 <X className="size-4" />
               </button>
