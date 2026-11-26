@@ -53,79 +53,78 @@ export function WifiAccessPointEditor({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <h3 id="wifi-ap-heading" className="text-sm font-bold text-text-primary">
-          اکسس‌پوینت راه‌اندازی (AP)
-        </h3>
-        <p className="text-xs leading-5 text-text-secondary">
-          این شبکه برای اتصال مستقیم به ESP32 است، نه اتصال دستگاه به روتر. برای بازگشت به مقادیر پیش‌فرض، هر دو فیلد را خالی بگذارید.
-        </p>
-      </div>
-
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between gap-3">
-          <Label htmlFor="esp-ap-ssid">نام شبکه (SSID)</Label>
-          <span className="text-xs tabular-nums text-text-muted">{ssidByteLength}/۳۲ بایت</span>
-        </div>
-        <Input
-          id="esp-ap-ssid"
-          ref={ssidInputRef}
-          name="esp-ap-ssid"
-          type="text"
-          dir="auto"
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          disabled={isSaving}
-          value={ssid}
-          onChange={(event) => onSsidChange(event.target.value)}
-          placeholder="Achaemenid-XXXXXX"
-          aria-describedby="esp-ap-ssid-help"
-          error={hasAttemptedSave ? errors.ssid : undefined}
-        />
-        <p id="esp-ap-ssid-help" className="text-xs leading-5 text-text-muted">
-          این نام در فهرست Wi-Fi گوشی یا رایانه نمایش داده می‌شود؛ حداکثر ۳۲ بایت UTF-8.
-        </p>
-      </div>
-
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between gap-3">
-          <Label htmlFor="esp-ap-password">رمز عبور اکسس‌پوینت</Label>
-          <button
-            type="button"
-            onClick={onTogglePassword}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="min-w-0 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="esp-ap-ssid" className="text-sm font-bold">
+              نام شبکه (SSID)
+            </Label>
+            <span className="text-xs tabular-nums text-text-secondary">{ssidByteLength}/۳۲ بایت</span>
+          </div>
+          <Input
+            id="esp-ap-ssid"
+            ref={ssidInputRef}
+            name="esp-ap-ssid"
+            type="text"
+            dir="auto"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
             disabled={isSaving}
-            className="min-h-11 rounded-lg px-3 text-xs font-semibold text-accent3 hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
-            aria-label={showPassword ? "مخفی کردن رمز اکسس‌پوینت" : "نمایش رمز اکسس‌پوینت"}
-            aria-pressed={showPassword}
-          >
-            {showPassword ? "پنهان کردن" : "نمایش رمز"}
-          </button>
+            value={ssid}
+            onChange={(event) => onSsidChange(event.target.value)}
+            placeholder="Achaemenid-XXXXXX"
+            className="h-11 bg-card-bg-solid text-base sm:text-sm"
+            aria-describedby="esp-ap-ssid-help"
+            error={hasAttemptedSave ? errors.ssid : undefined}
+          />
+          <p id="esp-ap-ssid-help" className="text-xs leading-5 text-text-secondary">
+            حداکثر ۳۲ بایت UTF-8.
+          </p>
         </div>
-        <Input
-          id="esp-ap-password"
-          ref={passwordInputRef}
-          name="esp-ap-password"
-          type={showPassword ? "text" : "password"}
-          dir="ltr"
-          autoComplete="new-password"
-          autoCapitalize="none"
-          spellCheck={false}
-          maxLength={63}
-          disabled={isSaving}
-          value={password}
-          onChange={(event) => onPasswordChange(event.target.value)}
-          placeholder="۸ تا ۶۳ بایت"
-          aria-describedby="esp-ap-password-help"
-          error={hasAttemptedSave ? errors.password : undefined}
-        />
-        <p id="esp-ap-password-help" className="text-xs leading-5 text-text-muted">
-          رمز اتصال مستقیم به ESP32 است؛ باید ۸ تا ۶۳ بایت UTF-8 باشد.
-          <span className="ms-1 tabular-nums">({passwordByteLength}/۶۳ بایت)</span>
-        </p>
+
+        <div className="min-w-0 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="esp-ap-password" className="text-sm font-bold">
+              رمز عبور اکسس‌پوینت
+            </Label>
+            <button
+              type="button"
+              onClick={onTogglePassword}
+              disabled={isSaving}
+              className="min-h-11 rounded-lg px-3 text-xs font-semibold text-accent3 hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+              aria-label={showPassword ? "مخفی کردن رمز اکسس‌پوینت" : "نمایش رمز اکسس‌پوینت"}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? "پنهان کردن" : "نمایش رمز"}
+            </button>
+          </div>
+          <Input
+            id="esp-ap-password"
+            ref={passwordInputRef}
+            name="esp-ap-password"
+            type={showPassword ? "text" : "password"}
+            dir="ltr"
+            autoComplete="new-password"
+            autoCapitalize="none"
+            spellCheck={false}
+            maxLength={63}
+            disabled={isSaving}
+            value={password}
+            onChange={(event) => onPasswordChange(event.target.value)}
+            placeholder="۸ تا ۶۳ بایت"
+            className="h-11 bg-card-bg-solid text-base sm:text-sm"
+            aria-describedby="esp-ap-password-help"
+            error={hasAttemptedSave ? errors.password : undefined}
+          />
+          <p id="esp-ap-password-help" className="text-xs leading-5 text-text-secondary">
+            ۸ تا ۶۳ بایت UTF-8.
+            <span className="ms-1 tabular-nums">({passwordByteLength}/۶۳)</span>
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border-color/70 pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-color/70 pt-4">
         <button
           type="button"
           onClick={onResetToDefault}

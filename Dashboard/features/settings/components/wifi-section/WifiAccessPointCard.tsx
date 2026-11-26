@@ -127,59 +127,85 @@ export function WifiAccessPointCard() {
   const apPasswordByteLength = getUtf8ByteLength(apPassword);
 
   return (
-    <section aria-labelledby="wifi-ap-heading" className="space-y-4">
-      {!isApEditing ? (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            <h3 id="wifi-ap-heading" className="text-base font-bold text-text-primary">
-              اکسس‌پوینت راه‌اندازی (AP)
-            </h3>
-            <p className="text-xs leading-5 text-text-secondary">
-              شبکهٔ مستقلی برای اتصال مستقیم به ESP32؛ جدا از شبکهٔ روتر خانه.
-            </p>
-            <p className="text-sm font-semibold text-text-primary">
-              {isDefaultAccessPoint ? "استفاده از مقادیر پیش‌فرض دستگاه" : wifiApConfig?.ssid || "نام شبکه ثبت نشده"}
-            </p>
-            {isApSaved ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
-                <Check className="size-3.5" aria-hidden="true" />
-                ذخیره شد
-              </span>
-            ) : null}
+    <section
+      aria-labelledby="wifi-ap-heading"
+      className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[minmax(12rem,0.8fr)_minmax(0,1.7fr)] lg:gap-10"
+    >
+      <div className="space-y-2">
+        <h3 id="wifi-ap-heading" className="text-sm font-bold text-text-primary">
+          اکسس‌پوینت راه‌اندازی (AP)
+        </h3>
+        <p className="max-w-xs text-sm leading-6 text-text-secondary">
+          این شبکه برای اتصال مستقیم گوشی یا رایانه به ESP32 است؛ با شبکهٔ روتر متفاوت است.
+        </p>
+      </div>
+
+      <div className="min-w-0">
+        {!isApEditing ? (
+          <div className="space-y-4">
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <dt className="text-xs text-text-secondary">نام شبکه</dt>
+                <dd className="break-all text-sm font-semibold text-text-primary">
+                  {isDefaultAccessPoint ? "پیش‌فرض دستگاه" : wifiApConfig?.ssid || "ثبت نشده"}
+                </dd>
+              </div>
+              <div className="space-y-1">
+                <dt className="text-xs text-text-secondary">رمز عبور</dt>
+                <dd className="text-sm font-semibold text-text-primary">
+                  {isDefaultAccessPoint
+                    ? "پیش‌فرض دستگاه"
+                    : wifiApConfig?.password
+                      ? "رمز سفارشی ذخیره شده"
+                      : "تنظیم نشده"}
+                </dd>
+              </div>
+            </dl>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleEditAccessPoint}
+                className="min-h-11"
+              >
+                ویرایش تنظیمات
+              </Button>
+              {isApSaved ? (
+                <span
+                  role="status"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-success"
+                >
+                  <Check className="size-3.5" aria-hidden="true" />
+                  ذخیره شد
+                </span>
+              ) : null}
+            </div>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleEditAccessPoint}
-            className="min-h-11 shrink-0"
-          >
-            ویرایش اکسس‌پوینت
-          </Button>
-        </div>
-      ) : (
-        <WifiAccessPointEditor
-          ssid={apSsid}
-          password={apPassword}
-          ssidByteLength={apSsidByteLength}
-          passwordByteLength={apPasswordByteLength}
-          showPassword={showApPassword}
-          hasAttemptedSave={hasAttemptedApSave}
-          isSaving={isSavingAp}
-          errors={apErrors}
-          onSsidChange={(value) => {
-            setIsApSaved(false);
-            setApDraft((previous) => ({ ...previous, ssid: value }));
-          }}
-          onPasswordChange={(value) => {
-            setIsApSaved(false);
-            setApDraft((previous) => ({ ...previous, password: value }));
-          }}
-          onTogglePassword={() => setShowApPassword((visible) => !visible)}
-          onResetToDefault={handleResetAccessPointDraft}
-          onCancel={handleCancelAccessPointEdit}
-          onSave={handleSaveAccessPoint}
-        />
-      )}
+        ) : (
+          <WifiAccessPointEditor
+            ssid={apSsid}
+            password={apPassword}
+            ssidByteLength={apSsidByteLength}
+            passwordByteLength={apPasswordByteLength}
+            showPassword={showApPassword}
+            hasAttemptedSave={hasAttemptedApSave}
+            isSaving={isSavingAp}
+            errors={apErrors}
+            onSsidChange={(value) => {
+              setIsApSaved(false);
+              setApDraft((previous) => ({ ...previous, ssid: value }));
+            }}
+            onPasswordChange={(value) => {
+              setIsApSaved(false);
+              setApDraft((previous) => ({ ...previous, password: value }));
+            }}
+            onTogglePassword={() => setShowApPassword((visible) => !visible)}
+            onResetToDefault={handleResetAccessPointDraft}
+            onCancel={handleCancelAccessPointEdit}
+            onSave={handleSaveAccessPoint}
+          />
+        )}
+      </div>
     </section>
   );
 }
