@@ -239,6 +239,7 @@ export interface UiSlice {
   activeGroupId: string | null;
   isLocal: boolean;
   localIp: string | null;
+  hasReceivedMqttStatus: boolean;
   setWorkspaceDisplayMode: (mode: WorkspaceDisplayMode) => void;
   setLowDataMode: (enabled: boolean) => void;
   showToast: (message: string, type: "success" | "error") => void;
@@ -251,6 +252,7 @@ export interface UiSlice {
   setActiveGroupId: (id: string | null) => void;
   setIsLocal: (local: boolean) => void;
   setLocalIp: (ip: string | null) => void;
+  setHasReceivedMqttStatus: (received: boolean) => void;
 }
 
 export type WorkspaceView = "home" | "modules" | "automations" | "settings";

@@ -32,6 +32,7 @@ export const createUiSlice: StateCreator<IoTStoreState, [], [], UiSlice> = (set)
   activeGroupId: null,
   isLocal: false,
   localIp: null,
+  hasReceivedMqttStatus: false,
 
   setWorkspaceDisplayMode: (mode) => {
     set({ workspaceDisplayMode: mode });
@@ -66,4 +67,5 @@ export const createUiSlice: StateCreator<IoTStoreState, [], [], UiSlice> = (set)
   setActiveGroupId: (id) => set({ activeGroupId: id }),
   setIsLocal: (local) => set({ isLocal: local }),
   setLocalIp: (ip) => set({ localIp: ip }),
+  setHasReceivedMqttStatus: (received) => set({ hasReceivedMqttStatus: received }),
 });
