@@ -156,6 +156,12 @@ export function buildValidatedAutomationDraft(
       time,
       days,
       repeatCount,
+
+      targetTimestamp:
+        input.autoType === "timer"
+          ? now.getTime() +
+            ((Number(input.delayHours) || 0) * 60 + (Number(input.delayMinutes) || 0)) * 60_000
+          : undefined,
       intervalMinutes: finalIntervalMinutes,
       conditionType,
       city: input.city,
@@ -272,6 +278,7 @@ export function useAutomationForm() {
       time,
       days,
       repeatCount,
+
       delayHours,
       delayMinutes,
       city,
