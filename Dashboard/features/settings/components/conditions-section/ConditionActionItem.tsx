@@ -4,7 +4,12 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import type {
+  ConditionLogic,
+  RuleGuardCondition,
+} from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { RuleGuardConditionsEditor } from "@/features/settings/components/shared/ActionConditionsEditor";
 import {
   analogDutyToPercent,
   clampAnalogValue,
@@ -30,19 +35,17 @@ const PWM_RULE_PERCENT_PRESETS = [0, 25, 50, 75, 100] as const;
 interface Props {
   action: ConditionAction;
   idx: number;
-  actions: ConditionAction[];
+  inputPin: string;
   onRemove: () => void;
   onUpdate: (updates: Partial<ConditionAction>) => void;
-  showToast: (msg: string, type: "success" | "error") => void;
 }
 
 export function ConditionActionItem({
   action,
   idx,
-  actions,
+  inputPin,
   onRemove,
   onUpdate,
-  showToast,
 }: Props) {
   const baseId = useId();
   const holdId = `${baseId}-hold`;
@@ -91,13 +94,6 @@ export function ConditionActionItem({
             value={action.reqHold}
             onChange={(e) => {
               const val = Number.parseInt(e.target.value, 10);
-
-              if (actions.some((a, i) => i !== idx && a.reqHold === val)) {
-                showToast("این شرط قبلاً استفاده شده است", "error");
-
-                return;
-              }
-
               onUpdate({ reqHold: val });
             }}
             className="bg-bg-primary p-2.5 rounded-lg text-xs"
@@ -304,6 +300,15 @@ export function ConditionActionItem({
             />
           </div>
         )}
+
+        <RuleGuardConditionsEditor
+          actionLabel={`عملیات ${idx + 1}`}
+          conditions={action.conditions}
+          conditionLogic={action.conditionLogic}
+          segments={segments}
+          excludeSourcePin={inputPin}
+          onChange={(conditions, conditionLogic) => onUpdate({ conditions, conditionLogic })}
+        />
       </div>
     </div>
   );

@@ -33,6 +33,8 @@ export const RULE_TRIGGER_DOUBLE_CLICK = -1 as const;
 export const RULE_ANALOG_VALUE_UNSET = -1 as const;
 export const DEFAULT_DOUBLE_CLICK_WINDOW_MS = 400;
 export const MAX_ANALOG_RANGE_RULES = 6;
+export const MAX_RULE_ACTIONS_PER_SIDE = 6;
+export const MAX_RULE_CONDITIONS_PER_ACTION = 4;
 export const ANALOG_RANGE_TRIGGER_ENTER = 0 as const;
 export const ANALOG_RANGE_TRIGGER_EXIT = 1 as const;
 export const DEFAULT_ANALOG_HYSTERESIS_12BIT = 30;
@@ -239,6 +241,14 @@ export function adcValueToPercent(value: number, resolution?: number | null): nu
   const clamped = clampAdcValue(value, resolution);
 
   return Math.round((clamped / maxVal) * 100);
+}
+
+/** Converts a percentage `0..100` to a raw ADC value `0..maxValue` for the given resolution. */
+export function percentToAdcValue(percent: number, resolution?: number | null): number {
+  const maxVal = getAdcMaxValue(resolution);
+  const clampedPct = Number.isFinite(percent) ? Math.min(100, Math.max(0, percent)) : 0;
+
+  return Math.round((clampedPct / 100) * maxVal);
 }
 
 /** Converts a raw ADC value to an approximate voltage string `0.00..3.30` (3.3V reference). */

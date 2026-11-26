@@ -5,11 +5,32 @@ export type MacroConditionParameter =
   | "digital_output"
   | "analog_output";
 
+export type SegmentConditionParameter = Exclude<MacroConditionParameter, "time_range">;
+
+export type ConditionLogic = "and" | "or";
+
 export type MacroNumericOperator = "gt" | "gte" | "lt" | "lte" | "eq" | "between" | "outside";
 
 export type MacroAnalogOutputOperator = "is_on" | "is_off" | MacroNumericOperator;
 
 export type MacroValueUnit = "raw" | "percent";
+
+export interface RuleGuardCondition {
+  enabled: boolean;
+  parameter: SegmentConditionParameter;
+  /** Source segment GPIO pin (`0..127`, local or virtual). */
+  sourcePin: string;
+  /** Expected boolean state for `digital_input` / `digital_output`. */
+  expectedState?: boolean;
+  /** Comparison operator for `analog_input` / `analog_output`. */
+  operator?: MacroAnalogOutputOperator;
+  /** Threshold unit (`"percent"` or `"raw"`) for analog numeric comparisons. */
+  unit?: MacroValueUnit;
+  /** Primary numeric threshold or lower range bound. */
+  value?: number;
+  /** Upper range bound for `"between"` / `"outside"` operators. */
+  maxValue?: number;
+}
 
 export interface MacroActionCondition {
   enabled: boolean;
@@ -45,6 +66,10 @@ export interface MacroAction {
   targetValue?: number | null;
   /** Optional client-side condition evaluated in the dashboard before sending ESP32 commands. */
   condition?: MacroActionCondition;
+  /** Multiple client-side conditions evaluated in the dashboard before sending ESP32 commands. */
+  conditions?: MacroActionCondition[];
+  /** Logical combinator when multiple conditions are configured (`"and"` default or `"or"`). */
+  conditionLogic?: ConditionLogic;
 }
 
 export interface Macro {
@@ -169,6 +194,8 @@ export interface EspConfig {
         delay?: number;
         targetValue?: number | null;
         aval?: number;
+        conditions?: RuleGuardCondition[];
+        conditionLogic?: ConditionLogic;
       }>;
       lowActions?: Array<{
         reqHold: number;
@@ -178,6 +205,8 @@ export interface EspConfig {
         delay?: number;
         targetValue?: number | null;
         aval?: number;
+        conditions?: RuleGuardCondition[];
+        conditionLogic?: ConditionLogic;
       }>;
       analogRanges?: Array<{
         minValue: number;
@@ -190,6 +219,8 @@ export interface EspConfig {
         actionType: 0 | 1 | 2;
         delay: number;
         enabled?: boolean;
+        conditions?: RuleGuardCondition[];
+        conditionLogic?: ConditionLogic;
       }>;
       targetPinHigh?: string;
       actionOnHigh?: boolean;

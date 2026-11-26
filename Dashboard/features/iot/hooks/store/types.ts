@@ -1,6 +1,7 @@
 import type {
   AuxChipType,
   AuxNodeConfig,
+  ConditionLogic,
   EspConfig,
   Macro,
   MacroAction,
@@ -9,12 +10,15 @@ import type {
   MacroConditionParameter,
   MacroNumericOperator,
   MacroValueUnit,
+  RuleGuardCondition,
+  SegmentConditionParameter,
 } from "@/features/iot/services/config/types";
 import type { DashboardFontId } from "@/lib/fonts";
 
 export type {
   AuxChipType,
   AuxNodeConfig,
+  ConditionLogic,
   Macro,
   MacroAction,
   MacroActionCondition,
@@ -22,6 +26,8 @@ export type {
   MacroConditionParameter,
   MacroNumericOperator,
   MacroValueUnit,
+  RuleGuardCondition,
+  SegmentConditionParameter,
 };
 
 /**
@@ -46,6 +52,8 @@ export interface RuleAction {
   delay?: number;
   /** Explicit PWM duty (`0..4095`) for `analog_output` targets; `-1` or null preserves boolean ON/OFF semantics. */
   targetValue?: number | null;
+  conditions?: RuleGuardCondition[];
+  conditionLogic?: ConditionLogic;
 }
 
 export interface AnalogRangeRule {
@@ -60,6 +68,8 @@ export interface AnalogRangeRule {
   actionType: RuleActionType;
   delay: number;
   enabled?: boolean;
+  conditions?: RuleGuardCondition[];
+  conditionLogic?: ConditionLogic;
 }
 
 export interface SegmentRule {

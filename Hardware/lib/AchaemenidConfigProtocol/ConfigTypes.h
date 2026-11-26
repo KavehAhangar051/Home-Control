@@ -39,6 +39,8 @@ static constexpr uint16_t MAX_ANALOG_INPUT_VALUE = 4095;
 static constexpr int RULE_TRIGGER_DOUBLE_CLICK = -1; // Double-click trigger condition on digital inputs
 static constexpr uint16_t DEFAULT_DOUBLE_CLICK_WINDOW_MS = 400; // Max inter-click gap for double-click detection
 static constexpr uint8_t MAX_ANALOG_RANGE_RULES = 6; // Max independent value-range rules per analog_input pin
+static constexpr uint8_t MAX_RULE_ACTIONS_PER_SIDE = 6; // Max actions per HIGH/LOW digital edge
+static constexpr uint8_t MAX_RULE_CONDITIONS_PER_ACTION = 4; // Max guard conditions per action/range
 
 inline constexpr bool isLocalGpioPin(int pin) {
     return pin >= LOCAL_GPIO_MIN && pin <= LOCAL_GPIO_MAX;
@@ -174,13 +176,57 @@ enum AnalogRangeTriggerMode : uint8_t {
     RANGE_ON_EXIT = 1   // Fire action when analog value exits [minValue .. maxValue] (respecting hysteresis)
 };
 
+enum RuleConditionLogic : uint8_t {
+    COND_LOGIC_AND = 0, // All configured guard conditions must pass
+    COND_LOGIC_OR = 1   // At least one configured guard condition must pass
+};
+
+enum RuleConditionOp : uint8_t {
+    COND_STATE_HIGH = 0,   // Digital input/output HIGH/ON, or analog_output ON
+    COND_STATE_LOW = 1,    // Digital input/output LOW/OFF, or analog_output OFF
+    COND_VAL_GT = 2,       // Analog value > value
+    COND_VAL_GTE = 3,      // Analog value >= value
+    COND_VAL_LT = 4,       // Analog value < value
+    COND_VAL_LTE = 5,      // Analog value <= value
+    COND_VAL_EQ = 6,       // Analog value == value
+    COND_VAL_BETWEEN = 7,  // min <= analog value <= max
+    COND_VAL_OUTSIDE = 8,  // analog value < min || analog value > max
+    COND_OP_MAX = 8
+};
+
+struct RuleCondition {
+    uint16_t value;
+    uint16_t maxValue;
+    int8_t sourcePin; // Target segment GPIO (0..39 local, 40..127 virtual), -1 = unset
+    uint8_t op;       // RuleConditionOp
+
+    void reset() {
+        value = 0;
+        maxValue = 0;
+        sourcePin = -1;
+        op = COND_STATE_HIGH;
+    }
+
+    RuleCondition() { reset(); }
+};
+
+inline bool isValidRuleCondition(const RuleCondition& cond) {
+    return isValidManagedPin(cond.sourcePin) &&
+           cond.op <= COND_OP_MAX &&
+           cond.value <= MAX_ANALOG_OUTPUT_VALUE &&
+           cond.maxValue <= MAX_ANALOG_OUTPUT_VALUE;
+}
+
 struct RuleAction {
-    int requiredHoldTime; // -1 = double_click, 0 = single/immediate, 3/5/10 = hold seconds
-    int targetPin;
-    int delay;
     int16_t targetValue;  // -1 = boolean actionState mode, 0..4095 = explicit PWM duty
+    int8_t requiredHoldTime; // -1 = double_click, 0 = single/immediate, 3/5/10 = hold seconds
+    int8_t targetPin;
+    uint8_t delay;
     RuleActionType actionType;
+    uint8_t conditionCount;
+    uint8_t conditionLogic;
     bool actionState : 1;
+    RuleCondition conditions[MAX_RULE_CONDITIONS_PER_ACTION];
 
     void reset() {
         requiredHoldTime = 0;
@@ -188,7 +234,12 @@ struct RuleAction {
         delay = 0;
         targetValue = RULE_ANALOG_VALUE_UNSET;
         actionType = ACTION_IMMEDIATE;
+        conditionCount = 0;
+        conditionLogic = COND_LOGIC_AND;
         actionState = false;
+        for (uint8_t i = 0; i < MAX_RULE_CONDITIONS_PER_ACTION; ++i) {
+            conditions[i].reset();
+        }
     }
 
     RuleAction() { reset(); }
@@ -203,8 +254,11 @@ struct AnalogRangeRule {
     uint8_t delay;                      // Seconds for AFTER_DELAY / FOR_DURATION (0..60)
     RuleActionType actionType;          // IMMEDIATE, AFTER_DELAY, FOR_DURATION
     AnalogRangeTriggerMode triggerMode; // RANGE_ON_ENTER (0) or RANGE_ON_EXIT (1)
+    uint8_t conditionCount;
+    uint8_t conditionLogic;
     bool actionState : 1;               // Digital target state when targetValue == -1
     bool enabled : 1;                   // True when this range slot is active
+    RuleCondition conditions[MAX_RULE_CONDITIONS_PER_ACTION];
 
     void reset() {
         minValue = 0;
@@ -215,8 +269,13 @@ struct AnalogRangeRule {
         delay = 0;
         actionType = ACTION_IMMEDIATE;
         triggerMode = RANGE_ON_ENTER;
+        conditionCount = 0;
+        conditionLogic = COND_LOGIC_AND;
         actionState = false;
         enabled = false;
+        for (uint8_t i = 0; i < MAX_RULE_CONDITIONS_PER_ACTION; ++i) {
+            conditions[i].reset();
+        }
     }
 
     RuleAction toRuleAction() const {
@@ -227,6 +286,14 @@ struct AnalogRangeRule {
         act.targetValue = targetValue;
         act.actionType = actionType;
         act.actionState = actionState;
+        act.conditionCount = conditionCount;
+        act.conditionLogic = conditionLogic;
+        const uint8_t cnt = conditionCount <= MAX_RULE_CONDITIONS_PER_ACTION
+            ? conditionCount
+            : MAX_RULE_CONDITIONS_PER_ACTION;
+        for (uint8_t i = 0; i < cnt; ++i) {
+            act.conditions[i] = conditions[i];
+        }
         return act;
     }
 
@@ -234,8 +301,8 @@ struct AnalogRangeRule {
 };
 
 struct RuleConfig {
-    RuleAction highActions[4];
-    RuleAction lowActions[4];
+    RuleAction highActions[MAX_RULE_ACTIONS_PER_SIDE];
+    RuleAction lowActions[MAX_RULE_ACTIONS_PER_SIDE];
     AnalogRangeRule analogRanges[MAX_ANALOG_RANGE_RULES];
     
     int highActionCount;
@@ -245,7 +312,7 @@ struct RuleConfig {
     bool active : 1;
 
     void reset() {
-        for (int i = 0; i < 4; ++i) {
+        for (uint8_t i = 0; i < MAX_RULE_ACTIONS_PER_SIDE; ++i) {
             highActions[i].reset();
             lowActions[i].reset();
         }
@@ -256,6 +323,10 @@ struct RuleConfig {
         lowActionCount = 0;
         analogRangeCount = 0;
         active = false;
+    }
+
+    bool hasAnyRule() const {
+        return active || highActionCount > 0 || lowActionCount > 0 || analogRangeCount > 0;
     }
 
     RuleConfig() { reset(); }

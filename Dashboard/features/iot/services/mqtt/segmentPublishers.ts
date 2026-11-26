@@ -1,13 +1,18 @@
+import type { Segment } from "@/features/iot/hooks/store/types";
 import {
   AUX_CHIP_CODE_MAP,
   type AuxChipType,
   type AuxNodeConfig,
+  type ConditionLogic,
+  type MacroAnalogOutputOperator,
+  type RuleGuardCondition,
 } from "@/features/iot/services/config/types";
 import {
   type AnalogInputSegmentOptions,
   clampAdcResolution,
   isAnalogInputType,
   normalizeAnalogInputConfig,
+  percentToAdcValue,
 } from "@/features/iot/utils/analogInput";
 import {
   type AnalogSegmentOptions,
@@ -17,6 +22,7 @@ import {
   hasExplicitAnalogTargetValue,
   isAnalogOutputType,
   MAX_ANALOG_OUTPUT_VALUE,
+  percentToAnalogDuty,
 } from "@/features/iot/utils/analogOutput";
 import {
   AUX_NODE_NAME_MAX_BYTES,
@@ -39,12 +45,15 @@ import {
   AUX_NODE_DELETE_CASCADE_FLAG,
   MAX_ANALOG_RANGE_RULES,
   MAX_RULE_ACTIONS_PER_SIDE,
+  MAX_RULE_CONDITIONS_PER_ACTION,
   MQTT_OPCODES,
   PIN_STATE_HIGH,
   PIN_STATE_LOW,
   READ_ANALOG_INPUT_BUFFER_SIZE,
   RULE_ACTION_SIZE,
   RULE_ANALOG_ACTION_SIZE,
+  RULE_CONDITION_SIZE,
+  RULE_CONDITIONAL_ACTION_BASE_SIZE,
   RULE_TARGET_VALUE_BOOLEAN,
 } from "./protocol";
 
@@ -57,6 +66,8 @@ export interface RuleActionFrameInput {
   actionType?: number;
   delay?: number;
   targetValue?: number | null;
+  conditions?: RuleGuardCondition[];
+  conditionLogic?: ConditionLogic;
 }
 
 export interface UpsertAuxNodeFrameInput {
@@ -444,6 +455,93 @@ export const publishDeleteSegmentCommand = (id: string, pin?: number | string) =
   );
 };
 
+const RULE_CONDITION_OP_CODE: Record<MacroAnalogOutputOperator, number> = {
+  is_on: 0,
+  is_off: 1,
+  gt: 2,
+  gte: 3,
+  lt: 4,
+  lte: 5,
+  eq: 6,
+  between: 7,
+  outside: 8,
+};
+
+interface EncodedRuleCondition {
+  sourcePin: number;
+  opCode: number;
+  value: number;
+  maxValue: number;
+}
+
+function encodeConditionListForWire(
+  conditions?: readonly RuleGuardCondition[],
+  logic?: ConditionLogic,
+  segments?: readonly Pick<Segment, "pin" | "type" | "adcResolution" | "pwmResolution">[],
+): { metaByte: number; items: EncodedRuleCondition[] } {
+  const enabled = (conditions ?? [])
+    .filter((c) => c.enabled !== false && String(c.sourcePin ?? "").trim().length > 0)
+    .slice(0, MAX_RULE_CONDITIONS_PER_ACTION);
+
+  const items: EncodedRuleCondition[] = [];
+  for (let i = 0; i < enabled.length; i++) {
+    const c = enabled[i];
+    const parsedPin = Number.parseInt(String(c.sourcePin).trim(), 10);
+    if (!isValidManagedPin(parsedPin)) continue;
+
+    if (c.parameter === "digital_input" || c.parameter === "digital_output") {
+      items.push({
+        sourcePin: parsedPin,
+        opCode: c.expectedState ? 0 : 1,
+        value: 0,
+        maxValue: 0,
+      });
+      continue;
+    }
+
+    const op: MacroAnalogOutputOperator =
+      c.operator ?? (c.parameter === "analog_output" ? "is_on" : "gt");
+    const opCode = RULE_CONDITION_OP_CODE[op] ?? 2;
+
+    if (op === "is_on" || op === "is_off") {
+      items.push({ sourcePin: parsedPin, opCode, value: 0, maxValue: 0 });
+      continue;
+    }
+
+    const matchedSeg = segments?.find((s) => s.pin.trim() === String(parsedPin));
+    const rawValInput = Number.isFinite(c.value) ? Math.max(0, Math.round(c.value as number)) : 0;
+    const rawMaxInput = Number.isFinite(c.maxValue)
+      ? Math.max(0, Math.round(c.maxValue as number))
+      : rawValInput;
+
+    const resolveVal = (v: number): number => {
+      if (c.unit !== "raw") {
+        if (c.parameter === "analog_input") {
+          return percentToAdcValue(v, clampAdcResolution(matchedSeg?.adcResolution));
+        }
+        return percentToAnalogDuty(v, clampPwmResolution(matchedSeg?.pwmResolution));
+      }
+      return Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.max(0, v));
+    };
+
+    const value = resolveVal(rawValInput);
+    const maxValue =
+      op === "between" || op === "outside" ? resolveVal(rawMaxInput) : 0;
+    items.push({
+      sourcePin: parsedPin,
+      opCode,
+      value: op === "between" || op === "outside" ? Math.min(value, maxValue) : value,
+      maxValue: op === "between" || op === "outside" ? Math.max(value, maxValue) : 0,
+    });
+  }
+
+  const logicBit = logic === "or" ? 0x10 : 0x00;
+  return {
+    metaByte: (items.length & 0x0f) | logicBit,
+    items,
+  };
+}
+
 function writeRuleActionChunk(
   buf: Uint8Array,
   view: DataView,
@@ -554,22 +652,112 @@ export const buildUpdateRuleAnalogFrame = (
   return buf;
 };
 
+function hasEnabledGuardConditions(conditions?: readonly RuleGuardCondition[]): boolean {
+  return Boolean(
+    conditions?.some((c) => c.enabled !== false && String(c.sourcePin ?? "").trim().length > 0),
+  );
+}
+
+/**
+ * Builds Opcode `0x12` (`UPDATE_RULE_CONDITIONAL`) binary frame supporting up to
+ * 6 actions per side, explicit PWM targetValue, and 0..4 guard conditions per action.
+ */
+export const buildUpdateRuleConditionalFrame = (
+  inputPin: number,
+  highActions: RuleActionFrameInput[] = [],
+  lowActions: RuleActionFrameInput[] = [],
+  segments?: readonly Pick<Segment, "pin" | "type" | "adcResolution" | "pwmResolution">[],
+): Uint8Array => {
+  if (!isValidManagedPin(inputPin)) {
+    throw new RangeError(`Invalid input pin (expected 0..127): ${inputPin}`);
+  }
+
+  const encodeSide = (actions: RuleActionFrameInput[]) =>
+    actions.slice(0, MAX_RULE_ACTIONS_PER_SIDE).map((a) => ({
+      action: a,
+      cond: encodeConditionListForWire(a.conditions, a.conditionLogic, segments),
+    }));
+
+  const hi = encodeSide(highActions);
+  const lo = encodeSide(lowActions);
+  const sideBytes = (side: ReturnType<typeof encodeSide>) =>
+    side.reduce(
+      (sum, entry) => sum + RULE_CONDITIONAL_ACTION_BASE_SIZE + entry.cond.items.length * RULE_CONDITION_SIZE,
+      0,
+    );
+
+  const buf = new Uint8Array(4 + sideBytes(hi) + sideBytes(lo));
+  const view = new DataView(buf.buffer);
+  buf[0] = MQTT_OPCODES.UPDATE_RULE_CONDITIONAL;
+  let offset = 1;
+  buf[offset++] = inputPin & 0xff;
+
+  const writeSide = (side: ReturnType<typeof encodeSide>) => {
+    buf[offset++] = side.length;
+    for (let i = 0; i < side.length; i++) {
+      const { action: a, cond } = side[i];
+      const hasAnalog = hasExplicitAnalogTargetValue(a.targetValue);
+      const clampedTargetValue = hasExplicitAnalogTargetValue(a.targetValue)
+        ? Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.max(0, Math.round(a.targetValue)))
+        : RULE_TARGET_VALUE_BOOLEAN;
+
+      buf[offset++] = (Number(a.targetPin || -1) | 0) & 0xff;
+      view.setInt32(offset, a.reqHold ?? 0, true);
+      offset += 4;
+      buf[offset++] = hasAnalog ? (clampedTargetValue > 0 ? 1 : 0) : a.actionOn ? 1 : 0;
+      buf[offset++] = a.actionType || 0;
+      view.setInt32(offset, a.delay || 0, true);
+      offset += 4;
+      view.setInt16(offset, clampedTargetValue, true);
+      offset += 2;
+      buf[offset++] = cond.metaByte;
+      for (let c = 0; c < cond.items.length; c++) {
+        const item = cond.items[c];
+        buf[offset++] = item.sourcePin & 0xff;
+        buf[offset++] = item.opCode & 0xff;
+        view.setUint16(offset, item.value, true);
+        offset += 2;
+        view.setUint16(offset, item.maxValue, true);
+        offset += 2;
+      }
+    }
+  };
+
+  writeSide(hi);
+  writeSide(lo);
+  return buf;
+};
+
 export const publishUpdateRuleCommand = (
   inputPin: number,
   highActions: RuleActionFrameInput[] = [],
   lowActions: RuleActionFrameInput[] = [],
+  segments?: readonly Pick<Segment, "pin" | "type" | "adcResolution" | "pwmResolution">[],
 ): boolean => {
+  const usesConditional =
+    highActions.length > 4 ||
+    lowActions.length > 4 ||
+    highActions.some((a) => hasEnabledGuardConditions(a.conditions)) ||
+    lowActions.some((a) => hasEnabledGuardConditions(a.conditions));
   const usesAnalogTargets =
     highActions.some((a) => hasExplicitAnalogTargetValue(a.targetValue)) ||
     lowActions.some((a) => hasExplicitAnalogTargetValue(a.targetValue));
 
-  const buf = usesAnalogTargets
-    ? buildUpdateRuleAnalogFrame(inputPin, highActions, lowActions)
-    : buildUpdateRuleFrame(inputPin, highActions, lowActions);
+  const buf = usesConditional
+    ? buildUpdateRuleConditionalFrame(inputPin, highActions, lowActions, segments)
+    : usesAnalogTargets
+      ? buildUpdateRuleAnalogFrame(inputPin, highActions, lowActions)
+      : buildUpdateRuleFrame(inputPin, highActions, lowActions);
+
+  const label = usesConditional
+    ? "update_rule_conditional(0x12)"
+    : usesAnalogTargets
+      ? "update_rule_analog(0x0B)"
+      : "update_rule(0x05)";
 
   return publishMqttCommand(
     buf,
-    `Published ${usesAnalogTargets ? "update_rule_analog(0x0B)" : "update_rule(0x05)"}: input_pin=${inputPin} size=${buf.length}b`,
+    `Published ${label}: input_pin=${inputPin} size=${buf.length}b`,
   );
 };
 
@@ -584,6 +772,8 @@ export interface AnalogRangeRuleFrameInput {
   actionType?: 0 | 1 | 2 | number;
   delay?: number;
   enabled?: boolean;
+  conditions?: RuleGuardCondition[];
+  conditionLogic?: ConditionLogic;
 }
 
 /**
@@ -652,14 +842,103 @@ export const encodeUpdateAnalogRangeRulesFrame = (
 
 export const buildUpdateAnalogRangeRulesFrame = encodeUpdateAnalogRangeRulesFrame;
 
+/**
+ * Encodes Opcode `0x13` (`UPDATE_ANALOG_RANGE_RULES_CONDITIONAL`) Little-Endian binary frame:
+ * Header: `[0x13][inputPin:u8][rangeCount:u8]` + variable-length 12B record + `condCount * 6B`.
+ */
+export const encodeUpdateAnalogRangeRulesConditionalFrame = (
+  inputPin: number,
+  ranges: readonly AnalogRangeRuleFrameInput[] = [],
+  segments?: readonly Pick<Segment, "pin" | "type" | "adcResolution" | "pwmResolution">[],
+): Uint8Array => {
+  if (!isValidManagedPin(inputPin)) {
+    throw new RangeError(`Invalid input pin (expected 0..127): ${inputPin}`);
+  }
+
+  const activeRanges = ranges
+    .filter((r) => r.enabled !== false)
+    .slice(0, MAX_ANALOG_RANGE_RULES)
+    .map((r) => ({
+      range: r,
+      cond: encodeConditionListForWire(r.conditions, r.conditionLogic, segments),
+    }));
+
+  const totalSize = activeRanges.reduce(
+    (sum, entry) => sum + ANALOG_RANGE_RECORD_SIZE + entry.cond.items.length * RULE_CONDITION_SIZE,
+    ANALOG_RANGE_HEADER_SIZE,
+  );
+
+  const buf = new Uint8Array(totalSize);
+  const view = new DataView(buf.buffer);
+  buf[0] = MQTT_OPCODES.UPDATE_ANALOG_RANGE_RULES_CONDITIONAL;
+  buf[1] = inputPin & 0xff;
+  buf[2] = activeRanges.length & 0xff;
+
+  let offset = ANALOG_RANGE_HEADER_SIZE;
+  for (let i = 0; i < activeRanges.length; i++) {
+    const { range: r, cond } = activeRanges[i];
+    const minVal = Math.max(
+      0,
+      Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.round(Math.min(r.minValue, r.maxValue))),
+    );
+    const maxVal = Math.max(
+      0,
+      Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.round(Math.max(r.minValue, r.maxValue))),
+    );
+    const hysteresis = Math.max(0, Math.min(2047, Math.round(r.hysteresis ?? 0)));
+    const parsedTargetPin =
+      typeof r.targetPin === "number"
+        ? r.targetPin
+        : Number.parseInt(String(r.targetPin).trim(), 10);
+    const targetPin = Number.isInteger(parsedTargetPin) ? parsedTargetPin : -1;
+    const hasAnalogTarget = hasExplicitAnalogTargetValue(r.targetValue);
+    const targetValue = hasExplicitAnalogTargetValue(r.targetValue)
+      ? Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.max(0, Math.round(r.targetValue)))
+      : RULE_TARGET_VALUE_BOOLEAN;
+    const actionState = hasAnalogTarget ? targetValue > 0 : Boolean(r.actionState);
+    const actionType = (r.actionType ?? 0) & 0x03;
+    const triggerMode = (r.triggerMode ?? 0) & 0x01;
+    const flags = (actionState ? 0x01 : 0x00) | (actionType << 1) | (triggerMode << 3);
+
+    view.setUint16(offset + 0, minVal, true);
+    view.setUint16(offset + 2, maxVal, true);
+    view.setUint16(offset + 4, hysteresis, true);
+    view.setInt8(offset + 6, targetPin);
+    buf[offset + 7] = flags;
+    buf[offset + 8] = Math.min(60, Math.max(0, Math.round(r.delay ?? 0)));
+    view.setInt16(offset + 9, targetValue, true);
+    buf[offset + 11] = cond.metaByte;
+    offset += ANALOG_RANGE_RECORD_SIZE;
+
+    for (let c = 0; c < cond.items.length; c++) {
+      const item = cond.items[c];
+      buf[offset++] = item.sourcePin & 0xff;
+      buf[offset++] = item.opCode & 0xff;
+      view.setUint16(offset, item.value, true);
+      offset += 2;
+      view.setUint16(offset, item.maxValue, true);
+      offset += 2;
+    }
+  }
+
+  return buf;
+};
+
 export const publishUpdateAnalogRangeRulesCommand = (
   inputPin: number,
   ranges: readonly AnalogRangeRuleFrameInput[] = [],
+  segments?: readonly Pick<Segment, "pin" | "type" | "adcResolution" | "pwmResolution">[],
 ): boolean => {
-  const buf = encodeUpdateAnalogRangeRulesFrame(inputPin, ranges);
+  const usesConditional = ranges.some(
+    (r) => r.enabled !== false && hasEnabledGuardConditions(r.conditions),
+  );
+
+  const buf = usesConditional
+    ? encodeUpdateAnalogRangeRulesConditionalFrame(inputPin, ranges, segments)
+    : encodeUpdateAnalogRangeRulesFrame(inputPin, ranges);
 
   return publishMqttCommand(
     buf,
-    `Published update_analog_range_rules(0x0E): input_pin=${inputPin} count=${buf[2]} size=${buf.length}b`,
+    `Published ${usesConditional ? "update_analog_range_rules_conditional(0x13)" : "update_analog_range_rules(0x0E)"}: input_pin=${inputPin} count=${buf[2]} size=${buf.length}b`,
   );
 };

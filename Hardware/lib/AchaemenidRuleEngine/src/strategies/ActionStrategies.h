@@ -19,6 +19,14 @@ namespace rules {
 class ActionExecutor {
 public:
     HOT_PATH static void execute(const RuleAction& act, int sourcePin, RuleContext& ctx);
+    HOT_PATH static void executeUnchecked(const RuleAction& act, int sourcePin, RuleContext& ctx);
+    HOT_PATH static bool executeMatchingHold(
+        const RuleAction* actions,
+        int count,
+        int matchHoldTime,
+        int sourcePin,
+        RuleContext& ctx
+    );
 };
 
 } // namespace rules

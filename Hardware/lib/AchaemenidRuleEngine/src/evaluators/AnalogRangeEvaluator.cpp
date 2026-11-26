@@ -1,5 +1,6 @@
 #include "AnalogRangeEvaluator.h"
 #include "../strategies/ActionStrategies.h"
+#include "ConditionEvaluator.h"
 #include <Optimization/XtensaAnalogAsm.h>
 #include <Utilities/logging.h>
 
@@ -52,7 +53,8 @@ HOT_PATH uint8_t AnalogRangeEvaluator::evaluate(
         return 0;
     }
 
-    // Second pass: execute actions strictly for ranges whose membership transitioned
+    // Second pass (evaluate guard conditions against current snapshot BEFORE executing any action)
+    uint8_t fireMask = 0;
     for (uint8_t i = 0; i < count; ++i) {
         if (((diffMask >> i) & 1U) == 0U) continue;
         const AnalogRangeRule& rr = rule.analogRanges[i];
@@ -63,19 +65,28 @@ HOT_PATH uint8_t AnalogRangeEvaluator::evaluate(
             (nowIn && rr.triggerMode == RANGE_ON_ENTER) ||
             (!nowIn && rr.triggerMode == RANGE_ON_EXIT);
 
-        if (shouldFire) {
-            INFOF("[AnalogRule] GPIO%d val=%u %s range[%u] [%u..%u] (hyst=%u) -> target GPIO%d",
-                  sourcePin,
-                  static_cast<unsigned int>(value),
-                  nowIn ? "ENTERED" : "EXITED",
-                  static_cast<unsigned int>(i),
-                  static_cast<unsigned int>(rr.minValue),
-                  static_cast<unsigned int>(rr.maxValue),
-                  static_cast<unsigned int>(rr.hysteresis),
-                  static_cast<int>(rr.targetPin));
-            ActionExecutor::execute(rr.toRuleAction(), sourcePin, _ctx);
-            triggered++;
+        if (shouldFire && ConditionEvaluator::evaluateAll(
+                rr.conditions, rr.conditionCount, rr.conditionLogic, _ctx.pinManager)) {
+            fireMask |= static_cast<uint8_t>(1U << i);
         }
+    }
+
+    // Third pass: execute all transitioned & condition-passing range actions
+    for (uint8_t i = 0; i < count; ++i) {
+        if (((fireMask >> i) & 1U) == 0U) continue;
+        const AnalogRangeRule& rr = rule.analogRanges[i];
+        const bool nowIn = ((nextMask >> i) & 1U) != 0U;
+        INFOF("[AnalogRule] GPIO%d val=%u %s range[%u] [%u..%u] (hyst=%u) -> target GPIO%d",
+              sourcePin,
+              static_cast<unsigned int>(value),
+              nowIn ? "ENTERED" : "EXITED",
+              static_cast<unsigned int>(i),
+              static_cast<unsigned int>(rr.minValue),
+              static_cast<unsigned int>(rr.maxValue),
+              static_cast<unsigned int>(rr.hysteresis),
+              static_cast<int>(rr.targetPin));
+        ActionExecutor::executeUnchecked(rr.toRuleAction(), sourcePin, _ctx);
+        triggered++;
     }
 
     return triggered;

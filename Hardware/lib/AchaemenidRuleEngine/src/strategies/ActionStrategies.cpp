@@ -1,4 +1,5 @@
 #include "ActionStrategies.h"
+#include "../evaluators/ConditionEvaluator.h"
 #include <Utilities/logging.h>
 #include <AppEvents.h>
 #include <Optimization/CompilerTraits.h>
@@ -53,6 +54,51 @@ HOT_PATH FORCE_INLINE static void applyState(int targetPin, bool stateToApply, i
  * @param ctx System context providing timers, event bus, and pin manager.
  */
 HOT_PATH void ActionExecutor::execute(const RuleAction& act, int sourcePin, RuleContext& ctx) {
+    if (UNLIKELY(act.targetPin < 0 || ctx.pinManager == nullptr)) return;
+    if (!ConditionEvaluator::evaluateAll(act.conditions, act.conditionCount, act.conditionLogic, ctx.pinManager)) {
+        return;
+    }
+    executeUnchecked(act, sourcePin, ctx);
+}
+
+HOT_PATH bool ActionExecutor::executeMatchingHold(
+    const RuleAction* actions,
+    int count,
+    int matchHoldTime,
+    int sourcePin,
+    RuleContext& ctx
+) {
+    if (UNLIKELY(actions == nullptr || count <= 0 || ctx.pinManager == nullptr)) return false;
+
+    const int safeCount = (count <= MAX_RULE_ACTIONS_PER_SIDE) ? count : MAX_RULE_ACTIONS_PER_SIDE;
+    uint16_t passMask = 0;
+
+    // Phase 1: Evaluate all matching actions against the pre-execution pin snapshot
+    // so earlier actions in the batch cannot alter conditions seen by sibling actions.
+    for (int i = 0; i < safeCount; ++i) {
+        if (actions[i].requiredHoldTime == matchHoldTime &&
+            ConditionEvaluator::evaluateAll(
+                actions[i].conditions,
+                actions[i].conditionCount,
+                actions[i].conditionLogic,
+                ctx.pinManager)) {
+            passMask |= static_cast<uint16_t>(1U << i);
+        }
+    }
+
+    if (passMask == 0) return false;
+
+    // Phase 2: Dispatch all actions whose guard conditions passed
+    for (int i = 0; i < safeCount; ++i) {
+        if ((passMask & static_cast<uint16_t>(1U << i)) != 0U) {
+            executeUnchecked(actions[i], sourcePin, ctx);
+        }
+    }
+
+    return true;
+}
+
+HOT_PATH void ActionExecutor::executeUnchecked(const RuleAction& act, int sourcePin, RuleContext& ctx) {
     (void)sourcePin;
     if (UNLIKELY(act.targetPin < 0 || ctx.pinManager == nullptr)) return;
     

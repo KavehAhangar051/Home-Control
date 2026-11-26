@@ -62,6 +62,47 @@ public:
     }
 };
 
+static void parseTextConditions(KeyValueParser& kvp, RuleCondition* outConds, uint8_t& outCount, uint8_t& outLogic) {
+    outCount = 0;
+    outLogic = COND_LOGIC_AND;
+    char logicBuf[8] = {0};
+    if (kvp.getValue("clog", logicBuf, sizeof(logicBuf))) {
+        if (strcmp(logicBuf, "or") == 0 || strcmp(logicBuf, "1") == 0) {
+            outLogic = COND_LOGIC_OR;
+        }
+    }
+    char cndBuf[128] = {0};
+    if (!kvp.getValue("cnd", cndBuf, sizeof(cndBuf)) || cndBuf[0] == '\0') {
+        return;
+    }
+    const char* cur = cndBuf;
+    while (*cur && outCount < MAX_RULE_CONDITIONS_PER_ACTION) {
+        const char* comma = strchr(cur, ',');
+        const char* segEnd = comma ? comma : (cur + strlen(cur));
+        char item[36] = {0};
+        size_t itemLen = static_cast<size_t>(segEnd - cur);
+        if (itemLen >= sizeof(item)) itemLen = sizeof(item) - 1;
+        memcpy(item, cur, itemLen);
+        item[itemLen] = '\0';
+        int pin = -1;
+        int op = 0;
+        int val = 0;
+        int maxVal = 0;
+        if (sscanf(item, "%d:%d:%d:%d", &pin, &op, &val, &maxVal) >= 2) {
+            RuleCondition rc;
+            rc.sourcePin = static_cast<int8_t>(pin);
+            rc.op = static_cast<uint8_t>(op < 0 ? 0 : op);
+            rc.value = static_cast<uint16_t>(val < 0 ? 0 : (val > MAX_ANALOG_OUTPUT_VALUE ? MAX_ANALOG_OUTPUT_VALUE : val));
+            rc.maxValue = static_cast<uint16_t>(maxVal < 0 ? 0 : (maxVal > MAX_ANALOG_OUTPUT_VALUE ? MAX_ANALOG_OUTPUT_VALUE : maxVal));
+            if (isValidManagedPin(pin) && op >= 0 && op <= COND_OP_MAX && isValidRuleCondition(rc)) {
+                outConds[outCount++] = rc;
+            }
+        }
+        if (!comma) break;
+        cur = comma + 1;
+    }
+}
+
 bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult) {
     outResult.reset();
 
@@ -273,28 +314,34 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                         outResult.segments[segIndex].rule.active = true;
                         if (isHigh) {
                             int c = outResult.segments[segIndex].rule.highActionCount;
-                            if (c < 4) {
-                                outResult.segments[segIndex].rule.highActions[c].targetPin = targetPin;
-                                outResult.segments[segIndex].rule.highActions[c].requiredHoldTime = holdTime;
-                                outResult.segments[segIndex].rule.highActions[c].targetValue = targetVal;
-                                outResult.segments[segIndex].rule.highActions[c].actionState = hasAnalogVal
+                            if (c < static_cast<int>(MAX_RULE_ACTIONS_PER_SIDE)) {
+                                RuleAction& act = outResult.segments[segIndex].rule.highActions[c];
+                                act.reset();
+                                act.targetPin = targetPin;
+                                act.requiredHoldTime = holdTime;
+                                act.targetValue = targetVal;
+                                act.actionState = hasAnalogVal
                                     ? (targetVal > 0)
                                     : (kvp.getInt("ast", 1) > 0);
-                                outResult.segments[segIndex].rule.highActions[c].actionType = static_cast<RuleActionType>(kvp.getInt("atp", 0));
-                                outResult.segments[segIndex].rule.highActions[c].delay = kvp.getInt("dly", 0);
+                                act.actionType = static_cast<RuleActionType>(kvp.getInt("atp", 0));
+                                act.delay = kvp.getInt("dly", 0);
+                                parseTextConditions(kvp, act.conditions, act.conditionCount, act.conditionLogic);
                                 outResult.segments[segIndex].rule.highActionCount++;
                             }
                         } else {
                             int c = outResult.segments[segIndex].rule.lowActionCount;
-                            if (c < 4) {
-                                outResult.segments[segIndex].rule.lowActions[c].targetPin = targetPin;
-                                outResult.segments[segIndex].rule.lowActions[c].requiredHoldTime = holdTime;
-                                outResult.segments[segIndex].rule.lowActions[c].targetValue = targetVal;
-                                outResult.segments[segIndex].rule.lowActions[c].actionState = hasAnalogVal
+                            if (c < static_cast<int>(MAX_RULE_ACTIONS_PER_SIDE)) {
+                                RuleAction& act = outResult.segments[segIndex].rule.lowActions[c];
+                                act.reset();
+                                act.targetPin = targetPin;
+                                act.requiredHoldTime = holdTime;
+                                act.targetValue = targetVal;
+                                act.actionState = hasAnalogVal
                                     ? (targetVal > 0)
                                     : (kvp.getInt("ast", 0) > 0);
-                                outResult.segments[segIndex].rule.lowActions[c].actionType = static_cast<RuleActionType>(kvp.getInt("atp", 0));
-                                outResult.segments[segIndex].rule.lowActions[c].delay = kvp.getInt("dly", 0);
+                                act.actionType = static_cast<RuleActionType>(kvp.getInt("atp", 0));
+                                act.delay = kvp.getInt("dly", 0);
+                                parseTextConditions(kvp, act.conditions, act.conditionCount, act.conditionLogic);
                                 outResult.segments[segIndex].rule.lowActionCount++;
                             }
                         }
@@ -358,6 +405,7 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
                         rr.triggerMode = triggerMode;
                         rr.actionState = hasAnalogVal ? (targetVal > 0) : (kvp.getInt("ast", 1) > 0);
                         rr.enabled = true;
+                        parseTextConditions(kvp, rr.conditions, rr.conditionCount, rr.conditionLogic);
 
                         outResult.segments[segIndex].rule.analogRangeCount = static_cast<uint8_t>(c + 1);
                         outResult.segments[segIndex].rule.active = true;
@@ -548,5 +596,213 @@ void AchaemenidConfigProtocol::printResult(const ParseResult* result) {
 
     Serial.println("=======================================");
 }
+
+namespace rule_codec {
+
+static int32_t readInt32LE(const uint8_t* buf, size_t offset) {
+    const uint32_t value = static_cast<uint32_t>(buf[offset]) |
+        (static_cast<uint32_t>(buf[offset + 1]) << 8) |
+        (static_cast<uint32_t>(buf[offset + 2]) << 16) |
+        (static_cast<uint32_t>(buf[offset + 3]) << 24);
+    return static_cast<int32_t>(value);
+}
+
+static int16_t readInt16LE(const uint8_t* buf, size_t offset) {
+    const uint16_t value = static_cast<uint16_t>(buf[offset]) |
+        (static_cast<uint16_t>(buf[offset + 1]) << 8);
+    return static_cast<int16_t>(value);
+}
+
+static uint16_t readUint16LE(const uint8_t* buf, size_t offset) {
+    return static_cast<uint16_t>(buf[offset]) |
+        (static_cast<uint16_t>(buf[offset + 1]) << 8);
+}
+
+static bool readConditions(
+    const uint8_t* payload,
+    size_t len,
+    size_t& offset,
+    uint8_t condMeta,
+    RuleCondition* outConds,
+    uint8_t& outCount,
+    uint8_t& outLogic
+) {
+    const uint8_t condCount = static_cast<uint8_t>(condMeta & 0x0FU);
+    const uint8_t condLogic = static_cast<uint8_t>((condMeta >> 4) & 0x01U);
+    if (condCount > MAX_RULE_CONDITIONS_PER_ACTION) return false;
+    if (offset + static_cast<size_t>(condCount) * 6U > len) return false;
+
+    outCount = condCount;
+    outLogic = (condLogic == COND_LOGIC_OR) ? COND_LOGIC_OR : COND_LOGIC_AND;
+    for (uint8_t i = 0; i < condCount; ++i) {
+        RuleCondition cond;
+        cond.sourcePin = static_cast<int8_t>(payload[offset]);
+        cond.op = payload[offset + 1];
+        cond.value = readUint16LE(payload, offset + 2);
+        cond.maxValue = readUint16LE(payload, offset + 4);
+        offset += 6;
+        if (!isValidRuleCondition(cond)) return false;
+        outConds[i] = cond;
+    }
+    return true;
+}
+
+static bool readDigitalRuleAction(
+    const uint8_t* payload,
+    size_t len,
+    size_t& offset,
+    RuleAction& action,
+    uint8_t opcode
+) {
+    const bool withAnalogTarget = (opcode == 0x0B || opcode == 0x12);
+    const bool withConditions = (opcode == 0x12);
+    const size_t baseSize = withConditions ? 14U : (withAnalogTarget ? 13U : 11U);
+    if (offset + baseSize > len) return false;
+
+    action.reset();
+    const int targetPin = static_cast<int8_t>(payload[offset]);
+    const int32_t holdTime = readInt32LE(payload, offset + 1);
+    const bool actionState = payload[offset + 5] == 0x01;
+    const uint8_t actionType = payload[offset + 6];
+    const int32_t delay = readInt32LE(payload, offset + 7);
+    int16_t targetValue = RULE_ANALOG_VALUE_UNSET;
+    if (withAnalogTarget) {
+        targetValue = readInt16LE(payload, offset + 11);
+    }
+    const uint8_t condMeta = withConditions ? payload[offset + 13] : 0;
+    offset += baseSize;
+
+    if (!isValidManagedPin(targetPin) || !isValidDigitalHoldTime(holdTime) ||
+        actionType > ACTION_FOR_DURATION || delay < 0 || delay > 60) {
+        return false;
+    }
+    if (targetValue != RULE_ANALOG_VALUE_UNSET &&
+        (targetValue < 0 || targetValue > MAX_ANALOG_OUTPUT_VALUE)) {
+        return false;
+    }
+
+    action.targetPin = static_cast<int8_t>(targetPin);
+    action.requiredHoldTime = static_cast<int8_t>(holdTime);
+    action.targetValue = targetValue;
+    action.actionState = (targetValue != RULE_ANALOG_VALUE_UNSET) ? (targetValue > 0) : actionState;
+    action.actionType = static_cast<RuleActionType>(actionType);
+    action.delay = static_cast<uint8_t>(delay);
+
+    if (withConditions) {
+        return readConditions(
+            payload, len, offset, condMeta,
+            action.conditions, action.conditionCount, action.conditionLogic);
+    }
+    return true;
+}
+
+bool parseBinaryRuleUpdate(const uint8_t* payload, size_t len, int& outInputPin, RuleConfig& outRule) {
+    outRule.reset();
+    if (payload == nullptr || len < 4) return false;
+
+    const uint8_t opcode = payload[0];
+    if (opcode != 0x05 && opcode != 0x0B && opcode != 0x12) return false;
+
+    const int maxActions = (opcode == 0x12) ? static_cast<int>(MAX_RULE_ACTIONS_PER_SIDE) : 4;
+    size_t offset = 1;
+    const int inputPin = payload[offset++];
+    if (!isValidManagedPin(inputPin) || offset >= len) return false;
+
+    const uint8_t highCount = payload[offset++];
+    if (highCount > maxActions) return false;
+    for (uint8_t i = 0; i < highCount; ++i) {
+        RuleAction action;
+        if (!readDigitalRuleAction(payload, len, offset, action, opcode)) return false;
+        outRule.highActions[outRule.highActionCount++] = action;
+    }
+
+    if (offset >= len) return false;
+    const uint8_t lowCount = payload[offset++];
+    if (lowCount > maxActions) return false;
+    for (uint8_t i = 0; i < lowCount; ++i) {
+        RuleAction action;
+        if (!readDigitalRuleAction(payload, len, offset, action, opcode)) return false;
+        outRule.lowActions[outRule.lowActionCount++] = action;
+    }
+
+    if (offset != len) return false;
+    outRule.active = (outRule.highActionCount > 0 || outRule.lowActionCount > 0);
+    outInputPin = inputPin;
+    return true;
+}
+
+bool parseBinaryAnalogRangeUpdate(const uint8_t* payload, size_t len, int& outInputPin, RuleConfig& outRule) {
+    outRule.reset();
+    if (payload == nullptr || len < 3) return false;
+
+    const uint8_t opcode = payload[0];
+    if (opcode != 0x0E && opcode != 0x13) return false;
+    const bool withConditions = (opcode == 0x13);
+
+    const int inputPin = payload[1];
+    const uint8_t rangeCount = payload[2];
+    if (!isValidManagedPin(inputPin) || rangeCount > MAX_ANALOG_RANGE_RULES) return false;
+    if (!withConditions && len != (3U + static_cast<size_t>(rangeCount) * 12U)) return false;
+
+    size_t offset = 3;
+    for (uint8_t i = 0; i < rangeCount; ++i) {
+        if (offset + 12U > len) return false;
+        uint16_t minVal = readUint16LE(payload, offset);
+        uint16_t maxVal = readUint16LE(payload, offset + 2);
+        const uint16_t hyst = readUint16LE(payload, offset + 4);
+        const int8_t targetPin = static_cast<int8_t>(payload[offset + 6]);
+        const uint8_t flags = payload[offset + 7];
+        const uint8_t delay = payload[offset + 8];
+        const int16_t targetValue = readInt16LE(payload, offset + 9);
+        const uint8_t condMeta = withConditions ? payload[offset + 11] : 0;
+        offset += 12;
+
+        const bool actionState = (flags & 0x01U) != 0U;
+        const uint8_t actionType = static_cast<uint8_t>((flags >> 1) & 0x03U);
+        const uint8_t triggerMode = static_cast<uint8_t>((flags >> 3) & 0x01U);
+
+        if (minVal > MAX_ANALOG_INPUT_VALUE || maxVal > MAX_ANALOG_INPUT_VALUE ||
+            hyst > (MAX_ANALOG_INPUT_VALUE / 2U) ||
+            !isValidManagedPin(targetPin) ||
+            actionType > ACTION_FOR_DURATION || delay > 60) {
+            return false;
+        }
+        if (targetValue != RULE_ANALOG_VALUE_UNSET &&
+            (targetValue < 0 || targetValue > MAX_ANALOG_OUTPUT_VALUE)) {
+            return false;
+        }
+        if (minVal > maxVal) {
+            const uint16_t tmp = minVal;
+            minVal = maxVal;
+            maxVal = tmp;
+        }
+
+        AnalogRangeRule& rr = outRule.analogRanges[outRule.analogRangeCount++];
+        rr.reset();
+        rr.minValue = minVal;
+        rr.maxValue = maxVal;
+        rr.hysteresis = hyst;
+        rr.targetPin = targetPin;
+        rr.delay = delay;
+        rr.actionType = static_cast<RuleActionType>(actionType);
+        rr.triggerMode = static_cast<AnalogRangeTriggerMode>(triggerMode);
+        rr.targetValue = targetValue;
+        rr.actionState = (targetValue != RULE_ANALOG_VALUE_UNSET) ? (targetValue > 0) : actionState;
+        rr.enabled = true;
+
+        if (withConditions && !readConditions(
+                payload, len, offset, condMeta,
+                rr.conditions, rr.conditionCount, rr.conditionLogic)) {
+            return false;
+        }
+    }
+
+    if (offset != len) return false;
+    outRule.active = (outRule.analogRangeCount > 0);
+    outInputPin = inputPin;
+    return true;
+}
+
+} // namespace rule_codec
 
 } // namespace uniuno

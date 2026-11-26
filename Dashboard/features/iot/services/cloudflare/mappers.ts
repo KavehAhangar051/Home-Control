@@ -1,5 +1,6 @@
 import type {
   AnalogRangeRule,
+  RuleGuardCondition,
   AnalogRangeTriggerMode,
   RuleAction,
   RuleActionType,
@@ -14,6 +15,8 @@ import {
   getAdcMaxValue,
   isAnalogInputType,
   MAX_ANALOG_RANGE_RULES,
+  MAX_RULE_ACTIONS_PER_SIDE,
+  MAX_RULE_CONDITIONS_PER_ACTION,
   normalizeAnalogInputConfig,
 } from "@/features/iot/utils/analogInput";
 import {
@@ -31,7 +34,7 @@ import {
   MAX_AUX_NODES,
   normalizeAuxNodeRecord,
 } from "@/features/iot/utils/auxNodeUtils";
-import { normalizeMacroRecord } from "@/features/iot/utils/macroEngine";
+import { normalizeMacroRecord, normalizeRuleGuardCondition } from "@/features/iot/utils/macroEngine";
 import { CANONICAL_CONFIG_VERSION, createDefaultDeviceInfo } from "../config/defaults";
 import { getCloudflareWorkerUrl } from "./config";
 
@@ -163,6 +166,19 @@ export function normalizeAnalogRangeRule(
     normalizedRange.targetValue = targetValue;
   }
 
+  if (Array.isArray(raw.conditions) && raw.conditions.length > 0) {
+    const normalizedConds = raw.conditions
+      .slice(0, MAX_RULE_CONDITIONS_PER_ACTION)
+      .map((c) => normalizeRuleGuardCondition(c))
+      .filter((c): c is RuleGuardCondition => Boolean(c));
+    if (normalizedConds.length > 0) {
+      normalizedRange.conditions = normalizedConds;
+      if (raw.conditionLogic === "or" && normalizedConds.length > 1) {
+        normalizedRange.conditionLogic = "or";
+      }
+    }
+  }
+
   return normalizedRange;
 }
 
@@ -264,14 +280,27 @@ export function normalizeSegmentRule(
       normalizedAction.targetValue = -1;
     }
 
+    if (Array.isArray(action.conditions) && action.conditions.length > 0) {
+      const normalizedConds = action.conditions
+        .slice(0, MAX_RULE_CONDITIONS_PER_ACTION)
+        .map((c) => normalizeRuleGuardCondition(c))
+        .filter((c): c is RuleGuardCondition => Boolean(c));
+      if (normalizedConds.length > 0) {
+        normalizedAction.conditions = normalizedConds;
+        if (action.conditionLogic === "or" && normalizedConds.length > 1) {
+          normalizedAction.conditionLogic = "or";
+        }
+      }
+    }
+
     return normalizedAction;
   };
 
   const highActions = rule.highActions
-    ? (rule.highActions as RawRuleActionInput[]).map(normalizeAction)
+    ? (rule.highActions as RawRuleActionInput[]).slice(0, MAX_RULE_ACTIONS_PER_SIDE).map(normalizeAction)
     : [];
   const lowActions = rule.lowActions
-    ? (rule.lowActions as RawRuleActionInput[]).map(normalizeAction)
+    ? (rule.lowActions as RawRuleActionInput[]).slice(0, MAX_RULE_ACTIONS_PER_SIDE).map(normalizeAction)
     : [];
 
   const analogRanges = Array.isArray(rule.analogRanges)

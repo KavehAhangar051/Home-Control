@@ -104,52 +104,59 @@ HOT_PATH void RuleEngine::handleInput(int sourcePin, bool newState, unsigned lon
 
         const bool deferSingleClick = uniuno::rules::DoubleClickEvaluator::hasDoubleClickAction(startActions, startCount);
 
-        // C. Process starting actions for the new state
-        if (startCount == 1) {
-            const int reqHold = startActions[0].requiredHoldTime;
-            if (reqHold == 0) {
-                if (!deferSingleClick) {
-                    executeAction(startActions[0], sourcePin);
-                    _ctx.pinManager->setIsHandledByPin(sourcePin, true);
-                }
-            } else if (reqHold > 0 && _ctx.appTimer != nullptr) {
-                const RuleAction pendingAct = startActions[0];
-                _ctx.pinManager->setPendingHoldAction(sourcePin, pendingAct);
-                uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([this, sourcePin, pendingAct]() {
-                    if (_ctx.pinManager != nullptr) {
-                        _ctx.pinManager->setHoldTimerIdByPin(sourcePin, uniuno::TimerHandle());
-                        _ctx.pinManager->setClickCountByPin(sourcePin, 0);
-                        executeAction(pendingAct, sourcePin);
-                        _ctx.pinManager->setIsHandledByPin(sourcePin, true);
-                    }
-                }, static_cast<uint32_t>(reqHold) * 1000UL);
-                _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
-            }
-        } else if (startCount > 1) {
-            // Single pass: execute immediate actions (unless deferred for double-click disambiguation)
-            // AND find the longest hold-duration action (10s) simultaneously.
+        // C. Process starting actions for the new state (supports multiple conditional actions per hold time)
+        if (startCount > 0) {
+            bool hasPositiveHold = false;
+            bool hasMultiplePositiveHolds = false;
+            int singlePositiveHold = 0;
             bool has10s = false;
-            RuleAction act10s;
+            int first10sIdx = -1;
+            int firstPositiveIdx = -1;
+
             for (int i = 0; i < startCount; ++i) {
-                const int holdTime = startActions[i].requiredHoldTime;
-                if (holdTime == 0 && !deferSingleClick) {
-                    executeAction(startActions[i], sourcePin);
-                } else if (holdTime == 10 && !has10s) {
-                    has10s = true;
-                    act10s = startActions[i];
+                const int h = startActions[i].requiredHoldTime;
+                if (h > 0) {
+                    if (!hasPositiveHold) {
+                        hasPositiveHold = true;
+                        singlePositiveHold = h;
+                        firstPositiveIdx = i;
+                    } else if (h != singlePositiveHold) {
+                        hasMultiplePositiveHolds = true;
+                    }
+                    if (h == 10 && !has10s) {
+                        has10s = true;
+                        first10sIdx = i;
+                    }
                 }
             }
 
-            if (has10s && _ctx.appTimer != nullptr) {
-                _ctx.pinManager->setPendingHoldAction(sourcePin, act10s);
-                uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([this, sourcePin, act10s]() {
+            if (!deferSingleClick) {
+                const bool executedImmediate = uniuno::rules::ActionExecutor::executeMatchingHold(
+                    startActions, startCount, 0, sourcePin, _ctx);
+                if (executedImmediate && !hasPositiveHold) {
+                    _ctx.pinManager->setIsHandledByPin(sourcePin, true);
+                }
+            }
+
+            // Schedule hold timer for 10s (max bracket) or when only a single hold duration exists
+            const int timerHoldSec = has10s ? 10 : (!hasMultiplePositiveHolds ? singlePositiveHold : 0);
+            const int pendingIdx = has10s ? first10sIdx : firstPositiveIdx;
+            if (timerHoldSec > 0 && pendingIdx >= 0 && _ctx.appTimer != nullptr) {
+                _ctx.pinManager->setPendingHoldAction(sourcePin, startActions[pendingIdx]);
+                uniuno::TimerHandle tid = _ctx.appTimer->setTimeout([this, sourcePin, newState, timerHoldSec]() {
                     if (_ctx.pinManager != nullptr) {
                         _ctx.pinManager->setHoldTimerIdByPin(sourcePin, uniuno::TimerHandle());
                         _ctx.pinManager->setClickCountByPin(sourcePin, 0);
-                        executeAction(act10s, sourcePin);
+                        const RuleConfig* liveRule = _ctx.pinManager->getRuleByPinPtr(sourcePin);
+                        if (liveRule != nullptr && liveRule->active) {
+                            const RuleAction* liveActs = newState ? liveRule->highActions : liveRule->lowActions;
+                            const int liveCount = newState ? liveRule->highActionCount : liveRule->lowActionCount;
+                            uniuno::rules::ActionExecutor::executeMatchingHold(
+                                liveActs, liveCount, timerHoldSec, sourcePin, _ctx);
+                        }
                         _ctx.pinManager->setIsHandledByPin(sourcePin, true);
                     }
-                }, static_cast<uint32_t>(act10s.requiredHoldTime) * 1000UL);
+                }, static_cast<uint32_t>(timerHoldSec) * 1000UL);
                 _ctx.pinManager->setHoldTimerIdByPin(sourcePin, tid);
             }
         }

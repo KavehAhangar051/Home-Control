@@ -59,11 +59,13 @@ export function ConditionSegment({
         <div className="flex flex-col gap-4">
           <ConditionActionsList
             type="high"
+            inputPin={segment.pin}
             actions={rule.highActions || []}
             onUpdate={(newActions) => updateLocalRule("high", newActions)}
           />
           <ConditionActionsList
             type="low"
+            inputPin={segment.pin}
             actions={rule.lowActions || []}
             onUpdate={(newActions) => updateLocalRule("low", newActions)}
           />
