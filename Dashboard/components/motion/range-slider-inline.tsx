@@ -17,8 +17,8 @@ import { capturePointer, releasePointer, TOUCH_GESTURE_CLASS } from "@/lib/touch
 import { cn } from "@/lib/utils";
 
 const STOP_COUNT = 10;
-const HANDLE_START = 8;
-const HANDLE_END_INSET = 12;
+const HANDLE_START = 5;
+const HANDLE_END_INSET = 9;
 const TEXT_INSET = 20;
 
 // Matches RangeSlider's bouncy grab and release feedback.

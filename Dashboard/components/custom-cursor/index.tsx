@@ -39,7 +39,8 @@ const CURSOR_HIDE_STYLE = (
     dangerouslySetInnerHTML={{
       __html: `
         @media (pointer: fine) {
-          body, body * {
+          body.dashboard-custom-cursor-active,
+          body.dashboard-custom-cursor-active * {
             cursor: none !important;
           }
         }

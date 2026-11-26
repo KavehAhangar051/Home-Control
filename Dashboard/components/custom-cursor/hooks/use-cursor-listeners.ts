@@ -187,7 +187,26 @@ export function useHardwareCursorListeners({
       cachedDpr = getDisplayDpr();
     };
 
+    const setHardwareCursorHidden = (hidden: boolean) => {
+      document.body.classList.toggle("dashboard-custom-cursor-active", hidden);
+    };
+
+    const hideCustomCursor = () => {
+      isVisible = false;
+      isLoopRunning = false;
+      lastFrameTs = 0;
+
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+
+      if (cursorRef.current) cursorRef.current.style.opacity = "0";
+      setHardwareCursorHidden(false);
+    };
+
     const onPointerMove = (e: PointerEvent) => {
+      setHardwareCursorHidden(true);
       if (isVisible && targetX === e.clientX && targetY === e.clientY) return;
 
       targetX = e.clientX;
@@ -212,22 +231,10 @@ export function useHardwareCursorListeners({
       startLoop();
     };
 
-    const onPointerLeave = () => {
-      isVisible = false;
-      isLoopRunning = false;
-      lastFrameTs = 0;
-
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-
-      if (cursorRef.current) {
-        cursorRef.current.style.opacity = "0";
-      }
-    };
+    const onPointerLeave = hideCustomCursor;
 
     const onPointerEnter = (e: PointerEvent) => {
+      setHardwareCursorHidden(true);
       isVisible = true;
       targetX = e.clientX;
       targetY = e.clientY;
@@ -289,8 +296,11 @@ export function useHardwareCursorListeners({
       }, 100);
     };
 
+    const onWindowBlur = () => hideCustomCursor();
+
     const onVisibilityChange = () => {
       if (document.hidden) {
+        hideCustomCursor();
         if (rafId !== null) cancelAnimationFrame(rafId);
         rafId = null;
         isLoopRunning = false;
@@ -302,6 +312,7 @@ export function useHardwareCursorListeners({
     };
 
     window.addEventListener("resize", onResize, { passive: true });
+    window.addEventListener("blur", onWindowBlur);
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     document.addEventListener("pointerleave", onPointerLeave, { passive: true });
@@ -314,6 +325,8 @@ export function useHardwareCursorListeners({
     return () => {
       if (rafId !== null) cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("blur", onWindowBlur);
+      setHardwareCursorHidden(false);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("pointerleave", onPointerLeave);

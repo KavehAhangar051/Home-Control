@@ -167,7 +167,7 @@ export function BubbleSlider({ format, className, ...options }: BubbleSliderProp
         <button
           type="button"
           {...sliderProps}
-          className="absolute -inset-y-5 inset-x-0 touch-none rounded-full outline-none ring-accent3/30 focus-visible:ring-4"
+          className="absolute -inset-y-5 -inset-x-3 cursor-inherit touch-none rounded-full outline-none ring-accent3/30 focus-visible:ring-4"
         />
       </div>
     </div>
