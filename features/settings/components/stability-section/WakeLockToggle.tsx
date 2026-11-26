@@ -1,6 +1,6 @@
 "use client";
 
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { GrainToggleEffect } from "@/components/dissolve/toggle";
 import { Monitor } from "@/components/ui/hugeicons-groups/media";
 import { Toggle } from "@/components/ui/toggle";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
@@ -64,7 +64,7 @@ export default function WakeLockToggle({ animationsEnabled }: WakeLockToggleProp
               : "این مرورگر از قفل بیداری صفحه پشتیبانی نمی‌کند"}
           </span>
         </div>
-        <ToggleIndicator
+        <GrainToggleEffect
           value={wakeLockEnabled}
           size="sm"
           onColor="var(--accent3)"
