@@ -1,6 +1,8 @@
 "use client";
 
 import { useId } from "react";
+import { useReducedMotion } from "motion/react";
+import { ToggleIndicator } from "@/components/dissolve/toggle";
 import { DashboardSlider } from "@/components/motion/dashboard-slider";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +57,7 @@ export function AnalogRangeRuleCard({
   onRemove,
 }: AnalogRangeRuleCardProps) {
   const baseId = useId();
+  const prefersReducedMotion = useReducedMotion();
   const minId = `${baseId}-min`;
   const maxId = `${baseId}-max`;
   const hystId = `${baseId}-hyst`;
@@ -167,7 +170,15 @@ export function AnalogRangeRuleCard({
                 : "border-border-color bg-bg-primary text-text-muted"
             }`}
           >
-            {isEnabled ? "فعال" : "غیرفعال"}
+            <span>{isEnabled ? "فعال" : "غیرفعال"}</span>
+            <ToggleIndicator
+              value={isEnabled}
+              size="sm"
+              onColor="var(--accent3)"
+              offColor="var(--bg-main)"
+              reducedMotion={Boolean(prefersReducedMotion)}
+              className="scale-[0.75]"
+            />
           </button>
           <DeleteButton
             size="sm"

@@ -1,6 +1,8 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useReducedMotion } from "motion/react";
+import { ToggleIndicator } from "@/components/dissolve/toggle";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { ShieldCheck } from "@/components/ui/hugeicons-groups/controls";
 import { Clock, Plus } from "@/components/ui/hugeicons-groups/shell";
@@ -101,6 +103,7 @@ function ConditionRow({
   onRemove,
 }: ConditionRowProps) {
   const baseId = useId();
+  const prefersReducedMotion = useReducedMotion();
   const paramId = `${baseId}-param`;
   const sourcePinId = `${baseId}-source`;
   const opId = `${baseId}-op`;
@@ -222,7 +225,15 @@ function ConditionRow({
                 : "border-border-color bg-bg-primary text-text-muted"
             }`}
           >
-            {isEnabled ? "فعال" : "غیرفعال"}
+            <span>{isEnabled ? "فعال" : "غیرفعال"}</span>
+            <ToggleIndicator
+              value={isEnabled}
+              size="sm"
+              onColor="var(--accent3)"
+              offColor="var(--bg-main)"
+              reducedMotion={Boolean(prefersReducedMotion)}
+              className="scale-[0.75]"
+            />
           </button>
           <DeleteButton
             size="sm"
