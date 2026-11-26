@@ -568,6 +568,7 @@ export default function AddSegmentForm({
                                     ۱۲ بیت (۰ تا ۴۰۹۵)
                                   </option>
                                 </Select>
+                                <p className="text-xs leading-5 text-text-secondary">تعداد بیت، تعداد سطح‌های قابل تنظیم شدت خروجی را تعیین می‌کند؛ مقدار بیشتر، پله‌های ریزتری می‌دهد.</p>
                               </div>
 
                               <div className="space-y-2">
@@ -592,6 +593,7 @@ export default function AddSegmentForm({
                                   className="h-11 rounded-xl text-right font-mono text-base tabular-nums sm:text-sm"
                                   dir="ltr"
                                 />
+                                <p className="text-xs leading-5 text-text-secondary">فرکانس، تعداد چرخه‌های PWM در هر ثانیه است. مقدار مناسب به درایور و قطعه متصل‌شده بستگی دارد.</p>
                                 <div className="flex items-center gap-2" dir="ltr">
                                   {PWM_FREQUENCY_PRESETS.map((preset) => (
                                     <button
