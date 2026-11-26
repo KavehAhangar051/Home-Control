@@ -56,7 +56,14 @@ const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
 function roundToStep(value: number, min: number, max: number, step: number) {
-  const precision = Math.min(8, Math.max(0, (String(step).split(".")[1] ?? "").length));
+  const precision = Math.min(
+    8,
+    Math.max(
+      0,
+      (String(min).split(".")[1] ?? "").length,
+      (String(step).split(".")[1] ?? "").length,
+    ),
+  );
   const stepped = min + Math.round((value - min) / step) * step;
   return Number(clamp(stepped, min, max).toFixed(precision));
 }
@@ -179,7 +186,6 @@ export function ElasticSlider({
     (rawValue: number) => {
       const next = roundToStep(rawValue, safeMin, safeMax, safeStep);
       if (next === valueRef.current) return;
-      const previous = valueRef.current;
       valueRef.current = next;
       if (value === undefined) setInternalValue(next);
       onValueChange?.(next);
@@ -189,7 +195,6 @@ export function ElasticSlider({
         soundManager.playClick();
         if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(4);
       }
-      if (previous === next) return;
     },
     [onValueChange, safeMax, safeMin, safeStep, value],
   );
@@ -350,7 +355,11 @@ export function ElasticSlider({
         className={`dissolve-elastic-slider__canvas ${part("canvas")} ${part("track")}`}
       />
       <span className={`dissolve-elastic-slider__label ${part("label")}`}>
-        {icon?.({ color: "var(--dissolve-foreground)", size: size === "sm" ? 14 : 16 })}
+        {icon && (
+          <span className={part("icon")} aria-hidden="true">
+            {icon({ color: "var(--dissolve-foreground)", size: size === "sm" ? 14 : 16 })}
+          </span>
+        )}
         <span>{label}</span>
       </span>
       <span
@@ -358,7 +367,11 @@ export function ElasticSlider({
         className={`dissolve-elastic-slider__label dissolve-elastic-slider__label--inverse ${part("labelInverse")}`}
         style={fillStyle}
       >
-        {icon?.({ color: "var(--dissolve-primary-foreground)", size: size === "sm" ? 14 : 16 })}
+        {icon && (
+          <span className={part("icon")} aria-hidden="true">
+            {icon({ color: "var(--dissolve-primary-foreground)", size: size === "sm" ? 14 : 16 })}
+          </span>
+        )}
         <span>{label}</span>
       </span>
       {showValue && (
