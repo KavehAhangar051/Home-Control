@@ -169,15 +169,22 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
   const snap = (v: number) => {
     const { min, max, step } = range();
     const precision = Math.min(8, ...[min, max, step].map((n) => (String(n).split('.')[1] ?? '').length));
-    const stepped = min + Math.round((v - min) / step) * step;
+    const candidate = Number.isFinite(v) ? v : min;
+    const stepped = min + Math.round((candidate - min) / step) * step;
     return Number(Math.min(max, Math.max(min, stepped)).toFixed(precision));
   };
   const span = () => {
     const { min, max } = range();
     return max - min;
   };
-  let inner = snap(p().defaultValue ?? range().min);
-  const shown = () => (p().value !== undefined ? snap(p().value!) : inner);
+  const initialValue = p().defaultValue;
+  let inner = snap(initialValue !== undefined && Number.isFinite(initialValue) ? initialValue : range().min);
+  const shown = () => {
+    const external = p().value;
+    return external !== undefined
+      ? snap(Number.isFinite(external) ? external : range().min)
+      : inner;
+  };
   let last = shown();
   let W = 0;
 
@@ -314,6 +321,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
   const onDown = (e: PointerEvent) => {
     if (ptr || e.button > 0 || p().disabled) return;
     W = host.clientWidth;
+    if (W <= 0) return;
     ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, q0: fillP.v, drag: false };
     if (reducedMotion()) press.set(1);
     else press.spring(1, SETTLE);
@@ -339,7 +347,9 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     const wasTap = !ptr.drag && Math.abs(e.clientX - ptr.x) < TAP && Math.abs(e.clientY - ptr.y) < TAP;
     if (commit && wasTap && e.type === 'pointerup') {
       const r = host.getBoundingClientRect();
-      emit(snap(range().min + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * span()));
+      if (r.width > 0) {
+        emit(snap(range().min + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * span()));
+      }
     }
     ptr = null;
     host.style.cursor = 'pointer';
@@ -364,7 +374,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     e.preventDefault();
     emit(v);
     settle();
-    o.onSlidingComplete?.(v);
+    p().onSlidingComplete?.(v);
   };
   host.addEventListener('pointerdown', onDown);
   host.addEventListener('pointermove', onMove);
