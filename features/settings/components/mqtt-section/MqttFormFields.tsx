@@ -26,8 +26,9 @@ export function MqttFormFields({
     <>
       <div className="space-y-2 text-right">
         <Label htmlFor="mqtt-broker-ws-url" className="px-1 font-bold">
-          آدرس سرور داشبورد (WebSocket URL)
+          آدرس WebSocket بروکر برای داشبورد
         </Label>
+        <p className="px-1 text-xs leading-5 text-text-secondary">مرورگر داشبورد از این نشانی و پروتکل WebSocket به بروکر وصل می‌شود.</p>
         <Input
           id="mqtt-broker-ws-url"
           type="text"
@@ -42,8 +43,9 @@ export function MqttFormFields({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="sm:col-span-2 space-y-2 text-right">
           <Label htmlFor="mqtt-broker-host" className="px-1 font-bold">
-            آدرس سرور سخت‌افزار (TCP Host)
+            میزبان بروکر برای ESP32 (TCP)
           </Label>
+          <p className="px-1 text-xs leading-5 text-text-secondary">نام میزبان یا IP بروکری که برد ESP32 از طریق TCP به آن وصل می‌شود.</p>
           <Input
             id="mqtt-broker-host"
             type="text"
@@ -72,8 +74,9 @@ export function MqttFormFields({
 
       <div className="space-y-2 text-right">
         <Label htmlFor="mqtt-base-topic" className="px-1 font-bold">
-          مسیر پایه (Base Topic)
+          پیشوند موضوع‌های MQTT (Base Topic)
         </Label>
+        <p className="px-1 text-xs leading-5 text-text-secondary">این پیشوند در ساخت موضوع‌های فرمان و وضعیت استفاده می‌شود؛ مقدار آن باید با تنظیمات فریمور یکسان باشد.</p>
         <Input
           id="mqtt-base-topic"
           type="text"
