@@ -19,7 +19,7 @@ export function MqttMessageSettingsStep({
     <div className="space-y-7">
       <div className="space-y-2">
         <Label htmlFor="mqtt-base-topic" className="text-sm font-bold text-text-primary">
-          پیشوند موضوع‌های MQTT (Base Topic)
+          پیشوند موضوع‌ها (Base Topic)
         </Label>
         <p id="mqtt-base-topic-help" className="text-xs leading-5 text-text-secondary sm:text-[13px]">
           این پیشوند باید با مقدار تنظیم‌شده در فریمور ESP32 یکسان باشد.

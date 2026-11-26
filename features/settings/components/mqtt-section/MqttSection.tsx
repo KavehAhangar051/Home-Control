@@ -20,7 +20,7 @@ type MqttLocalOverrides = {
   qos?: 0 | 1 | 2;
 };
 
-const MQTT_STEPS = ["اتصال بروکر", "تنظیم پیام‌ها", "بازبینی و ذخیره"];
+const MQTT_STEPS = ["اتصال", "پیام‌ها", "بازبینی"];
 const MQTT_STEP_COPY = [
   {
     title: "نشانی‌های اتصال",
@@ -97,11 +97,26 @@ export default function MqttSection() {
 
   const currentStepCopy = MQTT_STEP_COPY[step];
 
-  const setBrokerWsUrl = (val: string) => setOverrides((prev) => ({ ...prev, brokerWsUrl: val }));
-  const setBrokerHost = (val: string) => setOverrides((prev) => ({ ...prev, brokerHost: val }));
-  const setBrokerPort = (val: number) => setOverrides((prev) => ({ ...prev, brokerPort: val }));
-  const setBaseTopic = (val: string) => setOverrides((prev) => ({ ...prev, baseTopic: val }));
-  const setQos = (val: 0 | 1 | 2) => setOverrides((prev) => ({ ...prev, qos: val }));
+  const setBrokerWsUrl = (val: string) => {
+    setIsSaved(false);
+    setOverrides((prev) => ({ ...prev, brokerWsUrl: val }));
+  };
+  const setBrokerHost = (val: string) => {
+    setIsSaved(false);
+    setOverrides((prev) => ({ ...prev, brokerHost: val }));
+  };
+  const setBrokerPort = (val: number) => {
+    setIsSaved(false);
+    setOverrides((prev) => ({ ...prev, brokerPort: val }));
+  };
+  const setBaseTopic = (val: string) => {
+    setIsSaved(false);
+    setOverrides((prev) => ({ ...prev, baseTopic: val }));
+  };
+  const setQos = (val: 0 | 1 | 2) => {
+    setIsSaved(false);
+    setOverrides((prev) => ({ ...prev, qos: val }));
+  };
 
   const handleSaveAndReconnect = async () => {
     soundManager.playClick();
