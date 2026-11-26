@@ -221,7 +221,7 @@ export interface SystemSlice {
     voiceCommands: VoiceCommand[] | ((prev: VoiceCommand[]) => VoiceCommand[]),
   ) => void;
   setWifiNetworks: (networks: WifiNetwork[] | ((prev: WifiNetwork[]) => WifiNetwork[])) => void;
-  setWifiApConfig: (config: WifiAccessPointConfig) => void;
+  setWifiApConfig: (config: WifiAccessPointConfig | null) => void;
   setMqttConfig: (config: MqttConfig | null) => void;
 }
 

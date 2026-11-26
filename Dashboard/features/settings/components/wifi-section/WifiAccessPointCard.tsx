@@ -68,6 +68,7 @@ export function WifiAccessPointCard() {
     }
 
     const nextApConfig = { ssid: trimmedApSsid, password: apPassword };
+    const previousApConfig = wifiApConfig;
     setWifiApConfig(nextApConfig);
     setApDraft({});
 
@@ -92,8 +93,13 @@ export function WifiAccessPointCard() {
         setIsApEditing(false);
         setHasAttemptedApSave(false);
         scheduleApSavedReset();
+      } else {
+        setWifiApConfig(previousApConfig);
+        setApDraft(nextApConfig);
       }
     } catch (error) {
+      setWifiApConfig(previousApConfig);
+      setApDraft(nextApConfig);
       console.error("Failed to save Access Point settings to cloud", error);
       showToast("خطا در ارتباط با سرور کلودفلر.", "error");
     } finally {

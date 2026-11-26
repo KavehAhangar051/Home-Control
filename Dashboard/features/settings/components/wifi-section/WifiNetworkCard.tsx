@@ -17,7 +17,7 @@ function WifiNetworkCardFrame({ children }: { children: React.ReactNode }) {
         transition: TRANSITION_EXIT_STANDARD,
       }}
       transition={TRANSITION_ENTER_STANDARD}
-      className="relative overflow-hidden rounded-2xl border border-border-color bg-card-bg-solid p-4 shadow-sm"
+      className="relative overflow-visible rounded-2xl border border-border-color bg-card-bg-solid p-4 shadow-sm"
     >
       {children}
     </m.div>
