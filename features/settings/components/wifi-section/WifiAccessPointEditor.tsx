@@ -62,6 +62,7 @@ export function WifiAccessPointEditor({
           autoCapitalize="none"
           spellCheck={false}
           maxLength={32}
+          disabled={isSaving}
           value={ssid}
           onChange={(event) => onSsidChange(event.target.value)}
           placeholder="Achaemenid-XXXXXX"
@@ -79,6 +80,7 @@ export function WifiAccessPointEditor({
           <button
             type="button"
             onClick={onTogglePassword}
+            disabled={isSaving}
             className="min-h-11 rounded-lg px-3 text-xs font-semibold text-accent3 hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
             aria-label={showPassword ? "مخفی کردن رمز اکسس‌پوینت" : "نمایش رمز اکسس‌پوینت"}
             aria-pressed={showPassword}
@@ -95,6 +97,7 @@ export function WifiAccessPointEditor({
           autoCapitalize="none"
           spellCheck={false}
           maxLength={63}
+          disabled={isSaving}
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
           placeholder="۸ تا ۶۳ بایت"
@@ -111,6 +114,7 @@ export function WifiAccessPointEditor({
         <button
           type="button"
           onClick={onResetToDefault}
+          disabled={isSaving}
           className="min-h-11 rounded-lg px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-card-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
         >
           بازگشت به پیش‌فرض دستگاه
