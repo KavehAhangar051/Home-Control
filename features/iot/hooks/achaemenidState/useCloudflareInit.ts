@@ -15,6 +15,10 @@ import { FEATURE_FLAGS } from "@/lib/featureFlags";
 
 import { executeBypassFallback, executeCloudflareInitSync } from "./core/cloudflareSyncCoordinator";
 
+const REFRESH_CONFIG_EVENT = "home-control:refresh-cloudflare-config";
+
+interface RefreshConfigEvent extends CustomEvent<{ resolve?: (success: boolean) => void }> {}
+
 interface UseCloudflareInitProps {
   mounted: boolean;
   handleApplyEspConfig: (config: EspConfig) => void;
@@ -87,10 +91,11 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     setSyncStatus,
   ]);
 
-  const initCloudflareSync = useCallback(async () => {
-    bypassedRef.current = false;
+  const initCloudflareSync = useCallback(
+    async (options?: { hydrateCache?: boolean }) => {
+      bypassedRef.current = false;
 
-    await executeCloudflareInitSync({
+      await executeCloudflareInitSync({
       configLocalCacheEnabled: FEATURE_FLAGS.configLocalCache,
       isCloudflareEnabled,
       isOnline: () => globalThis.navigator?.onLine !== false,
@@ -100,11 +105,13 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
       writeLocalCache: (cfConfig) => {
         if (globalThis.window === undefined) return;
 
-        scheduleIdleStorageWrite("cached_esp_config", () => JSON.stringify(cfConfig), {
-          onError: (error) => {
-            debugLog.error("ConfigSync", "Could not write optional configuration cache.", error);
-          },
-        });
+        cancelIdleStorageWrite("cached_esp_config");
+
+        try {
+          localStorage.setItem("cached_esp_config", JSON.stringify(cfConfig));
+        } catch (error) {
+          debugLog.error("ConfigSync", "Could not replace configuration cache.", error);
+        }
       },
       clearLocalCache: () => {
         if (globalThis.window === undefined) return;
@@ -125,16 +132,34 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
       onReady: markReady,
       warn: debugLog.warn,
       info: debugLog.info,
-    });
-  }, [
-    bumpRemoteEpoch,
-    handleApplyEspConfig,
-    handleWorkerUrlChange,
-    markReady,
-    readLocalCache,
-    resetEmptyState,
-    setSyncStatus,
-  ]);
+      },
+      options,
+    );
+    },
+    [
+      bumpRemoteEpoch,
+      handleApplyEspConfig,
+      handleWorkerUrlChange,
+      markReady,
+      readLocalCache,
+      resetEmptyState,
+      setSyncStatus,
+    ],
+  );
+
+  useEffect(() => {
+    const handleManualRefresh = (event: Event) => {
+      const refreshEvent = event as RefreshConfigEvent;
+
+      void initCloudflareSync({ hydrateCache: false })
+        .then((outcome) => refreshEvent.detail?.resolve?.(outcome.kind === "remote_applied"))
+        .catch(() => refreshEvent.detail?.resolve?.(false));
+    };
+
+    window.addEventListener(REFRESH_CONFIG_EVENT, handleManualRefresh);
+
+    return () => window.removeEventListener(REFRESH_CONFIG_EVENT, handleManualRefresh);
+  }, [initCloudflareSync]);
 
   useEffect(() => {
     let cancelled = false;
