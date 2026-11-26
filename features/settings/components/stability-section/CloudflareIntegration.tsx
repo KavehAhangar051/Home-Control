@@ -18,10 +18,12 @@ import {
 
 interface CloudflareIntegrationProps {
   isDark?: boolean;
+  animationsEnabled?: boolean;
 }
 
 export default function CloudflareIntegration({
   isDark: _isDark = true,
+  animationsEnabled = true,
 }: CloudflareIntegrationProps) {
   const [cfUrl, setCfUrl] = useState(() => getCloudflareWorkerUrl());
   const prefersReducedMotion = useReducedMotion();
@@ -117,7 +119,7 @@ export default function CloudflareIntegration({
           onColor="var(--accent3)"
           offColor="var(--border-color)"
           haptics={false}
-          reducedMotion={Boolean(prefersReducedMotion)}
+          reducedMotion={!animationsEnabled || Boolean(prefersReducedMotion)}
           accessibilityLabel="ذخیره دستی چیدمان"
           className="shrink-0"
         />
