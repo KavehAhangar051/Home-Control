@@ -306,6 +306,8 @@ export interface DeleteButtonProps extends DivProps {
   left?: boolean;
   right?: boolean;
   size?: DeleteButtonSize;
+  /** Overrides the preset corner radius for surfaces that need to match a local button system. */
+  cornerRadius?: number;
   disabled?: boolean;
   /** Custom content rendered beside the preset confirmation actions. */
   renderConfirmation?: (props: DeleteConfirmationRenderProps) => React.ReactNode;
@@ -452,6 +454,7 @@ export function DeleteButton({
   left = false,
   right = false,
   size = "default",
+  cornerRadius,
   disabled = false,
   renderConfirmation,
   classNames,
@@ -481,7 +484,8 @@ export function DeleteButton({
   );
 
   const metrics = SIZE_METRICS[size];
-  const innerRadius = metrics.radius - metrics.inset;
+  const outerRadius = cornerRadius ?? metrics.radius;
+  const innerRadius = Math.max(0, outerRadius - metrics.inset);
   const onLeft = left && !right;
   const reduced = Boolean(useReducedMotion());
   const tile = React.useRef<HTMLButtonElement>(null);
@@ -532,7 +536,7 @@ export function DeleteButton({
         classNames?.root,
         className,
       )}
-      style={{ borderRadius: metrics.radius, ...style }}
+      style={{ borderRadius: outerRadius, ...style }}
       {...rest}
       onKeyDown={(e) => {
         rest.onKeyDown?.(e);
