@@ -61,6 +61,7 @@ function roundToStep(value: number, min: number, max: number, step: number) {
     Math.max(
       0,
       (String(min).split(".")[1] ?? "").length,
+      (String(max).split(".")[1] ?? "").length,
       (String(step).split(".")[1] ?? "").length,
     ),
   );
@@ -139,7 +140,7 @@ export function ElasticSlider({
   const valueRef = useRef(currentValue);
   valueRef.current = currentValue;
 
-  const part = (name: SliderPart) => partClassNames?.[name] ?? "";
+  const part = (name: ElasticSliderPart) => partClassNames?.[name] ?? "";
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -254,6 +255,12 @@ export function ElasticSlider({
 
   const settleStretch = useCallback(() => {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      stretchRef.current = 0;
+      draw();
+      frameRef.current = null;
+      return;
+    }
     let velocity = 0;
     const animate = () => {
       const displacement = stretchRef.current;
