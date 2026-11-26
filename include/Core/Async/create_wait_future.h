@@ -24,11 +24,9 @@ FORCE_INLINE AsyncResult<void> get_wait_async_state(unsigned long timeout_time) 
 /**
  * @brief Creates a future that resolves after a specified delay.
  */
-template <typename I = void>
-Future<I, void> create_wait_future(unsigned long timeout_ms) {
+template <typename I = void> Future<I, void> create_wait_future(unsigned long timeout_ms) {
   const unsigned long timeout_time = millis() + timeout_ms;
-  return Future<I, void>(
-      [timeout_time](const I&) { return get_wait_async_state(timeout_time); });
+  return Future<I, void>([timeout_time](const I&) { return get_wait_async_state(timeout_time); });
 }
 
 /**
@@ -36,8 +34,7 @@ Future<I, void> create_wait_future(unsigned long timeout_ms) {
  */
 template <> inline Future<void, void> create_wait_future(unsigned long timeout_ms) {
   const unsigned long timeout_time = millis() + timeout_ms;
-  return Future<void, void>(
-      [timeout_time]() { return get_wait_async_state(timeout_time); });
+  return Future<void, void>([timeout_time]() { return get_wait_async_state(timeout_time); });
 }
 
 } // namespace uniuno

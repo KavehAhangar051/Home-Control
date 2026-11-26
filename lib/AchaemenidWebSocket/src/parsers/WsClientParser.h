@@ -11,13 +11,13 @@ namespace uniuno {
  */
 class WsClientParser {
 public:
-    explicit WsClientParser(IEventDispatcher* dispatcher = nullptr);
+  explicit WsClientParser(IEventDispatcher* dispatcher = nullptr);
 
-    void setDispatcher(IEventDispatcher* dispatcher) { _dispatcher = dispatcher; }
-    HOT_PATH void parseMessage(const websockets::WebsocketsMessage& message);
+  void setDispatcher(IEventDispatcher* dispatcher) { _dispatcher = dispatcher; }
+  HOT_PATH void parseMessage(const websockets::WebsocketsMessage& message);
 
 private:
-    IEventDispatcher* _dispatcher;
+  IEventDispatcher* _dispatcher;
 };
 
 } // namespace uniuno

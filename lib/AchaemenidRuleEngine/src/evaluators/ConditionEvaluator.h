@@ -14,18 +14,13 @@ namespace rules {
  */
 class ConditionEvaluator {
 public:
-    HOT_PATH static bool evaluateSingle(const RuleCondition& cond, const PinManager* pinManager);
+  HOT_PATH static bool evaluateSingle(const RuleCondition& cond, const PinManager* pinManager);
 
-    HOT_PATH static bool evaluateAll(
-        const RuleCondition* conditions,
-        uint8_t count,
-        uint8_t logic,
-        const PinManager* pinManager
-    );
+  HOT_PATH static bool evaluateAll(const RuleCondition* conditions, uint8_t count, uint8_t logic,
+                                   const PinManager* pinManager);
 };
 
 } // namespace rules
 } // namespace uniuno
 
 #endif // CONDITION_EVALUATOR_H
-

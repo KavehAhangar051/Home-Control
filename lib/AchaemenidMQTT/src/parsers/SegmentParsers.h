@@ -9,17 +9,17 @@ namespace uniuno {
 
 class SegmentParsers : public IMqttPayloadHandler {
 public:
-    bool canHandle(uint8_t cmdType) const override;
-    void handle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) override;
+  bool canHandle(uint8_t cmdType) const override;
+  void handle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) override;
 
 private:
-    void parseAddSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseDeleteSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseDashboardPresence(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseUpdateAnalogInputConfig(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseUpsertAuxNode(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseDeleteAuxNode(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseAddVirtualSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseAddSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseDeleteSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseDashboardPresence(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseUpdateAnalogInputConfig(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseUpsertAuxNode(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseDeleteAuxNode(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseAddVirtualSegment(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
 };
 
 } // namespace uniuno

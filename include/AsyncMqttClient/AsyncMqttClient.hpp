@@ -2,7 +2,7 @@
  * @file AsyncMqttClient.hpp
  * @brief High-performance, zero-heap asynchronous MQTT 3.1.1 client for ESP32.
  * @author uniuno
- * 
+ *
  * ARCHITECTURE HIGHLIGHTS:
  *   - Zero Heap Fragmentation: In-situ placement new buffer (_packetStorage) for all incoming packets.
  *   - Zero std::function Overhead: FastFunction with 64-byte SBO directly invoked without heap allocation.
@@ -59,7 +59,10 @@
 #include "AsyncMqttClient/Packets/PubCompPacket.hpp"
 
 #if defined(ESP32) || defined(LIBRETINY)
-#define SEMAPHORE_TAKE(X) if (xSemaphoreTake(_xSemaphore, 1000 / portTICK_PERIOD_MS) != pdTRUE) { return X; }
+#define SEMAPHORE_TAKE(X)                                                                                              \
+  if (xSemaphoreTake(_xSemaphore, 1000 / portTICK_PERIOD_MS) != pdTRUE) {                                              \
+    return X;                                                                                                          \
+  }
 #define SEMAPHORE_GIVE() xSemaphoreGive(_xSemaphore);
 #elif defined(ESP8266) || defined(USE_RP2040)
 #define SEMAPHORE_TAKE(X) void()
@@ -71,7 +74,7 @@
  * @brief Fully asynchronous non-blocking MQTT 3.1.1 client.
  */
 class AsyncMqttClient {
- public:
+public:
   AsyncMqttClient();
   ~AsyncMqttClient();
 
@@ -81,7 +84,8 @@ class AsyncMqttClient {
   AsyncMqttClient& setCleanSession(bool cleanSession);
   AsyncMqttClient& setMaxTopicLength(uint16_t maxTopicLength);
   AsyncMqttClient& setCredentials(const char* username, const char* password = nullptr);
-  AsyncMqttClient& setWill(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0);
+  AsyncMqttClient& setWill(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr,
+                           size_t length = 0);
   AsyncMqttClient& setServer(IPAddress ip, uint16_t port);
   AsyncMqttClient& setServer(const char* host, uint16_t port);
 #if ASYNC_TCP_SSL_ENABLED
@@ -105,11 +109,12 @@ class AsyncMqttClient {
   // MQTT Protocol Actions
   uint16_t subscribe(const char* topic, uint8_t qos);
   uint16_t unsubscribe(const char* topic);
-  uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0, bool dup = false, uint16_t message_id = 0);
+  uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0,
+                   bool dup = false, uint16_t message_id = 0);
 
   const char* getClientId();
 
- private:
+private:
   AsyncClient _client;
 
   bool _connected;
@@ -186,7 +191,8 @@ class AsyncMqttClient {
   void _onConnAck(bool sessionPresent, uint8_t connectReturnCode);
   void _onSubAck(uint16_t packetId, char status);
   void _onUnsubAck(uint16_t packetId);
-  void _onMessage(char* topic, char* payload, uint8_t qos, bool dup, bool retain, size_t len, size_t index, size_t total, uint16_t packetId);
+  void _onMessage(char* topic, char* payload, uint8_t qos, bool dup, bool retain, size_t len, size_t index,
+                  size_t total, uint16_t packetId);
   void _onPublish(uint16_t packetId, uint8_t qos);
   void _onPubRel(uint16_t packetId);
   void _onPubAck(uint16_t packetId);

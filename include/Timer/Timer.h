@@ -3,7 +3,7 @@
  * @brief Modular non-blocking timer library for ESP32/Arduino
  * @author uniuno
  * @version 3.0
- * 
+ *
  * @details
  * ARCHITECTURE: Facade Pattern with Single Responsibility Principle
  *
@@ -16,7 +16,7 @@
  *   - Easier to test each component independently
  *   - Better code organization
  *   - Easier to extend and maintain
- * 
+ *
  * LAMBDA SYNTAX GUIDE:
  * @code
  *   // Basic lambda (no capture)
@@ -24,39 +24,39 @@
  *   //                 ││
  *   //                 │└─ (): Parameters (empty for Timer callbacks)
  *   //                 └── []: Capture clause (variables from outside)
- *   
+ *
  *   // Capture by reference [&] - can modify variables
  *   int counter = 0;
  *   timer.set_timeout([&]() { counter++; }, 1000);
- *   
+ *
  *   // Capture by value [=] - read-only copy
  *   int value = 10;
  *   timer.set_timeout([=]() { Serial.println(value); }, 1000);
- *   
+ *
  *   // Capture specific variables [var1, &var2]
  *   int led = 2;
  *   timer.set_timeout([led]() { digitalWrite(led, HIGH); }, 1000);
  * @endcode
- * 
+ *
  * USAGE EXAMPLES:
  * @code
  *   Timer timer;
- *   
+ *
  *   // Simple timeout
  *   timer.set_timeout([]() { Serial.println("Hello"); }, 1000);
- *   
+ *
  *   // Timeout with external variable
  *   int ledPin = 2;
- *   timer.set_timeout([ledPin]() { 
- *     digitalWrite(ledPin, HIGH); 
+ *   timer.set_timeout([ledPin]() {
+ *     digitalWrite(ledPin, HIGH);
  *   }, seconds(5));
- *   
+ *
  *   // Interval with counter
  *   int count = 0;
- *   timer.set_interval([&count]() { 
+ *   timer.set_interval([&count]() {
  *     Serial.printf("Tick %d\n", count++);
  *   }, 1000);
- *   
+ *
  *   void loop() {
  *     timer.tick();  // Must call in loop!
  *   }
@@ -92,35 +92,32 @@
 #endif
 
 // Forward declare EventDispatcher if events are enabled
-#if defined(TIMER_EVENT_CREATED) || defined(TIMER_EVENT_EXPIRED) || \
-    defined(TIMER_EVENT_CANCELLED) || defined(TIMER_EVENT_RESCHEDULED) || \
-    defined(TIMER_EVENT_TICK)
-  #ifndef TIMER_EVENTS_ENABLED
-    #define TIMER_EVENTS_ENABLED
-  #endif
+#if defined(TIMER_EVENT_CREATED) || defined(TIMER_EVENT_EXPIRED) || defined(TIMER_EVENT_CANCELLED) ||                  \
+    defined(TIMER_EVENT_RESCHEDULED) || defined(TIMER_EVENT_TICK)
+#ifndef TIMER_EVENTS_ENABLED
+#define TIMER_EVENTS_ENABLED
+#endif
 #endif
 
 namespace uniuno {
 
-
 /**
  * @class Timer
  * @brief Facade for timer management system
- * 
+ *
  * RESPONSIBILITY: Provide unified API and delegate to specialized managers
  * PATTERN: Facade Pattern
  */
-template <size_t MaxTimers = 32>
-class TimerBase : public ITimer {
+template <size_t MaxTimers = 32> class TimerBase : public ITimer {
 public:
   /**
    * @brief Constructor with feature configuration (REQUIRED)
    * @param features Feature configuration struct
    * @param getNowInMS Time source function pointer (default: millis)
    * @param dispatcher Optional EventDispatcher for event notifications
-   * 
+   *
    * IMPORTANT: User MUST specify features explicitly
-   * 
+   *
    * USAGE:
    * @code
    *   TimerFeatures features;
@@ -129,13 +126,9 @@ public:
    *   Timer timer(features);
    * @endcode
    */
-  TimerBase(const TimerFeatures& features,
-        unsigned long (*getNowInMS)() = millis,
-        EventDispatcher* dispatcher = nullptr)
-    : core_(getNowInMS)
-    , dispatcher_(dispatcher)
-    , manager_(&core_, dispatcher)
-  {
+  TimerBase(const TimerFeatures& features, unsigned long (*getNowInMS)() = millis,
+            EventDispatcher* dispatcher = nullptr)
+      : core_(getNowInMS), dispatcher_(dispatcher), manager_(&core_, dispatcher) {
     // NOTE: TimerFeatures has no runtime effect. Feature selection
     // is done at compile-time via #define flags in TimerConfig.h.
     (void)features;
@@ -154,26 +147,25 @@ public:
    * @param callback Lambda function to execute
    * @param timeout_ms Delay in milliseconds
    * @return Timer ID
-   * 
+   *
    * LAMBDA SYNTAX:
    * @code
    *   // No capture (no external variables)
    *   timer.set_timeout([]() { Serial.println("Done"); }, 1000);
-   *   
+   *
    *   // Capture by reference [&] (can modify)
    *   int counter = 0;
    *   timer.set_timeout([&]() { counter++; }, 1000);
-   *   
+   *
    *   // Capture by value [=] (read-only)
    *   int value = 10;
    *   timer.set_timeout([=]() { Serial.println(value); }, 1000);
-   *   
+   *
    *   // Capture specific [var1, &var2]
    *   int led = 2;
    *   timer.set_timeout([led]() { digitalWrite(led, HIGH); }, 1000);
    * @endcode
    */
-
 
   /**
    * @brief Schedule one-time callback (Handle-based)
@@ -181,8 +173,7 @@ public:
    * @param timeout_ms Delay in milliseconds
    * @return TimerHandle for management
    */
-  TimerHandle setTimeout(TimerCallback<void()> callback,
-                         unsigned long timeout_ms) {
+  TimerHandle setTimeout(TimerCallback<void()> callback, unsigned long timeout_ms) {
     TimerId id = manager_.add_timeout(std::move(callback), timeout_ms);
     return TimerHandle(this, id, false);
   }
@@ -195,7 +186,6 @@ public:
   /**
    * @brief Execute callback on next tick (ID-based)
    */
-
 
   /**
    * @brief Execute callback on next tick (Handle-based)
@@ -215,36 +205,35 @@ public:
    * @param callback Lambda function to execute repeatedly
    * @param interval_ms Time between executions
    * @return Timer ID
-   * 
+   *
    * LAMBDA SYNTAX:
    * @code
    *   // Simple interval
    *   timer.set_interval([]() { Serial.println("Tick"); }, 1000);
-   *   
+   *
    *   // With counter (capture by reference)
    *   int count = 0;
-   *   timer.set_interval([&count]() { 
+   *   timer.set_interval([&count]() {
    *     Serial.printf("Count: %d\n", count++);
    *   }, 1000);
-   *   
+   *
    *   // Toggle LED (capture by value)
    *   int led = 2;
    *   bool state = false;
-   *   timer.set_interval([led, &state]() { 
+   *   timer.set_interval([led, &state]() {
    *     state = !state;
    *     digitalWrite(led, state);
    *   }, 500);
    * @endcode
    */
 
-  
   /**
    * @brief Schedule recurring callback with repeat count (ID-based)
    * @param callback Lambda function to execute
    * @param interval_ms Time between executions
    * @param repeat_count Number of times to repeat (0 = infinite)
    * @return Timer ID
-   * 
+   *
    * USAGE:
    * @code
    *   // Repeat 5 times only
@@ -252,19 +241,17 @@ public:
    * @endcode
    */
 
-
   /**
    * @brief Schedule recurring callback (Handle-based)
    * @param callback Function to execute repeatedly
    * @param interval_ms Time between executions
    * @return TimerHandle for management
    */
-  TimerHandle setInterval(TimerCallback<void()> callback,
-                          unsigned long interval_ms) {
+  TimerHandle setInterval(TimerCallback<void()> callback, unsigned long interval_ms) {
     TimerId id = manager_.add_interval(std::move(callback), interval_ms);
     return TimerHandle(this, id, true);
   }
-  
+
   /**
    * @brief Schedule recurring callback with repeat count (Handle-based)
    * @param callback Function to execute
@@ -272,9 +259,7 @@ public:
    * @param repeat_count Number of times to repeat (0 = infinite)
    * @return TimerHandle for management
    */
-  TimerHandle setInterval(TimerCallback<void()> callback,
-                          unsigned long interval_ms,
-                          int repeat_count) {
+  TimerHandle setInterval(TimerCallback<void()> callback, unsigned long interval_ms, int repeat_count) {
     TimerId id = manager_.add_interval(std::move(callback), interval_ms, repeat_count);
     return TimerHandle(this, id, true);
   }
@@ -284,41 +269,35 @@ public:
   // CLEAR FEATURE
   // ============================================
 #ifdef TIMER_ENABLE_CLEAR
-  #ifdef TIMER_ENABLE_TIMEOUT
+#ifdef TIMER_ENABLE_TIMEOUT
   /**
    * @brief Cancel scheduled timeout
    * @param timeoutId ID returned by set_timeout()
    */
-  void clear_timeout(TimerId timeoutId) {
-    manager_.remove(timeoutId);
-  }
-  #endif
+  void clear_timeout(TimerId timeoutId) { manager_.remove(timeoutId); }
+#endif
 
-  #ifdef TIMER_ENABLE_INTERVAL
+#ifdef TIMER_ENABLE_INTERVAL
   /**
    * @brief Stop recurring interval
    * @param interval_id ID returned by set_interval()
    */
-  void clear_interval(TimerId interval_id) {
-    manager_.remove(interval_id);
-  }
-  #endif
+  void clear_interval(TimerId interval_id) { manager_.remove(interval_id); }
+#endif
 #endif
 
   // ============================================
   // INTERVAL_UNTIL FEATURE
   // ============================================
 #ifdef TIMER_ENABLE_INTERVAL_UNTIL
-  TimerHandle set_interval_until(TimerCallback<bool()> callback,
-                                  unsigned long interval_ms,
-                                  TimerCallback<void()> on_timeout,
-                                  unsigned long timeout_ms) {
-    TimerId id = manager_.add_interval_until_with_timeout(std::move(callback), interval_ms, std::move(on_timeout), timeout_ms);
+  TimerHandle set_interval_until(TimerCallback<bool()> callback, unsigned long interval_ms,
+                                 TimerCallback<void()> on_timeout, unsigned long timeout_ms) {
+    TimerId id =
+        manager_.add_interval_until_with_timeout(std::move(callback), interval_ms, std::move(on_timeout), timeout_ms);
     return TimerHandle(this, id, true);
   }
 
-  TimerHandle set_interval_until(TimerCallback<bool()> callback,
-                                  unsigned long interval_ms) {
+  TimerHandle set_interval_until(TimerCallback<bool()> callback, unsigned long interval_ms) {
     TimerId id = manager_.add_interval_until(std::move(callback), interval_ms);
     return TimerHandle(this, id, true);
   }
@@ -330,16 +309,16 @@ public:
 
   /**
    * @brief Main tick function - ASSEMBLY OPTIMIZED
-   * 
+   *
    * OPTIMIZATION STRATEGY:
    *   1. Cache time once (eliminate redundant millis() calls)
    *   2. Keep cached_time in register a3 across calls
    *   3. Inline process calls with register hints
-   * 
+   *
    * BEFORE: 2 millis() calls + stack operations
    * AFTER: 1 millis() call + register-only operations
    * SPEED GAIN: 1.5-2x faster
-   * 
+   *
    * ASSEMBLY BENEFIT:
    *   - cached_time stays in register a3
    *   - No stack push/pop between process() calls
@@ -353,13 +332,13 @@ public:
     // other core sees the flag set in time. Without it the compiler/CPU could
     // reorder the write after the process() call.
     if (UNLIKELY(tick_in_progress_)) return;
-    
+
     // FAST PATH: Check if there are ANY active timers, and if the earliest one has expired.
     // This avoids calling millis() 99% of the time when nothing is scheduled,
     // and avoids the heavy process() loop if nothing has expired yet!
     unsigned long next_expiry;
     if (UNLIKELY(!manager_.getNextExpiry(next_expiry))) return; // Queue empty!
-    
+
     unsigned long cached_time = core_.now();
     if (LIKELY(!uniuno::asm_opt::is_timer_expired(cached_time, next_expiry))) return; // Nothing expired!
 
@@ -383,9 +362,7 @@ public:
    * FORCE_INLINE: trivially small and on user hot paths (polling loops). Inlining
    * removes the call overhead entirely.
    */
-  FORCE_INLINE unsigned long now() const {
-    return core_.now();
-  }
+  FORCE_INLINE unsigned long now() const { return core_.now(); }
 
   // ============================================
   // HARDWARE TIMER FEATURE
@@ -395,12 +372,12 @@ public:
    * @brief Start hardware timer for automatic tick()
    * @param interval_us Interval in microseconds (default: 1000 = 1ms)
    * @return true if started successfully
-   * 
+   *
    * USAGE:
    * @code
    *   Timer timer(features);
    *   timer.startHardwareTimer(1000);  // tick() every 1ms
-   *   
+   *
    *   void loop() {
    *     // No timer.tick() needed!
    *   }
@@ -416,9 +393,7 @@ public:
   /**
    * @brief Check if hardware timer is running
    */
-  bool isHardwareTimerActive() const {
-    return hw_timer_active_;
-  }
+  bool isHardwareTimerActive() const { return hw_timer_active_; }
 
   // ============================================
   // PAUSE/RESUME FEATURE
@@ -428,7 +403,7 @@ public:
    * @brief Pause a timer by ID
    * @param id Timer ID to pause
    * @return true if found and paused
-   * 
+   *
    * USAGE:
    * @code
    *   unsigned int id = timer.set_timeout(callback, 5000);
@@ -437,17 +412,11 @@ public:
    *   timer.resume(id);  // Resume from where it stopped
    * @endcode
    */
-  bool pause(TimerId id) override {
-    return manager_.pause(id);
-  }
+  bool pause(TimerId id) override { return manager_.pause(id); }
 
-  bool resume(TimerId id) override {
-    return manager_.resume(id);
-  }
+  bool resume(TimerId id) override { return manager_.resume(id); }
 
-  bool isPaused(TimerId id) const override {
-    return manager_.isPaused(id);
-  }
+  bool isPaused(TimerId id) const override { return manager_.isPaused(id); }
 
   bool getRemaining(TimerId id, unsigned long& out_remaining_ms) const override {
     return manager_.getRemaining(id, out_remaining_ms);
@@ -460,7 +429,7 @@ public:
   /**
    * @brief Create a new timer group
    * @param name Group name
-   * 
+   *
    * USAGE:
    * @code
    *   timer.createGroup("sensors");
@@ -481,12 +450,8 @@ public:
 
   StaticHashMap<uint32_t, GroupEntry, 16> groups_;
 
-  GroupEntry* findGroup(const char* name) {
-    return groups_.find(hashString(name));
-  }
-  const GroupEntry* findGroup(const char* name) const {
-    return groups_.find(hashString(name));
-  }
+  GroupEntry* findGroup(const char* name) { return groups_.find(hashString(name)); }
+  const GroupEntry* findGroup(const char* name) const { return groups_.find(hashString(name)); }
   void createGroup(const char* name);
   void addToGroup(const char* name, TimerId id);
   void addToGroup(const char* name, TimerHandle handle);
@@ -504,61 +469,62 @@ public:
   // EVENT HELPER METHODS
   // ============================================
 
-  #ifdef TIMER_EVENT_CREATED
+#ifdef TIMER_EVENT_CREATED
   void onCreated(void (*callback)(TimerCreatedEvent*)) {
     if (dispatcher_) {
       dispatcher_->on<TimerCreatedEvent>(callback);
     }
   }
-  #endif
+#endif
 
-  #ifdef TIMER_EVENT_EXPIRED
+#ifdef TIMER_EVENT_EXPIRED
   void onExpired(void (*callback)(TimerExpiredEvent*)) {
     if (dispatcher_) {
       dispatcher_->on<TimerExpiredEvent>(callback);
     }
   }
-  #endif
+#endif
 
-  #ifdef TIMER_EVENT_CANCELLED
+#ifdef TIMER_EVENT_CANCELLED
   void onCancelled(void (*callback)(TimerCancelledEvent*)) {
     if (dispatcher_) {
       dispatcher_->on<TimerCancelledEvent>(callback);
     }
   }
-  #endif
+#endif
 
-  #ifdef TIMER_EVENT_RESCHEDULED
+#ifdef TIMER_EVENT_RESCHEDULED
   void onRescheduled(void (*callback)(TimerRescheduledEvent*)) {
     if (dispatcher_) {
       dispatcher_->on<TimerRescheduledEvent>(callback);
     }
   }
-  #endif
+#endif
 
-  #ifdef TIMER_EVENT_TICK
+#ifdef TIMER_EVENT_TICK
   void onTick(void (*callback)(TimerTickEvent*)) {
     if (dispatcher_) {
       dispatcher_->on<TimerTickEvent>(callback);
     }
   }
-  #endif
+#endif
 #endif
 
 private:
-  TimerCore core_;                    ///< Time source manager
-  EventDispatcher* dispatcher_;       ///< Event dispatcher
-  volatile bool hw_timer_active_ = false;     ///< Hardware timer status
-  volatile bool tick_in_progress_ = false;   ///< Re-entrancy guard for tick()
+  TimerCore core_;                         ///< Time source manager
+  EventDispatcher* dispatcher_;            ///< Event dispatcher
+  volatile bool hw_timer_active_ = false;  ///< Hardware timer status
+  volatile bool tick_in_progress_ = false; ///< Re-entrancy guard for tick()
 
-  TimerManager<MaxTimers> manager_;              ///< Unified timer manager
+  TimerManager<MaxTimers> manager_; ///< Unified timer manager
 
-// groups_ moved to public section as an array entry to keep implementation plan simple
+  // groups_ moved to public section as an array entry to keep implementation plan simple
 
 #ifdef TIMER_EVENT_TICK
   void dispatch_tick_event() {
     if (dispatcher_) {
-      TimerTickEvent event{core_.now(), (unsigned int)manager_.countTimeouts(), (unsigned int)manager_.countIntervals()};
+      TimerTickEvent event{core_.now(), (unsigned int)manager_.countTimeouts(),
+                           (unsigned int)manager_.countIntervals()};
       dispatcher_->dispatch(event);
     }
   }

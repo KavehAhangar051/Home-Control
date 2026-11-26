@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ESP8266 
+#ifdef ESP8266
 
 #include <tiny_websockets/internals/ws_common.hpp>
 #include <tiny_websockets/network/tcp_client.hpp>
@@ -9,83 +9,73 @@
 
 #include <ESP8266WiFi.h>
 
-namespace websockets { namespace network {
-  typedef GenericEspTcpClient<WiFiClient> Esp8266TcpClient;
-  
-  class SecuredEsp8266TcpClient : public GenericEspTcpClient<WiFiClientSecure> {
-  public:
-    void setInsecure() {
-      this->client.setInsecure();
-    }
+namespace websockets {
+namespace network {
+typedef GenericEspTcpClient<WiFiClient> Esp8266TcpClient;
 
-    void setFingerprint(const char* fingerprint) {
-      this->client.setFingerprint(fingerprint);
-    }
+class SecuredEsp8266TcpClient : public GenericEspTcpClient<WiFiClientSecure> {
+public:
+  void setInsecure() { this->client.setInsecure(); }
 
-	void setKnownKey(const PublicKey *pk) {
-		this->client.setKnownKey(pk);
-	}
+  void setFingerprint(const char* fingerprint) { this->client.setFingerprint(fingerprint); }
 
-    void setTrustAnchors(const X509List *ta){
-      this->client.setTrustAnchors(ta);
-	}
+  void setKnownKey(const PublicKey* pk) { this->client.setKnownKey(pk); }
 
-    void setClientRSACert(const X509List *cert, const PrivateKey *sk) {
-      this->client.setClientRSACert(cert, sk);
-	}
+  void setTrustAnchors(const X509List* ta) { this->client.setTrustAnchors(ta); }
 
-	void setClientECCert(const X509List *cert, const PrivateKey *sk) {
-      this->client.setClientECCert(cert, sk, 0xFFFF, 0);
-	}
-  };
+  void setClientRSACert(const X509List* cert, const PrivateKey* sk) { this->client.setClientRSACert(cert, sk); }
 
-  #define DUMMY_PORT 0
+  void setClientECCert(const X509List* cert, const PrivateKey* sk) {
+    this->client.setClientECCert(cert, sk, 0xFFFF, 0);
+  }
+};
 
-  class Esp8266TcpServer : public TcpServer {
-  public:
-    Esp8266TcpServer() : server(DUMMY_PORT) {}
-    bool poll() override {
+#define DUMMY_PORT 0
+
+class Esp8266TcpServer : public TcpServer {
+public:
+  Esp8266TcpServer() : server(DUMMY_PORT) {}
+  bool poll() override {
+    yield();
+    return server.hasClient();
+  }
+
+  bool listen(const uint16_t port) override {
+    yield();
+    server.begin(port);
+    return available();
+  }
+
+  TcpClient* accept() override {
+    while (available()) {
       yield();
-      return server.hasClient();
+      auto client = server.available();
+      if (client) return new Esp8266TcpClient{client};
     }
+    return new Esp8266TcpClient;
+  }
 
-    bool listen(const uint16_t port) override {
-      yield();
-      server.begin(port);
-      return available();
-    }
-    
-    TcpClient* accept() override {
-      while(available()) {
-        yield();
-        auto client = server.available();
-        if(client) return new Esp8266TcpClient{client};
-      }
-      return new Esp8266TcpClient;
-    }
+  bool available() override {
+    yield();
+    return server.status() != CLOSED;
+  }
 
-    bool available() override {
-      yield();
-      return server.status() != CLOSED;
-    }
-    
-    void close() override {
-      yield();
-      server.close();
-    }
+  void close() override {
+    yield();
+    server.close();
+  }
 
-    virtual ~Esp8266TcpServer() {
-      if(available()) close();
-    }
-  
-  protected:
-    int getSocket() const override {
-      return -1;
-    }
+  virtual ~Esp8266TcpServer() {
+    if (available()) close();
+  }
 
-  private:
-    WiFiServer server;
-  };
-}} // websockets::network
+protected:
+  int getSocket() const override { return -1; }
 
-#endif // #ifdef ESP8266 
+private:
+  WiFiServer server;
+};
+} // namespace network
+} // namespace websockets
+
+#endif // #ifdef ESP8266

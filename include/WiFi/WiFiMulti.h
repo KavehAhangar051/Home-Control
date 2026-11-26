@@ -62,9 +62,9 @@ public:
   // a username and anonymous identity must be provided in addition to an ssid and passphrase (password). The anonymous
   // identity may be an empty string if it is not required by the network. Certificate-based WPA2-Enterprise is not yet
   // supported, nor is providing a CA certificate for PEAP.
-  bool addAP(const char *ssid, const char *passphrase = NULL, const char *username = NULL, const char *identity = NULL);
+  bool addAP(const char* ssid, const char* passphrase = NULL, const char* username = NULL, const char* identity = NULL);
 #else
-  bool addAP(const char *ssid, const char *passphrase = NULL);
+  bool addAP(const char* ssid, const char* passphrase = NULL);
 #endif /* CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT */
 
   uint8_t run(uint32_t connectTimeout = 5000, bool scanHidden = false);

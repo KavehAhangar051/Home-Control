@@ -19,23 +19,21 @@
 
 static ESP_NOW_NewPeerCb _new_peer_cb;
 static bool _esp_now_has_begun = false;
-static uniuno::SmallVector<ESP_NOW_Peer *, ESP_NOW_MAX_TOTAL_PEER_NUM> _esp_now_peers;
+static uniuno::SmallVector<ESP_NOW_Peer*, ESP_NOW_MAX_TOTAL_PEER_NUM> _esp_now_peers;
 static portMUX_TYPE _peers_mux = portMUX_INITIALIZER_UNLOCKED;
 
 /**
  * @brief Logs a human-readable ESP-NOW driver error code in a single shared path.
  */
-static void _esp_now_log_error(const char *op, esp_err_t result) {
+static void _esp_now_log_error(const char* op, esp_err_t result) {
   log_e("%s failed: %s (0x%x)", op, esp_err_to_name(result), result);
 }
 
-static esp_err_t _esp_now_add_peer(
-  const uint8_t *mac_addr, uint8_t channel, wifi_interface_t iface, const uint8_t *lmk,
+static esp_err_t _esp_now_add_peer(const uint8_t* mac_addr, uint8_t channel, wifi_interface_t iface, const uint8_t* lmk,
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-  esp_now_rate_config_t *rate_config,
+                                   esp_now_rate_config_t* rate_config,
 #endif
-  ESP_NOW_Peer *_peer = nullptr
-) {
+                                   ESP_NOW_Peer* _peer = nullptr) {
   log_i("Adding peer " MACSTR, MAC2STR(mac_addr));
   if (esp_now_is_peer_exist(mac_addr)) {
     log_e("Peer Already Exists");
@@ -83,7 +81,7 @@ static esp_err_t _esp_now_add_peer(
   return result;
 }
 
-static esp_err_t _esp_now_del_peer(const uint8_t *mac_addr) {
+static esp_err_t _esp_now_del_peer(const uint8_t* mac_addr) {
   esp_err_t result = esp_now_del_peer(mac_addr);
   if (result != ESP_OK) {
     _esp_now_log_error("Delete peer", result);
@@ -100,7 +98,8 @@ static esp_err_t _esp_now_del_peer(const uint8_t *mac_addr) {
   return result;
 }
 
-static esp_err_t _esp_now_modify_peer(const uint8_t *mac_addr, uint8_t channel, wifi_interface_t iface, const uint8_t *lmk) {
+static esp_err_t _esp_now_modify_peer(const uint8_t* mac_addr, uint8_t channel, wifi_interface_t iface,
+                                      const uint8_t* lmk) {
   log_v(MACSTR, MAC2STR(mac_addr));
   if (!esp_now_is_peer_exist(mac_addr)) {
     log_e("Peer not found");
@@ -125,13 +124,13 @@ static esp_err_t _esp_now_modify_peer(const uint8_t *mac_addr, uint8_t channel, 
 }
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-HOT_PATH static void _esp_now_rx_cb(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
-  const uint8_t *src_addr = info->src_addr;
+HOT_PATH static void _esp_now_rx_cb(const esp_now_recv_info_t* info, const uint8_t* data, int len) {
+  const uint8_t* src_addr = info->src_addr;
   const bool broadcast = espnow_asm::isBroadcastMac(info->des_addr);
 #else
-HOT_PATH static void _esp_now_rx_cb(const uint8_t *src_addr, const uint8_t *data, int len) {
-  esp_now_recv_info_t compat_info{const_cast<uint8_t *>(src_addr), nullptr};
-  const esp_now_recv_info_t *info = &compat_info;
+HOT_PATH static void _esp_now_rx_cb(const uint8_t* src_addr, const uint8_t* data, int len) {
+  esp_now_recv_info_t compat_info{const_cast<uint8_t*>(src_addr), nullptr};
+  const esp_now_recv_info_t* info = &compat_info;
   const bool broadcast = false;
 #endif
   log_v("%s from " MACSTR ", data length : %u", broadcast ? "Broadcast" : "Unicast", MAC2STR(src_addr), len);
@@ -139,11 +138,11 @@ HOT_PATH static void _esp_now_rx_cb(const uint8_t *src_addr, const uint8_t *data
 
   // Fast path: scan registered local peers without calling IDF esp_now_is_peer_exist() first.
   // Snapshot pointer inside critical section and release before invoking virtual callback.
-  ESP_NOW_Peer *matched = nullptr;
+  ESP_NOW_Peer* matched = nullptr;
   portENTER_CRITICAL(&_peers_mux);
   const size_t n = _esp_now_peers.size();
   for (size_t i = 0; i < n; i++) {
-    ESP_NOW_Peer *peer = _esp_now_peers[i];
+    ESP_NOW_Peer* peer = _esp_now_peers[i];
     if (espnow_asm::macEqual(src_addr, peer->addr())) {
       matched = peer;
       break;
@@ -164,17 +163,17 @@ HOT_PATH static void _esp_now_rx_cb(const uint8_t *src_addr, const uint8_t *data
 }
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
-HOT_PATH static void _esp_now_tx_cb(const esp_now_send_info_t *tx_info, esp_now_send_status_t status) {
-  const uint8_t *mac_addr = tx_info->des_addr;
+HOT_PATH static void _esp_now_tx_cb(const esp_now_send_info_t* tx_info, esp_now_send_status_t status) {
+  const uint8_t* mac_addr = tx_info->des_addr;
 #else
-HOT_PATH static void _esp_now_tx_cb(const uint8_t *mac_addr, esp_now_send_status_t status) {
+HOT_PATH static void _esp_now_tx_cb(const uint8_t* mac_addr, esp_now_send_status_t status) {
 #endif
   log_v(MACSTR " : %s", MAC2STR(mac_addr), (status == ESP_NOW_SEND_SUCCESS) ? "SUCCESS" : "FAILED");
-  ESP_NOW_Peer *matched = nullptr;
+  ESP_NOW_Peer* matched = nullptr;
   portENTER_CRITICAL(&_peers_mux);
   const size_t n = _esp_now_peers.size();
   for (size_t i = 0; i < n; i++) {
-    ESP_NOW_Peer *peer = _esp_now_peers[i];
+    ESP_NOW_Peer* peer = _esp_now_peers[i];
     if (espnow_asm::macEqual(mac_addr, peer->addr())) {
       matched = peer;
       break;
@@ -190,7 +189,7 @@ HOT_PATH static void _esp_now_tx_cb(const uint8_t *mac_addr, esp_now_send_status
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 esp_err_t _esp_now_set_all_peers_rate() {
   for (size_t i = 0; i < _esp_now_peers.size(); i++) {
-    ESP_NOW_Peer *peer = _esp_now_peers[i];
+    ESP_NOW_Peer* peer = _esp_now_peers[i];
     log_v("Setting PHY rate for peer " MACSTR, MAC2STR(peer->addr()));
     esp_now_rate_config_t rate = peer->getRate();
     esp_err_t err = esp_now_set_peer_rate_config(peer->addr(), &rate);
@@ -214,7 +213,7 @@ ESP_NOW_Class::ESP_NOW_Class() {
 
 ESP_NOW_Class::~ESP_NOW_Class() {}
 
-bool ESP_NOW_Class::begin(const uint8_t *pmk) {
+bool ESP_NOW_Class::begin(const uint8_t* pmk) {
   if (_esp_now_has_begun) {
     return true;
   }
@@ -292,9 +291,9 @@ bool ESP_NOW_Class::end() {
   if (!_esp_now_has_begun) {
     return true;
   }
-  //remove all peers safely while erase_unordered shrinks _esp_now_peers
+  // remove all peers safely while erase_unordered shrinks _esp_now_peers
   while (!_esp_now_peers.empty()) {
-    ESP_NOW_Peer *peer = _esp_now_peers.back();
+    ESP_NOW_Peer* peer = _esp_now_peers.back();
     if (!removePeer(*peer)) {
       portENTER_CRITICAL(&_peers_mux);
       _esp_now_peers.pop_back();
@@ -343,7 +342,7 @@ int ESP_NOW_Class::getEncryptedPeerCount() const {
 
 // getMaxDataLen(), getVersion(), availableForWrite() are FORCE_INLINE in ESP32_NOW.h
 
-HOT_PATH size_t ESP_NOW_Class::write(const uint8_t *data, size_t len) {
+HOT_PATH size_t ESP_NOW_Class::write(const uint8_t* data, size_t len) {
   if (UNLIKELY(!_esp_now_has_begun)) {
     log_e("ESP-NOW not initialized. Please call begin() first to send data.");
     return 0;
@@ -363,9 +362,10 @@ void ESP_NOW_Class::onNewPeer(ESP_NOW_NewPeerCb cb) {
   _new_peer_cb = cb;
 }
 
-void ESP_NOW_Class::onNewPeer(void (*cb)(const esp_now_recv_info_t *info, const uint8_t *data, int len, void *arg), void *arg) {
+void ESP_NOW_Class::onNewPeer(void (*cb)(const esp_now_recv_info_t* info, const uint8_t* data, int len, void* arg),
+                              void* arg) {
   if (cb != nullptr) {
-    _new_peer_cb = [cb, arg](const esp_now_recv_info_t *info, const uint8_t *data, int len) {
+    _new_peer_cb = [cb, arg](const esp_now_recv_info_t* info, const uint8_t* data, int len) {
       cb(info, data, len, arg);
     };
   } else {
@@ -373,7 +373,7 @@ void ESP_NOW_Class::onNewPeer(void (*cb)(const esp_now_recv_info_t *info, const 
   }
 }
 
-bool ESP_NOW_Class::removePeer(ESP_NOW_Peer &peer) {
+bool ESP_NOW_Class::removePeer(ESP_NOW_Peer& peer) {
   return peer.remove();
 }
 
@@ -383,12 +383,13 @@ ESP_NOW_Class ESP_NOW;
  *
  *    Inheritable Peer Class
  *
-*/
+ */
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-ESP_NOW_Peer::ESP_NOW_Peer(const uint8_t *mac_addr, uint8_t channel, wifi_interface_t iface, const uint8_t *lmk, esp_now_rate_config_t *rate_config) {
+ESP_NOW_Peer::ESP_NOW_Peer(const uint8_t* mac_addr, uint8_t channel, wifi_interface_t iface, const uint8_t* lmk,
+                           esp_now_rate_config_t* rate_config) {
 #else
-ESP_NOW_Peer::ESP_NOW_Peer(const uint8_t *mac_addr, uint8_t channel, wifi_interface_t iface, const uint8_t *lmk) {
+ESP_NOW_Peer::ESP_NOW_Peer(const uint8_t* mac_addr, uint8_t channel, wifi_interface_t iface, const uint8_t* lmk) {
 #endif
   added = false;
   if (mac_addr) {
@@ -448,9 +449,10 @@ bool ESP_NOW_Peer::remove() {
   return false;
 }
 
-// ESP_NOW_Peer::addr() const, getChannel(), getInterface(), isEncrypted(), operator bool() are FORCE_INLINE in ESP32_NOW.h
+// ESP_NOW_Peer::addr() const, getChannel(), getInterface(), isEncrypted(), operator bool() are FORCE_INLINE in
+// ESP32_NOW.h
 
-bool ESP_NOW_Peer::addr(const uint8_t *mac_addr) {
+bool ESP_NOW_Peer::addr(const uint8_t* mac_addr) {
   if (!_esp_now_has_begun || !added) {
     memcpy(mac, mac_addr, 6);
     return true;
@@ -483,7 +485,7 @@ bool ESP_NOW_Peer::setInterface(wifi_interface_t iface) {
  * @param rate_config Pointer to the rate configuration to set. Nullptr to reset to default rate configuration.
  * @return true if the rate configuration was set successfully, false otherwise.
  */
-bool ESP_NOW_Peer::setRate(const esp_now_rate_config_t *rate_config) {
+bool ESP_NOW_Peer::setRate(const esp_now_rate_config_t* rate_config) {
   if (added && _esp_now_has_begun) {
     log_e("Peer already added and ESP-NOW is already running. Cannot set rate configuration.");
     log_e("Please call setRate() before adding the peer or before starting ESP-NOW.");
@@ -510,7 +512,7 @@ esp_now_rate_config_t ESP_NOW_Peer::getRate() const {
 }
 #endif
 
-bool ESP_NOW_Peer::setKey(const uint8_t *lmk) {
+bool ESP_NOW_Peer::setKey(const uint8_t* lmk) {
   encrypt = lmk != nullptr;
   if (encrypt) {
     memcpy(key, lmk, 16);
@@ -521,7 +523,7 @@ bool ESP_NOW_Peer::setKey(const uint8_t *lmk) {
   return _esp_now_modify_peer(mac, chan, ifc, encrypt ? key : nullptr) == ESP_OK;
 }
 
-HOT_PATH size_t ESP_NOW_Peer::send(const uint8_t *data, int len) {
+HOT_PATH size_t ESP_NOW_Peer::send(const uint8_t* data, int len) {
   log_v(MACSTR ", data length %d", MAC2STR(mac), len);
   if (UNLIKELY(!_esp_now_has_begun || !added)) {
     log_e("Peer not added.");

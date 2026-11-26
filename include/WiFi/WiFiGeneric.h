@@ -43,40 +43,32 @@
 
 #include "Network.h"
 
-#define WiFiEventCb     NetworkEventCb
+#define WiFiEventCb NetworkEventCb
 #define WiFiEventFuncCb NetworkEventFuncCb
-#define WiFiEventSysCb  NetworkEventSysCb
+#define WiFiEventSysCb NetworkEventSysCb
 #define wifi_event_id_t network_event_handle_t
 
 typedef enum {
-  WIFI_POWER_21dBm = 84,      // 21dBm
-  WIFI_POWER_20_5dBm = 82,    // 20.5dBm
-  WIFI_POWER_20dBm = 80,      // 20dBm
-  WIFI_POWER_19_5dBm = 78,    // 19.5dBm
-  WIFI_POWER_19dBm = 76,      // 19dBm
-  WIFI_POWER_18_5dBm = 74,    // 18.5dBm
-  WIFI_POWER_17dBm = 68,      // 17dBm
-  WIFI_POWER_15dBm = 60,      // 15dBm
-  WIFI_POWER_13dBm = 52,      // 13dBm
-  WIFI_POWER_11dBm = 44,      // 11dBm
-  WIFI_POWER_8_5dBm = 34,     // 8.5dBm
-  WIFI_POWER_7dBm = 28,       // 7dBm
-  WIFI_POWER_5dBm = 20,       // 5dBm
-  WIFI_POWER_2dBm = 8,        // 2dBm
-  WIFI_POWER_MINUS_1dBm = -4  // -1dBm
+  WIFI_POWER_21dBm = 84,     // 21dBm
+  WIFI_POWER_20_5dBm = 82,   // 20.5dBm
+  WIFI_POWER_20dBm = 80,     // 20dBm
+  WIFI_POWER_19_5dBm = 78,   // 19.5dBm
+  WIFI_POWER_19dBm = 76,     // 19dBm
+  WIFI_POWER_18_5dBm = 74,   // 18.5dBm
+  WIFI_POWER_17dBm = 68,     // 17dBm
+  WIFI_POWER_15dBm = 60,     // 15dBm
+  WIFI_POWER_13dBm = 52,     // 13dBm
+  WIFI_POWER_11dBm = 44,     // 11dBm
+  WIFI_POWER_8_5dBm = 34,    // 8.5dBm
+  WIFI_POWER_7dBm = 28,      // 7dBm
+  WIFI_POWER_5dBm = 20,      // 5dBm
+  WIFI_POWER_2dBm = 8,       // 2dBm
+  WIFI_POWER_MINUS_1dBm = -4 // -1dBm
 } wifi_power_t;
 
-typedef enum {
-  WIFI_RX_ANT0 = 0,
-  WIFI_RX_ANT1,
-  WIFI_RX_ANT_AUTO
-} wifi_rx_ant_t;
+typedef enum { WIFI_RX_ANT0 = 0, WIFI_RX_ANT1, WIFI_RX_ANT_AUTO } wifi_rx_ant_t;
 
-typedef enum {
-  WIFI_TX_ANT0 = 0,
-  WIFI_TX_ANT1,
-  WIFI_TX_ANT_AUTO
-} wifi_tx_ant_t;
+typedef enum { WIFI_TX_ANT0 = 0, WIFI_TX_ANT1, WIFI_TX_ANT_AUTO } wifi_tx_ant_t;
 
 class WiFiGenericClass {
 public:
@@ -122,29 +114,27 @@ public:
   wifi_band_t getBand();
 #endif
 
-  bool initiateFTM(uint8_t frm_count = 16, uint16_t burst_period = 2, uint8_t channel = 1, const uint8_t *mac = NULL);
+  bool initiateFTM(uint8_t frm_count = 16, uint16_t burst_period = 2, uint8_t channel = 1, const uint8_t* mac = NULL);
 
   static bool setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2, wifi_rx_ant_t rx_mode, wifi_tx_ant_t tx_mode);
 
-  static const char *getHostname();
-  static bool setHostname(const char *hostname);
-  static bool hostname(const String &aHostname) {
-    return setHostname(aHostname.c_str());
-  }
+  static const char* getHostname();
+  static bool setHostname(const char* hostname);
+  static bool hostname(const String& aHostname) { return setHostname(aHostname.c_str()); }
 
   static void useStaticBuffers(bool bufferMode);
   static bool useStaticBuffers();
 
-  static int hostByName(const char *aHostname, IPAddress &aResult);
+  static int hostByName(const char* aHostname, IPAddress& aResult);
 
   static IPAddress calculateNetworkID(IPAddress ip, IPAddress subnet);
   static IPAddress calculateBroadcast(IPAddress ip, IPAddress subnet);
   static uint8_t calculateSubnetCIDR(IPAddress subnetMask);
 
-  const char *disconnectReasonName(wifi_err_reason_t reason);
-  const char *eventName(arduino_event_id_t id);
+  const char* disconnectReasonName(wifi_err_reason_t reason);
+  const char* eventName(arduino_event_id_t id);
 
-  static void _eventCallback(arduino_event_t *event);
+  static void _eventCallback(arduino_event_t* event);
 
 protected:
   static bool _persistent;

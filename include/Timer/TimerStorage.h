@@ -12,12 +12,11 @@ namespace uniuno {
 /**
  * @class TimerStorage
  * @brief Manages memory pools and O(1) id->node lookups for timers.
- * 
+ *
  * Uses Generational Slot Map for absolute O(1) lookup without any Hash Maps.
  * Uses Min-Heap for O(log N) fast insertions.
  */
-template <size_t MaxTimers = 32>
-class TimerStorage {
+template <size_t MaxTimers = 32> class TimerStorage {
 public:
   TimerStorage() : timeout_count_(0), interval_count_(0), generation_counter_(0) {
     for (size_t i = 0; i < MaxTimers; i++) {
@@ -35,8 +34,8 @@ public:
     uint16_t index = node - pool_;
     uint16_t gen = ++generation_counter_;
     if (gen == 0) gen = ++generation_counter_; // Skip 0
-    
-    out_id = TimerId{ ((uint32_t)gen << 16) | index };
+
+    out_id = TimerId{((uint32_t)gen << 16) | index};
     return node;
   }
 
@@ -53,10 +52,9 @@ public:
       return;
     }
 
-    HeapSortStrategy::add_sorted(active_timers_, std::move(node),
-      [](const TimerNode* a, const TimerNode* b) {
-        return (long)(a->next_call_ms - b->next_call_ms) > 0; // Min-Heap
-      });
+    HeapSortStrategy::add_sorted(active_timers_, std::move(node), [](const TimerNode* a, const TimerNode* b) {
+      return (long)(a->next_call_ms - b->next_call_ms) > 0; // Min-Heap
+    });
   }
 
   TimerNode* lookup(TimerId id) {
@@ -81,10 +79,9 @@ public:
     for (size_t i = 0; i < active_timers_.size(); i++) {
       if (active_timers_[i] == node) {
         active_timers_.erase(i);
-        std::make_heap(active_timers_.begin(), active_timers_.end(),
-          [](const TimerNode* a, const TimerNode* b) {
-            return (long)(a->next_call_ms - b->next_call_ms) > 0;
-          });
+        std::make_heap(active_timers_.begin(), active_timers_.end(), [](const TimerNode* a, const TimerNode* b) {
+          return (long)(a->next_call_ms - b->next_call_ms) > 0;
+        });
         return true;
       }
     }
@@ -117,11 +114,15 @@ public:
   inline size_t count() const { return active_timers_.size() + paused_timers_.size(); }
   inline size_t countTimeouts() const { return timeout_count_; }
   inline size_t countIntervals() const { return interval_count_; }
-  
+
   inline void incTimeouts() { timeout_count_++; }
-  inline void decTimeouts() { if (timeout_count_ > 0) timeout_count_--; }
+  inline void decTimeouts() {
+    if (timeout_count_ > 0) timeout_count_--;
+  }
   inline void incIntervals() { interval_count_++; }
-  inline void decIntervals() { if (interval_count_ > 0) interval_count_--; }
+  inline void decIntervals() {
+    if (interval_count_ > 0) interval_count_--;
+  }
 
   StaticArray<TimerNode*, MaxTimers>& getActiveTimers() { return active_timers_; }
   const StaticArray<TimerNode*, MaxTimers>& getActiveTimers() const { return active_timers_; }

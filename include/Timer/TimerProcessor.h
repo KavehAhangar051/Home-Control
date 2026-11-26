@@ -10,7 +10,9 @@
 #ifdef TIMER_EVENTS_ENABLED
 #include <Events/EventDispatcher.h>
 #else
-namespace uniuno { class EventDispatcher {}; } // Dummy if disabled
+namespace uniuno {
+class EventDispatcher {};
+} // namespace uniuno
 #endif
 
 namespace uniuno {
@@ -23,11 +25,9 @@ static FORCE_INLINE bool timer_due(unsigned long current, unsigned long deadline
  * @class TimerProcessor
  * @brief Handles the execution loop for timers, separated from storage.
  */
-template <size_t MaxTimers = 32>
-class TimerProcessor {
+template <size_t MaxTimers = 32> class TimerProcessor {
 public:
-  TimerProcessor(const TimerCore* core, EventDispatcher* dispatcher)
-    : core_(core), dispatcher_(dispatcher) {}
+  TimerProcessor(const TimerCore* core, EventDispatcher* dispatcher) : core_(core), dispatcher_(dispatcher) {}
 
   HOT_PATH void process(TimerStorage<MaxTimers>& storage, unsigned long cached_time) {
     StaticArray<TimerNode*, MaxTimers> execution_queue;
@@ -36,12 +36,11 @@ public:
     while (!active_timers_.empty()) {
       TimerNode* top = active_timers_[0];
       if (LIKELY(!timer_due(cached_time, top->next_call_ms))) break;
-      
-      std::pop_heap(active_timers_.begin(), active_timers_.end(),
-        [](const TimerNode* a, const TimerNode* b) {
-          return (long)(a->next_call_ms - b->next_call_ms) > 0;
-        });
-      
+
+      std::pop_heap(active_timers_.begin(), active_timers_.end(), [](const TimerNode* a, const TimerNode* b) {
+        return (long)(a->next_call_ms - b->next_call_ms) > 0;
+      });
+
       active_timers_.pop_back();
 
       top->state = TimerState::Processing;
@@ -117,8 +116,10 @@ public:
 
 private:
   void freeFinishedNode(TimerStorage<MaxTimers>& storage, TimerNode* node) {
-    if (node->is_interval) storage.decIntervals();
-    else storage.decTimeouts();
+    if (node->is_interval)
+      storage.decIntervals();
+    else
+      storage.decTimeouts();
     storage.freeNode(node);
   }
 

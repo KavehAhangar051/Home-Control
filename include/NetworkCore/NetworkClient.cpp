@@ -28,13 +28,15 @@
 #include <freertos/portmacro.h>
 
 #ifndef IN6_IS_ADDR_V4MAPPED
-#define IN6_IS_ADDR_V4MAPPED(a) ((((__const uint32_t *)(a))[0] == 0) && (((__const uint32_t *)(a))[1] == 0) && (((__const uint32_t *)(a))[2] == htonl(0xffff)))
+#define IN6_IS_ADDR_V4MAPPED(a)                                                                                        \
+  ((((__const uint32_t*)(a))[0] == 0) && (((__const uint32_t*)(a))[1] == 0) &&                                         \
+   (((__const uint32_t*)(a))[2] == htonl(0xffff)))
 #endif
 
 #define WIFI_CLIENT_DEF_CONN_TIMEOUT_MS (3000)
-#define WIFI_CLIENT_MAX_WRITE_RETRY     (10)
-#define WIFI_CLIENT_SELECT_TIMEOUT_US   (1000000)
-#define WIFI_CLIENT_FLUSH_BUFFER_SIZE   (1024)
+#define WIFI_CLIENT_MAX_WRITE_RETRY (10)
+#define WIFI_CLIENT_SELECT_TIMEOUT_US (1000000)
+#define WIFI_CLIENT_FLUSH_BUFFER_SIZE (1024)
 
 #undef connect
 #undef write
@@ -42,19 +44,18 @@
 
 // Memory-for-Speed: Internal DRAM buffer pool (6 x 2872B = ~17.2 KB, 2x TCP MSS)
 // Allocated once from internal DRAM heap (zero .dram0.bss impact) to eliminate malloc/free churn.
-static constexpr size_t kRxPoolSlots    = 6;
+static constexpr size_t kRxPoolSlots = 6;
 static constexpr size_t kRxPoolSlotSize = 2872;
-static uint8_t *s_rxPoolBase            = nullptr;
-static uint32_t s_rxPoolFreeMask        = (1UL << kRxPoolSlots) - 1;
-static portMUX_TYPE s_rxPoolMux         = portMUX_INITIALIZER_UNLOCKED;
+static uint8_t* s_rxPoolBase = nullptr;
+static uint32_t s_rxPoolFreeMask = (1UL << kRxPoolSlots) - 1;
+static portMUX_TYPE s_rxPoolMux = portMUX_INITIALIZER_UNLOCKED;
 
-static uint8_t *allocRxBuffer(size_t size) {
+static uint8_t* allocRxBuffer(size_t size) {
   if (LIKELY(size <= kRxPoolSlotSize)) {
     portENTER_CRITICAL(&s_rxPoolMux);
     if (UNLIKELY(!s_rxPoolBase)) {
-      s_rxPoolBase = static_cast<uint8_t *>(
-        heap_caps_malloc(kRxPoolSlots * kRxPoolSlotSize, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)
-      );
+      s_rxPoolBase = static_cast<uint8_t*>(
+          heap_caps_malloc(kRxPoolSlots * kRxPoolSlotSize, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
     }
     if (LIKELY(s_rxPoolBase != nullptr && s_rxPoolFreeMask != 0)) {
       const int idx = __builtin_ctz(s_rxPoolFreeMask);
@@ -64,16 +65,16 @@ static uint8_t *allocRxBuffer(size_t size) {
     }
     portEXIT_CRITICAL(&s_rxPoolMux);
   }
-  return static_cast<uint8_t *>(malloc(size));
+  return static_cast<uint8_t*>(malloc(size));
 }
 
-static void releaseRxBuffer(uint8_t *ptr) {
+static void releaseRxBuffer(uint8_t* ptr) {
   if (!ptr) {
     return;
   }
   if (LIKELY(s_rxPoolBase != nullptr)) {
     const uintptr_t base = reinterpret_cast<uintptr_t>(s_rxPoolBase);
-    const uintptr_t p    = reinterpret_cast<uintptr_t>(ptr);
+    const uintptr_t p = reinterpret_cast<uintptr_t>(ptr);
     if (LIKELY(p >= base && p < base + (kRxPoolSlots * kRxPoolSlotSize))) {
       const size_t idx = static_cast<size_t>((p - base) / kRxPoolSlotSize);
       portENTER_CRITICAL(&s_rxPoolMux);
@@ -88,7 +89,7 @@ static void releaseRxBuffer(uint8_t *ptr) {
 class NetworkClientRxBuffer {
 private:
   size_t _size;
-  uint8_t *_buffer;
+  uint8_t* _buffer;
   size_t _pos;
   size_t _fill;
   int _fd;
@@ -139,17 +140,14 @@ private:
   }
 
 public:
-  NetworkClientRxBuffer(int fd, size_t size = kRxPoolSlotSize) : _size(size), _buffer(NULL), _pos(0), _fill(0), _fd(fd), _failed(false) {}
+  NetworkClientRxBuffer(int fd, size_t size = kRxPoolSlotSize)
+      : _size(size), _buffer(NULL), _pos(0), _fill(0), _fd(fd), _failed(false) {}
 
-  ~NetworkClientRxBuffer() {
-    releaseRxBuffer(_buffer);
-  }
+  ~NetworkClientRxBuffer() { releaseRxBuffer(_buffer); }
 
-  bool failed() {
-    return _failed;
-  }
+  bool failed() { return _failed; }
 
-  int read(uint8_t *dst, size_t len) {
+  int read(uint8_t* dst, size_t len) {
     if (!dst || !len || (_pos == _fill && !fillBuffer())) {
       return _failed ? -1 : 0;
     }
@@ -161,7 +159,7 @@ public:
     }
     size_t left = len;
     size_t toRead = a;
-    uint8_t *buf = dst;
+    uint8_t* buf = dst;
     network_asm::fastCopySmallOrAligned(buf, _buffer + _pos, toRead);
     _pos += toRead;
     left -= toRead;
@@ -214,9 +212,7 @@ private:
 public:
   NetworkClientSocketHandle(int fd) : sockfd(fd) {}
 
-  ~NetworkClientSocketHandle() {
-    close();
-  }
+  ~NetworkClientSocketHandle() { close(); }
 
   void close() {
     if (sockfd >= 0) {
@@ -225,12 +221,11 @@ public:
     }
   }
 
-  int fd() {
-    return sockfd;
-  }
+  int fd() { return sockfd; }
 };
 
-NetworkClient::NetworkClient() : _rxBuffer(nullptr), _connected(false), _sse(false), _timeout(WIFI_CLIENT_DEF_CONN_TIMEOUT_MS), next(NULL) {}
+NetworkClient::NetworkClient()
+    : _rxBuffer(nullptr), _connected(false), _sse(false), _timeout(WIFI_CLIENT_DEF_CONN_TIMEOUT_MS), next(NULL) {}
 
 NetworkClient::NetworkClient(int fd) : _connected(true), _timeout(WIFI_CLIENT_DEF_CONN_TIMEOUT_MS), next(NULL) {
   clientSocketHandle = std::make_shared<NetworkClientSocketHandle>(fd);
@@ -261,7 +256,7 @@ int NetworkClient::connect(IPAddress ip, uint16_t port, int32_t timeout_ms) {
 
 #if CONFIG_LWIP_IPV6
   if (ip.type() == IPv6) {
-    struct sockaddr_in6 *tmpaddr = (struct sockaddr_in6 *)&serveraddr;
+    struct sockaddr_in6* tmpaddr = (struct sockaddr_in6*)&serveraddr;
     sockfd = socket(AF_INET6, SOCK_STREAM, 0);
     tmpaddr->sin6_family = AF_INET6;
     memcpy(tmpaddr->sin6_addr.un.u8_addr, &ip[0], 16);
@@ -269,7 +264,7 @@ int NetworkClient::connect(IPAddress ip, uint16_t port, int32_t timeout_ms) {
     tmpaddr->sin6_scope_id = ip.zone();
   } else {
 #endif
-    struct sockaddr_in *tmpaddr = (struct sockaddr_in *)&serveraddr;
+    struct sockaddr_in* tmpaddr = (struct sockaddr_in*)&serveraddr;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     tmpaddr->sin_family = AF_INET;
     tmpaddr->sin_addr.s_addr = ip;
@@ -291,9 +286,9 @@ int NetworkClient::connect(IPAddress ip, uint16_t port, int32_t timeout_ms) {
   tv.tv_usec = (_timeout % 1000) * 1000;
 
 #ifdef ESP_IDF_VERSION_MAJOR
-  int res = lwip_connect(sockfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr));
+  int res = lwip_connect(sockfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
 #else
-  int res = lwip_connect_r(sockfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr));
+  int res = lwip_connect_r(sockfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
 #endif
   if (res < 0 && errno != EINPROGRESS) {
     log_e("connect on fd %d, errno: %d, \"%s\"", sockfd, errno, strerror(errno));
@@ -328,19 +323,19 @@ int NetworkClient::connect(IPAddress ip, uint16_t port, int32_t timeout_ms) {
     }
   }
 
-#define ROE_WIFICLIENT(x, msg)                                                                           \
-  {                                                                                                      \
-    if (((x) < 0)) {                                                                                     \
-      log_e("Setsockopt '" msg "'' on fd %d failed. errno: %d, \"%s\"", sockfd, errno, strerror(errno)); \
-      return 0;                                                                                          \
-    }                                                                                                    \
+#define ROE_WIFICLIENT(x, msg)                                                                                         \
+  {                                                                                                                    \
+    if (((x) < 0)) {                                                                                                   \
+      log_e("Setsockopt '" msg "'' on fd %d failed. errno: %d, \"%s\"", sockfd, errno, strerror(errno));               \
+      return 0;                                                                                                        \
+    }                                                                                                                  \
   }
   ROE_WIFICLIENT(setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)), "SO_SNDTIMEO");
   ROE_WIFICLIENT(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)), "SO_RCVTIMEO");
 
   // These are also set in NetworkClientSecure, should be set here too?
-  //ROE_WIFICLIENT(setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable)),"TCP_NODELAY");
-  //ROE_WIFICLIENT (setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof(enable)),"SO_KEEPALIVE");
+  // ROE_WIFICLIENT(setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable)),"TCP_NODELAY");
+  // ROE_WIFICLIENT (setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof(enable)),"SO_KEEPALIVE");
 
   fcntl(sockfd, F_SETFL, fcntl(sockfd, F_GETFL, 0) & (~O_NONBLOCK));
   clientSocketHandle = std::make_shared<NetworkClientSocketHandle>(sockfd);
@@ -350,11 +345,11 @@ int NetworkClient::connect(IPAddress ip, uint16_t port, int32_t timeout_ms) {
   return 1;
 }
 
-int NetworkClient::connect(const char *host, uint16_t port) {
+int NetworkClient::connect(const char* host, uint16_t port) {
   return connect(host, port, _timeout);
 }
 
-int NetworkClient::connect(const char *host, uint16_t port, int32_t timeout_ms) {
+int NetworkClient::connect(const char* host, uint16_t port, int32_t timeout_ms) {
   IPAddress srv((uint32_t)0);
   if (Network.hostByName(host, srv) != 1) {
     return 0;
@@ -362,11 +357,11 @@ int NetworkClient::connect(const char *host, uint16_t port, int32_t timeout_ms) 
   return connect(srv, port, timeout_ms);
 }
 
-int NetworkClient::setSocketOption(int option, char *value, size_t len) {
-  return setSocketOption(SOL_SOCKET, option, (const void *)value, len);
+int NetworkClient::setSocketOption(int option, char* value, size_t len) {
+  return setSocketOption(SOL_SOCKET, option, (const void*)value, len);
 }
 
-int NetworkClient::setSocketOption(int level, int option, const void *value, size_t len) {
+int NetworkClient::setSocketOption(int level, int option, const void* value, size_t len) {
   int res = setsockopt(fd(), level, option, value, len);
   if (res < 0) {
     log_e("fail on %d, errno: %d, \"%s\"", fd(), errno, strerror(errno));
@@ -374,21 +369,21 @@ int NetworkClient::setSocketOption(int level, int option, const void *value, siz
   return res;
 }
 
-int NetworkClient::getSocketOption(int level, int option, const void *value, size_t size) {
-  int res = getsockopt(fd(), level, option, (char *)value, (socklen_t *)&size);
+int NetworkClient::getSocketOption(int level, int option, const void* value, size_t size) {
+  int res = getsockopt(fd(), level, option, (char*)value, (socklen_t*)&size);
   if (res < 0) {
     log_e("fail on fd %d, errno: %d, \"%s\"", fd(), errno, strerror(errno));
   }
   return res;
 }
 
-int NetworkClient::setOption(int option, int *value) {
-  return setSocketOption(IPPROTO_TCP, option, (const void *)value, sizeof(int));
+int NetworkClient::setOption(int option, int* value) {
+  return setSocketOption(IPPROTO_TCP, option, (const void*)value, sizeof(int));
 }
 
-int NetworkClient::getOption(int option, int *value) {
+int NetworkClient::getOption(int option, int* value) {
   socklen_t size = sizeof(int);
-  int res = getsockopt(fd(), IPPROTO_TCP, option, (char *)value, &size);
+  int res = getsockopt(fd(), IPPROTO_TCP, option, (char*)value, &size);
   if (res < 0) {
     log_e("fail on fd %d, errno: %d, \"%s\"", fd(), errno, strerror(errno));
   }
@@ -420,7 +415,7 @@ int NetworkClient::read() {
   if (res < 0) {
     return res;
   }
-  if (res == 0) {  //  No data available.
+  if (res == 0) { //  No data available.
     return -1;
   }
   return data;
@@ -430,7 +425,7 @@ void NetworkClient::flush() {
   // NetworkClient has no TX buffer; clear() is the explicit RX discard API.
 }
 
-size_t NetworkClient::write(const uint8_t *buf, size_t size) {
+size_t NetworkClient::write(const uint8_t* buf, size_t size) {
   int res = 0;
   int retry = WIFI_CLIENT_MAX_WRITE_RETRY;
   int socketFileDescriptor = fd();
@@ -444,14 +439,14 @@ size_t NetworkClient::write(const uint8_t *buf, size_t size) {
   if (UNLIKELY(_lastWriteTimeout != _timeout)) {
     struct timeval timeout_tv;
     network_asm::timeoutMsToTimeval(static_cast<uint32_t>(_timeout), timeout_tv);
-    if (setSocketOption(SO_SNDTIMEO, (char *)&timeout_tv, sizeof(struct timeval)) >= 0) {
+    if (setSocketOption(SO_SNDTIMEO, (char*)&timeout_tv, sizeof(struct timeval)) >= 0) {
       _lastWriteTimeout = _timeout;
     }
   }
 
   while (retry) {
     // Stage 3 Hot-Path: optimistic non-blocking send skips select() VFS/LwIP overhead on 99% of frames
-    res = send(socketFileDescriptor, (void *)buf, bytesRemaining, MSG_DONTWAIT);
+    res = send(socketFileDescriptor, (void*)buf, bytesRemaining, MSG_DONTWAIT);
     if (LIKELY(res > 0)) {
       totalBytesSent += res;
       if (LIKELY(totalBytesSent >= size)) {
@@ -489,8 +484,8 @@ size_t NetworkClient::write_P(PGM_P buf, size_t size) {
   return write(buf, size);
 }
 
-static size_t writeStreamPooled(NetworkClient &client, Stream &stream, size_t maxLen, bool bounded) {
-  uint8_t *buf = allocRxBuffer(kRxPoolSlotSize);
+static size_t writeStreamPooled(NetworkClient& client, Stream& stream, size_t maxLen, bool bounded) {
+  uint8_t* buf = allocRxBuffer(kRxPoolSlotSize);
   if (!buf) {
     return 0;
   }
@@ -509,21 +504,21 @@ static size_t writeStreamPooled(NetworkClient &client, Stream &stream, size_t ma
   return written;
 }
 
-size_t NetworkClient::write(Stream &stream) {
+size_t NetworkClient::write(Stream& stream) {
   return writeStreamPooled(*this, stream, 0, false);
 }
 
-size_t NetworkClient::write(Stream &stream, size_t length) {
+size_t NetworkClient::write(Stream& stream, size_t length) {
   return writeStreamPooled(*this, stream, length, true);
 }
 
-int NetworkClient::read(uint8_t *buf, size_t size) {
+int NetworkClient::read(uint8_t* buf, size_t size) {
   if (_lastReadTimeout != _timeout) {
     if (fd() >= 0) {
       struct timeval timeout_tv;
       timeout_tv.tv_sec = _timeout / 1000;
       timeout_tv.tv_usec = (_timeout % 1000) * 1000;
-      if (setSocketOption(SO_RCVTIMEO, (char *)&timeout_tv, sizeof(struct timeval)) >= 0) {
+      if (setSocketOption(SO_RCVTIMEO, (char*)&timeout_tv, sizeof(struct timeval)) >= 0) {
         _lastReadTimeout = _timeout;
       }
     }
@@ -540,11 +535,11 @@ int NetworkClient::read(uint8_t *buf, size_t size) {
   return res;
 }
 
-size_t NetworkClient::readBytes(char *buffer, size_t length) {
+size_t NetworkClient::readBytes(char* buffer, size_t length) {
   size_t left = length, sofar = 0;
   int r = 0, to = millis() + getTimeout();
   while (left) {
-    r = read((uint8_t *)buffer + sofar, left);
+    r = read((uint8_t*)buffer + sofar, left);
     if (r < 0) {
       // Error has occurred
       break;
@@ -618,22 +613,22 @@ uint8_t NetworkClient::connected() {
 IPAddress NetworkClient::remoteIP(int fd) const {
   struct sockaddr_storage addr;
   socklen_t len = sizeof addr;
-  getpeername(fd, (struct sockaddr *)&addr, &len);
+  getpeername(fd, (struct sockaddr*)&addr, &len);
 
   // IPv4 socket, old way
-  if (((struct sockaddr *)&addr)->sa_family == AF_INET) {
-    struct sockaddr_in *s = (struct sockaddr_in *)&addr;
+  if (((struct sockaddr*)&addr)->sa_family == AF_INET) {
+    struct sockaddr_in* s = (struct sockaddr_in*)&addr;
     return IPAddress((uint32_t)(s->sin_addr.s_addr));
   }
 
 #if CONFIG_LWIP_IPV6
   // IPv6, but it might be IPv4 mapped address
-  if (((struct sockaddr *)&addr)->sa_family == AF_INET6) {
-    struct sockaddr_in6 *saddr6 = (struct sockaddr_in6 *)&addr;
+  if (((struct sockaddr*)&addr)->sa_family == AF_INET6) {
+    struct sockaddr_in6* saddr6 = (struct sockaddr_in6*)&addr;
     if (IN6_IS_ADDR_V4MAPPED(saddr6->sin6_addr.un.u32_addr)) {
-      return IPAddress(IPv4, (uint8_t *)saddr6->sin6_addr.s6_addr + IPADDRESS_V4_BYTES_INDEX);
+      return IPAddress(IPv4, (uint8_t*)saddr6->sin6_addr.s6_addr + IPADDRESS_V4_BYTES_INDEX);
     } else {
-      return IPAddress(IPv6, (uint8_t *)(saddr6->sin6_addr.s6_addr), saddr6->sin6_scope_id);
+      return IPAddress(IPv6, (uint8_t*)(saddr6->sin6_addr.s6_addr), saddr6->sin6_scope_id);
     }
   }
   log_e("NetworkClient::remoteIP Not AF_INET or AF_INET6?");
@@ -644,8 +639,8 @@ IPAddress NetworkClient::remoteIP(int fd) const {
 uint16_t NetworkClient::remotePort(int fd) const {
   struct sockaddr_storage addr;
   socklen_t len = sizeof addr;
-  getpeername(fd, (struct sockaddr *)&addr, &len);
-  struct sockaddr_in *s = (struct sockaddr_in *)&addr;
+  getpeername(fd, (struct sockaddr*)&addr, &len);
+  struct sockaddr_in* s = (struct sockaddr_in*)&addr;
   return ntohs(s->sin_port);
 }
 
@@ -660,22 +655,22 @@ uint16_t NetworkClient::remotePort() const {
 IPAddress NetworkClient::localIP(int fd) const {
   struct sockaddr_storage addr;
   socklen_t len = sizeof addr;
-  getsockname(fd, (struct sockaddr *)&addr, &len);
+  getsockname(fd, (struct sockaddr*)&addr, &len);
 
   // IPv4 socket, old way
-  if (((struct sockaddr *)&addr)->sa_family == AF_INET) {
-    struct sockaddr_in *s = (struct sockaddr_in *)&addr;
+  if (((struct sockaddr*)&addr)->sa_family == AF_INET) {
+    struct sockaddr_in* s = (struct sockaddr_in*)&addr;
     return IPAddress((uint32_t)(s->sin_addr.s_addr));
   }
 
 #if CONFIG_LWIP_IPV6
   // IPv6, but it might be IPv4 mapped address
-  if (((struct sockaddr *)&addr)->sa_family == AF_INET6) {
-    struct sockaddr_in6 *saddr6 = (struct sockaddr_in6 *)&addr;
+  if (((struct sockaddr*)&addr)->sa_family == AF_INET6) {
+    struct sockaddr_in6* saddr6 = (struct sockaddr_in6*)&addr;
     if (IN6_IS_ADDR_V4MAPPED(saddr6->sin6_addr.un.u32_addr)) {
-      return IPAddress(IPv4, (uint8_t *)saddr6->sin6_addr.s6_addr + IPADDRESS_V4_BYTES_INDEX);
+      return IPAddress(IPv4, (uint8_t*)saddr6->sin6_addr.s6_addr + IPADDRESS_V4_BYTES_INDEX);
     } else {
-      return IPAddress(IPv6, (uint8_t *)(saddr6->sin6_addr.s6_addr), saddr6->sin6_scope_id);
+      return IPAddress(IPv6, (uint8_t*)(saddr6->sin6_addr.s6_addr), saddr6->sin6_scope_id);
     }
   }
   log_e("NetworkClient::localIP Not AF_INET or AF_INET6?");
@@ -686,8 +681,8 @@ IPAddress NetworkClient::localIP(int fd) const {
 uint16_t NetworkClient::localPort(int fd) const {
   struct sockaddr_storage addr;
   socklen_t len = sizeof addr;
-  getsockname(fd, (struct sockaddr *)&addr, &len);
-  struct sockaddr_in *s = (struct sockaddr_in *)&addr;
+  getsockname(fd, (struct sockaddr*)&addr, &len);
+  struct sockaddr_in* s = (struct sockaddr_in*)&addr;
   return ntohs(s->sin_port);
 }
 
@@ -699,8 +694,9 @@ uint16_t NetworkClient::localPort() const {
   return localPort(fd());
 }
 
-bool NetworkClient::operator==(const NetworkClient &rhs) {
-  return clientSocketHandle == rhs.clientSocketHandle && remotePort() == rhs.remotePort() && remoteIP() == rhs.remoteIP();
+bool NetworkClient::operator==(const NetworkClient& rhs) {
+  return clientSocketHandle == rhs.clientSocketHandle && remotePort() == rhs.remotePort() &&
+         remoteIP() == rhs.remoteIP();
 }
 
 int NetworkClient::fd() const {

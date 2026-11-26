@@ -12,11 +12,11 @@ namespace uniuno {
  */
 class ListenerEntry {
 public:
-  ListenerEntry()
-      : event_hash_(0), listener_id_(0), callback_(), is_once_(0), marked_for_removal_(0), reserved_(0) {}
+  ListenerEntry() : event_hash_(0), listener_id_(0), callback_(), is_once_(0), marked_for_removal_(0), reserved_(0) {}
 
   ListenerEntry(uint32_t hash, uint32_t id, FastFunction<void(void*)> cb, bool once)
-      : event_hash_(hash), listener_id_(id), callback_(std::move(cb)), is_once_(once ? 1 : 0), marked_for_removal_(0), reserved_(0) {}
+      : event_hash_(hash), listener_id_(id), callback_(std::move(cb)), is_once_(once ? 1 : 0), marked_for_removal_(0),
+        reserved_(0) {}
 
   FORCE_INLINE uint32_t get_hash() const { return event_hash_; }
   FORCE_INLINE uint32_t get_id() const { return listener_id_; }
@@ -32,9 +32,7 @@ public:
   }
 
   // Branchless ultra-fast invocation for pre-validated persistent listeners
-  FORCE_INLINE void invokeDirect(void* event_data) {
-    callback_(event_data);
-  }
+  FORCE_INLINE void invokeDirect(void* event_data) { callback_(event_data); }
 
 private:
   uint32_t event_hash_;

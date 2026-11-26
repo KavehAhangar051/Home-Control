@@ -45,9 +45,7 @@ private:
   bool prov_enable;
 
 public:
-  WiFiClass() {
-    prov_enable = false;
-  }
+  WiFiClass() { prov_enable = false; }
 
   using WiFiGenericClass::channel;
 
@@ -64,7 +62,7 @@ public:
   using WiFiScanClass::SSID;
 
 public:
-  void printDiag(Print &dest);
+  void printDiag(Print& dest);
   friend class NetworkClient;
   friend class NetworkServer;
   friend class NetworkUDP;

@@ -10,9 +10,9 @@ namespace uniuno {
  */
 class IAuxNodeStorage {
 public:
-    virtual ~IAuxNodeStorage() = default;
-    virtual void saveAuxNodes(const ParseResult& parsed) = 0;
-    virtual bool loadAuxNodes(ParseResult& out) = 0;
+  virtual ~IAuxNodeStorage() = default;
+  virtual void saveAuxNodes(const ParseResult& parsed) = 0;
+  virtual bool loadAuxNodes(ParseResult& out) = 0;
 };
 
 } // namespace uniuno

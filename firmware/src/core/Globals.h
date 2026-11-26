@@ -10,12 +10,12 @@
 #include <Core/Async/Executor.h>
 // Forward declarations
 namespace uniuno {
-    class AchaemenidWebSocketClient;
-    class AchaemenidWebSocketServer;
-    class MqttCommandDispatcher;
-    class ISegmentStorage;
-    class IAuxNodeStorage;
-}
+class AchaemenidWebSocketClient;
+class AchaemenidWebSocketServer;
+class MqttCommandDispatcher;
+class ISegmentStorage;
+class IAuxNodeStorage;
+} // namespace uniuno
 class BootManager;
 class RuleEngine;
 
@@ -28,14 +28,14 @@ extern const char* WIFI_PASSWORD;
 // =============================================
 // Global Objects
 // =============================================
-extern uniuno::INetworkManager*   network;
-extern String                     rawConfigPayload;
-extern PinManager                 pinManager;
-extern AuxNodeManager             auxNodeManager;
-extern uniuno::AchaemenidMQTT     mqttClient;
-extern uniuno::Timer*             appTimer;
-extern uniuno::EventDispatcher    eventBus;
-extern uniuno::Executor           executor;
+extern uniuno::INetworkManager* network;
+extern String rawConfigPayload;
+extern PinManager pinManager;
+extern AuxNodeManager auxNodeManager;
+extern uniuno::AchaemenidMQTT mqttClient;
+extern uniuno::Timer* appTimer;
+extern uniuno::EventDispatcher eventBus;
+extern uniuno::Executor executor;
 extern uniuno::AchaemenidWebSocketClient* wsClient;
 extern uniuno::AchaemenidWebSocketServer* wsServer;
 extern uniuno::MqttCommandDispatcher* mqttDispatcher;

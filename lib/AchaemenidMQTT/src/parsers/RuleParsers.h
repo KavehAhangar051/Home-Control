@@ -9,12 +9,12 @@ namespace uniuno {
 
 class RuleParsers : public IMqttPayloadHandler {
 public:
-    bool canHandle(uint8_t cmdType) const override;
-    void handle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) override;
+  bool canHandle(uint8_t cmdType) const override;
+  void handle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) override;
 
 private:
-    void parseUpdateRule(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseUpdateAnalogRangeRules(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseUpdateRule(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseUpdateAnalogRangeRules(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
 };
 
 } // namespace uniuno

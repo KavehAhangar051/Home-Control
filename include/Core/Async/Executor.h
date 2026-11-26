@@ -17,15 +17,13 @@
 namespace uniuno {
 
 // Forward declaration
-template <size_t Capacity>
-class ExecutorBase;
+template <size_t Capacity> class ExecutorBase;
 
 /**
  * @brief Lightweight generation-checked handle to an async task scheduled in an Executor.
  * Enables zero-overhead O(1) cancellation, interval adjustment, liveness check, and event wakeups.
  */
-template <size_t Capacity = 32>
-class TaskHandleBase {
+template <size_t Capacity = 32> class TaskHandleBase {
 public:
   constexpr TaskHandleBase() : executor_(nullptr), index_(0xFF), generation_(0) {}
   TaskHandleBase(ExecutorBase<Capacity>* exec, uint8_t idx, uint16_t gen)
@@ -61,9 +59,7 @@ public:
    */
   template <typename EventType, typename DispatcherType>
   FORCE_INLINE const TaskHandleBase& onEvent(DispatcherType& dispatcher) const {
-    dispatcher.template on<EventType>([h = *this](const EventType*) mutable {
-      h.wake();
-    });
+    dispatcher.template on<EventType>([h = *this](const EventType*) mutable { h.wake(); });
     return *this;
   }
 
@@ -77,26 +73,16 @@ using TaskHandle = TaskHandleBase<32>;
 
 // Pre-computed 32-entry lookup tables for 1-cycle bitmask manipulation (Memory-for-Speed)
 alignas(16) static constexpr uint32_t SLOT_BIT_LUT[32] = {
-    0x00000001U, 0x00000002U, 0x00000004U, 0x00000008U,
-    0x00000010U, 0x00000020U, 0x00000040U, 0x00000080U,
-    0x00000100U, 0x00000200U, 0x00000400U, 0x00000800U,
-    0x00001000U, 0x00002000U, 0x00004000U, 0x00008000U,
-    0x00010000U, 0x00020000U, 0x00040000U, 0x00080000U,
-    0x00100000U, 0x00200000U, 0x00400000U, 0x00800000U,
-    0x01000000U, 0x02000000U, 0x04000000U, 0x08000000U,
-    0x10000000U, 0x20000000U, 0x40000000U, 0x80000000U
-};
+    0x00000001U, 0x00000002U, 0x00000004U, 0x00000008U, 0x00000010U, 0x00000020U, 0x00000040U, 0x00000080U,
+    0x00000100U, 0x00000200U, 0x00000400U, 0x00000800U, 0x00001000U, 0x00002000U, 0x00004000U, 0x00008000U,
+    0x00010000U, 0x00020000U, 0x00040000U, 0x00080000U, 0x00100000U, 0x00200000U, 0x00400000U, 0x00800000U,
+    0x01000000U, 0x02000000U, 0x04000000U, 0x08000000U, 0x10000000U, 0x20000000U, 0x40000000U, 0x80000000U};
 
 alignas(16) static constexpr uint32_t SLOT_INV_BIT_LUT[32] = {
-    ~0x00000001U, ~0x00000002U, ~0x00000004U, ~0x00000008U,
-    ~0x00000010U, ~0x00000020U, ~0x00000040U, ~0x00000080U,
-    ~0x00000100U, ~0x00000200U, ~0x00000400U, ~0x00000800U,
-    ~0x00001000U, ~0x00002000U, ~0x00004000U, ~0x00008000U,
-    ~0x00010000U, ~0x00020000U, ~0x00040000U, ~0x00080000U,
-    ~0x00100000U, ~0x00200000U, ~0x00400000U, ~0x00800000U,
-    ~0x01000000U, ~0x02000000U, ~0x04000000U, ~0x08000000U,
-    ~0x10000000U, ~0x20000000U, ~0x40000000U, ~0x80000000U
-};
+    ~0x00000001U, ~0x00000002U, ~0x00000004U, ~0x00000008U, ~0x00000010U, ~0x00000020U, ~0x00000040U, ~0x00000080U,
+    ~0x00000100U, ~0x00000200U, ~0x00000400U, ~0x00000800U, ~0x00001000U, ~0x00002000U, ~0x00004000U, ~0x00008000U,
+    ~0x00010000U, ~0x00020000U, ~0x00040000U, ~0x00080000U, ~0x00100000U, ~0x00200000U, ~0x00400000U, ~0x00800000U,
+    ~0x01000000U, ~0x02000000U, ~0x04000000U, ~0x08000000U, ~0x10000000U, ~0x20000000U, ~0x40000000U, ~0x80000000U};
 
 /**
  * @brief High-performance Hybrid Reactive Async Executor for Xtensa ESP32.
@@ -109,26 +95,18 @@ alignas(16) static constexpr uint32_t SLOT_INV_BIT_LUT[32] = {
  * 3. Event-Driven Wakeup: dormant tasks consume 0 CPU cycles until wake().
  * 4. Zero dynamic allocations: statically pooled Power-of-2 FastFunction slots.
  */
-template <size_t Capacity = 32>
-class ExecutorBase {
-  static_assert(Capacity > 0 && Capacity <= 32,
-                "ExecutorBase bitmask supports between 1 and 32 concurrent futures.");
+template <size_t Capacity = 32> class ExecutorBase {
+  static_assert(Capacity > 0 && Capacity <= 32, "ExecutorBase bitmask supports between 1 and 32 concurrent futures.");
 
-  static constexpr uint32_t kValidMask =
-      (Capacity == 32) ? 0xFFFFFFFFUL : ((1UL << Capacity) - 1UL);
+  static constexpr uint32_t kValidMask = (Capacity == 32) ? 0xFFFFFFFFUL : ((1UL << Capacity) - 1UL);
 
 public:
-  ExecutorBase()
-      : active_mask_(0),
-        ready_mask_(0),
-        interval_mask_(0),
-        sleep_mask_(0),
-        last_interval_cycle_(0) {
+  ExecutorBase() : active_mask_(0), ready_mask_(0), interval_mask_(0), sleep_mask_(0), last_interval_cycle_(0) {
     for (size_t i = 0; i < Capacity; i++) {
-      generations_[i]  = 1;
+      generations_[i] = 1;
       intervals_ms_[i] = 0;
       next_poll_ms_[i] = 0;
-      slot_ptrs_[i]    = &future_pool_[i];
+      slot_ptrs_[i] = &future_pool_[i];
     }
   }
 
@@ -137,15 +115,15 @@ public:
   // =========================================================================
 
   template <typename I, typename O, typename E = Error, class F,
-            typename std::enable_if<
-                function_traits<F>::arity == 1 &&
-                std::is_same<typename function_traits<F>::template arg<0>::type,
-                             E>::value>::type * = nullptr>
-  TaskHandleBase<Capacity> execute(Future<I, O, E> future, I input, F &&on_error) {
+            typename std::enable_if<function_traits<F>::arity == 1 &&
+                                    std::is_same<typename function_traits<F>::template arg<0>::type, E>::value>::type* =
+                nullptr>
+  TaskHandleBase<Capacity> execute(Future<I, O, E> future, I input, F&& on_error) {
     const uint8_t idx = allocateSlot();
     if (UNLIKELY(idx == 0xFF)) return TaskHandleBase<Capacity>();
 
-    future_pool_[idx] = [future = std::move(future), input = std::move(input), on_error = std::forward<F>(on_error)]() mutable {
+    future_pool_[idx] = [future = std::move(future), input = std::move(input),
+                         on_error = std::forward<F>(on_error)]() mutable {
       const auto& result = future.poll(input);
       if (UNLIKELY(result.is_rejected())) {
         on_error(*result.get_error());
@@ -157,16 +135,14 @@ public:
   }
 
   template <typename O, typename E = Error, class FErr, class FOk,
-            typename std::enable_if<
-                function_traits<FErr>::arity == 1 &&
-                std::is_same<typename function_traits<FErr>::template arg<0>::type, E>::value &&
-                function_traits<FOk>::arity == 0>::type * = nullptr>
-  TaskHandleBase<Capacity> execute(Future<void, O, E> future, FErr &&on_error, FOk &&on_success) {
+            typename std::enable_if<function_traits<FErr>::arity == 1 &&
+                                    std::is_same<typename function_traits<FErr>::template arg<0>::type, E>::value &&
+                                    function_traits<FOk>::arity == 0>::type* = nullptr>
+  TaskHandleBase<Capacity> execute(Future<void, O, E> future, FErr&& on_error, FOk&& on_success) {
     const uint8_t idx = allocateSlot();
     if (UNLIKELY(idx == 0xFF)) return TaskHandleBase<Capacity>();
 
-    future_pool_[idx] = [future     = std::move(future),
-                         on_error   = std::forward<FErr>(on_error),
+    future_pool_[idx] = [future = std::move(future), on_error = std::forward<FErr>(on_error),
                          on_success = std::forward<FOk>(on_success)]() mutable {
       const auto& result = future.poll();
       if (UNLIKELY(result.is_rejected())) {
@@ -181,11 +157,10 @@ public:
   }
 
   template <typename O, typename E = Error, class F,
-            typename std::enable_if<
-                function_traits<F>::arity == 1 &&
-                std::is_same<typename function_traits<F>::template arg<0>::type,
-                             E>::value>::type * = nullptr>
-  TaskHandleBase<Capacity> execute(Future<void, O, E> future, F &&on_error) {
+            typename std::enable_if<function_traits<F>::arity == 1 &&
+                                    std::is_same<typename function_traits<F>::template arg<0>::type, E>::value>::type* =
+                nullptr>
+  TaskHandleBase<Capacity> execute(Future<void, O, E> future, F&& on_error) {
     const uint8_t idx = allocateSlot();
     if (UNLIKELY(idx == 0xFF)) return TaskHandleBase<Capacity>();
 
@@ -205,20 +180,19 @@ public:
     return execute(std::move(future), std::move(input), [](E) {});
   }
 
-  template <typename O, typename E = Error>
-  TaskHandleBase<Capacity> execute(Future<void, O, E> future) {
+  template <typename O, typename E = Error> TaskHandleBase<Capacity> execute(Future<void, O, E> future) {
     return execute(std::move(future), [](E) {});
   }
 
   template <typename O, typename E = Error, class F>
-  TaskHandleBase<Capacity> executeEventDriven(Future<void, O, E> future, F &&on_error) {
+  TaskHandleBase<Capacity> executeEventDriven(Future<void, O, E> future, F&& on_error) {
     auto handle = execute(std::move(future), std::forward<F>(on_error));
     if (handle) handle.sleep();
     return handle;
   }
 
   template <typename O, typename E = Error, class F>
-  TaskHandleBase<Capacity> executeInterval(Future<void, O, E> future, uint32_t interval_ms, F &&on_error) {
+  TaskHandleBase<Capacity> executeInterval(Future<void, O, E> future, uint32_t interval_ms, F&& on_error) {
     auto handle = execute(std::move(future), std::forward<F>(on_error));
     if (handle) handle.setInterval(interval_ms);
     return handle;
@@ -308,9 +282,8 @@ public:
     // 3. Interval tasks: Hardware CCOUNT fast-gate (1ms throttle)
     if (UNLIKELY(interval_mask_ != 0)) {
       uint32_t pending_intervals = interval_mask_ & ~to_process;
-      if (pending_intervals &&
-          UNLIKELY(uniuno::asm_opt::is_cycle_interval_elapsed(
-              last_interval_cycle_, uniuno::asm_opt::ms_to_cycles(1)))) {
+      if (pending_intervals && UNLIKELY(uniuno::asm_opt::is_cycle_interval_elapsed(last_interval_cycle_,
+                                                                                   uniuno::asm_opt::ms_to_cycles(1)))) {
         cached_now = millis();
         now_cached = true;
         uint32_t newly_ready = 0;
@@ -375,13 +348,9 @@ public:
     }
   }
 
-  FORCE_INLINE size_t getActiveCount() const {
-    return __builtin_popcount(active_mask_);
-  }
+  FORCE_INLINE size_t getActiveCount() const { return __builtin_popcount(active_mask_); }
 
-  FORCE_INLINE size_t getReadyCount() const {
-    return __builtin_popcount(ready_mask_.load(std::memory_order_relaxed));
-  }
+  FORCE_INLINE size_t getReadyCount() const { return __builtin_popcount(ready_mask_.load(std::memory_order_relaxed)); }
 
 private:
   /** @brief 1-cycle hardware free-slot allocation using Xtensa bit_to_slot_index (~active_mask_). */
@@ -414,23 +383,19 @@ private:
 };
 
 // Out-of-line inlined definitions for TaskHandleBase
-template <size_t Capacity>
-FORCE_INLINE bool TaskHandleBase<Capacity>::isAlive() const {
+template <size_t Capacity> FORCE_INLINE bool TaskHandleBase<Capacity>::isAlive() const {
   return isValid() && executor_->isAlive(index_, generation_);
 }
 
-template <size_t Capacity>
-FORCE_INLINE void TaskHandleBase<Capacity>::wake() const {
+template <size_t Capacity> FORCE_INLINE void TaskHandleBase<Capacity>::wake() const {
   if (LIKELY(isValid())) executor_->wake(index_, generation_);
 }
 
-template <size_t Capacity>
-FORCE_INLINE void TaskHandleBase<Capacity>::sleep() const {
+template <size_t Capacity> FORCE_INLINE void TaskHandleBase<Capacity>::sleep() const {
   if (LIKELY(isValid())) executor_->sleep(index_, generation_);
 }
 
-template <size_t Capacity>
-FORCE_INLINE void TaskHandleBase<Capacity>::cancel() {
+template <size_t Capacity> FORCE_INLINE void TaskHandleBase<Capacity>::cancel() {
   if (LIKELY(isValid())) {
     executor_->cancel(index_, generation_);
     executor_ = nullptr;
@@ -438,8 +403,7 @@ FORCE_INLINE void TaskHandleBase<Capacity>::cancel() {
   }
 }
 
-template <size_t Capacity>
-FORCE_INLINE void TaskHandleBase<Capacity>::setInterval(uint32_t interval_ms) const {
+template <size_t Capacity> FORCE_INLINE void TaskHandleBase<Capacity>::setInterval(uint32_t interval_ms) const {
   if (LIKELY(isValid())) executor_->setInterval(index_, generation_, interval_ms);
 }
 

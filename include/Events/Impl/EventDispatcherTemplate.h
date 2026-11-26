@@ -15,58 +15,45 @@ public:
   // -------------------------------------------------------------------------
   // on<EventType>(function pointer) — zero-overhead path, no FastFunction wrap
   // -------------------------------------------------------------------------
-  template <typename EventType>
-  uint32_t on(void (*callback)(EventType*)) {
+  template <typename EventType> uint32_t on(void (*callback)(EventType*)) {
     if (UNLIKELY(!callback)) return 0;
-    auto func = FastFunction<void(void*)>([callback](void* event) {
-        callback(static_cast<EventType*>(event));
-    });
+    auto func = FastFunction<void(void*)>([callback](void* event) { callback(static_cast<EventType*>(event)); });
     return this->addListener(kEventHash<EventType>, std::move(func), false);
   }
 
   // -------------------------------------------------------------------------
   // on<EventType>(lambda by move) — captures by value, forwarded into storage
   // -------------------------------------------------------------------------
-  template <typename EventType, typename Lambda>
-  uint32_t on(Lambda&& lambda) {
-    auto func = FastFunction<void(void*)>([lambda = std::forward<Lambda>(lambda)](void* event) mutable {
-        lambda(static_cast<EventType*>(event));
-    });
+  template <typename EventType, typename Lambda> uint32_t on(Lambda&& lambda) {
+    auto func = FastFunction<void(void*)>(
+        [lambda = std::forward<Lambda>(lambda)](void* event) mutable { lambda(static_cast<EventType*>(event)); });
     return this->addListener(kEventHash<EventType>, std::move(func), false);
   }
 
   // -------------------------------------------------------------------------
   // on<EventType>(pointer to functor/object)
   // -------------------------------------------------------------------------
-  template <typename EventType, typename Lambda>
-  uint32_t on(Lambda* lambda) {
+  template <typename EventType, typename Lambda> uint32_t on(Lambda* lambda) {
     if (UNLIKELY(!lambda)) return 0;
-    auto func = FastFunction<void(void*)>([lambda](void* event) {
-        (*lambda)(static_cast<EventType*>(event));
-    });
+    auto func = FastFunction<void(void*)>([lambda](void* event) { (*lambda)(static_cast<EventType*>(event)); });
     return this->addListener(kEventHash<EventType>, std::move(func), false);
   }
 
   // -------------------------------------------------------------------------
   // once<EventType> — fires once then auto-removes (by move)
   // -------------------------------------------------------------------------
-  template <typename EventType, typename Lambda>
-  uint32_t once(Lambda&& lambda) {
-    auto func = FastFunction<void(void*)>([lambda = std::forward<Lambda>(lambda)](void* event) mutable {
-        lambda(static_cast<EventType*>(event));
-    });
+  template <typename EventType, typename Lambda> uint32_t once(Lambda&& lambda) {
+    auto func = FastFunction<void(void*)>(
+        [lambda = std::forward<Lambda>(lambda)](void* event) mutable { lambda(static_cast<EventType*>(event)); });
     return this->addListener(kEventHash<EventType>, std::move(func), true);
   }
 
   // -------------------------------------------------------------------------
   // once<EventType> — fires once (pointer to functor)
   // -------------------------------------------------------------------------
-  template <typename EventType, typename Lambda>
-  uint32_t once(Lambda* lambda) {
+  template <typename EventType, typename Lambda> uint32_t once(Lambda* lambda) {
     if (UNLIKELY(!lambda)) return 0;
-    auto func = FastFunction<void(void*)>([lambda](void* event) {
-        (*lambda)(static_cast<EventType*>(event));
-    });
+    auto func = FastFunction<void(void*)>([lambda](void* event) { (*lambda)(static_cast<EventType*>(event)); });
     return this->addListener(kEventHash<EventType>, std::move(func), true);
   }
 
@@ -74,8 +61,7 @@ public:
   // dispatch<EventType>(event ref) — Ultra-Fast Template Static Group Cache
   // Eliminates hash table lookup completely on steady-state dispatches!
   // -------------------------------------------------------------------------
-  template <typename EventType>
-  HOT_PATH FORCE_INLINE void dispatch(EventType& event) {
+  template <typename EventType> HOT_PATH FORCE_INLINE void dispatch(EventType& event) {
     static EventGroup<MaxListeners>* s_cachedGroup = nullptr;
     static uint32_t s_cachedGen = 0;
 
@@ -92,8 +78,7 @@ public:
   // -------------------------------------------------------------------------
   // hasListeners<EventType>() — check before constructing heavy event objects
   // -------------------------------------------------------------------------
-  template <typename EventType>
-  HOT_PATH FORCE_INLINE bool hasListeners() const {
+  template <typename EventType> HOT_PATH FORCE_INLINE bool hasListeners() const {
     static const EventGroup<MaxListeners>* s_cachedGroup = nullptr;
     static uint32_t s_cachedGen = 0;
 
@@ -108,18 +93,15 @@ public:
   // -------------------------------------------------------------------------
   // removeListener / removeListenerById / count — typed overloads
   // -------------------------------------------------------------------------
-  template <typename EventType>
-  size_t removeListener() {
+  template <typename EventType> size_t removeListener() {
     return this->BaseEventDispatcher<MaxEvents, MaxListeners>::removeListener(kEventHash<EventType>);
   }
 
-  template <typename EventType>
-  bool removeListenerById(uint32_t listener_id) {
+  template <typename EventType> bool removeListenerById(uint32_t listener_id) {
     return this->BaseEventDispatcher<MaxEvents, MaxListeners>::removeListenerById(kEventHash<EventType>, listener_id);
   }
 
-  template <typename EventType>
-  size_t count() const {
+  template <typename EventType> size_t count() const {
     return this->BaseEventDispatcher<MaxEvents, MaxListeners>::count(kEventHash<EventType>);
   }
 };

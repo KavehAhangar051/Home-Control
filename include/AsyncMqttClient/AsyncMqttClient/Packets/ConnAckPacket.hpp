@@ -7,14 +7,14 @@
 
 namespace AsyncMqttClientInternals {
 class ConnAckPacket : public Packet {
- public:
+public:
   explicit ConnAckPacket(ParsingInformation* parsingInformation, OnConnAckInternalCallback callback);
   ~ConnAckPacket();
 
   void parseVariableHeader(uint8_t* data, size_t len, size_t* currentBytePosition);
   void parsePayload(uint8_t* data, size_t len, size_t* currentBytePosition);
 
- private:
+private:
   ParsingInformation* _parsingInformation;
   OnConnAckInternalCallback _callback;
 
@@ -22,4 +22,4 @@ class ConnAckPacket : public Packet {
   bool _sessionPresent;
   uint8_t _connectReturnCode;
 };
-}  // namespace AsyncMqttClientInternals
+} // namespace AsyncMqttClientInternals

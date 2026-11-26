@@ -56,16 +56,16 @@ public:
   }
 
   FORCE_INLINE void clear() { poll_callback_.clear(); }
-  FORCE_INLINE bool is_pending()  const { return result_.is_pending(); }
+  FORCE_INLINE bool is_pending() const { return result_.is_pending(); }
   FORCE_INLINE bool is_resolved() const { return result_.is_resolved(); }
   FORCE_INLINE bool is_rejected() const { return result_.is_rejected(); }
   FORCE_INLINE const AsyncResult<O, E>& get_result() const { return result_; }
-  FORCE_INLINE AsyncResult<O, E>&       get_result()       { return result_; }
+  FORCE_INLINE AsyncResult<O, E>& get_result() { return result_; }
 
   /** @brief Chains another Future to run after this one resolves. */
-  template <typename N, typename G = Error>
-  Future<I, N, G> and_then(Future<O, N, G> next_future) {
-    return Future<I, N, G>([this_future = std::move(*this), next_future = std::move(next_future)](const I& input) mutable -> AsyncResult<N, G> {
+  template <typename N, typename G = Error> Future<I, N, G> and_then(Future<O, N, G> next_future) {
+    return Future<I, N, G>([this_future = std::move(*this),
+                            next_future = std::move(next_future)](const I& input) mutable -> AsyncResult<N, G> {
       const auto& res = this_future.poll(input);
       if (res.is_pending()) return AsyncResult<N, G>::pending();
       if (UNLIKELY(res.is_rejected())) return AsyncResult<N, G>::reject(G(*res.get_error()));
@@ -74,10 +74,10 @@ public:
   }
 
   /** @brief Single-layer direct function transform (eliminates dummy inner Future & heap spill). */
-  template <typename F>
-  auto and_then(F &&fn) -> Future<I, decltype(fn(std::declval<O>())), E> {
+  template <typename F> auto and_then(F&& fn) -> Future<I, decltype(fn(std::declval<O>())), E> {
     using OutputType = decltype(fn(std::declval<O>()));
-    return Future<I, OutputType, E>([this_future = std::move(*this), fn = std::forward<F>(fn)](const I& input) mutable -> AsyncResult<OutputType, E> {
+    return Future<I, OutputType, E>([this_future = std::move(*this),
+                                     fn = std::forward<F>(fn)](const I& input) mutable -> AsyncResult<OutputType, E> {
       const auto& res = this_future.poll(input);
       if (res.is_pending()) return AsyncResult<OutputType, E>::pending();
       if (UNLIKELY(res.is_rejected())) return AsyncResult<OutputType, E>::reject(*res.get_error());
@@ -86,9 +86,9 @@ public:
   }
 
   /** @brief Catches errors and recovers with a fallback value. */
-  template <typename F>
-  Future<I, O, E> catch_error(F &&err_fn) {
-    return Future<I, O, E>([this_future = std::move(*this), err_fn = std::forward<F>(err_fn)](const I& input) mutable -> AsyncResult<O, E> {
+  template <typename F> Future<I, O, E> catch_error(F&& err_fn) {
+    return Future<I, O, E>([this_future = std::move(*this),
+                            err_fn = std::forward<F>(err_fn)](const I& input) mutable -> AsyncResult<O, E> {
       const auto& res = this_future.poll(input);
       if (res.is_pending()) return AsyncResult<O, E>::pending();
       if (UNLIKELY(res.is_rejected())) return AsyncResult<O, E>::resolve(err_fn(*res.get_error()));
@@ -108,8 +108,7 @@ public:
   }
 
   /** @brief Transforms the resolved output value (fluent alias for and_then). */
-  template <typename F>
-  auto map(F &&fn) -> Future<I, decltype(fn(std::declval<O>())), E> {
+  template <typename F> auto map(F&& fn) -> Future<I, decltype(fn(std::declval<O>())), E> {
     return this->and_then(std::forward<F>(fn));
   }
 

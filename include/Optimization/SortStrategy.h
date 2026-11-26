@@ -2,7 +2,7 @@
  * @file SortStrategy.h
  * @brief Policy-based sorting strategies for Timer
  * @author uniuno
- * 
+ *
  * PURPOSE: Provide different sorting algorithms with same interface
  * BENEFIT: 2-10x faster add() depending on strategy
  */
@@ -19,7 +19,7 @@ namespace uniuno {
  * USE CASE: Small number of timers (< 5)
  */
 struct FullSortStrategy {
-  template<typename Container, typename Compare>
+  template <typename Container, typename Compare>
   static void add_sorted(Container& container, typename Container::value_type&& item, Compare comp) {
     container.push_back(std::move(item));
     std::sort(container.begin(), container.end(), comp);
@@ -33,7 +33,7 @@ struct FullSortStrategy {
  * BENEFIT: 2-3x faster than full sort
  */
 struct BinaryInsertStrategy {
-  template<typename Container, typename Compare>
+  template <typename Container, typename Compare>
   static void add_sorted(Container& container, typename Container::value_type&& item, Compare comp) {
     auto pos = std::lower_bound(container.begin(), container.end(), item, comp);
     container.insert(pos, std::move(item));
@@ -47,7 +47,7 @@ struct BinaryInsertStrategy {
  * BENEFIT: Extremely fast for small sets, low Flash usage
  */
 struct InsertionSortStrategy {
-  template<typename Container, typename Compare>
+  template <typename Container, typename Compare>
   static void add_sorted(Container& container, typename Container::value_type&& item, Compare comp) {
     container.push_back(std::move(item));
     auto it = container.end() - 1;
@@ -64,7 +64,7 @@ struct InsertionSortStrategy {
  * BENEFIT: Extremely fast for priority queues (e.g., active timers)
  */
 struct HeapSortStrategy {
-  template<typename Container, typename Compare>
+  template <typename Container, typename Compare>
   static void add_sorted(Container& container, typename Container::value_type&& item, Compare comp) {
     container.push_back(std::move(item));
     std::push_heap(container.begin(), container.end(), comp);

@@ -21,16 +21,14 @@ FORCE_INLINE void asm_zero_words(uint32_t* __restrict__ dst, uint32_t words) {
   const uint32_t pairs = words >> 1;
   if (LIKELY(pairs > 0)) {
     uint32_t z = 0;
-    asm volatile (
-      "loopnez %[cnt], 1f     \n"
-      "s32i    %[z], %[d], 0  \n"
-      "s32i    %[z], %[d], 4  \n"
-      "addi    %[d], %[d], 8  \n"
-      "1:                     \n"
-      : [d] "+&r" (dst)
-      : [cnt] "r" (pairs), [z] "r" (z)
-      : "memory"
-    );
+    asm volatile("loopnez %[cnt], 1f     \n"
+                 "s32i    %[z], %[d], 0  \n"
+                 "s32i    %[z], %[d], 4  \n"
+                 "addi    %[d], %[d], 8  \n"
+                 "1:                     \n"
+                 : [d] "+&r"(dst)
+                 : [cnt] "r"(pairs), [z] "r"(z)
+                 : "memory");
   }
   if (words & 1U) {
     *dst = 0;
@@ -70,19 +68,17 @@ FORCE_INLINE void asm_copy_words(uint32_t* __restrict__ dst, const uint32_t* __r
   const uint32_t pairs = words >> 1;
   if (LIKELY(pairs > 0)) {
     uint32_t t0, t1;
-    asm volatile (
-      "loopnez %[cnt], 1f     \n"
-      "l32i    %[t0], %[s], 0 \n"
-      "l32i    %[t1], %[s], 4 \n"
-      "s32i    %[t0], %[d], 0 \n"
-      "s32i    %[t1], %[d], 4 \n"
-      "addi    %[s],  %[s], 8 \n"
-      "addi    %[d],  %[d], 8 \n"
-      "1:                     \n"
-      : [s] "+&r" (src), [d] "+&r" (dst), [t0] "=&r" (t0), [t1] "=&r" (t1)
-      : [cnt] "r" (pairs)
-      : "memory"
-    );
+    asm volatile("loopnez %[cnt], 1f     \n"
+                 "l32i    %[t0], %[s], 0 \n"
+                 "l32i    %[t1], %[s], 4 \n"
+                 "s32i    %[t0], %[d], 0 \n"
+                 "s32i    %[t1], %[d], 4 \n"
+                 "addi    %[s],  %[s], 8 \n"
+                 "addi    %[d],  %[d], 8 \n"
+                 "1:                     \n"
+                 : [s] "+&r"(src), [d] "+&r"(dst), [t0] "=&r"(t0), [t1] "=&r"(t1)
+                 : [cnt] "r"(pairs)
+                 : "memory");
   }
   if (words & 1U) {
     *dst = *src;
@@ -103,19 +99,17 @@ FORCE_INLINE void asm_shift_left_words(uint32_t* dst, const uint32_t* src, uint3
   const uint32_t pairs = words >> 1;
   if (LIKELY(pairs > 0)) {
     uint32_t t0, t1;
-    asm volatile (
-      "loopnez %[cnt], 1f     \n"
-      "l32i    %[t0], %[s], 0 \n"
-      "l32i    %[t1], %[s], 4 \n"
-      "s32i    %[t0], %[d], 0 \n"
-      "s32i    %[t1], %[d], 4 \n"
-      "addi    %[s],  %[s], 8 \n"
-      "addi    %[d],  %[d], 8 \n"
-      "1:                     \n"
-      : [s] "+&r" (src), [d] "+&r" (dst), [t0] "=&r" (t0), [t1] "=&r" (t1)
-      : [cnt] "r" (pairs)
-      : "memory"
-    );
+    asm volatile("loopnez %[cnt], 1f     \n"
+                 "l32i    %[t0], %[s], 0 \n"
+                 "l32i    %[t1], %[s], 4 \n"
+                 "s32i    %[t0], %[d], 0 \n"
+                 "s32i    %[t1], %[d], 4 \n"
+                 "addi    %[s],  %[s], 8 \n"
+                 "addi    %[d],  %[d], 8 \n"
+                 "1:                     \n"
+                 : [s] "+&r"(src), [d] "+&r"(dst), [t0] "=&r"(t0), [t1] "=&r"(t1)
+                 : [cnt] "r"(pairs)
+                 : "memory");
   }
   if (words & 1U) {
     *dst = *src;
@@ -135,19 +129,17 @@ FORCE_INLINE void asm_shift_right_words(uint32_t* dst_end, const uint32_t* src_e
   const uint32_t pairs = words >> 1;
   if (LIKELY(pairs > 0)) {
     uint32_t t0, t1;
-    asm volatile (
-      "loopnez %[cnt], 1f      \n"
-      "addi    %[s],  %[s], -8 \n"
-      "addi    %[d],  %[d], -8 \n"
-      "l32i    %[t1], %[s],  4 \n"
-      "l32i    %[t0], %[s],  0 \n"
-      "s32i    %[t1], %[d],  4 \n"
-      "s32i    %[t0], %[d],  0 \n"
-      "1:                      \n"
-      : [s] "+&r" (src_end), [d] "+&r" (dst_end), [t0] "=&r" (t0), [t1] "=&r" (t1)
-      : [cnt] "r" (pairs)
-      : "memory"
-    );
+    asm volatile("loopnez %[cnt], 1f      \n"
+                 "addi    %[s],  %[s], -8 \n"
+                 "addi    %[d],  %[d], -8 \n"
+                 "l32i    %[t1], %[s],  4 \n"
+                 "l32i    %[t0], %[s],  0 \n"
+                 "s32i    %[t1], %[d],  4 \n"
+                 "s32i    %[t0], %[d],  0 \n"
+                 "1:                      \n"
+                 : [s] "+&r"(src_end), [d] "+&r"(dst_end), [t0] "=&r"(t0), [t1] "=&r"(t1)
+                 : [cnt] "r"(pairs)
+                 : "memory");
   }
   if (words & 1U) {
     *(--dst_end) = *(--src_end);
@@ -167,17 +159,15 @@ FORCE_INLINE uint32_t asm_find_word(const uint32_t* data, uint32_t count, uint32
   const uint32_t* p = data;
   const uint32_t* end = data + count;
   uint32_t val;
-  asm volatile (
-    "1:                      \n"
-    "l32i   %[v], %[p], 0    \n"
-    "beq    %[v], %[t], 2f   \n"
-    "addi   %[p], %[p], 4    \n"
-    "bltu   %[p], %[e], 1b   \n"
-    "2:                      \n"
-    : [p] "+&r" (p), [v] "=&r" (val)
-    : [e] "r" (end), [t] "r" (target)
-    : "memory"
-  );
+  asm volatile("1:                      \n"
+               "l32i   %[v], %[p], 0    \n"
+               "beq    %[v], %[t], 2f   \n"
+               "addi   %[p], %[p], 4    \n"
+               "bltu   %[p], %[e], 1b   \n"
+               "2:                      \n"
+               : [p] "+&r"(p), [v] "=&r"(val)
+               : [e] "r"(end), [t] "r"(target)
+               : "memory");
   return static_cast<uint32_t>(p - data);
 #else
   for (uint32_t i = 0; i < count; ++i) {
@@ -196,13 +186,11 @@ FORCE_INLINE uint32_t asm_clamp_index(uint32_t idx, uint32_t limit) {
 #if defined(__XTENSA__) || defined(ESP32)
   uint32_t diff;
   uint32_t res;
-  asm volatile (
-    "sub    %[diff], %[idx], %[lim]  \n"
-    "movi   %[res],  0               \n"
-    "movltz %[res],  %[idx], %[diff] \n"
-    : [diff] "=&r" (diff), [res] "=&r" (res)
-    : [idx] "r" (idx), [lim] "r" (limit)
-  );
+  asm volatile("sub    %[diff], %[idx], %[lim]  \n"
+               "movi   %[res],  0               \n"
+               "movltz %[res],  %[idx], %[diff] \n"
+               : [diff] "=&r"(diff), [res] "=&r"(res)
+               : [idx] "r"(idx), [lim] "r"(limit));
   return res;
 #else
   return (idx < limit) ? idx : 0;
@@ -211,4 +199,3 @@ FORCE_INLINE uint32_t asm_clamp_index(uint32_t idx, uint32_t limit) {
 
 } // namespace xtensa_asm
 } // namespace uniuno
-

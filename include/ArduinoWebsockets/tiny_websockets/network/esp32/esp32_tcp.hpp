@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ESP32 
+#ifdef ESP32
 
 #include <tiny_websockets/internals/ws_common.hpp>
 #include <tiny_websockets/network/tcp_client.hpp>
@@ -11,68 +11,57 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 
-namespace websockets { namespace network {
-  typedef GenericEspTcpClient<WiFiClient> Esp32TcpClient;
-  
-  class SecuredEsp32TcpClient : public GenericEspTcpClient<WiFiClientSecure> {
-  public:
-    void setCACert(const char* ca_cert) {
-      this->client.setCACert(ca_cert);
-    }
+namespace websockets {
+namespace network {
+typedef GenericEspTcpClient<WiFiClient> Esp32TcpClient;
 
-    void setCertificate(const char* client_ca) {
-      this->client.setCertificate(client_ca);
-    }
-    
-    void setPrivateKey(const char* private_key) {
-      this->client.setPrivateKey(private_key);
-    }    
-  };
+class SecuredEsp32TcpClient : public GenericEspTcpClient<WiFiClientSecure> {
+public:
+  void setCACert(const char* ca_cert) { this->client.setCACert(ca_cert); }
 
+  void setCertificate(const char* client_ca) { this->client.setCertificate(client_ca); }
 
-  class Esp32TcpServer : public TcpServer {
-  public:
-    Esp32TcpServer() {}
-    bool poll() override {
-      return server.hasClient();
-    }
+  void setPrivateKey(const char* private_key) { this->client.setPrivateKey(private_key); }
+};
 
-    bool listen(const uint16_t port) override {
-      server = WiFiServer(port);
-      server.begin(port);
-      return available();
-    }
-    
-    TcpClient* accept() override {
-      while(available()) {
-        auto client = server.accept();
-        if(client) {
-          return new Esp32TcpClient{client};
-        }
+class Esp32TcpServer : public TcpServer {
+public:
+  Esp32TcpServer() {}
+  bool poll() override { return server.hasClient(); }
+
+  bool listen(const uint16_t port) override {
+    server = WiFiServer(port);
+    server.begin(port);
+    return available();
+  }
+
+  TcpClient* accept() override {
+    while (available()) {
+      auto client = server.accept();
+      if (client) {
+        return new Esp32TcpClient{client};
       }
-      return new Esp32TcpClient;
     }
+    return new Esp32TcpClient;
+  }
 
-    bool available() override {
-      return static_cast<bool>(server);
-    }
-    
-    void close() override {
-      server.close();
-    }
+  bool available() override { return static_cast<bool>(server); }
 
-    virtual ~Esp32TcpServer() {
-      if(available()) close();
-    }
+  void close() override { server.close(); }
 
-  protected:
-    int getSocket() const override {
-      return -1; // Not Implemented
-    }
-  
-  private:
-    WiFiServer server;
-  };
-}} // websockets::network
+  virtual ~Esp32TcpServer() {
+    if (available()) close();
+  }
 
-#endif // #ifdef ESP32 
+protected:
+  int getSocket() const override {
+    return -1; // Not Implemented
+  }
+
+private:
+  WiFiServer server;
+};
+} // namespace network
+} // namespace websockets
+
+#endif // #ifdef ESP32

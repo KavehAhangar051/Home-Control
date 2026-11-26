@@ -51,23 +51,23 @@
 #endif
 
 // -----------------------------------------------------------------------------------------------------------------------
-// ---------------------------------------------------- STA function -----------------------------------------------------
+// ---------------------------------------------------- STA function
+// -----------------------------------------------------
 // -----------------------------------------------------------------------------------------------------------------------
 
 // WiFiSTAClass::status() is FORCE_INLINE in WiFiSTA.h
 
 #if CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT
-wl_status_t WiFiSTAClass::begin(
-  const char *wpa2_ssid, wpa2_auth_method_t method, const char *wpa2_identity, const char *wpa2_username, const char *wpa2_password, const char *ca_pem,
-  const char *client_crt, const char *client_key, int ttls_phase2_type, int32_t channel, const uint8_t *bssid, bool tryConnect
-) {
+wl_status_t WiFiSTAClass::begin(const char* wpa2_ssid, wpa2_auth_method_t method, const char* wpa2_identity,
+                                const char* wpa2_username, const char* wpa2_password, const char* ca_pem,
+                                const char* client_crt, const char* client_key, int ttls_phase2_type, int32_t channel,
+                                const uint8_t* bssid, bool tryConnect) {
   if (!STA.begin()) {
     return WL_CONNECT_FAILED;
   }
 
-  if (!STA.connect(
-        wpa2_ssid, method, wpa2_identity, wpa2_username, wpa2_password, ca_pem, client_crt, client_key, ttls_phase2_type, channel, bssid, tryConnect
-      )) {
+  if (!STA.connect(wpa2_ssid, method, wpa2_identity, wpa2_username, wpa2_password, ca_pem, client_crt, client_key,
+                   ttls_phase2_type, channel, bssid, tryConnect)) {
     return WL_CONNECT_FAILED;
   }
 
@@ -75,7 +75,8 @@ wl_status_t WiFiSTAClass::begin(
 }
 #endif /* CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT */
 
-wl_status_t WiFiSTAClass::begin(const char *ssid, const char *passphrase, int32_t channel, const uint8_t *bssid, bool tryConnect) {
+wl_status_t WiFiSTAClass::begin(const char* ssid, const char* passphrase, int32_t channel, const uint8_t* bssid,
+                                bool tryConnect) {
   if (!STA.begin()) {
     return WL_CONNECT_FAILED;
   }
@@ -282,7 +283,7 @@ IPAddress WiFiSTAClass::localIP() {
  * @param mac   pointer to uint8_t array with length WL_MAC_ADDR_LENGTH
  * @return      pointer to uint8_t *
  */
-uint8_t *WiFiSTAClass::macAddress(uint8_t *mac) {
+uint8_t* WiFiSTAClass::macAddress(uint8_t* mac) {
   return STA.macAddress(mac);
 }
 
@@ -363,7 +364,7 @@ String WiFiSTAClass::psk() const {
  * Return the current bssid / mac associated with the network if configured
  * @return bssid uint8_t *
  */
-uint8_t *WiFiSTAClass::BSSID(uint8_t *buff) {
+uint8_t* WiFiSTAClass::BSSID(uint8_t* buff) {
   return STA.BSSID(buff);
 }
 
@@ -422,7 +423,7 @@ bool WiFiSTAClass::_smartConfigDone = false;
  * @return true if configuration is successful.
  * @return false if configuration fails.
  */
-bool WiFiSTAClass::beginSmartConfig(smartconfig_type_t type, char *crypt_key) {
+bool WiFiSTAClass::beginSmartConfig(smartconfig_type_t type, char* crypt_key) {
   esp_err_t err;
   if (_smartConfigStarted) {
     return false;

@@ -9,15 +9,14 @@ namespace uniuno {
  * @brief Dispatch logic cleanly separated from memory management.
  * Less than 100 lines for maximum readability and single responsibility.
  */
-template <size_t MaxEvents = 32, size_t MaxListeners = 8>
-class BaseEventDispatcher {
+template <size_t MaxEvents = 32, size_t MaxListeners = 8> class BaseEventDispatcher {
 public:
   BaseEventDispatcher() : dispatch_depth_(0), next_listener_id_(1) {}
   virtual ~BaseEventDispatcher() = default;
 
   uint32_t addListener(uint32_t event_hash, FastFunction<void(void*)> callback, bool is_once = false) {
     if (UNLIKELY(!callback)) return 0;
-    
+
     uint32_t id = next_listener_id_++;
     if (UNLIKELY(next_listener_id_ == 0)) next_listener_id_ = 1;
 
@@ -43,8 +42,10 @@ public:
 
     while (current < end) {
       if (current->get_id() == listener_id) {
-        if (dispatch_depth_ > 0) current->mark_for_removal();
-        else group->listeners.erase(group->listeners.begin() + (current - group->listeners.data()));
+        if (dispatch_depth_ > 0)
+          current->mark_for_removal();
+        else
+          group->listeners.erase(group->listeners.begin() + (current - group->listeners.data()));
         group->updateFastPath();
         return true;
       }
@@ -118,8 +119,8 @@ public:
   }
 
   inline void clear() { storage_.clear(); }
-  
-  inline size_t count() const { 
+
+  inline size_t count() const {
     size_t total = 0;
     for (const auto& group : storage_.getAllGroups()) {
       if (!group.active) continue;
@@ -133,7 +134,7 @@ public:
   size_t count(uint32_t event_hash) const {
     const auto* group = storage_.findGroup(event_hash);
     if (!group) return 0;
-    
+
     size_t cnt = 0;
     for (const auto& listener : group->listeners) {
       if (!listener.is_marked_for_removal()) cnt++;
@@ -149,12 +150,12 @@ private:
     size_t write_idx = 0;
     for (size_t read_idx = 0; read_idx < group->listeners.size(); read_idx++) {
       if (!group->listeners[read_idx].is_marked_for_removal()) {
-        if (write_idx != read_idx)
-          group->listeners[write_idx] = std::move(group->listeners[read_idx]);
+        if (write_idx != read_idx) group->listeners[write_idx] = std::move(group->listeners[read_idx]);
         write_idx++;
       }
     }
-    while (group->listeners.size() > write_idx) group->listeners.pop_back();
+    while (group->listeners.size() > write_idx)
+      group->listeners.pop_back();
     if (group->listeners.empty()) group->active = false;
   }
 

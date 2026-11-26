@@ -15,23 +15,20 @@ namespace uniuno {
  * visibility (Core 0 producer -> Core 1 Executor consumer) with zero data races
  * and zero attachTask()/resolve() sleep deadlocks.
  */
-template <typename O, typename E = Error>
-struct DeferredState {
-  AsyncResult<O, E>    result;
-  TaskHandle           task_handle;
+template <typename O, typename E = Error> struct DeferredState {
+  AsyncResult<O, E> result;
+  TaskHandle task_handle;
   std::atomic<uint8_t> settled;  // 0 = Pending, 1 = Writing, 2 = Published
   std::atomic<uint8_t> attached; // 0 = Detached, 1 = TaskHandle attached
 
-  DeferredState()
-      : result(AsyncResult<O, E>::pending()), settled(0), attached(0) {}
+  DeferredState() : result(AsyncResult<O, E>::pending()), settled(0), attached(0) {}
 };
 
 /**
  * @brief Non-virtual OOP base class consolidating shared Deferred lifecycle & sync logic.
  * Eliminates 3x boilerplate across Deferred specializations with zero virtual overhead.
  */
-template <typename O, typename E = Error>
-class DeferredBase {
+template <typename O, typename E = Error> class DeferredBase {
 public:
   DeferredBase() : state_(AtomicSharedPtr<DeferredState<O, E>>::make()) {}
 
@@ -82,8 +79,7 @@ protected:
 /**
  * @brief Reactive Promise (Deferred) with typed input I and typed output O.
  */
-template <typename I, typename O, typename E = Error>
-class Deferred : public DeferredBase<O, E> {
+template <typename I, typename O, typename E = Error> class Deferred : public DeferredBase<O, E> {
 public:
   using DeferredBase<O, E>::DeferredBase;
 
@@ -113,8 +109,7 @@ public:
 /**
  * @brief Deferred specialization for void input and typed output O.
  */
-template <typename O, typename E>
-class Deferred<void, O, E> : public DeferredBase<O, E> {
+template <typename O, typename E> class Deferred<void, O, E> : public DeferredBase<O, E> {
 public:
   using DeferredBase<O, E>::DeferredBase;
 
@@ -143,8 +138,7 @@ public:
   /**
    * @brief Schedules this Deferred in an Executor in EventDriven (0% CPU sleep) mode.
    */
-  template <typename FErr>
-  TaskHandle execute(Executor& executor, FErr&& on_error) {
+  template <typename FErr> TaskHandle execute(Executor& executor, FErr&& on_error) {
     auto fut = this->get_future();
     TaskHandle handle = executor.executeEventDriven(std::move(fut), std::forward<FErr>(on_error));
     this->attachTask(handle);
@@ -155,8 +149,7 @@ public:
 /**
  * @brief Deferred specialization for void input and void output.
  */
-template <typename E>
-class Deferred<void, void, E> : public DeferredBase<void, E> {
+template <typename E> class Deferred<void, void, E> : public DeferredBase<void, E> {
 public:
   using DeferredBase<void, E>::DeferredBase;
 
@@ -185,8 +178,7 @@ public:
   /**
    * @brief Schedules this Deferred in an Executor in EventDriven (0% CPU sleep) mode.
    */
-  template <typename FErr>
-  TaskHandle execute(Executor& executor, FErr&& on_error) {
+  template <typename FErr> TaskHandle execute(Executor& executor, FErr&& on_error) {
     auto fut = this->get_future();
     TaskHandle handle = executor.executeEventDriven(std::move(fut), std::forward<FErr>(on_error));
     this->attachTask(handle);

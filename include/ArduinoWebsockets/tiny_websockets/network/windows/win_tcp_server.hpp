@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef _WIN32 
+#ifdef _WIN32
 
 #include <tiny_websockets/internals/ws_common.hpp>
 #include <tiny_websockets/network/tcp_server.hpp>
@@ -16,23 +16,24 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-namespace websockets { namespace network {
-    class WinTcpServer : public TcpServer {
-    public:
-        bool listen(uint16_t port) override;
-        TcpClient* accept() override;
-        bool available() override;
-        bool poll() override;
-        void close() override;
-        virtual ~WinTcpServer();
+namespace websockets {
+namespace network {
+class WinTcpServer : public TcpServer {
+public:
+  bool listen(uint16_t port) override;
+  TcpClient* accept() override;
+  bool available() override;
+  bool poll() override;
+  void close() override;
+  virtual ~WinTcpServer();
 
-    protected:
-        int getSocket() const override;
+protected:
+  int getSocket() const override;
 
-    private:
-        SOCKET socket;
-    };
-}} // websockets::network
+private:
+  SOCKET socket;
+};
+} // namespace network
+} // namespace websockets
 
-
-#endif // #ifdef _WIN32 
+#endif // #ifdef _WIN32

@@ -2,7 +2,7 @@
  * @file IEventDispatcher.h
  * @brief Interface for event dispatching system
  * @author uniuno
- * 
+ *
  * PURPOSE: Decouple components from concrete EventDispatcher implementation
  * BENEFIT: Testability, Extensibility, Dependency Inversion, Zero Heap
  */
@@ -39,17 +39,14 @@ public:
    * @brief Strongly-typed dispatch helper for any EventType struct with static Name.
    * Computes kEventHash<EventType> at compile-time with 0 runtime string overhead!
    */
-  template <typename EventType>
-  FORCE_INLINE void dispatch(EventType& event) {
+  template <typename EventType> FORCE_INLINE void dispatch(EventType& event) {
     this->dispatchByHash(&event, kEventHash<EventType>);
   }
 
   /**
    * @brief Register raw C-style event listener
    */
-  virtual uint32_t registerListener(const char* event_name, 
-                                    void (*callback)(void*), 
-                                    bool is_once = false) = 0;
+  virtual uint32_t registerListener(const char* event_name, void (*callback)(void*), bool is_once = false) = 0;
 
   /**
    * @brief Remove a specific listener by its subscription ID

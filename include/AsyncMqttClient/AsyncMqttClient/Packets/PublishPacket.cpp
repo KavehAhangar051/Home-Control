@@ -4,28 +4,17 @@
 
 using AsyncMqttClientInternals::PublishPacket;
 
-PublishPacket::PublishPacket(ParsingInformation* parsingInformation, OnMessageInternalCallback dataCallback, OnPublishInternalCallback completeCallback)
-: _parsingInformation(parsingInformation)
-, _dataCallback(dataCallback)
-, _completeCallback(completeCallback)
-, _dup(false)
-, _qos(0)
-, _retain(0)
-, _bytePosition(0)
-, _topicLengthMsb(0)
-, _topicLength(0)
-, _ignore(false)
-, _packetIdMsb(0)
-, _packetId(0)
-, _payloadLength(0)
-, _payloadBytesRead(0) {
-    _dup = (_parsingInformation->packetFlags & HeaderFlag.PUBLISH_DUP) != 0;
-    _retain = (_parsingInformation->packetFlags & HeaderFlag.PUBLISH_RETAIN) != 0;
-    _qos = (_parsingInformation->packetFlags & 0x06) >> 1;
+PublishPacket::PublishPacket(ParsingInformation* parsingInformation, OnMessageInternalCallback dataCallback,
+                             OnPublishInternalCallback completeCallback)
+    : _parsingInformation(parsingInformation), _dataCallback(dataCallback), _completeCallback(completeCallback),
+      _dup(false), _qos(0), _retain(0), _bytePosition(0), _topicLengthMsb(0), _topicLength(0), _ignore(false),
+      _packetIdMsb(0), _packetId(0), _payloadLength(0), _payloadBytesRead(0) {
+  _dup = (_parsingInformation->packetFlags & HeaderFlag.PUBLISH_DUP) != 0;
+  _retain = (_parsingInformation->packetFlags & HeaderFlag.PUBLISH_RETAIN) != 0;
+  _qos = (_parsingInformation->packetFlags & 0x06) >> 1;
 }
 
-PublishPacket::~PublishPacket() {
-}
+PublishPacket::~PublishPacket() {}
 
 void PublishPacket::parseVariableHeader(uint8_t* data, size_t len, size_t* currentBytePosition) {
   if (LIKELY(_bytePosition >= 2U && _bytePosition < static_cast<size_t>(2U + _topicLength))) {
@@ -39,7 +28,8 @@ void PublishPacket::parseVariableHeader(uint8_t* data, size_t len, size_t* curre
     (*currentBytePosition) += copyLen;
     if (_bytePosition == static_cast<size_t>(2U + _topicLength) && _qos == 0) {
       const uint32_t payloadLen = (_parsingInformation->remainingLength >= _bytePosition)
-                                  ? (_parsingInformation->remainingLength - _bytePosition) : 0U;
+                                      ? (_parsingInformation->remainingLength - _bytePosition)
+                                      : 0U;
       _preparePayloadHandling(payloadLen);
     }
     return;
@@ -61,7 +51,8 @@ void PublishPacket::parseVariableHeader(uint8_t* data, size_t len, size_t* curre
     _packetId = uniuno::asyncmqtt_asm::asm_make_uint16(_packetIdMsb, currentByte);
     uint32_t varHeaderLen = _bytePosition + 1;
     uint32_t payloadLen = (_parsingInformation->remainingLength >= varHeaderLen)
-                          ? (_parsingInformation->remainingLength - varHeaderLen) : 0;
+                              ? (_parsingInformation->remainingLength - varHeaderLen)
+                              : 0;
     _preparePayloadHandling(payloadLen);
   }
   _bytePosition++;
@@ -86,7 +77,8 @@ void PublishPacket::parsePayload(uint8_t* data, size_t len, size_t* currentByteP
   const size_t remainToRead = uniuno::asyncmqtt_asm::asm_min(availableInChunk, availableInPayload);
 
   if (LIKELY(!_ignore)) {
-    _dataCallback(_parsingInformation->topicBuffer, reinterpret_cast<char*>(data + (*currentBytePosition)), _qos, _dup, _retain, remainToRead, _payloadBytesRead, _payloadLength, _packetId);
+    _dataCallback(_parsingInformation->topicBuffer, reinterpret_cast<char*>(data + (*currentBytePosition)), _qos, _dup,
+                  _retain, remainToRead, _payloadBytesRead, _payloadLength, _packetId);
   }
   _payloadBytesRead += remainToRead;
   (*currentBytePosition) += remainToRead;

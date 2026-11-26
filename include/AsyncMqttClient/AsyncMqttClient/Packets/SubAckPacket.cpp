@@ -4,15 +4,9 @@
 using AsyncMqttClientInternals::SubAckPacket;
 
 SubAckPacket::SubAckPacket(ParsingInformation* parsingInformation, OnSubAckInternalCallback callback)
-: _parsingInformation(parsingInformation)
-, _callback(callback)
-, _bytePosition(0)
-, _packetIdMsb(0)
-, _packetId(0) {
-}
+    : _parsingInformation(parsingInformation), _callback(callback), _bytePosition(0), _packetIdMsb(0), _packetId(0) {}
 
-SubAckPacket::~SubAckPacket() {
-}
+SubAckPacket::~SubAckPacket() {}
 
 void SubAckPacket::parseVariableHeader(uint8_t* data, size_t len, size_t* currentBytePosition) {
   uint8_t currentByte = data[(*currentBytePosition)++];

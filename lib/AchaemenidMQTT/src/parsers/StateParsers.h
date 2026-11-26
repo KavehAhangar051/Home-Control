@@ -9,16 +9,16 @@ namespace uniuno {
 
 class StateParsers : public IMqttPayloadHandler {
 public:
-    bool canHandle(uint8_t cmdType) const override;
-    void handle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) override;
+  bool canHandle(uint8_t cmdType) const override;
+  void handle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) override;
 
 private:
-    void parseTogglePin(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseAutomationToggle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseBatchToggle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseSyncState(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseSetAnalogOutput(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
-    void parseReadAnalogInput(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseTogglePin(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseAutomationToggle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseBatchToggle(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseSyncState(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseSetAnalogOutput(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
+  void parseReadAnalogInput(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher);
 };
 
 } // namespace uniuno

@@ -25,11 +25,8 @@ constexpr uint32_t errnoMaskWord(uint32_t code, uint8_t wordIdx) {
 }
 
 constexpr uint32_t buildFatalErrnoWord(uint8_t wordIdx) {
-  return errnoMaskWord(ENOTCONN, wordIdx)
-       | errnoMaskWord(EPIPE, wordIdx)
-       | errnoMaskWord(ECONNRESET, wordIdx)
-       | errnoMaskWord(ECONNREFUSED, wordIdx)
-       | errnoMaskWord(ECONNABORTED, wordIdx);
+  return errnoMaskWord(ENOTCONN, wordIdx) | errnoMaskWord(EPIPE, wordIdx) | errnoMaskWord(ECONNRESET, wordIdx) |
+         errnoMaskWord(ECONNREFUSED, wordIdx) | errnoMaskWord(ECONNABORTED, wordIdx);
 }
 } // namespace detail
 
@@ -49,12 +46,10 @@ FORCE_INLINE bool isFatalSocketErrno(int err) {
   if (UNLIKELY(uerr >= 256)) {
     return false;
   }
-  static constexpr uint32_t kFatalMask[8] = {
-    detail::buildFatalErrnoWord(0), detail::buildFatalErrnoWord(1),
-    detail::buildFatalErrnoWord(2), detail::buildFatalErrnoWord(3),
-    detail::buildFatalErrnoWord(4), detail::buildFatalErrnoWord(5),
-    detail::buildFatalErrnoWord(6), detail::buildFatalErrnoWord(7)
-  };
+  static constexpr uint32_t kFatalMask[8] = {detail::buildFatalErrnoWord(0), detail::buildFatalErrnoWord(1),
+                                             detail::buildFatalErrnoWord(2), detail::buildFatalErrnoWord(3),
+                                             detail::buildFatalErrnoWord(4), detail::buildFatalErrnoWord(5),
+                                             detail::buildFatalErrnoWord(6), detail::buildFatalErrnoWord(7)};
   return ((kFatalMask[uerr >> 5] >> (uerr & 31)) & 1UL) != 0;
 }
 
@@ -67,7 +62,7 @@ FORCE_INLINE bool isFatalSocketErrno(int err) {
  * @param src Source RX ring/slab pointer
  * @param len Byte count to copy
  */
-FORCE_INLINE void fastCopySmallOrAligned(uint8_t *__restrict__ dst, const uint8_t *__restrict__ src, size_t len) {
+FORCE_INLINE void fastCopySmallOrAligned(uint8_t* __restrict__ dst, const uint8_t* __restrict__ src, size_t len) {
   if (len == 1) {
     dst[0] = src[0];
     return;
@@ -86,13 +81,9 @@ FORCE_INLINE void fastCopySmallOrAligned(uint8_t *__restrict__ dst, const uint8_
   }
   if (len >= 8 && (((reinterpret_cast<uintptr_t>(dst) | reinterpret_cast<uintptr_t>(src)) & 3U) == 0)) {
     const uint32_t words = static_cast<uint32_t>(len >> 2);
-    uniuno::xtensa_asm::asm_copy_words(
-      reinterpret_cast<uint32_t *>(dst),
-      reinterpret_cast<const uint32_t *>(src),
-      words
-    );
+    uniuno::xtensa_asm::asm_copy_words(reinterpret_cast<uint32_t*>(dst), reinterpret_cast<const uint32_t*>(src), words);
     const size_t copied = static_cast<size_t>(words) << 2;
-    const size_t tail   = len & 3U;
+    const size_t tail = len & 3U;
     for (size_t i = 0; i < tail; ++i) {
       dst[copied + i] = src[copied + i];
     }
@@ -104,10 +95,9 @@ FORCE_INLINE void fastCopySmallOrAligned(uint8_t *__restrict__ dst, const uint8_
 /**
  * @brief Convert millisecond timeout into struct timeval cleanly.
  */
-FORCE_INLINE void timeoutMsToTimeval(uint32_t timeoutMs, struct timeval &tv) {
-  tv.tv_sec  = static_cast<time_t>(timeoutMs / 1000U);
+FORCE_INLINE void timeoutMsToTimeval(uint32_t timeoutMs, struct timeval& tv) {
+  tv.tv_sec = static_cast<time_t>(timeoutMs / 1000U);
   tv.tv_usec = static_cast<suseconds_t>((timeoutMs % 1000U) * 1000U);
 }
 
 } // namespace network_asm
-
