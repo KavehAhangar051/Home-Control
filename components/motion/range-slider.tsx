@@ -52,7 +52,7 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
   const smooth = useSpring(target, SPRING_GLIDE);
   const pos = reduce ? target : smooth;
   const thumbX = useTransform([pos, trackWidth], ([p, w]: number[]) => {
-    return 8 + (Math.max(0, w - 20) * p) / 100;
+    return 5 + (Math.max(0, w - 14) * p) / 100;
   });
 
   // Match InlineSlider: the 4px handle starts 8px inside the track, and
@@ -97,7 +97,7 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
         />
       </div>
       {/* Tick centres follow the same inset path as the handle centre. */}
-      <div className="pointer-events-none absolute inset-x-[10px] inset-y-0">
+      <div className="pointer-events-none absolute inset-x-[7px] inset-y-0">
         {ticks.map((t) => {
           const tp = ((t - min) / (max - min)) * 100;
 
