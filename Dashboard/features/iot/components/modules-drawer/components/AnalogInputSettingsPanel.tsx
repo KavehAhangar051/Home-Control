@@ -161,7 +161,7 @@ export default function AnalogInputSettingsPanel({
                       htmlFor="adc-resolution-select"
                       className="text-sm font-bold text-text-primary"
                     >
-                      وضوح خواندن ADC (بیت)
+                      دقت خواندن ADC (بیت)
                     </Label>
                     <Select
                       id="adc-resolution-select"
