@@ -67,7 +67,7 @@ export default function AnalogInputSettingsPanel({
     <div className="space-y-6">
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-bold text-text-primary">تنظیم آماده بر اساس نوع سنسور</span>
+          <span className="text-sm font-bold text-text-primary">پروفایل آماده سنسور</span>
           <span
             className="font-mono text-xs font-medium tabular-nums text-text-secondary"
             dir="ltr"
@@ -123,7 +123,7 @@ export default function AnalogInputSettingsPanel({
         >
           <span className="flex items-center gap-2">
             <Settings2 strokeWidth={1.75} className="size-4 text-accent3" aria-hidden="true" />
-            <span>تنظیمات تخصصی سنسور (دقت، نمونه‌برداری و آستانه‌ها)</span>
+            <span>تنظیمات ADC و آستانه‌ها</span>
           </span>
           <ChevronDown
             strokeWidth={1.75}
@@ -161,7 +161,7 @@ export default function AnalogInputSettingsPanel({
                       htmlFor="adc-resolution-select"
                       className="text-sm font-bold text-text-primary"
                     >
-                      دقت خواندن (Resolution)
+                      وضوح خواندن ADC (بیت)
                     </Label>
                     <Select
                       id="adc-resolution-select"
@@ -193,7 +193,7 @@ export default function AnalogInputSettingsPanel({
                       htmlFor="adc-interval-input"
                       className="text-sm font-bold text-text-primary"
                     >
-                      فاصله نمونه‌برداری (میلی‌ثانیه)
+                      فاصله نمونه‌برداری (ms)
                     </Label>
                     <Input
                       id="adc-interval-input"
@@ -219,7 +219,7 @@ export default function AnalogInputSettingsPanel({
                       htmlFor="adc-delta-input"
                       className="text-sm font-bold text-text-primary"
                     >
-                      حساسیت تغییر (Delta)
+                      حداقل تغییر برای ارسال مقدار
                     </Label>
                     <Input
                       id="adc-delta-input"
@@ -242,7 +242,7 @@ export default function AnalogInputSettingsPanel({
                       htmlFor="adc-high-threshold-input"
                       className="text-sm font-bold text-text-primary"
                     >
-                      آستانه بالا (ATH)
+                      آستانه فعال‌سازی (ATH)
                     </Label>
                     <Input
                       id="adc-high-threshold-input"
@@ -273,7 +273,7 @@ export default function AnalogInputSettingsPanel({
                       htmlFor="adc-low-threshold-input"
                       className="text-sm font-bold text-text-primary"
                     >
-                      آستانه پایین (ATL)
+                      آستانه غیرفعال‌سازی (ATL)
                     </Label>
                     <Input
                       id="adc-low-threshold-input"
@@ -293,6 +293,7 @@ export default function AnalogInputSettingsPanel({
                   </div>
                 </div>
 
+                <p className="text-xs leading-5 text-text-secondary">فاصله نمونه‌برداری زمان بین دو خواندن ADC را تعیین می‌کند. مقدار Delta حداقل تغییر لازم برای ارسال مقدار جدید است؛ ATH وضعیت را فعال و ATL آن را غیرفعال می‌کند.</p>
                 {hasInvalidThresholds ? (
                   <p
                     role="alert"

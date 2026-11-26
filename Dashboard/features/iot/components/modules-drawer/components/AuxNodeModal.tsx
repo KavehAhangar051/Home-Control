@@ -229,7 +229,7 @@ export default function AuxNodeModal() {
                       htmlFor="aux-node-name"
                       className="text-xs font-medium text-text-secondary"
                     >
-                      نام برد کمکی / نام گروه
+                      نام برد کمکی و گروه آن
                     </Label>
                     <span
                       className={`font-mono text-[10px] tabular-nums ${
@@ -265,7 +265,7 @@ export default function AuxNodeModal() {
                       htmlFor="aux-node-mac"
                       className="text-xs font-medium text-text-secondary"
                     >
-                      آدرس MAC برد کمکی
+                      آدرس MAC برد
                     </Label>
                     {macCheck?.ok && !duplicateMac && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
@@ -274,6 +274,7 @@ export default function AuxNodeModal() {
                       </span>
                     )}
                   </div>
+                  <p className="text-xs leading-5 text-text-secondary">آدرس MAC شناسه یکتای برد در شبکه است؛ آن را از تنظیمات یا برچسب همان برد وارد کنید.</p>
                   <Input
                     id="aux-node-mac"
                     type="text"
@@ -327,7 +328,7 @@ export default function AuxNodeModal() {
                         htmlFor="aux-node-capacity"
                         className="text-xs font-medium text-text-secondary"
                       >
-                        ظرفیت پایه (۱ تا {MAX_AUX_PIN_CAPACITY})
+                        تعداد پایه‌های قابل استفاده (۱ تا {MAX_AUX_PIN_CAPACITY})
                       </Label>
                     </div>
                     <Input
@@ -348,7 +349,7 @@ export default function AuxNodeModal() {
                 </div>
 
                 <div className="flex items-center justify-between gap-2 rounded-xl border border-border-color bg-secondary/45 px-3 py-2.5 text-[11px] text-text-secondary">
-                  <span>پایه‌های پیشنهادی {chipMeta.shortLabel}</span>
+                  <span>GPIOهای پیشنهادی {chipMeta.shortLabel}</span>
                   <span className="font-mono text-[10px] text-text-muted" dir="ltr">
                     {chipMeta.suggestedPins.slice(0, 8).join(", ")}
                     {chipMeta.suggestedPins.length > 8 ? "…" : ""}

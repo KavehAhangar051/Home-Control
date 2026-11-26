@@ -158,8 +158,7 @@ export default function PinSelector({
 
         {isAnalogInput && (
           <p className="text-xs leading-6 text-text-secondary">
-            پایه‌های ۳۴، ۳۵، ۳۶ و ۳۹ فقط ورودی و بدون مقاومت داخلی هستند؛ بهترین انتخاب برای اتصال
-            سنسورهای آنالوگ (۰ تا ۳.۳ ولت).
+            GPIOهای ۳۴، ۳۵، ۳۶ و ۳۹ فقط ورودی‌اند و مقاومت Pull-up/Pull-down داخلی ندارند. ولتاژ سنسور متصل‌شده باید بین ۰ تا ۳.۳ ولت باشد.
           </p>
         )}
       </div>
