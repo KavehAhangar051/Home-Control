@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ProjectConfig.h>
 #include <Future.h>
 #include <function_traits.h>
 #include <Optimization/FastFunction.h>
@@ -69,7 +70,7 @@ private:
   uint16_t generation_;
 };
 
-using TaskHandle = TaskHandleBase<8>;
+using TaskHandle = TaskHandleBase<ACHAEMENID_EXECUTOR_MAX_TASKS>;
 
 // Pre-computed 32-entry lookup tables for 1-cycle bitmask manipulation (Memory-for-Speed)
 alignas(16) static constexpr uint32_t SLOT_BIT_LUT[32] = {
@@ -407,6 +408,6 @@ template <size_t Capacity> FORCE_INLINE void TaskHandleBase<Capacity>::setInterv
   if (LIKELY(isValid())) executor_->setInterval(index_, generation_, interval_ms);
 }
 
-using Executor = ExecutorBase<8>;
+using Executor = ExecutorBase<ACHAEMENID_EXECUTOR_MAX_TASKS>;
 
 } // namespace uniuno

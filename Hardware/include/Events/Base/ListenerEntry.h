@@ -1,12 +1,13 @@
 #pragma once
 
+#include <ProjectConfig.h>
 #include <cstdint>
 #include <Optimization/FastFunction.h>
 #include <Optimization/CompilerTraits.h>
 
 namespace uniuno {
 
-using EventCallback = FastFunction<void(void*), 16>;
+using EventCallback = FastFunction<void(void*), ACHAEMENID_CALLBACK_SBO_BYTES>;
 
 /**
  * @brief Represents a single event listener subscription.

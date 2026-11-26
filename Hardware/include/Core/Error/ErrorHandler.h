@@ -45,6 +45,7 @@
 
 #pragma once
 
+#include <ProjectConfig.h>
 #include <Optimization/FastFunction.h>
 #include <Optimization/StaticArray.h>
 #include <Optimization/StaticHashMap.h>
@@ -187,7 +188,9 @@ public:
    *
    * NOTE: Only one callback supported (last one wins)
    */
-  void onError(uniuno::FastFunction<void(const ErrorInfo&), 16> callback) { error_callback_ = std::move(callback); }
+  void onError(uniuno::FastFunction<void(const ErrorInfo&), ACHAEMENID_CALLBACK_SBO_BYTES> callback) {
+    error_callback_ = std::move(callback);
+  }
 
   /**
    * @brief Register error policy observer
@@ -625,7 +628,7 @@ public:
 
 private:
   /** @brief Maximum errors in history buffer (circular) */
-  static constexpr size_t HISTORY_SIZE = 4;
+  static constexpr size_t HISTORY_SIZE = ACHAEMENID_ERROR_HISTORY_SIZE;
 
   /**
    * @brief Private constructor (Singleton pattern)
@@ -700,8 +703,8 @@ private:
 
   // === MEMBER VARIABLES ===
 
-  uniuno::FastFunction<void(const ErrorInfo&), 16> error_callback_; ///< User error callback
-  SmallVector<IErrorPolicy*, 4> policies_;                          ///< Registered error policies (Observer pattern)
+  uniuno::FastFunction<void(const ErrorInfo&), ACHAEMENID_CALLBACK_SBO_BYTES> error_callback_; ///< User error callback
+  SmallVector<IErrorPolicy*, 4> policies_; ///< Registered error policies (Observer pattern)
 
   // Statistics
   uint32_t total_errors_;         ///< Total errors reported
@@ -711,19 +714,19 @@ private:
   unsigned long last_error_time_; ///< Timestamp of last error
 
   // Context stack
-  StaticArray<const char*, 6> context_stack_; ///< Nested context names
+  StaticArray<const char*, ACHAEMENID_ERROR_CONTEXT_DEPTH> context_stack_; ///< Nested context names
 
   // Filtering
   bool filter_enabled_;        ///< Is severity filter active?
   ErrorSeverity min_severity_; ///< Minimum severity to report
 
   // Throttling
-  StaticHashMap<uint32_t, ThrottleInfo, 8> throttle_map_; ///< Per-context throttle state
+  StaticHashMap<uint32_t, ThrottleInfo, ACHAEMENID_ERROR_MAP_CAPACITY> throttle_map_; ///< Per-context throttle state
 
   // Deduplication
-  bool dedup_enabled_;                                  ///< Is deduplication active?
-  unsigned long dedup_window_;                          ///< Deduplication time window (ms)
-  StaticHashMap<uint32_t, unsigned long, 8> dedup_map_; ///< Last occurrence time
+  bool dedup_enabled_;                                                              ///< Is deduplication active?
+  unsigned long dedup_window_;                                                      ///< Deduplication time window (ms)
+  StaticHashMap<uint32_t, unsigned long, ACHAEMENID_ERROR_MAP_CAPACITY> dedup_map_; ///< Last occurrence time
 
   // Severity statistics
   uint32_t warning_count_;  ///< Count of WARNING errors

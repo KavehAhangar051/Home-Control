@@ -10,8 +10,8 @@
 #define PIN_STATE_IRAM
 #endif
 
-// Minimum duration in milliseconds to filter mechanical button contact bounce
-static constexpr unsigned long DEBOUNCE_THRESHOLD_MS = 35;
+// Minimum duration in milliseconds to filter mechanical button contact bounce (configured via ProjectConfig.h)
+static constexpr unsigned long DEBOUNCE_THRESHOLD_MS = ACHAEMENID_DEBOUNCE_THRESHOLD_MS;
 
 static inline uint16_t maxScaleForBits(uint8_t bits) {
   if (bits < MIN_PWM_RESOLUTION) bits = MIN_PWM_RESOLUTION;

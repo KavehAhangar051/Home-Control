@@ -17,27 +17,27 @@ public:
   PinManager();
   ~PinManager();
 
-  bool addSegment(const char* id, SegmentType type, int pin, int autoOffDelay = 0, RuleConfig rule = RuleConfig(),
-                  uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION, uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY,
-                  uint8_t adcResolution = DEFAULT_ADC_RESOLUTION,
+  bool addSegment(const char* id, SegmentType type, int pin, int autoOffDelay = 0,
+                  const RuleConfig& rule = RuleConfig(), uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION,
+                  uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY, uint8_t adcResolution = DEFAULT_ADC_RESOLUTION,
                   uint16_t adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS,
                   uint16_t adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD, uint16_t adcHighThreshold = 0,
                   uint16_t adcLowThreshold = 0);
-  bool upsertSegment(const char* id, SegmentType type, int pin, int autoOffDelay = 0, RuleConfig rule = RuleConfig(),
-                     uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION, uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY,
-                     uint8_t adcResolution = DEFAULT_ADC_RESOLUTION,
+  bool upsertSegment(const char* id, SegmentType type, int pin, int autoOffDelay = 0,
+                     const RuleConfig& rule = RuleConfig(), uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION,
+                     uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY, uint8_t adcResolution = DEFAULT_ADC_RESOLUTION,
                      uint16_t adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS,
                      uint16_t adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD, uint16_t adcHighThreshold = 0,
                      uint16_t adcLowThreshold = 0);
   bool addVirtualSegment(const char* id, SegmentType type, int virtualPin, uint8_t nodeId, uint8_t remotePin,
-                         int autoOffDelay = 0, RuleConfig rule = RuleConfig(),
+                         int autoOffDelay = 0, const RuleConfig& rule = RuleConfig(),
                          uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION, uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY,
                          uint8_t adcResolution = DEFAULT_ADC_RESOLUTION,
                          uint16_t adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS,
                          uint16_t adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD, uint16_t adcHighThreshold = 0,
                          uint16_t adcLowThreshold = 0);
   bool upsertVirtualSegment(const char* id, SegmentType type, int virtualPin, uint8_t nodeId, uint8_t remotePin,
-                            int autoOffDelay = 0, RuleConfig rule = RuleConfig(),
+                            int autoOffDelay = 0, const RuleConfig& rule = RuleConfig(),
                             uint8_t pwmResolution = DEFAULT_PWM_RESOLUTION,
                             uint16_t pwmFrequency = DEFAULT_PWM_FREQUENCY,
                             uint8_t adcResolution = DEFAULT_ADC_RESOLUTION,

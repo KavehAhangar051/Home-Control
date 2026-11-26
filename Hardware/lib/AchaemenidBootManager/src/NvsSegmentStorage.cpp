@@ -191,8 +191,6 @@ bool copyActionFromStorage(const StoredRuleAction& source, RuleAction& target) {
       (source.targetValue < 0 || source.targetValue > MAX_ANALOG_OUTPUT_VALUE))
     return false;
 
-  target.requiredHoldTime = source.requiredHoldTime;
-  target.targetPin = source.targetPin;
   target.reset();
   target.requiredHoldTime = source.requiredHoldTime;
   target.targetPin = source.targetPin;
@@ -237,14 +235,6 @@ bool copyRangeFromStorage(const StoredAnalogRangeRule& source, uint16_t maxAdcVa
     return false;
   }
 
-  target.minValue = source.minValue;
-  target.maxValue = source.maxValue;
-  target.hysteresis = source.hysteresis;
-  target.targetValue = source.targetValue;
-  target.targetPin = source.targetPin;
-  target.delay = source.delay;
-  target.actionType = static_cast<RuleActionType>(actionType);
-  target.triggerMode = static_cast<AnalogRangeTriggerMode>(triggerMode);
   target.reset();
   target.minValue = source.minValue;
   target.maxValue = source.maxValue;

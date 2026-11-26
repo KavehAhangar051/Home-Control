@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ProjectConfig.h>
 #include "../IEventDispatcher.h"
 #include "../Base/BaseEventDispatcher.h"
 #include "../EventHash.h"
@@ -7,7 +8,7 @@
 
 namespace uniuno {
 
-template <size_t MaxEvents = 20, size_t MaxListeners = 4>
+template <size_t MaxEvents = ACHAEMENID_EVENT_BUS_MAX_EVENTS, size_t MaxListeners = ACHAEMENID_EVENT_BUS_MAX_LISTENERS>
 class EventDispatcherCoreBase : public IEventDispatcher, protected BaseEventDispatcher<MaxEvents, MaxListeners> {
 public:
   EventDispatcherCoreBase() : BaseEventDispatcher<MaxEvents, MaxListeners>() {}
@@ -49,6 +50,7 @@ public:
   }
 };
 
-using EventDispatcherCore = EventDispatcherCoreBase<20, 4>;
+using EventDispatcherCore =
+    EventDispatcherCoreBase<ACHAEMENID_EVENT_BUS_MAX_EVENTS, ACHAEMENID_EVENT_BUS_MAX_LISTENERS>;
 
 } // namespace uniuno

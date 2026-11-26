@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ProjectConfig.h>
 #include <tiny_websockets/internals/ws_common.hpp>
 #include <tiny_websockets/network/tcp_client.hpp>
 #include <tiny_websockets/internals/data_frame.hpp>
@@ -16,12 +17,14 @@ namespace websockets {
 enum class WebsocketsEvent { ConnectionOpened, ConnectionClosed, GotPing, GotPong };
 
 class WebsocketsClient;
-// Upgraded to zero-heap 32-byte power-of-2 FastFunction (16B inline SBO = 4 pointers)
-typedef uniuno::FastFunction<void(WebsocketsClient&, WebsocketsMessage), 16> MessageCallback;
-typedef uniuno::FastFunction<void(WebsocketsMessage), 16> PartialMessageCallback;
+// Upgraded to zero-heap Power-of-2 FastFunction (configured via ACHAEMENID_CALLBACK_SBO_BYTES)
+typedef uniuno::FastFunction<void(WebsocketsClient&, WebsocketsMessage), ACHAEMENID_CALLBACK_SBO_BYTES> MessageCallback;
+typedef uniuno::FastFunction<void(WebsocketsMessage), ACHAEMENID_CALLBACK_SBO_BYTES> PartialMessageCallback;
 
-typedef uniuno::FastFunction<void(WebsocketsClient&, WebsocketsEvent, WSInterfaceString), 16> EventCallback;
-typedef uniuno::FastFunction<void(WebsocketsEvent, WSInterfaceString), 16> PartialEventCallback;
+typedef uniuno::FastFunction<void(WebsocketsClient&, WebsocketsEvent, WSInterfaceString), ACHAEMENID_CALLBACK_SBO_BYTES>
+    EventCallback;
+typedef uniuno::FastFunction<void(WebsocketsEvent, WSInterfaceString), ACHAEMENID_CALLBACK_SBO_BYTES>
+    PartialEventCallback;
 
 class WebsocketsClient {
 public:

@@ -2,6 +2,7 @@
 #define PIN_STATE_MANAGER_H
 
 #include "../PinRegistry.h"
+#include <ProjectConfig.h>
 #include <Optimization/CompilerTraits.h>
 #include <Optimization/StaticFunction.h>
 #include <Optimization/XtensaAnalogAsm.h>
@@ -17,8 +18,8 @@
  */
 class PinStateManager {
 public:
-  // ESP32 has 6 WiFi-safe ADC1 channels (GPIO 32,33,34,35,36,39); 8 slots fit all + 2 spare in 2 L1 cache lines.
-  static constexpr uint8_t MAX_ANALOG_SLOTS = 8;
+  // ESP32 has 6 WiFi-safe ADC1 channels (GPIO 32,33,34,35,36,39); configured via ProjectConfig.h.
+  static constexpr uint8_t MAX_ANALOG_SLOTS = ACHAEMENID_MAX_ANALOG_SLOTS;
 
   PinStateManager(PinRegistry& registry)
       : _registry(registry), _inputMask0_31(0), _inputMask32_39(0), _lastInputs0_31(0), _lastInputs32_39(0),

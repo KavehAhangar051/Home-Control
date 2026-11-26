@@ -1,4 +1,5 @@
 #include "EventHandlers.h"
+#include <ProjectConfig.h>
 #include <core/Globals.h>
 #include <AppEvents.h>
 #include <Utilities/logging.h>
@@ -442,7 +443,7 @@ auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
 auto onStateSyncRequest = [](StateSyncRequestEvent* evt) {
   if (evt == nullptr) return;
   INFO("[Event] Syncing full state to MQTT...");
-  constexpr size_t kStateBufSize = 3072;
+  constexpr size_t kStateBufSize = ACHAEMENID_STATE_SYNC_BUF_SIZE;
   std::unique_ptr<char[]> stateBuf(new (std::nothrow) char[kStateBufSize]);
   if (!stateBuf) {
     ERROR("[Event] Out of memory allocating state sync buffer");

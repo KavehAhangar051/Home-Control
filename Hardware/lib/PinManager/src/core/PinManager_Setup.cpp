@@ -2,7 +2,7 @@
 #include <Utilities/logging.h>
 #include <Timer/Timer.h>
 
-bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoOffDelay, RuleConfig rule,
+bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoOffDelay, const RuleConfig& rule,
                             uint8_t pwmResolution, uint16_t pwmFrequency, uint8_t adcResolution,
                             uint16_t adcSampleIntervalMs, uint16_t adcDeltaThreshold, uint16_t adcHighThreshold,
                             uint16_t adcLowThreshold) {
@@ -135,7 +135,7 @@ bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoO
   return true;
 }
 
-bool PinManager::upsertSegment(const char* id, SegmentType type, int pin, int autoOffDelay, RuleConfig rule,
+bool PinManager::upsertSegment(const char* id, SegmentType type, int pin, int autoOffDelay, const RuleConfig& rule,
                                uint8_t pwmResolution, uint16_t pwmFrequency, uint8_t adcResolution,
                                uint16_t adcSampleIntervalMs, uint16_t adcDeltaThreshold, uint16_t adcHighThreshold,
                                uint16_t adcLowThreshold) {
@@ -187,9 +187,9 @@ bool PinManager::upsertSegment(const char* id, SegmentType type, int pin, int au
 }
 
 bool PinManager::addVirtualSegment(const char* id, SegmentType type, int virtualPin, uint8_t nodeId, uint8_t remotePin,
-                                   int autoOffDelay, RuleConfig rule, uint8_t pwmResolution, uint16_t pwmFrequency,
-                                   uint8_t adcResolution, uint16_t adcSampleIntervalMs, uint16_t adcDeltaThreshold,
-                                   uint16_t adcHighThreshold, uint16_t adcLowThreshold) {
+                                   int autoOffDelay, const RuleConfig& rule, uint8_t pwmResolution,
+                                   uint16_t pwmFrequency, uint8_t adcResolution, uint16_t adcSampleIntervalMs,
+                                   uint16_t adcDeltaThreshold, uint16_t adcHighThreshold, uint16_t adcLowThreshold) {
   if (id == nullptr || id[0] == '\0') {
     WARNING("[PinManager] Virtual segment ID is empty.");
     return false;
@@ -299,9 +299,10 @@ bool PinManager::addVirtualSegment(const char* id, SegmentType type, int virtual
 }
 
 bool PinManager::upsertVirtualSegment(const char* id, SegmentType type, int virtualPin, uint8_t nodeId,
-                                      uint8_t remotePin, int autoOffDelay, RuleConfig rule, uint8_t pwmResolution,
-                                      uint16_t pwmFrequency, uint8_t adcResolution, uint16_t adcSampleIntervalMs,
-                                      uint16_t adcDeltaThreshold, uint16_t adcHighThreshold, uint16_t adcLowThreshold) {
+                                      uint8_t remotePin, int autoOffDelay, const RuleConfig& rule,
+                                      uint8_t pwmResolution, uint16_t pwmFrequency, uint8_t adcResolution,
+                                      uint16_t adcSampleIntervalMs, uint16_t adcDeltaThreshold,
+                                      uint16_t adcHighThreshold, uint16_t adcLowThreshold) {
   if (id == nullptr || id[0] == '\0' || !isVirtualPin(virtualPin) || !isValidAuxNodeId(nodeId) ||
       !isValidAuxRemotePin(remotePin)) {
     WARNINGF("[PinManager] Rejected virtual segment upsert (vpin=%d node=%u rpin=%u).", virtualPin, nodeId, remotePin);

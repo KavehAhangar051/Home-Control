@@ -4,7 +4,7 @@
 
 namespace uniuno {
 
-template <size_t MaxEvents = 20, size_t MaxListeners = 4>
+template <size_t MaxEvents = ACHAEMENID_EVENT_BUS_MAX_EVENTS, size_t MaxListeners = ACHAEMENID_EVENT_BUS_MAX_LISTENERS>
 class EventDispatcherBase : public EventDispatcherCoreBase<MaxEvents, MaxListeners> {
 public:
   using EventDispatcherCoreBase<MaxEvents, MaxListeners>::dispatch;
@@ -106,6 +106,6 @@ public:
   }
 };
 
-using EventDispatcher = EventDispatcherBase<20, 4>;
+using EventDispatcher = EventDispatcherBase<ACHAEMENID_EVENT_BUS_MAX_EVENTS, ACHAEMENID_EVENT_BUS_MAX_LISTENERS>;
 
 } // namespace uniuno

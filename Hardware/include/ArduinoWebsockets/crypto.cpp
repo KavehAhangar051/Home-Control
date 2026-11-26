@@ -1,7 +1,8 @@
+#include <ProjectConfig.h>
 #include <tiny_websockets/internals/wscrypto/crypto.hpp>
 #include <tiny_websockets/internals/wscrypto/base64.hpp>
 
-#ifdef ESP32
+#if defined(ESP32) && ACHAEMENID_ENABLE_HW_SHA1
 #include <esp_idf_version.h>
 #include <mbedtls/sha1.h>
 #else
@@ -26,7 +27,7 @@ WSString base64Decode(WSString data) {
 }
 
 WSString websocketsHandshakeEncodeKey(WSString key) {
-#ifdef ESP32
+#if defined(ESP32) && ACHAEMENID_ENABLE_HW_SHA1
   static constexpr char kWsGuid[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
   uint8_t digest[20];
   mbedtls_sha1_context ctx;
