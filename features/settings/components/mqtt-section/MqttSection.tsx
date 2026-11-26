@@ -1,14 +1,17 @@
-import { useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, type FormEvent } from "react";
+import { ProgressSteps } from "@/components/dissolve/progress-steps";
 import { Button } from "@/components/ui/button";
 import { Save } from "@/components/ui/hugeicons-groups/controls";
-import { RefreshCw } from "@/components/ui/hugeicons-groups/shell";
+import { ChevronLeft, ChevronRight, RefreshCw } from "@/components/ui/hugeicons-groups/shell";
 import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
 import { getMqttSettings, reconnectMqtt } from "@/features/iot/services/mqttService";
 import { soundManager } from "@/lib/audio";
 import { MqttFormFields } from "./MqttFormFields";
+import { MqttMessageSettingsStep } from "./MqttMessageSettingsStep";
 import { MqttQosSelector } from "./MqttQosSelector";
+import { MqttReviewStep } from "./MqttReviewStep";
 
 type MqttLocalOverrides = {
   brokerWsUrl?: string;
@@ -17,6 +20,8 @@ type MqttLocalOverrides = {
   baseTopic?: string;
   qos?: 0 | 1 | 2;
 };
+
+const MQTT_STEPS = ["اتصال بروکر", "تنظیم پیام‌ها", "بازبینی و ذخیره"];
 
 const subscribeMqttDefaults = () => () => {};
 const getServerMqttSettingsSnapshot = () => "";
@@ -68,6 +73,7 @@ export default function MqttSection() {
   const showToast = useIoTStore((state) => state.showToast);
 
   const [overrides, setOverrides] = useState<MqttLocalOverrides>({});
+  const [step, setStep] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
 
   const { brokerWsUrl, brokerHost, brokerPort, baseTopic, qos } = resolveMqttDraftValues(
@@ -127,44 +133,128 @@ export default function MqttSection() {
     }
   };
 
+  const handleWizardSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (step < MQTT_STEPS.length - 1) {
+      setStep((current) => Math.min(current + 1, MQTT_STEPS.length - 1));
+      return;
+    }
+
+    void handleSaveAndReconnect();
+  };
+
   return (
-    <div className="space-y-5">
-      <div className="space-y-4">
-        <MqttFormFields
-          brokerWsUrl={brokerWsUrl}
-          setBrokerWsUrl={setBrokerWsUrl}
-          brokerHost={brokerHost}
-          setBrokerHost={setBrokerHost}
-          brokerPort={brokerPort}
-          setBrokerPort={setBrokerPort}
-          baseTopic={baseTopic}
-          setBaseTopic={setBaseTopic}
+    <form onSubmit={handleWizardSubmit} className="space-y-6">
+      <div className="space-y-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <h3 className="text-base font-bold text-text-primary">
+              {step === 0
+                ? "نشانی‌های اتصال"
+                : step === 1
+                  ? "تنظیم پیام‌ها"
+                  : "بازبینی تنظیمات"}
+            </h3>
+            <p className="text-xs leading-5 text-text-secondary sm:text-[13px]">
+              {step === 0
+                ? "نشانی اتصال مرورگر و مشخصات اتصال ESP32 به بروکر را وارد کنید."
+                : step === 1
+                  ? "مسیر پیام‌ها و سطح اطمینان تحویل آن‌ها را مشخص کنید."
+                  : "پیش از ذخیره، مقادیر انتخاب‌شده را بررسی کنید."}
+            </p>
+          </div>
+          <span className="shrink-0 rounded-lg bg-secondary px-2.5 py-1.5 text-xs font-semibold tabular-nums text-text-secondary">
+            {step + 1} از {MQTT_STEPS.length}
+          </span>
+        </div>
+
+        <ProgressSteps
+          steps={MQTT_STEPS}
+          current={step}
+          size="lg"
+          haptics={false}
+          onStepPress={(index) => {
+            if (index < step) setStep(index);
+          }}
+          labelClassName="font-sans"
         />
-        <MqttQosSelector qos={qos} setQos={setQos} />
       </div>
 
-      <Button
-        type="button"
-        variant={isSaved ? "outline" : "accent"}
-        onClick={handleSaveAndReconnect}
-        className={`w-full h-auto min-h-12 rounded-xl px-4 py-3.5 text-sm font-bold ${
-          isSaved
-            ? "border-success/40 bg-success-soft text-success hover:border-success/40 hover:bg-success-soft hover:text-success"
-            : ""
-        }`}
-      >
-        {isSaved ? (
-          <>
-            <Save className="size-4" />
-            ذخیره شد
-          </>
+      <div className="min-w-0">
+        {step === 0 ? (
+          <MqttFormFields
+            brokerWsUrl={brokerWsUrl}
+            setBrokerWsUrl={setBrokerWsUrl}
+            brokerHost={brokerHost}
+            setBrokerHost={setBrokerHost}
+            brokerPort={brokerPort}
+            setBrokerPort={setBrokerPort}
+          />
+        ) : step === 1 ? (
+          <MqttMessageSettingsStep
+            baseTopic={baseTopic}
+            setBaseTopic={setBaseTopic}
+            qos={qos}
+            setQos={setQos}
+          />
         ) : (
-          <>
-            <RefreshCw className="size-4" />
-            ذخیره و اتصال مجدد
-          </>
+          <MqttReviewStep
+            brokerWsUrl={brokerWsUrl}
+            brokerHost={brokerHost}
+            brokerPort={brokerPort}
+            baseTopic={baseTopic}
+            qos={qos}
+          />
         )}
-      </Button>
-    </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 border-t border-border-color/80 pt-5">
+        {step > 0 ? (
+          <button
+            type="button"
+            onClick={() => setStep((current) => Math.max(current - 1, 0))}
+            className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border-color bg-bg-main px-4 text-sm font-semibold text-text-primary transition-colors hover:bg-card-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+          >
+            <ChevronRight className="size-4" aria-hidden="true" />
+            <span>مرحله قبل</span>
+          </button>
+        ) : (
+          <span />
+        )}
+
+        {step < MQTT_STEPS.length - 1 ? (
+          <button
+            type="submit"
+            className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-accent3 px-5 text-sm font-bold text-accent3-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset"
+          >
+            <span>مرحله بعد</span>
+            <ChevronLeft className="size-4" aria-hidden="true" />
+          </button>
+        ) : (
+          <Button
+            type="submit"
+            variant={isSaved ? "outline" : "accent"}
+            className={`h-auto min-h-12 rounded-xl px-5 py-3 text-sm font-bold ${
+              isSaved
+                ? "border-success/40 bg-success-soft text-success hover:border-success/40 hover:bg-success-soft hover:text-success"
+                : ""
+            }`}
+          >
+            {isSaved ? (
+              <>
+                <Save className="size-4" />
+                ذخیره شد
+              </>
+            ) : (
+              <>
+                <RefreshCw className="size-4" />
+                ذخیره و اتصال مجدد
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+    </form>
   );
 }
