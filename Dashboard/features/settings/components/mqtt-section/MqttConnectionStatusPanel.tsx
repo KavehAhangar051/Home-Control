@@ -31,12 +31,16 @@ export function MqttConnectionStatusPanel({
     ? "نامشخص تا اتصال بروکر"
     : isEsp32Online
       ? "آنلاین"
-      : "آفلاین";
+      : esp32Ip
+        ? "آفلاین"
+        : "هنوز گزارشی دریافت نشده";
   const esp32Tone = !isBrokerConnected
     ? "bg-text-muted"
     : isEsp32Online
       ? "bg-success"
-      : "bg-red-500";
+      : esp32Ip
+        ? "bg-red-500"
+        : "bg-text-muted";
 
   return (
     <section aria-label="وضعیت اتصال" className="space-y-4 rounded-xl border border-border-color bg-bg-main p-4">
@@ -56,11 +60,15 @@ export function MqttConnectionStatusPanel({
         </span>
       </div>
 
-      {!isBrokerConnected && (
+      {!isBrokerConnected ? (
         <p className="text-xs leading-5 text-text-secondary">
           تا زمانی که داشبورد به بروکر متصل نباشد، وضعیت آنلاین یا آفلاین ESP32 قابل تأیید نیست.
         </p>
-      )}
+      ) : !isEsp32Online && !esp32Ip ? (
+        <p className="text-xs leading-5 text-text-secondary">
+          پس از دریافت اولین پیام وضعیت از ESP32، وضعیت آنلاین یا آفلاین آن نمایش داده می‌شود.
+        </p>
+      ) : null}
 
       {isBrokerConnected && esp32Ip && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-color/70 pt-3">

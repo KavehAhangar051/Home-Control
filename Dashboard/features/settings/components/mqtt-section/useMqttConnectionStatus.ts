@@ -37,11 +37,22 @@ export function useMqttConnectionStatus(): MqttConnectionState {
       }
 
       const client = nextClient;
-      const onConnect = () => setStatus("connected");
-      const onReconnect = () => setStatus("reconnecting");
-      const onClose = () => setStatus("disconnected");
-      const onOffline = () => setStatus("offline");
-      const onError = () => setStatus("error");
+      const isActiveClient = () => getMqttClient() === client;
+      const onConnect = () => {
+        if (isActiveClient()) setStatus("connected");
+      };
+      const onReconnect = () => {
+        if (isActiveClient()) setStatus("reconnecting");
+      };
+      const onClose = () => {
+        if (isActiveClient()) setStatus("disconnected");
+      };
+      const onOffline = () => {
+        if (isActiveClient()) setStatus("offline");
+      };
+      const onError = () => {
+        if (isActiveClient()) setStatus("error");
+      };
 
       client.on("connect", onConnect);
       client.on("reconnect", onReconnect);
