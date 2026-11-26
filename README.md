@@ -78,10 +78,22 @@ bun run r -- bash ./tools/cpp.sh lint
 
 ---
 
+## مصرف حافظه و بهینه‌سازی‌های کلیدی (اندازه‌گیری‌شده روی بیلد فعلی)
+
+| محیط | RAM استاتیک (`.data + .bss`) | Flash / `firmware.bin` | IRAM (`.iram0.text`) |
+| :--- | :--- | :--- | :--- |
+| **`esp32dev` (Core v2)** | `80,752 B` (`24.6%` از `327,680 B`) | `1,162,805 B` (`59.1%`) / `firmware.bin: 1,169,120 B` | `87,131 B` |
+| **`esp32dev_core3` (Core v3)** | `86,324 B` (`26.3%` از `327,680 B`) | `1,302,923 B` (`66.3%`) / `firmware.bin: 1,307,712 B` | `93,727 B` |
+
+- **مسیرهای داغ صفر-سربار (IRAM Hot Path):** تمام چک‌های دوره‌ای `loop()` (`BootManager::isPollDue()`، `isWsPollDue()`، `isWatchdogFeedDue()` و اسکن تک‌مرحله‌ای رجیسترهای GPIO) مستقیماً در IRAM اینلاین شده‌اند؛ در تیک‌های عادی هیچ فراخوانی به Flash یا `callx8` غیرمستقیم انجام نمی‌شود.
+- **Zero-Heap SBO & Hardware Crypto:** کالبک‌های `FastFunction<..., 16>` (`32 B` کل، صفر تخصیص Heap تأییدشده با `nm`)، `-fno-exceptions` و `-fno-rtti` روی واحدهای C++ و شتاب‌دهنده سخت‌افزاری `mbedtls_sha1` برای Handshake وب‌سوکت فعال است.
+
+---
+
 ## مستندات فنی (`docs/`)
 
 - [`docs/CLANG_TOOLING_GUIDE.md`](docs/CLANG_TOOLING_GUIDE.md) — راهنمای ابزارهای `clang-format`، `clang-tidy`، `clangd` و `compile_commands.json`
-- [`docs/RAM_OPTIMIZATION_REVERT_GUIDE.md`](docs/RAM_OPTIMIZATION_REVERT_GUIDE.md) — مستندات صرفه‌جویی ۲۸.۷KB DRAM و روش بازگردانی
+- [`docs/RAM_OPTIMIZATION_REVERT_GUIDE.md`](docs/RAM_OPTIMIZATION_REVERT_GUIDE.md) — مستندات فاز ۱ و ۲ بهینه‌سازی RAM، Flash و نقاط داغ (بیش از ۵۴KB صرفه‌جویی RAM + تا ۶۶.۸KB Flash) و روش بازگردانی
 - [`docs/ANALOG_INPUT_SPEC.md`](docs/ANALOG_INPUT_SPEC.md) — مشخصات ورودی آنالوگ (ADC1، هیسترزیس و کالیبراسیون)
 - [`docs/ANALOG_OUTPUT_SPEC.md`](docs/ANALOG_OUTPUT_SPEC.md) — مشخصات خروجی آنالوگ (PWM / LEDC)
 - [`docs/RULE_ENGINE_V2_DASHBOARD_SPEC.md`](docs/RULE_ENGINE_V2_DASHBOARD_SPEC.md) — مشخصات موتور قوانین v2 (چندبازه‌ای، دوبارکلیک و شرط‌ها)
