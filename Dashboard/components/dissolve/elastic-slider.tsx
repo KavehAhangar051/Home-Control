@@ -1,467 +1,51 @@
-"use client";
+'use client';
 
+/**
+ * React adapter for the official Dissolve web ElasticSlider core.
+ * The animation and gesture engine remains framework-free in elastic-slider.core.ts.
+ */
+import type { CSSProperties, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type PointerEvent,
-  type ReactNode,
-} from "react";
-import { soundManager } from "@/lib/audio";
+  createElasticSlider,
+  type ElasticSliderProps as CoreProps,
+  type ElasticSliderSize,
+} from './elastic-slider.core';
+import { useDissolveCore } from './react';
 
-type SliderSize = "sm" | "md";
+export type { ElasticSliderSize };
 
-type SliderIconProps = {
-  color: string;
-  size: number;
-};
-
-export type ElasticSliderPart =
-  | "root"
-  | "track"
-  | "canvas"
-  | "label"
-  | "labelInverse"
-  | "icon"
-  | "value"
-  | "valueInverse";
-
-export interface ElasticSliderProps {
-  label: string;
-  value?: number;
-  defaultValue?: number;
-  onValueChange?: (value: number) => void;
+export type ElasticSliderProps = Omit<CoreProps, 'onSlidingComplete'> & {
+  /** React-friendly alias retained for existing DashboardSlider consumers. */
   onValueCommit?: (value: number) => void;
-  min?: number;
-  max?: number;
-  step?: number;
-  size?: SliderSize;
-  showValue?: boolean;
-  showTicks?: boolean;
-  formatValue?: (value: number) => string;
-  formatValueText?: (value: number) => string;
-  icon?: (props: SliderIconProps) => ReactNode;
-  disabled?: boolean;
+  icon?: ReactNode | ((props: { color: string; size: number }) => ReactNode);
   className?: string;
-  partClassNames?: Partial<Record<ElasticSliderPart, string>>;
-}
-
-type DragState = {
-  pointerId: number;
-  startX: number;
-  startValue: number;
+  style?: CSSProperties;
 };
-
-const DIGITS = Array.from({ length: 10 }, (_, digit) => String(digit));
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value));
-
-function roundToStep(value: number, min: number, max: number, step: number) {
-  const precision = Math.min(
-    8,
-    Math.max(
-      0,
-      (String(min).split(".")[1] ?? "").length,
-      (String(max).split(".")[1] ?? "").length,
-      (String(step).split(".")[1] ?? "").length,
-    ),
-  );
-  const stepped = min + Math.round((value - min) / step) * step;
-  return Number(clamp(stepped, min, max).toFixed(precision));
-}
-
-function rubberBand(distance: number, limit = 34) {
-  const magnitude = Math.abs(distance);
-  return Math.sign(distance) * (1 - 1 / (magnitude * 0.055 + 1)) * limit;
-}
-
-function RollingValue({ value }: { value: string }) {
-  const characters = Array.from(value, (character, position) => ({
-    character,
-    id: `${position}-${character}`,
-  }));
-
-  return (
-    <span className="dissolve-elastic-value" aria-hidden="true">
-      {characters.map(({ character, id }) => {
-        if (!/\d/.test(character)) {
-          return <span key={id}>{character}</span>;
-        }
-
-        return (
-          <span className="dissolve-elastic-digit" key={id}>
-            <span style={{ transform: `translateY(-${Number(character)}em)` }}>
-              {DIGITS.map((digit) => (
-                <span key={digit}>{digit}</span>
-              ))}
-            </span>
-          </span>
-        );
-      })}
-    </span>
-  );
-}
 
 export function ElasticSlider({
-  label,
-  value,
-  defaultValue = 50,
-  onValueChange,
-  onValueCommit,
-  min = 0,
-  max = 100,
-  step = 1,
-  size = "md",
-  showValue = true,
-  showTicks = true,
-  formatValue = (current) => String(current),
-  formatValueText,
   icon,
-  disabled = false,
   className,
-  partClassNames,
+  style,
+  onValueCommit,
+  ...props
 }: ElasticSliderProps) {
-  const safeMin = Number.isFinite(min) ? min : 0;
-  const safeMax = Number.isFinite(max) && max > safeMin ? max : safeMin + 100;
-  const safeStep = Number.isFinite(step) && step > 0 ? step : 1;
-  const [internalValue, setInternalValue] = useState(() =>
-    roundToStep(Number.isFinite(defaultValue) ? defaultValue : safeMin, safeMin, safeMax, safeStep),
-  );
-  const rawCurrentValue = value ?? internalValue;
-  const currentValue = roundToStep(
-    Number.isFinite(rawCurrentValue) ? rawCurrentValue : safeMin,
-    safeMin,
-    safeMax,
-    safeStep,
-  );
-  const percentage = ((currentValue - safeMin) / (safeMax - safeMin)) * 100;
-  const formattedValue = formatValue(currentValue);
-  const accessibleValue = formatValueText?.(currentValue) ?? formattedValue;
-  const trackRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const dragRef = useRef<DragState | null>(null);
-  const stretchRef = useRef(0);
-  const frameRef = useRef<number | null>(null);
-  const sizeRef = useRef({ width: 1, height: size === "sm" ? 28 : 36 });
-  const percentageRef = useRef(percentage);
-  percentageRef.current = percentage;
-  const rangeRef = useRef({ min: safeMin, max: safeMax, step: safeStep });
-  rangeRef.current = { min: safeMin, max: safeMax, step: safeStep };
-  const colorsRef = useRef({
-    track: "#444444",
-    fill: "#999999",
-    foreground: "#ffffff",
-    fillForeground: "#ffffff",
-  });
-  const valueRef = useRef(currentValue);
-  valueRef.current = currentValue;
-
-  const part = (name: ElasticSliderPart) => partClassNames?.[name] ?? "";
-
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    const { width, height } = sizeRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) return;
-
-    const ratio = Math.min(2, window.devicePixelRatio || 1);
-    const pixelWidth = Math.round(width * ratio);
-    const pixelHeight = Math.round(height * ratio);
-    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
-      canvas.width = pixelWidth;
-      canvas.height = pixelHeight;
-    }
-
-    context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    context.clearRect(0, 0, width, height);
-
-    const stretch = stretchRef.current;
-    const scaleX = 1 + Math.abs(stretch) / Math.max(width, 1) * 0.65;
-    const scaleY = 1 - Math.min(0.2, Math.abs(stretch) / 170);
-    const anchorRight = stretch < 0;
-    context.translate(anchorRight ? width : 0, height / 2);
-    context.scale(scaleX, scaleY);
-    context.translate(anchorRight ? -width : 0, -height / 2);
-
-    const radius = height / 2;
-    const { track: trackColor, fill: fillColor } = colorsRef.current;
-    const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
-      if (w <= 0) return;
-      context.beginPath();
-      context.roundRect(x, y, w, h, r);
-      context.fill();
-    };
-
-    context.fillStyle = trackColor;
-    drawRoundRect(0, 0, width, height, radius);
-    const fillWidth = width * (percentageRef.current / 100);
-    context.fillStyle = fillColor;
-    drawRoundRect(0, 0, fillWidth, height, radius);
-
-    const { min: rangeMin, max: rangeMax, step: rangeStep } = rangeRef.current;
-    const stepCount = Math.floor((rangeMax - rangeMin) / rangeStep);
-    if (showTicks && stepCount <= 20) {
-      const drawTick = (x: number) => {
-        context.beginPath();
-        context.arc(x, height / 2, 1.25, 0, Math.PI * 2);
-        context.fillStyle = x <= fillWidth
-          ? colorsRef.current.fillForeground
-          : colorsRef.current.foreground;
-        context.globalAlpha = 0.58;
-        context.fill();
-        context.globalAlpha = 1;
-      };
-
-      for (let index = 0; index <= stepCount; index += 1) {
-        drawTick((index / (rangeMax - rangeMin) * rangeStep) * width);
-      }
-
-      const lastStepValue = rangeMin + stepCount * rangeStep;
-      if (lastStepValue < rangeMax) drawTick(width);
-    }
-  }, [showTicks]);
-
-  const requestDraw = useCallback(() => {
-    if (frameRef.current !== null) return;
-    frameRef.current = requestAnimationFrame(() => {
-      frameRef.current = null;
-      draw();
-    });
-  }, [draw]);
-
-  const emitValue = useCallback(
-    (rawValue: number) => {
-      const next = roundToStep(rawValue, safeMin, safeMax, safeStep);
-      if (next === valueRef.current) return;
-      valueRef.current = next;
-      if (value === undefined) setInternalValue(next);
-      onValueChange?.(next);
-
-      const totalSteps = Math.floor((safeMax - safeMin) / safeStep);
-      if (totalSteps <= 20 || next === safeMin || next === safeMax) {
-        soundManager.playClick();
-        if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(4);
-      }
-    },
-    [onValueChange, safeMax, safeMin, safeStep, value],
-  );
-
-  const valueFromPointer = useCallback(
-    (event: PointerEvent<HTMLDivElement>, drag: DragState) => {
-      const rect = trackRef.current?.getBoundingClientRect();
-      if (!rect || rect.width <= 0) return;
-
-      const rawPercent =
-        ((drag.startValue - safeMin) / (safeMax - safeMin)) * 100
-        + ((event.clientX - drag.startX) / rect.width) * 100;
-      const clampedPercent = clamp(rawPercent, 0, 100);
-      const overshoot = ((rawPercent - clampedPercent) / 100) * rect.width;
-      stretchRef.current = rubberBand(overshoot);
-      emitValue(safeMin + (clampedPercent / 100) * (safeMax - safeMin));
-      requestDraw();
-    },
-    [emitValue, requestDraw, safeMax, safeMin],
-  );
-
-  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (disabled || event.button !== 0) return;
-    const rect = trackRef.current?.getBoundingClientRect();
-    if (!rect || rect.width <= 0) return;
-
-    const initialPercent = clamp((event.clientX - rect.left) / rect.width, 0, 1);
-    const initialValue = roundToStep(
-      safeMin + initialPercent * (safeMax - safeMin),
-      safeMin,
-      safeMax,
-      safeStep,
-    );
-    dragRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startValue: initialValue,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-    emitValue(initialValue);
-    stretchRef.current = 0;
-    requestDraw();
+  const coreProps: CoreProps = {
+    ...props,
+    onSlidingComplete: onValueCommit,
   };
-
-  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    valueFromPointer(event, drag);
-  };
-
-  const settleStretch = useCallback(() => {
-    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      stretchRef.current = 0;
-      draw();
-      frameRef.current = null;
-      return;
-    }
-    let velocity = 0;
-    const animate = () => {
-      const displacement = stretchRef.current;
-      velocity += -displacement * 0.19 - velocity * 0.28;
-      stretchRef.current = Math.abs(displacement + velocity) < 0.12 ? 0 : displacement + velocity;
-      draw();
-      if (stretchRef.current !== 0) frameRef.current = requestAnimationFrame(animate);
-      else frameRef.current = null;
-    };
-    frameRef.current = requestAnimationFrame(animate);
-  }, [draw]);
-
-  const finishPointer = (event: PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    dragRef.current = null;
-    onValueCommit?.(valueRef.current);
-    settleStretch();
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (disabled) return;
-    const largeStep = Math.max(safeStep, (safeMax - safeMin) / 10);
-    let next: number | null = null;
-    switch (event.key) {
-      case "ArrowRight":
-      case "ArrowUp":
-        next = currentValue + (event.shiftKey ? largeStep : safeStep);
-        break;
-      case "ArrowLeft":
-      case "ArrowDown":
-        next = currentValue - (event.shiftKey ? largeStep : safeStep);
-        break;
-      case "PageUp":
-        next = currentValue + largeStep;
-        break;
-      case "PageDown":
-        next = currentValue - largeStep;
-        break;
-      case "Home":
-        next = safeMin;
-        break;
-      case "End":
-        next = safeMax;
-        break;
-      default:
-        return;
-    }
-    event.preventDefault();
-    emitValue(clamp(next, safeMin, safeMax));
-    onValueCommit?.(roundToStep(clamp(next, safeMin, safeMax), safeMin, safeMax, safeStep));
-  };
-
-  useEffect(() => {
-    const node = trackRef.current;
-    if (!node) return;
-    const measure = () => {
-      const rect = node.getBoundingClientRect();
-      sizeRef.current = { width: rect.width || 1, height: size === "sm" ? 28 : 36 };
-      const styles = getComputedStyle(node);
-      colorsRef.current = {
-        track: styles.getPropertyValue("--dissolve-surface").trim() || styles.getPropertyValue("--border-color").trim() || "#444444",
-        fill: styles.getPropertyValue("--dissolve-primary").trim() || styles.getPropertyValue("--accent3").trim() || "#999999",
-        foreground: styles.getPropertyValue("--dissolve-foreground").trim() || "#ffffff",
-        fillForeground: styles.getPropertyValue("--dissolve-primary-foreground").trim() || "#ffffff",
-      };
-      draw();
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(node);
-    const themeObserver = new MutationObserver(measure);
-    themeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class", "data-theme", "style"],
-    });
-    return () => {
-      observer.disconnect();
-      themeObserver.disconnect();
-    };
-  }, [draw, size]);
-
-  useEffect(() => {
-    percentageRef.current = percentage;
-    requestDraw();
-  }, [requestDraw, percentage, safeMin, safeMax, safeStep, showTicks]);
-
-  useEffect(
-    () => () => {
-      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-    },
-    [],
-  );
-
-  const fillStyle = { clipPath: `inset(0 ${100 - percentage}% 0 0)` };
+  const { host, instance } = useDissolveCore(createElasticSlider, coreProps);
+  const glyphSize = Math.round(({ sm: 13, md: 15, lg: 17 }[props.size ?? 'md']) * 1.2);
+  const glyph = () =>
+    typeof icon === 'function' ? icon({ color: 'currentColor', size: glyphSize }) : icon;
 
   return (
-    <div
-      ref={trackRef}
-      role="slider"
-      tabIndex={disabled ? -1 : 0}
-      aria-label={label}
-      aria-valuemin={safeMin}
-      aria-valuemax={safeMax}
-      aria-valuenow={currentValue}
-      aria-valuetext={accessibleValue}
-      aria-disabled={disabled || undefined}
-      data-disabled={disabled || undefined}
-      data-size={size}
-      dir="ltr"
-      className={`dissolve-elastic-slider ${className ?? ""} ${part("root")}`}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={finishPointer}
-      onPointerCancel={finishPointer}
-      onKeyDown={handleKeyDown}
-      style={{ touchAction: "pan-y" }}
-    >
-      <canvas
-        ref={canvasRef}
-        tabIndex={-1}
-        aria-hidden="true"
-        className={`dissolve-elastic-slider__canvas ${part("canvas")} ${part("track")}`}
-      />
-      <span className={`dissolve-elastic-slider__label ${part("label")}`}>
-        {icon && (
-          <span className={part("icon")} aria-hidden="true">
-            {icon({ color: "var(--dissolve-foreground)", size: size === "sm" ? 14 : 16 })}
-          </span>
-        )}
-        <span>{label}</span>
-      </span>
-      <span
-        aria-hidden="true"
-        className={`dissolve-elastic-slider__label dissolve-elastic-slider__label--inverse ${part("labelInverse")}`}
-        style={fillStyle}
-      >
-        {icon && (
-          <span className={part("icon")} aria-hidden="true">
-            {icon({ color: "var(--dissolve-primary-foreground)", size: size === "sm" ? 14 : 16 })}
-          </span>
-        )}
-        <span>{label}</span>
-      </span>
-      {showValue && (
-        <>
-          <span className={`dissolve-elastic-slider__value ${part("value")}`}>
-            <RollingValue value={formattedValue} />
-          </span>
-          <span
-            aria-hidden="true"
-            className={`dissolve-elastic-slider__value dissolve-elastic-slider__value--inverse ${part("valueInverse")}`}
-            style={fillStyle}
-          >
-            <RollingValue value={formattedValue} />
-          </span>
-        </>
-      )}
-      <span className="sr-only">{label}: {accessibleValue}</span>
+    <div ref={host} className={className} style={style}>
+      {instance && icon != null
+        ? [false, true].map((inked) =>
+            createPortal(glyph(), instance.icon(inked), String(inked)),
+          )
+        : null}
     </div>
   );
 }

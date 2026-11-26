@@ -34,8 +34,10 @@ export interface DashboardSliderProps extends SliderOptions {
   format?: (value: number) => string;
   /** Optional unit label shown by RulerSlider and ElasticSlider when no custom formatter is provided. */
   unit?: string;
-  /** Controls tick dots in RangeSlider, InlineSlider, and ElasticSlider (defaults to true). */
+  /** Controls tick dots in RangeSlider and InlineSlider (defaults to true). */
   showTicks?: boolean;
+  /** Displays the formatted value in the ElasticSlider track (defaults to true). */
+  showValue?: boolean;
   /** Sizing density for tiles, popovers, and forms. */
   size?: "default" | "compact" | "ultra";
   /** Optional scale adapter for RulerSlider when raw values span > 120 ticks (e.g. 12-bit PWM). */
@@ -56,6 +58,7 @@ export function DashboardSlider({
   format,
   unit,
   showTicks = true,
+  showValue = true,
   size = "default",
   rulerScale,
   className,
@@ -156,16 +159,15 @@ export function DashboardSlider({
         <ElasticSlider
           label={label ?? ariaLabel ?? "مقدار"}
           value={value}
-          defaultValue={defaultValue ?? 0}
+          defaultValue={defaultValue}
           onValueChange={onValueChange}
           onValueCommit={onValueCommit}
           min={min}
           max={max}
           step={step}
           size={isCompact || isUltra ? "sm" : "md"}
-          showTicks={showTicks}
           formatValue={format ?? ((current) => (unit ? `${current} ${unit}` : String(current)))}
-          formatValueText={formatValueText}
+          showValue={showValue}
           disabled={disabled}
           className={cn("dashboard-elastic-slider", className)}
         />
