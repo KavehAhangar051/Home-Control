@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpp-quality-and-tests:
+    name: C/C++ Format, Unit Tests & clang-tidy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO & Clang tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install platformio clang-format clang-tidy
+
+      - name: Check C/C++ formatting (clang-format)
+        run: |
+          find firmware include lib test \
+            -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) \
+            ! -path '*/test/mocks/*' ! -path '*/original/*' \
+            | sort | xargs -r clang-format --dry-run --Werror
+
+      - name: Run native unit tests (Core v2 & Core v3 mocks)
+        run: pio test -e native -e native_core3
+
+      - name: Run clang-tidy on ESP32 compilation database
+        run: |
+          bash ./tools/cpp.sh compiledb esp32dev
+          bash ./tools/cpp.sh tidy
+
+  firmware-build:
+    name: Firmware Build (${{ matrix.env }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [esp32dev, esp32dev_core3]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-pio-${{ matrix.env }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-${{ matrix.env }}-
+
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install platformio
+
+      - name: Build ${{ matrix.env }}
+        run: pio run -e ${{ matrix.env }}
+
+  web-console:
+    name: Web Console Typecheck & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run lint
+
+      - name: Build web bundle
+        run: bun run build

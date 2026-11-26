@@ -64,6 +64,7 @@ public:
   int getActiveCount() const;
   void printStatus() const;
   void exportConfig(ParseResult& out) const;
+  size_t exportStateJson(char* outBuf, size_t outBufSize, const AuxNodeManager* auxNodes = nullptr) const;
   String exportStateJson(const AuxNodeManager* auxNodes = nullptr) const;
 
   // --- State Delegation ---

@@ -318,7 +318,44 @@ case "$CMD" in
     if [ "$#" -gt 0 ]; then
       exec "$CPP_VENV_DIR/bin/clang-tidy" -p "$ROOT_DIR" "$@"
     fi
-    find "$ROOT_DIR/firmware" "$ROOT_DIR/lib" -type f \( -name '*.cpp' -o -name '*.c' \) | sort | xargs -r "$CPP_VENV_DIR/bin/clang-tidy" -p "$ROOT_DIR"
+    python3 - "$ROOT_DIR" "$ROOT_DIR/compile_commands.json" <<'PY' | xargs -r -0 "$CPP_VENV_DIR/bin/clang-tidy" -p "$ROOT_DIR"
+import json
+import os
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1]).resolve()
+db_path = Path(sys.argv[2])
+entries = json.loads(db_path.read_text(encoding="utf-8"))
+seen = set()
+files = []
+for entry in entries:
+    raw_file = entry.get("file", "")
+    if not raw_file:
+        continue
+    p = Path(raw_file)
+    if not p.is_absolute():
+        p = (Path(entry.get("directory", str(root))) / p).resolve()
+    else:
+        p = p.resolve()
+    if not p.is_file() or p.suffix not in (".c", ".cc", ".cpp"):
+        continue
+    try:
+        rel = p.relative_to(root).as_posix()
+    except ValueError:
+        continue
+    if not (rel.startswith("firmware/") or rel.startswith("lib/")):
+        continue
+    if "/original/" in rel or rel.startswith("test/mocks/"):
+        continue
+    if rel not in seen:
+        seen.add(rel)
+        files.append(str(p))
+
+files.sort()
+for f in files:
+    sys.stdout.write(f + "\0")
+PY
     ;;
   typecheck)
     shift || true

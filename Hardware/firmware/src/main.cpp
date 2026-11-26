@@ -6,9 +6,7 @@
  *  1. IRAM_ATTR روی loop() — حذف flash cache miss در hot path
  *  2. LoopFn Dispatch Table — حذف null-check pointer هر سیکل
  *  3. Pre-cached Callbacks — حذف StaticFunction::bind() از hot path
- *  4. CCOUNT Throttle — wsServer/wsClient هر 1ms (نه هر iteration)
- *  5. GPIO Shadow Bitmask — REG_READ مستقیم در LoopOptimizer
- *  6. Pin Dispatch LUT — O(1) indexed dispatch بدون RuleEngine search
+ *  4. CCOUNT Throttle — wsServer/wsClient هر 1ms و Watchdog/OTA health هر 500ms
  */
 
 #include <Arduino.h>
@@ -69,50 +67,6 @@ static void onAnalogChanged_cached(const AnalogInputChange& ch, const RuleConfig
 }
 
 // ============================================================================
-// روش ۶: LUT — توابع dispatch که از جدول فراخوانی می‌شن
-// ============================================================================
-
-/**
- * @brief ساخت (یا بازسازی) جدول Pin Dispatch LUT
- * باید یکبار بعد از اینکه segmentها load شدن فراخوانی بشه
- * (در setup() و بعد از هر ConfigLoadedEvent)
- */
-static void rebuildPinDispatchLUT() {
-  memset(uniuno::s_pinDispatchLUT, 0, sizeof(uniuno::s_pinDispatchLUT));
-
-  for (uint8_t pin = 0; pin < uniuno::ESP32_GPIO_COUNT; pin++) {
-    bool isDigital = false;
-    bool isAnalog = false;
-
-    // بررسی نوع pin از طریق PinManager
-    // isAnalogInputPin و isDigitalInputPin از state manager
-    if (pinManager.isAnalogInputPin(static_cast<int>(pin))) {
-      isAnalog = true;
-    }
-    // برای digital input: pin باید در mask باشه ولی analog نباشه
-    // از طریق rule check می‌کنیم — اگر rule داره و analog نیست، digital input هست
-    if (!isAnalog) {
-      RuleConfig rule = pinManager.getRuleByPin(static_cast<int>(pin));
-      if (rule.active || rule.highActionCount > 0 || rule.lowActionCount > 0) {
-        isDigital = true;
-      }
-    }
-
-    if (isDigital) {
-      uniuno::s_pinDispatchLUT[pin].onDigitalChange = &onInputChanged_cached;
-      uniuno::s_pinDispatchLUT[pin].active = true;
-    }
-    if (isAnalog) {
-      uniuno::s_pinDispatchLUT[pin].onAnalogChange = &onAnalogChanged_cached;
-      uniuno::s_pinDispatchLUT[pin].active = true;
-    }
-  }
-
-  uniuno::s_lutBuilt = true;
-  INFO("[Loop] Pin Dispatch LUT rebuilt.");
-}
-
-// ============================================================================
 // روش ۲: Loop Service wrappers برای dispatch table
 // ============================================================================
 
@@ -130,6 +84,13 @@ static LOOP_IRAM_ATTR void wsLoopFn() {
   }
 }
 
+/** Wrapper برای Task Watchdog و تایید پایداری OTA — هر 500ms یکبار */
+static LOOP_IRAM_ATTR void watchdogLoopFn() {
+  if (UNLIKELY(uniuno::isWatchdogFeedDue())) {
+    pollWatchdogAndOtaHealth();
+  }
+}
+
 // ============================================================================
 // SETUP
 // ============================================================================
@@ -143,6 +104,7 @@ void setup() {
   Serial.println("==========================================");
 
   setupErrorHandler();
+  setupWatchdog(15);
   setupEventBus();
   setupNetworkAndTime();
   setupTimer();
@@ -181,9 +143,12 @@ void setup() {
 
   INFO("[System] Setup completed. Starting Async Boot Sequence...");
 
-  segmentStorage = new uniuno::NvsSegmentStorage();
-  auxNodeStorage = new uniuno::NvsAuxNodeStorage();
-  bootManager = new BootManager();
+  static uniuno::NvsSegmentStorage segmentStorageInstance;
+  static uniuno::NvsAuxNodeStorage auxNodeStorageInstance;
+  static BootManager bootManagerInstance;
+  segmentStorage = &segmentStorageInstance;
+  auxNodeStorage = &auxNodeStorageInstance;
+  bootManager = &bootManagerInstance;
 
   BootContext bootCtx = {::network,      &pinManager,   &executor,         &eventBus,       appTimer,
                          segmentStorage, &configLoaded, &rawConfigPayload, &auxNodeManager, auxNodeStorage};
@@ -199,23 +164,17 @@ void setup() {
   INFO("[Loop] Callbacks pre-cached.");
 
   // -------------------------------------------------------------------------
-  // روش ۶: ساخت اولیه LUT (بعد از load بیشتر داده می‌شه)
-  // -------------------------------------------------------------------------
-  rebuildPinDispatchLUT();
-
-  // -------------------------------------------------------------------------
   // روش ۲: ثبت سرویس‌ها در dispatch table
-  // bootManager همیشه بعد از init وجود داره
-  // wsServer و wsClient هم در setupWebSocket ساخته شدن
   // -------------------------------------------------------------------------
   if (bootManager) uniuno::registerLoopService(&bootManagerLoopFn);
   if (wsServer && wsClient) uniuno::registerLoopService(&wsLoopFn);
+  uniuno::registerLoopService(&watchdogLoopFn);
 
   INFO("[Loop] Dispatch table built.");
 }
 
 // ============================================================================
-// LOOP — بهینه‌سازی‌شده با تمام ۶ روش
+// LOOP — بهینه‌سازی‌شده
 // ============================================================================
 
 /**
@@ -223,13 +182,9 @@ void setup() {
  *
  * ترتیب اجرا:
  *  ① executor.poll()          — Bitmask Xtensa, بدون overhead
- *  ② Loop dispatch table      — بدون null-check (روش ۲)
+ *  ② Loop dispatch table      — بدون null-check (روش ۲: boot, WS 1ms, WDT/OTA 500ms)
  *  ③ processInputs            — با pre-cached callback (روش ۳)
  *  ④ processAnalogInputs      — با pre-cached callback (روش ۳)
- *  wsServer/wsClient poll     — داخل wsLoopFn با CCOUNT throttle (روش ۴)
- *
- * روش ۵ و ۶ (GPIO Shadow + LUT) برای آینده آماده‌ست؛
- * PinStateManager از قبل GPIO shadow bitmask داره (hasInputsChanged)
  */
 LOOP_IRAM_ATTR void loop() {
   // ① Executor poll — Xtensa NSA bitmask، 2 cycle idle

@@ -61,7 +61,10 @@ bun run r -- bash ./tools/cpp.sh typecheck firmware/src/main.cpp
 - حذف هشدارهای کاذب ماکرو/امبدد: `bugprone-suspicious-include` (برای پل‌های `*_impl.cpp`)، `bugprone-signed-bitwise` (ماسک‌های GPIO و فلگ‌های ESP-IDF)، `bugprone-throwing-static-initialization` (محیط `-fno-exceptions`)، `readability-simplify-boolean-expr` (ماکروی `UNLIKELY(x)` با `!!(x)`)، `readability-static-accessed-through-instance` (الگوی `WiFi.mode()` و سازگاری با ماک native) و `clang-analyzer-optin.performance.Padding` (چیدمان عمدی خط کش ۳۲ بایتی `AsyncClient`).
 
 ```bash
-# بررسی یک فایل خاص
+# بررسی تمام TUهای فعال firmware/ و lib/ در compile_commands.json فعلی
+bun run r -- bash ./tools/cpp.sh tidy
+
+# یا بررسی یک فایل خاص
 bun run r -- bash ./tools/cpp.sh tidy firmware/src/main.cpp
 ```
 
@@ -77,4 +80,4 @@ bun run r -- bash ./tools/cpp.sh tidy firmware/src/main.cpp
   - اصلاح نوع متغیر حلقه در `PinStateManager::rebuildInputCache()` (`uint8_t` → `int` در مقایسه با `MAX_PINS`).
   - اصلاح `const`-correctness (`ArrayBase::mallocForGrow`، `GpioSwitch::updateHardware`، `BootManager::bootErrorFn` و `loadOfflineConfigFromNvs`)، استفاده از `.empty()`، ادغام `if`های تودرتو، حذف `static` اضافه در anonymous namespace و رفع ابهام `(*ptr).reset()` روی `std::unique_ptr`.
 
-> **نکته تفکیک Core v2 / Core v3:** سه پل کامپایل `NetworkClientSecure_impl.cpp`، `NetworkCore_impl.cpp` و `WiFi_impl.cpp` مبتنی بر APIهای Arduino-ESP32 Core v3 هستند؛ هنگام کار با `compile_commands.json` نسخه `esp32dev` (Core v2)، این سه فایل باید با `esp32dev_core3` بررسی شوند.
+> **سازگاری Core v2 و Core v3:** سه پل کامپایل `NetworkClientSecure_impl.cpp`، `NetworkCore_impl.cpp` و `WiFi_impl.cpp` با `#if ESP_ARDUINO_VERSION_MAJOR >= 3` محافظت شده‌اند و مسیرهای `include/WiFi`، `include/NetworkCore` و `include/NetworkClientSecure` تنها در `esp32dev_core3` فعال می‌شوند؛ بنابراین هر دو محیط `esp32dev` و `esp32dev_core3` بدون خطا بیلد و تحلیل می‌شوند.

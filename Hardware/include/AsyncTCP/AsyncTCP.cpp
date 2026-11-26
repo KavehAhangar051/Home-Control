@@ -734,7 +734,7 @@ bool AsyncClient::connect(IPAddress ip, uint16_t port) {
   return _connect(addr, port);
 }
 
-#if LWIP_IPV6
+#if LWIP_IPV6 && ASYNCTCP_HAS_IPV6_ADDRESS
 bool AsyncClient::connect(IPv6Address ip, uint16_t port) {
   auto ipaddr = static_cast<const uint32_t*>(ip);
   ip_addr_t addr = IPADDR6_INIT(ipaddr[0], ipaddr[1], ipaddr[2], ipaddr[3]);
@@ -755,7 +755,11 @@ bool AsyncClient::connect(const char* host, uint16_t port) {
   if (err == ERR_OK) {
 #if LWIP_IPV6
     if (addr.type == IPADDR_TYPE_V6) {
+#if ASYNCTCP_HAS_IPV6_ADDRESS
       return connect(IPv6Address(addr.u_addr.ip6.addr), port);
+#else
+      return _connect(addr, port);
+#endif
     }
     return connect(IPAddress(addr.u_addr.ip4.addr), port);
 #else
@@ -1047,7 +1051,11 @@ void AsyncClient::_dns_found(struct ip_addr* ipaddr) {
     connect(IPAddress(ip_addr_get_ip4_u32(ipaddr)), _connect_port);
 #if LWIP_IPV6
   } else if (ipaddr && IP_IS_V6(ipaddr)) {
+#if ASYNCTCP_HAS_IPV6_ADDRESS
     connect(IPv6Address(ipaddr->u_addr.ip6.addr), _connect_port);
+#else
+    _connect(*ipaddr, _connect_port);
+#endif
 #endif
   } else {
     if (_error_cb) {
@@ -1169,6 +1177,7 @@ ip6_addr_t AsyncClient::getLocalAddress6() {
   return _pcb->local_ip.u_addr.ip6;
 }
 
+#if ASYNCTCP_HAS_IPV6_ADDRESS
 IPv6Address AsyncClient::remoteIP6() {
   return IPv6Address(getRemoteAddress6().addr);
 }
@@ -1176,6 +1185,7 @@ IPv6Address AsyncClient::remoteIP6() {
 IPv6Address AsyncClient::localIP6() {
   return IPv6Address(getLocalAddress6().addr);
 }
+#endif
 #endif
 
 uint16_t AsyncClient::getRemotePort() {
@@ -1339,12 +1349,18 @@ int8_t AsyncClient::_s_connected(void* arg, void* pcb, int8_t err) {
 AsyncServer::AsyncServer(IPAddress addr, uint16_t port)
     : _port(port), _bind4(true), _addr(addr), _noDelay(false), _pcb(0), _connect_cb(nullptr), _connect_cb_arg(0) {}
 
+#if ASYNCTCP_HAS_IPV6_ADDRESS
 AsyncServer::AsyncServer(IPv6Address addr, uint16_t port)
     : _port(port), _bind6(true), _addr6(addr), _noDelay(false), _pcb(0), _connect_cb(nullptr), _connect_cb_arg(0) {}
+#endif
 
 AsyncServer::AsyncServer(uint16_t port)
-    : _port(port), _bind4(true), _bind6(true), _addr((uint32_t)IPADDR_ANY), _addr6(), _noDelay(false), _pcb(0),
-      _connect_cb(nullptr), _connect_cb_arg(0) {}
+    : _port(port), _bind4(true), _bind6(true), _addr((uint32_t)IPADDR_ANY),
+#if ASYNCTCP_HAS_IPV6_ADDRESS
+      _addr6(),
+#endif
+      _noDelay(false), _pcb(0), _connect_cb(nullptr), _connect_cb_arg(0) {
+}
 
 AsyncServer::~AsyncServer() {
   end();

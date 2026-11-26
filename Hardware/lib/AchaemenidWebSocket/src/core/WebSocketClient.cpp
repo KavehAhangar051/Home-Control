@@ -5,46 +5,11 @@
 #include <Optimization/CompilerTraits.h>
 #include <Timer/Optimization/TimerAsm.h>
 #include <utility>
-#include <cstdlib>
+#include "WssUrlParser.h"
 #include "../parsers/WsClientParser.h"
 #include <WiFi.h>
 
 namespace uniuno {
-
-namespace {
-
-bool parseWssUrl(const char* rawUrl, String& hostOut, int& portOut, String& pathOut) {
-  if (rawUrl == nullptr) return false;
-
-  String url(rawUrl);
-  if (url.startsWith("wss://")) {
-    url = url.substring(6);
-  } else if (url.startsWith("https://")) {
-    url = url.substring(8);
-  } else {
-    return false;
-  }
-
-  const int slashIdx = url.indexOf('/');
-  String hostPort = (slashIdx >= 0) ? url.substring(0, slashIdx) : url;
-  pathOut = (slashIdx >= 0) ? url.substring(slashIdx) : "/";
-
-  const int colonIdx = hostPort.indexOf(':');
-  portOut = 443;
-  if (colonIdx >= 0) {
-    const int parsedPort = atoi(hostPort.substring(colonIdx + 1).c_str());
-    if (parsedPort > 0 && parsedPort <= 65535) {
-      portOut = parsedPort;
-    }
-    hostOut = hostPort.substring(0, colonIdx);
-  } else {
-    hostOut = std::move(hostPort);
-  }
-
-  return hostOut.length() > 0;
-}
-
-} // namespace
 
 // SSL client bypasses cert validation for embedded flexibility
 class InsecureEsp32TcpClient : public websockets::network::GenericEspTcpClient<WiFiClientSecure> {
@@ -155,13 +120,11 @@ void AchaemenidWebSocketClient::doConnect() {
   bool connected = false;
   if (config_.isValid()) {
     Serial.printf("[WebSocket] [Task] Connecting to configured URL: %s\n", config_.serverUrl.c_str());
-    String host;
-    String path;
-    int port = 443;
-    if (parseWssUrl(config_.serverUrl.c_str(), host, port, path)) {
+    ParsedWssUrl parsed{};
+    if (parseWssUrl(config_.serverUrl.c_str(), parsed)) {
       // Use 3-arg connect() so WebsocketsClient preserves InsecureEsp32TcpClient
       // instead of calling upgradeToSecuredConnection() and overwriting it.
-      connected = newClient->connect(host.c_str(), port, path.c_str());
+      connected = newClient->connect(parsed.host, parsed.port, parsed.path);
     } else {
       connected = newClient->connect(config_.serverUrl.c_str());
     }

@@ -25,7 +25,9 @@ public:
   void processQueue() {}
 
   String getBaseTopic() const { return String(_config.baseTopic.c_str()); }
+  const char* getBaseTopicCStr() const { return _config.baseTopic.c_str(); }
 
+  bool publish(const char* topic, const uint8_t* payload, size_t length, bool retained = false);
   bool publish(const String& topic, const uint8_t* payload, size_t length, bool retained = false);
   bool publish(const String& topic, const String& payload, bool retained = false);
 

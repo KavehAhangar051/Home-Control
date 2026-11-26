@@ -1,22 +1,10 @@
 #include "AuxNodeManager.h"
+#include <Utilities/FixedJsonWriter.h>
 #include <Utilities/logging.h>
 #include <cstdio>
 #include <cstring>
 
 namespace {
-
-void appendJsonEscapedString(String& out, const char* text) {
-  if (!text) return;
-  for (const char* p = text; *p != '\0'; ++p) {
-    const unsigned char c = static_cast<unsigned char>(*p);
-    if (c == '"' || c == '\\') {
-      out += '\\';
-      out += static_cast<char>(c);
-    } else if (c >= 0x20) {
-      out += static_cast<char>(c);
-    }
-  }
-}
 
 const char* chipTypeLabel(AuxChipType chip) {
   switch (chip) {
@@ -219,35 +207,39 @@ void AuxNodeManager::exportConfig(ParseResult& out) const {
   }
 }
 
-void AuxNodeManager::appendNodesJson(String& out) const {
-  out += "[";
+size_t AuxNodeManager::appendNodesJson(char* outBuf, size_t outBufSize, size_t offset) const {
+  uniuno::FixedJsonWriter writer(outBuf, outBufSize, offset);
+  writer.appendChar('[');
   bool first = true;
   char macStr[18];
-  char numBuf[16];
   for (int i = 0; i < MAX_AUX_NODES; ++i) {
     if (!_nodes[i].valid) continue;
-    if (!first) out += ",";
+    if (!first) writer.appendChar(',');
     formatMacAddress(_nodes[i].mac, macStr, sizeof(macStr));
 
-    snprintf(numBuf, sizeof(numBuf), "%u", _nodes[i].nodeId);
-    out += "{\"id\":";
-    out += numBuf;
-    out += ",\"mac\":\"";
-    out += macStr;
-    out += "\",\"cap\":";
-    snprintf(numBuf, sizeof(numBuf), "%u", _nodes[i].pinCapacity);
-    out += numBuf;
-    out += ",\"chip\":";
-    snprintf(numBuf, sizeof(numBuf), "%u", static_cast<unsigned int>(_nodes[i].chipType));
-    out += numBuf;
-    out += ",\"name\":\"";
-    appendJsonEscapedString(out, _nodes[i].name);
-    out += "\",\"online\":";
-    out += _nodes[i].online ? "true" : "false";
-    out += "}";
+    writer.appendRaw("{\"id\":");
+    writer.appendUInt(_nodes[i].nodeId);
+    writer.appendRaw(",\"mac\":\"");
+    writer.appendRaw(macStr);
+    writer.appendRaw("\",\"cap\":");
+    writer.appendUInt(_nodes[i].pinCapacity);
+    writer.appendRaw(",\"chip\":");
+    writer.appendUInt(static_cast<unsigned int>(_nodes[i].chipType));
+    writer.appendRaw(",\"name\":\"");
+    writer.appendJsonEscaped(_nodes[i].name);
+    writer.appendRaw("\",\"online\":");
+    writer.appendBool(_nodes[i].online);
+    writer.appendChar('}');
     first = false;
   }
-  out += "]";
+  writer.appendChar(']');
+  return writer.length();
+}
+
+void AuxNodeManager::appendNodesJson(String& out) const {
+  char buf[1024];
+  const size_t len = appendNodesJson(buf, sizeof(buf), 0);
+  out.concat(buf, len);
 }
 
 void AuxNodeManager::printStatus() const {

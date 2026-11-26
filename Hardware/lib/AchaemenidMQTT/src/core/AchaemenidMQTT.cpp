@@ -1,9 +1,13 @@
 #include "AchaemenidMQTT.h"
 #include <NetworkConfigHelper.h>
+#include <Utilities/SystemDiagnostics.h>
 #include <Utilities/logging.h>
 #include <Optimization/CompilerTraits.h>
 #include <WiFi.h>
 #include <cstring>
+#ifdef ESP32
+#include <esp_system.h>
+#endif
 
 namespace uniuno {
 
@@ -102,12 +106,17 @@ void AchaemenidMQTT::subscribe(const String& topic) {
   }
 }
 
-bool AchaemenidMQTT::publish(const String& topic, const uint8_t* payload, size_t length, bool retained) {
-  if (LIKELY(_mqttClient.connected())) {
-    const uint16_t packetId = _mqttClient.publish(topic.c_str(), _config.qos, retained, (const char*)payload, length);
+bool AchaemenidMQTT::publish(const char* topic, const uint8_t* payload, size_t length, bool retained) {
+  if (LIKELY(topic != nullptr && _mqttClient.connected())) {
+    const uint16_t packetId =
+        _mqttClient.publish(topic, _config.qos, retained, reinterpret_cast<const char*>(payload), length);
     return packetId != 0;
   }
   return false;
+}
+
+bool AchaemenidMQTT::publish(const String& topic, const uint8_t* payload, size_t length, bool retained) {
+  return publish(topic.c_str(), payload, length, retained);
 }
 
 bool AchaemenidMQTT::publish(const String& topic, const String& payload, bool retained) {
@@ -125,10 +134,17 @@ void AchaemenidMQTT::_onMqttConnect(bool sessionPresent) {
   _connManager.onConnect();
 
   IPAddress ip = WiFi.localIP();
-  char onlinePayload[64];
-  snprintf(onlinePayload, sizeof(onlinePayload), "{\"status\":\"online\",\"ip\":\"%d.%d.%d.%d\"}", ip[0], ip[1], ip[2],
-           ip[3]);
-  publish(_config.willTopic.c_str(), onlinePayload, true);
+#ifdef ESP32
+  const char* resetReason = diagnostics::resetReasonToString(static_cast<int>(esp_reset_reason()));
+  const uint32_t minFreeHeap = ESP.getMinFreeHeap();
+#else
+  const char* resetReason = "native";
+  const uint32_t minFreeHeap = 0U;
+#endif
+  char onlinePayload[160];
+  const size_t payloadLen = diagnostics::formatMqttOnlineStatusJson(onlinePayload, sizeof(onlinePayload), ip[0], ip[1],
+                                                                    ip[2], ip[3], resetReason, minFreeHeap);
+  publish(_config.willTopic.c_str(), reinterpret_cast<const uint8_t*>(onlinePayload), payloadLen, true);
 
   if (!_config.commandTopic.empty()) {
     _mqttClient.subscribe(_config.commandTopic.c_str(), _config.qos);
