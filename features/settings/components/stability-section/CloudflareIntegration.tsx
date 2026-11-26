@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
+import { ToggleIndicator } from "@/components/dissolve/toggle";
 import { useReducedMotion } from "motion/react";
 import { triggerHaptic } from "@/lib/haptics";
 import { CloudLightning, Server } from "@/components/ui/hugeicons-groups/controls";
@@ -18,12 +18,10 @@ import {
 
 interface CloudflareIntegrationProps {
   isDark?: boolean;
-  animationsEnabled?: boolean;
 }
 
 export default function CloudflareIntegration({
   isDark: _isDark = true,
-  animationsEnabled = true,
 }: CloudflareIntegrationProps) {
   const [cfUrl, setCfUrl] = useState(() => getCloudflareWorkerUrl());
   const prefersReducedMotion = useReducedMotion();
@@ -105,24 +103,32 @@ export default function CloudflareIntegration({
           />
         </div>
       </div>
-      <div className="flex items-center justify-between gap-4 rounded-xl border border-border-color bg-card-hover-bg p-3">
-        <div className="flex min-w-0 flex-1 flex-col text-right">
-          <span className="text-xs font-bold text-text-primary">ذخیره دستی چیدمان</span>
-          <span className="mt-0.5 text-[11px] leading-relaxed text-text-tertiary">
-            در این حالت، تغییرات چیدمان فقط با انتخاب «ذخیره تغییرات» به Cloudflare ارسال می‌شوند.
+      <div className="p-3 rounded-xl border border-border-color bg-card-hover-bg flex items-center justify-between">
+        <label htmlFor="manual-save-mode" className="flex items-center cursor-pointer gap-3 w-full">
+          <span className="relative shrink-0">
+            <input
+              id="manual-save-mode"
+              type="checkbox"
+              className="sr-only"
+              checked={manualSaveMode}
+              onChange={(e) => handleManualSaveModeChange(e.target.checked)}
+            />
+            <ToggleIndicator
+              value={manualSaveMode}
+              size="sm"
+              onColor="var(--accent3)"
+              offColor="var(--border-color)"
+              reducedMotion={Boolean(prefersReducedMotion)}
+              className="scale-[0.95]"
+            />
           </span>
-        </div>
-        <DissolveToggle
-          value={manualSaveMode}
-          onValueChange={handleManualSaveModeChange}
-          size="sm"
-          onColor="var(--accent3)"
-          offColor="var(--border-color)"
-          haptics={false}
-          reducedMotion={!animationsEnabled || Boolean(prefersReducedMotion)}
-          accessibilityLabel="ذخیره دستی چیدمان"
-          className="shrink-0"
-        />
+          <span className="flex flex-col flex-1 min-w-0 text-right">
+            <span className="text-xs font-bold text-text-primary">ذخیره دستی چیدمان</span>
+            <span className="text-[11px] text-text-tertiary mt-0.5 leading-relaxed">
+              در این حالت، تغییرات چیدمان فقط با انتخاب «ذخیره تغییرات» به Cloudflare ارسال می‌شوند.
+            </span>
+          </span>
+        </label>
       </div>
       <div
         className={`p-3 rounded-xl border flex items-center justify-between text-right text-xs ${isCfConnected ? "bg-success-soft border-success/40 text-success" : "bg-card-hover-bg border-border-color text-text-tertiary"}`}
