@@ -8,7 +8,10 @@ import { Edit2, Info, Thermometer } from "@/components/ui/hugeicons-groups/contr
 import { Clock, Clock3, Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { SegmentConditionParameter } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { validateConditionEntry } from "@/features/iot/utils/macroEngine";
+import { ActionConditionsEditor } from "@/features/settings/components/shared/ActionConditionsEditor";
 import {
   DURATION,
   EASE_IN_OUT,
@@ -47,6 +50,7 @@ interface AutomationFormProps {
 
 export default function AutomationForm({ formHook: propFormHook }: AutomationFormProps) {
   const titleId = useId();
+  const segments = useIoTStore((s) => s.segments);
   const animationsEnabled = useIoTStore((s) => s.animationsEnabled);
   const context = useOptionalAutomationContext();
   const resolvedHook = propFormHook ?? context?.formHook;
@@ -84,6 +88,10 @@ export default function AutomationForm({ formHook: propFormHook }: AutomationFor
     isGettingLocation,
     actions,
     setActions,
+    segmentConditions,
+    setSegmentConditions,
+    segmentConditionLogic,
+    setSegmentConditionLogic,
     handleGetLocation,
     resetForm,
     handleSave,
@@ -130,6 +138,18 @@ export default function AutomationForm({ formHook: propFormHook }: AutomationFor
     if (actions.length === 0) {
       setFormError("حداقل یک عملیات به لیست اضافه کنید");
       return false;
+    }
+
+    for (let i = 0; i < segmentConditions.length; i++) {
+      const condErr = validateConditionEntry(
+        segmentConditions[i],
+        segmentConditions.length > 1 ? `شرط سگمنت ${i + 1}` : "شرط سگمنت",
+        segments,
+      );
+      if (condErr) {
+        setFormError(condErr);
+        return false;
+      }
     }
 
     return true;
@@ -272,6 +292,32 @@ export default function AutomationForm({ formHook: propFormHook }: AutomationFor
           <div className="border-t border-border-color/70 pt-4 @2xl/autoform:col-span-5 @2xl/autoform:border-s @2xl/autoform:border-t-0 @2xl/autoform:ps-5 @2xl/autoform:pt-0">
             <ActionBuilder actions={actions} setActions={setActions} />
           </div>
+        </div>
+
+        <div className="border-t border-border-color/70 pt-4">
+          <ActionConditionsEditor
+            key={editingId ?? "new"}
+            actionLabel="اتوماسیون"
+            title="شرط‌های وضعیت سگمنت‌ها (بررسی در Cloudflare)"
+            conditions={segmentConditions.map((c) => ({ ...c, failureMessage: "" }))}
+            conditionLogic={segmentConditionLogic}
+            segments={segments}
+            allowTimeRange={false}
+            allowFailureMessage={false}
+            maxConditions={6}
+            onChange={(nextConds, nextLogic) => {
+              const cleaned = nextConds
+                .filter((c) => c.parameter !== "time_range")
+                .map(({ failureMessage: _ignored, parameter, sourcePin, ...rest }) => ({
+                  ...rest,
+                  parameter: parameter as SegmentConditionParameter,
+                  sourcePin: sourcePin ?? "",
+                }));
+              setSegmentConditions(cleaned);
+              if (nextLogic) setSegmentConditionLogic(nextLogic);
+              if (formError) setFormError("");
+            }}
+          />
         </div>
 
         <AnimatePresence mode="wait">

@@ -483,6 +483,22 @@ function normalizeAutomationRecord(
     };
   }
 
+  const normalizedSegConds = Array.isArray(auto.segmentConditions)
+    ? auto.segmentConditions
+        .map((c) => normalizeRuleGuardCondition(c))
+        .filter((c): c is RuleGuardCondition => Boolean(c))
+    : undefined;
+
+  if (normalizedSegConds && normalizedSegConds.length > 0) {
+    return {
+      ...auto,
+      segmentConditions: normalizedSegConds,
+      ...(auto.segmentConditionLogic === "or" && normalizedSegConds.length > 1
+        ? { segmentConditionLogic: "or" as const }
+        : { segmentConditionLogic: undefined }),
+    };
+  }
+
   return auto;
 }
 
@@ -510,7 +526,7 @@ export function serializeToCloudflare(config: Partial<EspConfig>): CloudflareSer
 
       return normalized;
     }),
-    automations: config.automations || [],
+    automations: (config.automations || []).map(normalizeAutomationRecord),
     macros: (config.macros || []).map(normalizeMacroRecord),
     voiceCommands: config.voiceCommands || [],
     auxNodes: normalizeAuxNodesList(config.auxNodes),

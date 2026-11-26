@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { Automation } from "@/features/iot/hooks/store/types";
+import type { Automation, ConditionLogic, RuleGuardCondition } from "@/features/iot/hooks/store/types";
+import { normalizeRuleGuardCondition, validateConditionEntry } from "@/features/iot/utils/macroEngine";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
 interface AutomationFormDraftInput {
@@ -16,6 +17,8 @@ interface AutomationFormDraftInput {
   temperatureCondition: "greater" | "less";
   intervalMinutes: number | "";
   hasWeatherCondition: boolean;
+  segmentConditions?: RuleGuardCondition[];
+  segmentConditionLogic?: ConditionLogic;
   actions: Array<{
     targetPin?: string;
     targetMacro?: string;
@@ -147,6 +150,11 @@ export function buildValidatedAutomationDraft(
   }
 
   const { time, days, repeatCount, conditionType } = timingResult.value;
+  const normalizedSegmentConditions = Array.isArray(input.segmentConditions)
+    ? input.segmentConditions
+        .map((c) => normalizeRuleGuardCondition(c))
+        .filter((c): c is RuleGuardCondition => Boolean(c))
+    : [];
 
   return {
     ok: true,
@@ -167,6 +175,14 @@ export function buildValidatedAutomationDraft(
       city: input.city,
       temperatureThreshold: finalTempThresh,
       temperatureCondition: input.temperatureCondition,
+      ...(normalizedSegmentConditions.length > 0
+        ? {
+            segmentConditions: normalizedSegmentConditions,
+            ...(input.segmentConditionLogic === "or" && normalizedSegmentConditions.length > 1
+              ? { segmentConditionLogic: "or" as const }
+              : {}),
+          }
+        : {}),
       actions: input.actions,
       enabled: true,
     },
@@ -195,6 +211,8 @@ export function useAutomationForm() {
 
   const [intervalMinutes, setIntervalMinutes] = useState<number | "">("");
   const [hasWeatherCondition, setHasWeatherCondition] = useState<boolean>(false);
+  const [segmentConditions, setSegmentConditions] = useState<RuleGuardCondition[]>([]);
+  const [segmentConditionLogic, setSegmentConditionLogic] = useState<ConditionLogic>("and");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const [actions, setActions] = useState<
@@ -241,6 +259,8 @@ export function useAutomationForm() {
     setTemperatureCondition("greater");
     setIntervalMinutes("");
     setHasWeatherCondition(false);
+    setSegmentConditions([]);
+    setSegmentConditionLogic("and");
     setActions([]);
     setEditingId(null);
   };
@@ -260,10 +280,20 @@ export function useAutomationForm() {
       setTemperatureCondition(auto.temperatureCondition || "greater");
     } else {
       setHasWeatherCondition(false);
+    setSegmentConditions([]);
+    setSegmentConditionLogic("and");
       setCity("");
       setTemperatureThreshold("");
     }
 
+    setSegmentConditions(
+      Array.isArray(auto.segmentConditions)
+        ? auto.segmentConditions
+            .map((c) => normalizeRuleGuardCondition(c))
+            .filter((c): c is RuleGuardCondition => Boolean(c))
+        : [],
+    );
+    setSegmentConditionLogic(auto.segmentConditionLogic === "or" ? "or" : "and");
     setAutoType(inferAutomationEditType(auto));
 
     setActions(auto.actions ? [...auto.actions] : []);
@@ -271,6 +301,19 @@ export function useAutomationForm() {
   };
 
   const handleSave = () => {
+    const currentSegments = useIoTStore.getState().segments;
+    for (let i = 0; i < segmentConditions.length; i++) {
+      const condErr = validateConditionEntry(
+        segmentConditions[i],
+        segmentConditions.length > 1 ? `شرط سگمنت ${i + 1}` : "شرط سگمنت",
+        currentSegments,
+      );
+      if (condErr) {
+        showToast(condErr, "error");
+        return false;
+      }
+    }
+
     const validation = buildValidatedAutomationDraft({
       editingId,
       title,
@@ -286,6 +329,8 @@ export function useAutomationForm() {
       temperatureCondition,
       intervalMinutes,
       hasWeatherCondition,
+      segmentConditions,
+      segmentConditionLogic,
       actions,
     });
 
@@ -350,6 +395,10 @@ export function useAutomationForm() {
     isGettingLocation,
     actions,
     setActions,
+    segmentConditions,
+    setSegmentConditions,
+    segmentConditionLogic,
+    setSegmentConditionLogic,
 
     // actions
     handleGetLocation,
