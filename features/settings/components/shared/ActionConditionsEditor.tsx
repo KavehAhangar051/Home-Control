@@ -709,10 +709,10 @@ export function ActionConditionsEditor({
         <>
           <div className="text-[11px] leading-5 text-text-secondary">منطق ترکیب شرط‌ها</div>
           <fieldset
-          aria-label={`منطق ترکیب شرط‌های ${actionLabel}`}
-          className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-card-bg-solid p-1"
-        >
-          <button
+            aria-label={`منطق ترکیب شرط‌های ${actionLabel}`}
+            className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-card-bg-solid p-1"
+          >
+            <button
             type="button"
             aria-pressed={effectiveLogic === "and"}
             onClick={() => onChange([...conditions], "and")}
@@ -735,7 +735,7 @@ export function ActionConditionsEditor({
             }`}
           >
             حداقل یکی (OR)
-          </button>
+            </button>
           </fieldset>
         </>
       )}
