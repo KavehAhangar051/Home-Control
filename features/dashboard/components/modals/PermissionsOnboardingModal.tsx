@@ -3,7 +3,7 @@
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { GrainToggleEffect } from "@/components/dissolve/toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { HugeIconComponent } from "@/components/ui/hugeicon-factory";
@@ -340,7 +340,7 @@ export default function PermissionsOnboardingModal() {
                                   : "border border-border-color bg-bg-main"
                               }`}
                             >
-                              <ToggleIndicator
+                              <GrainToggleEffect
                                 value={isChecked}
                                 size="sm"
                                 onColor="var(--accent3)"
