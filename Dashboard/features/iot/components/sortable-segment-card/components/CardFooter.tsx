@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { ToggleIndicator } from "@/components/dissolve/toggle";
 import { formatSegmentPinLabel } from "@/features/iot/utils/auxNodeUtils";
 import type { SegmentData } from "../core/types";
 
@@ -71,35 +72,15 @@ function SwitchModeTrack({
   isSmallTrack: boolean;
   animationsEnabled: boolean;
 }) {
-  const trackSize = isSmallTrack ? "h-5 w-9 rounded-[6px]" : "h-6 w-11 rounded-[7px]";
-
-  const trackTone = isPinOn
-    ? "bg-accent3 border border-transparent dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
-    : "bg-input border border-border-color";
-
-  const thumbSize = isSmallTrack ? "size-[14px] rounded-[3px]" : "size-[18px] rounded-[4px]";
-
-  const thumbTone = isPinOn ? "bg-accent3-foreground" : "bg-card-bg-solid dark:bg-foreground";
-
-  const thumbOffset = isPinOn
-    ? "translate-x-0"
-    : isSmallTrack
-      ? "-translate-x-4"
-      : "-translate-x-5";
-
-  const motionClass = animationsEnabled
-    ? "transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]"
-    : "";
-
   return (
-    <span
-      aria-hidden="true"
-      className={`relative inline-flex shrink-0 items-center justify-start p-0.5 transition-colors duration-150 ${trackSize} ${trackTone}`}
-    >
-      <span
-        className={`pointer-events-none inline-block shadow-2xs transform-gpu will-change-transform ${thumbSize} ${thumbTone} ${motionClass} ${thumbOffset}`}
-      />
-    </span>
+    <ToggleIndicator
+      value={isPinOn}
+      size="sm"
+      onColor="var(--accent3)"
+      offColor="var(--input)"
+      reducedMotion={!animationsEnabled}
+      className={isSmallTrack ? "scale-[0.86]" : "scale-100"}
+    />
   );
 }
 
