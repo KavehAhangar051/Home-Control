@@ -828,7 +828,7 @@ html[data-perf-tier="lite"] [class*="backdrop-blur"] {
 .dissolve-elastic-slider__canvas {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
@@ -841,7 +841,7 @@ html[data-perf-tier="lite"] [class*="backdrop-blur"] {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  max-width: 58%;
+  max-width: 55%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -850,9 +850,10 @@ html[data-perf-tier="lite"] [class*="backdrop-blur"] {
   transform: translateY(-50%);
   pointer-events: none;
 }
-.dissolve-elastic-slider__label { left: 14px; }
+.dissolve-elastic-slider__label { left: 14px; max-width: 55%; }
 .dissolve-elastic-slider__value {
   right: 14px;
+  max-width: 34%;
   justify-content: flex-end;
   font-variant-numeric: tabular-nums;
 }
