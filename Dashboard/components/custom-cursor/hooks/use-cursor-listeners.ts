@@ -104,8 +104,12 @@ export function useHardwareCursorListeners({
 
       // Frame-rate-independent kinematic interpolation via O(1) LUT
       const alpha = lookupCursorLerpAlpha(dt);
-      currentX += dx * alpha;
-      currentY += dy * alpha;
+      // During an active pointer interaction, the custom cursor is the visible
+      // input surface: keep it on the hardware pointer so sliders and other
+      // pointer-driven controls share one coordinate instead of chasing a lagging cursor.
+      const positionAlpha = isMouseDown ? 1 : alpha;
+      currentX += dx * positionAlpha;
+      currentY += dy * positionAlpha;
 
       const cursor = cursorRef.current;
 
@@ -254,8 +258,24 @@ export function useHardwareCursorListeners({
       startLoop();
     };
 
-    const onPointerDown = () => {
+    const onPointerDown = (event: PointerEvent) => {
       isMouseDown = true;
+      targetX = event.clientX;
+      targetY = event.clientY;
+      currentX = targetX;
+      currentY = targetY;
+
+      // Snap on press as well as on move, so the first slider value and the
+      // visible cursor already agree on the initial pointerdown frame.
+      const cursor = cursorRef.current;
+      if (cursor) {
+        const rx = snapToDevicePixel(targetX, cachedDpr);
+        const ry = snapToDevicePixel(targetY, cachedDpr);
+        cursor.style.transform = `translate3d(${rx}px,${ry}px,0)`;
+        lastCursorX = rx;
+        lastCursorY = ry;
+      }
+
       refreshInnerTargets();
       startLoop();
     };
