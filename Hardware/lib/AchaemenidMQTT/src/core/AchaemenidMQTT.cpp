@@ -48,8 +48,8 @@ void AchaemenidMQTT::begin(const String& server, uint16_t port, const String& ba
   _mqttClient.setServer(_config.server.c_str(), _config.port);
   _mqttClient.setClientId(_config.clientId.c_str());
 
-  if (_config.user.size() > 0) {
-    _mqttClient.setCredentials(_config.user.c_str(), _config.password.size() > 0 ? _config.password.c_str() : nullptr);
+  if (!_config.user.empty()) {
+    _mqttClient.setCredentials(_config.user.c_str(), !_config.password.empty() ? _config.password.c_str() : nullptr);
   } else {
     _mqttClient.setCredentials(nullptr, nullptr);
   }
@@ -130,7 +130,7 @@ void AchaemenidMQTT::_onMqttConnect(bool sessionPresent) {
            ip[3]);
   publish(_config.willTopic.c_str(), onlinePayload, true);
 
-  if (_config.commandTopic.size() > 0) {
+  if (!_config.commandTopic.empty()) {
     _mqttClient.subscribe(_config.commandTopic.c_str(), _config.qos);
     _subscribed = true;
     Serial.printf("[MQTT] Subscribed to topic: %s\n", _config.commandTopic.c_str());
@@ -143,7 +143,7 @@ void AchaemenidMQTT::_onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
   if (_reconnectAfterDisconnect) {
     _reconnectAfterDisconnect = false;
     Serial.println("[MQTT] Disconnected for reconfiguration; connecting with new settings...");
-    _connManager.scheduleImmediateReconnect(0.15f);
+    _connManager.scheduleImmediateReconnect(0.15F);
     return;
   }
   Serial.println("[MQTT] Disconnected from MQTT.");

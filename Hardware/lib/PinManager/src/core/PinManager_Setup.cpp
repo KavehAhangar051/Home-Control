@@ -524,10 +524,8 @@ int PinManager::removeSegmentsByNodeId(uint8_t nodeId) {
   int removed = 0;
   for (int i = 0; i < MAX_PINS; ++i) {
     const PinEntry* entry = _registry.getEntryByIndexConst(i);
-    if (entry && entry->active && entry->isVirtual && entry->nodeId == nodeId) {
-      if (removeSegmentByIndex(i)) {
-        ++removed;
-      }
+    if (entry && entry->active && entry->isVirtual && entry->nodeId == nodeId && removeSegmentByIndex(i)) {
+      ++removed;
     }
   }
   if (removed > 0) {

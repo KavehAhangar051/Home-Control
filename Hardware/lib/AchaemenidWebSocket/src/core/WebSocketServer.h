@@ -24,8 +24,8 @@ public:
   void broadcastState(const char* stateJson);
 
 private:
-  void handleMessage(uint8_t idx, websockets::WebsocketsMessage msg);
-  void handleEvent(uint8_t idx, websockets::WebsocketsEvent event, String data);
+  void handleMessage(uint8_t idx, const websockets::WebsocketsMessage& msg);
+  void handleEvent(uint8_t idx, websockets::WebsocketsEvent event, const String& data);
 
   websockets::WebsocketsServer server;
   websockets::WebsocketsClient clients[WS_SERVER_MAX_CLIENTS];

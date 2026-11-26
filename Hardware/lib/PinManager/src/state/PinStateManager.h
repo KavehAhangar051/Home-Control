@@ -7,7 +7,7 @@
 #include <Optimization/XtensaAnalogAsm.h>
 #include <Timer/Optimization/TimerAsm.h>
 
-#if defined(ESP32)
+#ifdef ESP32
 #include <soc/gpio_struct.h>
 #endif
 
@@ -222,7 +222,7 @@ public:
     if (LIKELY(_numAnalogInputs == 0)) return false;
 
     if (_activeAdcSlot >= 0) {
-#if defined(ESP32)
+#ifdef ESP32
       if (LIKELY(GpioAdc::isSar1HardwareReady())) return true;
       // Safety fallback: wake up if a hardware conversion somehow exceeds 2ms
       const uint32_t elapsed = uniuno::asm_opt::get_cpu_cycle_count() - _activeAdcStartCycle;
@@ -234,7 +234,7 @@ public:
 
     if (UNLIKELY(!_hasAnalogSchedule)) return true;
 
-#if defined(ESP32)
+#ifdef ESP32
     // 3-cycle CCOUNT hardware throttle: check millis() deadline at most once per 1ms
     // (50x finer than the 50ms minimum sample interval, eliminates ~100-cycle millis() per loop!)
     const uint32_t nowCycles = uniuno::asm_opt::get_cpu_cycle_count();

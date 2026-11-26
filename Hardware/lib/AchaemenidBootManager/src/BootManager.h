@@ -60,7 +60,7 @@ private:
   char portalUrl_[48];
 
   uniuno::AsyncResult<void> bootPollFn();
-  void bootErrorFn(uniuno::Error e);
+  void bootErrorFn(uniuno::Error e) const;
 
   void initMdnsIdentity();
   bool startMdnsResponder(bool apMode);
@@ -79,7 +79,7 @@ private:
   void handlePortalStatus();
   void handleSaveWifi();
 
-  __attribute__((noinline)) void loadOfflineConfigFromNvs();
+  __attribute__((noinline)) void loadOfflineConfigFromNvs() const;
   static void restartFn();
 
 public:

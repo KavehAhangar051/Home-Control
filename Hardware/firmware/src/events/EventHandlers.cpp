@@ -140,7 +140,7 @@ auto onPinChangeRequest = [](PinStateChangeRequestEvent* evt) {
       int pin = evt->pin;
 
       uniuno::TimerHandle newTimer = appTimer->setTimeout(
-          [pin, delay]() {
+          [pin, delay] {
             // Check if still handled
             if (pinManager.getIsHandledByPin(pin)) return;
 
@@ -468,7 +468,7 @@ auto onNetworkStatus = [](NetworkStatusEvent* evt) {
 
     // Delay MQTT connection by 2 seconds to avoid LWIP TCP window crash
     // caused by concurrent AsyncTCP and blocking WiFiClientSecure connections.
-    appTimer->setTimeout([]() { mqttClient.connect(); }, 2000);
+    appTimer->setTimeout([] { mqttClient.connect(); }, 2000);
   }
 };
 

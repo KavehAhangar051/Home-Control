@@ -10,7 +10,7 @@ namespace uniuno {
 
 template <typename R, typename... Args, size_t Capacity>
 FORCE_INLINE FastFunction<R(Args...), Capacity>::FastFunction(const FastFunction& other)
-    : invoker_(other.invoker_), destroyer_(other.destroyer_) {
+    : invoker_(other.invoker_), destroyer_(other.destroyer_), copier_(nullptr) {
   if (LIKELY(invoker_ != nullptr)) {
     if (UNLIKELY(destroyer_ != nullptr)) {
       move_or_pairs_.mover = other.move_or_pairs_.mover;
@@ -30,7 +30,7 @@ FORCE_INLINE FastFunction<R(Args...), Capacity>::FastFunction(const FastFunction
 
 template <typename R, typename... Args, size_t Capacity>
 FORCE_INLINE FastFunction<R(Args...), Capacity>::FastFunction(FastFunction&& other) noexcept
-    : invoker_(other.invoker_), destroyer_(other.destroyer_) {
+    : invoker_(other.invoker_), destroyer_(other.destroyer_), copier_(nullptr) {
   if (LIKELY(invoker_ != nullptr)) {
     if (UNLIKELY(destroyer_ != nullptr)) {
       move_or_pairs_.mover = other.move_or_pairs_.mover;

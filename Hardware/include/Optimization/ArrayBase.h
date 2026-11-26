@@ -31,7 +31,7 @@ protected:
   }
 
   // Heap management abstraction for non-trivial types
-  void* mallocForGrow(std::size_t new_cap, std::size_t elem_size);
+  void* mallocForGrow(std::size_t new_cap, std::size_t elem_size) const;
   void freeHeap(void* old_data);
 
   // POD (Trivially Copyable) optimizations implemented in .cpp to save Flash

@@ -5,13 +5,13 @@
 
 namespace uniuno {
 namespace {
-static constexpr uint8_t STORAGE_VERSION_V2 = 2;
-static constexpr uint8_t STORAGE_VERSION_V3 = 3;
-static constexpr uint8_t STORAGE_VERSION_V4 = 4;
-static constexpr uint8_t STORAGE_VERSION_V5 = 5;
-static constexpr uint8_t STORAGE_VERSION_V6 = 6;
-static constexpr uint8_t STORAGE_VERSION = 7;
-static constexpr char NVS_NAMESPACE[] = "AchaemenidSeg";
+constexpr uint8_t STORAGE_VERSION_V2 = 2;
+constexpr uint8_t STORAGE_VERSION_V3 = 3;
+constexpr uint8_t STORAGE_VERSION_V4 = 4;
+constexpr uint8_t STORAGE_VERSION_V5 = 5;
+constexpr uint8_t STORAGE_VERSION_V6 = 6;
+constexpr uint8_t STORAGE_VERSION = 7;
+constexpr char NVS_NAMESPACE[] = "AchaemenidSeg";
 
 #pragma pack(push, 1)
 struct StoredRuleActionV2 {
@@ -139,11 +139,11 @@ struct StoredRuleCondition {
 };
 #pragma pack(pop)
 
-static constexpr size_t MAX_V6_BLOB_SIZE = sizeof(StoredSegmentHeaderV6) + (4U * sizeof(StoredRuleAction)) +
-                                           (4U * sizeof(StoredRuleAction)) +
-                                           (MAX_ANALOG_RANGE_RULES * sizeof(StoredAnalogRangeRule));
+constexpr size_t MAX_V6_BLOB_SIZE = sizeof(StoredSegmentHeaderV6) + (4U * sizeof(StoredRuleAction)) +
+                                    (4U * sizeof(StoredRuleAction)) +
+                                    (MAX_ANALOG_RANGE_RULES * sizeof(StoredAnalogRangeRule));
 
-static constexpr size_t MAX_V7_BLOB_SIZE =
+constexpr size_t MAX_V7_BLOB_SIZE =
     sizeof(StoredSegmentHeaderV6) +
     (2U * MAX_RULE_ACTIONS_PER_SIDE *
      (sizeof(StoredRuleAction) + 1U + (MAX_RULE_CONDITIONS_PER_ACTION * sizeof(StoredRuleCondition)))) +
@@ -284,7 +284,7 @@ bool readConditionsFromBlob(const uint8_t* src, size_t blobLen, size_t& offset, 
   const uint8_t count = static_cast<uint8_t>(condMeta & 0x0FU);
   const uint8_t logic = static_cast<uint8_t>((condMeta >> 4) & 0x01U);
   if (count > MAX_RULE_CONDITIONS_PER_ACTION) return false;
-  if (offset + static_cast<size_t>(count) * sizeof(StoredRuleCondition) > blobLen) return false;
+  if (offset + (static_cast<size_t>(count) * sizeof(StoredRuleCondition)) > blobLen) return false;
   outCount = count;
   outLogic = (logic == COND_LOGIC_OR) ? COND_LOGIC_OR : COND_LOGIC_AND;
   for (uint8_t i = 0; i < count; ++i) {
@@ -652,9 +652,9 @@ bool loadBank(Preferences& prefs, char bank, ParseResult& out) {
 
     const uint8_t maxActionsPerSide = isV6 ? 4U : MAX_RULE_ACTIONS_PER_SIDE;
     const size_t expectedV6Len = sizeof(StoredSegmentHeaderV6) +
-                                 static_cast<size_t>(hdr.highActionCount) * sizeof(StoredRuleAction) +
-                                 static_cast<size_t>(hdr.lowActionCount) * sizeof(StoredRuleAction) +
-                                 static_cast<size_t>(hdr.analogRangeCount) * sizeof(StoredAnalogRangeRule);
+                                 (static_cast<size_t>(hdr.highActionCount) * sizeof(StoredRuleAction)) +
+                                 (static_cast<size_t>(hdr.lowActionCount) * sizeof(StoredRuleAction)) +
+                                 (static_cast<size_t>(hdr.analogRangeCount) * sizeof(StoredAnalogRangeRule));
 
     const bool isVirtual = (hdr.flags & 0x01U) != 0U;
     const bool ruleActive = (hdr.flags & 0x02U) != 0U;

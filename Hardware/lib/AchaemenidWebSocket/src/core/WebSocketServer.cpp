@@ -41,9 +41,9 @@ HOT_PATH void AchaemenidWebSocketServer::loop() {
 
       Serial.printf("[LocalWS] New client connected (slot %d/%d)\n", idx + 1, WS_SERVER_MAX_CLIENTS);
 
-      clients[idx].onMessage([this, idx](websockets::WebsocketsMessage msg) { this->handleMessage(idx, msg); });
+      clients[idx].onMessage([this, idx](const websockets::WebsocketsMessage& msg) { this->handleMessage(idx, msg); });
       clients[idx].onEvent(
-          [this, idx](websockets::WebsocketsEvent event, String data) { this->handleEvent(idx, event, data); });
+          [this, idx](websockets::WebsocketsEvent event, const String& data) { this->handleEvent(idx, event, data); });
     }
   }
 
@@ -61,9 +61,9 @@ HOT_PATH void AchaemenidWebSocketServer::loop() {
         if (i < clientCount - 1) {
           const uint8_t lastIdx = clientCount - 1;
           clients[i] = std::move(clients[lastIdx]);
-          clients[i].onMessage([this, i](websockets::WebsocketsMessage msg) { this->handleMessage(i, msg); });
+          clients[i].onMessage([this, i](const websockets::WebsocketsMessage& msg) { this->handleMessage(i, msg); });
           clients[i].onEvent(
-              [this, i](websockets::WebsocketsEvent event, String data) { this->handleEvent(i, event, data); });
+              [this, i](websockets::WebsocketsEvent event, const String& data) { this->handleEvent(i, event, data); });
         }
         clientCount--;
       }
@@ -71,13 +71,13 @@ HOT_PATH void AchaemenidWebSocketServer::loop() {
   }
 }
 
-void AchaemenidWebSocketServer::handleMessage(uint8_t idx, websockets::WebsocketsMessage msg) {
+void AchaemenidWebSocketServer::handleMessage(uint8_t idx, const websockets::WebsocketsMessage& msg) {
   if (msg.isText()) {
     parser_.parseMessage(msg.data(), clients[idx]);
   }
 }
 
-void AchaemenidWebSocketServer::handleEvent(uint8_t idx, websockets::WebsocketsEvent event, String /*data*/) {
+void AchaemenidWebSocketServer::handleEvent(uint8_t idx, websockets::WebsocketsEvent event, const String& /*data*/) {
   if (event == websockets::WebsocketsEvent::ConnectionClosed) {
     Serial.printf("[LocalWS] Connection closed (slot %d)\n", idx + 1);
   }

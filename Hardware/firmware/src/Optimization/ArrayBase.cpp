@@ -6,7 +6,7 @@
 
 namespace uniuno {
 
-void* ArrayBase::mallocForGrow(std::size_t new_cap, std::size_t elem_size) {
+void* ArrayBase::mallocForGrow(std::size_t new_cap, std::size_t elem_size) const {
   if (fixed_capacity_) return nullptr;
 #ifdef ESP32
   return heap_caps_malloc(new_cap * elem_size, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);

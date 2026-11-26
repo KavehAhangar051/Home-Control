@@ -41,6 +41,8 @@ void StateParsers::handle(const uint8_t* payload, size_t len, IEventDispatcher* 
   case 0x0D:
     parseReadAnalogInput(payload, len, dispatcher);
     break;
+  default:
+    break;
   }
 }
 

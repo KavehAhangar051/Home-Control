@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cstring>
 
-PinManager::PinManager() : _registry(), _timerManager(_registry), _stateManager(_registry) {}
+PinManager::PinManager() : _timerManager(_registry), _stateManager(_registry) {}
 
 PinManager::~PinManager() {}
 

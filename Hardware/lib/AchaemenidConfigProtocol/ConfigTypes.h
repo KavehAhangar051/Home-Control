@@ -42,23 +42,23 @@ static constexpr uint8_t MAX_ANALOG_RANGE_RULES = 6;         // Max independent 
 static constexpr uint8_t MAX_RULE_ACTIONS_PER_SIDE = 6;      // Max actions per HIGH/LOW digital edge
 static constexpr uint8_t MAX_RULE_CONDITIONS_PER_ACTION = 4; // Max guard conditions per action/range
 
-inline constexpr bool isLocalGpioPin(int pin) {
+constexpr bool isLocalGpioPin(int pin) {
   return pin >= LOCAL_GPIO_MIN && pin <= LOCAL_GPIO_MAX;
 }
 
-inline constexpr bool isVirtualPin(int pin) {
+constexpr bool isVirtualPin(int pin) {
   return pin >= VIRTUAL_PIN_MIN && pin <= VIRTUAL_PIN_MAX;
 }
 
-inline constexpr bool isValidManagedPin(int pin) {
+constexpr bool isValidManagedPin(int pin) {
   return pin >= LOCAL_GPIO_MIN && pin <= VIRTUAL_PIN_MAX;
 }
 
-inline constexpr bool isValidAuxNodeId(int nodeId) {
+constexpr bool isValidAuxNodeId(int nodeId) {
   return nodeId >= 1 && nodeId <= MAX_AUX_NODES;
 }
 
-inline constexpr bool isValidAuxRemotePin(int remotePin) {
+constexpr bool isValidAuxRemotePin(int remotePin) {
   return remotePin >= 0 && remotePin <= LOCAL_GPIO_MAX;
 }
 
@@ -107,15 +107,15 @@ inline bool parseMacAddress(const char* text, uint8_t outMac[6]) {
     if (sep != ':' && sep != '-') return false;
     for (int i = 0; i < 6; ++i) {
       const int hi = hexNibbleValue(text[i * 3]);
-      const int lo = hexNibbleValue(text[i * 3 + 1]);
+      const int lo = hexNibbleValue(text[(i * 3) + 1]);
       if (hi < 0 || lo < 0) return false;
-      if (i < 5 && text[i * 3 + 2] != sep) return false;
+      if (i < 5 && text[(i * 3) + 2] != sep) return false;
       parsed[i] = static_cast<uint8_t>((hi << 4) | lo);
     }
   } else if (len == 12) {
     for (int i = 0; i < 6; ++i) {
       const int hi = hexNibbleValue(text[i * 2]);
-      const int lo = hexNibbleValue(text[i * 2 + 1]);
+      const int lo = hexNibbleValue(text[(i * 2) + 1]);
       if (hi < 0 || lo < 0) return false;
       parsed[i] = static_cast<uint8_t>((hi << 4) | lo);
     }

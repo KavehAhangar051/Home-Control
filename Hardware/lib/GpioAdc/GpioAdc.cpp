@@ -7,7 +7,7 @@
 #define GPIO_ADC_HAS_ESP32_HAL 0
 #endif
 
-#if defined(ESP32)
+#ifdef ESP32
 #define GPIO_ADC_IRAM IRAM_ATTR
 #else
 #define GPIO_ADC_IRAM
@@ -21,12 +21,12 @@ namespace {
 //   bit  18:     meas1_start_force
 //   bits 19..30: sar1_en_pad (1 << adc1_channel)
 //   bit  31:     sar1_en_pad_force
-static constexpr uint32_t SAR1_DONE_MASK = (1UL << 16);
-static constexpr uint32_t SAR1_START_BIT = (1UL << 17);
-static constexpr uint32_t SAR1_START_FORCE_BIT = (1UL << 18);
-static constexpr uint32_t SAR1_PAD_FORCE_BIT = (1UL << 31);
-static constexpr uint32_t SAR1_DATA_MASK = 0x0FFFUL;
-static constexpr uint32_t SAR1_TIMEOUT_CYCLES = uniuno::asm_opt::ms_to_cycles(2);
+constexpr uint32_t SAR1_DONE_MASK = (1UL << 16);
+constexpr uint32_t SAR1_START_BIT = (1UL << 17);
+constexpr uint32_t SAR1_START_FORCE_BIT = (1UL << 18);
+constexpr uint32_t SAR1_PAD_FORCE_BIT = (1UL << 31);
+constexpr uint32_t SAR1_DATA_MASK = 0x0FFFUL;
+constexpr uint32_t SAR1_TIMEOUT_CYCLES = uniuno::asm_opt::ms_to_cycles(2);
 } // namespace
 
 GpioAdc::GpioAdc()

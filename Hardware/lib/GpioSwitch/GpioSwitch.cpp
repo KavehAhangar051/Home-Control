@@ -42,7 +42,7 @@ int8_t GpioSwitch::getPin() const {
   return _pin;
 }
 
-void GpioSwitch::updateHardware() {
+void GpioSwitch::updateHardware() const {
   // اگر activeHigh باشد، روشن بودن یعنی HIGH و خاموش بودن یعنی LOW
   // اگر activeLow باشد (مانند برخی رله‌ها)، روشن بودن یعنی LOW و خاموش
   // بودن یعنی HIGH

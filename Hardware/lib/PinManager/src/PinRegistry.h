@@ -121,10 +121,8 @@ public:
       targetHash = ((targetHash << 5) + targetHash) + static_cast<uint8_t>(*s++);
 
     for (int i = 0; i < MAX_PINS; i++) {
-      if (isSlotActive(i) && _segmentIdHashes[i] == targetHash) {
-        if (strcmp(_entries[i].segmentId, id) == 0) {
-          return i;
-        }
+      if (isSlotActive(i) && _segmentIdHashes[i] == targetHash && strcmp(_entries[i].segmentId, id) == 0) {
+        return i;
       }
     }
     return -1;
