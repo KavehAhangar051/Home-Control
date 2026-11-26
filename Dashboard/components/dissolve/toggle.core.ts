@@ -178,17 +178,22 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
       : styles.getPropertyValue('--text-secondary').trim();
     thumbColor = o.thumbColor ?? (stateThumbColor || 'rgb(255, 255, 255)');
     ghost.style.background = thumb.style.background = thumbColor;
-    ghost.style.boxShadow = thumb.style.boxShadow = SHADOW;
+    const thumbShadow = p().shape === 'square' ? '0 1px 2px rgba(0, 0, 0, 0.16)' : SHADOW;
+    ghost.style.boxShadow = thumb.style.boxShadow = thumbShadow;
   }
 
   /** Sizes the track, the thumb and the grain canvas, and snaps to the state. */
   function layout() {
-    const s = TOGGLE_SIZES[p().size] ?? TOGGLE_SIZES.md;
+    const square = p().shape === 'square';
+    const s = square ? { width: 44, height: 24, inset: 3 } : TOGGLE_SIZES[p().size] ?? TOGGLE_SIZES.md;
     W = s.width; H = s.height; inset = s.inset;
-    d = H - inset * 2; offX = inset; onX = W - inset - d;
-    Object.assign(host.style, { width: W + 'px', height: H + 'px', borderRadius: H / 2 + 'px' });
-    for (const t of [ghost, thumb]) Object.assign(t.style, { width: d + 'px', height: d + 'px', top: inset + 'px' });
-    ({ grid, dot } = grainGrid(d));
+    d = H - inset * 2;
+    offX = square ? W - inset - d : inset;
+    onX = square ? inset : W - inset - d;
+    thumbRadius = square ? '5px' : '50%';
+    Object.assign(host.style, { width: W + 'px', height: H + 'px', borderRadius: square ? '8px' : H / 2 + 'px' });
+    for (const t of [ghost, thumb]) Object.assign(t.style, { width: d + 'px', height: d + 'px', top: inset + 'px', borderRadius: thumbRadius });
+    ({ grid, dot } = grainGrid(d, square ? 'square' : 'capsule'));
     N = grid.length;
     D = new Float32Array(N * 4);
     F = new Float32Array(N * 4);
