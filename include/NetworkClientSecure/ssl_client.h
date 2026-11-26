@@ -16,6 +16,8 @@
 #include "mbedtls/ctr_drbg.h"
 #endif
 
+#include <esp_err.h>
+
 typedef esp_err_t (*crt_bundle_attach_cb)(void* conf);
 
 typedef struct sslclient_context {
