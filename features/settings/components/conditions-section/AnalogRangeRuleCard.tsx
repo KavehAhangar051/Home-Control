@@ -263,7 +263,7 @@ export function AnalogRangeRuleCard({
           <div>
             <div className="mb-1.5 flex items-center justify-between gap-1">
               <Label htmlFor={hystId} className="font-semibold">
-                هیسترزیس
+                مقدار هیسترزیس
               </Label>
               <span dir="ltr" className="font-mono text-[10px] text-text-muted tabular-nums">
                 0..{maxHysteresis}
@@ -290,7 +290,7 @@ export function AnalogRangeRuleCard({
         </div>
 
         <p className="text-[11px] text-text-muted leading-relaxed">
-          باند محافظ برای جلوگیری از قطع‌ووصلی روی مرز بازه
+          فاصله محافظ اطراف مرز بازه برای جلوگیری از تغییر وضعیت‌های پیاپی هنگام نوسان مقدار سنسور.
           {isInvertedBounds && (
             <span className="ms-2 text-destructive font-semibold">
               (توجه: حداقل نباید از حداکثر بزرگ‌تر باشد)
@@ -301,7 +301,7 @@ export function AnalogRangeRuleCard({
         {/* Trigger Mode & Target Output */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <span className="block font-semibold mb-1.5">زمان اجرا</span>
+            <span className="block font-semibold mb-1.5">محرک اجرای عملیات</span>
             <fieldset
               aria-label={`زمان اجرای بازه ${index + 1}`}
               className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-bg-primary p-1"
