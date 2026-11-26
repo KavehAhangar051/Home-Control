@@ -20,8 +20,7 @@ export function MqttFormFields({
 }: Props) {
   return (
     <div className="space-y-7">
-      <div className="space-y-3">
-        <div className="space-y-2">
+      <div className="space-y-2">
           <Label htmlFor="mqtt-broker-ws-url" className="text-sm font-bold text-text-primary">
             نشانی WebSocket بروکر برای داشبورد
           </Label>
@@ -33,30 +32,34 @@ export function MqttFormFields({
             aria-describedby="mqtt-broker-ws-url-help"
             type="text"
             dir="ltr"
+            autoCapitalize="none"
+            spellCheck={false}
             value={brokerWsUrl}
             onChange={(event) => setBrokerWsUrl(event.target.value)}
             className="h-11 font-mono text-base sm:text-sm"
             placeholder="wss://broker.emqx.io:8084/mqtt"
           />
-        </div>
       </div>
 
       <fieldset className="space-y-3">
         <legend className="text-sm font-bold text-text-primary">
           اتصال ESP32 از طریق TCP
         </legend>
-        <p className="text-xs leading-5 text-text-secondary sm:text-[13px]">
+        <p id="mqtt-tcp-connection-help" className="text-xs leading-5 text-text-secondary sm:text-[13px]">
           میزبان و پورت بروکری را وارد کنید که ESP32 به آن متصل می‌شود.
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
           <div className="min-w-0 space-y-2">
-            <Label htmlFor="mqtt-broker-host" className="text-sm font-semibold text-text-primary">
+            <Label htmlFor="mqtt-broker-host" className="text-sm font-bold text-text-primary">
               میزبان بروکر
             </Label>
             <Input
               id="mqtt-broker-host"
               type="text"
               dir="ltr"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-describedby="mqtt-tcp-connection-help"
               value={brokerHost}
               onChange={(event) => setBrokerHost(event.target.value)}
               className="h-11 font-mono text-base sm:text-sm"
@@ -64,13 +67,14 @@ export function MqttFormFields({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mqtt-broker-port" className="text-sm font-semibold text-text-primary">
+            <Label htmlFor="mqtt-broker-port" className="text-sm font-bold text-text-primary">
               پورت TCP
             </Label>
             <Input
               id="mqtt-broker-port"
               type="number"
               dir="ltr"
+              aria-describedby="mqtt-tcp-connection-help"
               value={brokerPort}
               onChange={(event) => setBrokerPort(Number.parseInt(event.target.value, 10) || 1883)}
               className="h-11 font-mono text-base tabular-nums sm:text-sm"

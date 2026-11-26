@@ -29,6 +29,8 @@ export function MqttMessageSettingsStep({
           aria-describedby="mqtt-base-topic-help"
           type="text"
           dir="ltr"
+          autoCapitalize="none"
+          spellCheck={false}
           value={baseTopic}
           onChange={(event) => setBaseTopic(event.target.value)}
           className="h-11 font-mono text-base sm:text-sm"

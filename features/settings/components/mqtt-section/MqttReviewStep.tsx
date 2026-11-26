@@ -52,6 +52,7 @@ export function MqttReviewStep({
           <h4 className="text-sm font-bold text-text-primary">نشانی‌های اتصال</h4>
           <button
             type="button"
+            aria-label="ویرایش نشانی‌های اتصال"
             onClick={onEditConnection}
             className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg px-3 text-sm font-semibold text-accent3 transition-colors hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
           >
@@ -78,6 +79,7 @@ export function MqttReviewStep({
           <h4 className="text-sm font-bold text-text-primary">تنظیم پیام‌ها</h4>
           <button
             type="button"
+            aria-label="ویرایش تنظیم پیام‌ها"
             onClick={onEditMessages}
             className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg px-3 text-sm font-semibold text-accent3 transition-colors hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
           >

@@ -39,6 +39,7 @@ export function MqttQosSelector({ qos, setQos }: Props) {
               key={option.value}
               type="button"
               aria-pressed={isSelected}
+              aria-describedby={`mqtt-qos-${option.value}-description`}
               onClick={() => {
                 soundManager.playClick();
                 setQos(option.value);
@@ -65,7 +66,10 @@ export function MqttQosSelector({ qos, setQos }: Props) {
                 </span>
               </span>
               <span className="text-sm font-semibold text-text-primary">{option.title}</span>
-              <span className="text-xs leading-5 text-text-secondary sm:text-[13px]">
+              <span
+                id={`mqtt-qos-${option.value}-description`}
+                className="text-xs leading-5 text-text-secondary sm:text-[13px]"
+              >
                 {option.description}
               </span>
             </button>
