@@ -190,6 +190,8 @@ export interface EspConfig {
     manual_save_mode?: boolean;
     dashboard_width?: 1 | 2 | 3 | 4 | 5;
     dashboard_bg_color?: string;
+    dark_blackness?: number;
+    light_whiteness?: number;
     dashboard_bg_opacity?: number;
   };
   layout: {

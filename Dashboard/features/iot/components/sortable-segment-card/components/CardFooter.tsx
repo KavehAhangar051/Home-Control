@@ -155,7 +155,7 @@ function CardFooter({
         )}
         {showAutoOffBadge && (
           <span
-            className="rounded border border-border-color bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-normal tabular-nums text-text-secondary shrink-0"
+            className="rounded border border-accent4/35 bg-accent4-transparent px-1.5 py-0.5 font-mono text-[11px] font-medium tabular-nums text-accent4 shrink-0"
             dir="ltr"
           >
             {autoOffValue}s

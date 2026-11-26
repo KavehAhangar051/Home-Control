@@ -314,6 +314,8 @@ describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
       headerAnimationType: "chase",
       headerPosition: "left",
       dashboardBgColor: "#0a0a0a",
+      darkBlackness: 15,
+      lightWhiteness: 0,
       dashboardBgOpacity: 0.75,
     });
 
@@ -323,6 +325,8 @@ describe("Cloudflare & ESP32 Config Boundary Serialization Contracts", () => {
     assert.equal(serialized.preferences.header_position, "left");
     assert.equal(serialized.preferences.dashboard_bg_color, "#0a0a0a");
     assert.equal(serialized.preferences.dashboard_bg_opacity, 0.75);
+    assert.equal(serialized.preferences.dark_blackness, 15);
+    assert.equal(serialized.preferences.light_whiteness, 0);
 
     const deserialized = deserializeFromCloudflare(serialized);
     assert.equal(deserialized.segments.length, 1);

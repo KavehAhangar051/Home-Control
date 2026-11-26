@@ -122,7 +122,7 @@ export default function GroupHeader({
         >
           <div
             aria-hidden="true"
-            className={`flex items-center justify-center rounded-lg bg-card-bg text-text-secondary border border-border-color shrink-0 ${
+            className={`flex items-center justify-center rounded-lg bg-accent4-transparent text-accent4 border border-accent4/35 shrink-0 ${
               isDenseHeader ? "size-7" : "size-7 @sm/group:size-8"
             }`}
           >
@@ -143,7 +143,7 @@ export default function GroupHeader({
                 <span
                   dir="ltr"
                   title={`برد کمکی #${auxNode.nodeId} (${AUX_CHIP_META[auxNode.chipType].label}) · ${auxNode.mac} · ${auxNode.online ? "آنلاین" : "آفلاین"}`}
-                  className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-accent3/30 bg-accent3/10 px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums text-text-secondary shrink-0"
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-accent4/40 bg-accent4-transparent px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums text-text-primary shrink-0"
                 >
                   <span
                     className={`size-1.5 shrink-0 rounded-full ${

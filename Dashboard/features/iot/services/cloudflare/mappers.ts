@@ -456,6 +456,14 @@ function buildNormalizedPreferences(
     header_position: prefs?.header_position || "top",
     dashboard_width: prefs?.dashboard_width || 1,
     dashboard_bg_color: prefs?.dashboard_bg_color,
+    dark_blackness:
+      typeof prefs?.dark_blackness === "number" && Number.isFinite(prefs.dark_blackness)
+        ? Math.min(100, Math.max(0, Math.round(prefs.dark_blackness)))
+        : 70,
+    light_whiteness:
+      typeof prefs?.light_whiteness === "number" && Number.isFinite(prefs.light_whiteness)
+        ? Math.min(100, Math.max(0, Math.round(prefs.light_whiteness)))
+        : 70,
     dashboard_bg_opacity: prefs?.dashboard_bg_opacity,
     manual_save_mode: prefs?.manual_save_mode ?? false,
     cuneiform_opacity: prefs?.cuneiform_opacity ?? 0.08,

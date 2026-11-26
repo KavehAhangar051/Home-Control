@@ -158,6 +158,26 @@ export interface MacroHttpRequestConfig {
 	timeoutMs?: number;
 }
 
+/** تنظیمات ظاهری و شخصی‌سازی داشبورد ذخیره‌شده در /config */
+export interface DashboardPreferences {
+	theme_mode: "dark" | "light";
+	accent_color_3: string;
+	accent_color_4: string;
+	dark_blackness?: number;
+	light_whiteness?: number;
+	font_family?: string;
+	animations_enabled?: boolean;
+	animations_fps?: number;
+	header_animation?: "fade" | "chase";
+	header_title?: string;
+	header_position?: "top" | "left";
+	manual_save_mode?: boolean;
+	dashboard_width?: number;
+	dashboard_bg_color?: string;
+	dashboard_bg_opacity?: number;
+	[key: string]: unknown;
+}
+
 /** یک ماکرو (دکمه سفارشی) */
 export interface Macro {
 	id: string;

@@ -125,7 +125,7 @@ function DashboardStyles({
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
 
       if (metaThemeColor) {
-        metaThemeColor.setAttribute("content", isDark ? "#141415" : "#fafafa");
+        metaThemeColor.setAttribute("content", themeVars["--bg-main"] || (isDark ? "#141415" : "#fafafa"));
       }
 
       if (pendingRafRef.current !== null) {
@@ -143,6 +143,10 @@ function DashboardStyles({
 
     pendingRafRef.current = requestAnimationFrame(() => {
       pendingRafRef.current = null;
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor && themeVars["--bg-main"]) {
+        metaThemeColor.setAttribute("content", themeVars["--bg-main"]);
+      }
       applyChangedCssVars(document.documentElement.style, themeVars, appliedVarsRef.current);
     });
 

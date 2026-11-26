@@ -97,22 +97,22 @@ function buildDarkPaletteEntry(blackness: number): ThemeSurfacePalette {
 
 function buildLightPaletteEntry(whiteness: number): ThemeSurfacePalette {
   const t = whiteness / 100;
-  const r = Math.round(234 + t * 21);
-  const g = Math.round(234 + t * 21);
-  const b = Math.round(236 + t * 19);
+  const r = Math.round(222 + t * 31);
+  const g = Math.round(222 + t * 31);
+  const b = Math.round(226 + t * 29);
 
-  const deepestR = Math.max(226, r - 6);
-  const deepestG = Math.max(226, g - 6);
-  const deepestB = Math.max(228, b - 4);
+  const deepestR = Math.max(210, r - 8);
+  const deepestG = Math.max(210, g - 8);
+  const deepestB = Math.max(214, b - 6);
 
-  const cardVal = Math.min(255, Math.round(250 + t * 5));
-  const hoverR = Math.max(224, r - 6);
-  const hoverG = Math.max(224, g - 6);
-  const hoverB = Math.max(226, b - 5);
+  const cardVal = Math.min(255, Math.round(236 + t * 19));
+  const hoverR = Math.max(208, r - 10);
+  const hoverG = Math.max(208, g - 10);
+  const hoverB = Math.max(212, b - 8);
 
-  const borderR = Math.max(206, r - 22);
-  const borderG = Math.max(206, g - 22);
-  const borderB = Math.max(210, b - 21);
+  const borderR = Math.max(188, r - 26);
+  const borderG = Math.max(188, g - 26);
+  const borderB = Math.max(194, b - 24);
 
   const cardByte = HEX_BYTE_LUT[cardVal];
   const deepest = `#${HEX_BYTE_LUT[deepestR]}${HEX_BYTE_LUT[deepestG]}${HEX_BYTE_LUT[deepestB]}`;
