@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useRef } from "react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,17 @@ export function MacroHttpActionFields({
   onChange,
 }: MacroHttpActionFieldsProps) {
   const baseId = useId();
+  const headerIds = useRef(new WeakMap<MacroHttpHeader, string>());
+  const getHeaderId = (header: MacroHttpHeader) => {
+    if (header.id) return header.id;
+
+    const existingId = headerIds.current.get(header);
+    if (existingId) return existingId;
+
+    const id = crypto.randomUUID();
+    headerIds.current.set(header, id);
+    return id;
+  };
   const labelId = `${baseId}-label`;
   const methodId = `${baseId}-method`;
   const urlId = `${baseId}-url`;
@@ -69,13 +80,15 @@ export function MacroHttpActionFields({
 
   const addHeader = () => {
     update({
-      headers: [...headers, { key: "", value: "" }],
+      headers: [...headers, { id: crypto.randomUUID(), key: "", value: "" }],
     });
   };
 
   const updateHeader = (headerIndex: number, patch: Partial<MacroHttpHeader>) => {
     update({
-      headers: headers.map((item, i) => (i === headerIndex ? { ...item, ...patch } : item)),
+      headers: headers.map((item, i) =>
+        i === headerIndex ? { ...item, id: getHeaderId(item), ...patch } : item,
+      ),
     });
   };
 
@@ -251,7 +264,7 @@ export function MacroHttpActionFields({
         </div>
 
         {headers.map((header, hIdx) => (
-          <div key={`${baseId}-hdr-${hIdx}`} className="flex items-center gap-1.5" dir="ltr">
+          <div key={getHeaderId(header)} className="flex items-center gap-1.5" dir="ltr">
             <Input
               value={header.key}
               placeholder="Header Key (e.g. Authorization)"
