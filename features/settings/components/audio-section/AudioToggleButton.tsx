@@ -1,6 +1,8 @@
+"use client";
+
+import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
 import { Activity, VolumeX } from "@/components/ui/hugeicons-groups/media";
 import { useReducedMotion } from "motion/react";
-import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
 
 interface Props {
   isMusicOn: boolean;
@@ -13,15 +15,20 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
 
   return (
     <div>
-      <div className={`w-full h-auto min-h-[5.5rem] flex-row-reverse justify-between gap-3 whitespace-normal rounded-2xl border p-4 text-right transition-colors duration-200 hover:bg-card-hover-bg hover:text-text-primary focus-visible:ring-accent3 group ${
+      <div
+        onClick={() => {
+          if (!isLoading) onToggle();
+        }}
+        className={`flex min-h-[5.5rem] w-full flex-row-reverse items-center justify-between gap-3 rounded-2xl border p-4 text-right transition-colors duration-200 hover:bg-card-hover-bg hover:text-text-primary ${
           isMusicOn
-            ? "bg-accent3-transparent aria-pressed:bg-accent3-transparent data-[state=on]:bg-accent3-transparent border-accent3 shadow-accent3-transparent"
-            : "bg-card-bg-solid border-border-color hover:border-text-muted"
-        } ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}>
-
+            ? "border-accent3 bg-accent3-transparent shadow-accent3-transparent"
+            : "border-border-color bg-card-bg-solid hover:border-text-muted"
+        } ${isLoading ? "cursor-not-allowed opacity-70" : ""}`}
+      >
         <DissolveToggle
           value={isMusicOn}
           onValueChange={() => onToggle()}
+          onClick={(event) => event.stopPropagation()}
           disabled={isLoading}
           size="sm"
           onColor="var(--accent3)"
@@ -33,11 +40,9 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
         />
 
         <div className="min-w-0 flex-1 space-y-1 text-start">
-          <span
-            className={`block text-sm font-bold transition-colors ${
-              isMusicOn ? "text-accent3" : "text-text-secondary"
-            }`}
-          >
+          <span className={`block text-sm font-bold transition-colors ${
+            isMusicOn ? "text-accent3" : "text-text-secondary"
+          }`}>
             موزیک پس‌زمینه
           </span>
           <span className="block text-xs leading-relaxed text-text-muted">
@@ -48,7 +53,7 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
         <div
           className={`shrink-0 rounded-xl p-2.5 transition-colors duration-200 ${
             isMusicOn
-              ? "bg-accent3-transparent text-accent3 border border-accent3/30"
+              ? "border border-accent3/30 bg-accent3-transparent text-accent3"
               : "bg-card-hover-bg text-text-muted"
           }`}
         >
