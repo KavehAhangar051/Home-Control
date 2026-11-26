@@ -8,6 +8,7 @@ import {
 } from "next/font/google";
 import localFont from "next/font/local";
 import { MotionProvider } from "@/components/MotionProvider";
+import { GlobalToastProvider } from "@/components/dissolve/global-toast-provider";
 import "./globals.css"; // Global styles
 
 const dana = localFont({
@@ -158,7 +159,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         suppressHydrationWarning
         className="style-nova bg-background text-foreground min-h-dvh antialiased selection:bg-accent3-medium selection:text-text-primary font-sans"
       >
-        <MotionProvider>{children}</MotionProvider>
+        <MotionProvider>
+          <GlobalToastProvider>{children}</GlobalToastProvider>
+        </MotionProvider>
       </body>
     </html>
   );
