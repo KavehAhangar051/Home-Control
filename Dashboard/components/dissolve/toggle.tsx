@@ -45,7 +45,10 @@ export function Toggle({ className, style, onClick, ...props }: ToggleProps) {
 export type ToggleIndicatorProps = Omit<ToggleProps, "onClick">;
 
 /** A non-interactive grain switch for status indicators inside an owning control. */
-export function ToggleIndicator({ className, style, shape = 'square', ...props }: ToggleIndicatorProps) {
+export function GrainToggleEffect({ className, style, shape = 'square', ...props }: ToggleIndicatorProps) {
   const { host } = useDissolveCore(createToggle, { ...props, shape, interactive: false, haptics: false });
   return <span ref={host} className={className} style={style} aria-hidden="true" />;
 }
+
+/** @deprecated Use GrainToggleEffect to make the visual-only role explicit. */
+export const ToggleIndicator = GrainToggleEffect;
