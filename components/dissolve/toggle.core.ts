@@ -44,6 +44,8 @@ export type ToggleProps = {
   accessibilityLabel?: string;
   /** Also use the simple slide when dashboard animations are disabled. */
   reducedMotion?: boolean;
+  /** Render-only indicator for a parent control that owns the interaction. */
+  interactive?: boolean;
 };
 
 export type ToggleInstance = {
@@ -51,7 +53,7 @@ export type ToggleInstance = {
   destroy: () => void;
 };
 
-const DEFAULTS = { defaultValue: false, size: 'md' as ToggleSize, haptics: true, disabled: false };
+const DEFAULTS = { defaultValue: false, size: 'md' as ToggleSize, haptics: true, disabled: false, interactive: true };
 
 /** Grains leave over STAGGER (leading edge first), each flies for RUN. */
 const STAGGER = 90;
@@ -119,10 +121,14 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
   const sc = scope();
 
   host.dataset.dissolve = 'toggle';
-  host.setAttribute('role', 'switch');
-  if (!host.hasAttribute('tabindex') && !(host instanceof HTMLButtonElement)) host.tabIndex = 0;
+  if (p().interactive) {
+    host.setAttribute('role', 'switch');
+    if (!host.hasAttribute('tabindex') && !(host instanceof HTMLButtonElement)) host.tabIndex = 0;
+  } else {
+    host.setAttribute('aria-hidden', 'true');
+  }
   // A form control: page resets beat :where(), so its look is inline.
-  Object.assign(host.style, { position: 'relative', display: 'block', flex: 'none', border: '0', padding: '0', margin: '0', touchAction: 'pan-y', cursor: 'pointer', boxSizing: 'border-box' });
+  Object.assign(host.style, { position: 'relative', display: 'block', flex: 'none', border: '0', padding: '0', margin: '0', touchAction: p().interactive ? 'pan-y' : 'none', cursor: p().interactive ? 'pointer' : 'default', pointerEvents: p().interactive ? 'auto' : 'none', boxSizing: 'border-box' });
 
   const onLayer = el('div', 'dissolve-toggle-on');
   const ghost = el('div', 'dissolve-toggle-thumb'), thumb = el('div', 'dissolve-toggle-thumb');
@@ -245,11 +251,13 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
   }
   const { kick } = loop(sc, host, frame, () => req || flying);
 
-  const syncAria = () => host.setAttribute('aria-checked', String(target === 1));
+  const syncAria = () => {
+    if (p().interactive) host.setAttribute('aria-checked', String(target === 1));
+  };
 
   /** Flies to on (1) or off (0). From the user: tick and onValueChange. */
   function set(t: number, user = true) {
-    if (user && p().disabled) return;
+    if (user && (!p().interactive || p().disabled)) return;
     if (t === target) return;
     target = t;
     req = true;
@@ -292,20 +300,24 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
     e.preventDefault();
     set(1 - target);
   };
-  host.addEventListener('pointerdown', onDown);
-  host.addEventListener('pointermove', onMove);
-  host.addEventListener('pointerup', onEnd);
-  host.addEventListener('pointercancel', onEnd);
-  host.addEventListener('click', onClick);
-  host.addEventListener('keydown', onKey);
+  if (p().interactive) {
+    host.addEventListener('pointerdown', onDown);
+    host.addEventListener('pointermove', onMove);
+    host.addEventListener('pointerup', onEnd);
+    host.addEventListener('pointercancel', onEnd);
+    host.addEventListener('click', onClick);
+    host.addEventListener('keydown', onKey);
+  }
 
   onThemeChange(sc, () => { paint(); kick(); });
 
   const disable = () => {
+    if (!p().interactive) return;
     host.style.opacity = p().disabled ? '0.5' : '';
     host.setAttribute('aria-disabled', String(p().disabled));
   };
   const label = () => {
+    if (!p().interactive) return;
     if (p().accessibilityLabel) host.setAttribute('aria-label', p().accessibilityLabel!);
     else host.removeAttribute('aria-label');
   };
@@ -328,18 +340,20 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
     },
     destroy() {
       sc.dispose();
-      host.removeEventListener('pointerdown', onDown);
-      host.removeEventListener('pointermove', onMove);
-      host.removeEventListener('pointerup', onEnd);
-      host.removeEventListener('pointercancel', onEnd);
-      host.removeEventListener('click', onClick);
-      host.removeEventListener('keydown', onKey);
+      if (p().interactive) {
+        host.removeEventListener('pointerdown', onDown);
+        host.removeEventListener('pointermove', onMove);
+        host.removeEventListener('pointerup', onEnd);
+        host.removeEventListener('pointercancel', onEnd);
+        host.removeEventListener('click', onClick);
+        host.removeEventListener('keydown', onKey);
+      }
       onLayer.remove();
       ghost.remove();
       thumb.remove();
       cv.remove();
-      for (const k of ['position', 'display', 'flex', 'border', 'padding', 'margin', 'touch-action', 'cursor', 'box-sizing', 'background', 'width', 'height', 'border-radius', 'opacity']) host.style.removeProperty(k);
-      for (const a of ['role', 'aria-checked', 'aria-disabled', 'aria-label', 'data-dissolve']) host.removeAttribute(a);
+      for (const k of ['position', 'display', 'flex', 'border', 'padding', 'margin', 'touch-action', 'cursor', 'box-sizing', 'background', 'width', 'height', 'border-radius', 'opacity', 'pointer-events']) host.style.removeProperty(k);
+      for (const a of ['role', 'aria-checked', 'aria-disabled', 'aria-label', 'aria-hidden', 'data-dissolve']) host.removeAttribute(a);
       if (!(host instanceof HTMLButtonElement)) host.removeAttribute('tabindex');
     },
   };
