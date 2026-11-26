@@ -1,8 +1,7 @@
 "use client";
 
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
 import { Waves } from "@/components/ui/hugeicons-groups/controls";
-import { Toggle } from "@/components/ui/toggle";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import { soundManager } from "@/lib/audio";
 import { isHapticsSupported, triggerHaptic } from "@/lib/haptics";
@@ -27,15 +26,11 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
 
   return (
     <div className="border-b border-border-color pb-3.5 sm:pb-4">
-      <Toggle
-        variant="outline"
-        pressed={hapticsEnabled}
-        onPressedChange={handleToggle}
-        aria-label={hapticsEnabled ? "بازخورد لمسی · روشن" : "بازخورد لمسی · خاموش"}
-        className={`switch-toggle flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
+      <div
+        className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right sm:p-4 ${
           hapticsEnabled
             ? "border-accent3 bg-card-hover-bg"
-            : "border-border-color bg-card-bg hover:bg-card-hover-bg"
+            : "border-border-color bg-card-bg"
         }`}
       >
         <div className="min-w-0 flex-1 space-y-1 text-right">
@@ -57,15 +52,18 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
               : "این مرورگر از لرزش لمسی پشتیبانی نمی‌کند"}
           </span>
         </div>
-        <ToggleIndicator
+        <DissolveToggle
           value={hapticsEnabled}
+          onValueChange={handleToggle}
           size="sm"
           onColor="var(--accent3)"
           offColor="var(--bg-main)"
+          haptics={false}
           reducedMotion={!animationsEnabled}
+          accessibilityLabel="بازخورد لمسی"
           className="shrink-0"
         />
-      </Toggle>
+      </div>
     </div>
   );
 }
