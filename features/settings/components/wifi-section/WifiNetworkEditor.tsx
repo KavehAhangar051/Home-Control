@@ -50,9 +50,10 @@ export function WifiNetworkEditor({
           placeholder="نام شبکه"
           className="h-11 bg-card-bg-solid text-base sm:text-sm"
           dir="auto"
+          aria-describedby="wifi-network-ssid-help"
           error={errors.ssid}
         />
-        <p className="text-xs leading-5 text-text-muted">
+        <p id="wifi-network-ssid-help" className="text-xs leading-5 text-text-muted">
           نام شبکه پس از حذف فاصله‌های ابتدا و انتها، حداکثر ۳۲ بایت UTF-8 است.
         </p>
       </div>
@@ -84,9 +85,10 @@ export function WifiNetworkEditor({
           onChange={(event) => setTempPassword(event.target.value)}
           className="h-11 bg-card-bg-solid text-base sm:text-sm"
           dir="ltr"
+          aria-describedby="wifi-network-password-help"
           error={errors.password}
         />
-        <p className="text-xs leading-5 text-text-muted">
+        <p id="wifi-network-password-help" className="text-xs leading-5 text-text-muted">
           برای شبکهٔ بدون رمز، این فیلد را خالی بگذارید؛ در غیر این صورت رمز باید ۸ تا ۶۳ بایت باشد.
           <span className="ms-1 tabular-nums">({passwordBytes}/۶۳ بایت)</span>
         </p>

@@ -362,8 +362,12 @@ export default function WifiSection() {
                   setApDraft((previous) => ({ ...previous, ssid: event.target.value }));
                 }}
                 placeholder="Achaemenid-XXXXXX"
+                aria-describedby="esp-ap-ssid-help"
                 error={hasAttemptedApSave ? apErrors.ssid : undefined}
               />
+              <p id="esp-ap-ssid-help" className="text-xs leading-5 text-text-muted">
+                نام شبکه پس از حذف فاصله‌های ابتدا و انتها، حداکثر ۳۲ بایت UTF-8 است.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -394,9 +398,10 @@ export default function WifiSection() {
                   setApDraft((previous) => ({ ...previous, password: event.target.value }));
                 }}
                 placeholder="۸ تا ۶۳ بایت"
+                aria-describedby="esp-ap-password-help"
                 error={hasAttemptedApSave ? apErrors.password : undefined}
               />
-              <p className="text-xs leading-5 text-text-muted">
+              <p id="esp-ap-password-help" className="text-xs leading-5 text-text-muted">
                 رمز سفارشی باید ۸ تا ۶۳ بایت UTF-8 باشد.
                 <span className="ms-1 tabular-nums">({apPasswordByteLength}/۶۳ بایت)</span>
               </p>
@@ -423,7 +428,7 @@ export default function WifiSection() {
                 <Button
                   type="button"
                   variant={isApSaved && !hasApChanges ? "outline" : "accent"}
-                  disabled={isSavingAp || hasApErrors}
+                  disabled={isSavingAp}
                   onClick={handleSaveAccessPoint}
                   className={`min-h-11 h-auto rounded-xl px-4 py-2.5 text-sm font-bold ${
                     isApSaved && !hasApChanges
