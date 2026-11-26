@@ -63,6 +63,7 @@ export default function CloudflareIntegration({
         <span className="font-bold text-xs text-accent3">آدرس ورکر کلودفلر</span>
         <span className="text-[11px] text-text-tertiary">همگام‌سازی ابری تنظیمات و چیدمان</span>
       </div>
+      <p className="text-xs leading-5 text-text-secondary">نشانی پایه Cloudflare Worker را وارد کنید؛ داشبورد برای خواندن و ذخیره تنظیمات ابری از این سرویس استفاده می‌کند.</p>
       <div className="flex flex-col-reverse sm:flex-row gap-2">
         <button
           type="button"
@@ -73,7 +74,6 @@ export default function CloudflareIntegration({
           {isSavingUrl ? "در حال ذخیره..." : "ذخیره آدرس"}
         </button>
         <div className="relative flex-1 min-w-0">
-          <p className="mb-2 text-xs leading-5 text-text-secondary">نشانی پایه Cloudflare Worker را وارد کنید؛ داشبورد برای خواندن و ذخیره تنظیمات ابری از این سرویس استفاده می‌کند.</p>
           <Label htmlFor="cloudflare-worker-url" className="sr-only">
             آدرس Cloudflare Worker
           </Label>
