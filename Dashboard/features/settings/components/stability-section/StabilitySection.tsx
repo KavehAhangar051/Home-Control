@@ -49,7 +49,7 @@ export function StabilitySectionContent({
       <PermissionsStatusCard />
       <PwaInstallCard />
       <BackupRestoreSection />
-      <CloudflareIntegration isDark={isDark} />
+      <CloudflareIntegration isDark={isDark} animationsEnabled={animationsEnabled} />
     </div>
   );
 }
