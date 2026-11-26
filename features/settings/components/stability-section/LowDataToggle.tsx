@@ -2,6 +2,7 @@
 
 import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
 import { WifiOff } from "@/components/ui/hugeicons-groups/shell";
+import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import { soundManager } from "@/lib/audio";
 
 interface LowDataToggleProps {
@@ -16,6 +17,8 @@ export default function LowDataToggle({
   setLowDataMode,
   animationsEnabled,
 }: LowDataToggleProps) {
+  const hapticsEnabled = usePreferencesStore((s) => s.hapticsEnabled);
+
   const handleToggle = () => {
     const nextVal = !lowDataMode;
     setLowDataMode(nextVal);
@@ -57,7 +60,7 @@ export default function LowDataToggle({
           size="sm"
           onColor="var(--accent3)"
           offColor="var(--bg-main)"
-          haptics={false}
+          haptics={hapticsEnabled}
           reducedMotion={!animationsEnabled}
           accessibilityLabel="حالت کم‌مصرف اینترنت"
           className="shrink-0"
