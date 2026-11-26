@@ -177,7 +177,8 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     const { min, max } = range();
     return max - min;
   };
-  let inner = snap(Number.isFinite(p().defaultValue) ? p().defaultValue! : range().min);
+  const initialValue = p().defaultValue;
+  let inner = snap(initialValue !== undefined && Number.isFinite(initialValue) ? initialValue : range().min);
   const shown = () => {
     const external = p().value;
     return external !== undefined
