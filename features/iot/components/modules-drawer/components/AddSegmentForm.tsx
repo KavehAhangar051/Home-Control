@@ -472,7 +472,9 @@ export default function AddSegmentForm({
                           {initialPercent}% ({initialDuty}/{maxDuty})
                         </span>
                       </div>
-                      <p className="text-xs leading-5 text-text-secondary">این مقدار بلافاصله پس از ساخت قطعه اعمال می‌شود؛ ۰٪ یعنی خاموش و ۱۰۰٪ یعنی بیشترین خروجی.</p>
+                      <p className="text-xs leading-5 text-text-secondary">
+                        این مقدار بلافاصله پس از ساخت قطعه اعمال می‌شود؛ ۰٪ یعنی خاموش و ۱۰۰٪ یعنی بیشترین خروجی.
+                      </p>
                       <DashboardSlider
                         defaultVariant="bubble"
                         min={0}
