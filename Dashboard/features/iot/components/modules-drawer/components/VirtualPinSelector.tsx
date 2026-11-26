@@ -125,7 +125,7 @@ export default function VirtualPinSelector({
             {chipMeta.label} · {selectedNode.mac}
           </span>
           <span className={isNodeFull ? "font-semibold text-destructive" : "tabular-nums"}>
-            ظرفیت استفاده‌شده: {usedCount} از {selectedNode.pinCapacity} پایه
+            پایه‌های اختصاص‌یافته: {usedCount} از {selectedNode.pinCapacity}
           </span>
         </div>
       </div>

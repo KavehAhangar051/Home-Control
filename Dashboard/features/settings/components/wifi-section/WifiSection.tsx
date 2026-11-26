@@ -156,7 +156,7 @@ export default function WifiSection() {
         <div>
           <h4 className="text-sm font-semibold text-text-primary">اکسس‌پوینت راه‌اندازی (AP)</h4>
           <p className="mt-1 text-xs leading-5 text-text-muted">
-            برای حالت Provisioning؛ در صورت خالی بودن از مقدار پیش‌فرض MAC استفاده می‌شود
+            این اکسس‌پوینت برای اتصال مستقیم هنگام راه‌اندازی ESP32 است. اگر نام و رمز را خالی بگذارید، مقادیر پیش‌فرض مبتنی بر MAC استفاده می‌شوند.
           </p>
         </div>
         <div className="space-y-1.5">
@@ -233,7 +233,7 @@ export default function WifiSection() {
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <h4 className="text-xs font-semibold text-text-secondary">
-            شبکه‌های ذخیره‌شده ({wifiNetworks.length})
+            شبکه‌های Wi-Fi برای اتصال ESP32 ({wifiNetworks.length})
           </h4>
           <Tooltip>
             <TooltipTrigger
@@ -280,7 +280,7 @@ export default function WifiSection() {
         {wifiNetworks.length === 0 && (
           <div className="space-y-1.5 rounded-2xl border border-dashed border-border-color bg-card-bg-solid p-6 text-center">
             <Wifi className="mx-auto size-6 text-text-muted opacity-50" />
-            <p className="text-xs font-medium text-text-secondary">شبکه وای‌فای ثبت نشده است</p>
+            <p className="text-xs font-medium text-text-secondary">شبکه‌ای برای اتصال ESP32 ثبت نشده است</p>
           </div>
         )}
       </div>
