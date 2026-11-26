@@ -819,6 +819,7 @@ html[data-perf-tier="lite"] [class*="backdrop-blur"] {
   outline: none;
 }
 .dissolve-elastic-slider[data-size="sm"] { --elastic-slider-height: 28px; }
+.dissolve-elastic-slider.dashboard-elastic-slider { min-width: 0; }
 .dissolve-elastic-slider:active { cursor: grabbing; }
 .dissolve-elastic-slider[data-disabled="true"] { cursor: not-allowed; opacity: .48; }
 .dissolve-elastic-slider:focus-visible {

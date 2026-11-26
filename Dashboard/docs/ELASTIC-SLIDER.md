@@ -1,6 +1,6 @@
 # Dissolve ElasticSlider
 
-`ElasticSlider` is a standalone, canvas-backed value control at `components/dissolve/elastic-slider.tsx`. It is additive; existing dashboard sliders remain unchanged.
+`ElasticSlider` is a standalone, canvas-backed value control at `components/dissolve/elastic-slider.tsx`. It is integrated as the seventh selectable style in the shared `DashboardSlider` facade. Existing six beUI variants remain available, and the global appearance preference can apply Elastic to every slider that uses the facade.
 
 ## Usage
 
@@ -47,6 +47,8 @@ export function VolumeControl() {
 - Numeric characters roll independently as the value changes.
 - UI click feedback and a short vibration fire on each step when there are 20 or fewer steps, otherwise only at the endpoints.
 - Arrow keys adjust by one step; Shift + Arrow and Page Up/Down use a larger increment; Home and End select the bounds.
-- The slider exposes `role="slider"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, and `aria-valuetext`.
+- The slider exposes `role="slider"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, and a separately formatted `aria-valuetext`.
+- Boundary and per-step tick marks are drawn when the range contains 20 or fewer steps.
+- In dashboard usage, `size="sm"` is selected for compact/ultra controls and the root can shrink below the standalone 180px minimum width.
 
 The fill direction is intentionally left-to-right, independent of the dashboard's RTL document direction. Colors inherit from `--dissolve-surface`, `--dissolve-primary`, `--dissolve-foreground`, and `--dissolve-primary-foreground`.
