@@ -49,7 +49,7 @@ export function WifiNetworkViewCard({
           </Button>
           <DeleteButton
             size="sm"
-            cornerRadius={9}
+            cornerRadius={11}
             resetAfter={0}
             onConfirm={onDelete}
             label={`حذف شبکه ${net.ssid}`}
