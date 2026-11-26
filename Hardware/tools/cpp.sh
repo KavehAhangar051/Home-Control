@@ -118,7 +118,7 @@ generate_compiledb() {
     bash "$ROOT_DIR/tools/pio.sh" ensure
   fi
   "$PIO_BIN" run -e "$env_name" -t compiledb
-  python3 - "$ROOT_DIR/compile_commands.json" "$PIO_STATE_ROOT" <<'PY'
+  python3 - "$ROOT_DIR/compile_commands.json" "$PIO_STATE_ROOT" "$env_name" <<'PY'
 import json
 import os
 import shlex
@@ -129,6 +129,7 @@ from pathlib import Path
 
 db_path = Path(sys.argv[1])
 pio_root = Path(sys.argv[2])
+env_name = sys.argv[3] if len(sys.argv) > 3 else "esp32dev"
 if not db_path.is_file():
     sys.exit(0)
 
@@ -139,7 +140,16 @@ BAD_FLAGS = {
     "-mtext-section-literals",
     "-mdisable-hardware-atomics",
     "-freorder-blocks",
+    "-fno-shrink-wrap",
+    "-fstack-usage",
 }
+
+BAD_PREFIXES = (
+    "-mfix-esp32-",
+    "-fno-tree-",
+    "-ftree-",
+    "-fipa-",
+)
 
 entries = json.loads(db_path.read_text(encoding="utf-8"))
 sys_includes_cache = {}
@@ -148,23 +158,49 @@ compiler_path_cache = {}
 def resolve_compiler(compiler: str) -> str:
     if compiler in compiler_path_cache:
         return compiler_path_cache[compiler]
-    resolved = shutil.which(compiler)
-    if not resolved:
-        matches = sorted((pio_root / "packages").glob(f"*/bin/{Path(compiler).name}"))
-        if matches:
-            resolved = str(matches[0])
+    exe_name = Path(compiler).name
+    resolved = None
+    if os.path.isabs(compiler) and Path(compiler).exists():
+        resolved = compiler
+    else:
+        preferred_pkgs = (
+            ("toolchain-xtensa-esp-elf", "toolchain-riscv32-esp")
+            if "core3" in env_name
+            else ("toolchain-xtensa-esp32", "toolchain-riscv32-esp")
+        )
+        for pkg in preferred_pkgs:
+            cand = pio_root / "packages" / pkg / "bin" / exe_name
+            if cand.exists():
+                resolved = str(cand)
+                break
+        if not resolved:
+            matches = sorted((pio_root / "packages").glob(f"*/bin/{exe_name}"))
+            if matches:
+                resolved = str(matches[0])
+        if not resolved:
+            resolved = shutil.which(compiler)
     compiler_path_cache[compiler] = resolved or compiler
     return compiler_path_cache[compiler]
 
-def get_sys_includes(compiler: str) -> list[str]:
-    if compiler in sys_includes_cache:
-        return sys_includes_cache[compiler]
+def infer_target_triple(compiler: str) -> str:
+    name = Path(compiler).name
+    for suffix in ("-g++", "-gcc", "-c++", "-cc"):
+        if name.endswith(suffix):
+            triple = name[:-len(suffix)]
+            if triple.startswith(("xtensa-", "riscv32-", "riscv64-", "arm-")):
+                return triple
+    return ""
+
+def get_sys_includes(compiler: str, lang: str) -> list[str]:
+    key = (compiler, lang)
+    if key in sys_includes_cache:
+        return sys_includes_cache[key]
     inc_dirs = []
     if "xtensa" in compiler or "riscv" in compiler or "esp" in compiler:
         exe = resolve_compiler(compiler)
         if exe and Path(exe).exists():
             proc = subprocess.run(
-                [exe, "-E", "-Wp,-v", "-x", "c++", "/dev/null"],
+                [exe, "-E", "-Wp,-v", "-x", lang, "/dev/null"],
                 capture_output=True,
                 text=True,
             )
@@ -179,7 +215,7 @@ def get_sys_includes(compiler: str) -> list[str]:
                     p = line.strip()
                     if p:
                         inc_dirs.append(os.path.abspath(p))
-    sys_includes_cache[compiler] = inc_dirs
+    sys_includes_cache[key] = inc_dirs
     return inc_dirs
 
 changed = False
@@ -191,15 +227,31 @@ for entry in entries:
     if not tokens:
         continue
     compiler = tokens[0]
-    filtered = [t for t in tokens if t not in BAD_FLAGS]
+    filtered = [
+        t for t in tokens
+        if t not in BAD_FLAGS and not any(t.startswith(p) for p in BAD_PREFIXES)
+    ]
     if "xtensa" in compiler or "riscv" in compiler or "esp" in compiler:
-        sys_incs = get_sys_includes(compiler)
-        extra = []
-        for inc in sys_incs:
-            extra.extend(["-isystem", inc])
+        src_file = entry.get("file", "")
+        lang = "c" if (Path(compiler).name.endswith("-gcc") and src_file.endswith(".c")) else "c++"
+        sys_incs = get_sys_includes(compiler, lang)
+        triple = infer_target_triple(compiler)
+        prefix_extra = []
+        if triple and not any(t.startswith("--target=") or t == "-target" for t in filtered):
+            prefix_extra.append(f"--target={triple}")
         if "-Wno-unknown-warning-option" not in filtered:
-            extra.append("-Wno-unknown-warning-option")
-        filtered = [resolve_compiler(compiler), *extra, *filtered[1:]]
+            prefix_extra.append("-Wno-unknown-warning-option")
+        sys_extra = []
+        for inc in sys_incs:
+            sys_extra.extend(["-isystem", inc])
+        # Keep -I SDK paths before -isystem toolchain headers, matching GCC lookup order
+        rest = filtered[1:]
+        if "-c" in rest:
+            c_idx = rest.index("-c")
+            rest = [*rest[:c_idx], *sys_extra, *rest[c_idx:]]
+        else:
+            rest = [*rest, *sys_extra]
+        filtered = [resolve_compiler(compiler), *prefix_extra, *rest]
         changed = True
     elif len(filtered) != len(tokens):
         changed = True
