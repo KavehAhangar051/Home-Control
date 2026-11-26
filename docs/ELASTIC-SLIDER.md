@@ -32,7 +32,8 @@ export function VolumeControl() {
 | `onValueChange` | `(value: number) => void` | — | Fires when the value changes |
 | `onValueCommit` | `(value: number) => void` | — | Fires when a pointer gesture ends or a key changes the value |
 | `min / max / step` | `number` | `0 / 100 / 1` | Value range and increment |
-| `formatValue` | `(value: number) => string` | `String(value)` | Visible and accessible value formatting |
+| `formatValue` | `(value: number) => string` | `String(value)` | Visible value formatting |
+| `formatValueText` | `(value: number) => string` | `formatValue` result | Accessible value announcement, including units or localized text |
 | `icon` | `({ color, size }) => ReactNode` | — | Optional leading icon; receives the correct foreground for each fill layer |
 | `size` | `"sm" | "md"` | `"md"` | Track height preset |
 | `showValue` | `boolean` | `true` | Hides the visible value when false |
