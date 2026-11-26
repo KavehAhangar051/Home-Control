@@ -39,6 +39,7 @@ export interface ElasticSliderProps {
   step?: number;
   size?: SliderSize;
   showValue?: boolean;
+  showTicks?: boolean;
   formatValue?: (value: number) => string;
   formatValueText?: (value: number) => string;
   icon?: (props: SliderIconProps) => ReactNode;
@@ -115,6 +116,7 @@ export function ElasticSlider({
   step = 1,
   size = "md",
   showValue = true,
+  showTicks = true,
   formatValue = (current) => String(current),
   formatValueText,
   icon,
@@ -201,7 +203,7 @@ export function ElasticSlider({
 
     const { min: rangeMin, max: rangeMax, step: rangeStep } = rangeRef.current;
     const stepCount = Math.floor((rangeMax - rangeMin) / rangeStep);
-    if (stepCount <= 20) {
+    if (showTicks && stepCount <= 20) {
       const drawTick = (x: number) => {
         context.beginPath();
         context.arc(x, height / 2, 1.25, 0, Math.PI * 2);
@@ -220,7 +222,7 @@ export function ElasticSlider({
       const lastStepValue = rangeMin + stepCount * rangeStep;
       if (lastStepValue < rangeMax) drawTick(width);
     }
-  }, []);
+  }, [showTicks]);
 
   const requestDraw = useCallback(() => {
     if (frameRef.current !== null) return;
@@ -386,7 +388,7 @@ export function ElasticSlider({
   useEffect(() => {
     percentageRef.current = percentage;
     requestDraw();
-  }, [requestDraw, percentage, safeMin, safeMax, safeStep]);
+  }, [requestDraw, percentage, safeMin, safeMax, safeStep, showTicks]);
 
   useEffect(
     () => () => {
