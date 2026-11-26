@@ -24,28 +24,28 @@ export function WifiNetworkEditor({
     <div className="space-y-4">
       <div>
         <Label htmlFor="wifi-network-ssid" className="block text-xs text-text-secondary mb-1">
-          نام شبکه (SSID)
+          نام شبکه Wi-Fi (SSID)
         </Label>
         <Input
           id="wifi-network-ssid"
           type="text"
           value={tempSsid}
           onChange={(e) => setTempSsid(e.target.value)}
-          placeholder="SSID..."
+          placeholder="نام شبکه"
           className="w-full bg-card-bg-solid border-border-color rounded-xl px-4 py-2.5 text-sm text-text-primary focus:border-accent3"
           dir="ltr"
         />
       </div>
       <div>
         <Label htmlFor="wifi-network-password" className="block text-xs text-text-secondary mb-1">
-          رمز عبور (اختیاری)
+          رمز عبور شبکه
         </Label>
         <Input
           id="wifi-network-password"
           type="password"
           value={tempPassword}
           onChange={(e) => setTempPassword(e.target.value)}
-          placeholder="Password..."
+          placeholder="رمز عبور شبکه"
           className="w-full bg-card-bg-solid border-border-color rounded-xl px-4 py-2.5 text-sm text-text-primary focus:border-accent3"
           dir="ltr"
         />

@@ -60,12 +60,12 @@ export default function CloudflareIntegration({
   return (
     <div className="pt-1 sm:pt-2 space-y-3.5 sm:space-y-4 text-right">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="font-bold text-xs text-accent3">آدرس ورکر کلودفلر</span>
-        <span className="text-[11px] text-text-tertiary">همگام‌سازی ابری تنظیمات و چیدمان</span>
+        <span className="font-bold text-xs text-accent3">نشانی Cloudflare Worker</span>
+        <span className="text-[11px] text-text-tertiary">همگام‌سازی تنظیمات و چیدمان‌ها</span>
       </div>
       <p className="text-xs leading-5 text-text-secondary">
-        نشانی پایه Cloudflare Worker را وارد کنید؛ داشبورد برای خواندن و ذخیره تنظیمات ابری از این سرویس
-        استفاده می‌کند.
+        نشانی پایه Cloudflare Worker را وارد کنید. داشبورد برای دریافت و ذخیره تنظیمات و چیدمان‌ها
+        از این سرویس استفاده می‌کند.
       </p>
       <div className="flex flex-col-reverse sm:flex-row gap-2">
         <button
@@ -78,7 +78,7 @@ export default function CloudflareIntegration({
         </button>
         <div className="relative flex-1 min-w-0">
           <Label htmlFor="cloudflare-worker-url" className="sr-only">
-            آدرس Cloudflare Worker
+            نشانی Cloudflare Worker
           </Label>
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none z-10">
             <Globe aria-hidden="true" className="size-4 text-accent3 opacity-70" />
@@ -114,9 +114,9 @@ export default function CloudflareIntegration({
             />
           </span>
           <span className="flex flex-col flex-1 min-w-0 text-right">
-            <span className="text-xs font-bold text-text-primary">ذخیره دستی تغییرات چیدمان</span>
+            <span className="text-xs font-bold text-text-primary">ذخیره دستی چیدمان</span>
             <span className="text-[11px] text-text-tertiary mt-0.5 leading-relaxed">
-              تغییرات چیدمان فقط زمانی که دکمه «ذخیره‌سازی تغییرات» را بزنید به سرور ارسال می‌شوند.
+              در این حالت، تغییرات چیدمان فقط با انتخاب «ذخیره تغییرات» به Cloudflare ارسال می‌شوند.
             </span>
           </span>
         </label>
@@ -132,8 +132,8 @@ export default function CloudflareIntegration({
           )}
           <span className="font-medium leading-relaxed">
             {isCfConnected
-              ? "متصل به فضای ابری کلودفلر"
-              : "ذخیره‌سازی در حافظه محلی مرورگر (آدرس ورکر تنظیم نشده است)"}
+              ? "نشانی Cloudflare Worker ثبت شده است"
+              : "نشانی Worker تنظیم نشده است؛ داده‌ها در حافظه محلی مرورگر ذخیره می‌شوند."}
           </span>
         </div>
       </div>
