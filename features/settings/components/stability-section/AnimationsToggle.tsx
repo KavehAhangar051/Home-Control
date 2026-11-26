@@ -1,6 +1,6 @@
 "use client";
 
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { GrainToggleEffect } from "@/components/dissolve/toggle";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { soundManager } from "@/lib/audio";
@@ -53,7 +53,7 @@ export default function AnimationsToggle({
               : "غیرفعال · کاهش بار پردازشی دستگاه"}
           </span>
         </span>
-        <ToggleIndicator
+        <GrainToggleEffect
           value={animationsEnabled}
           size="sm"
           onColor="var(--accent3)"
