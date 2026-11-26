@@ -4,7 +4,7 @@
  * plus the context-aware `"auto"` mode selectable in dashboard appearance settings.
  */
 
-export type SliderVariant = "inline" | "range" | "fluid" | "wave" | "bubble" | "ruler";
+export type SliderVariant = "inline" | "range" | "fluid" | "wave" | "bubble" | "ruler" | "elastic";
 
 export type SliderStylePreference = "auto" | SliderVariant;
 
@@ -61,6 +61,12 @@ export const SLIDER_STYLE_OPTIONS: readonly SliderStyleOption[] = [
     title: "خط‌کش با اینرسی",
     englishName: "Ruler Slider",
     description: "سوزن ثابت با مقیاس متحرک زیر آن و تداوم حرکت پس از رها کردن",
+  },
+  {
+    id: "elastic",
+    title: "کشسان و غلتان",
+    englishName: "Elastic Slider",
+    description: "نوار کپسولی با کشش فنری، پرشدن رنگی و ارقام غلتان",
   },
 ] as const;
 
