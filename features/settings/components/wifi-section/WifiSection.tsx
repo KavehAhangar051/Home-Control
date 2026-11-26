@@ -44,14 +44,14 @@ export default function WifiSection() {
 
   const apSsidError =
     hasAnyApValue && !trimmedApSsid
-      ? "نام شبکه (SSID) اکسس‌پوینت را وارد کنید."
+      ? "نام شبکه اکسس‌پوینت را وارد کنید."
       : trimmedApSsid.length > 32
-        ? "نام شبکه (SSID) حداکثر ۳۲ کاراکتر می‌تواند باشد."
+        ? "نام شبکه نمی‌تواند بیشتر از ۳۲ نویسه باشد."
         : undefined;
 
   const apPasswordError =
     hasAnyApValue && (apPassword.length < 8 || apPassword.length > 63)
-      ? "رمز AP سفارشی باید بین ۸ تا ۶۳ کاراکتر باشد."
+      ? "رمز عبور اکسس‌پوینت باید ۸ تا ۶۳ نویسه باشد."
       : undefined;
 
   const hasApErrors = Boolean(apSsidError || apPasswordError);
@@ -80,7 +80,7 @@ export default function WifiSection() {
     soundManager.playClick();
 
     if (apSsidError || apPasswordError) {
-      showToast(apSsidError || apPasswordError || "اطلاعات اکسس‌پوینت نامعتبر است.", "error");
+      showToast(apSsidError || apPasswordError || "اطلاعات اکسس‌پوینت را بررسی کنید.", "error");
 
       return;
     }
@@ -156,7 +156,7 @@ export default function WifiSection() {
         <div>
           <h4 className="text-sm font-semibold text-text-primary">اکسس‌پوینت راه‌اندازی (AP)</h4>
           <p className="mt-1 text-xs leading-5 text-text-muted">
-            این اکسس‌پوینت برای اتصال مستقیم هنگام راه‌اندازی ESP32 است. اگر نام و رمز را خالی بگذارید، مقادیر پیش‌فرض مبتنی بر MAC استفاده می‌شوند.
+            این شبکه برای اتصال مستقیم به ESP32 هنگام راه‌اندازی است. برای استفاده از نام و رمز پیش‌فرض دستگاه، هر دو فیلد را خالی بگذارید.
           </p>
         </div>
         <div className="space-y-1.5">
@@ -225,7 +225,7 @@ export default function WifiSection() {
             )}
           </Button>
           <p className="text-[11px] leading-5 text-text-muted">
-            روی کلودفلر ذخیره و در همگام‌سازی بعدی ESP32 اعمال می‌شود
+            در Cloudflare ذخیره می‌شود و در همگام‌سازی بعدی به ESP32 می‌رسد.
           </p>
         </div>
       </div>
@@ -280,7 +280,7 @@ export default function WifiSection() {
         {wifiNetworks.length === 0 && (
           <div className="space-y-1.5 rounded-2xl border border-dashed border-border-color bg-card-bg-solid p-6 text-center">
             <Wifi className="mx-auto size-6 text-text-muted opacity-50" />
-            <p className="text-xs font-medium text-text-secondary">شبکه‌ای برای اتصال ESP32 ثبت نشده است</p>
+            <p className="text-xs font-medium text-text-secondary">هنوز شبکه‌ای برای اتصال ESP32 اضافه نشده است</p>
           </div>
         )}
       </div>
