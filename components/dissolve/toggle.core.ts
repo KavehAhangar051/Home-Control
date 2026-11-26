@@ -313,6 +313,7 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
 
   const disable = () => {
     if (!p().interactive) return;
+    if (host instanceof HTMLButtonElement) host.disabled = p().disabled;
     host.style.opacity = p().disabled ? '0.5' : '';
     host.setAttribute('aria-disabled', String(p().disabled));
   };
