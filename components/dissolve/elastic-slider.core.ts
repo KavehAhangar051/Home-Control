@@ -145,7 +145,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
   let tickNodes: HTMLElement[] = [];
   let tickColors = { filled: 'rgb(255 255 255)', empty: 'rgb(28 28 30)' };
   const updateTicks = () => {
-    tickNodes.forEach((node) => node.remove());
+    for (const node of tickNodes) node.remove();
     tickNodes = [];
     const { min, max, step } = range();
     const totalSteps = (max - min) / step;
