@@ -20,13 +20,17 @@ export function MqttFormFields({
 }: Props) {
   return (
     <div className="space-y-7">
-      <div className="space-y-2">
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-bold text-text-primary">
+          اتصال داشبورد از طریق WebSocket
+        </legend>
+        <p id="mqtt-broker-ws-url-help" className="text-xs leading-5 text-text-secondary sm:text-[13px]">
+          مرورگر داشبورد از این نشانی برای اتصال به بروکر استفاده می‌کند.
+        </p>
+        <div className="space-y-2">
           <Label htmlFor="mqtt-broker-ws-url" className="text-sm font-bold text-text-primary">
-            نشانی WebSocket بروکر برای داشبورد
+            نشانی WebSocket بروکر
           </Label>
-          <p id="mqtt-broker-ws-url-help" className="text-xs leading-5 text-text-secondary sm:text-[13px]">
-            مرورگر داشبورد از این نشانی برای اتصال به بروکر استفاده می‌کند.
-          </p>
           <Input
             id="mqtt-broker-ws-url"
             aria-describedby="mqtt-broker-ws-url-help"
@@ -39,7 +43,8 @@ export function MqttFormFields({
             className="h-11 font-mono text-base sm:text-sm"
             placeholder="wss://broker.emqx.io:8084/mqtt"
           />
-      </div>
+        </div>
+      </fieldset>
 
       <fieldset className="space-y-3">
         <legend className="text-sm font-bold text-text-primary">

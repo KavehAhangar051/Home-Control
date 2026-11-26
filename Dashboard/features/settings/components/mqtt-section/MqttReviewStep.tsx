@@ -61,11 +61,11 @@ export function MqttReviewStep({
         </div>
         <dl className="grid grid-cols-1 gap-4 rounded-xl border border-border-color bg-bg-main p-4 sm:grid-cols-2">
           <SummaryItem
-            label="WebSocket داشبورد"
+            label="نشانی WebSocket داشبورد"
             value={brokerWsUrl}
             direction="ltr"
           />
-          <SummaryItem label="میزبان بروکر برای ESP32" value={brokerHost} direction="ltr" />
+          <SummaryItem label="میزبان TCP برای ESP32" value={brokerHost} direction="ltr" />
           <SummaryItem
             label="پورت TCP"
             value={String(brokerPort)}
@@ -87,7 +87,7 @@ export function MqttReviewStep({
           </button>
         </div>
         <dl className="grid grid-cols-1 gap-4 rounded-xl border border-border-color bg-bg-main p-4 sm:grid-cols-2">
-          <SummaryItem label="Base Topic" value={baseTopic} direction="ltr" />
+          <SummaryItem label="پیشوند موضوع‌ها (Base Topic)" value={baseTopic} direction="ltr" />
           <SummaryItem label={`کیفیت تحویل پیام (QoS ${qos})`} value={QOS_SUMMARIES[qos]} />
         </dl>
       </section>
