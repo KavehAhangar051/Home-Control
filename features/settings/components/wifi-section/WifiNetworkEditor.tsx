@@ -74,7 +74,7 @@ export function WifiNetworkEditor({
         </div>
 
         <div className="min-w-0 space-y-2">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex min-h-11 items-center justify-between gap-3">
             <Label htmlFor="wifi-network-password" className="min-w-0 text-sm font-bold">
               رمز عبور شبکه
             </Label>
