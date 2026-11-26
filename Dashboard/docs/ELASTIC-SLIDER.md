@@ -51,11 +51,12 @@ When «کشسان و غلتان» is selected in Settings → Appearance → Sli
 | `value` | `number` | — | Controlled value |
 | `defaultValue` | `number` | `min` | Initial uncontrolled value; defaults to the minimum |
 | `onValueChange` | `(value: number) => void` | — | Fires when the value changes |
-| `onValueCommit` | `(value: number) => void` | — | Dashboard adapter alias for Dissolve's `onSlidingComplete` callback |
+| `onSlidingComplete` | `(value: number) => void` | — | Official Dissolve callback when a pointer gesture ends or a key changes the value |
+| `onValueCommit` | `(value: number) => void` | — | Dashboard-friendly alias for `onSlidingComplete` |
 | `min / max / step` | `number` | `0 / 100 / 1` | Value range and increment |
 | `formatValue` | `(value: number) => string` | `String(value)` | Visible value formatting |
 | `formatValueText` | `(value: number) => string` | visible formatted value | Optional screen-reader value announcement |
-| `icon` | `({ color, size }) => ReactNode` | — | Optional leading icon; receives the correct foreground for each fill layer |
+| `icon` | `ReactNode` or `(props) => ReactNode` | — | Optional leading icon; receives the correct foreground for each fill layer |
 | `size` | `"sm" | "md" | "lg"` | `"md"` | Track height preset (32 / 44 / 56px) |
 | `showValue` | `boolean` | `true` | Hides the visible value when false |
 | `showTicks` | `boolean` | `true` | Shows boundary and per-step dots when the range has at most 20 steps |
@@ -69,7 +70,7 @@ When «کشسان و غلتان» is selected in Settings → Appearance → Sli
 - Pulling beyond either endpoint stretches the entire track with rubber-band resistance; release springs it back with a bounce.
 - Numeric characters roll independently as the value changes.
 - Haptic feedback follows the dashboard's Stability → Haptics preference and only runs after browser user activation.
-- Arrow keys adjust by one step; Shift + Arrow and Page Up/Down use a larger increment; Home and End select the bounds.
+- Arrow keys adjust by one step (Shift + Arrow uses a larger increment); Page Up/Down use a larger increment; Home and End select the bounds.
 - The slider exposes `role="slider"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, and `aria-valuetext`; `formatValueText` can localize the announcement separately from the visible value.
 - Haptic feedback runs at endpoints and on every step when the range has 20 steps or fewer. This dashboard extension also draws small boundary and per-step dots for ranges of 20 steps or fewer.
 - In dashboard usage, `size="sm"` is selected for compact/ultra controls; the upstream component uses its natural parent width.
