@@ -24,7 +24,7 @@ export default function HorizontalClock({
       <RealTimeClock
         initialTime={initialTime}
         clockRef={clockRef}
-        className="size-4 text-text-tertiary md:group-hover:text-accent3 transition-colors duration-150 shrink-0"
+        className="size-4 text-accent4 transition-colors duration-150 shrink-0"
       />
       <div className="flex flex-col items-start justify-center">
         <span

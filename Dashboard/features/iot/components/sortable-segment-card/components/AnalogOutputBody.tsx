@@ -217,7 +217,7 @@ function AnalogOutputBody({
                     : "خاموش"}
               </span>
               <span
-                className="rounded border border-border-color bg-secondary px-1 py-0 font-mono text-[10px] tabular-nums text-text-muted shrink-0"
+                className="rounded border border-accent4/30 bg-accent4-transparent px-1 py-0 font-mono text-[10px] font-medium tabular-nums text-accent4 shrink-0"
                 dir="ltr"
               >
                 {formatSegmentPinLabel(segment, isCompact)}

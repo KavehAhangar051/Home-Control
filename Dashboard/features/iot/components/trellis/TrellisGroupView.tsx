@@ -113,7 +113,7 @@ export default function TrellisGroupView({
         <div className="flex min-w-0 items-center gap-2">
           <div
             aria-hidden="true"
-            className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border-color bg-card-bg text-text-secondary"
+            className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-accent4/35 bg-accent4-transparent text-accent4"
           >
             {groupIcon ? (
               hasIcon(groupIcon) ? (
@@ -136,7 +136,7 @@ export default function TrellisGroupView({
             {auxNode ? (
               <span
                 dir="ltr"
-                className="mt-0.5 inline-flex max-w-full items-center gap-1 rounded border border-accent3/30 bg-accent3/10 px-1.5 py-0 font-mono text-[10px] tabular-nums text-text-secondary"
+                className="mt-0.5 inline-flex max-w-full items-center gap-1 rounded border border-accent4/40 bg-accent4-transparent px-1.5 py-0 font-mono text-[10px] font-medium tabular-nums text-text-primary"
               >
                 <span
                   className={`size-1.5 shrink-0 rounded-full ${

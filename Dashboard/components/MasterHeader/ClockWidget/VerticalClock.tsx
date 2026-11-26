@@ -30,7 +30,7 @@ export default function VerticalClock({
           <RealTimeClock
             initialTime={initialTime}
             clockRef={clockRef}
-            className="size-4 shrink-0"
+            className="size-4 shrink-0 text-accent4"
           />
         </div>
       </SidebarTooltip>
@@ -47,7 +47,7 @@ export default function VerticalClock({
         <RealTimeClock
           initialTime={initialTime}
           clockRef={clockRef}
-          className="size-4 shrink-0 text-sidebar-muted"
+          className="size-4 shrink-0 text-accent4"
         />
         <span ref={timeTextRef} className="font-mono text-xs font-medium tabular-nums" dir="ltr">
           {initialTimeString}

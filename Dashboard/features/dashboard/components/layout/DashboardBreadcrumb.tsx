@@ -120,9 +120,9 @@ export default function DashboardBreadcrumb() {
               type="button"
               onClick={() => openAuxNodeModal()}
               aria-label="افزودن برد کمکی (ESP)"
-              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-border-color bg-card-bg px-2.5 text-xs font-medium text-text-primary transition-colors duration-150 hover:border-accent3 hover:bg-accent3 hover:text-accent3-foreground"
+              className="group/aux inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-border-color bg-card-bg px-2.5 text-xs font-medium text-text-primary transition-colors duration-150 hover:border-accent4 hover:bg-accent4 hover:text-accent4-foreground"
             >
-              <Cpu className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+              <Cpu className="size-3.5 shrink-0 text-accent4 group-hover/aux:text-accent4-foreground" strokeWidth={1.75} aria-hidden="true" />
               <span className="hidden sm:inline">افزودن برد کمکی (ESP)</span>
               <span className="sm:hidden">برد کمکی</span>
             </button>

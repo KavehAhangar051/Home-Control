@@ -309,7 +309,7 @@ export default function VerticalControls({
           aria-label="افزودن برد کمکی (ESP)"
         >
           <div className="flex min-w-0 items-center gap-2.5">
-            <Cpu className="size-4 shrink-0 text-accent3" strokeWidth={1.6} aria-hidden="true" />
+            <Cpu className="size-4 shrink-0 text-accent4" strokeWidth={1.6} aria-hidden="true" />
             {!isSidebarCollapsed && <span className="truncate text-sm">برد کمکی (ESP)</span>}
           </div>
         </Button>
