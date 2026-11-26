@@ -68,6 +68,7 @@ export type MacroAnalogStepUnit = "percent" | "raw";
 export type MacroHttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface MacroHttpHeader {
+  id?: string;
   key: string;
   value: string;
 }
