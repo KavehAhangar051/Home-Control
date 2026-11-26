@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { useReducedMotion } from "motion/react";
 import { CloudLightning, Server } from "@/components/ui/hugeicons-groups/controls";
 import { Globe } from "@/components/ui/hugeicons-groups/media";
 import { Input } from "@/components/ui/input";
@@ -21,6 +23,7 @@ export default function CloudflareIntegration({
   isDark: _isDark = true,
 }: CloudflareIntegrationProps) {
   const [cfUrl, setCfUrl] = useState(() => getCloudflareWorkerUrl());
+  const prefersReducedMotion = useReducedMotion();
   const showToast = useIoTStore((s) => s.showToast);
   const manualSaveMode = useIoTStore((s) => s.manualSaveMode);
   const setManualSaveMode = useIoTStore((s) => s.setManualSaveMode);
@@ -104,13 +107,13 @@ export default function CloudflareIntegration({
               checked={manualSaveMode}
               onChange={(e) => setManualSaveMode(e.target.checked)}
             />
-            <span
-              aria-hidden="true"
-              className={`block w-10 h-6 rounded-[8px] transition-colors ${manualSaveMode ? "bg-accent3" : "bg-border-color"}`}
-            />
-            <span
-              aria-hidden="true"
-              className={`dot absolute top-1 left-1 size-4 rounded-[5px] transition-transform ${manualSaveMode ? "bg-accent3-foreground transform translate-x-4" : "bg-text-secondary"}`}
+            <ToggleIndicator
+              value={manualSaveMode}
+              size="sm"
+              onColor="var(--accent3)"
+              offColor="var(--border-color)"
+              reducedMotion={Boolean(prefersReducedMotion)}
+              className="scale-[0.95]"
             />
           </span>
           <span className="flex flex-col flex-1 min-w-0 text-right">
