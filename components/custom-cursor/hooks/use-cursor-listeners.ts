@@ -258,8 +258,24 @@ export function useHardwareCursorListeners({
       startLoop();
     };
 
-    const onPointerDown = () => {
+    const onPointerDown = (event: PointerEvent) => {
       isMouseDown = true;
+      targetX = event.clientX;
+      targetY = event.clientY;
+      currentX = targetX;
+      currentY = targetY;
+
+      // Snap on press as well as on move, so the first slider value and the
+      // visible cursor already agree on the initial pointerdown frame.
+      const cursor = cursorRef.current;
+      if (cursor) {
+        const rx = snapToDevicePixel(targetX, cachedDpr);
+        const ry = snapToDevicePixel(targetY, cachedDpr);
+        cursor.style.transform = `translate3d(${rx}px,${ry}px,0)`;
+        lastCursorX = rx;
+        lastCursorY = ry;
+      }
+
       refreshInnerTargets();
       startLoop();
     };
