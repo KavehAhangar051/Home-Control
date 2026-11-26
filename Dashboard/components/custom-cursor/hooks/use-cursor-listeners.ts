@@ -196,6 +196,8 @@ export function useHardwareCursorListeners({
     };
 
     const hideCustomCursor = () => {
+      isMouseDown = false;
+      refreshInnerTargets();
       isVisible = false;
       isLoopRunning = false;
       lastFrameTs = 0;
@@ -286,6 +288,8 @@ export function useHardwareCursorListeners({
       startLoop();
     };
 
+    const onPointerCancel = onPointerUp;
+
     const onMouseOver = (e: MouseEvent) => {
       if (isScrolling) return;
       const target = e.target instanceof HTMLElement ? e.target : null;
@@ -339,6 +343,7 @@ export function useHardwareCursorListeners({
     document.addEventListener("pointerenter", onPointerEnter, { passive: true });
     window.addEventListener("pointerdown", onPointerDown, { passive: true });
     window.addEventListener("pointerup", onPointerUp, { passive: true });
+    window.addEventListener("pointercancel", onPointerCancel, { passive: true });
     document.addEventListener("mouseover", onMouseOver, { passive: true });
     window.addEventListener("scroll", onScroll, { passive: true });
 
@@ -353,6 +358,7 @@ export function useHardwareCursorListeners({
       document.removeEventListener("pointerenter", onPointerEnter);
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
       document.removeEventListener("mouseover", onMouseOver);
       window.removeEventListener("scroll", onScroll);
 
