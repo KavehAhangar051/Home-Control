@@ -34,7 +34,7 @@ export interface DashboardSliderProps extends SliderOptions {
   format?: (value: number) => string;
   /** Optional unit label shown by RulerSlider and ElasticSlider when no custom formatter is provided. */
   unit?: string;
-  /** Controls tick dots in RangeSlider and InlineSlider (defaults to true). */
+  /** Controls tick dots in RangeSlider, InlineSlider, and ElasticSlider (defaults to true). */
   showTicks?: boolean;
   /** Sizing density for tiles, popovers, and forms. */
   size?: "default" | "compact" | "ultra";
@@ -156,13 +156,14 @@ export function DashboardSlider({
         <ElasticSlider
           label={label ?? ariaLabel ?? "مقدار"}
           value={value}
-          defaultValue={defaultValue}
+          defaultValue={defaultValue ?? 0}
           onValueChange={onValueChange}
           onValueCommit={onValueCommit}
           min={min}
           max={max}
           step={step}
           size={isCompact || isUltra ? "sm" : "md"}
+          showTicks={showTicks}
           formatValue={format ?? ((current) => (unit ? `${current} ${unit}` : String(current)))}
           formatValueText={formatValueText}
           disabled={disabled}
