@@ -52,6 +52,8 @@ type DragState = {
   startValue: number;
 };
 
+const DIGITS = Array.from({ length: 10 }, (_, digit) => String(digit));
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
@@ -75,17 +77,22 @@ function rubberBand(distance: number, limit = 34) {
 }
 
 function RollingValue({ value }: { value: string }) {
+  const characters = Array.from(value, (character, position) => ({
+    character,
+    id: `${position}-${character}`,
+  }));
+
   return (
     <span className="dissolve-elastic-value" aria-hidden="true">
-      {Array.from(value).map((character, index) => {
+      {characters.map(({ character, id }) => {
         if (!/\d/.test(character)) {
-          return <span key={`static-${index}`}>{character}</span>;
+          return <span key={id}>{character}</span>;
         }
 
         return (
-          <span className="dissolve-elastic-digit" key={`digit-${index}`}>
+          <span className="dissolve-elastic-digit" key={id}>
             <span style={{ transform: `translateY(-${Number(character)}em)` }}>
-              {Array.from({ length: 10 }, (_, digit) => (
+              {DIGITS.map((digit) => (
                 <span key={digit}>{digit}</span>
               ))}
             </span>
@@ -342,8 +349,9 @@ export function ElasticSlider({
   }, [draw, size]);
 
   useEffect(() => {
+    percentageRef.current = percentage;
     requestDraw();
-  }, [requestDraw, currentValue]);
+  }, [requestDraw, percentage]);
 
   useEffect(
     () => () => {
@@ -378,6 +386,7 @@ export function ElasticSlider({
     >
       <canvas
         ref={canvasRef}
+        tabIndex={-1}
         aria-hidden="true"
         className={`dissolve-elastic-slider__canvas ${part("canvas")} ${part("track")}`}
       />
