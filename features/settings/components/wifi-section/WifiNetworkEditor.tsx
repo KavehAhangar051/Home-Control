@@ -41,16 +41,18 @@ export function WifiNetworkEditor({
   }, [errors.ssid, errors.password]);
 
   return (
-    <div className="space-y-4 py-4">
+    <div className="@container space-y-4 py-4">
       <h4 className="text-sm font-semibold text-text-primary">{title}</h4>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-5 @lg:grid-cols-2">
         <div className="min-w-0 space-y-2">
-          <div className="flex min-h-11 items-center justify-between gap-3">
+          <div className="flex min-h-8 items-center justify-between gap-3">
             <Label htmlFor="wifi-network-ssid" className="min-w-0 text-sm font-bold">
               نام شبکه (SSID)
             </Label>
-            <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-text-secondary">{ssidBytes}/۳۲ بایت</span>
+            <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-text-secondary">
+              {ssidBytes}/۳۲ بایت
+            </span>
           </div>
           <Input
             id="wifi-network-ssid"
@@ -65,16 +67,24 @@ export function WifiNetworkEditor({
             placeholder="نام شبکه"
             className="h-11 bg-card-bg-solid text-base sm:text-sm"
             dir="auto"
-            aria-describedby="wifi-network-ssid-help"
-            error={errors.ssid}
+            aria-invalid={Boolean(errors.ssid) || undefined}
+            aria-describedby={errors.ssid ? "wifi-network-ssid-error" : "wifi-network-ssid-help"}
           />
-          <p id="wifi-network-ssid-help" className="min-h-10 text-xs leading-5 text-text-secondary">
-            حداکثر ۳۲ بایت UTF-8.
-          </p>
+          <div className="min-h-10 pt-1">
+            {errors.ssid ? (
+              <p id="wifi-network-ssid-error" className="text-xs leading-5 text-destructive" role="alert">
+                {errors.ssid}
+              </p>
+            ) : (
+              <p id="wifi-network-ssid-help" className="text-xs leading-5 text-text-secondary">
+                حداکثر ۳۲ بایت UTF-8.
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="min-w-0 space-y-2">
-          <div className="flex min-h-11 items-center justify-between gap-3">
+          <div className="flex min-h-8 items-center justify-between gap-3">
             <Label htmlFor="wifi-network-password" className="min-w-0 text-sm font-bold">
               رمز عبور شبکه
             </Label>
@@ -101,13 +111,27 @@ export function WifiNetworkEditor({
             onChange={(event) => setTempPassword(event.target.value)}
             className="h-11 bg-card-bg-solid text-base sm:text-sm"
             dir="ltr"
-            aria-describedby="wifi-network-password-help"
-            error={errors.password}
+            aria-invalid={Boolean(errors.password) || undefined}
+            aria-describedby={
+              errors.password ? "wifi-network-password-error" : "wifi-network-password-help"
+            }
           />
-          <p id="wifi-network-password-help" className="min-h-10 text-xs leading-5 text-text-secondary">
-            برای شبکهٔ بدون رمز، خالی بگذارید؛ در غیر این صورت ۸ تا ۶۳ بایت.
-            <span className="ms-1 tabular-nums">({passwordBytes}/۶۳)</span>
-          </p>
+          <div className="min-h-10 pt-1">
+            {errors.password ? (
+              <p
+                id="wifi-network-password-error"
+                className="text-xs leading-5 text-destructive"
+                role="alert"
+              >
+                {errors.password}
+              </p>
+            ) : (
+              <p id="wifi-network-password-help" className="text-xs leading-5 text-text-secondary">
+                برای شبکهٔ بدون رمز، خالی بگذارید؛ در غیر این صورت ۸ تا ۶۳ بایت.
+                <span className="ms-1 tabular-nums">({passwordBytes}/۶۳)</span>
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
