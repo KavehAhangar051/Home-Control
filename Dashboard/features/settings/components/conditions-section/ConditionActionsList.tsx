@@ -85,7 +85,7 @@ export function ConditionActionsList({ type, inputPin, actions, onUpdate }: Prop
               : "border-border-color text-text-primary hover:border-accent3 hover:text-accent3"
           }`}
         >
-          <Plus aria-hidden="true" className="size-3" /> افزودن
+          <Plus aria-hidden="true" className="size-3" /> افزودن عملیات
         </button>
       </div>
       {hasClickCoexistence && (
@@ -95,14 +95,14 @@ export function ConditionActionsList({ type, inputPin, actions, onUpdate }: Prop
         >
           <Info aria-hidden="true" className="size-4 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            هنگام ترکیب تک‌کلیک و دابل‌کلیک روی یک کلید، اجرای تک‌کلیک با تاخیر ۴۰۰ میلی‌ثانیه برای
+            هنگام ترکیب تک‌کلیک و دابل‌کلیک روی یک کلید، اجرای تک‌کلیک با تأخیر ۴۰۰ میلی‌ثانیه برای
             تشخیص کلیک دوم انجام می‌شود.
           </p>
         </div>
       )}
       {actions.length === 0 ? (
         <div className="text-center py-4 text-text-tertiary text-xs bg-card-bg-solid rounded-lg border border-dashed border-border-color">
-          هیچ عملیاتی تعریف نشده
+          برای این وضعیت عملیاتی ثبت نشده است.
         </div>
       ) : (
         <div className="space-y-3">
