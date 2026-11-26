@@ -67,8 +67,6 @@ async function fetchCloudflareConfigOnce(
       cache: "no-store",
       headers: {
         Accept: "application/json",
-        "Cache-Control": "no-cache, no-store, max-age=0",
-        Pragma: "no-cache",
       },
       priority: "high",
       signal: timeout.signal,
