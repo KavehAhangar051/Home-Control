@@ -41,7 +41,7 @@ export function ScheduleFields({
       </div>
       <div className="col-span-2 md:col-span-1">
         <Label htmlFor={repeatId} className="block mb-1">
-          تعداد تکرار
+          حداکثر دفعات اجرا
         </Label>
         <Input
           id={repeatId}
@@ -52,6 +52,7 @@ export function ScheduleFields({
           placeholder="0 (بی‌نهایت)"
           className="bg-card-bg"
         />
+        <p className="mt-1 text-xs leading-5 text-text-secondary">۰ یعنی بدون محدودیت؛ مقدارهای دیگر حداکثر دفعات اجرای اتوماسیون را مشخص می‌کنند.</p>
       </div>
       <div className="col-span-2">
         <div className="block text-xs font-medium text-text-secondary mb-2">روزهای هفته</div>
@@ -135,8 +136,9 @@ export function WeatherIntervalFields({
 
   return (
     <div className="col-span-2">
+      <p className="mb-2 text-xs leading-5 text-text-secondary">وضعیت آب‌وهوا با این فاصله دوباره بررسی می‌شود.</p>
       <Label htmlFor={intervalId} className="block mb-1">
-        بازه بررسی
+        فاصله بررسی وضعیت هوا
       </Label>
       <Select
         id={intervalId}
@@ -188,8 +190,9 @@ export function WeatherConditionFields({
     <>
       <div className="col-span-2">
         <Label htmlFor={cityId} className="block mb-1">
-          شهر یا مختصات
+          نام شهر یا مختصات جغرافیایی
         </Label>
+        <p className="mb-2 text-xs leading-5 text-text-secondary">نام شهر را وارد کنید یا مختصات را به‌شکل عرض و طول جغرافیایی بنویسید.</p>
         <div className="flex min-w-0 gap-2">
           <Input
             id={cityId}
@@ -231,7 +234,7 @@ export function WeatherConditionFields({
       <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex-1">
           <Label htmlFor={conditionId} className="block mb-1">
-            شرط دما
+            شرط مقایسه دما
           </Label>
           <Select
             id={conditionId}
