@@ -846,7 +846,7 @@ const shatter: CustomVariant = {
         const X = opts.x + offX, Y = opts.y + offY;
         for (const s of M.shards) {
           let t = (tn - s.delay) / s.life;
-          t = t < 0 ? 0 : t > 1 ? 1 : t;
+          t = Math.min(1, Math.max(0, t));
           let px = X + s.gx, py = Y + s.gy, ang = 0, fy = 1, a = 1, light = 1, gl = 0;
           if (t > 0) {
             const gap = t < 0.08 ? (1.5 * t) / 0.08 : 1.5, T = t * sec * s.life;
@@ -1131,7 +1131,7 @@ function frame(now: number) {
         x.drawImage(b.source, sx, sy, width, sg, sx, sy, width, sg);
         continue;
       }
-      t = t < 0 ? 0 : t > 1 ? 1 : t;
+      t = Math.min(1, Math.max(0, t));
       o.cx = P.x + d[k]; o.cy = P.y + d[k + 1]; o.s = 1; o.rot = 0; o.k = 0; o.shade = 1; o.dark = 0; o.paper = 0;
       o.a = 1 - t * t * (3 - 2 * t);
       v.step(o, t, d, k, P, a0, a1);
