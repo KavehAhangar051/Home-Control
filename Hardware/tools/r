@@ -4,41 +4,59 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RTK_BIN="$ROOT_DIR/.agent-state/rtk/bin/rtk"
 
-# Keep the independent RTK optimizer available without the removed agent bridge.
-bash "$ROOT_DIR/tools/rtk.sh" ensure
-bash "$ROOT_DIR/tools/pio.sh" ensure
-bash "$ROOT_DIR/tools/cpp.sh" ensure
+ensure_rtk() {
+  bash "$ROOT_DIR/tools/rtk.sh" ensure
+}
 
 if [ "$#" -eq 0 ]; then
   exec bash "$ROOT_DIR/tools/rtk.sh" gain
 fi
 
+# Explicit raw execution bypasses RTK and all tool bootstrapping.
 if [ "$1" = "--raw" ]; then
   shift
+  if [ "$#" -eq 0 ]; then
+    echo "Usage: tools/r --raw <command> [args...]" >&2
+    exit 2
+  fi
   exec "$@"
 fi
 
-if [ "$1" = "rtk" ] || [ "$1" = "$RTK_BIN" ]; then
-  shift
-  exec "$RTK_BIN" "$@"
-fi
+# Keep the dedicated tool wrappers responsible for their own lazy setup.
+case "$1" in
+  rtk)
+    shift
+    exec bash "$ROOT_DIR/tools/rtk.sh" "$@"
+    ;;
+  pio|platformio)
+    shift
+    exec bash "$ROOT_DIR/tools/pio.sh" "$@"
+    ;;
+  bun|npm)
+    if [ "${2:-}" = "run" ] && [ -n "${3:-}" ]; then
+      script="$3"
+      shift 3
+      [ "${1:-}" = "--" ] && shift
+      case "$script" in
+        r)
+          exec bash "$ROOT_DIR/tools/r" "$@"
+          ;;
+        pio|pio:*|cpp:*|rtk|rtk:*)
+          if [ "$1" = "bun" ] || [ "$1" = "npm" ]; then
+            exec "$1" run "$script" "$@"
+          fi
+          ;;
+      esac
+      ensure_rtk
+      exec "$RTK_BIN" npm run "$script" "$@"
+    fi
+    ;;
+esac
 
 case "$1" in
   ls|tree|read|smart|git|gh|glab|aws|psql|pnpm|err|test|json|deps|env|find|diff|log|dotnet|docker|kubectl|oc|summary|grep|rg|ast-grep|wget|wc|jest|vitest|ctest|prisma|tsc|ng|next|lint|prettier|format|cargo|npm|npx|curl)
+    ensure_rtk
     exec "$RTK_BIN" "$@"
-    ;;
-  bun)
-    if [ "${2:-}" = "run" ] && [ -n "${3:-}" ]; then
-      case "$3" in
-        r|pio|pio:*|cpp:*|rtk|rtk:*)
-          exec "$@"
-          ;;
-        *)
-          exec "$RTK_BIN" npm run "$3" "${@:4}"
-          ;;
-      esac
-    fi
-    exec "$@"
     ;;
   *)
     exec "$@"
