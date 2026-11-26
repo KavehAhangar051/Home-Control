@@ -31,9 +31,11 @@ export function CursorSvg({ innerRef, ref }: CursorSvgProps) {
         ref={innerRef}
         className="will-change-transform [backface-visibility:hidden]"
         style={{
-          transformOrigin: "9px 2.86px",
-          marginLeft: "-9px",
-          marginTop: "-2.86px",
+          // Keep the SVG arrow tip (4.093, 2.502) on the actual pointer
+          // coordinate, including while the cursor is in direct-drag mode.
+          transformOrigin: "4.093px 2.502px",
+          marginLeft: "-4.093px",
+          marginTop: "-2.502px",
           transform: "perspective(600px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale3d(1,1,1)",
         }}
       >

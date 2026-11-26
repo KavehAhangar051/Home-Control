@@ -104,8 +104,12 @@ export function useHardwareCursorListeners({
 
       // Frame-rate-independent kinematic interpolation via O(1) LUT
       const alpha = lookupCursorLerpAlpha(dt);
-      currentX += dx * alpha;
-      currentY += dy * alpha;
+      // During an active pointer interaction, the custom cursor is the visible
+      // input surface: keep it on the hardware pointer so sliders and other
+      // pointer-driven controls share one coordinate instead of chasing a lagging cursor.
+      const positionAlpha = isMouseDown ? 1 : alpha;
+      currentX += dx * positionAlpha;
+      currentY += dy * positionAlpha;
 
       const cursor = cursorRef.current;
 
