@@ -1,7 +1,0 @@
-{
-  "name": "tokeneconomizer",
-  "version": "0.1.0",
-  "description": "Microsoft TokenEconomizer plugin: learned repository micro-skills, tool pruning proposals, and failure-loop intervention.",
-  "repository": "https://github.com/microsoft/TokenEconomizer",
-  "license": "MIT"
-}
