@@ -28,8 +28,10 @@ export type ToggleProps = {
   defaultValue?: boolean;
   /** Called with the new state on every flip. */
   onValueChange?: (value: boolean) => void;
-  /** Track size: 42 x 26, 51 x 31 (the iOS switch) or 60 x 36 px. Default 'md'. */
+  /** Track size. The square dashboard indicator keeps the original 44 x 24 px geometry. */
   size?: ToggleSize;
+  /** Visual geometry. Interactive Dissolve toggles remain capsule-shaped; dashboard indicators use square. */
+  shape?: 'capsule' | 'square';
   /** A short vibration on every flip, where the browser has it. Default true. */
   haptics?: boolean;
   /** No flip, the switch shows at half opacity. Default false. */
@@ -90,13 +92,20 @@ const SHADOW = '0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.06), 0 
 const FLOW = bezier(0.42, 0, 0.12, 1);
 
 /** Grid points inside the round thumb: x y (from its left top), arc, delay seed. */
-function grainGrid(d: number) {
+function grainGrid(d: number, shape: 'capsule' | 'square') {
   let pitch = Math.max(3, d * PITCH);
   for (;;) {
     const cols = Math.max(3, Math.round(d / pitch)), p = d / cols, r = d / 2, out: [number, number, number, number][] = [];
     for (let j = 0; j < cols; j++) for (let i = 0; i < cols; i++) {
       const x = (i + 0.5) * p, y = (j + 0.5) * p;
-      if ((x - r) ** 2 + (y - r) ** 2 > (r - p * 0.3) ** 2) continue;
+      if (shape === 'capsule') {
+        if ((x - r) ** 2 + (y - r) ** 2 > (r - p * 0.3) ** 2) continue;
+      } else {
+        const corner = d * 0.28;
+        const dx = Math.max(corner - x, 0, x - (d - corner));
+        const dy = Math.max(corner - y, 0, y - (d - corner));
+        if (dx * dx + dy * dy > (corner - p * 0.2) ** 2) continue;
+      }
       const k = out.length;
       // Top rows arc up, bottom rows down: the cloud breathes open in flight, then closes.
       out.push([x, y, ((y - r) / r) * 0.8 + (hash(k, 3) - 0.5) * 0.7, hash(k, 4)]);
@@ -138,6 +147,7 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
 
   // Geometry, from the size.
   let W = 0, H = 0, d = 0, inset = 0, offX = 0, onX = 0, dpr = 1;
+  let thumbRadius = '50%';
   let grid: [number, number, number, number][] = [], dot = 0, N = 0;
   let D = new Float32Array(0), F = new Float32Array(0);
 
@@ -332,7 +342,7 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
   return {
     update(next) {
       const changed = props.update(next);
-      if (changed.has('size')) layout();
+      if (changed.has('size') || changed.has('shape')) layout();
       if (changed.has('value') && p().value !== undefined) set(p().value ? 1 : 0, false);
       if (changed.has('onColor') || changed.has('offColor') || changed.has('thumbColor')) { paint(); kick(); }
       if (changed.has('disabled')) disable();
