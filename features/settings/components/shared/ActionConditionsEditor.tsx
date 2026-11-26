@@ -706,8 +706,9 @@ export function ActionConditionsEditor({
       </div>
 
       {conditions.length >= 2 && (
-        <div className="text-[11px] leading-5 text-text-secondary">منطق ترکیب شرط‌ها</div>
-        <fieldset
+        <>
+          <div className="text-[11px] leading-5 text-text-secondary">منطق ترکیب شرط‌ها</div>
+          <fieldset
           aria-label={`منطق ترکیب شرط‌های ${actionLabel}`}
           className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-card-bg-solid p-1"
         >
@@ -735,7 +736,8 @@ export function ActionConditionsEditor({
           >
             حداقل یکی (OR)
           </button>
-        </fieldset>
+          </fieldset>
+        </>
       )}
 
       {conditions.length > 0 && (
