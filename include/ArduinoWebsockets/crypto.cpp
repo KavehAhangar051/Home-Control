@@ -1,6 +1,12 @@
 #include <tiny_websockets/internals/wscrypto/crypto.hpp>
 #include <tiny_websockets/internals/wscrypto/base64.hpp>
+
+#ifdef ESP32
+#include <esp_idf_version.h>
+#include <mbedtls/sha1.h>
+#else
 #include <tiny_websockets/internals/wscrypto/sha1.hpp>
+#endif
 
 #ifndef _WS_CONFIG_NO_TRUE_RANDOMNESS
 #include <time.h>
@@ -20,10 +26,30 @@ WSString base64Decode(WSString data) {
 }
 
 WSString websocketsHandshakeEncodeKey(WSString key) {
+#ifdef ESP32
+  static constexpr char kWsGuid[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+  uint8_t digest[20];
+  mbedtls_sha1_context ctx;
+  mbedtls_sha1_init(&ctx);
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+  mbedtls_sha1_starts(&ctx);
+  mbedtls_sha1_update(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size());
+  mbedtls_sha1_update(&ctx, reinterpret_cast<const unsigned char*>(kWsGuid), sizeof(kWsGuid) - 1);
+  mbedtls_sha1_finish(&ctx, digest);
+#else
+  mbedtls_sha1_starts_ret(&ctx);
+  mbedtls_sha1_update_ret(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size());
+  mbedtls_sha1_update_ret(&ctx, reinterpret_cast<const unsigned char*>(kWsGuid), sizeof(kWsGuid) - 1);
+  mbedtls_sha1_finish_ret(&ctx, digest);
+#endif
+  mbedtls_sha1_free(&ctx);
+  return internals::base64_encode(digest, sizeof(digest));
+#else
   char base64[30];
   internals::sha1(key.c_str()).add("258EAFA5-E914-47DA-95CA-C5AB0DC85B11").finalize().print_base64(base64);
 
   return WSString(base64);
+#endif
 }
 
 #ifdef _WS_CONFIG_NO_TRUE_RANDOMNESS

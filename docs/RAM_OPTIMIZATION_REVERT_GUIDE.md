@@ -105,6 +105,39 @@
 
 ---
 
+## فاز ۲: بهینه‌سازی صفر-سیکل Flash، RAM و نقاط داغ (بدون حتی ۱ سیکل سربار CPU)
+
+در این مرحله بدون اضافه کردن حتی یک سیکل به CPU (و با **سریع‌تر شدن** حلقه اصلی `loop()` و مسیر خواندن GPIO)، حافظه‌های RAM استاتیک و Flash در هر دو محیط `esp32dev` و `esp32dev_core3` به‌شکل چشمگیری کاهش یافت:
+
+### خلاصه صرفه‌جویی فاز ۲ (اعداد اندازه‌گیری‌شده از ELF و `firmware.bin`)
+- **`esp32dev` (Core v2):**
+  - RAM استاتیک (`.data` + `.bss`): از `106,812 B` (`32.6%`) به **`80,752 B` (`24.6%`)** → **`-26,060 B` (`-25.45 KB`)**
+  - Flash (مجموع سکشن‌های ایمیج و `firmware.bin`): از `1,237,552 B` به **`1,169,120 B`** → **`-68,432 B` (`-66.83 KB`)**
+  - IRAM (`.iram0.text`): از `87,135 B` به **`87,131 B`** (`-4 B`)
+- **`esp32dev_core3` (Core v3):**
+  - RAM استاتیک (`.data` + `.bss`): از `111,612 B` (`34.1%`) به **`86,324 B` (`26.3%`)** → **`-25,288 B` (`-24.70 KB`)**
+  - Flash گزارش PlatformIO: از `1,337,239 B` (`68.0%`) به **`1,302,923 B` (`66.3%`)** → **`-34,316 B` (`-33.51 KB`)**
+  - `firmware.bin`: از `1,366,608 B` به **`1,307,712 B`** → **`-58,896 B` (`-57.52 KB`)**
+  - IRAM (`.iram0.text`): از `93,999 B` به **`93,727 B`** (`-272 B`)
+
+### موارد قابل بازگردانی در صورت افزایش ظرفیت پروژه روی میکروی قوی‌تر
+1. **`ExecutorBase<8>` (`include/Core/Async/Executor.h`):** از `32` تسک به `8` تسک کاهش یافت (`-6,480 B` DRAM؛ هم‌اکنون ۱ تسک استفاده می‌شود). برای بازگردانی، `8` را به `32` برگردانید.
+2. **فلگ‌های تایمر (`include/Timer/TimerConfig.h`):** قابلیت‌های استفاده‌نشده `TIMER_ENABLE_IMMEDIATE`، `TIMER_ENABLE_INTERVAL_UNTIL` و `TIMER_ENABLE_GROUPS` غیرفعال شدند (`-4,800 B` DRAM + حذف شاخه اضافه از حلقه داغ `Timer::update`). در صورت نیاز به این APIها مقدارشان را به `1` تغییر دهید.
+3. **`PinStateManager::MAX_ANALOG_SLOTS = 8` (`lib/PinManager/src/state/PinStateManager.h`):** از `MAX_PINS` (۶۴) به `8` اسلات ورودی آنالوگ کاهش یافت (`-4,256 B` DRAM؛ مناسب برای ADC1 روی ESP32 که هم‌زمان با Wi-Fi حداکثر ۶ تا ۸ کانال دارد). در صورت استفاده از میکرو با کانال‌های ADC بیشتر، این ثابت را افزایش دهید.
+4. **ظرفیت SBO کالبک‌های `FastFunction<..., 16>`:** در `EventCallback` (`include/Events/Base/ListenerEntry.h`)، `AsyncMqttClient` (`Callbacks.hpp` و `AckWithIdPacket.hpp`)، `AsyncTCP.h`، `AchaemenidMQTT.h`، `ArduinoWebsockets/tiny_websockets/client.hpp` و `ErrorHandler.h` از `64` (که به‌خاطر گرد شدن توان ۲ معادل `128 B` می‌شد) به `16` (`32 B` کل، ظرفیت inline برابر ۴ اشاره‌گر، صفر تخصیص Heap) تنظیم شد. همچنین `EventStorage::kBuckets` برای `MaxEvents <= 20` به `64` کاهش یافت و `SmallVector` کالبک‌های `AsyncMqttClient` به ظرفیت inline برابر `1` تغییر کرد. اگر در آینده لامبداهای بزرگ‌تر از ۱۶ بایت کپچر کردید، فقط همان کالبک خاص را به `32` یا `64` افزایش دهید.
+5. **`ErrorHandler` (`include/Core/Error/ErrorHandler.h`):** `HISTORY_SIZE` از `10` به `4`، `context_stack_` از `10` به `6` و `throttle_map_`/`dedup_map_` از `16` به `8` کاهش یافت (`-1,848 B` DRAM).
+6. **غیرفعال‌سازی Exceptions و RTTI (`platformio.ini` + `scripts/pio_esp32_includes.py` + `scripts/pio_export_prebuilt.py`):** با `-fno-exceptions` و `-fno-rtti` جداول EH و متادیتای RTTI به‌طور کامل حذف شدند. در صورت نیاز به `try/catch` یا `dynamic_cast` در آینده، این فلگ‌ها را بردارید.
+
+> [!TIP]
+> **تغییراتی که حتی روی میکروی قوی‌تر هم نباید برگردانده شوند (سود خالص سرعت + حافظه):**
+> - **Union شدن درایورهای متقابلاً انحصاری در `PinEntry.h`** (`gpio`/`pwm`/`adc`/`virt`)
+> - **تبدیل `static char stateBuf[3072]` به بافر موقت `std::unique_ptr<char[]>` در `onStateSyncRequest` (`firmware/src/events/EventHandlers.cpp`)** (`-3,072 B` DRAM دائمی)
+> - **جایگزینی SHA-1 نرم‌افزاری با `mbedtls_sha1` سخت‌افزاری در `include/ArduinoWebsockets/crypto.cpp`** (`-4,407 B` Flash و چند برابر سریع‌تر)
+> - **Inline شدن کامل چک‌های `BootManager::isPollDue()`، `isWsPollDue()` و `isWatchdogFeedDue()` در `loop()` داخل IRAM** (حذف `s_loopTable` و `callx8`های غیرمستقیم و حذف Flash cache miss در هر تیک)
+> - **تک‌مرحله‌ای شدن خواندن رجیسترهای GPIO (`pollInputsChanged` + `processInputsChanged`) و حذف double-indirection در `PinManager.h`**
+
+---
+
 ## نکته مهم هنگام بازگردانی تغییرات
 
 پس از برگرداندن هرکدام از موارد بالا، حتماً با یکی از محیط‌های کامپایل کامل بیلد بگیرید تا باینری‌های `firmware/prebuilt/` هم به‌روزرسانی شوند:
@@ -113,4 +146,5 @@ pio run -e esp32dev
 # یا برای Core v3:
 pio run -e esp32dev_core3
 ```
+
 

@@ -23,38 +23,20 @@
 // ============================================================================
 #define LOOP_IRAM_ATTR IRAM_ATTR
 
-// ============================================================================
-// روش ۲: Loop Function Dispatch Table
-// آرایه‌ای از function pointer که یکبار در setup() پر می‌شود
-// و در loop() بدون هیچ null-check یا branch miss فراخوانی می‌شود
-// ============================================================================
 namespace uniuno {
 
-typedef void (*LoopFn)();
-
-static constexpr uint8_t LOOP_DISPATCH_MAX = 8;
-
-DRAM_ATTR static LoopFn s_loopTable[LOOP_DISPATCH_MAX];
-DRAM_ATTR static uint8_t s_loopTableSize = 0;
-
-inline void registerLoopService(LoopFn fn) {
-  if (s_loopTableSize < LOOP_DISPATCH_MAX) {
-    s_loopTable[s_loopTableSize++] = fn;
-  }
-}
-
 // ============================================================================
-// روش ۳: Pre-cached Callbacks
+// روش ۲: Pre-cached Callbacks (تخصیص یک‌باره در setup — بدون bind در hot path)
 // ============================================================================
 using InputCb = StaticFunction<void, int, bool, unsigned long, const RuleConfig&>;
 using AnalogCb = StaticFunction<void, const AnalogInputChange&, const RuleConfig&>;
 
 DRAM_ATTR static InputCb s_cachedInputCb;
 DRAM_ATTR static AnalogCb s_cachedAnalogCb;
-DRAM_ATTR static bool s_callbacksCached = false;
 
 // ============================================================================
-// روش ۴: CCOUNT Throttles (WebSocket 1ms + Watchdog/OTA health 500ms)
+// روش ۳: CCOUNT Throttles (WebSocket 1ms + Watchdog/OTA health 500ms)
+// مستقیم داخل IRAM_ATTR loop() inline می‌شوند (حذف کامل callx8/entry/retw)
 // ============================================================================
 DRAM_ATTR static uint32_t s_lastWsCycle = 0;
 DRAM_ATTR static uint32_t s_lastWdtCycle = 0;

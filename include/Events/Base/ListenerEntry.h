@@ -6,6 +6,8 @@
 
 namespace uniuno {
 
+using EventCallback = FastFunction<void(void*), 16>;
+
 /**
  * @brief Represents a single event listener subscription.
  * Strongly encapsulated to protect dispatcher integrity.
@@ -14,7 +16,7 @@ class ListenerEntry {
 public:
   ListenerEntry() : event_hash_(0), listener_id_(0), callback_(), is_once_(0), marked_for_removal_(0), reserved_(0) {}
 
-  ListenerEntry(uint32_t hash, uint32_t id, FastFunction<void(void*)> cb, bool once)
+  ListenerEntry(uint32_t hash, uint32_t id, EventCallback cb, bool once)
       : event_hash_(hash), listener_id_(id), callback_(std::move(cb)), is_once_(once ? 1 : 0), marked_for_removal_(0),
         reserved_(0) {}
 
@@ -37,7 +39,7 @@ public:
 private:
   uint32_t event_hash_;
   uint32_t listener_id_;
-  FastFunction<void(void*)> callback_; // Defaults to 64 bytes inside FastFunction
+  EventCallback callback_; // 32B power-of-2 total on ESP32 (16B inline SBO = 4 pointers, zero heap)
   uint8_t is_once_ : 1;
   uint8_t marked_for_removal_ : 1;
   uint8_t reserved_ : 6;

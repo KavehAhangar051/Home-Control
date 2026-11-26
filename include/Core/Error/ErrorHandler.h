@@ -187,7 +187,7 @@ public:
    *
    * NOTE: Only one callback supported (last one wins)
    */
-  void onError(uniuno::FastFunction<void(const ErrorInfo&)> callback) { error_callback_ = std::move(callback); }
+  void onError(uniuno::FastFunction<void(const ErrorInfo&), 16> callback) { error_callback_ = std::move(callback); }
 
   /**
    * @brief Register error policy observer
@@ -315,6 +315,7 @@ public:
       return false;
     }
 
+#ifdef __cpp_exceptions
     try {
       fn();
       return true;
@@ -325,6 +326,10 @@ public:
       reportError(context, "Unknown exception", ErrorSeverity::CRITICAL);
       return false;
     }
+#else
+    fn();
+    return true;
+#endif
   }
 
   bool executeSafeWithFallback(uniuno::FastFunction<void()> fn, uniuno::FastFunction<void()> fallback,
@@ -332,11 +337,15 @@ public:
     bool success = executeSafe(std::move(fn), context);
 
     if (!success && fallback) {
+#ifdef __cpp_exceptions
       try {
         fallback();
       } catch (...) {
         reportError(context, "Fallback also failed", ErrorSeverity::CRITICAL);
       }
+#else
+      fallback();
+#endif
     }
 
     return success;
@@ -616,7 +625,7 @@ public:
 
 private:
   /** @brief Maximum errors in history buffer (circular) */
-  static constexpr size_t HISTORY_SIZE = 10;
+  static constexpr size_t HISTORY_SIZE = 4;
 
   /**
    * @brief Private constructor (Singleton pattern)
@@ -627,8 +636,8 @@ private:
    *   - History buffer empty
    */
   ErrorHandler()
-      : total_errors_(0), filtered_count_(0), throttled_count_(0), duplicate_count_(0), last_error_time_(0),
-        error_callback_(nullptr), filter_enabled_(false), min_severity_(ErrorSeverity::INFO), dedup_enabled_(false),
+      : error_callback_(nullptr), total_errors_(0), filtered_count_(0), throttled_count_(0), duplicate_count_(0),
+        last_error_time_(0), filter_enabled_(false), min_severity_(ErrorSeverity::INFO), dedup_enabled_(false),
         dedup_window_(5000), warning_count_(0), error_count_(0), critical_count_(0), info_count_(0), history_index_(0),
         history_count_(0) {}
 
@@ -691,8 +700,8 @@ private:
 
   // === MEMBER VARIABLES ===
 
-  uniuno::FastFunction<void(const ErrorInfo&)> error_callback_; ///< User error callback
-  SmallVector<IErrorPolicy*, 4> policies_;                      ///< Registered error policies (Observer pattern)
+  uniuno::FastFunction<void(const ErrorInfo&), 16> error_callback_; ///< User error callback
+  SmallVector<IErrorPolicy*, 4> policies_;                          ///< Registered error policies (Observer pattern)
 
   // Statistics
   uint32_t total_errors_;         ///< Total errors reported
@@ -702,19 +711,19 @@ private:
   unsigned long last_error_time_; ///< Timestamp of last error
 
   // Context stack
-  StaticArray<const char*, 10> context_stack_; ///< Nested context names
+  StaticArray<const char*, 6> context_stack_; ///< Nested context names
 
   // Filtering
   bool filter_enabled_;        ///< Is severity filter active?
   ErrorSeverity min_severity_; ///< Minimum severity to report
 
   // Throttling
-  StaticHashMap<uint32_t, ThrottleInfo, 16> throttle_map_; ///< Per-context throttle state
+  StaticHashMap<uint32_t, ThrottleInfo, 8> throttle_map_; ///< Per-context throttle state
 
   // Deduplication
-  bool dedup_enabled_;                                   ///< Is deduplication active?
-  unsigned long dedup_window_;                           ///< Deduplication time window (ms)
-  StaticHashMap<uint32_t, unsigned long, 16> dedup_map_; ///< Last occurrence time
+  bool dedup_enabled_;                                  ///< Is deduplication active?
+  unsigned long dedup_window_;                          ///< Deduplication time window (ms)
+  StaticHashMap<uint32_t, unsigned long, 8> dedup_map_; ///< Last occurrence time
 
   // Severity statistics
   uint32_t warning_count_;  ///< Count of WARNING errors

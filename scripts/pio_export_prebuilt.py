@@ -1,10 +1,20 @@
-Import("env")
+Import("env", "projenv")
 
 import datetime
 import hashlib
 import json
 import os
 import shutil
+
+# Apply -fno-exceptions and -fno-rtti strictly to C++ units after framework builder runs
+# (eliminates EH tables + RTTI typeinfo with zero cc1 warnings on .c files)
+for _target_env in (env, projenv):
+    for _flag_key in ("CXXFLAGS", "CCFLAGS"):
+        if _flag_key in _target_env:
+            _target_env[_flag_key] = [
+                f for f in _target_env[_flag_key] if f not in ("-fexceptions", "-frtti")
+            ]
+    _target_env.AppendUnique(CXXFLAGS=["-fno-exceptions", "-fno-rtti"])
 
 
 def _sha256_file(path):

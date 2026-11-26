@@ -4,8 +4,9 @@
 using AsyncMqttClientInternals::AckWithIdPacket;
 
 AckWithIdPacket::AckWithIdPacket(ParsingInformation* parsingInformation,
-                                 uniuno::FastFunction<void(uint16_t packetId), 64> callback)
-    : _parsingInformation(parsingInformation), _callback(callback), _bytePosition(0), _packetIdMsb(0), _packetId(0) {}
+                                 uniuno::FastFunction<void(uint16_t packetId), 16> callback)
+    : _parsingInformation(parsingInformation), _callback(std::move(callback)), _bytePosition(0), _packetIdMsb(0),
+      _packetId(0) {}
 
 AckWithIdPacket::~AckWithIdPacket() {}
 

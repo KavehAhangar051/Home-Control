@@ -10,7 +10,7 @@ namespace uniuno {
 
 class AchaemenidMQTT {
 public:
-  using MessageCallback = uniuno::FastFunction<void(const uint8_t* payload, size_t length)>;
+  using MessageCallback = uniuno::FastFunction<void(const uint8_t* payload, size_t length), 16>;
 
   AchaemenidMQTT();
   ~AchaemenidMQTT();

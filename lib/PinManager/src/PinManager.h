@@ -136,16 +136,30 @@ public:
 
   HOT_PATH FORCE_INLINE bool isAnalogInputPin(int pin) const { return _stateManager.isAnalogInputPin(pin); }
 
+  HOT_PATH FORCE_INLINE void
+  processInputs(const uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>& onInputChanged) {
+    uint32_t cur0, cur1, diff0, diff1;
+    if (UNLIKELY(_stateManager.pollInputsChanged(cur0, cur1, diff0, diff1))) {
+      _stateManager.processInputsChanged(cur0, cur1, diff0, diff1, onInputChanged);
+    }
+  }
+
   template <typename Callback> HOT_PATH FORCE_INLINE void processInputs(Callback&& onInputChanged) {
-    // Fast-path: skip StaticFunction binding and call overhead unless a GPIO bit flipped
-    if (UNLIKELY(_stateManager.hasInputsChanged())) {
+    uint32_t cur0, cur1, diff0, diff1;
+    if (UNLIKELY(_stateManager.pollInputsChanged(cur0, cur1, diff0, diff1))) {
       auto cb = uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>::bind(&onInputChanged);
-      _stateManager.processInputs(cb);
+      _stateManager.processInputsChanged(cur0, cur1, diff0, diff1, cb);
+    }
+  }
+
+  HOT_PATH FORCE_INLINE void processAnalogInputs(
+      const uniuno::StaticFunction<void, const AnalogInputChange&, const RuleConfig&>& onAnalogChanged) {
+    if (UNLIKELY(_stateManager.hasAnalogInputsDue())) {
+      _stateManager.processAnalogInputs(onAnalogChanged);
     }
   }
 
   template <typename Callback> HOT_PATH FORCE_INLINE void processAnalogInputs(Callback&& onAnalogChanged) {
-    // Fast-path: 1-cycle skip when no analog inputs exist or before next sample deadline
     if (UNLIKELY(_stateManager.hasAnalogInputsDue())) {
       auto cb = uniuno::StaticFunction<void, const AnalogInputChange&, const RuleConfig&>::bind(&onAnalogChanged);
       _stateManager.processAnalogInputs(cb);

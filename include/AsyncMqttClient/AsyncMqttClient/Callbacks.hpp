@@ -7,29 +7,29 @@
 #include "MessageProperties.hpp"
 
 namespace AsyncMqttClientInternals {
-// user callbacks (Max-Velocity 64-byte SBO, direct IRAM call, zero vtable, zero-heap)
-typedef uniuno::FastFunction<void(bool sessionPresent), 64> OnConnectUserCallback;
-typedef uniuno::FastFunction<void(AsyncMqttClientDisconnectReason reason), 64> OnDisconnectUserCallback;
-typedef uniuno::FastFunction<void(uint16_t packetId, uint8_t qos), 64> OnSubscribeUserCallback;
-typedef uniuno::FastFunction<void(uint16_t packetId), 64> OnUnsubscribeUserCallback;
+// user callbacks (32-byte power-of-2 SBO on ESP32: 16B inline = 4 pointers, direct IRAM call, zero-heap)
+typedef uniuno::FastFunction<void(bool sessionPresent), 16> OnConnectUserCallback;
+typedef uniuno::FastFunction<void(AsyncMqttClientDisconnectReason reason), 16> OnDisconnectUserCallback;
+typedef uniuno::FastFunction<void(uint16_t packetId, uint8_t qos), 16> OnSubscribeUserCallback;
+typedef uniuno::FastFunction<void(uint16_t packetId), 16> OnUnsubscribeUserCallback;
 typedef uniuno::FastFunction<void(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len,
                                   size_t index, size_t total),
-                             64>
+                             16>
     OnMessageUserCallback;
-typedef uniuno::FastFunction<void(uint16_t packetId), 64> OnPublishUserCallback;
+typedef uniuno::FastFunction<void(uint16_t packetId), 16> OnPublishUserCallback;
 
-// internal callbacks (Max-Velocity 64-byte SBO, direct IRAM call, zero vtable, zero-heap)
-typedef uniuno::FastFunction<void(bool sessionPresent, uint8_t connectReturnCode), 64> OnConnAckInternalCallback;
-typedef uniuno::FastFunction<void(), 64> OnPingRespInternalCallback;
-typedef uniuno::FastFunction<void(uint16_t packetId, char status), 64> OnSubAckInternalCallback;
-typedef uniuno::FastFunction<void(uint16_t packetId), 64> OnUnsubAckInternalCallback;
+// internal callbacks (32-byte power-of-2 SBO on ESP32: 16B inline = 4 pointers, direct IRAM call, zero-heap)
+typedef uniuno::FastFunction<void(bool sessionPresent, uint8_t connectReturnCode), 16> OnConnAckInternalCallback;
+typedef uniuno::FastFunction<void(), 16> OnPingRespInternalCallback;
+typedef uniuno::FastFunction<void(uint16_t packetId, char status), 16> OnSubAckInternalCallback;
+typedef uniuno::FastFunction<void(uint16_t packetId), 16> OnUnsubAckInternalCallback;
 typedef uniuno::FastFunction<void(char* topic, char* payload, uint8_t qos, bool dup, bool retain, size_t len,
                                   size_t index, size_t total, uint16_t packetId),
-                             64>
+                             16>
     OnMessageInternalCallback;
-typedef uniuno::FastFunction<void(uint16_t packetId, uint8_t qos), 64> OnPublishInternalCallback;
-typedef uniuno::FastFunction<void(uint16_t packetId), 64> OnPubRelInternalCallback;
-typedef uniuno::FastFunction<void(uint16_t packetId), 64> OnPubAckInternalCallback;
-typedef uniuno::FastFunction<void(uint16_t packetId), 64> OnPubRecInternalCallback;
-typedef uniuno::FastFunction<void(uint16_t packetId), 64> OnPubCompInternalCallback;
+typedef uniuno::FastFunction<void(uint16_t packetId, uint8_t qos), 16> OnPublishInternalCallback;
+typedef uniuno::FastFunction<void(uint16_t packetId), 16> OnPubRelInternalCallback;
+typedef uniuno::FastFunction<void(uint16_t packetId), 16> OnPubAckInternalCallback;
+typedef uniuno::FastFunction<void(uint16_t packetId), 16> OnPubRecInternalCallback;
+typedef uniuno::FastFunction<void(uint16_t packetId), 16> OnPubCompInternalCallback;
 } // namespace AsyncMqttClientInternals

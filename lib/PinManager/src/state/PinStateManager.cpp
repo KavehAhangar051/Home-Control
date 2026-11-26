@@ -33,20 +33,20 @@ bool PinStateManager::setPinState(int pin, bool state) {
       return true;
     }
     if (entry->type == SegmentType::AnalogOutput) {
-      const uint16_t maxDuty = maxScaleForBits(entry->virtualPwmResolution);
+      const uint16_t maxDuty = maxScaleForBits(entry->virt.pwmResolution);
       if (state) {
-        const uint16_t restore = (entry->virtualLastNonZeroValue > 0 && entry->virtualLastNonZeroValue <= maxDuty)
-                                     ? entry->virtualLastNonZeroValue
+        const uint16_t restore = (entry->virt.lastNonZeroValue > 0 && entry->virt.lastNonZeroValue <= maxDuty)
+                                     ? entry->virt.lastNonZeroValue
                                      : maxDuty;
-        entry->virtualAnalogValue = restore;
-        entry->virtualLastNonZeroValue = restore;
+        entry->virt.analogValue = restore;
+        entry->virt.lastNonZeroValue = restore;
         entry->virtualState = true;
       } else {
-        entry->virtualAnalogValue = 0;
+        entry->virt.analogValue = 0;
         entry->virtualState = false;
       }
       INFOF("[PinManager] Virtual Pin %d PWM (node=%u rpin=%u) -> %s (duty=%u/%u)", pin, entry->nodeId,
-            entry->remotePin, state ? "ON" : "OFF", entry->virtualAnalogValue, maxDuty);
+            entry->remotePin, state ? "ON" : "OFF", entry->virt.analogValue, maxDuty);
       return true;
     }
     return false;
@@ -69,30 +69,11 @@ bool PinStateManager::setPinState(int pin, bool state) {
 }
 
 bool PinStateManager::setStateById(const char* id, bool state) {
-  const int idx = _registry.findById(id);
-  PinEntry* entry = _registry.getEntryByIndex(idx);
-  if (!entry || !entry->active) {
+  const PinEntry* entry = _registry.getEntryByIndexConst(_registry.findById(id));
+  if (UNLIKELY(!entry || !entry->active)) {
     return false;
   }
-
-  if (entry->isVirtual) {
-    return setPinState(entry->pinNumber, state);
-  }
-
-  if (entry->hasGpio) {
-    entry->gpio.setState(state);
-    INFOF("[PinManager] '%s' (pin %d) -> %s", id, entry->pinNumber, state ? "ON" : "OFF");
-    return true;
-  }
-
-  if (entry->hasPwm) {
-    entry->pwm.setState(state);
-    INFOF("[PinManager] '%s' (pin %d, PWM) -> %s (duty=%u/%u)", id, entry->pinNumber, state ? "ON" : "OFF",
-          entry->pwm.getValue(), entry->pwm.getMaxDuty());
-    return true;
-  }
-
-  return false;
+  return setPinState(entry->pinNumber, state);
 }
 
 bool PinStateManager::setPinAnalogValue(int pin, uint16_t value) {
@@ -105,15 +86,15 @@ bool PinStateManager::setPinAnalogValue(int pin, uint16_t value) {
     if (entry->type != SegmentType::AnalogOutput) {
       return false;
     }
-    const uint16_t maxDuty = maxScaleForBits(entry->virtualPwmResolution);
+    const uint16_t maxDuty = maxScaleForBits(entry->virt.pwmResolution);
     const uint16_t clamped = (value > maxDuty) ? maxDuty : value;
-    entry->virtualAnalogValue = clamped;
+    entry->virt.analogValue = clamped;
     if (clamped > 0) {
-      entry->virtualLastNonZeroValue = clamped;
+      entry->virt.lastNonZeroValue = clamped;
     }
     entry->virtualState = (clamped > 0);
     INFOF("[PinManager] Virtual Pin %d PWM (node=%u rpin=%u) -> %u/%u (%u-bit)", pin, entry->nodeId, entry->remotePin,
-          clamped, maxDuty, entry->virtualPwmResolution);
+          clamped, maxDuty, entry->virt.pwmResolution);
     return true;
   }
 
@@ -128,24 +109,11 @@ bool PinStateManager::setPinAnalogValue(int pin, uint16_t value) {
 }
 
 bool PinStateManager::setAnalogValueById(const char* id, uint16_t value) {
-  const int idx = _registry.findById(id);
-  PinEntry* entry = _registry.getEntryByIndex(idx);
+  const PinEntry* entry = _registry.getEntryByIndexConst(_registry.findById(id));
   if (UNLIKELY(!entry || !entry->active)) {
     return false;
   }
-
-  if (entry->isVirtual) {
-    return setPinAnalogValue(entry->pinNumber, value);
-  }
-
-  if (UNLIKELY(!entry->hasPwm)) {
-    return false;
-  }
-
-  entry->pwm.setValue(value);
-  INFOF("[PinManager] '%s' (pin %d) PWM -> %u/%u (%u-bit)", id, entry->pinNumber, entry->pwm.getValue(),
-        entry->pwm.getMaxDuty(), entry->pwm.getResolution());
-  return true;
+  return setPinAnalogValue(entry->pinNumber, value);
 }
 
 bool PinStateManager::readAnalogInputNow(int pin, AdcSampleResult& outResult) {
@@ -158,7 +126,7 @@ bool PinStateManager::readAnalogInputNow(int pin, AdcSampleResult& outResult) {
   if (entry->isVirtual) {
     outResult = AdcSampleResult();
     outResult.sampled = true;
-    outResult.value = entry->virtualAnalogValue;
+    outResult.value = entry->virt.analogValue;
     outResult.thresholdState = entry->lastInputState;
     outResult.valueChanged = false;
     outResult.thresholdChanged = false;
@@ -223,18 +191,18 @@ bool PinStateManager::injectVirtualAnalogInput(int pin, uint16_t rawValue, Analo
     return false;
   }
 
-  const uint16_t maxScale = maxScaleForBits(entry->virtualAdcResolution);
+  const uint16_t maxScale = maxScaleForBits(entry->virt.adcResolution);
   const uint16_t clamped = (rawValue > maxScale) ? maxScale : rawValue;
-  const uint16_t prevValue = entry->virtualAnalogValue;
+  const uint16_t prevValue = entry->virt.analogValue;
   const uint16_t diff = (clamped >= prevValue) ? (clamped - prevValue) : (prevValue - clamped);
   const bool valueChanged =
-      (diff >= entry->virtualAdcDeltaThreshold) || (clamped != prevValue && (clamped == 0 || clamped == maxScale));
+      (diff >= entry->virt.adcDeltaThreshold) || (clamped != prevValue && (clamped == 0 || clamped == maxScale));
 
   bool nextThresholdState = entry->lastInputState;
-  if (entry->virtualAdcHighThreshold > 0) {
-    if (!entry->lastInputState && clamped >= entry->virtualAdcHighThreshold) {
+  if (entry->virt.adcHighThreshold > 0) {
+    if (!entry->lastInputState && clamped >= entry->virt.adcHighThreshold) {
       nextThresholdState = true;
-    } else if (entry->lastInputState && clamped <= entry->virtualAdcLowThreshold) {
+    } else if (entry->lastInputState && clamped <= entry->virt.adcLowThreshold) {
       nextThresholdState = false;
     }
   }
@@ -250,11 +218,7 @@ bool PinStateManager::injectVirtualAnalogInput(int pin, uint16_t rawValue, Analo
     entry->lastInputState = nextThresholdState;
   }
 
-  if (valueChanged || thresholdChanged) {
-    entry->virtualAnalogValue = clamped;
-  } else {
-    entry->virtualAnalogValue = clamped;
-  }
+  entry->virt.analogValue = clamped;
 
   const RuleConfig& entryRule = entry->getRuleRef();
   bool rangeMaskChanged = false;
@@ -281,7 +245,7 @@ bool PinStateManager::injectVirtualAnalogInput(int pin, uint16_t rawValue, Analo
   outChange.pin = entry->pinNumber;
   outChange.durationSec = durationSec;
   outChange.value = clamped;
-  outChange.resolution = entry->virtualAdcResolution;
+  outChange.resolution = entry->virt.adcResolution;
   outChange.valueChanged = valueChanged;
   outChange.thresholdChanged = thresholdChanged;
   outChange.thresholdState = nextThresholdState;
@@ -312,8 +276,11 @@ void PinStateManager::rebuildInputCache() {
   _analogRoundRobin = 0;
   _hasAnalogSchedule = false;
 
-  for (int i = 0; i < MAX_PINS; i++) {
+  for (uint8_t i = 0; i < MAX_ANALOG_SLOTS; ++i) {
     _analogEntries[i] = nullptr;
+  }
+
+  for (int i = 0; i < MAX_PINS; i++) {
     PinEntry* entry = _registry.getEntryByIndex(i);
     if (!entry || !entry->active || entry->isVirtual) continue;
 
@@ -329,14 +296,14 @@ void PinStateManager::rebuildInputCache() {
         _inputMask32_39 |= bit;
         if (entry->lastInputState) _lastInputs32_39 |= bit;
       }
-    } else if (entry->type == SegmentType::AnalogInput && entry->hasAdc) {
+    } else if (entry->type == SegmentType::AnalogInput && entry->hasAdc && _numAnalogInputs < MAX_ANALOG_SLOTS) {
       _analogEntries[_numAnalogInputs++] = entry;
     }
   }
 
-  // Pre-calculate round-robin lookup table to eliminate runtime modulo in hot loop
-  for (int start = 0; start < MAX_PINS; ++start) {
-    for (int step = 0; step < MAX_PINS; ++step) {
+  // Pre-calculate round-robin lookup table (8x8 = 64B, fits in 2 L1 cache lines!)
+  for (uint8_t start = 0; start < MAX_ANALOG_SLOTS; ++start) {
+    for (uint8_t step = 0; step < MAX_ANALOG_SLOTS; ++step) {
       _analogSlotOrder[start][step] =
           (_numAnalogInputs > 0) ? static_cast<uint8_t>((start + step) % _numAnalogInputs) : 0;
     }
@@ -345,20 +312,15 @@ void PinStateManager::rebuildInputCache() {
 
 /**
  * @brief Hardware bit-scan input processor (O(changed_pins)).
- * Triggered only after PinManager::processInputs() detects a hardware GPIO bit flip.
- * Uses Xtensa hardware ctz (nsau) to visit strictly the changed pins instead of scanning all inputs.
+ * Consumes pre-sampled GPIO snapshots and diff bitmasks directly from pollInputsChanged()
+ * so APB GPIO.in / GPIO.in1.val registers are NEVER read twice on an edge.
  */
-HOT_PATH PIN_STATE_IRAM void PinStateManager::processInputs(
+HOT_PATH PIN_STATE_IRAM void PinStateManager::processInputsChanged(
+    uint32_t current0_31, uint32_t current32_39, uint32_t changed0_31, uint32_t changed32_39,
     const uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>& onInputChanged) {
   if (UNLIKELY(_numInputs == 0)) return;
 
 #ifdef ESP32
-  const uint32_t current0_31 = GPIO.in;
-  const uint32_t current32_39 = GPIO.in1.val;
-
-  uint32_t changed0_31 = (current0_31 ^ _lastInputs0_31) & _inputMask0_31;
-  uint32_t changed32_39 = (current32_39 ^ _lastInputs32_39) & _inputMask32_39;
-
   if (LIKELY((changed0_31 | changed32_39) == 0)) {
     return;
   }
@@ -415,6 +377,10 @@ HOT_PATH PIN_STATE_IRAM void PinStateManager::processInputs(
     handleTransition(32 + bitIdx, uniuno::asm_opt::test_bitmap_bit(current32_39, bitIdx));
   }
 #else
+  (void)current0_31;
+  (void)current32_39;
+  (void)changed0_31;
+  (void)changed32_39;
   const unsigned long currentMillis = millis();
 
   for (uint8_t i = 0; i < _numInputs; i++) {
@@ -445,6 +411,14 @@ HOT_PATH PIN_STATE_IRAM void PinStateManager::processInputs(
     }
   }
 #endif
+}
+
+HOT_PATH PIN_STATE_IRAM void PinStateManager::processInputs(
+    const uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>& onInputChanged) {
+  uint32_t cur0, cur1, diff0, diff1;
+  if (UNLIKELY(pollInputsChanged(cur0, cur1, diff0, diff1))) {
+    processInputsChanged(cur0, cur1, diff0, diff1, onInputChanged);
+  }
 }
 
 /**

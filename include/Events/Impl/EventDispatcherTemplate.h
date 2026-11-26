@@ -17,7 +17,7 @@ public:
   // -------------------------------------------------------------------------
   template <typename EventType> uint32_t on(void (*callback)(EventType*)) {
     if (UNLIKELY(!callback)) return 0;
-    auto func = FastFunction<void(void*)>([callback](void* event) { callback(static_cast<EventType*>(event)); });
+    auto func = EventCallback([callback](void* event) { callback(static_cast<EventType*>(event)); });
     return this->addListener(kEventHash<EventType>, std::move(func), false);
   }
 
@@ -25,7 +25,7 @@ public:
   // on<EventType>(lambda by move) — captures by value, forwarded into storage
   // -------------------------------------------------------------------------
   template <typename EventType, typename Lambda> uint32_t on(Lambda&& lambda) {
-    auto func = FastFunction<void(void*)>(
+    auto func = EventCallback(
         [lambda = std::forward<Lambda>(lambda)](void* event) mutable { lambda(static_cast<EventType*>(event)); });
     return this->addListener(kEventHash<EventType>, std::move(func), false);
   }
@@ -35,7 +35,7 @@ public:
   // -------------------------------------------------------------------------
   template <typename EventType, typename Lambda> uint32_t on(Lambda* lambda) {
     if (UNLIKELY(!lambda)) return 0;
-    auto func = FastFunction<void(void*)>([lambda](void* event) { (*lambda)(static_cast<EventType*>(event)); });
+    auto func = EventCallback([lambda](void* event) { (*lambda)(static_cast<EventType*>(event)); });
     return this->addListener(kEventHash<EventType>, std::move(func), false);
   }
 
@@ -43,7 +43,7 @@ public:
   // once<EventType> — fires once then auto-removes (by move)
   // -------------------------------------------------------------------------
   template <typename EventType, typename Lambda> uint32_t once(Lambda&& lambda) {
-    auto func = FastFunction<void(void*)>(
+    auto func = EventCallback(
         [lambda = std::forward<Lambda>(lambda)](void* event) mutable { lambda(static_cast<EventType*>(event)); });
     return this->addListener(kEventHash<EventType>, std::move(func), true);
   }
@@ -53,7 +53,7 @@ public:
   // -------------------------------------------------------------------------
   template <typename EventType, typename Lambda> uint32_t once(Lambda* lambda) {
     if (UNLIKELY(!lambda)) return 0;
-    auto func = FastFunction<void(void*)>([lambda](void* event) { (*lambda)(static_cast<EventType*>(event)); });
+    auto func = EventCallback([lambda](void* event) { (*lambda)(static_cast<EventType*>(event)); });
     return this->addListener(kEventHash<EventType>, std::move(func), true);
   }
 

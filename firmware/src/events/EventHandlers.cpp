@@ -442,11 +442,16 @@ auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
 auto onStateSyncRequest = [](StateSyncRequestEvent* evt) {
   if (evt == nullptr) return;
   INFO("[Event] Syncing full state to MQTT...");
-  static char stateBuf[3072];
-  const size_t stateLen = pinManager.exportStateJson(stateBuf, sizeof(stateBuf), &auxNodeManager);
+  constexpr size_t kStateBufSize = 3072;
+  std::unique_ptr<char[]> stateBuf(new (std::nothrow) char[kStateBufSize]);
+  if (!stateBuf) {
+    ERROR("[Event] Out of memory allocating state sync buffer");
+    return;
+  }
+  const size_t stateLen = pinManager.exportStateJson(stateBuf.get(), kStateBufSize, &auxNodeManager);
   char stateTopic[96];
   std::snprintf(stateTopic, sizeof(stateTopic), "%s/State", mqttClient.getBaseTopicCStr());
-  mqttClient.publish(stateTopic, reinterpret_cast<const uint8_t*>(stateBuf), stateLen, false);
+  mqttClient.publish(stateTopic, reinterpret_cast<const uint8_t*>(stateBuf.get()), stateLen, false);
 };
 
 /**

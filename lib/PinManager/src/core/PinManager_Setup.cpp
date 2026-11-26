@@ -46,18 +46,10 @@ bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoO
   entry->virtualState = false;
   entry->nodeId = AUX_NODE_ID_LOCAL;
   entry->remotePin = REMOTE_PIN_UNSET;
-  entry->virtualAnalogValue = 0;
-  entry->virtualLastNonZeroValue = 0;
-  entry->virtualPwmResolution = DEFAULT_PWM_RESOLUTION;
-  entry->virtualPwmFrequency = DEFAULT_PWM_FREQUENCY;
-  entry->virtualAdcResolution = DEFAULT_ADC_RESOLUTION;
-  entry->virtualAdcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
-  entry->virtualAdcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
-  entry->virtualAdcHighThreshold = 0;
-  entry->virtualAdcLowThreshold = 0;
   entry->lastInputState = false;
 
   if (type == SegmentType::AnalogOutput) {
+    new (&entry->pwm) GpioPwm();
     entry->pwm.configure(static_cast<int8_t>(pin), pwmResolution, pwmFrequency);
     if (!entry->pwm.begin()) {
       WARNINGF("[PinManager] Failed to attach LEDC PWM on pin %d (no free channel or invalid pin).", pin);
@@ -65,6 +57,7 @@ bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoO
     }
     entry->hasPwm = true;
   } else if (type == SegmentType::AnalogInput) {
+    new (&entry->adc) GpioAdc();
     entry->adc.configure(static_cast<int8_t>(pin), adcResolution, adcSampleIntervalMs, adcDeltaThreshold,
                          adcHighThreshold, adcLowThreshold);
     if (!entry->adc.begin()) {
@@ -77,6 +70,7 @@ bool PinManager::addSegment(const char* id, SegmentType type, int pin, int autoO
     pinMode(pin, INPUT_PULLUP);
     entry->lastInputState = digitalRead(pin) == HIGH;
   } else {
+    new (&entry->gpio) GpioSwitch();
     entry->gpio.setPin(pin);
     // GpioSwitch starts in a known OFF state; live output state is not restored from NVS.
     entry->gpio.begin();
@@ -263,15 +257,16 @@ bool PinManager::addVirtualSegment(const char* id, SegmentType type, int virtual
   entry->lastInputState = false;
   entry->nodeId = nodeId;
   entry->remotePin = remotePin;
-  entry->virtualAnalogValue = 0;
-  entry->virtualLastNonZeroValue = static_cast<uint16_t>((1UL << clampedPwmRes) - 1UL);
-  entry->virtualPwmResolution = clampedPwmRes;
-  entry->virtualPwmFrequency = clampedPwmFreq;
-  entry->virtualAdcResolution = clampedAdcRes;
-  entry->virtualAdcSampleIntervalMs = clampedSint;
-  entry->virtualAdcDeltaThreshold = clampedDelta;
-  entry->virtualAdcHighThreshold = clampedAth;
-  entry->virtualAdcLowThreshold = clampedAtl;
+  entry->virt = VirtualPinState{};
+  entry->virt.analogValue = 0;
+  entry->virt.lastNonZeroValue = static_cast<uint16_t>((1UL << clampedPwmRes) - 1UL);
+  entry->virt.pwmResolution = clampedPwmRes;
+  entry->virt.pwmFrequency = clampedPwmFreq;
+  entry->virt.adcResolution = clampedAdcRes;
+  entry->virt.adcSampleIntervalMs = clampedSint;
+  entry->virt.adcDeltaThreshold = clampedDelta;
+  entry->virt.adcHighThreshold = clampedAth;
+  entry->virt.adcLowThreshold = clampedAtl;
 
   strncpy(entry->segmentId, id, sizeof(entry->segmentId) - 1);
   entry->segmentId[sizeof(entry->segmentId) - 1] = '\0';
@@ -436,15 +431,12 @@ bool PinManager::removeSegmentByIndex(int idx) {
   entry->lastInputState = false;
   entry->pendingRuleActionState = false;
   entry->pendingRuleActionAnalogValue = RULE_ANALOG_VALUE_UNSET;
-  entry->virtualAnalogValue = 0;
-  entry->virtualLastNonZeroValue = 0;
-  entry->virtualPwmResolution = DEFAULT_PWM_RESOLUTION;
-  entry->virtualPwmFrequency = DEFAULT_PWM_FREQUENCY;
-  entry->virtualAdcResolution = DEFAULT_ADC_RESOLUTION;
-  entry->virtualAdcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
-  entry->virtualAdcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
-  entry->virtualAdcHighThreshold = 0;
-  entry->virtualAdcLowThreshold = 0;
+  entry->virt = VirtualPinState{};
+  entry->virt.pwmResolution = DEFAULT_PWM_RESOLUTION;
+  entry->virt.pwmFrequency = DEFAULT_PWM_FREQUENCY;
+  entry->virt.adcResolution = DEFAULT_ADC_RESOLUTION;
+  entry->virt.adcSampleIntervalMs = DEFAULT_ADC_SAMPLE_INTERVAL_MS;
+  entry->virt.adcDeltaThreshold = DEFAULT_ADC_DELTA_THRESHOLD;
   entry->pendingHoldAction = RuleAction();
   entry->isHandled = false;
   entry->clickCount = 0;
@@ -613,24 +605,24 @@ bool PinManager::updateAnalogInputConfigByPin(int pin, uint16_t sampleIntervalMs
 
   if (entry->isVirtual) {
     if (resolution >= MIN_ADC_RESOLUTION && resolution <= MAX_ADC_RESOLUTION) {
-      entry->virtualAdcResolution = resolution;
+      entry->virt.adcResolution = resolution;
     }
-    const uint16_t maxAdcVal = static_cast<uint16_t>((1UL << entry->virtualAdcResolution) - 1UL);
-    entry->virtualAdcSampleIntervalMs =
+    const uint16_t maxAdcVal = static_cast<uint16_t>((1UL << entry->virt.adcResolution) - 1UL);
+    entry->virt.adcSampleIntervalMs =
         (sampleIntervalMs < MIN_ADC_SAMPLE_INTERVAL_MS)
             ? MIN_ADC_SAMPLE_INTERVAL_MS
             : ((sampleIntervalMs > MAX_ADC_SAMPLE_INTERVAL_MS) ? MAX_ADC_SAMPLE_INTERVAL_MS : sampleIntervalMs);
-    entry->virtualAdcDeltaThreshold = (deltaThreshold < MIN_ADC_DELTA_THRESHOLD)
-                                          ? MIN_ADC_DELTA_THRESHOLD
-                                          : ((deltaThreshold > maxAdcVal) ? maxAdcVal : deltaThreshold);
-    entry->virtualAdcHighThreshold = (highThreshold > maxAdcVal) ? maxAdcVal : highThreshold;
-    entry->virtualAdcLowThreshold =
-        (entry->virtualAdcHighThreshold == 0)
+    entry->virt.adcDeltaThreshold = (deltaThreshold < MIN_ADC_DELTA_THRESHOLD)
+                                        ? MIN_ADC_DELTA_THRESHOLD
+                                        : ((deltaThreshold > maxAdcVal) ? maxAdcVal : deltaThreshold);
+    entry->virt.adcHighThreshold = (highThreshold > maxAdcVal) ? maxAdcVal : highThreshold;
+    entry->virt.adcLowThreshold =
+        (entry->virt.adcHighThreshold == 0)
             ? 0
-            : ((lowThreshold > entry->virtualAdcHighThreshold) ? entry->virtualAdcHighThreshold : lowThreshold);
+            : ((lowThreshold > entry->virt.adcHighThreshold) ? entry->virt.adcHighThreshold : lowThreshold);
     INFOF("[PinManager] Updated virtual analog_input pin=%d (%u-bit sint=%ums delta=%u ath=%u atl=%u)", pin,
-          entry->virtualAdcResolution, entry->virtualAdcSampleIntervalMs, entry->virtualAdcDeltaThreshold,
-          entry->virtualAdcHighThreshold, entry->virtualAdcLowThreshold);
+          entry->virt.adcResolution, entry->virt.adcSampleIntervalMs, entry->virt.adcDeltaThreshold,
+          entry->virt.adcHighThreshold, entry->virt.adcLowThreshold);
     return true;
   }
 

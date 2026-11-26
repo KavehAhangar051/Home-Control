@@ -16,12 +16,12 @@ namespace websockets {
 enum class WebsocketsEvent { ConnectionOpened, ConnectionClosed, GotPing, GotPong };
 
 class WebsocketsClient;
-// Upgraded to zero-heap 64-byte SBO FastFunction
-typedef uniuno::FastFunction<void(WebsocketsClient&, WebsocketsMessage), 64> MessageCallback;
-typedef uniuno::FastFunction<void(WebsocketsMessage), 64> PartialMessageCallback;
+// Upgraded to zero-heap 32-byte power-of-2 FastFunction (16B inline SBO = 4 pointers)
+typedef uniuno::FastFunction<void(WebsocketsClient&, WebsocketsMessage), 16> MessageCallback;
+typedef uniuno::FastFunction<void(WebsocketsMessage), 16> PartialMessageCallback;
 
-typedef uniuno::FastFunction<void(WebsocketsClient&, WebsocketsEvent, WSInterfaceString), 64> EventCallback;
-typedef uniuno::FastFunction<void(WebsocketsEvent, WSInterfaceString), 64> PartialEventCallback;
+typedef uniuno::FastFunction<void(WebsocketsClient&, WebsocketsEvent, WSInterfaceString), 16> EventCallback;
+typedef uniuno::FastFunction<void(WebsocketsEvent, WSInterfaceString), 16> PartialEventCallback;
 
 class WebsocketsClient {
 public:

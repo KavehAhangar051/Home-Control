@@ -86,6 +86,14 @@ public:
   BootManager();
   void startBootSequenceAsync(const BootContext& ctx);
   void refreshMdnsIdentity();
+  HOT_PATH FORCE_INLINE bool isPollDue() const {
+    if (LIKELY(state_ == BootState::DONE)) {
+      if (UNLIKELY(!networkReady_)) return false;
+      const uint32_t now = uniuno::asm_opt::get_cpu_cycle_count();
+      return UNLIKELY(static_cast<uint32_t>(now - lastConnectedCheckCycle_) >= uniuno::asm_opt::ms_to_cycles(500));
+    }
+    return state_ == BootState::PROVISIONING;
+  }
   HOT_PATH void loop();
   BootState getState() const { return state_; }
   const char* getMdnsHostname() const { return mdnsHostname_; }

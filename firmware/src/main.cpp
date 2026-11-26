@@ -67,28 +67,11 @@ static void onAnalogChanged_cached(const AnalogInputChange& ch, const RuleConfig
 }
 
 // ============================================================================
-// روش ۲: Loop Service wrappers برای dispatch table
+// Cold out-of-line WebSocket poll slow path (runs at most once per 1ms)
 // ============================================================================
-
-/** Wrapper برای bootManager->loop() — بدون null-check در loop اصلی */
-static LOOP_IRAM_ATTR void bootManagerLoopFn() {
-  bootManager->loop();
-}
-
-/** Wrapper برای wsServer/wsClient — با CCOUNT throttle (روش ۴) */
-static LOOP_IRAM_ATTR void wsLoopFn() {
-  // روش ۴: فقط اگر 1ms گذشته باشه poll کن
-  if (UNLIKELY(uniuno::isWsPollDue())) {
-    wsServer->loop();
-    wsClient->loop();
-  }
-}
-
-/** Wrapper برای Task Watchdog و تایید پایداری OTA — هر 500ms یکبار */
-static LOOP_IRAM_ATTR void watchdogLoopFn() {
-  if (UNLIKELY(uniuno::isWatchdogFeedDue())) {
-    pollWatchdogAndOtaHealth();
-  }
+static __attribute__((noinline)) void pollWebSocketsSlowPath() {
+  if (wsServer) wsServer->loop();
+  if (wsClient) wsClient->loop();
 }
 
 // ============================================================================
@@ -155,51 +138,37 @@ void setup() {
   bootManager->startBootSequenceAsync(bootCtx);
 
   // -------------------------------------------------------------------------
-  // روش ۳: Pre-cache کردن callbacks — یکبار در setup()
-  // از makeStaticFunction برای plain function pointer استفاده می‌کنیم
+  // Pre-cache کردن callbacks — یکبار در setup()
   // -------------------------------------------------------------------------
   uniuno::s_cachedInputCb = uniuno::makeStaticFunction(&onInputChanged_cached);
   uniuno::s_cachedAnalogCb = uniuno::makeStaticFunction(&onAnalogChanged_cached);
-  uniuno::s_callbacksCached = true;
   INFO("[Loop] Callbacks pre-cached.");
-
-  // -------------------------------------------------------------------------
-  // روش ۲: ثبت سرویس‌ها در dispatch table
-  // -------------------------------------------------------------------------
-  if (bootManager) uniuno::registerLoopService(&bootManagerLoopFn);
-  if (wsServer && wsClient) uniuno::registerLoopService(&wsLoopFn);
-  uniuno::registerLoopService(&watchdogLoopFn);
-
-  INFO("[Loop] Dispatch table built.");
 }
 
 // ============================================================================
-// LOOP — بهینه‌سازی‌شده
+// LOOP — 100% IRAM steady-state fast-path (Zero indirect calls, zero Flash misses)
 // ============================================================================
 
-/**
- * @brief تابع loop اصلی — IRAM_ATTR (روش ۱)
- *
- * ترتیب اجرا:
- *  ① executor.poll()          — Bitmask Xtensa, بدون overhead
- *  ② Loop dispatch table      — بدون null-check (روش ۲: boot, WS 1ms, WDT/OTA 500ms)
- *  ③ processInputs            — با pre-cached callback (روش ۳)
- *  ④ processAnalogInputs      — با pre-cached callback (روش ۳)
- */
 LOOP_IRAM_ATTR void loop() {
-  // ① Executor poll — Xtensa NSA bitmask، 2 cycle idle
+  // ① Executor poll — Xtensa NSA bitmask (~2 cycles idle, 100% IRAM)
   executor.poll();
 
-  // ② Loop services dispatch — بدون null-check، بدون branch miss
-  // wsServer و wsClient داخل wsLoopFn با CCOUNT throttle (روش ۴) هستن
-  for (uint8_t i = 0; i < uniuno::s_loopTableSize; i++) {
-    uniuno::s_loopTable[i]();
+  // ② BootManager WiFi health / Captive Portal — inline ~4-cycle IRAM fast-gate
+  if (UNLIKELY(bootManager->isPollDue())) {
+    bootManager->loop();
   }
 
-  // ③④ Input processing — با pre-cached callbacks (روش ۳)
-  // hasInputsChanged و hasAnalogInputsDue قبلاً UNLIKELY fast-path دارن
-  if (ruleEngine) {
-    pinManager.processInputs(uniuno::s_cachedInputCb);
-    pinManager.processAnalogInputs(uniuno::s_cachedAnalogCb);
+  // ③ WebSocket server/client — inline 3-cycle CCOUNT 1ms fast-gate
+  if (UNLIKELY(uniuno::isWsPollDue())) {
+    pollWebSocketsSlowPath();
   }
+
+  // ④ Task Watchdog + OTA stability — inline 3-cycle CCOUNT 500ms fast-gate
+  if (UNLIKELY(uniuno::isWatchdogFeedDue())) {
+    pollWatchdogAndOtaHealth();
+  }
+
+  // ⑤⑥ Digital & Analog inputs — single-pass APB GPIO poll + direct StaticFunction
+  pinManager.processInputs(uniuno::s_cachedInputCb);
+  pinManager.processAnalogInputs(uniuno::s_cachedAnalogCb);
 }

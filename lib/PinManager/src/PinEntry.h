@@ -52,6 +52,18 @@ struct AnalogInputChange {
   bool rangeMaskChanged : 1;
 };
 
+struct VirtualPinState {
+  uint16_t analogValue;
+  uint16_t lastNonZeroValue;
+  uint16_t pwmFrequency;
+  uint16_t adcSampleIntervalMs;
+  uint16_t adcDeltaThreshold;
+  uint16_t adcHighThreshold;
+  uint16_t adcLowThreshold;
+  uint8_t pwmResolution;
+  uint8_t adcResolution;
+};
+
 /**
  * @brief Memory-optimized representation of a single managed hardware pin/segment.
  * Hot fields placed in the primary cache line to eliminate L1 cache misses in loop().
@@ -85,17 +97,6 @@ struct PinEntry {
   uint16_t autoOffDelay;
   int16_t pendingRuleActionAnalogValue;
 
-  // Virtual segment shadow state & configuration (used only when isVirtual == true)
-  uint16_t virtualAnalogValue;
-  uint16_t virtualLastNonZeroValue;
-  uint16_t virtualPwmFrequency;
-  uint16_t virtualAdcSampleIntervalMs;
-  uint16_t virtualAdcDeltaThreshold;
-  uint16_t virtualAdcHighThreshold;
-  uint16_t virtualAdcLowThreshold;
-  uint8_t virtualPwmResolution;
-  uint8_t virtualAdcResolution;
-
   // Heap-allocated RuleConfig (nullptr when segment has no active rules — saves ~32KB .dram0.bss)
   RuleConfig* rule;
 
@@ -124,10 +125,15 @@ struct PinEntry {
     rule = nullptr;
   }
 
-  // --- SECONDARY DRIVER OBJECTS ---
-  GpioSwitch gpio;
-  GpioPwm pwm;
-  GpioAdc adc;
+  // --- MUTUALLY EXCLUSIVE DRIVER STORAGE ---
+  // Exactly one member is active per pin based on (isVirtual / hasGpio / hasPwm / hasAdc).
+  // All four types have trivial destructors, so switching active member via placement-new is zero-cost.
+  union {
+    GpioSwitch gpio;
+    GpioPwm pwm;
+    GpioAdc adc;
+    VirtualPinState virt;
+  };
 
   // Active timer handles
   uniuno::TimerHandle autoOffTimer;
@@ -140,6 +146,9 @@ struct PinEntry {
 
   // 32-byte identifier string (cold path: only for setup / config export)
   char segmentId[32];
+
+  PinEntry() : virt{} {}
+  ~PinEntry() {}
 };
 
 #endif // PIN_ENTRY_H
