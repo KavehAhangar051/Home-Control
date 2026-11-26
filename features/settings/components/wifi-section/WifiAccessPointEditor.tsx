@@ -100,16 +100,18 @@ export function WifiAccessPointEditor({
             <Label htmlFor="esp-ap-password" className="min-w-0 text-sm font-bold">
               رمز عبور اکسس‌پوینت
             </Label>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={onTogglePassword}
               disabled={isSaving}
-              className="min-h-8 shrink-0 rounded-md px-2 text-xs font-semibold text-accent3 hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+              className="min-h-8 shrink-0 px-2 text-xs font-semibold text-accent3"
               aria-label={showPassword ? "مخفی کردن رمز اکسس‌پوینت" : "نمایش رمز اکسس‌پوینت"}
               aria-pressed={showPassword}
             >
               {showPassword ? "پنهان کردن" : "نمایش رمز"}
-            </button>
+            </Button>
           </div>
           <Input
             id="esp-ap-password"
@@ -151,14 +153,16 @@ export function WifiAccessPointEditor({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-color/70 pt-4">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onResetToDefault}
           disabled={isSaving}
-          className="min-h-11 rounded-lg px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-card-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+          className="h-auto min-h-11 whitespace-normal px-3 text-start text-xs font-semibold text-text-secondary"
         >
           بازگشت به پیش‌فرض دستگاه
-        </button>
+        </Button>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
