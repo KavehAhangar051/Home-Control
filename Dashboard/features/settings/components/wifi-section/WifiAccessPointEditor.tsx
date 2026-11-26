@@ -40,6 +40,8 @@ export function WifiAccessPointEditor({
 }: Props) {
   const ssidInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
+  const ssidError = hasAttemptedSave ? errors.ssid : undefined;
+  const passwordError = hasAttemptedSave ? errors.password : undefined;
 
   useEffect(() => {
     if (!hasAttemptedSave) return;
@@ -52,14 +54,16 @@ export function WifiAccessPointEditor({
   }, [errors.ssid, errors.password, hasAttemptedSave]);
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
+    <div className="@container space-y-4">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-5 @lg:grid-cols-2">
         <div className="min-w-0 space-y-2">
-          <div className="flex min-h-11 items-center justify-between gap-3">
+          <div className="flex min-h-8 items-center justify-between gap-3">
             <Label htmlFor="esp-ap-ssid" className="min-w-0 text-sm font-bold">
               نام شبکه (SSID)
             </Label>
-            <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-text-secondary">{ssidByteLength}/۳۲ بایت</span>
+            <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-text-secondary">
+              {ssidByteLength}/۳۲ بایت
+            </span>
           </div>
           <Input
             id="esp-ap-ssid"
@@ -75,16 +79,24 @@ export function WifiAccessPointEditor({
             onChange={(event) => onSsidChange(event.target.value)}
             placeholder="Achaemenid-XXXXXX"
             className="h-11 bg-card-bg-solid text-base sm:text-sm"
-            aria-describedby="esp-ap-ssid-help"
-            error={hasAttemptedSave ? errors.ssid : undefined}
+            aria-invalid={Boolean(ssidError) || undefined}
+            aria-describedby={ssidError ? "esp-ap-ssid-error" : "esp-ap-ssid-help"}
           />
-          <p id="esp-ap-ssid-help" className="min-h-10 text-xs leading-5 text-text-secondary">
-            حداکثر ۳۲ بایت UTF-8.
-          </p>
+          <div className="min-h-10 pt-1">
+            {ssidError ? (
+              <p id="esp-ap-ssid-error" className="text-xs leading-5 text-destructive" role="alert">
+                {ssidError}
+              </p>
+            ) : (
+              <p id="esp-ap-ssid-help" className="text-xs leading-5 text-text-secondary">
+                حداکثر ۳۲ بایت UTF-8.
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="min-w-0 space-y-2">
-          <div className="flex min-h-11 items-center justify-between gap-3">
+          <div className="flex min-h-8 items-center justify-between gap-3">
             <Label htmlFor="esp-ap-password" className="min-w-0 text-sm font-bold">
               رمز عبور اکسس‌پوینت
             </Label>
@@ -114,13 +126,27 @@ export function WifiAccessPointEditor({
             onChange={(event) => onPasswordChange(event.target.value)}
             placeholder="۸ تا ۶۳ بایت"
             className="h-11 bg-card-bg-solid text-base sm:text-sm"
-            aria-describedby="esp-ap-password-help"
-            error={hasAttemptedSave ? errors.password : undefined}
+            aria-invalid={Boolean(passwordError) || undefined}
+            aria-describedby={
+              passwordError ? "esp-ap-password-error" : "esp-ap-password-help"
+            }
           />
-          <p id="esp-ap-password-help" className="min-h-10 text-xs leading-5 text-text-secondary">
-            ۸ تا ۶۳ بایت UTF-8.
-            <span className="ms-1 tabular-nums">({passwordByteLength}/۶۳)</span>
-          </p>
+          <div className="min-h-10 pt-1">
+            {passwordError ? (
+              <p
+                id="esp-ap-password-error"
+                className="text-xs leading-5 text-destructive"
+                role="alert"
+              >
+                {passwordError}
+              </p>
+            ) : (
+              <p id="esp-ap-password-help" className="text-xs leading-5 text-text-secondary">
+                ۸ تا ۶۳ بایت UTF-8.
+                <span className="ms-1 tabular-nums">({passwordByteLength}/۶۳)</span>
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
