@@ -29,7 +29,7 @@ HOT_PATH void RuleEngine::scheduleCloudSync(int sourcePin) {
   }
 
   uniuno::TimerHandle newTimer = _ctx.appTimer->setTimeout(
-      [this, sourcePin]() {
+      [this, sourcePin] {
         if (_ctx.pinManager != nullptr) {
           _ctx.pinManager->setCloudSyncTimerIdByPin(sourcePin, uniuno::TimerHandle());
           const bool finalState = _ctx.pinManager->getPinState(sourcePin);
@@ -144,7 +144,7 @@ HOT_PATH void RuleEngine::handleInput(int sourcePin, bool newState, unsigned lon
       if (timerHoldSec > 0 && pendingIdx >= 0 && _ctx.appTimer != nullptr) {
         _ctx.pinManager->setPendingHoldAction(sourcePin, startActions[pendingIdx]);
         uniuno::TimerHandle tid = _ctx.appTimer->setTimeout(
-            [this, sourcePin, newState, timerHoldSec]() {
+            [this, sourcePin, newState, timerHoldSec] {
               if (_ctx.pinManager != nullptr) {
                 _ctx.pinManager->setHoldTimerIdByPin(sourcePin, uniuno::TimerHandle());
                 _ctx.pinManager->setClickCountByPin(sourcePin, 0);

@@ -42,8 +42,8 @@ public:
   HOT_PATH void loop();
 
 private:
-  void onMessageCallback(websockets::WebsocketsMessage message);
-  void onEventsCallback(websockets::WebsocketsEvent event, String data);
+  void onMessageCallback(const websockets::WebsocketsMessage& message);
+  void onEventsCallback(websockets::WebsocketsEvent event, const String& data);
 
   static void connectTask(void* param);
   void doConnect();

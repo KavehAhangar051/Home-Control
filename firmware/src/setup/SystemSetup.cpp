@@ -42,7 +42,7 @@ void setupTimer() {
   // وضعیت پین‌ها فقط هنگام بوت (BootManager) یک‌بار چاپ می‌شود.
 
   appTimer->setInterval(
-      []() {
+      [] {
         if (!configLoaded || !::network || !::network->isConnected()) return;
         // Ping removed: MQTT connection is natively maintained by AsyncMqttClient (keep-alive)
         // LWT (Last Will and Testament) on /Status topic now handles offline detection.

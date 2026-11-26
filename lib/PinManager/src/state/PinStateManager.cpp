@@ -3,7 +3,7 @@
 #include <Timer/Optimization/TimerAsm.h>
 #include <Optimization/XtensaAnalogAsm.h>
 
-#if defined(ESP32)
+#ifdef ESP32
 #include <soc/gpio_struct.h>
 #define PIN_STATE_IRAM IRAM_ATTR
 #else
@@ -335,8 +335,8 @@ void PinStateManager::rebuildInputCache() {
   }
 
   // Pre-calculate round-robin lookup table to eliminate runtime modulo in hot loop
-  for (uint8_t start = 0; start < MAX_PINS; ++start) {
-    for (uint8_t step = 0; step < MAX_PINS; ++step) {
+  for (int start = 0; start < MAX_PINS; ++start) {
+    for (int step = 0; step < MAX_PINS; ++step) {
       _analogSlotOrder[start][step] =
           (_numAnalogInputs > 0) ? static_cast<uint8_t>((start + step) % _numAnalogInputs) : 0;
     }
@@ -352,7 +352,7 @@ HOT_PATH PIN_STATE_IRAM void PinStateManager::processInputs(
     const uniuno::StaticFunction<void, int, bool, unsigned long, const RuleConfig&>& onInputChanged) {
   if (UNLIKELY(_numInputs == 0)) return;
 
-#if defined(ESP32)
+#ifdef ESP32
   const uint32_t current0_31 = GPIO.in;
   const uint32_t current32_39 = GPIO.in1.val;
 
@@ -508,7 +508,7 @@ HOT_PATH PIN_STATE_IRAM void PinStateManager::processAnalogInputs(
     }
   };
 
-#if defined(ESP32)
+#ifdef ESP32
   // Phase 1: If a SAR1 hardware burst is currently in flight, service it without stalling!
   if (_activeAdcSlot >= 0) {
     if (UNLIKELY(_activeAdcSlot >= static_cast<int8_t>(_numAnalogInputs))) {

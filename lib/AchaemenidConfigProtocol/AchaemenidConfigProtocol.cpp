@@ -70,10 +70,8 @@ static void parseTextConditions(KeyValueParser& kvp, RuleCondition* outConds, ui
   outCount = 0;
   outLogic = COND_LOGIC_AND;
   char logicBuf[8] = {0};
-  if (kvp.getValue("clog", logicBuf, sizeof(logicBuf))) {
-    if (strcmp(logicBuf, "or") == 0 || strcmp(logicBuf, "1") == 0) {
-      outLogic = COND_LOGIC_OR;
-    }
+  if (kvp.getValue("clog", logicBuf, sizeof(logicBuf)) && (strcmp(logicBuf, "or") == 0 || strcmp(logicBuf, "1") == 0)) {
+    outLogic = COND_LOGIC_OR;
   }
   char cndBuf[128] = {0};
   if (!kvp.getValue("cnd", cndBuf, sizeof(cndBuf)) || cndBuf[0] == '\0') {
@@ -376,10 +374,8 @@ bool AchaemenidConfigProtocol::parse(const char* payload, ParseResult& outResult
 
             AnalogRangeTriggerMode triggerMode = RANGE_ON_ENTER;
             char trgBuf[12] = {0};
-            if (kvp.getValue("trg", trgBuf, sizeof(trgBuf))) {
-              if (strcmp(trgBuf, "exit") == 0 || atoi(trgBuf) == 1) {
-                triggerMode = RANGE_ON_EXIT;
-              }
+            if (kvp.getValue("trg", trgBuf, sizeof(trgBuf)) && (strcmp(trgBuf, "exit") == 0 || atoi(trgBuf) == 1)) {
+              triggerMode = RANGE_ON_EXIT;
             }
 
             const int rawAval = kvp.getInt("aval", RULE_ANALOG_VALUE_UNSET);
@@ -603,7 +599,7 @@ static bool readConditions(const uint8_t* payload, size_t len, size_t& offset, u
   const uint8_t condCount = static_cast<uint8_t>(condMeta & 0x0FU);
   const uint8_t condLogic = static_cast<uint8_t>((condMeta >> 4) & 0x01U);
   if (condCount > MAX_RULE_CONDITIONS_PER_ACTION) return false;
-  if (offset + static_cast<size_t>(condCount) * 6U > len) return false;
+  if (offset + (static_cast<size_t>(condCount) * 6U) > len) return false;
 
   outCount = condCount;
   outLogic = (condLogic == COND_LOGIC_OR) ? COND_LOGIC_OR : COND_LOGIC_AND;
@@ -708,7 +704,7 @@ bool parseBinaryAnalogRangeUpdate(const uint8_t* payload, size_t len, int& outIn
   const int inputPin = payload[1];
   const uint8_t rangeCount = payload[2];
   if (!isValidManagedPin(inputPin) || rangeCount > MAX_ANALOG_RANGE_RULES) return false;
-  if (!withConditions && len != (3U + static_cast<size_t>(rangeCount) * 12U)) return false;
+  if (!withConditions && len != (3U + (static_cast<size_t>(rangeCount) * 12U))) return false;
 
   size_t offset = 3;
   for (uint8_t i = 0; i < rangeCount; ++i) {

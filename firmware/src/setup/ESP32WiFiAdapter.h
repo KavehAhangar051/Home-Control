@@ -85,7 +85,7 @@ public:
           const char* passArg = (cred.pass[0] != '\0') ? cred.pass : nullptr;
           WiFi.begin(cred.ssid, passArg);
           const unsigned long start = millis();
-          while (WiFi.status() != WL_CONNECTED && static_cast<unsigned long>(millis() - start) < connectTimeoutMs) {
+          while (WiFi.status() != WL_CONNECTED && (millis() - start) < connectTimeoutMs) {
             delay(50);
           }
           if (WiFi.status() == WL_CONNECTED) {

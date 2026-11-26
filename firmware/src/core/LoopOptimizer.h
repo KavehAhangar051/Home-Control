@@ -106,7 +106,7 @@ FORCE_INLINE bool isWsPollDue() {
 // روش ۵: GPIO Shadow Bitmask
 // یک REG_READ مستقیم به جای چند function call برای بررسی تغییر GPIO
 // ============================================================================
-#if defined(ESP32)
+#ifdef ESP32
 #include <soc/gpio_struct.h>
 
 DRAM_ATTR static uint32_t s_shadowGpio0_31 = 0;

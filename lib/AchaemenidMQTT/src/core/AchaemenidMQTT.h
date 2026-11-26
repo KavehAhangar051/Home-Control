@@ -22,7 +22,7 @@ public:
   bool isConnected() const { return _mqttClient.connected(); }
 
   // Kept for backward compatibility but empty (Zero-Latency mode)
-  inline void processQueue() {}
+  void processQueue() {}
 
   String getBaseTopic() const { return String(_config.baseTopic.c_str()); }
 

@@ -14,17 +14,17 @@
 // In Arduino-ESP32 Core v3+, ESPmDNS.h wraps MDNSResponder and `extern MDNSResponder MDNS;`
 // inside `#ifdef CONFIG_MDNS_MAX_INTERFACES` (which only includes <mdns.h> -> ESP_MDNS_H_ when active).
 // Guard against environments where ESPmDNS.h is Core v3 while sdkconfig.h lacks CONFIG_MDNS_MAX_INTERFACES.
-#if defined(UNIUNO_NATIVE_TEST)
+#ifdef UNIUNO_NATIVE_TEST
 #define ACHAEMENID_MDNS_BACKEND_ARDUINO 1
 #elif defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
-#if defined(CONFIG_MDNS_MAX_INTERFACES)
+#ifdef CONFIG_MDNS_MAX_INTERFACES
 #define ACHAEMENID_MDNS_BACKEND_ARDUINO 1
 #elif defined(CONFIG_MDNS_MAX_SERVICES)
 #include <mdns.h>
 #define ACHAEMENID_MDNS_BACKEND_IDF 1
 #endif
 #else
-#if defined(ESP_MDNS_H_)
+#ifdef ESP_MDNS_H_
 #define ACHAEMENID_MDNS_BACKEND_ARDUINO 1
 #elif defined(CONFIG_MDNS_MAX_SERVICES)
 #include <mdns.h>
@@ -75,7 +75,7 @@ void BootManager::refreshMdnsIdentity() {
 }
 
 bool BootManager::startMdnsResponder(bool apMode) {
-#if defined(ACHAEMENID_MDNS_BACKEND_ARDUINO)
+#ifdef ACHAEMENID_MDNS_BACKEND_ARDUINO
   if (mdnsStarted_) {
     MDNS.end();
     mdnsStarted_ = false;
@@ -125,7 +125,7 @@ bool BootManager::startMdnsResponder(bool apMode) {
 }
 
 void BootManager::stopMdnsResponder() {
-#if defined(ACHAEMENID_MDNS_BACKEND_ARDUINO)
+#ifdef ACHAEMENID_MDNS_BACKEND_ARDUINO
   if (mdnsStarted_) {
     MDNS.end();
     mdnsStarted_ = false;
@@ -176,8 +176,9 @@ void BootManager::beginWifiConnectAttempt(bool initialBoot) {
   if (bootTaskHandle_) {
     bootTaskHandle_.cancel();
   }
-  auto bootFuture = uniuno::create_future([this]() { return this->bootPollFn(); });
-  bootTaskHandle_ = ctx_.executor->executeInterval(bootFuture, 50, [this](uniuno::Error e) { this->bootErrorFn(e); });
+  auto bootFuture = uniuno::create_future([this] { return this->bootPollFn(); });
+  bootTaskHandle_ =
+      ctx_.executor->executeInterval(bootFuture, 50, [this](uniuno::Error e) { this->bootErrorFn(std::move(e)); });
 }
 
 uniuno::AsyncResult<void> BootManager::bootPollFn() {
@@ -197,12 +198,11 @@ uniuno::AsyncResult<void> BootManager::bootPollFn() {
         WARNING("[Boot] Saved WiFi networks failed. Starting Captive Portal provisioning AP.");
         startProvisioningPortal();
         return uniuno::AsyncResult<void>::pending();
-      } else {
-        // Runtime disconnect: temporary router drop. Do NOT plunge into setup AP!
-        WARNING("[Network] Reconnection attempt failed. Will retry saved networks.");
-        state_ = BootState::DONE; // Reset state so loop() can retry after backoff
-        return uniuno::AsyncResult<void>::resolve();
       }
+      // Runtime disconnect: temporary router drop. Do NOT plunge into setup AP!
+      WARNING("[Network] Reconnection attempt failed. Will retry saved networks.");
+      state_ = BootState::DONE; // Reset state so loop() can retry after backoff
+      return uniuno::AsyncResult<void>::resolve();
     }
     if (LIKELY(res.is_resolved())) {
       IPAddress ip = WiFi.localIP();
@@ -221,7 +221,7 @@ void BootManager::restartFn() {
   ESP.restart();
 }
 
-void BootManager::bootErrorFn(uniuno::Error e) {
+void BootManager::bootErrorFn(uniuno::Error e) const {
   ERRORF("[Boot] Critical Failure: %s. Restarting in 5s...", (const char*)e);
   if (ctx_.appTimer != nullptr) {
     ctx_.appTimer->setTimeout(uniuno::makeStaticFunction(&BootManager::restartFn), 5000);
@@ -617,14 +617,14 @@ void BootManager::handleSaveWifi() {
 void BootManager::registerCaptivePortalRoutes() {
   if (provisioningRoutesRegistered_) return;
 
-  provisioningServer_.on("/", HTTP_GET, [this]() { this->handlePortalRoot(); });
-  provisioningServer_.on("/scan", HTTP_GET, [this]() { this->handleWifiScan(); });
-  provisioningServer_.on("/status", HTTP_GET, [this]() { this->handlePortalStatus(); });
-  provisioningServer_.on("/save", HTTP_POST, [this]() { this->handleSaveWifi(); });
-  provisioningServer_.on("/favicon.ico", HTTP_GET, [this]() { provisioningServer_.send(204, "text/plain", ""); });
+  provisioningServer_.on("/", HTTP_GET, [this] { this->handlePortalRoot(); });
+  provisioningServer_.on("/scan", HTTP_GET, [this] { this->handleWifiScan(); });
+  provisioningServer_.on("/status", HTTP_GET, [this] { this->handlePortalStatus(); });
+  provisioningServer_.on("/save", HTTP_POST, [this] { this->handleSaveWifi(); });
+  provisioningServer_.on("/favicon.ico", HTTP_GET, [this] { provisioningServer_.send(204, "text/plain", ""); });
 
   // Explicit OS Captive Portal connectivity probes (Android, iOS/macOS, Windows, Firefox/Linux)
-  auto probeHandler = [this]() {
+  auto probeHandler = [this] {
     this->touchProvisioningActivity();
     this->sendCaptiveRedirect();
   };
@@ -642,7 +642,7 @@ void BootManager::registerCaptivePortalRoutes() {
   provisioningServer_.on("/check_network_status.txt", HTTP_ANY, probeHandler);
 
   // Catch-all: redirect any unknown path or hijacked domain straight to http://achaemenid.local/
-  provisioningServer_.onNotFound([this]() {
+  provisioningServer_.onNotFound([this] {
     this->touchProvisioningActivity();
     this->sendCaptiveRedirect();
   });
@@ -752,9 +752,9 @@ HOT_PATH void BootManager::loop() {
     provisioningServer_.handleClient();
 
     const unsigned long now = millis();
-    if (static_cast<unsigned long>(now - lastProvisioningIdleCheckMs_) >= kProvisioningIdleCheckIntervalMs) {
+    if (now - lastProvisioningIdleCheckMs_ >= kProvisioningIdleCheckIntervalMs) {
       lastProvisioningIdleCheckMs_ = now;
-      const uint8_t clients = static_cast<uint8_t>(WiFi.softAPgetStationNum());
+      const uint8_t clients = WiFi.softAPgetStationNum();
       if (clients > 0) {
         provisioningLastActivityMs_ = now;
       } else if (uniuno::captive_portal::shouldAutoRetrySavedWifiFromProvisioning(
@@ -790,7 +790,7 @@ HOT_PATH void BootManager::loop() {
  * @brief Loads NVS segments using static storage so the ~4.2KB ParseResult
  * buffer never consumes loopTask stack before esp_wifi_init() runs.
  */
-__attribute__((noinline)) void BootManager::loadOfflineConfigFromNvs() {
+__attribute__((noinline)) void BootManager::loadOfflineConfigFromNvs() const {
   INFO("[Boot] Booting up... Loading config from NVS immediately.");
   std::unique_ptr<ParseResult> nvsResult(new (std::nothrow) ParseResult());
   if (!nvsResult) {
@@ -800,7 +800,7 @@ __attribute__((noinline)) void BootManager::loadOfflineConfigFromNvs() {
 
   int restoredAuxNodes = 0;
   if (ctx_.auxNodeStorage != nullptr && ctx_.auxNodeManager != nullptr) {
-    nvsResult->reset();
+    (*nvsResult).reset();
     if (ctx_.auxNodeStorage->loadAuxNodes(*nvsResult)) {
       ctx_.auxNodeManager->clearAllNodes();
       for (int i = 0; i < nvsResult->auxNodeCount; ++i) {
@@ -817,11 +817,11 @@ __attribute__((noinline)) void BootManager::loadOfflineConfigFromNvs() {
     }
   }
 
-  nvsResult->reset();
+  (*nvsResult).reset();
   if (ctx_.segmentStorage != nullptr && ctx_.segmentStorage->loadSegmentConfig(*nvsResult)) {
     int applied = ConfigApplier::apply(*nvsResult, ctx_.pinManager, ctx_.auxNodeManager);
     ctx_.pinManager->printStatus();
-    *(ctx_.configLoadedFlag) = true;
+    *ctx_.configLoadedFlag = true;
 
     Serial.println("==========================================");
     Serial.println("  Instant Boot — Config loaded from NVS   ");

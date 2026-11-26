@@ -7,6 +7,11 @@ Checks: >
   -bugprone-easily-swappable-parameters,
   -bugprone-branch-clone,
   -bugprone-narrowing-conversions,
+  -bugprone-signed-bitwise,
+  -bugprone-suspicious-include,
+  -bugprone-throwing-static-initialization,
+  -bugprone-unchecked-string-to-number-conversion,
+  -clang-analyzer-optin.performance.Padding,
   -readability-magic-numbers,
   -readability-identifier-length,
   -readability-function-cognitive-complexity,
@@ -15,7 +20,15 @@ Checks: >
   -readability-implicit-bool-conversion,
   -readability-convert-member-functions-to-static,
   -readability-non-const-parameter,
+  -readability-simplify-boolean-expr,
+  -readability-static-accessed-through-instance,
+  -readability-avoid-nested-conditional-operator,
+  -readability-use-std-min-max,
+  -readability-trailing-comma,
   -performance-avoid-endl
+CheckOptions:
+  - key: bugprone-signed-char-misuse.CharTypedefsToIgnore
+    value: 'int8_t;__int8_t'
 WarningsAsErrors: ''
 HeaderFilterRegex: '^(firmware|include|lib)/.*'
 FormatStyle: file

@@ -23,7 +23,7 @@
 #define GPIO_PWM_HAS_ESP32_LEDC 0
 #endif
 
-#if defined(ESP32)
+#ifdef ESP32
 #define GPIO_PWM_IRAM IRAM_ATTR
 #else
 #define GPIO_PWM_IRAM
@@ -33,10 +33,10 @@ namespace {
 // ESP32 LEDC conf1 constant for immediate non-fading duty latch:
 // duty_scale = 0 (bits 0..9), duty_cycle = 1 (bit 10), duty_num = 1 (bit 20),
 // duty_inc = 1 (bit 30), duty_start = 1 (bit 31).
-static constexpr uint32_t LEDC_CONF1_START_NOW = (1UL << 31) | (1UL << 30) | (1UL << 20) | (1UL << 10);
-static constexpr uint32_t LEDC_CONF1_DUTY_START_MASK = (1UL << 31);
-static constexpr uint32_t LEDC_CONF0_SIG_OUT_EN_MASK = (1UL << 2);
-static constexpr uint32_t LEDC_CONF0_LS_UPDATE_MASK = (1UL << 4);
+constexpr uint32_t LEDC_CONF1_START_NOW = (1UL << 31) | (1UL << 30) | (1UL << 20) | (1UL << 10);
+constexpr uint32_t LEDC_CONF1_DUTY_START_MASK = (1UL << 31);
+constexpr uint32_t LEDC_CONF0_SIG_OUT_EN_MASK = (1UL << 2);
+constexpr uint32_t LEDC_CONF0_LS_UPDATE_MASK = (1UL << 4);
 } // namespace
 
 uint16_t GpioPwm::_channelMask = 0;

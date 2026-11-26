@@ -38,7 +38,7 @@ bool parseWssUrl(const char* rawUrl, String& hostOut, int& portOut, String& path
     }
     hostOut = hostPort.substring(0, colonIdx);
   } else {
-    hostOut = hostPort;
+    hostOut = std::move(hostPort);
   }
 
   return hostOut.length() > 0;
@@ -144,8 +144,8 @@ void AchaemenidWebSocketClient::doConnect() {
   auto secureClient = std::make_shared<InsecureEsp32TcpClient>();
   websockets::WebsocketsClient* newClient = new websockets::WebsocketsClient(secureClient);
 
-  newClient->onMessage([this](websockets::WebsocketsMessage msg) { this->onMessageCallback(msg); });
-  newClient->onEvent([this](websockets::WebsocketsEvent ev, String data) { this->onEventsCallback(ev, data); });
+  newClient->onMessage([this](const websockets::WebsocketsMessage& msg) { this->onMessageCallback(msg); });
+  newClient->onEvent([this](websockets::WebsocketsEvent ev, const String& data) { this->onEventsCallback(ev, data); });
 
 #ifdef ESP32
   Serial.printf("[WebSocket] [Task] Free heap: %lu, Max alloc: %lu\n", static_cast<unsigned long>(ESP.getFreeHeap()),
@@ -250,11 +250,11 @@ HOT_PATH void AchaemenidWebSocketClient::loop() {
   }
 }
 
-void AchaemenidWebSocketClient::onMessageCallback(websockets::WebsocketsMessage message) {
+void AchaemenidWebSocketClient::onMessageCallback(const websockets::WebsocketsMessage& message) {
   parser_.parseMessage(message);
 }
 
-void AchaemenidWebSocketClient::onEventsCallback(websockets::WebsocketsEvent event, String /*data*/) {
+void AchaemenidWebSocketClient::onEventsCallback(websockets::WebsocketsEvent event, const String& /*data*/) {
   if (event == websockets::WebsocketsEvent::ConnectionOpened) {
     bool isFirst;
     portENTER_CRITICAL(&firstConnMux_);

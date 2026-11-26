@@ -19,7 +19,7 @@ void MqttConnectionManager::onDisconnect() {
     }
 
     const uint32_t delayMs = net_config::computeMqttReconnectDelayMs(_reconnectRetries);
-    const float delaySeconds = static_cast<float>(delayMs) / 1000.0f;
+    const float delaySeconds = static_cast<float>(delayMs) / 1000.0F;
     Serial.printf("[MQTT] Reconnecting in %.0fs (attempt %u)...\n", delaySeconds,
                   static_cast<unsigned int>(_reconnectRetries));
 

@@ -58,13 +58,13 @@ static void onAnalogChanged_cached(const AnalogInputChange& ch, const RuleConfig
         ch.resolution};
     eventBus.dispatch(changed);
   }
-  if (ch.rangeMaskChanged) {
-    if (ruleEngine) ruleEngine->handleAnalogInput(ch, r);
+  if (ch.rangeMaskChanged && ruleEngine) {
+    ruleEngine->handleAnalogInput(ch, r);
   }
   if (ch.thresholdChanged) {
     if (ruleEngine) ruleEngine->handleInput(ch.pin, ch.thresholdState, ch.durationSec, r);
-  } else if (ch.valueChanged && !ch.rangeMaskChanged) {
-    if (ruleEngine) ruleEngine->scheduleCloudSync(ch.pin);
+  } else if (ch.valueChanged && !ch.rangeMaskChanged && ruleEngine) {
+    ruleEngine->scheduleCloudSync(ch.pin);
   }
 }
 

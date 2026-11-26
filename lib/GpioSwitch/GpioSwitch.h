@@ -41,7 +41,7 @@ private:
   bool _activeHigh : 1;
 
   // اعمال فیزیکی وضعیت به پایه میکروکنترلر
-  void updateHardware();
+  void updateHardware() const;
 };
 
 #endif // GPIO_SWITCH_H

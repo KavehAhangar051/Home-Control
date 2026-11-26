@@ -11,8 +11,7 @@ template <size_t Capacity>
 FORCE_INLINE static void readIntoStaticString(const uint8_t* payload, size_t& offset, size_t maxLen,
                                               StaticString<Capacity>& dest) {
   while (offset < maxLen && payload[offset] != '\0' && dest.size() < dest.capacity()) {
-    char c[2] = {(char)payload[offset++], '\0'};
-    dest += c;
+    dest += static_cast<char>(payload[offset++]);
   }
   // skip null terminator or remaining characters if truncated
   while (offset < maxLen && payload[offset] != '\0')
@@ -48,6 +47,8 @@ void SegmentParsers::handle(const uint8_t* payload, size_t len, IEventDispatcher
     break;
   case 0x11:
     parseAddVirtualSegment(payload, len, dispatcher);
+    break;
+  default:
     break;
   }
 }
@@ -200,7 +201,7 @@ HOT_PATH IRAM_ATTR void SegmentParsers::parseDeleteSegment(const uint8_t* payloa
     }
   }
 
-  if (idStr.size() == 0 && fallbackPin < 0) {
+  if (idStr.empty() && fallbackPin < 0) {
     WARNING("[MQTT Handler] Rejected DELETE_SEGMENT (0x03): empty ID and no valid fallback pin");
     return;
   }
@@ -393,7 +394,7 @@ HOT_PATH IRAM_ATTR void SegmentParsers::parseAddVirtualSegment(const uint8_t* pa
   readIntoStaticString(payload, offset, len, idStr);
   readIntoStaticString(payload, offset, len, typeStr);
 
-  if (idStr.size() == 0 || typeStr.size() == 0) {
+  if (idStr.empty() || typeStr.empty()) {
     WARNING("[MQTT Handler] Rejected ADD_VIRTUAL_SEGMENT (0x11): empty id or type");
     return;
   }

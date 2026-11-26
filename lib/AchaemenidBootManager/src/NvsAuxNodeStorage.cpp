@@ -6,8 +6,8 @@
 namespace uniuno {
 namespace {
 
-static constexpr uint8_t AUX_NODE_STORAGE_VERSION = 1;
-static constexpr char AUX_NVS_NAMESPACE[] = "AchaemenidNodes";
+constexpr uint8_t AUX_NODE_STORAGE_VERSION = 1;
+constexpr char AUX_NVS_NAMESPACE[] = "AchaemenidNodes";
 
 #pragma pack(push, 1)
 struct StoredAuxNodeV1 {

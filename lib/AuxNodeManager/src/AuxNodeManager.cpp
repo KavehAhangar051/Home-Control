@@ -134,11 +134,9 @@ bool AuxNodeManager::removeNodeByMac(const uint8_t mac[6]) {
 bool AuxNodeManager::removeNodeByIdOrMac(uint8_t nodeId, const uint8_t* mac, uint8_t* outRemovedNodeId) {
   if (outRemovedNodeId != nullptr) *outRemovedNodeId = AUX_NODE_ID_LOCAL;
 
-  if (isValidAuxNodeId(nodeId) && hasNodeId(nodeId)) {
-    if (removeNodeById(nodeId)) {
-      if (outRemovedNodeId != nullptr) *outRemovedNodeId = nodeId;
-      return true;
-    }
+  if (isValidAuxNodeId(nodeId) && hasNodeId(nodeId) && removeNodeById(nodeId)) {
+    if (outRemovedNodeId != nullptr) *outRemovedNodeId = nodeId;
+    return true;
   }
 
   if (mac != nullptr) {

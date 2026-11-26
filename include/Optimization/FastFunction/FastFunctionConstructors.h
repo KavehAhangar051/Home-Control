@@ -9,11 +9,12 @@ namespace uniuno {
 // ---------------------------------------------------------------------------
 
 template <typename R, typename... Args, size_t Capacity>
-FORCE_INLINE FastFunction<R(Args...), Capacity>::FastFunction() : invoker_(nullptr), destroyer_(nullptr) {}
+FORCE_INLINE FastFunction<R(Args...), Capacity>::FastFunction()
+    : invoker_(nullptr), destroyer_(nullptr), copier_(nullptr) {}
 
 template <typename R, typename... Args, size_t Capacity>
 FORCE_INLINE FastFunction<R(Args...), Capacity>::FastFunction(std::nullptr_t)
-    : invoker_(nullptr), destroyer_(nullptr) {}
+    : invoker_(nullptr), destroyer_(nullptr), copier_(nullptr) {}
 
 // ---------------------------------------------------------------------------
 // Static IRAM -O3 invokers — compile-time inline vs heap dispatch
@@ -28,7 +29,7 @@ R FastFunction<R(Args...), Capacity>::invoke_inline(void* storage, Args... args)
 template <typename R, typename... Args, size_t Capacity>
 template <typename DecayF>
 R FastFunction<R(Args...), Capacity>::invoke_heap(void* storage, Args... args) {
-  return (*static_cast<DecayF*>(*static_cast<void**>(storage)))(std::forward<Args>(args)...);
+  return (*static_cast<DecayF*>(static_cast<Storage*>(storage)->heap_ptr))(std::forward<Args>(args)...);
 }
 
 // ---------------------------------------------------------------------------
@@ -58,19 +59,22 @@ void FastFunction<R(Args...), Capacity>::copy_inline(void* __restrict__ dest, co
 template <typename R, typename... Args, size_t Capacity>
 template <typename DecayF>
 void FastFunction<R(Args...), Capacity>::destroy_heap(void* storage) {
-  delete *static_cast<DecayF**>(storage);
+  delete static_cast<DecayF*>(static_cast<Storage*>(storage)->heap_ptr);
 }
 
 template <typename R, typename... Args, size_t Capacity>
 void FastFunction<R(Args...), Capacity>::move_heap(void* __restrict__ dest, void* __restrict__ src) {
-  *static_cast<void**>(dest) = *static_cast<void**>(src);
-  *static_cast<void**>(src) = nullptr;
+  Storage* d = static_cast<Storage*>(dest);
+  Storage* s = static_cast<Storage*>(src);
+  d->heap_ptr = s->heap_ptr;
+  s->heap_ptr = nullptr;
 }
 
 template <typename R, typename... Args, size_t Capacity>
 template <typename DecayF>
 void FastFunction<R(Args...), Capacity>::copy_heap(void* __restrict__ dest, const void* __restrict__ src) {
-  *static_cast<DecayF**>(dest) = new DecayF(**static_cast<DecayF* const*>(src));
+  static_cast<Storage*>(dest)->heap_ptr =
+      new DecayF(*static_cast<const DecayF*>(static_cast<const Storage*>(src)->heap_ptr));
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +87,7 @@ FORCE_INLINE void FastFunction<R(Args...), Capacity>::bind_inline_ops(std::true_
   destroyer_ = nullptr;
   // Exact 8-byte pair count: 0 for stateless/empty lambdas, 1 for 1..8B, 2 for 9..16B, etc.
   move_or_pairs_.trivial_pairs = std::is_empty<DecayF>::value ? 0U : static_cast<uint32_t>((sizeof(DecayF) + 7) / 8);
+  copier_ = nullptr;
 }
 
 template <typename R, typename... Args, size_t Capacity>

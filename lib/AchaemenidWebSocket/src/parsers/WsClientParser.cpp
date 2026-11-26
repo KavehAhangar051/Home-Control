@@ -36,8 +36,8 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
       if (len >= 2 + (count * 2)) {
         Serial.printf("[WebSocket] Batch Automation Triggered! Actions: %u\n", count);
         for (uint8_t i = 0; i < count; ++i) {
-          const uint8_t pin = static_cast<uint8_t>(data[2 + i * 2]);
-          const uint8_t state = static_cast<uint8_t>(data[3 + i * 2]);
+          const uint8_t pin = static_cast<uint8_t>(data[2 + (i * 2)]);
+          const uint8_t state = static_cast<uint8_t>(data[3 + (i * 2)]);
           PinStateChangeRequestEvent event{pin, state != 0, 0, PinStateChangeOrigin::Cloudflare};
           _dispatcher->dispatch(event);
         }
@@ -106,7 +106,7 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
         Serial.println("[WebSocket] Out of heap memory parsing configuration payload.");
         return;
       }
-      parsed->reset();
+      (*parsed).reset();
       if (configParser.parse(text.c_str(), *parsed) &&
           (parsed->segmentsProvided || parsed->auxNodesProvided || parsed->wifiProvided || parsed->apProvided ||
            parsed->mdnsProvided || parsed->mqtt.valid)) {
