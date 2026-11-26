@@ -58,7 +58,7 @@ export function WifiAccessPointEditor({
           اکسس‌پوینت راه‌اندازی (AP)
         </h3>
         <p className="text-xs leading-5 text-text-secondary">
-          این شبکه برای اتصال مستقیم به ESP32 هنگام راه‌اندازی است. برای بازگشت به تنظیم پیش‌فرض دستگاه، هر دو فیلد را خالی بگذارید.
+          این اکسس‌پوینت شبکه‌ای مستقل می‌سازد تا هنگام راه‌اندازی مستقیماً به ESP32 وصل شوید؛ با شبکهٔ روتر خانه متفاوت است. برای استفاده از مقادیر پیش‌فرض دستگاه، هر دو فیلد را خالی بگذارید.
         </p>
       </div>
 
@@ -85,7 +85,7 @@ export function WifiAccessPointEditor({
           error={hasAttemptedSave ? errors.ssid : undefined}
         />
         <p id="esp-ap-ssid-help" className="text-xs leading-5 text-text-muted">
-          نام شبکه پس از حذف فاصله‌های ابتدا و انتها، حداکثر ۳۲ بایت UTF-8 است.
+          این نام هنگام جست‌وجوی شبکهٔ راه‌اندازی در فهرست Wi-Fi نمایش داده می‌شود؛ حداکثر ۳۲ بایت UTF-8.
         </p>
       </div>
 
@@ -121,7 +121,7 @@ export function WifiAccessPointEditor({
           error={hasAttemptedSave ? errors.password : undefined}
         />
         <p id="esp-ap-password-help" className="text-xs leading-5 text-text-muted">
-          رمز سفارشی باید ۸ تا ۶۳ بایت UTF-8 باشد.
+          این رمز برای اتصال مستقیم به اکسس‌پوینت ESP32 است، نه رمز روتر خانه؛ باید ۸ تا ۶۳ بایت UTF-8 باشد.
           <span className="ms-1 tabular-nums">({passwordByteLength}/۶۳ بایت)</span>
         </p>
       </div>
