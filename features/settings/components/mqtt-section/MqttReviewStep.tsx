@@ -93,7 +93,7 @@ export function MqttReviewStep({
       </section>
 
       <p className="rounded-xl bg-secondary/60 px-4 py-3 text-xs leading-5 text-text-secondary sm:text-[13px]">
-        با ذخیره تنظیمات، داشبورد اتصال MQTT را دوباره برقرار می‌کند.
+        این مقادیر هنوز ذخیره نشده‌اند. با انتخاب «ذخیره و اتصال مجدد»، تنظیمات اعمال می‌شوند و داشبورد اتصال MQTT را دوباره برقرار می‌کند.
       </p>
     </div>
   );
