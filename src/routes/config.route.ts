@@ -87,19 +87,32 @@ export async function handleConfig(
 
 		// برای داشبورد: کل JSON تنظیمات همراه با تضمین فیلدهای preferences
 		if (!value) {
-			return new Response("{}", { headers: { "Content-Type": "application/json" } });
+			return new Response("{}", {
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store, private",
+        },
+      });
 		}
 		try {
 			const parsed = JSON.parse(value) as Record<string, any>;
 			if (normalizeStoredConfigPreferences(parsed)) {
 				return new Response(JSON.stringify(parsed), {
-					headers: { "Content-Type": "application/json" },
+					headers: {
+                    "Content-Type": "application/json",
+                    "Cache-Control": "no-store, private",
+                  },
 				});
 			}
 		} catch {
 			// اگر مقدار ذخیره شده JSON معتبر نباشد همان متن برگردانده می‌شود
 		}
-		return new Response(value, { headers: { "Content-Type": "application/json" } });
+		return new Response(value, {
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store, private",
+          },
+        });
 	}
 
 	if (method === "POST" && !path[1]) {
