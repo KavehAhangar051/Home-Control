@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { useReducedMotion } from "motion/react";
+import { triggerHaptic } from "@/lib/haptics";
 import { ToggleIndicator } from "@/components/dissolve/toggle";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { ShieldCheck } from "@/components/ui/hugeicons-groups/controls";
@@ -218,7 +219,11 @@ function ConditionRow({
             role="switch"
             aria-checked={isEnabled}
             aria-label={`وضعیت شرط ${conditionIndex + 1} برای ${actionLabel}`}
-            onClick={() => patchCondition({ enabled: !isEnabled })}
+            onClick={() => {
+              const nextEnabled = !isEnabled;
+              patchCondition({ enabled: nextEnabled });
+              triggerHaptic(nextEnabled ? "toggleOn" : "toggleOff");
+            }}
             className={`rounded-lg border px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${
               isEnabled
                 ? "border-accent3/50 bg-accent3/15 text-accent3"
