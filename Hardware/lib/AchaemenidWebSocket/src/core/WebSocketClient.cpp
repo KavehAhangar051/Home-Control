@@ -5,10 +5,46 @@
 #include <Optimization/CompilerTraits.h>
 #include <Timer/Optimization/TimerAsm.h>
 #include <utility>
+#include <cstdlib>
 #include "../parsers/WsClientParser.h"
 #include <WiFi.h>
 
 namespace uniuno {
+
+namespace {
+
+bool parseWssUrl(const char* rawUrl, String& hostOut, int& portOut, String& pathOut) {
+    if (rawUrl == nullptr) return false;
+
+    String url(rawUrl);
+    if (url.startsWith("wss://")) {
+        url = url.substring(6);
+    } else if (url.startsWith("https://")) {
+        url = url.substring(8);
+    } else {
+        return false;
+    }
+
+    const int slashIdx = url.indexOf('/');
+    String hostPort = (slashIdx >= 0) ? url.substring(0, slashIdx) : url;
+    pathOut = (slashIdx >= 0) ? url.substring(slashIdx) : "/";
+
+    const int colonIdx = hostPort.indexOf(':');
+    portOut = 443;
+    if (colonIdx >= 0) {
+        const int parsedPort = atoi(hostPort.substring(colonIdx + 1).c_str());
+        if (parsedPort > 0 && parsedPort <= 65535) {
+            portOut = parsedPort;
+        }
+        hostOut = hostPort.substring(0, colonIdx);
+    } else {
+        hostOut = hostPort;
+    }
+
+    return hostOut.length() > 0;
+}
+
+} // namespace
 
 // SSL client bypasses cert validation for embedded flexibility
 class InsecureEsp32TcpClient : public websockets::network::GenericEspTcpClient<WiFiClientSecure> {
@@ -22,15 +58,6 @@ AchaemenidWebSocketClient::AchaemenidWebSocketClient(IEventDispatcher* dispatche
       nextConnectAttemptTime_(0), dispatcher_(dispatcher), stateProvider_(std::move(stateProvider)),
       parser_(dispatcher_)
 {
-    auto secureClient = std::make_shared<InsecureEsp32TcpClient>();
-    client_ = new websockets::WebsocketsClient(secureClient);
-
-    client_->onMessage([this](websockets::WebsocketsMessage msg) {
-        this->onMessageCallback(msg);
-    });
-    client_->onEvent([this](websockets::WebsocketsEvent ev, String data) {
-        this->onEventsCallback(ev, data);
-    });
 }
 
 AchaemenidWebSocketClient::~AchaemenidWebSocketClient() {
@@ -126,28 +153,45 @@ void AchaemenidWebSocketClient::doConnect() {
         this->onEventsCallback(ev, data);
     });
 
+#ifdef ESP32
+    Serial.printf("[WebSocket] [Task] Free heap: %lu, Max alloc: %lu\n",
+                  static_cast<unsigned long>(ESP.getFreeHeap()),
+                  static_cast<unsigned long>(ESP.getMaxAllocHeap()));
+#endif
+
     bool connected = false;
     if (config_.isValid()) {
         Serial.printf("[WebSocket] [Task] Connecting to configured URL: %s\n", config_.serverUrl.c_str());
-        connected = newClient->connect(config_.serverUrl.c_str());
+        String host;
+        String path;
+        int port = 443;
+        if (parseWssUrl(config_.serverUrl.c_str(), host, port, path)) {
+            // Use 3-arg connect() so WebsocketsClient preserves InsecureEsp32TcpClient
+            // instead of calling upgradeToSecuredConnection() and overwriting it.
+            connected = newClient->connect(host.c_str(), port, path.c_str());
+        } else {
+            connected = newClient->connect(config_.serverUrl.c_str());
+        }
     } else {
         Serial.println("[WebSocket] [Task] Fallback: Connecting to default apii.agkalaa.ir");
         connected = newClient->connect("apii.agkalaa.ir", 443, "/ws");
     }
 
-    portENTER_CRITICAL(&clientMux_);
-    client_ = newClient;
-    portEXIT_CRITICAL(&clientMux_);
-
     lastConnectAttemptTime_ = millis();
     hasConnectAttempted_ = true;
 
     if (LIKELY(connected)) {
+        portENTER_CRITICAL(&clientMux_);
+        client_ = newClient;
+        portEXIT_CRITICAL(&clientMux_);
         consecutiveFailures_ = 0;
         nextConnectAttemptTime_ = 0;
         Serial.println("[WebSocket] [Task] Connected successfully!");
         lastPingTime_ = lastConnectAttemptTime_;
     } else {
+        // Release failed TLS/WebSocket client immediately so its heap is free before next retry.
+        newClient->close();
+        delete newClient;
         if (consecutiveFailures_ < 255) ++consecutiveFailures_;
         const unsigned long retryDelay = consecutiveFailures_ >= WS_MAX_FAST_RETRIES
             ? WS_RETRY_DELAY_AFTER_MAX_FAILURES_MS

@@ -409,6 +409,7 @@ void stop_ssl_socket(sslclient_context *ssl_client) {
   // reset embedded pointers to zero
   memset(ssl_client, 0, sizeof(sslclient_context));
 
+  ssl_client->socket = -1;
   ssl_client->handshake_timeout = handshake_timeout;
   ssl_client->socket_timeout = socket_timeout;
   ssl_client->last_error = last_err;

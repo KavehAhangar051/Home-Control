@@ -31,7 +31,7 @@
 // ============================================================================
 // Override weak Arduino-ESP32 loopTask stack size (default 8KB → 16KB)
 size_t getArduinoLoopTaskStackSize(void) {
-    return 16384;
+    return 10240;
 }
 
 // ============================================================================
