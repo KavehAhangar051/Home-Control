@@ -30,7 +30,7 @@ static portMUX_TYPE s_dnsCacheMux = portMUX_INITIALIZER_UNLOCKED;
 
 NetworkManager::NetworkManager() {}
 
-NetworkInterface *getNetifByID(Network_Interface_ID id);
+NetworkInterface* getNetifByID(Network_Interface_ID id);
 
 bool NetworkManager::begin() {
   static bool initialized = false;
@@ -60,12 +60,12 @@ bool NetworkManager::begin() {
  * @return 1 if aIPAddrString was successfully converted to an IP address,
  *          else error code
  */
-int NetworkManager::hostByName(const char *aHostname, IPAddress &aResult) {
+int NetworkManager::hostByName(const char* aHostname, IPAddress& aResult) {
   static bool hasGlobalV6 = false;
   static bool hasGlobalV4 = false;
   err_t err = ERR_OK;
-  const char *servname = "0";
-  struct addrinfo *res;
+  const char* servname = "0";
+  struct addrinfo* res;
 
   aResult = static_cast<uint32_t>(0);
 
@@ -79,7 +79,7 @@ int NetworkManager::hostByName(const char *aHostname, IPAddress &aResult) {
   bool hasGlobalV6Now = false;
   bool hasGlobalV4Now = false;
   for (int i = 0; i < ESP_NETIF_ID_MAX; ++i) {
-    NetworkInterface *iface = getNetifByID((Network_Interface_ID)i);
+    NetworkInterface* iface = getNetifByID((Network_Interface_ID)i);
     if (iface != NULL) {
       if (iface->hasGlobalIPv6()) {
         hasGlobalV6Now = true;
@@ -111,8 +111,7 @@ int NetworkManager::hostByName(const char *aHostname, IPAddress &aResult) {
   if (!hasGlobalV6Now && hostLen > 0 && hostLen < sizeof(s_dnsCache[0].host)) {
     portENTER_CRITICAL(&s_dnsCacheMux);
     for (size_t i = 0; i < kDnsCacheSlots; ++i) {
-      if (s_dnsCache[i].valid &&
-          static_cast<uint32_t>(nowMs - s_dnsCache[i].timestampMs) < kDnsCacheTtlMs &&
+      if (s_dnsCache[i].valid && static_cast<uint32_t>(nowMs - s_dnsCache[i].timestampMs) < kDnsCacheTtlMs &&
           strcmp(s_dnsCache[i].host, aHostname) == 0) {
         aResult = IPAddress(s_dnsCache[i].ipv4);
         portEXIT_CRITICAL(&s_dnsCacheMux);
@@ -137,7 +136,7 @@ int NetworkManager::hostByName(const char *aHostname, IPAddress &aResult) {
     err = lwip_getaddrinfo(aHostname, servname, &hints, &res);
 
     if (err == ERR_OK) {
-      struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)res->ai_addr;
+      struct sockaddr_in6* ipv6 = (struct sockaddr_in6*)res->ai_addr;
       // As an array of u8_t
       aResult = IPAddress(IPv6, ipv6->sin6_addr.s6_addr);
       log_d("DNS found IPv6 first %s", aResult.toString().c_str());
@@ -154,13 +153,13 @@ int NetworkManager::hostByName(const char *aHostname, IPAddress &aResult) {
   if (err == ERR_OK) {
 #if CONFIG_LWIP_IPV6
     if (res->ai_family == AF_INET6) {
-      struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)res->ai_addr;
+      struct sockaddr_in6* ipv6 = (struct sockaddr_in6*)res->ai_addr;
       // As an array of u8_t
       aResult = IPAddress(IPv6, ipv6->sin6_addr.s6_addr);
       log_d("DNS found IPv6 %s", aResult.toString().c_str());
     } else {
 #endif
-      struct sockaddr_in *ipv4 = (struct sockaddr_in *)res->ai_addr;
+      struct sockaddr_in* ipv4 = (struct sockaddr_in*)res->ai_addr;
       // As a single u32_t
       const uint32_t resolvedAddr = ipv4->sin_addr.s_addr;
       aResult = IPAddress(resolvedAddr);
@@ -195,7 +194,7 @@ int NetworkManager::hostByName(const char *aHostname, IPAddress &aResult) {
   return err;
 }
 
-uint8_t *NetworkManager::macAddress(uint8_t *mac) {
+uint8_t* NetworkManager::macAddress(uint8_t* mac) {
   esp_base_mac_addr_get(mac);
   return mac;
 }
@@ -209,37 +208,37 @@ String NetworkManager::macAddress(void) {
 }
 
 static char default_hostname[32] = {
-  0,
+    0,
 };
 
-const char *NetworkManager::getHostname() {
+const char* NetworkManager::getHostname() {
   if (default_hostname[0] == 0) {
     uint8_t eth_mac[6];
     esp_base_mac_addr_get(eth_mac);
     snprintf(default_hostname, 32, "%s%02X%02X%02X", CONFIG_IDF_TARGET "-", eth_mac[3], eth_mac[4], eth_mac[5]);
   }
-  return (const char *)default_hostname;
+  return (const char*)default_hostname;
 }
 
-bool NetworkManager::setHostname(const char *name) {
+bool NetworkManager::setHostname(const char* name) {
   if (name) {
     snprintf(default_hostname, 32, "%s", name);
   }
   return true;
 }
 
-bool NetworkManager::setDefaultInterface(NetworkInterface &ifc) {
+bool NetworkManager::setDefaultInterface(NetworkInterface& ifc) {
   return ifc.setDefault();
 }
 
-NetworkInterface *NetworkManager::getDefaultInterface() {
-  #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-  esp_netif_t *netif = esp_netif_get_default_netif();
+NetworkInterface* NetworkManager::getDefaultInterface() {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+  esp_netif_t* netif = esp_netif_get_default_netif();
 #else
-  esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+  esp_netif_t* netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
 #endif
   for (int i = 0; i < ESP_NETIF_ID_MAX; ++i) {
-    NetworkInterface *iface = getNetifByID((Network_Interface_ID)i);
+    NetworkInterface* iface = getNetifByID((Network_Interface_ID)i);
     if (iface != NULL && iface->netif() == netif) {
       return iface;
     }
@@ -250,7 +249,7 @@ NetworkInterface *NetworkManager::getDefaultInterface() {
 bool NetworkManager::isOnline() {
   for (int i = 0; i < ESP_NETIF_ID_MAX; ++i) {
     if (i != ESP_NETIF_ID_AP) {
-      NetworkInterface *iface = getNetifByID((Network_Interface_ID)i);
+      NetworkInterface* iface = getNetifByID((Network_Interface_ID)i);
       if (iface != NULL && iface->connected() && (iface->hasIP() || iface->hasGlobalIPv6())) {
         return true;
       }
@@ -259,11 +258,11 @@ bool NetworkManager::isOnline() {
   return false;
 }
 
-size_t NetworkManager::printTo(Print &out) const {
+size_t NetworkManager::printTo(Print& out) const {
   size_t bytes = 0;
 
   for (int i = 0; i < ESP_NETIF_ID_MAX; ++i) {
-    NetworkInterface *iface = getNetifByID((Network_Interface_ID)i);
+    NetworkInterface* iface = getNetifByID((Network_Interface_ID)i);
     if (iface != NULL && iface->netif() != NULL) {
       bytes += out.println(*iface);
     }

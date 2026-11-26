@@ -25,11 +25,9 @@ namespace espnow_asm {
  * @param b Second 6-byte MAC buffer
  * @return true if MAC addresses match identically
  */
-FORCE_INLINE bool macEqual(const uint8_t *a, const uint8_t *b) {
-  const uint8_t diff = static_cast<uint8_t>(
-    (a[0] ^ b[0]) | (a[1] ^ b[1]) | (a[2] ^ b[2]) |
-    (a[3] ^ b[3]) | (a[4] ^ b[4]) | (a[5] ^ b[5])
-  );
+FORCE_INLINE bool macEqual(const uint8_t* a, const uint8_t* b) {
+  const uint8_t diff = static_cast<uint8_t>((a[0] ^ b[0]) | (a[1] ^ b[1]) | (a[2] ^ b[2]) | (a[3] ^ b[3]) |
+                                            (a[4] ^ b[4]) | (a[5] ^ b[5]));
   return diff == 0;
 }
 
@@ -40,10 +38,8 @@ FORCE_INLINE bool macEqual(const uint8_t *a, const uint8_t *b) {
  * @param mac 6-byte destination MAC buffer
  * @return true if broadcast address
  */
-FORCE_INLINE bool isBroadcastMac(const uint8_t *mac) {
-  const uint8_t allOnes = static_cast<uint8_t>(
-    mac[0] & mac[1] & mac[2] & mac[3] & mac[4] & mac[5]
-  );
+FORCE_INLINE bool isBroadcastMac(const uint8_t* mac) {
+  const uint8_t allOnes = static_cast<uint8_t>(mac[0] & mac[1] & mac[2] & mac[3] & mac[4] & mac[5]);
   return allOnes == 0xFF;
 }
 
@@ -55,19 +51,15 @@ FORCE_INLINE bool isBroadcastMac(const uint8_t *mac) {
  * @param src Source buffer
  * @param len Byte length to copy
  */
-FORCE_INLINE void copyAlignedOrByte(uint8_t *__restrict__ dst, const uint8_t *__restrict__ src, size_t len) {
+FORCE_INLINE void copyAlignedOrByte(uint8_t* __restrict__ dst, const uint8_t* __restrict__ src, size_t len) {
   if (len == 0) {
     return;
   }
   if (len >= 8 && (((reinterpret_cast<uintptr_t>(dst) | reinterpret_cast<uintptr_t>(src)) & 3U) == 0)) {
     const uint32_t words = static_cast<uint32_t>(len >> 2);
-    uniuno::xtensa_asm::asm_copy_words(
-      reinterpret_cast<uint32_t *>(dst),
-      reinterpret_cast<const uint32_t *>(src),
-      words
-    );
+    uniuno::xtensa_asm::asm_copy_words(reinterpret_cast<uint32_t*>(dst), reinterpret_cast<const uint32_t*>(src), words);
     const size_t copied = static_cast<size_t>(words) << 2;
-    const size_t tail   = len & 3U;
+    const size_t tail = len & 3U;
     for (size_t i = 0; i < tail; ++i) {
       dst[copied + i] = src[copied + i];
     }
@@ -89,4 +81,3 @@ FORCE_INLINE size_t nextPow2Size(size_t v) {
 }
 
 } // namespace espnow_asm
-

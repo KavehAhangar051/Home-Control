@@ -13,13 +13,13 @@ namespace rules {
  */
 class HoldTimeEvaluator {
 public:
-    HoldTimeEvaluator(RuleContext& ctx);
-    
-    HOT_PATH void processRelease(const RuleAction* actions, int count, unsigned long durationSec, int sourcePin);
+  HoldTimeEvaluator(RuleContext& ctx);
+
+  HOT_PATH void processRelease(const RuleAction* actions, int count, unsigned long durationSec, int sourcePin);
 
 private:
-    RuleContext& _ctx;
-    void executeAction(const RuleAction& act, int sourcePin);
+  RuleContext& _ctx;
+  void executeAction(const RuleAction& act, int sourcePin);
 };
 
 } // namespace rules

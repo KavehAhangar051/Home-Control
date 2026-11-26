@@ -14,12 +14,12 @@ namespace rules {
  */
 class AnalogRangeEvaluator {
 public:
-    explicit AnalogRangeEvaluator(RuleContext& ctx);
+  explicit AnalogRangeEvaluator(RuleContext& ctx);
 
-    HOT_PATH uint8_t evaluate(int sourcePin, uint16_t value, uint8_t resolution, const RuleConfig& rule);
+  HOT_PATH uint8_t evaluate(int sourcePin, uint16_t value, uint8_t resolution, const RuleConfig& rule);
 
 private:
-    RuleContext& _ctx;
+  RuleContext& _ctx;
 };
 
 } // namespace rules

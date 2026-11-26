@@ -31,7 +31,7 @@
 // ============================================================================
 // Override weak Arduino-ESP32 loopTask stack size (default 8KB → 16KB)
 size_t getArduinoLoopTaskStackSize(void) {
-    return 10240;
+  return 10240;
 }
 
 // ============================================================================
@@ -43,34 +43,29 @@ size_t getArduinoLoopTaskStackSize(void) {
  * بدون هیچ StaticFunction::bind() در هر iteration
  */
 static void onInputChanged_cached(int pin, bool state, unsigned long dur, const RuleConfig& r) {
-    PinStateChangedEvent changed{pin, state, false, PinStateChangeOrigin::PhysicalInput};
-    eventBus.dispatch(changed);
-    if (ruleEngine) ruleEngine->handleInput(pin, state, dur, r);
+  PinStateChangedEvent changed{pin, state, false, PinStateChangeOrigin::PhysicalInput};
+  eventBus.dispatch(changed);
+  if (ruleEngine) ruleEngine->handleInput(pin, state, dur, r);
 }
 
 /**
  * @brief Analog input callback — مستقیم از LUT، بدون bind overhead
  */
 static void onAnalogChanged_cached(const AnalogInputChange& ch, const RuleConfig& r) {
-    if (ch.valueChanged || ch.thresholdChanged) {
-        PinStateChangedEvent changed{
-            ch.pin,
-            ch.thresholdState,
-            false,
-            PinStateChangeOrigin::PhysicalInput,
-            static_cast<int16_t>(ch.value),
-            ch.resolution
-        };
-        eventBus.dispatch(changed);
-    }
-    if (ch.rangeMaskChanged) {
-        if (ruleEngine) ruleEngine->handleAnalogInput(ch, r);
-    }
-    if (ch.thresholdChanged) {
-        if (ruleEngine) ruleEngine->handleInput(ch.pin, ch.thresholdState, ch.durationSec, r);
-    } else if (ch.valueChanged && !ch.rangeMaskChanged) {
-        if (ruleEngine) ruleEngine->scheduleCloudSync(ch.pin);
-    }
+  if (ch.valueChanged || ch.thresholdChanged) {
+    PinStateChangedEvent changed{
+        ch.pin,       ch.thresholdState, false, PinStateChangeOrigin::PhysicalInput, static_cast<int16_t>(ch.value),
+        ch.resolution};
+    eventBus.dispatch(changed);
+  }
+  if (ch.rangeMaskChanged) {
+    if (ruleEngine) ruleEngine->handleAnalogInput(ch, r);
+  }
+  if (ch.thresholdChanged) {
+    if (ruleEngine) ruleEngine->handleInput(ch.pin, ch.thresholdState, ch.durationSec, r);
+  } else if (ch.valueChanged && !ch.rangeMaskChanged) {
+    if (ruleEngine) ruleEngine->scheduleCloudSync(ch.pin);
+  }
 }
 
 // ============================================================================
@@ -83,38 +78,38 @@ static void onAnalogChanged_cached(const AnalogInputChange& ch, const RuleConfig
  * (در setup() و بعد از هر ConfigLoadedEvent)
  */
 static void rebuildPinDispatchLUT() {
-    memset(uniuno::s_pinDispatchLUT, 0, sizeof(uniuno::s_pinDispatchLUT));
+  memset(uniuno::s_pinDispatchLUT, 0, sizeof(uniuno::s_pinDispatchLUT));
 
-    for (uint8_t pin = 0; pin < uniuno::ESP32_GPIO_COUNT; pin++) {
-        bool isDigital = false;
-        bool isAnalog  = false;
+  for (uint8_t pin = 0; pin < uniuno::ESP32_GPIO_COUNT; pin++) {
+    bool isDigital = false;
+    bool isAnalog = false;
 
-        // بررسی نوع pin از طریق PinManager
-        // isAnalogInputPin و isDigitalInputPin از state manager
-        if (pinManager.isAnalogInputPin(static_cast<int>(pin))) {
-            isAnalog = true;
-        }
-        // برای digital input: pin باید در mask باشه ولی analog نباشه
-        // از طریق rule check می‌کنیم — اگر rule داره و analog نیست، digital input هست
-        if (!isAnalog) {
-            RuleConfig rule = pinManager.getRuleByPin(static_cast<int>(pin));
-            if (rule.active || rule.highActionCount > 0 || rule.lowActionCount > 0) {
-                isDigital = true;
-            }
-        }
-
-        if (isDigital) {
-            uniuno::s_pinDispatchLUT[pin].onDigitalChange = &onInputChanged_cached;
-            uniuno::s_pinDispatchLUT[pin].active = true;
-        }
-        if (isAnalog) {
-            uniuno::s_pinDispatchLUT[pin].onAnalogChange = &onAnalogChanged_cached;
-            uniuno::s_pinDispatchLUT[pin].active = true;
-        }
+    // بررسی نوع pin از طریق PinManager
+    // isAnalogInputPin و isDigitalInputPin از state manager
+    if (pinManager.isAnalogInputPin(static_cast<int>(pin))) {
+      isAnalog = true;
+    }
+    // برای digital input: pin باید در mask باشه ولی analog نباشه
+    // از طریق rule check می‌کنیم — اگر rule داره و analog نیست، digital input هست
+    if (!isAnalog) {
+      RuleConfig rule = pinManager.getRuleByPin(static_cast<int>(pin));
+      if (rule.active || rule.highActionCount > 0 || rule.lowActionCount > 0) {
+        isDigital = true;
+      }
     }
 
-    uniuno::s_lutBuilt = true;
-    INFO("[Loop] Pin Dispatch LUT rebuilt.");
+    if (isDigital) {
+      uniuno::s_pinDispatchLUT[pin].onDigitalChange = &onInputChanged_cached;
+      uniuno::s_pinDispatchLUT[pin].active = true;
+    }
+    if (isAnalog) {
+      uniuno::s_pinDispatchLUT[pin].onAnalogChange = &onAnalogChanged_cached;
+      uniuno::s_pinDispatchLUT[pin].active = true;
+    }
+  }
+
+  uniuno::s_lutBuilt = true;
+  INFO("[Loop] Pin Dispatch LUT rebuilt.");
 }
 
 // ============================================================================
@@ -123,16 +118,16 @@ static void rebuildPinDispatchLUT() {
 
 /** Wrapper برای bootManager->loop() — بدون null-check در loop اصلی */
 static LOOP_IRAM_ATTR void bootManagerLoopFn() {
-    bootManager->loop();
+  bootManager->loop();
 }
 
 /** Wrapper برای wsServer/wsClient — با CCOUNT throttle (روش ۴) */
 static LOOP_IRAM_ATTR void wsLoopFn() {
-    // روش ۴: فقط اگر 1ms گذشته باشه poll کن
-    if (UNLIKELY(uniuno::isWsPollDue())) {
-        wsServer->loop();
-        wsClient->loop();
-    }
+  // روش ۴: فقط اگر 1ms گذشته باشه poll کن
+  if (UNLIKELY(uniuno::isWsPollDue())) {
+    wsServer->loop();
+    wsClient->loop();
+  }
 }
 
 // ============================================================================
@@ -140,98 +135,83 @@ static LOOP_IRAM_ATTR void wsLoopFn() {
 // ============================================================================
 
 void setup() {
-    Serial.begin(115200);
-    delay(1000);
+  Serial.begin(115200);
+  delay(1000);
 
-    Serial.println("\n==========================================");
-    Serial.println("  Achaemenid IoT Node - Modular Async     ");
-    Serial.println("==========================================");
+  Serial.println("\n==========================================");
+  Serial.println("  Achaemenid IoT Node - Modular Async     ");
+  Serial.println("==========================================");
 
-    setupErrorHandler();
-    setupEventBus();
-    setupNetworkAndTime();
-    setupTimer();
-    if (appTimer != nullptr) {
-        appTimer->startHardwareTimer(1000);
-        INFO("[System] Hardware timer started at 1ms resolution.");
+  setupErrorHandler();
+  setupEventBus();
+  setupNetworkAndTime();
+  setupTimer();
+  if (appTimer != nullptr) {
+    appTimer->startHardwareTimer(1000);
+    INFO("[System] Hardware timer started at 1ms resolution.");
+  }
+  setupMqtt();
+  setupWebSocket();
+  setupRuleEngine();
+
+  // Load Network Configuration from NVS
+  String savedSSID[5];
+  String savedPass[5];
+  int savedCount = 0;
+  MqttConfig savedMqtt;
+  loadNetworkConfig(savedSSID, savedPass, savedCount, savedMqtt);
+
+  if (savedCount > 0) {
+    INFOF("[System] Found %d saved WiFi networks in NVS", savedCount);
+    for (int i = 0; i < savedCount; i++) {
+      ::network->add_access_point(savedSSID[i].c_str(), savedPass[i].c_str());
     }
-    setupMqtt();
-    setupWebSocket();
-    setupRuleEngine();
+  }
 
-    // Load Network Configuration from NVS
-    String savedSSID[5];
-    String savedPass[5];
-    int savedCount = 0;
-    MqttConfig savedMqtt;
-    loadNetworkConfig(savedSSID, savedPass, savedCount, savedMqtt);
+  if (savedMqtt.valid) {
+    mqttClient.begin(String(savedMqtt.host), savedMqtt.port, String(savedMqtt.baseTopic), savedMqtt.qos,
+                     String(savedMqtt.user), String(savedMqtt.password));
+    mqttClient.subscribe(String(savedMqtt.baseTopic) + "/Command");
+    INFOF("[System] Restored MQTT settings from NVS (Host: %s)", savedMqtt.host);
+  } else {
+    mqttClient.begin("broker.emqx.io", 1883, "KamyarIoT/Achaemenid", 1, "", "");
+    mqttClient.subscribe("KamyarIoT/Achaemenid/Command");
+    WARNING("[System] No MQTT settings in NVS. Configured fallback broker independently of Cloudflare.");
+  }
 
-    if (savedCount > 0) {
-        INFOF("[System] Found %d saved WiFi networks in NVS", savedCount);
-        for (int i = 0; i < savedCount; i++) {
-            ::network->add_access_point(savedSSID[i].c_str(), savedPass[i].c_str());
-        }
-    }
+  INFO("[System] Setup completed. Starting Async Boot Sequence...");
 
-    if (savedMqtt.valid) {
-        mqttClient.begin(
-            String(savedMqtt.host),
-            savedMqtt.port,
-            String(savedMqtt.baseTopic),
-            savedMqtt.qos,
-            String(savedMqtt.user),
-            String(savedMqtt.password));
-        mqttClient.subscribe(String(savedMqtt.baseTopic) + "/Command");
-        INFOF("[System] Restored MQTT settings from NVS (Host: %s)", savedMqtt.host);
-    } else {
-        mqttClient.begin("broker.emqx.io", 1883, "KamyarIoT/Achaemenid", 1, "", "");
-        mqttClient.subscribe("KamyarIoT/Achaemenid/Command");
-        WARNING("[System] No MQTT settings in NVS. Configured fallback broker independently of Cloudflare.");
-    }
+  segmentStorage = new uniuno::NvsSegmentStorage();
+  auxNodeStorage = new uniuno::NvsAuxNodeStorage();
+  bootManager = new BootManager();
 
-    INFO("[System] Setup completed. Starting Async Boot Sequence...");
+  BootContext bootCtx = {::network,      &pinManager,   &executor,         &eventBus,       appTimer,
+                         segmentStorage, &configLoaded, &rawConfigPayload, &auxNodeManager, auxNodeStorage};
+  bootManager->startBootSequenceAsync(bootCtx);
 
-    segmentStorage = new uniuno::NvsSegmentStorage();
-    auxNodeStorage = new uniuno::NvsAuxNodeStorage();
-    bootManager    = new BootManager();
+  // -------------------------------------------------------------------------
+  // روش ۳: Pre-cache کردن callbacks — یکبار در setup()
+  // از makeStaticFunction برای plain function pointer استفاده می‌کنیم
+  // -------------------------------------------------------------------------
+  uniuno::s_cachedInputCb = uniuno::makeStaticFunction(&onInputChanged_cached);
+  uniuno::s_cachedAnalogCb = uniuno::makeStaticFunction(&onAnalogChanged_cached);
+  uniuno::s_callbacksCached = true;
+  INFO("[Loop] Callbacks pre-cached.");
 
-    BootContext bootCtx = {
-        ::network,
-        &pinManager,
-        &executor,
-        &eventBus,
-        appTimer,
-        segmentStorage,
-        &configLoaded,
-        &rawConfigPayload,
-        &auxNodeManager,
-        auxNodeStorage
-    };
-    bootManager->startBootSequenceAsync(bootCtx);
+  // -------------------------------------------------------------------------
+  // روش ۶: ساخت اولیه LUT (بعد از load بیشتر داده می‌شه)
+  // -------------------------------------------------------------------------
+  rebuildPinDispatchLUT();
 
-    // -------------------------------------------------------------------------
-    // روش ۳: Pre-cache کردن callbacks — یکبار در setup()
-    // از makeStaticFunction برای plain function pointer استفاده می‌کنیم
-    // -------------------------------------------------------------------------
-    uniuno::s_cachedInputCb  = uniuno::makeStaticFunction(&onInputChanged_cached);
-    uniuno::s_cachedAnalogCb = uniuno::makeStaticFunction(&onAnalogChanged_cached);
-    uniuno::s_callbacksCached = true;
-    INFO("[Loop] Callbacks pre-cached.");
+  // -------------------------------------------------------------------------
+  // روش ۲: ثبت سرویس‌ها در dispatch table
+  // bootManager همیشه بعد از init وجود داره
+  // wsServer و wsClient هم در setupWebSocket ساخته شدن
+  // -------------------------------------------------------------------------
+  if (bootManager) uniuno::registerLoopService(&bootManagerLoopFn);
+  if (wsServer && wsClient) uniuno::registerLoopService(&wsLoopFn);
 
-    // -------------------------------------------------------------------------
-    // روش ۶: ساخت اولیه LUT (بعد از load بیشتر داده می‌شه)
-    // -------------------------------------------------------------------------
-    rebuildPinDispatchLUT();
-
-    // -------------------------------------------------------------------------
-    // روش ۲: ثبت سرویس‌ها در dispatch table
-    // bootManager همیشه بعد از init وجود داره
-    // wsServer و wsClient هم در setupWebSocket ساخته شدن
-    // -------------------------------------------------------------------------
-    if (bootManager) uniuno::registerLoopService(&bootManagerLoopFn);
-    if (wsServer && wsClient) uniuno::registerLoopService(&wsLoopFn);
-
-    INFO("[Loop] Dispatch table built.");
+  INFO("[Loop] Dispatch table built.");
 }
 
 // ============================================================================
@@ -252,19 +232,19 @@ void setup() {
  * PinStateManager از قبل GPIO shadow bitmask داره (hasInputsChanged)
  */
 LOOP_IRAM_ATTR void loop() {
-    // ① Executor poll — Xtensa NSA bitmask، 2 cycle idle
-    executor.poll();
+  // ① Executor poll — Xtensa NSA bitmask، 2 cycle idle
+  executor.poll();
 
-    // ② Loop services dispatch — بدون null-check، بدون branch miss
-    // wsServer و wsClient داخل wsLoopFn با CCOUNT throttle (روش ۴) هستن
-    for (uint8_t i = 0; i < uniuno::s_loopTableSize; i++) {
-        uniuno::s_loopTable[i]();
-    }
+  // ② Loop services dispatch — بدون null-check، بدون branch miss
+  // wsServer و wsClient داخل wsLoopFn با CCOUNT throttle (روش ۴) هستن
+  for (uint8_t i = 0; i < uniuno::s_loopTableSize; i++) {
+    uniuno::s_loopTable[i]();
+  }
 
-    // ③④ Input processing — با pre-cached callbacks (روش ۳)
-    // hasInputsChanged و hasAnalogInputsDue قبلاً UNLIKELY fast-path دارن
-    if (ruleEngine) {
-        pinManager.processInputs(uniuno::s_cachedInputCb);
-        pinManager.processAnalogInputs(uniuno::s_cachedAnalogCb);
-    }
+  // ③④ Input processing — با pre-cached callbacks (روش ۳)
+  // hasInputsChanged و hasAnalogInputsDue قبلاً UNLIKELY fast-path دارن
+  if (ruleEngine) {
+    pinManager.processInputs(uniuno::s_cachedInputCb);
+    pinManager.processAnalogInputs(uniuno::s_cachedAnalogCb);
+  }
 }

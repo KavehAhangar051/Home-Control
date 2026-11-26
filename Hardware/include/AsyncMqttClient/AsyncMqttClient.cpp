@@ -3,39 +3,30 @@
 #include "AsyncMqttAsm.h" // IWYU pragma: keep
 
 AsyncMqttClient::AsyncMqttClient()
-: _connected(false)
-, _connectPacketNotEnoughSpace(false)
-, _disconnectOnPoll(false)
-, _tlsBadFingerprint(false)
-, _lastClientActivity(0)
-, _lastServerActivity(0)
-, _lastPingRequestTime(0)
-, _host(nullptr)
-, _useIp(false)
+    : _connected(false), _connectPacketNotEnoughSpace(false), _disconnectOnPoll(false), _tlsBadFingerprint(false),
+      _lastClientActivity(0), _lastServerActivity(0), _lastPingRequestTime(0), _host(nullptr), _useIp(false)
 #if ASYNC_TCP_SSL_ENABLED
-, _secure(false)
+      ,
+      _secure(false)
 #endif
-, _port(0)
-, _keepAlive(15)
-, _cleanSession(true)
-, _clientId(nullptr)
-, _username(nullptr)
-, _password(nullptr)
-, _willTopic(nullptr)
-, _willPayload(nullptr)
-, _willPayloadLength(0)
-, _willQos(0)
-, _willRetain(false)
-, _parsingInformation { .bufferState = AsyncMqttClientInternals::BufferState::NONE }
-, _currentParsedPacket(nullptr)
-, _remainingLengthBufferPosition(0)
-, _nextPacketId(1) {
+      ,
+      _port(0), _keepAlive(15), _cleanSession(true), _clientId(nullptr), _username(nullptr), _password(nullptr),
+      _willTopic(nullptr), _willPayload(nullptr), _willPayloadLength(0), _willQos(0), _willRetain(false),
+      _parsingInformation{.bufferState = AsyncMqttClientInternals::BufferState::NONE}, _currentParsedPacket(nullptr),
+      _remainingLengthBufferPosition(0), _nextPacketId(1) {
   _client.onConnect([](void* obj, AsyncClient* c) { (static_cast<AsyncMqttClient*>(obj))->_onConnect(c); }, this);
   _client.onDisconnect([](void* obj, AsyncClient* c) { (static_cast<AsyncMqttClient*>(obj))->_onDisconnect(c); }, this);
-  _client.onError([](void* obj, AsyncClient* c, int8_t error) { (static_cast<AsyncMqttClient*>(obj))->_onError(c, error); }, this);
-  _client.onTimeout([](void* obj, AsyncClient* c, uint32_t time) { (static_cast<AsyncMqttClient*>(obj))->_onTimeout(c, time); }, this);
-  _client.onAck([](void* obj, AsyncClient* c, size_t len, uint32_t time) { (static_cast<AsyncMqttClient*>(obj))->_onAck(c, len, time); }, this);
-  _client.onData([](void* obj, AsyncClient* c, void* data, size_t len) { (static_cast<AsyncMqttClient*>(obj))->_onData(c, static_cast<uint8_t*>(data), len); }, this);
+  _client.onError(
+      [](void* obj, AsyncClient* c, int8_t error) { (static_cast<AsyncMqttClient*>(obj))->_onError(c, error); }, this);
+  _client.onTimeout(
+      [](void* obj, AsyncClient* c, uint32_t time) { (static_cast<AsyncMqttClient*>(obj))->_onTimeout(c, time); },
+      this);
+  _client.onAck([](void* obj, AsyncClient* c, size_t len,
+                   uint32_t time) { (static_cast<AsyncMqttClient*>(obj))->_onAck(c, len, time); },
+                this);
+  _client.onData([](void* obj, AsyncClient* c, void* data,
+                    size_t len) { (static_cast<AsyncMqttClient*>(obj))->_onData(c, static_cast<uint8_t*>(data), len); },
+                 this);
   _client.onPoll([](void* obj, AsyncClient* c) { (static_cast<AsyncMqttClient*>(obj))->_onPoll(c); }, this);
 
 #ifdef ESP32
@@ -88,7 +79,8 @@ AsyncMqttClient& AsyncMqttClient::setCredentials(const char* username, const cha
   return *this;
 }
 
-AsyncMqttClient& AsyncMqttClient::setWill(const char* topic, uint8_t qos, bool retain, const char* payload, size_t length) {
+AsyncMqttClient& AsyncMqttClient::setWill(const char* topic, uint8_t qos, bool retain, const char* payload,
+                                          size_t length) {
   _willTopic = topic;
   _willQos = qos;
   _willRetain = retain;
@@ -265,11 +257,12 @@ void AsyncMqttClient::_onConnect(AsyncClient* client) {
     passwordLengthBytes[1] = passwordLength & 0xFF;
   }
 
-  uint32_t remainingLength = 2 + protocolNameLength + 1 + 1 + 2 + 2 + clientIdLength;  // always present
+  uint32_t remainingLength = 2 + protocolNameLength + 1 + 1 + 2 + 2 + clientIdLength; // always present
   if (_willTopic != nullptr) remainingLength += 2 + willTopicLength + 2 + willPayloadLength;
   if (_username != nullptr) remainingLength += 2 + usernameLength;
   if (_password != nullptr) remainingLength += 2 + passwordLength;
-  uint8_t remainingLengthLength = AsyncMqttClientInternals::Helpers::encodeRemainingLength(remainingLength, fixedHeader + 1);
+  uint8_t remainingLengthLength =
+      AsyncMqttClientInternals::Helpers::encodeRemainingLength(remainingLength, fixedHeader + 1);
 
   uint32_t neededSpace = 1 + remainingLengthLength;
   neededSpace += 2;
@@ -357,7 +350,8 @@ void AsyncMqttClient::_onDisconnect(AsyncClient* client) {
 
   _clear();
 
-  for (const auto& callback : _onDisconnectUserCallbacks) callback(reason);
+  for (const auto& callback : _onDisconnectUserCallbacks)
+    callback(reason);
 }
 
 void AsyncMqttClient::_onError(AsyncClient* client, int8_t error) {
@@ -385,89 +379,84 @@ HOT_PATH void AsyncMqttClient::_onData(AsyncClient* client, uint8_t* data, size_
   uint8_t currentByte;
   do {
     switch (_parsingInformation.bufferState) {
-      case AsyncMqttClientInternals::BufferState::NONE:
-        currentByte = data[currentBytePosition++];
-        uniuno::asyncmqtt_asm::asm_extract_header(currentByte, _parsingInformation.packetType, _parsingInformation.packetFlags);
-        _parsingInformation.bufferState = AsyncMqttClientInternals::BufferState::REMAINING_LENGTH;
-        _lastServerActivity = now;
-        switch (_parsingInformation.packetType) {
-          case AsyncMqttClientInternals::PacketType.CONNACK:
-            _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::ConnAckPacket(&_parsingInformation, [this](bool sessionPresent, uint8_t connectReturnCode) {
+    case AsyncMqttClientInternals::BufferState::NONE:
+      currentByte = data[currentBytePosition++];
+      uniuno::asyncmqtt_asm::asm_extract_header(currentByte, _parsingInformation.packetType,
+                                                _parsingInformation.packetFlags);
+      _parsingInformation.bufferState = AsyncMqttClientInternals::BufferState::REMAINING_LENGTH;
+      _lastServerActivity = now;
+      switch (_parsingInformation.packetType) {
+      case AsyncMqttClientInternals::PacketType.CONNACK:
+        _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::ConnAckPacket(
+            &_parsingInformation, [this](bool sessionPresent, uint8_t connectReturnCode) {
               this->_onConnAck(sessionPresent, connectReturnCode);
             });
-            break;
-          case AsyncMqttClientInternals::PacketType.PINGRESP:
-            // PINGRESP has remainingLength == 0 and no variable header or payload.
-            // Handled directly when remainingLength is decoded without allocating any packet object.
-            break;
-          case AsyncMqttClientInternals::PacketType.SUBACK:
-            _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::SubAckPacket(&_parsingInformation, [this](uint16_t packetId, char status) {
-              this->_onSubAck(packetId, status);
-            });
-            break;
-          case AsyncMqttClientInternals::PacketType.UNSUBACK:
-            _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::UnsubAckPacket(&_parsingInformation, [this](uint16_t packetId) {
-              this->_onUnsubAck(packetId);
-            });
-            break;
-          case AsyncMqttClientInternals::PacketType.PUBLISH:
-            _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::PublishPacket(
-              &_parsingInformation,
-              [this](char* topic, char* payload, uint8_t qos, bool dup, bool retain, size_t len, size_t index, size_t total, uint16_t packetId) {
-                this->_onMessage(topic, payload, qos, dup, retain, len, index, total, packetId);
-              },
-              [this](uint16_t packetId, uint8_t qos) {
-                this->_onPublish(packetId, qos);
-              }
-            );
-            break;
-          case AsyncMqttClientInternals::PacketType.PUBREL:
-            _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::PubRelPacket(&_parsingInformation, [this](uint16_t packetId) {
-              this->_onPubRel(packetId);
-            });
-            break;
-          case AsyncMqttClientInternals::PacketType.PUBACK:
-            _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::PubAckPacket(&_parsingInformation, [this](uint16_t packetId) {
-              this->_onPubAck(packetId);
-            });
-            break;
-          case AsyncMqttClientInternals::PacketType.PUBREC:
-            _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::PubRecPacket(&_parsingInformation, [this](uint16_t packetId) {
-              this->_onPubRec(packetId);
-            });
-            break;
-          case AsyncMqttClientInternals::PacketType.PUBCOMP:
-            _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::PubCompPacket(&_parsingInformation, [this](uint16_t packetId) {
-              this->_onPubComp(packetId);
-            });
-            break;
-          default:
-            break;
-        }
         break;
-      case AsyncMqttClientInternals::BufferState::REMAINING_LENGTH:
-        currentByte = data[currentBytePosition++];
-        _remainingLengthBuffer[_remainingLengthBufferPosition++] = currentByte;
-        if (currentByte >> 7 == 0) {
-          _parsingInformation.remainingLength = AsyncMqttClientInternals::Helpers::decodeRemainingLength(_remainingLengthBuffer);
-          _remainingLengthBufferPosition = 0;
-          if (_parsingInformation.remainingLength > 0) {
-            _parsingInformation.bufferState = AsyncMqttClientInternals::BufferState::VARIABLE_HEADER;
-          } else {
-            // PINGRESP is a special case where it has no variable header, so the packet ends right here
-            _parsingInformation.bufferState = AsyncMqttClientInternals::BufferState::NONE;
-            _onPingResp();
-          }
-        }
+      case AsyncMqttClientInternals::PacketType.PINGRESP:
+        // PINGRESP has remainingLength == 0 and no variable header or payload.
+        // Handled directly when remainingLength is decoded without allocating any packet object.
         break;
-      case AsyncMqttClientInternals::BufferState::VARIABLE_HEADER:
-        _currentParsedPacket->parseVariableHeader(data, len, &currentBytePosition);
+      case AsyncMqttClientInternals::PacketType.SUBACK:
+        _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::SubAckPacket(
+            &_parsingInformation, [this](uint16_t packetId, char status) { this->_onSubAck(packetId, status); });
         break;
-      case AsyncMqttClientInternals::BufferState::PAYLOAD:
-        _currentParsedPacket->parsePayload(data, len, &currentBytePosition);
+      case AsyncMqttClientInternals::PacketType.UNSUBACK:
+        _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::UnsubAckPacket(
+            &_parsingInformation, [this](uint16_t packetId) { this->_onUnsubAck(packetId); });
+        break;
+      case AsyncMqttClientInternals::PacketType.PUBLISH:
+        _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::PublishPacket(
+            &_parsingInformation,
+            [this](char* topic, char* payload, uint8_t qos, bool dup, bool retain, size_t len, size_t index,
+                   size_t total, uint16_t packetId) {
+              this->_onMessage(topic, payload, qos, dup, retain, len, index, total, packetId);
+            },
+            [this](uint16_t packetId, uint8_t qos) { this->_onPublish(packetId, qos); });
+        break;
+      case AsyncMqttClientInternals::PacketType.PUBREL:
+        _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::PubRelPacket(
+            &_parsingInformation, [this](uint16_t packetId) { this->_onPubRel(packetId); });
+        break;
+      case AsyncMqttClientInternals::PacketType.PUBACK:
+        _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::PubAckPacket(
+            &_parsingInformation, [this](uint16_t packetId) { this->_onPubAck(packetId); });
+        break;
+      case AsyncMqttClientInternals::PacketType.PUBREC:
+        _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::PubRecPacket(
+            &_parsingInformation, [this](uint16_t packetId) { this->_onPubRec(packetId); });
+        break;
+      case AsyncMqttClientInternals::PacketType.PUBCOMP:
+        _currentParsedPacket = new (_packetStorage) AsyncMqttClientInternals::PubCompPacket(
+            &_parsingInformation, [this](uint16_t packetId) { this->_onPubComp(packetId); });
         break;
       default:
-        currentBytePosition = len;
+        break;
+      }
+      break;
+    case AsyncMqttClientInternals::BufferState::REMAINING_LENGTH:
+      currentByte = data[currentBytePosition++];
+      _remainingLengthBuffer[_remainingLengthBufferPosition++] = currentByte;
+      if (currentByte >> 7 == 0) {
+        _parsingInformation.remainingLength =
+            AsyncMqttClientInternals::Helpers::decodeRemainingLength(_remainingLengthBuffer);
+        _remainingLengthBufferPosition = 0;
+        if (_parsingInformation.remainingLength > 0) {
+          _parsingInformation.bufferState = AsyncMqttClientInternals::BufferState::VARIABLE_HEADER;
+        } else {
+          // PINGRESP is a special case where it has no variable header, so the packet ends right here
+          _parsingInformation.bufferState = AsyncMqttClientInternals::BufferState::NONE;
+          _onPingResp();
+        }
+      }
+      break;
+    case AsyncMqttClientInternals::BufferState::VARIABLE_HEADER:
+      _currentParsedPacket->parseVariableHeader(data, len, &currentBytePosition);
+      break;
+    case AsyncMqttClientInternals::BufferState::PAYLOAD:
+      _currentParsedPacket->parsePayload(data, len, &currentBytePosition);
+      break;
+    default:
+      currentBytePosition = len;
     }
   } while (currentBytePosition != len);
 }
@@ -509,7 +498,8 @@ void AsyncMqttClient::_onConnAck(bool sessionPresent, uint8_t connectReturnCode)
 
   if (connectReturnCode == 0) {
     _connected = true;
-    for (const auto& callback : _onConnectUserCallbacks) callback(sessionPresent);
+    for (const auto& callback : _onConnectUserCallbacks)
+      callback(sessionPresent);
   } else {
     // Callbacks are handled by the ondisconnect function which is called from the AsyncTcp lib
   }
@@ -518,16 +508,19 @@ void AsyncMqttClient::_onConnAck(bool sessionPresent, uint8_t connectReturnCode)
 void AsyncMqttClient::_onSubAck(uint16_t packetId, char status) {
   _freeCurrentParsedPacket();
 
-  for (const auto& callback : _onSubscribeUserCallbacks) callback(packetId, status);
+  for (const auto& callback : _onSubscribeUserCallbacks)
+    callback(packetId, status);
 }
 
 void AsyncMqttClient::_onUnsubAck(uint16_t packetId) {
   _freeCurrentParsedPacket();
 
-  for (const auto& callback : _onUnsubscribeUserCallbacks) callback(packetId);
+  for (const auto& callback : _onUnsubscribeUserCallbacks)
+    callback(packetId);
 }
 
-void AsyncMqttClient::_onMessage(char* topic, char* payload, uint8_t qos, bool dup, bool retain, size_t len, size_t index, size_t total, uint16_t packetId) {
+void AsyncMqttClient::_onMessage(char* topic, char* payload, uint8_t qos, bool dup, bool retain, size_t len,
+                                 size_t index, size_t total, uint16_t packetId) {
   bool notifyPublish = true;
 
   if (qos == 2) {
@@ -545,7 +538,8 @@ void AsyncMqttClient::_onMessage(char* topic, char* payload, uint8_t qos, bool d
     properties.dup = dup;
     properties.retain = retain;
 
-    for (const auto& callback : _onMessageUserCallbacks) callback(topic, payload, properties, len, index, total);
+    for (const auto& callback : _onMessageUserCallbacks)
+      callback(topic, payload, properties, len, index, total);
   }
 }
 
@@ -605,7 +599,8 @@ void AsyncMqttClient::_onPubRel(uint16_t packetId) {
 void AsyncMqttClient::_onPubAck(uint16_t packetId) {
   _freeCurrentParsedPacket();
 
-  for (const auto& callback : _onPublishUserCallbacks) callback(packetId);
+  for (const auto& callback : _onPublishUserCallbacks)
+    callback(packetId);
 }
 
 void AsyncMqttClient::_onPubRec(uint16_t packetId) {
@@ -623,17 +618,20 @@ void AsyncMqttClient::_onPubRec(uint16_t packetId) {
 void AsyncMqttClient::_onPubComp(uint16_t packetId) {
   _freeCurrentParsedPacket();
 
-  for (const auto& callback : _onPublishUserCallbacks) callback(packetId);
+  for (const auto& callback : _onPublishUserCallbacks)
+    callback(packetId);
 }
 
 bool AsyncMqttClient::_sendPing() {
-  const char fixedHeader[2] = {
-    static_cast<char>((AsyncMqttClientInternals::PacketType.PINGREQ << 4) | AsyncMqttClientInternals::HeaderFlag.PINGREQ_RESERVED),
-    0
-  };
+  const char fixedHeader[2] = {static_cast<char>((AsyncMqttClientInternals::PacketType.PINGREQ << 4) |
+                                                 AsyncMqttClientInternals::HeaderFlag.PINGREQ_RESERVED),
+                               0};
 
   SEMAPHORE_TAKE(false);
-  if (_client.space() < 2U) { SEMAPHORE_GIVE(); return false; }
+  if (_client.space() < 2U) {
+    SEMAPHORE_GIVE();
+    return false;
+  }
 
   _client.write(fixedHeader, 2U);
   const uint32_t now = uniuno::asyncmqtt_asm::fast_millis();
@@ -689,7 +687,10 @@ bool AsyncMqttClient::_sendDisconnect() {
 
   SEMAPHORE_TAKE(false);
 
-  if (_client.space() < neededSpace) { SEMAPHORE_GIVE(); return false; }
+  if (_client.space() < neededSpace) {
+    SEMAPHORE_GIVE();
+    return false;
+  }
 
   char fixedHeader[2];
   fixedHeader[0] = AsyncMqttClientInternals::PacketType.DISCONNECT;
@@ -710,7 +711,7 @@ bool AsyncMqttClient::_sendDisconnect() {
 uint16_t AsyncMqttClient::_getNextPacketId() {
   uint16_t nextPacketId = _nextPacketId;
 
-  if (_nextPacketId == 65535) _nextPacketId = 0;  // 0 is forbidden
+  if (_nextPacketId == 65535) _nextPacketId = 0; // 0 is forbidden
   _nextPacketId++;
 
   return nextPacketId;
@@ -764,7 +765,8 @@ uint16_t AsyncMqttClient::subscribe(const char* topic, uint8_t qos) {
   char qosByte[1];
   qosByte[0] = qos;
 
-  uint8_t remainingLengthLength = AsyncMqttClientInternals::Helpers::encodeRemainingLength(2 + 2 + topicLength + 1, fixedHeader + 1);
+  uint8_t remainingLengthLength =
+      AsyncMqttClientInternals::Helpers::encodeRemainingLength(2 + 2 + topicLength + 1, fixedHeader + 1);
 
   size_t neededSpace = 0;
   neededSpace += 1 + remainingLengthLength;
@@ -774,7 +776,10 @@ uint16_t AsyncMqttClient::subscribe(const char* topic, uint8_t qos) {
   neededSpace += 1;
 
   SEMAPHORE_TAKE(0);
-  if (_client.space() < neededSpace) { SEMAPHORE_GIVE(); return 0; }
+  if (_client.space() < neededSpace) {
+    SEMAPHORE_GIVE();
+    return 0;
+  }
 
   uint16_t packetId = _getNextPacketId();
   char packetIdBytes[2];
@@ -817,7 +822,8 @@ uint16_t AsyncMqttClient::unsubscribe(const char* topic) {
   char topicLengthBytes[2];
   uniuno::asyncmqtt_asm::asm_split_uint16(topicLength, topicLengthBytes[0], topicLengthBytes[1]);
 
-  uint8_t remainingLengthLength = AsyncMqttClientInternals::Helpers::encodeRemainingLength(2 + 2 + topicLength, fixedHeader + 1);
+  uint8_t remainingLengthLength =
+      AsyncMqttClientInternals::Helpers::encodeRemainingLength(2 + 2 + topicLength, fixedHeader + 1);
 
   size_t neededSpace = 0;
   neededSpace += 1 + remainingLengthLength;
@@ -826,7 +832,10 @@ uint16_t AsyncMqttClient::unsubscribe(const char* topic) {
   neededSpace += topicLength;
 
   SEMAPHORE_TAKE(0);
-  if (_client.space() < neededSpace) { SEMAPHORE_GIVE(); return 0; }
+  if (_client.space() < neededSpace) {
+    SEMAPHORE_GIVE();
+    return 0;
+  }
 
   uint16_t packetId = _getNextPacketId();
   char packetIdBytes[2];
@@ -855,7 +864,8 @@ uint16_t AsyncMqttClient::unsubscribe(const char* topic) {
   return packetId;
 }
 
-HOT_PATH uint16_t AsyncMqttClient::publish(const char* topic, uint8_t qos, bool retain, const char* payload, size_t length, bool dup, uint16_t message_id) {
+HOT_PATH uint16_t AsyncMqttClient::publish(const char* topic, uint8_t qos, bool retain, const char* payload,
+                                           size_t length, bool dup, uint16_t message_id) {
   if (UNLIKELY(!_connected)) return 0;
 
   char fixedHeader[5];
@@ -872,14 +882,19 @@ HOT_PATH uint16_t AsyncMqttClient::publish(const char* topic, uint8_t qos, bool 
 
   uint32_t remainingLength = 2U + topicLength + payloadLength;
   if (qos != 0) remainingLength += 2U;
-  const uint8_t remainingLengthLength = AsyncMqttClientInternals::Helpers::encodeRemainingLength(remainingLength, fixedHeader + 1);
+  const uint8_t remainingLengthLength =
+      AsyncMqttClientInternals::Helpers::encodeRemainingLength(remainingLength, fixedHeader + 1);
 
   const size_t headerLen = static_cast<size_t>(1U + remainingLengthLength);
   const size_t prefixLen = headerLen + 2U;
-  const size_t neededSpace = prefixLen + topicLength + ((qos != 0) ? 2U : 0U) + ((payload != nullptr) ? payloadLength : 0U);
+  const size_t neededSpace =
+      prefixLen + topicLength + ((qos != 0) ? 2U : 0U) + ((payload != nullptr) ? payloadLength : 0U);
 
   SEMAPHORE_TAKE(0);
-  if (UNLIKELY(_client.space() < neededSpace)) { SEMAPHORE_GIVE(); return 0; }
+  if (UNLIKELY(_client.space() < neededSpace)) {
+    SEMAPHORE_GIVE();
+    return 0;
+  }
 
   uint16_t packetId = 0;
   char packetIdBytes[2];
@@ -892,7 +907,7 @@ HOT_PATH uint16_t AsyncMqttClient::publish(const char* topic, uint8_t qos, bool 
   if (LIKELY(neededSpace <= 512U)) {
     char txBuf[512];
     memcpy(txBuf, fixedHeader, headerLen);
-    txBuf[headerLen]      = topicLengthBytes[0];
+    txBuf[headerLen] = topicLengthBytes[0];
     txBuf[headerLen + 1U] = topicLengthBytes[1];
     size_t pos = prefixLen;
     memcpy(txBuf + pos, topic, topicLength);
@@ -908,7 +923,7 @@ HOT_PATH uint16_t AsyncMqttClient::publish(const char* topic, uint8_t qos, bool 
   } else {
     char pubHeaderBuf[9];
     memcpy(pubHeaderBuf, fixedHeader, headerLen);
-    pubHeaderBuf[headerLen]      = topicLengthBytes[0];
+    pubHeaderBuf[headerLen] = topicLengthBytes[0];
     pubHeaderBuf[headerLen + 1U] = topicLengthBytes[1];
     _client.add(pubHeaderBuf, prefixLen);
     _client.add(topic, topicLength);

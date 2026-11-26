@@ -13,7 +13,7 @@ struct TimerId;
 class ITimer {
 public:
   virtual ~ITimer() = default;
-  
+
   virtual void clear_timeout(TimerId timeoutId) = 0;
   virtual void clear_interval(TimerId interval_id) = 0;
   virtual bool pause(TimerId id) = 0;

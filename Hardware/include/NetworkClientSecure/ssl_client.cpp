@@ -1,10 +1,10 @@
 /* Provide SSL/TLS functions to ESP32 with Arduino IDE
-*
-* Adapted from the ssl_client1 example of mbedtls.
-*
-* Original Copyright (C) 2006-2015, ARM Limited, All Rights Reserved, Apache 2.0 License.
-* Additions Copyright (C) 2017 Evandro Luis Copercini, Apache 2.0 License.
-*/
+ *
+ * Adapted from the ssl_client1 example of mbedtls.
+ *
+ * Original Copyright (C) 2006-2015, ARM Limited, All Rights Reserved, Apache 2.0 License.
+ * Additions Copyright (C) 2017 Evandro Luis Copercini, Apache 2.0 License.
+ */
 
 #include "Arduino.h"
 #include <esp32-hal-log.h>
@@ -26,13 +26,13 @@
 #include <Optimization/CompilerTraits.h>
 
 #if !defined(MBEDTLS_KEY_EXCHANGE__SOME__PSK_ENABLED) && !defined(MBEDTLS_KEY_EXCHANGE_SOME_PSK_ENABLED)
-#warning \
-  "Please call `idf.py menuconfig` then go to Component config -> mbedTLS -> TLS Key Exchange Methods -> Enable pre-shared-key ciphersuites and then check `Enable PSK based ciphersuite modes`. Save and Quit."
+#warning                                                                                                               \
+    "Please call `idf.py menuconfig` then go to Component config -> mbedTLS -> TLS Key Exchange Methods -> Enable pre-shared-key ciphersuites and then check `Enable PSK based ciphersuite modes`. Save and Quit."
 #else
 
-const char *pers = "esp32-tls";
+const char* pers = "esp32-tls";
 
-static int _handle_error(int err, const char *function, int line) {
+static int _handle_error(int err, const char* function, int line) {
   if (err == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
     return err;
   }
@@ -48,7 +48,7 @@ static int _handle_error(int err, const char *function, int line) {
 
 #define handle_error(e) _handle_error(e, __FUNCTION__, __LINE__)
 
-void ssl_init(sslclient_context *ssl_client) {
+void ssl_init(sslclient_context* ssl_client) {
   // reset embedded pointers to zero
   memset(ssl_client, 0, sizeof(sslclient_context));
   mbedtls_ssl_init(&ssl_client->ssl_ctx);
@@ -59,7 +59,7 @@ void ssl_init(sslclient_context *ssl_client) {
   ssl_client->peek_buf = -1;
 }
 
-void attach_ssl_certificate_bundle(sslclient_context *ssl_client, bool att) {
+void attach_ssl_certificate_bundle(sslclient_context* ssl_client, bool att) {
   if (att) {
     ssl_client->bundle_attach_cb = &esp_crt_bundle_attach;
   } else {
@@ -67,10 +67,10 @@ void attach_ssl_certificate_bundle(sslclient_context *ssl_client, bool att) {
   }
 }
 
-int start_ssl_client(
-  sslclient_context *ssl_client, const IPAddress &ip, uint32_t port, const char *hostname, int timeout, const char *rootCABuff, bool useRootCABundle,
-  const char *cli_cert, const char *cli_key, const char *pskIdent, const char *psKey, bool insecure, const char **alpn_protos
-) {
+int start_ssl_client(sslclient_context* ssl_client, const IPAddress& ip, uint32_t port, const char* hostname,
+                     int timeout, const char* rootCABuff, bool useRootCABundle, const char* cli_cert,
+                     const char* cli_key, const char* pskIdent, const char* psKey, bool insecure,
+                     const char** alpn_protos) {
   int ret;
   int enable = 1;
   log_v("Free internal heap before TLS %" PRIu32, ESP.getFreeHeap());
@@ -93,7 +93,7 @@ int start_ssl_client(
   struct sockaddr_storage serv_addr = {};
 #if CONFIG_LWIP_IPV6
   if (domain == AF_INET6) {
-    struct sockaddr_in6 *tmpaddr = (struct sockaddr_in6 *)&serv_addr;
+    struct sockaddr_in6* tmpaddr = (struct sockaddr_in6*)&serv_addr;
     tmpaddr->sin6_family = AF_INET6;
     for (int index = 0; index < 16; index++) {
       tmpaddr->sin6_addr.s6_addr[index] = ip[index];
@@ -102,7 +102,7 @@ int start_ssl_client(
     tmpaddr->sin6_scope_id = ip.zone();
   } else {
 #endif
-    struct sockaddr_in *tmpaddr = (struct sockaddr_in *)&serv_addr;
+    struct sockaddr_in* tmpaddr = (struct sockaddr_in*)&serv_addr;
     tmpaddr->sin_family = AF_INET;
     tmpaddr->sin_addr.s_addr = ip;
     tmpaddr->sin_port = htons(port);
@@ -111,7 +111,7 @@ int start_ssl_client(
 #endif
 
   if (timeout <= 0) {
-    timeout = 30000;  // Milli seconds.
+    timeout = 30000; // Milli seconds.
   }
 
   ssl_client->socket_timeout = timeout;
@@ -123,7 +123,7 @@ int start_ssl_client(
   tv.tv_sec = timeout / 1000;
   tv.tv_usec = (timeout % 1000) * 1000;
 
-  int res = lwip_connect(ssl_client->socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  int res = lwip_connect(ssl_client->socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
   if (res < 0 && errno != EINPROGRESS) {
     log_e("connect on fd %d, errno: %d, \"%s\"", ssl_client->socket, errno, strerror(errno));
     lwip_close(ssl_client->socket);
@@ -162,12 +162,12 @@ int start_ssl_client(
     }
   }
 
-#define ROE(x, msg)                                   \
-  {                                                   \
-    if (((x) < 0)) {                                  \
-      log_e("LWIP Socket config of " msg " failed."); \
-      return -1;                                      \
-    }                                                 \
+#define ROE(x, msg)                                                                                                    \
+  {                                                                                                                    \
+    if (((x) < 0)) {                                                                                                   \
+      log_e("LWIP Socket config of " msg " failed.");                                                                  \
+      return -1;                                                                                                       \
+    }                                                                                                                  \
   }
   ROE(lwip_setsockopt(ssl_client->socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)), "SO_RCVTIMEO");
   ROE(lwip_setsockopt(ssl_client->socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)), "SO_SNDTIMEO");
@@ -179,7 +179,8 @@ int start_ssl_client(
   log_v("Seeding the random number generator");
   mbedtls_entropy_init(&ssl_client->entropy_ctx);
 
-  ret = mbedtls_ctr_drbg_seed(&ssl_client->drbg_ctx, mbedtls_entropy_func, &ssl_client->entropy_ctx, (const unsigned char *)pers, strlen(pers));
+  ret = mbedtls_ctr_drbg_seed(&ssl_client->drbg_ctx, mbedtls_entropy_func, &ssl_client->entropy_ctx,
+                              (const unsigned char*)pers, strlen(pers));
   if (ret < 0) {
     return handle_error(ret);
   }
@@ -187,7 +188,8 @@ int start_ssl_client(
 
   log_v("Setting up the SSL/TLS structure...");
 
-  if ((ret = mbedtls_ssl_config_defaults(&ssl_client->ssl_conf, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
+  if ((ret = mbedtls_ssl_config_defaults(&ssl_client->ssl_conf, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM,
+                                         MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
     return handle_error(ret);
   }
 
@@ -208,11 +210,12 @@ int start_ssl_client(
     log_v("Loading CA cert");
     mbedtls_x509_crt_init(&ssl_client->ca_cert);
     mbedtls_ssl_conf_authmode(&ssl_client->ssl_conf, MBEDTLS_SSL_VERIFY_REQUIRED);
-    ret = mbedtls_x509_crt_parse(&ssl_client->ca_cert, (const unsigned char *)rootCABuff, strlen(rootCABuff) + 1);
+    ret = mbedtls_x509_crt_parse(&ssl_client->ca_cert, (const unsigned char*)rootCABuff, strlen(rootCABuff) + 1);
     mbedtls_ssl_conf_ca_chain(&ssl_client->ssl_conf, &ssl_client->ca_cert, NULL);
-    //mbedtls_ssl_conf_verify(&ssl_client->ssl_ctx, my_verify, NULL );
+    // mbedtls_ssl_conf_verify(&ssl_client->ssl_ctx, my_verify, NULL );
     if (ret < 0) {
-      // free the ca_cert in the case parse failed, otherwise, the old ca_cert still in the heap memory, that lead to "out of memory" crash.
+      // free the ca_cert in the case parse failed, otherwise, the old ca_cert still in the heap memory, that lead to
+      // "out of memory" crash.
       mbedtls_x509_crt_free(&ssl_client->ca_cert);
       return handle_error(ret);
     }
@@ -261,7 +264,8 @@ int start_ssl_client(
       pskBytes[j / 2] |= c;
     }
     // set mbedtls config
-    ret = mbedtls_ssl_conf_psk(&ssl_client->ssl_conf, pskBytes, pskByteLen, (const unsigned char *)pskIdent, strlen(pskIdent));
+    ret = mbedtls_ssl_conf_psk(&ssl_client->ssl_conf, pskBytes, pskByteLen, (const unsigned char*)pskIdent,
+                               strlen(pskIdent));
     if (ret != 0) {
       log_e("mbedtls_ssl_conf_psk returned %d", ret);
       return handle_error(ret);
@@ -279,25 +283,27 @@ int start_ssl_client(
 
     log_v("Loading CRT cert");
 
-    ret = mbedtls_x509_crt_parse(&ssl_client->client_cert, (const unsigned char *)cli_cert, strlen(cli_cert) + 1);
+    ret = mbedtls_x509_crt_parse(&ssl_client->client_cert, (const unsigned char*)cli_cert, strlen(cli_cert) + 1);
     if (ret < 0) {
-      // free the client_cert in the case parse failed, otherwise, the old client_cert still in the heap memory, that lead to "out of memory" crash.
+      // free the client_cert in the case parse failed, otherwise, the old client_cert still in the heap memory, that
+      // lead to "out of memory" crash.
       mbedtls_x509_crt_free(&ssl_client->client_cert);
       return handle_error(ret);
     }
 
     log_v("Loading private key");
 #if (MBEDTLS_VERSION_MAJOR < 3)
-    ret = mbedtls_pk_parse_key(&ssl_client->client_key, (const unsigned char *)cli_key, strlen(cli_key) + 1, NULL, 0);
+    ret = mbedtls_pk_parse_key(&ssl_client->client_key, (const unsigned char*)cli_key, strlen(cli_key) + 1, NULL, 0);
 #else
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_ctr_drbg_init(&ctr_drbg);
-    ret = mbedtls_pk_parse_key(&ssl_client->client_key, (const unsigned char *)cli_key, strlen(cli_key) + 1, NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg);
+    ret = mbedtls_pk_parse_key(&ssl_client->client_key, (const unsigned char*)cli_key, strlen(cli_key) + 1, NULL, 0,
+                               mbedtls_ctr_drbg_random, &ctr_drbg);
     mbedtls_ctr_drbg_free(&ctr_drbg);
 #endif
 
     if (ret != 0) {
-      mbedtls_x509_crt_free(&ssl_client->client_cert);  // cert+key are free'd in pair
+      mbedtls_x509_crt_free(&ssl_client->client_cert); // cert+key are free'd in pair
       return handle_error(ret);
     }
 
@@ -307,7 +313,8 @@ int start_ssl_client(
   log_v("Setting hostname for TLS session...");
 
   // Hostname set here should match CN in server certificate
-  if ((ret = mbedtls_ssl_set_hostname(&ssl_client->ssl_ctx, hostname != NULL ? hostname : ip.toString().c_str())) != 0) {
+  if ((ret = mbedtls_ssl_set_hostname(&ssl_client->ssl_ctx, hostname != NULL ? hostname : ip.toString().c_str())) !=
+      0) {
     return handle_error(ret);
   }
 
@@ -323,7 +330,7 @@ int start_ssl_client(
   return ssl_client->socket;
 }
 
-int ssl_starttls_handshake(sslclient_context *ssl_client) {
+int ssl_starttls_handshake(sslclient_context* ssl_client) {
   char buf[512];
   int ret, flags;
 
@@ -336,11 +343,12 @@ int ssl_starttls_handshake(sslclient_context *ssl_client) {
     if ((millis() - handshake_start_time) > ssl_client->handshake_timeout) {
       return -1;
     }
-    vTaskDelay(2);  //2 ticks
+    vTaskDelay(2); // 2 ticks
   }
 
   if (ssl_client->client_cert.version) {
-    log_d("Protocol is %s Ciphersuite is %s", mbedtls_ssl_get_version(&ssl_client->ssl_ctx), mbedtls_ssl_get_ciphersuite(&ssl_client->ssl_ctx));
+    log_d("Protocol is %s Ciphersuite is %s", mbedtls_ssl_get_version(&ssl_client->ssl_ctx),
+          mbedtls_ssl_get_ciphersuite(&ssl_client->ssl_ctx));
     if ((ret = mbedtls_ssl_get_record_expansion(&ssl_client->ssl_ctx)) >= 0) {
       log_d("Record expansion is %d", ret);
     } else {
@@ -377,7 +385,7 @@ int ssl_starttls_handshake(sslclient_context *ssl_client) {
   return ssl_client->socket;
 }
 
-void stop_ssl_socket(sslclient_context *ssl_client) {
+void stop_ssl_socket(sslclient_context* ssl_client) {
   log_v("Cleaning SSL connection.");
 
   if (ssl_client->socket >= 0) {
@@ -417,7 +425,7 @@ void stop_ssl_socket(sslclient_context *ssl_client) {
   ssl_client->peek_buf = -1;
 }
 
-int data_to_read(sslclient_context *ssl_client) {
+int data_to_read(sslclient_context* ssl_client) {
   // Fast-path: return decrypted bytes already buffered in mbedTLS RAM without record/socket calls
   int res = mbedtls_ssl_get_bytes_avail(&ssl_client->ssl_ctx);
   if (LIKELY(res > 0)) {
@@ -433,13 +441,13 @@ int data_to_read(sslclient_context *ssl_client) {
   return res;
 }
 
-int send_ssl_data(sslclient_context *ssl_client, const uint8_t *data, size_t len) {
+int send_ssl_data(sslclient_context* ssl_client, const uint8_t* data, size_t len) {
   if (UNLIKELY(len == 0)) {
-    return 0;  // Skipping zero-length write
+    return 0; // Skipping zero-length write
   }
 
   static constexpr size_t max_write_chunk_size = 4096;
-  unsigned long last_progress = millis();  // Timeout since last progress
+  unsigned long last_progress = millis(); // Timeout since last progress
   size_t sent = 0;
   uint8_t yield_count = 0;
 
@@ -452,7 +460,7 @@ int send_ssl_data(sslclient_context *ssl_client, const uint8_t *data, size_t len
     int ret = mbedtls_ssl_write(&ssl_client->ssl_ctx, data + sent, to_send);
     if (LIKELY(ret > 0)) {
       sent += ret;
-      last_progress = millis();  // refresh timeout window
+      last_progress = millis(); // refresh timeout window
       yield_count = 0;
       continue;
     }
@@ -485,9 +493,9 @@ int send_ssl_data(sslclient_context *ssl_client, const uint8_t *data, size_t len
 // handling before the handshake starts; but after setting up the TLS
 // connection.
 //
-int peek_net_receive(sslclient_context *ssl_client, int timeout) {
+int peek_net_receive(sslclient_context* ssl_client, int timeout) {
 #if MBEDTLS_FIXED_LINKING_NET_POLL
-  int ret = mbedtls_net_poll((mbedtls_net_context *)ssl_client, MBEDTLS_NET_POLL_READ, timeout);
+  int ret = mbedtls_net_poll((mbedtls_net_context*)ssl_client, MBEDTLS_NET_POLL_READ, timeout);
   ret == MBEDTLS_NET_POLL_READ ? 1 : ret;
 #else
   // We should be using mbedtls_net_poll(); which is part of mbedtls and
@@ -511,7 +519,7 @@ int peek_net_receive(sslclient_context *ssl_client, int timeout) {
   return ret;
 };
 
-int get_net_receive(sslclient_context *ssl_client, uint8_t *data, int length) {
+int get_net_receive(sslclient_context* ssl_client, uint8_t* data, int length) {
   int ret = peek_net_receive(ssl_client, ssl_client->socket_timeout);
   if (ret > 0) {
     ret = mbedtls_net_recv(ssl_client, data, length);
@@ -521,19 +529,19 @@ int get_net_receive(sslclient_context *ssl_client, uint8_t *data, int length) {
   return ret;
 }
 
-int send_net_data(sslclient_context *ssl_client, const uint8_t *data, size_t len) {
+int send_net_data(sslclient_context* ssl_client, const uint8_t* data, size_t len) {
   int ret = mbedtls_net_send(ssl_client, data, len);
   // log_v("Net sending %lu btes->ret %d", (unsigned long)len, ret); //for low level debug
   return ret;
 }
 
-int get_ssl_receive(sslclient_context *ssl_client, uint8_t *data, int length) {
+int get_ssl_receive(sslclient_context* ssl_client, uint8_t* data, int length) {
   int ret = mbedtls_ssl_read(&ssl_client->ssl_ctx, data, length);
   // log_v( "%d bytes SSL read", ret);   //for low level debug
   return ret;
 }
 
-static bool parseHexNibble(char pb, uint8_t *res) {
+static bool parseHexNibble(char pb, uint8_t* res) {
   if (pb >= '0' && pb <= '9') {
     *res = (uint8_t)(pb - '0');
     return true;
@@ -548,7 +556,7 @@ static bool parseHexNibble(char pb, uint8_t *res) {
 }
 
 // Compare a name from certificate and domain name, return true if they match
-static bool matchName(const std::string &name, const std::string &domainName) {
+static bool matchName(const std::string& name, const std::string& domainName) {
   size_t wildcardPos = name.find('*');
   if (wildcardPos == std::string::npos) {
     // Not a wildcard, expect an exact match
@@ -574,7 +582,7 @@ static bool matchName(const std::string &name, const std::string &domainName) {
 }
 
 // Verifies certificate provided by the peer to match specified SHA256 fingerprint
-bool verify_ssl_fingerprint(sslclient_context *ssl_client, const char *fp, const char *domain_name) {
+bool verify_ssl_fingerprint(sslclient_context* ssl_client, const char* fp, const char* domain_name) {
   // Convert hex string to byte array
   uint8_t fingerprint_local[32];
   int len = strlen(fp);
@@ -616,13 +624,13 @@ bool verify_ssl_fingerprint(sslclient_context *ssl_client, const char *fp, const
   }
 }
 
-bool get_peer_fingerprint(sslclient_context *ssl_client, uint8_t sha256[32]) {
+bool get_peer_fingerprint(sslclient_context* ssl_client, uint8_t sha256[32]) {
   if (!ssl_client) {
     log_d("Invalid ssl_client pointer");
     return false;
   };
 
-  const mbedtls_x509_crt *crt = mbedtls_ssl_get_peer_cert(&ssl_client->ssl_ctx);
+  const mbedtls_x509_crt* crt = mbedtls_ssl_get_peer_cert(&ssl_client->ssl_ctx);
   if (!crt) {
     log_d("Failed to get peer cert.");
     return false;
@@ -647,18 +655,18 @@ bool get_peer_fingerprint(sslclient_context *ssl_client, uint8_t sha256[32]) {
 }
 
 // Checks if peer certificate has specified domain in CN or SANs
-bool verify_ssl_dn(sslclient_context *ssl_client, const char *domain_name) {
+bool verify_ssl_dn(sslclient_context* ssl_client, const char* domain_name) {
   log_d("domain name: '%s'", (domain_name) ? domain_name : "(null)");
   std::string domain_name_str(domain_name);
   std::transform(domain_name_str.begin(), domain_name_str.end(), domain_name_str.begin(), ::tolower);
 
   // Get certificate provided by the peer
-  const mbedtls_x509_crt *crt = mbedtls_ssl_get_peer_cert(&ssl_client->ssl_ctx);
+  const mbedtls_x509_crt* crt = mbedtls_ssl_get_peer_cert(&ssl_client->ssl_ctx);
 
   // Check for domain name in SANs
-  const mbedtls_x509_sequence *san = &crt->subject_alt_names;
+  const mbedtls_x509_sequence* san = &crt->subject_alt_names;
   while (san != nullptr) {
-    std::string san_str((const char *)san->buf.p, san->buf.len);
+    std::string san_str((const char*)san->buf.p, san->buf.len);
     std::transform(san_str.begin(), san_str.end(), san_str.begin(), ::tolower);
 
     if (matchName(san_str, domain_name_str)) {
@@ -672,11 +680,11 @@ bool verify_ssl_dn(sslclient_context *ssl_client, const char *domain_name) {
   }
 
   // Check for domain name in CN
-  const mbedtls_asn1_named_data *common_name = &crt->subject;
+  const mbedtls_asn1_named_data* common_name = &crt->subject;
   while (common_name != nullptr) {
     // While iterating through DN objects, check for CN object
     if (!MBEDTLS_OID_CMP(MBEDTLS_OID_AT_CN, &common_name->oid)) {
-      std::string common_name_str((const char *)common_name->val.p, common_name->val.len);
+      std::string common_name_str((const char*)common_name->val.p, common_name->val.len);
 
       if (matchName(common_name_str, domain_name_str)) {
         return true;

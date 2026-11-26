@@ -10,7 +10,9 @@
 #ifdef TIMER_EVENTS_ENABLED
 #include <Events/EventDispatcher.h>
 #else
-namespace uniuno { class EventDispatcher {}; } // Dummy
+namespace uniuno {
+class EventDispatcher {};
+} // namespace uniuno
 #endif
 
 namespace uniuno {
@@ -20,11 +22,10 @@ namespace uniuno {
  * @brief Unified timer manager Facade.
  * Delegates to TimerStorage (memory) and TimerProcessor (logic).
  */
-template <size_t MaxTimers = 32>
-class TimerManager {
+template <size_t MaxTimers = 32> class TimerManager {
 public:
   TimerManager(const TimerCore* core, EventDispatcher* dispatcher = nullptr)
-    : core_(core), dispatcher_(dispatcher), processor_(core, dispatcher) {}
+      : core_(core), dispatcher_(dispatcher), processor_(core, dispatcher) {}
 
   TimerId add_timeout(TimerCallback<void()> callback, unsigned long timeout_ms) {
     TimerId id = INVALID_TIMER_ID;
@@ -61,7 +62,7 @@ public:
   }
 
   TimerId add_interval_until_with_timeout(TimerCallback<bool()> callback, unsigned long interval_ms,
-                                       TimerCallback<void()> on_timeout, unsigned long timeout_ms) {
+                                          TimerCallback<void()> on_timeout, unsigned long timeout_ms) {
     TimerId id = INVALID_TIMER_ID;
     TimerNode* node = storage_.allocateNode(id);
     if (!node) return INVALID_TIMER_ID;
@@ -84,8 +85,10 @@ public:
       return true;
     }
 
-    if (node->state == TimerState::Active) storage_.removeActiveNode(node);
-    else if (node->state == TimerState::Paused) storage_.removePausedNode(node);
+    if (node->state == TimerState::Active)
+      storage_.removeActiveNode(node);
+    else if (node->state == TimerState::Paused)
+      storage_.removePausedNode(node);
 
 #ifdef TIMER_EVENT_CANCELLED
     if (dispatcher_) {
@@ -95,17 +98,17 @@ public:
     }
 #endif
 
-    if (node->is_interval) storage_.decIntervals();
-    else storage_.decTimeouts();
+    if (node->is_interval)
+      storage_.decIntervals();
+    else
+      storage_.decTimeouts();
     storage_.freeNode(node);
     return true;
   }
 
   HOT_PATH void process() { process(core_->now()); }
 
-  HOT_PATH void process(unsigned long cached_time) {
-    processor_.process(storage_, cached_time);
-  }
+  HOT_PATH void process(unsigned long cached_time) { processor_.process(storage_, cached_time); }
 
   bool pause(TimerId id) {
     TimerNode* node = storage_.lookup(id);
@@ -173,8 +176,10 @@ private:
 #ifdef TIMER_EVENT_CREATED
     if (dispatcher_) dispatcher_->dispatch(TimerCreatedEvent{node->id, delay_or_interval, node->is_interval});
 #endif
-    if (node->is_interval) storage_.incIntervals();
-    else storage_.incTimeouts();
+    if (node->is_interval)
+      storage_.incIntervals();
+    else
+      storage_.incTimeouts();
     storage_.addActiveNode(node);
   }
 

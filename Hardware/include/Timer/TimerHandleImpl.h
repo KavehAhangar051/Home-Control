@@ -15,13 +15,13 @@ inline void TimerHandle::cancel() {
   if (timer_ && !cancelled_) {
 #ifdef TIMER_ENABLE_CLEAR
     if (is_interval_) {
-      #ifdef TIMER_ENABLE_INTERVAL
+#ifdef TIMER_ENABLE_INTERVAL
       timer_->clear_interval(id_);
-      #endif
+#endif
     } else {
-      #ifdef TIMER_ENABLE_TIMEOUT
+#ifdef TIMER_ENABLE_TIMEOUT
       timer_->clear_timeout(id_);
-      #endif
+#endif
     }
 #endif
     cancelled_ = true;

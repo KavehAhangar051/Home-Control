@@ -10,8 +10,7 @@
 
 namespace uniuno {
 
-template <size_t MaxTimers>
-inline bool TimerBase<MaxTimers>::startHardwareTimer(uint64_t interval_us) {
+template <size_t MaxTimers> inline bool TimerBase<MaxTimers>::startHardwareTimer(uint64_t interval_us) {
 #ifdef ARDUINO
   hw_timer_active_ = HardwareTimerTrigger::start(this, interval_us);
   return hw_timer_active_;
@@ -21,8 +20,7 @@ inline bool TimerBase<MaxTimers>::startHardwareTimer(uint64_t interval_us) {
 #endif
 }
 
-template <size_t MaxTimers>
-inline void TimerBase<MaxTimers>::stopHardwareTimer() {
+template <size_t MaxTimers> inline void TimerBase<MaxTimers>::stopHardwareTimer() {
 #ifdef ARDUINO
   HardwareTimerTrigger::stop();
   hw_timer_active_ = false;

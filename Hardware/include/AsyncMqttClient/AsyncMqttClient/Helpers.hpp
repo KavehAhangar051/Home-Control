@@ -6,7 +6,7 @@
 
 namespace AsyncMqttClientInternals {
 class Helpers {
- public:
+public:
   /**
    * @brief Fast bitwise remaining length decoder (MQTT 3.1.1 variable byte integer).
    * Accelerates the critical path (<128 bytes) in 1 CPU cycle without looping or shifting.
@@ -53,4 +53,4 @@ class Helpers {
     return bytesNeeded;
   }
 };
-}  // namespace AsyncMqttClientInternals
+} // namespace AsyncMqttClientInternals

@@ -2,14 +2,14 @@
  * @file TimerHandle.h
  * @brief Handle class for managing individual timers
  * @author uniuno
- * 
+ *
  * PURPOSE: Provides object-oriented interface for timer management
  * FEATURES:
  *   - cancel(): Stop timer execution
  *   - isActive(): Check if timer is still running
  *   - restart(): Reset timer to initial state
  *   - getId(): Get internal timer ID
- * 
+ *
  * USAGE:
  * @code
  *   auto handle = timer.set_timeout(callback, 1000);
@@ -30,7 +30,7 @@ class ITimer;
 /**
  * @class TimerHandle
  * @brief RAII-style handle for managing timer lifecycle
- * 
+ *
  * Provides convenient methods to control timer without manual ID management.
  * Automatically tracks timer state and provides intuitive API.
  */
@@ -43,11 +43,11 @@ public:
    * @param is_interval True if interval, false if timeout
    */
   TimerHandle(ITimer* timer = nullptr, TimerId id = INVALID_TIMER_ID, bool is_interval = false)
-    : timer_(timer), id_(id), is_interval_(is_interval), cancelled_(timer == nullptr) {}
+      : timer_(timer), id_(id), is_interval_(is_interval), cancelled_(timer == nullptr) {}
 
   /**
    * @brief Cancel timer execution
-   * 
+   *
    * Stops timer and prevents future callbacks.
    * Safe to call multiple times.
    */
@@ -57,25 +57,19 @@ public:
    * @brief Check if timer is still active
    * @return true if timer is running, false if cancelled or completed
    */
-  bool isActive() const {
-    return !cancelled_;
-  }
+  bool isActive() const { return !cancelled_; }
 
   /**
    * @brief Get internal timer ID
    * @return Timer ID for advanced usage
    */
-  TimerId getId() const {
-    return id_;
-  }
+  TimerId getId() const { return id_; }
 
   /**
    * @brief Check if this is an interval timer
    * @return true if interval, false if timeout
    */
-  bool isInterval() const {
-    return is_interval_;
-  }
+  bool isInterval() const { return is_interval_; }
 
   /**
    * @brief Pause this timer
@@ -99,10 +93,10 @@ public:
   unsigned long getRemainingMs() const;
 
 private:
-  ITimer* timer_;           ///< Parent timer instance
-  TimerId id_;        ///< Internal timer ID
-  bool is_interval_;       ///< Timer type flag
-  bool cancelled_;         ///< Cancellation state
+  ITimer* timer_;    ///< Parent timer instance
+  TimerId id_;       ///< Internal timer ID
+  bool is_interval_; ///< Timer type flag
+  bool cancelled_;   ///< Cancellation state
 };
 
 } // namespace uniuno

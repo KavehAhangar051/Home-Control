@@ -66,14 +66,12 @@ FORCE_INLINE void free_internal(void* ptr) {
  *    to eliminate heap allocations for HTTP headers / policy lists.
  *  - Word-aligned trivial types use Xtensa loopnez inline assembly for copy/erase/insert.
  */
-template<typename T, std::size_t N = 4, typename Allocator = std::allocator<T>>
-class SmallVector {
+template <typename T, std::size_t N = 4, typename Allocator = std::allocator<T>> class SmallVector {
 public:
   using value_type = T;
 
   // Space-for-Time SBO: expand tiny inline buffers (<=32B) to 8 slots to avoid heap spill
-  static constexpr std::size_t kInlineCap =
-      (N > 0 && N < 8 && (N * sizeof(T) <= 32)) ? 8 : N;
+  static constexpr std::size_t kInlineCap = (N > 0 && N < 8 && (N * sizeof(T) <= 32)) ? 8 : N;
 
   FORCE_INLINE SmallVector();
   FORCE_INLINE ~SmallVector();
@@ -90,13 +88,13 @@ public:
 
   FORCE_INLINE void push_back(const T& value);
   FORCE_INLINE void push_back(T&& value);
-  template<typename... Args> FORCE_INLINE void emplace_back(Args&&... args);
+  template <typename... Args> FORCE_INLINE void emplace_back(Args&&... args);
   FORCE_INLINE void pop_back();
   FORCE_INLINE void clear();
 
   FORCE_INLINE void erase(std::size_t index);
-  FORCE_INLINE T*   erase(T* pos);
-  T*                erase(T* first, T* last);
+  FORCE_INLINE T* erase(T* pos);
+  T* erase(T* first, T* last);
 
   /** @brief O(1) unordered erase: swaps target with back element, zero shifting. */
   FORCE_INLINE void erase_unordered(std::size_t index);
@@ -104,9 +102,9 @@ public:
   void insert(T* pos, const T& value) = delete;
   void insert(T* pos, T&& value);
 
-  FORCE_INLINE bool        full()     const { return end_ == cap_end_; }
-  FORCE_INLINE bool        empty()    const { return begin_ == end_; }
-  FORCE_INLINE std::size_t size()     const { return static_cast<std::size_t>(end_ - begin_); }
+  FORCE_INLINE bool full() const { return end_ == cap_end_; }
+  FORCE_INLINE bool empty() const { return begin_ == end_; }
+  FORCE_INLINE std::size_t size() const { return static_cast<std::size_t>(end_ - begin_); }
   FORCE_INLINE std::size_t capacity() const { return static_cast<std::size_t>(cap_end_ - begin_); }
   FORCE_INLINE void shrink_to_fit() {} // No-op for inline/SBO storage
 
@@ -114,29 +112,27 @@ public:
   FORCE_INLINE void force_set_size(std::size_t new_size) { end_ = begin_ + new_size; }
   FORCE_INLINE bool is_heap() const { return begin_ != inline_ptr(); }
 
-  FORCE_INLINE T&       operator[](std::size_t idx)       { return begin_[idx]; }
+  FORCE_INLINE T& operator[](std::size_t idx) { return begin_[idx]; }
   FORCE_INLINE const T& operator[](std::size_t idx) const { return begin_[idx]; }
 
-  FORCE_INLINE T*       data()       { return begin_; }
+  FORCE_INLINE T* data() { return begin_; }
   FORCE_INLINE const T* data() const { return begin_; }
 
-  FORCE_INLINE T*       begin()       { return begin_; }
-  FORCE_INLINE T*       end()         { return end_; }
+  FORCE_INLINE T* begin() { return begin_; }
+  FORCE_INLINE T* end() { return end_; }
   FORCE_INLINE const T* begin() const { return begin_; }
-  FORCE_INLINE const T* end()   const { return end_; }
+  FORCE_INLINE const T* end() const { return end_; }
 
-  FORCE_INLINE T&       front()       { return *begin_; }
+  FORCE_INLINE T& front() { return *begin_; }
   FORCE_INLINE const T& front() const { return *begin_; }
-  FORCE_INLINE T&       back()        { return *(end_ - 1); }
-  FORCE_INLINE const T& back()  const { return *(end_ - 1); }
+  FORCE_INLINE T& back() { return *(end_ - 1); }
+  FORCE_INLINE const T& back() const { return *(end_ - 1); }
 
 private:
-  using IsWordTrivial = std::integral_constant<bool,
-      std::is_trivially_copyable<T>::value && ((sizeof(T) % 4) == 0)>;
-  using IsByteTrivial = std::integral_constant<bool,
-      std::is_trivially_copyable<T>::value && ((sizeof(T) % 4) != 0)>;
+  using IsWordTrivial = std::integral_constant<bool, std::is_trivially_copyable<T>::value && ((sizeof(T) % 4) == 0)>;
+  using IsByteTrivial = std::integral_constant<bool, std::is_trivially_copyable<T>::value && ((sizeof(T) % 4) != 0)>;
 
-  FORCE_INLINE T*       inline_ptr()       { return reinterpret_cast<T*>(stack_storage_); }
+  FORCE_INLINE T* inline_ptr() { return reinterpret_cast<T*>(stack_storage_); }
   FORCE_INLINE const T* inline_ptr() const { return reinterpret_cast<const T*>(stack_storage_); }
 
   // Cold out-of-line growth path keeps push_back()/emplace_back() tiny in ICache

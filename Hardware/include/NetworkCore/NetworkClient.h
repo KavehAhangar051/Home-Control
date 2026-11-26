@@ -32,7 +32,7 @@ public:
   virtual void setConnectionTimeout(uint32_t milliseconds) = 0;
   using Client::connect;
   virtual int connect(IPAddress ip, uint16_t port, int32_t timeout) = 0;
-  virtual int connect(const char *host, uint16_t port, int32_t timeout) = 0;
+  virtual int connect(const char* host, uint16_t port, int32_t timeout) = 0;
 };
 
 class NetworkClient : public ESPLwIPClient {
@@ -46,55 +46,45 @@ protected:
   int _lastReadTimeout = 0;
 
 public:
-  NetworkClient *next;
+  NetworkClient* next;
   NetworkClient();
   NetworkClient(int fd);
   ~NetworkClient();
   int connect(IPAddress ip, uint16_t port);
   int connect(IPAddress ip, uint16_t port, int32_t timeout_ms);
-  int connect(const char *host, uint16_t port);
-  int connect(const char *host, uint16_t port, int32_t timeout_ms);
+  int connect(const char* host, uint16_t port);
+  int connect(const char* host, uint16_t port, int32_t timeout_ms);
   size_t write(uint8_t data);
-  size_t write(const uint8_t *buf, size_t size);
+  size_t write(const uint8_t* buf, size_t size);
   size_t write_P(PGM_P buf, size_t size);
-  size_t write(Stream &stream);
-  size_t write(Stream &stream, size_t length);
-  void flush();  // Print::flush tx
+  size_t write(Stream& stream);
+  size_t write(Stream& stream, size_t length);
+  void flush(); // Print::flush tx
   int available();
   int read();
-  int read(uint8_t *buf, size_t size);
-  size_t readBytes(char *buffer, size_t length);
-  size_t readBytes(uint8_t *buffer, size_t length) {
-    return readBytes((char *)buffer, length);
-  }
+  int read(uint8_t* buf, size_t size);
+  size_t readBytes(char* buffer, size_t length);
+  size_t readBytes(uint8_t* buffer, size_t length) { return readBytes((char*)buffer, length); }
   int peek();
-  void clear();  // clear rx
+  void clear(); // clear rx
   void stop();
   uint8_t connected();
   void setSSE(bool sse);
   bool isSSE();
 
-  operator bool() {
-    return connected();
-  }
-  bool operator==(const bool value) {
-    return bool() == value;
-  }
-  bool operator!=(const bool value) {
-    return bool() != value;
-  }
-  bool operator==(const NetworkClient &);
-  bool operator!=(const NetworkClient &rhs) {
-    return !this->operator==(rhs);
-  };
+  operator bool() { return connected(); }
+  bool operator==(const bool value) { return bool() == value; }
+  bool operator!=(const bool value) { return bool() != value; }
+  bool operator==(const NetworkClient&);
+  bool operator!=(const NetworkClient& rhs) { return !this->operator==(rhs); };
 
   virtual int fd() const;
 
-  int setSocketOption(int option, char *value, size_t len);
-  int setSocketOption(int level, int option, const void *value, size_t len);
-  int getSocketOption(int level, int option, const void *value, size_t size);
-  int setOption(int option, int *value);
-  int getOption(int option, int *value);
+  int setSocketOption(int option, char* value, size_t len);
+  int setSocketOption(int level, int option, const void* value, size_t len);
+  int getSocketOption(int level, int option, const void* value, size_t size);
+  int setOption(int option, int* value);
+  int getOption(int option, int* value);
   void setConnectionTimeout(uint32_t milliseconds);
   int setNoDelay(bool nodelay);
   bool getNoDelay();
@@ -108,6 +98,6 @@ public:
   uint16_t localPort() const;
   uint16_t localPort(int fd) const;
 
-  //friend class NetworkServer;
+  // friend class NetworkServer;
   using Print::write;
 };

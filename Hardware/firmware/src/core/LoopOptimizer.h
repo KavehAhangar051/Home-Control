@@ -56,25 +56,25 @@ DRAM_ATTR static uint8_t s_loopTableSize = 0;
  * @param fn تابع void() که در هر iteration از loop() فراخوانی می‌شه
  */
 inline void registerLoopService(LoopFn fn) {
-    if (s_loopTableSize < LOOP_DISPATCH_MAX) {
-        s_loopTable[s_loopTableSize++] = fn;
-    }
+  if (s_loopTableSize < LOOP_DISPATCH_MAX) {
+    s_loopTable[s_loopTableSize++] = fn;
+  }
 }
 
 // ============================================================================
 // روش ۳: Pre-cached Callbacks
 // StaticFunction از قبل bind شده — صفر overhead در loop()
 // ============================================================================
-using InputCb  = StaticFunction<void, int, bool, unsigned long, const RuleConfig&>;
+using InputCb = StaticFunction<void, int, bool, unsigned long, const RuleConfig&>;
 using AnalogCb = StaticFunction<void, const AnalogInputChange&, const RuleConfig&>;
 
 /**
  * @brief کش از قبل آماده‌شده برای digital input callback
  * DRAM_ATTR: دسترسی سریع بدون flash cache miss
  */
-DRAM_ATTR static InputCb  s_cachedInputCb;
+DRAM_ATTR static InputCb s_cachedInputCb;
 DRAM_ATTR static AnalogCb s_cachedAnalogCb;
-DRAM_ATTR static bool     s_callbacksCached = false;
+DRAM_ATTR static bool s_callbacksCached = false;
 
 // ============================================================================
 // روش ۴: CCOUNT Throttle برای wsServer و wsClient
@@ -94,12 +94,12 @@ static constexpr uint32_t WS_POLL_INTERVAL_CYCLES = asm_opt::ms_to_cycles(1);
  * @return true اگر 1ms از آخرین poll گذشته باشه
  */
 FORCE_INLINE bool isWsPollDue() {
-    const uint32_t now = asm_opt::get_cpu_cycle_count();
-    if (LIKELY(static_cast<uint32_t>(now - s_lastWsCycle) < WS_POLL_INTERVAL_CYCLES)) {
-        return false;
-    }
-    s_lastWsCycle = now;
-    return true;
+  const uint32_t now = asm_opt::get_cpu_cycle_count();
+  if (LIKELY(static_cast<uint32_t>(now - s_lastWsCycle) < WS_POLL_INTERVAL_CYCLES)) {
+    return false;
+  }
+  s_lastWsCycle = now;
+  return true;
 }
 
 // ============================================================================
@@ -118,8 +118,8 @@ DRAM_ATTR static uint32_t s_shadowGpio32_39 = 0;
  * اما اینجا یه read اضافه برای LUT dispatch داریم — قابل ادغام با PinStateManager
  */
 FORCE_INLINE void updateGpioShadow() {
-    s_shadowGpio0_31  = GPIO.in;
-    s_shadowGpio32_39 = GPIO.in1.val;
+  s_shadowGpio0_31 = GPIO.in;
+  s_shadowGpio32_39 = GPIO.in1.val;
 }
 
 #endif // ESP32
@@ -137,12 +137,12 @@ static constexpr uint8_t ESP32_GPIO_COUNT = 40;
  * اگر pin فعال نباشه، active = false و function pointer‌ها nullptr هستند
  */
 struct PinDispatchEntry {
-    /** callback برای digital input (Input segment) */
-    void (*onDigitalChange)(int pin, bool state, unsigned long dur, const RuleConfig& r) = nullptr;
-    /** callback برای analog input (AnalogInput segment) */
-    void (*onAnalogChange)(const AnalogInputChange& ch, const RuleConfig& r) = nullptr;
-    /** آیا این pin در LUT فعاله */
-    bool active = false;
+  /** callback برای digital input (Input segment) */
+  void (*onDigitalChange)(int pin, bool state, unsigned long dur, const RuleConfig& r) = nullptr;
+  /** callback برای analog input (AnalogInput segment) */
+  void (*onAnalogChange)(const AnalogInputChange& ch, const RuleConfig& r) = nullptr;
+  /** آیا این pin در LUT فعاله */
+  bool active = false;
 };
 
 /**
@@ -154,4 +154,3 @@ DRAM_ATTR static PinDispatchEntry s_pinDispatchLUT[ESP32_GPIO_COUNT];
 DRAM_ATTR static bool s_lutBuilt = false;
 
 } // namespace uniuno
-

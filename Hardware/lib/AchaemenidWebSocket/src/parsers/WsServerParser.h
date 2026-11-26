@@ -12,18 +12,18 @@ namespace uniuno {
  */
 class WsServerParser {
 public:
-    WsServerParser(IEventDispatcher* dispatcher = nullptr, StateProvider stateProvider = nullptr);
+  WsServerParser(IEventDispatcher* dispatcher = nullptr, StateProvider stateProvider = nullptr);
 
-    void init(IEventDispatcher* dispatcher, StateProvider stateProvider) {
-        _dispatcher = dispatcher;
-        _stateProvider = std::move(stateProvider);
-    }
+  void init(IEventDispatcher* dispatcher, StateProvider stateProvider) {
+    _dispatcher = dispatcher;
+    _stateProvider = std::move(stateProvider);
+  }
 
-    HOT_PATH void parseMessage(const String& data, websockets::WebsocketsClient& client);
+  HOT_PATH void parseMessage(const String& data, websockets::WebsocketsClient& client);
 
 private:
-    IEventDispatcher* _dispatcher;
-    StateProvider _stateProvider;
+  IEventDispatcher* _dispatcher;
+  StateProvider _stateProvider;
 };
 
 } // namespace uniuno

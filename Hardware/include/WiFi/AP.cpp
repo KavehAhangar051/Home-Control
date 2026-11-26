@@ -24,14 +24,14 @@
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
 #define esp_interface_t wifi_interface_t
-#define ESP_IF_WIFI_AP  WIFI_IF_AP
+#define ESP_IF_WIFI_AP WIFI_IF_AP
 #endif
 
-esp_netif_t *get_esp_interface_netif(esp_interface_t interface);
+esp_netif_t* get_esp_interface_netif(esp_interface_t interface);
 
 #ifndef _WIFI_STRNCPY_DEFINED
 #define _WIFI_STRNCPY_DEFINED
-static size_t _wifi_strncpy(char *dst, const char *src, size_t dst_len) {
+static size_t _wifi_strncpy(char* dst, const char* src, size_t dst_len) {
   if (!dst || !src || !dst_len) {
     return 0;
   }
@@ -52,11 +52,12 @@ static size_t _wifi_strncpy(char *dst, const char *src, size_t dst_len) {
  * @param rhs softap_config
  * @return equal
  */
-static bool softap_config_equal(const wifi_config_t &lhs, const wifi_config_t &rhs) {
-  if (strncmp(reinterpret_cast<const char *>(lhs.ap.ssid), reinterpret_cast<const char *>(rhs.ap.ssid), 32) != 0) {
+static bool softap_config_equal(const wifi_config_t& lhs, const wifi_config_t& rhs) {
+  if (strncmp(reinterpret_cast<const char*>(lhs.ap.ssid), reinterpret_cast<const char*>(rhs.ap.ssid), 32) != 0) {
     return false;
   }
-  if (strncmp(reinterpret_cast<const char *>(lhs.ap.password), reinterpret_cast<const char *>(rhs.ap.password), 64) != 0) {
+  if (strncmp(reinterpret_cast<const char*>(lhs.ap.password), reinterpret_cast<const char*>(rhs.ap.password), 64) !=
+      0) {
     return false;
   }
   if (lhs.ap.channel != rhs.ap.channel) {
@@ -80,17 +81,18 @@ static bool softap_config_equal(const wifi_config_t &lhs, const wifi_config_t &r
   return true;
 }
 
-static APClass *_ap_network_if = NULL;
+static APClass* _ap_network_if = NULL;
 
 static esp_event_handler_instance_t _ap_ev_instance = NULL;
-static void _ap_event_cb(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
+static void _ap_event_cb(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
   if (event_base == WIFI_EVENT) {
-    ((APClass *)arg)->_onApEvent(event_id, event_data);
+    ((APClass*)arg)->_onApEvent(event_id, event_data);
   }
 }
 
-static void _onApArduinoEvent(arduino_event_t *ev) {
-  if (_ap_network_if == NULL || ev->event_id < ARDUINO_EVENT_WIFI_AP_START || ev->event_id > ARDUINO_EVENT_WIFI_AP_GOT_IP6) {
+static void _onApArduinoEvent(arduino_event_t* ev) {
+  if (_ap_network_if == NULL || ev->event_id < ARDUINO_EVENT_WIFI_AP_START ||
+      ev->event_id > ARDUINO_EVENT_WIFI_AP_GOT_IP6) {
     return;
   }
   log_v("Arduino AP Event: %d - %s", ev->event_id, Network.eventName(ev->event_id));
@@ -108,7 +110,7 @@ static void _onApArduinoEvent(arduino_event_t *ev) {
   }
 }
 
-void APClass::_onApEvent(int32_t event_id, void *event_data) {
+void APClass::_onApEvent(int32_t event_id, void* event_data) {
   arduino_event_t arduino_event;
   arduino_event.event_id = ARDUINO_EVENT_MAX;
 
@@ -119,17 +121,18 @@ void APClass::_onApEvent(int32_t event_id, void *event_data) {
   } else if (event_id == WIFI_EVENT_AP_STOP) {
     log_v("AP Stopped");
     arduino_event.event_id = ARDUINO_EVENT_WIFI_AP_STOP;
-    clearStatusBits(ESP_NETIF_STARTED_BIT | ESP_NETIF_CONNECTED_BIT | ESP_NETIF_HAS_IP_BIT | ESP_NETIF_HAS_LOCAL_IP6_BIT | ESP_NETIF_HAS_GLOBAL_IP6_BIT);
+    clearStatusBits(ESP_NETIF_STARTED_BIT | ESP_NETIF_CONNECTED_BIT | ESP_NETIF_HAS_IP_BIT |
+                    ESP_NETIF_HAS_LOCAL_IP6_BIT | ESP_NETIF_HAS_GLOBAL_IP6_BIT);
   } else if (event_id == WIFI_EVENT_AP_PROBEREQRECVED) {
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
-    wifi_event_ap_probe_req_rx_t *event = (wifi_event_ap_probe_req_rx_t *)event_data;
+    wifi_event_ap_probe_req_rx_t* event = (wifi_event_ap_probe_req_rx_t*)event_data;
     log_v("AP Probe Request: RSSI: %d, MAC: " MACSTR, event->rssi, MAC2STR(event->mac));
 #endif
     arduino_event.event_id = ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED;
     memcpy(&arduino_event.event_info.wifi_ap_probereqrecved, event_data, sizeof(wifi_event_ap_probe_req_rx_t));
   } else if (event_id == WIFI_EVENT_AP_STACONNECTED) {
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
-    wifi_event_ap_staconnected_t *event = (wifi_event_ap_staconnected_t *)event_data;
+    wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*)event_data;
     log_v("AP Station Connected: MAC: " MACSTR ", AID: %d", MAC2STR(event->mac), event->aid);
 #endif
     arduino_event.event_id = ARDUINO_EVENT_WIFI_AP_STACONNECTED;
@@ -137,7 +140,7 @@ void APClass::_onApEvent(int32_t event_id, void *event_data) {
     setStatusBits(ESP_NETIF_CONNECTED_BIT);
   } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
-    wifi_event_ap_stadisconnected_t *event = (wifi_event_ap_stadisconnected_t *)event_data;
+    wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*)event_data;
     log_v("AP Station Disconnected: MAC: " MACSTR ", AID: %d", MAC2STR(event->mac), event->aid);
 #endif
     arduino_event.event_id = ARDUINO_EVENT_WIFI_AP_STADISCONNECTED;
@@ -168,7 +171,8 @@ APClass::~APClass() {
 }
 
 bool APClass::onEnable() {
-  if (_ap_ev_instance == NULL && esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &_ap_event_cb, this, &_ap_ev_instance)) {
+  if (_ap_ev_instance == NULL &&
+      esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &_ap_event_cb, this, &_ap_ev_instance)) {
     log_e("event_handler_instance_register for WIFI_EVENT Failed!");
     return false;
   }
@@ -215,10 +219,8 @@ bool APClass::end() {
   return true;
 }
 
-bool APClass::create(
-  const char *ssid, const char *passphrase, int channel, int ssid_hidden, int max_connection, bool ftm_responder, wifi_auth_mode_t auth_mode,
-  wifi_cipher_type_t cipher
-) {
+bool APClass::create(const char* ssid, const char* passphrase, int channel, int ssid_hidden, int max_connection,
+                     bool ftm_responder, wifi_auth_mode_t auth_mode, wifi_cipher_type_t cipher) {
   if (!ssid || *ssid == 0) {
     log_e("SSID missing!");
     return false;
@@ -241,12 +243,12 @@ bool APClass::create(
   conf.ap.ssid_hidden = ssid_hidden;
   conf.ap.ftm_responder = ftm_responder;
   if (ssid != NULL && ssid[0] != 0) {
-    _wifi_strncpy((char *)conf.ap.ssid, ssid, 32);
+    _wifi_strncpy((char*)conf.ap.ssid, ssid, 32);
     conf.ap.ssid_len = strlen(ssid);
     if (passphrase != NULL && passphrase[0] != 0) {
       conf.ap.authmode = auth_mode;
       conf.ap.pairwise_cipher = cipher;
-      _wifi_strncpy((char *)conf.ap.password, passphrase, 64);
+      _wifi_strncpy((char*)conf.ap.password, passphrase, 64);
     }
   }
 
@@ -324,7 +326,7 @@ bool APClass::enableNAPT(bool enable) {
 bool APClass::enableDhcpCaptivePortal() {
   esp_err_t err = ESP_OK;
   static char captiveportal_uri[32] = {
-    0,
+      0,
   };
 
   if (!started()) {
@@ -344,7 +346,8 @@ bool APClass::enableDhcpCaptivePortal() {
   }
 
   // Enable DHCP Captive Portal
-  err = esp_netif_dhcps_option(_esp_netif, ESP_NETIF_OP_SET, ESP_NETIF_CAPTIVEPORTAL_URI, captiveportal_uri, strlen(captiveportal_uri));
+  err = esp_netif_dhcps_option(_esp_netif, ESP_NETIF_OP_SET, ESP_NETIF_CAPTIVEPORTAL_URI, captiveportal_uri,
+                               strlen(captiveportal_uri));
   if (err) {
     log_e("Could not set enable DHCP Captive Portal! 0x%x: %s", err, esp_err_to_name(err));
     return false;
@@ -367,7 +370,7 @@ String APClass::SSID(void) const {
   }
   wifi_config_t info;
   if (!esp_wifi_get_config(WIFI_IF_AP, &info)) {
-    return String(reinterpret_cast<char *>(info.ap.ssid));
+    return String(reinterpret_cast<char*>(info.ap.ssid));
   }
   return String();
 }
@@ -383,7 +386,7 @@ uint8_t APClass::stationCount() {
   return 0;
 }
 
-size_t APClass::printDriverInfo(Print &out) const {
+size_t APClass::printDriverInfo(Print& out) const {
   size_t bytes = 0;
   wifi_config_t info;
   wifi_sta_list_t clients;
@@ -394,7 +397,7 @@ size_t APClass::printDriverInfo(Print &out) const {
     return bytes;
   }
   bytes += out.print(",");
-  bytes += out.print((const char *)info.ap.ssid);
+  bytes += out.print((const char*)info.ap.ssid);
   bytes += out.print(",CH:");
   bytes += out.print(info.ap.channel);
 

@@ -11,8 +11,8 @@ namespace uniuno {
  */
 class NvsAuxNodeStorage : public IAuxNodeStorage {
 public:
-    void saveAuxNodes(const ParseResult& parsed) override;
-    bool loadAuxNodes(ParseResult& out) override;
+  void saveAuxNodes(const ParseResult& parsed) override;
+  bool loadAuxNodes(ParseResult& out) override;
 };
 
 } // namespace uniuno

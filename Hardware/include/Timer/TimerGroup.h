@@ -2,25 +2,25 @@
  * @file TimerGroup.h
  * @brief Optional timer group management for batch operations
  * @author uniuno
- * 
+ *
  * PURPOSE: Manage multiple timers as a group
  * BENEFIT: Pause/resume/clear multiple timers with one call
- * 
+ *
  * ENABLE: Define TIMER_ENABLE_GROUPS in TimerConfig.h
- * 
+ *
  * ARCHITECTURE:
  *   - Uses SmallVector for efficient storage
  *   - Stores timer IDs, not handles (lightweight)
  *   - Delegates operations to Timer instance
- * 
+ *
  * USAGE:
  * @code
  *   #include <Timer/TimerGroup.h>
- *   
+ *
  *   TimerGroup group;
  *   group.add(timer.setTimeout(cb1, 1000));
  *   group.add(timer.setInterval(cb2, 500));
- *   
+ *
  *   group.pauseAll();   // Pause all timers in group
  *   group.resumeAll();  // Resume all
  *   group.clearAll();   // Remove all
@@ -38,10 +38,10 @@
 
 #ifdef TIMER_ENABLE_OPTIMIZATIONS
 #include "Optimization/SmallVector.h"
-template<typename T> using GroupVector = uniuno::SmallVector<T, 8>;
+template <typename T> using GroupVector = uniuno::SmallVector<T, 8>;
 #else
 #include <vector>
-template<typename T> using GroupVector = std::vector<T>;
+template <typename T> using GroupVector = std::vector<T>;
 #endif
 
 namespace uniuno {
@@ -49,7 +49,7 @@ namespace uniuno {
 /**
  * @class TimerGroup
  * @brief Manages a group of timers for batch operations
- * 
+ *
  * PATTERN: Composite Pattern
  * OPTIMIZATION: Uses SmallVector (≤8 timers = stack storage)
  * BENEFIT: Batch operations without individual timer management
@@ -60,32 +60,25 @@ public:
    * @brief Constructor
    * @param timer Parent Timer instance (optional, can be set later)
    */
-  explicit TimerGroup(Timer* timer = nullptr) 
-    : timer_(timer) {}
+  explicit TimerGroup(Timer* timer = nullptr) : timer_(timer) {}
 
   /**
    * @brief Set parent Timer instance
    * @param timer Timer instance
    */
-  void setTimer(Timer* timer) {
-    timer_ = timer;
-  }
+  void setTimer(Timer* timer) { timer_ = timer; }
 
   /**
    * @brief Add timer to group by ID
    * @param id Timer ID
    */
-  void add(unsigned int id) {
-    timer_ids_.push_back(id);
-  }
+  void add(unsigned int id) { timer_ids_.push_back(id); }
 
   /**
    * @brief Add timer to group by Handle
    * @param handle TimerHandle
    */
-  void add(const TimerHandle& handle) {
-    timer_ids_.push_back(handle.getId());
-  }
+  void add(const TimerHandle& handle) { timer_ids_.push_back(handle.getId()); }
 
   /**
    * @brief Remove timer from group
@@ -110,7 +103,7 @@ public:
    */
   size_t pauseAll() {
     if (!timer_) return 0;
-    
+
     size_t count = 0;
     for (auto id : timer_ids_) {
       if (timer_->pause(id)) {
@@ -126,7 +119,7 @@ public:
    */
   size_t resumeAll() {
     if (!timer_) return 0;
-    
+
     size_t count = 0;
     for (auto id : timer_ids_) {
       if (timer_->resume(id)) {
@@ -143,7 +136,7 @@ public:
    */
   size_t clearAll() {
     if (!timer_) return 0;
-    
+
     size_t count = 0;
     auto it = timer_ids_.begin();
     while (it != timer_ids_.end()) {
@@ -160,27 +153,21 @@ public:
    * @brief Get number of timers in group
    * @return Count of timers
    */
-  size_t count() const {
-    return timer_ids_.size();
-  }
+  size_t count() const { return timer_ids_.size(); }
 
   /**
    * @brief Check if group is empty
    * @return true if no timers
    */
-  bool empty() const {
-    return timer_ids_.empty();
-  }
+  bool empty() const { return timer_ids_.empty(); }
 
   /**
    * @brief Clear group (remove all timer IDs)
-   * 
+   *
    * NOTE: This only clears the group, not the timers themselves
    * Use clearAll() to also cancel the timers
    */
-  void clear() {
-    timer_ids_.clear();
-  }
+  void clear() { timer_ids_.clear(); }
 
   /**
    * @brief Check if timer is in group

@@ -3,16 +3,11 @@
 
 using AsyncMqttClientInternals::AckWithIdPacket;
 
-AckWithIdPacket::AckWithIdPacket(ParsingInformation* parsingInformation, uniuno::FastFunction<void(uint16_t packetId), 64> callback)
-: _parsingInformation(parsingInformation)
-, _callback(callback)
-, _bytePosition(0)
-, _packetIdMsb(0)
-, _packetId(0) {
-}
+AckWithIdPacket::AckWithIdPacket(ParsingInformation* parsingInformation,
+                                 uniuno::FastFunction<void(uint16_t packetId), 64> callback)
+    : _parsingInformation(parsingInformation), _callback(callback), _bytePosition(0), _packetIdMsb(0), _packetId(0) {}
 
-AckWithIdPacket::~AckWithIdPacket() {
-}
+AckWithIdPacket::~AckWithIdPacket() {}
 
 void AckWithIdPacket::parseVariableHeader(uint8_t* data, size_t len, size_t* currentBytePosition) {
   (void)len;

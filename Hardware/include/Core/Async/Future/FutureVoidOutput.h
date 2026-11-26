@@ -31,15 +31,15 @@ public:
   }
 
   FORCE_INLINE void clear() { poll_callback_.clear(); }
-  FORCE_INLINE bool is_pending()  const { return result_.is_pending(); }
+  FORCE_INLINE bool is_pending() const { return result_.is_pending(); }
   FORCE_INLINE bool is_resolved() const { return result_.is_resolved(); }
   FORCE_INLINE bool is_rejected() const { return result_.is_rejected(); }
   FORCE_INLINE const AsyncResult<void, E>& get_result() const { return result_; }
-  FORCE_INLINE AsyncResult<void, E>&       get_result()       { return result_; }
+  FORCE_INLINE AsyncResult<void, E>& get_result() { return result_; }
 
-  template <typename N, typename G = Error>
-  Future<I, N, G> and_then(Future<void, N, G> next_future) {
-    return Future<I, N, G>([this_future = std::move(*this), next_future = std::move(next_future)](const I& input) mutable -> AsyncResult<N, G> {
+  template <typename N, typename G = Error> Future<I, N, G> and_then(Future<void, N, G> next_future) {
+    return Future<I, N, G>([this_future = std::move(*this),
+                            next_future = std::move(next_future)](const I& input) mutable -> AsyncResult<N, G> {
       const auto& res = this_future.poll(input);
       if (res.is_pending()) return AsyncResult<N, G>::pending();
       if (UNLIKELY(res.is_rejected())) return AsyncResult<N, G>::reject(G(*res.get_error()));
@@ -48,10 +48,10 @@ public:
   }
 
   // Single-layer direct function execution (no redundant inner Future!)
-  template <typename F>
-  auto and_then(F &&fn) -> Future<I, decltype(fn()), E> {
+  template <typename F> auto and_then(F&& fn) -> Future<I, decltype(fn()), E> {
     using OutputType = decltype(fn());
-    return Future<I, OutputType, E>([this_future = std::move(*this), fn = std::forward<F>(fn)](const I& input) mutable -> AsyncResult<OutputType, E> {
+    return Future<I, OutputType, E>([this_future = std::move(*this),
+                                     fn = std::forward<F>(fn)](const I& input) mutable -> AsyncResult<OutputType, E> {
       const auto& res = this_future.poll(input);
       if (res.is_pending()) return AsyncResult<OutputType, E>::pending();
       if (UNLIKELY(res.is_rejected())) return AsyncResult<OutputType, E>::reject(*res.get_error());
@@ -59,9 +59,9 @@ public:
     });
   }
 
-  template <typename F>
-  Future<I, void, E> catch_error(F &&err_fn) {
-    return Future<I, void, E>([this_future = std::move(*this), err_fn = std::forward<F>(err_fn)](const I& input) mutable -> AsyncResult<void, E> {
+  template <typename F> Future<I, void, E> catch_error(F&& err_fn) {
+    return Future<I, void, E>([this_future = std::move(*this),
+                               err_fn = std::forward<F>(err_fn)](const I& input) mutable -> AsyncResult<void, E> {
       const auto& res = this_future.poll(input);
       if (res.is_pending()) return AsyncResult<void, E>::pending();
       if (UNLIKELY(res.is_rejected())) {
@@ -75,18 +75,16 @@ public:
   /** @brief Fluent OOP timeout using branchless Xtensa assembly is_timer_expired(). */
   Future<I, void, E> timeout(unsigned long timeout_ms) {
     const unsigned long deadline = millis() + timeout_ms;
-    return Future<I, void, E>([this_future = std::move(*this), deadline](const I& input) mutable -> AsyncResult<void, E> {
-      if (UNLIKELY(this_future.is_pending() && uniuno::asm_opt::is_timer_expired(millis(), deadline))) {
-        return AsyncResult<void, E>::reject(E(ERROR_FUTURE_TIMEOUT));
-      }
-      return this_future.poll(input);
-    });
+    return Future<I, void, E>(
+        [this_future = std::move(*this), deadline](const I& input) mutable -> AsyncResult<void, E> {
+          if (UNLIKELY(this_future.is_pending() && uniuno::asm_opt::is_timer_expired(millis(), deadline))) {
+            return AsyncResult<void, E>::reject(E(ERROR_FUTURE_TIMEOUT));
+          }
+          return this_future.poll(input);
+        });
   }
 
-  template <typename F>
-  auto map(F &&fn) -> Future<I, decltype(fn()), E> {
-    return this->and_then(std::forward<F>(fn));
-  }
+  template <typename F> auto map(F&& fn) -> Future<I, decltype(fn()), E> { return this->and_then(std::forward<F>(fn)); }
 
 private:
   struct ImmediateTag {};

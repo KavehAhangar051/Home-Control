@@ -8,94 +8,87 @@
 
 #include <NativeEthernet.h>
 
-namespace websockets { namespace network {
-  class Teensy41TcpClient : public TcpClient {
-  public:
-    Teensy41TcpClient(EthernetClient c) : client(c) {}
+namespace websockets {
+namespace network {
+class Teensy41TcpClient : public TcpClient {
+public:
+  Teensy41TcpClient(EthernetClient c) : client(c) {}
 
-    Teensy41TcpClient() {}
+  Teensy41TcpClient() {}
 
-    bool connect(const WSString& host, const int port) {
-      yield();
-      const char* hostStr = host.c_str();
-      // Teensy's NativeEthernet library doesn't accept a char buffer
-      // as an IP (it will try to resolve it). So we have to convert
-      // it if necessary.
-      IPAddress ip;
-      return (ip.fromString(hostStr)
-        ? client.connect(ip, port)
-        : client.connect(hostStr, port)
-      );
-    }
+  bool connect(const WSString& host, const int port) {
+    yield();
+    const char* hostStr = host.c_str();
+    // Teensy's NativeEthernet library doesn't accept a char buffer
+    // as an IP (it will try to resolve it). So we have to convert
+    // it if necessary.
+    IPAddress ip;
+    return (ip.fromString(hostStr) ? client.connect(ip, port) : client.connect(hostStr, port));
+  }
 
-    bool poll() {
-      yield();
-      return client.available();
-    }
+  bool poll() {
+    yield();
+    return client.available();
+  }
 
-    bool available() override {
-      return client.connected();
-    }
+  bool available() override { return client.connected(); }
 
-    void send(const WSString& data) override {
-      yield();
-      client.write(reinterpret_cast<uint8_t*>(const_cast<char*>(data.c_str())), data.size());
-      yield();
-    }
+  void send(const WSString& data) override {
+    yield();
+    client.write(reinterpret_cast<uint8_t*>(const_cast<char*>(data.c_str())), data.size());
+    yield();
+  }
 
-    void send(const WSString&& data) override {
-      yield();
-      client.write(reinterpret_cast<uint8_t*>(const_cast<char*>(data.c_str())), data.size());
-      yield();
-    }
+  void send(const WSString&& data) override {
+    yield();
+    client.write(reinterpret_cast<uint8_t*>(const_cast<char*>(data.c_str())), data.size());
+    yield();
+  }
 
-    void send(const uint8_t* data, const uint32_t len) override {
-      yield();
-      client.write(data, len);
-      yield();
-    }
+  void send(const uint8_t* data, const uint32_t len) override {
+    yield();
+    client.write(data, len);
+    yield();
+  }
 
-    WSString readLine() override {
-      WSString line = "";
+  WSString readLine() override {
+    WSString line = "";
 
-      int ch = -1;
+    int ch = -1;
 
-      const uint64_t millisBeforeReadingHeaders = millis();
-      while( ch != '\n' && available()) {
-        // It is important to call `client.available()`. Otherwise no data can be read.
-        if (millis() - millisBeforeReadingHeaders > _CONNECTION_TIMEOUT) return "";
-        if (client.available()) {
-          ch = client.read();
-          if (ch >= 0) {
-            line += (char) ch;
-          }
+    const uint64_t millisBeforeReadingHeaders = millis();
+    while (ch != '\n' && available()) {
+      // It is important to call `client.available()`. Otherwise no data can be read.
+      if (millis() - millisBeforeReadingHeaders > _CONNECTION_TIMEOUT) return "";
+      if (client.available()) {
+        ch = client.read();
+        if (ch >= 0) {
+          line += (char)ch;
         }
       }
-
-      return line;
     }
 
-    uint32_t read(uint8_t* buffer, const uint32_t len) override {
-      yield();
-      return client.read(buffer, len);
-    }
+    return line;
+  }
 
-    void close() override {
-      yield();
-      client.stop();
-    }
+  uint32_t read(uint8_t* buffer, const uint32_t len) override {
+    yield();
+    return client.read(buffer, len);
+  }
 
-    virtual ~Teensy41TcpClient() {
-      client.stop();
-    }
+  void close() override {
+    yield();
+    client.stop();
+  }
 
-  protected:
-    EthernetClient client;
+  virtual ~Teensy41TcpClient() { client.stop(); }
 
-    int getSocket() const override {
-      return -1;
-    }    
-  };  
-}} // websockets::network
+protected:
+  EthernetClient client;
 
-#endif // #ifdef ARDUINO_TEENSY41 
+  int getSocket() const override { return -1; }
+};
+} // namespace network
+} // namespace websockets
+
+#endif // #ifdef ARDUINO_TEENSY41

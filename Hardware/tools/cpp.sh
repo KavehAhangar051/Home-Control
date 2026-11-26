@@ -109,7 +109,7 @@ ensure_cpp_tools_installed() {
 cpp_source_files() {
   find "$ROOT_DIR/firmware" "$ROOT_DIR/include" "$ROOT_DIR/lib" "$ROOT_DIR/test" \
     -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) \
-    ! -path '*/test/mocks/*' 2>/dev/null | sort
+    ! -path '*/test/mocks/*' ! -path '*/original/*' 2>/dev/null | sort
 }
 
 generate_compiledb() {

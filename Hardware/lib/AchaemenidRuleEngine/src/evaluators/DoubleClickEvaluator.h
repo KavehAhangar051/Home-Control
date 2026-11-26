@@ -21,30 +21,25 @@ namespace rules {
  */
 class DoubleClickEvaluator {
 public:
-    explicit DoubleClickEvaluator(RuleContext& ctx);
+  explicit DoubleClickEvaluator(RuleContext& ctx);
 
-    static bool hasDoubleClickAction(const RuleAction* actions, int count);
+  static bool hasDoubleClickAction(const RuleAction* actions, int count);
 
-    /**
-     * @brief Called when the digital input enters `newState`.
-     * @return true if a double-click was just completed and executed (caller should skip start actions).
-     */
-    HOT_PATH bool onStateStart(int sourcePin, bool newState, const RuleAction* startActions, int startCount);
+  /**
+   * @brief Called when the digital input enters `newState`.
+   * @return true if a double-click was just completed and executed (caller should skip start actions).
+   */
+  HOT_PATH bool onStateStart(int sourcePin, bool newState, const RuleAction* startActions, int startCount);
 
-    /**
-     * @brief Called when the digital input leaves `releasedState`.
-     * @return true if the release was consumed by click #1 window arming (caller should skip hold release).
-     */
-    HOT_PATH bool onStateRelease(
-        int sourcePin,
-        bool releasedState,
-        unsigned long durationSec,
-        const RuleAction* releaseActions,
-        int releaseCount
-    );
+  /**
+   * @brief Called when the digital input leaves `releasedState`.
+   * @return true if the release was consumed by click #1 window arming (caller should skip hold release).
+   */
+  HOT_PATH bool onStateRelease(int sourcePin, bool releasedState, unsigned long durationSec,
+                               const RuleAction* releaseActions, int releaseCount);
 
 private:
-    RuleContext& _ctx;
+  RuleContext& _ctx;
 };
 
 } // namespace rules

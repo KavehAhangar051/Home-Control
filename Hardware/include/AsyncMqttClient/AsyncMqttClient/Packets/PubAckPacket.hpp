@@ -4,4 +4,4 @@
 
 namespace AsyncMqttClientInternals {
 using PubAckPacket = AckWithIdPacket;
-}  // namespace AsyncMqttClientInternals
+} // namespace AsyncMqttClientInternals

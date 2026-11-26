@@ -8,11 +8,11 @@ namespace uniuno {
 
 class NvsSegmentStorage : public ISegmentStorage {
 public:
-    NvsSegmentStorage() = default;
-    ~NvsSegmentStorage() override = default;
+  NvsSegmentStorage() = default;
+  ~NvsSegmentStorage() override = default;
 
-    void saveSegmentConfig(const ParseResult& parsed) override;
-    bool loadSegmentConfig(ParseResult& out) override;
+  void saveSegmentConfig(const ParseResult& parsed) override;
+  bool loadSegmentConfig(ParseResult& out) override;
 };
 
 } // namespace uniuno

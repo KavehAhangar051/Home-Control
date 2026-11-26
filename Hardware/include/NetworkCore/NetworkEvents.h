@@ -98,7 +98,7 @@ typedef enum {
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
 #define ip_event_ap_staipassigned_t ip_event_assigned_ip_to_client_t
-#define IP_EVENT_AP_STAIPASSIGNED   IP_EVENT_ASSIGNED_IP_TO_CLIENT
+#define IP_EVENT_AP_STAIPASSIGNED IP_EVENT_ASSIGNED_IP_TO_CLIENT
 #endif
 
 typedef union {
@@ -146,7 +146,7 @@ struct arduino_event_t {
 using NetworkEventCb = void (*)(arduino_event_id_t event);
 // Upgraded to zero-heap 64-byte power-of-2 FastFunction (48-byte inline SBO)
 using NetworkEventFuncCb = uniuno::FastFunction<void(arduino_event_id_t event, arduino_event_info_t info), 48>;
-using NetworkEventSysCb = void (*)(arduino_event_t *event);
+using NetworkEventSysCb = void (*)(arduino_event_t* event);
 using network_event_handle_t = size_t;
 
 /**
@@ -211,8 +211,8 @@ public:
    * @param cbEvent functional callback
    * @param event event to process, any event by default
    */
-  void removeEvent(NetworkEventFuncCb cbEvent, arduino_event_id_t event = ARDUINO_EVENT_MAX)
-    __attribute__((deprecated("removing functional callbacks via pointer is deprecated, use removeEvent(network_event_handle_t) instead")));
+  void removeEvent(NetworkEventFuncCb cbEvent, arduino_event_id_t event = ARDUINO_EVENT_MAX) __attribute__((deprecated(
+      "removing functional callbacks via pointer is deprecated, use removeEvent(network_event_handle_t) instead")));
 
   /**
    * @brief unregister static system function callback
@@ -237,7 +237,7 @@ public:
    * @param id event id code
    * @return const char* event name string
    */
-  static const char *eventName(arduino_event_id_t id);
+  static const char* eventName(arduino_event_id_t id);
 
   /**
    * @brief post an event to the queue
@@ -248,7 +248,7 @@ public:
    * @return true if event was queued susccessfuly
    * @return false on memrory allocation error or queue is full
    */
-  bool postEvent(const arduino_event_t *event);
+  bool postEvent(const arduino_event_t* event);
 
   int getStatusBits() const;
   int waitStatusBits(int bits, uint32_t timeout_ms);
@@ -288,11 +288,10 @@ private:
     NetworkEventSysCb scb;
     arduino_event_id_t event;
 
-    explicit NetworkEventCbList_t(
-      network_event_handle_t id, NetworkEventCb cb = nullptr, NetworkEventFuncCb fcb = nullptr, NetworkEventSysCb scb = nullptr,
-      arduino_event_id_t event = ARDUINO_EVENT_MAX
-    )
-      : id(id), cb(cb), fcb(std::move(fcb)), scb(scb), event(event) {}
+    explicit NetworkEventCbList_t(network_event_handle_t id, NetworkEventCb cb = nullptr,
+                                  NetworkEventFuncCb fcb = nullptr, NetworkEventSysCb scb = nullptr,
+                                  arduino_event_id_t event = ARDUINO_EVENT_MAX)
+        : id(id), cb(cb), fcb(std::move(fcb)), scb(scb), event(event) {}
   };
 
   // define initial id's value

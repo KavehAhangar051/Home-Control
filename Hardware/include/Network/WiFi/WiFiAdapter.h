@@ -42,7 +42,7 @@ public:
 
   virtual WiFiMode_t get_mode() = 0;
 
-  virtual bool add_access_point(const char *ssid, const char *passphrase) = 0;
+  virtual bool add_access_point(const char* ssid, const char* passphrase) = 0;
 
   virtual wl_status_t status() = 0;
 

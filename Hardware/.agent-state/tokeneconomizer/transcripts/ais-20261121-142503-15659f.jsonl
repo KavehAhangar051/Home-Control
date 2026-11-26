@@ -1,0 +1,3 @@
+{"type": "user", "cwd": "/app/applet", "message": {"role": "user", "content": "Test TokenEconomizer persistence"}}
+{"type": "assistant", "cwd": "/app/applet", "message": {"id": "msg_f33cddb80df2", "role": "assistant", "content": [{"type": "tool_use", "id": "toolu_a83c7215fc2c", "name": "Bash", "input": {"command": "bun run lint"}}]}}
+{"type": "user", "cwd": "/app/applet", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_a83c7215fc2c", "is_error": false, "content": "TypeScript: No errors found"}]}}

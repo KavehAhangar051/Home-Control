@@ -12,14 +12,15 @@ namespace AsyncMqttClientInternals {
  * and reduce flash memory usage while maximizing instruction cache locality.
  */
 class AckWithIdPacket : public Packet {
- public:
-  explicit AckWithIdPacket(ParsingInformation* parsingInformation, uniuno::FastFunction<void(uint16_t packetId), 64> callback);
+public:
+  explicit AckWithIdPacket(ParsingInformation* parsingInformation,
+                           uniuno::FastFunction<void(uint16_t packetId), 64> callback);
   ~AckWithIdPacket() override;
 
   void parseVariableHeader(uint8_t* data, size_t len, size_t* currentBytePosition) override;
   void parsePayload(uint8_t* data, size_t len, size_t* currentBytePosition) override;
 
- private:
+private:
   ParsingInformation* _parsingInformation;
   uniuno::FastFunction<void(uint16_t packetId), 64> _callback;
 
@@ -27,5 +28,4 @@ class AckWithIdPacket : public Packet {
   uint8_t _packetIdMsb;
   uint16_t _packetId;
 };
-}  // namespace AsyncMqttClientInternals
-
+} // namespace AsyncMqttClientInternals

@@ -8,14 +8,15 @@
 
 namespace AsyncMqttClientInternals {
 class PublishPacket : public Packet {
- public:
-  explicit PublishPacket(ParsingInformation* parsingInformation, OnMessageInternalCallback dataCallback, OnPublishInternalCallback completeCallback);
+public:
+  explicit PublishPacket(ParsingInformation* parsingInformation, OnMessageInternalCallback dataCallback,
+                         OnPublishInternalCallback completeCallback);
   ~PublishPacket();
 
   void parseVariableHeader(uint8_t* data, size_t len, size_t* currentBytePosition);
   void parsePayload(uint8_t* data, size_t len, size_t* currentBytePosition);
 
- private:
+private:
   ParsingInformation* _parsingInformation;
   OnMessageInternalCallback _dataCallback;
   OnPublishInternalCallback _completeCallback;
@@ -35,4 +36,4 @@ class PublishPacket : public Packet {
   uint32_t _payloadLength;
   uint32_t _payloadBytesRead;
 };
-}  // namespace AsyncMqttClientInternals
+} // namespace AsyncMqttClientInternals

@@ -9,12 +9,12 @@
 #include <Optimization/CompilerTraits.h>
 
 struct RuleContext {
-    uniuno::AchaemenidMQTT* mqttClient;
-    uniuno::Timer* appTimer;
-    uniuno::Executor* executor;
-    uniuno::EventDispatcher* eventBus;
-    PinManager* pinManager;
-    bool* isDashboardOnline;
+  uniuno::AchaemenidMQTT* mqttClient;
+  uniuno::Timer* appTimer;
+  uniuno::Executor* executor;
+  uniuno::EventDispatcher* eventBus;
+  PinManager* pinManager;
+  bool* isDashboardOnline;
 };
 
 /**
@@ -31,15 +31,15 @@ struct RuleContext {
  */
 class RuleEngine {
 public:
-    RuleEngine(RuleContext ctx);
-    HOT_PATH void handleInput(int sourcePin, bool newState, unsigned long durationSec, const RuleConfig& rule);
-    HOT_PATH void handleAnalogInput(const AnalogInputChange& change, const RuleConfig& rule);
-    HOT_PATH void scheduleCloudSync(int sourcePin);
+  RuleEngine(RuleContext ctx);
+  HOT_PATH void handleInput(int sourcePin, bool newState, unsigned long durationSec, const RuleConfig& rule);
+  HOT_PATH void handleAnalogInput(const AnalogInputChange& change, const RuleConfig& rule);
+  HOT_PATH void scheduleCloudSync(int sourcePin);
 
 private:
-    void executeAction(const RuleAction& act, int sourcePin);
+  void executeAction(const RuleAction& act, int sourcePin);
 
-    RuleContext _ctx;
+  RuleContext _ctx;
 };
 
 #endif // RULE_ENGINE_H

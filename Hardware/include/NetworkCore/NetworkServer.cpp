@@ -27,10 +27,10 @@ int NetworkServer::setTimeout(uint32_t seconds) {
   struct timeval tv;
   tv.tv_sec = seconds;
   tv.tv_usec = 0;
-  if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval)) < 0) {
+  if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(struct timeval)) < 0) {
     return -1;
   }
-  return setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval));
+  return setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char*)&tv, sizeof(struct timeval));
 }
 
 NetworkClient NetworkServer::available() {
@@ -54,16 +54,16 @@ NetworkClient NetworkServer::accept() {
     int cs = sizeof(struct sockaddr_in);
 #endif
 #ifdef ESP_IDF_VERSION_MAJOR
-    client_sock = lwip_accept(sockfd, (struct sockaddr *)&_client, (socklen_t *)&cs);
+    client_sock = lwip_accept(sockfd, (struct sockaddr*)&_client, (socklen_t*)&cs);
 #else
-    client_sock = lwip_accept_r(sockfd, (struct sockaddr *)&_client, (socklen_t *)&cs);
+    client_sock = lwip_accept_r(sockfd, (struct sockaddr*)&_client, (socklen_t*)&cs);
 #endif
   }
   if (client_sock >= 0) {
     int val = 1;
-    if (setsockopt(client_sock, SOL_SOCKET, SO_KEEPALIVE, (char *)&val, sizeof(int)) == ESP_OK) {
+    if (setsockopt(client_sock, SOL_SOCKET, SO_KEEPALIVE, (char*)&val, sizeof(int)) == ESP_OK) {
       val = _noDelay;
-      if (setsockopt(client_sock, IPPROTO_TCP, TCP_NODELAY, (char *)&val, sizeof(int)) == ESP_OK) {
+      if (setsockopt(client_sock, IPPROTO_TCP, TCP_NODELAY, (char*)&val, sizeof(int)) == ESP_OK) {
         return NetworkClient(client_sock);
       }
     }
@@ -100,9 +100,9 @@ void NetworkServer::begin(uint16_t port, int enable) {
       // in bytes 10-11 and the 4-byte IPv4 payload goes in bytes 12-15.
       server.sin6_addr.s6_addr[10] = 0xFF;
       server.sin6_addr.s6_addr[11] = 0xFF;
-      memcpy(server.sin6_addr.s6_addr + 12, (uint8_t *)&_addr[0], 4);
+      memcpy(server.sin6_addr.s6_addr + 12, (uint8_t*)&_addr[0], 4);
     } else {
-      memcpy(server.sin6_addr.s6_addr, (uint8_t *)&_addr[0], 16);
+      memcpy(server.sin6_addr.s6_addr, (uint8_t*)&_addr[0], 16);
     }
   }
   server.sin6_port = htons(_port);
@@ -115,10 +115,10 @@ void NetworkServer::begin(uint16_t port, int enable) {
     return;
   }
   setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
-  memcpy((uint8_t *)&(server.sin_addr.s_addr), (uint8_t *)&_addr[0], 4);
+  memcpy((uint8_t*)&(server.sin_addr.s_addr), (uint8_t*)&_addr[0], 4);
   server.sin_port = htons(_port);
 #endif
-  if (bind(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0) {
+  if (bind(sockfd, (struct sockaddr*)&server, sizeof(server)) < 0) {
     return;
   }
   if (listen(sockfd, _max_clients) < 0) {
@@ -150,9 +150,9 @@ bool NetworkServer::hasClient() {
   int cs = sizeof(struct sockaddr);
 #endif
 #ifdef ESP_IDF_VERSION_MAJOR
-  _accepted_sockfd = lwip_accept(sockfd, (struct sockaddr *)&_client, (socklen_t *)&cs);
+  _accepted_sockfd = lwip_accept(sockfd, (struct sockaddr*)&_client, (socklen_t*)&cs);
 #else
-  _accepted_sockfd = lwip_accept_r(sockfd, (struct sockaddr *)&_client, (socklen_t *)&cs);
+  _accepted_sockfd = lwip_accept_r(sockfd, (struct sockaddr*)&_client, (socklen_t*)&cs);
 #endif
   if (_accepted_sockfd >= 0) {
     return true;

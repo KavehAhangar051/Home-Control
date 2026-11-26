@@ -51,7 +51,7 @@ extern "C" {
 #include "dhcpserver/dhcpserver.h"
 #include "dhcpserver/dhcpserver_options.h"
 
-}  //extern "C"
+} // extern "C"
 
 #include "esp32-hal.h"
 #include <vector>
@@ -59,41 +59,41 @@ extern "C" {
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
 #define esp_interface_t wifi_interface_t
-#define ESP_IF_WIFI_AP  WIFI_IF_AP
+#define ESP_IF_WIFI_AP WIFI_IF_AP
 #define ESP_IF_WIFI_STA WIFI_IF_STA
-#define ESP_IF_MAX      3
+#define ESP_IF_MAX 3
 #endif
 
 ESP_EVENT_DEFINE_BASE(ARDUINO_EVENTS);
 
-static esp_netif_t *esp_netifs[ESP_IF_MAX] = {NULL, NULL, NULL};
+static esp_netif_t* esp_netifs[ESP_IF_MAX] = {NULL, NULL, NULL};
 
-esp_netif_t *get_esp_interface_netif(esp_interface_t interface) {
+esp_netif_t* get_esp_interface_netif(esp_interface_t interface) {
   if (interface < ESP_IF_MAX) {
     return esp_netifs[interface];
   }
   return NULL;
 }
 
-static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
+static void _arduino_event_cb(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
   (void)arg;
   arduino_event_t arduino_event;
   arduino_event.event_id = ARDUINO_EVENT_MAX;
 
   /*
-	 * SCAN
-	 * */
+   * SCAN
+   * */
   if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
-    wifi_event_sta_scan_done_t *event = (wifi_event_sta_scan_done_t *)event_data;
+    wifi_event_sta_scan_done_t* event = (wifi_event_sta_scan_done_t*)event_data;
     log_v("SCAN Done: ID: %u, Status: %" PRIu32 ", Results: %u", event->scan_id, event->status, event->number);
 #endif
     arduino_event.event_id = ARDUINO_EVENT_WIFI_SCAN_DONE;
     memcpy(&arduino_event.event_info.wifi_scan_done, event_data, sizeof(wifi_event_sta_scan_done_t));
 
     /*
-	 * WPS
-	 * */
+     * WPS
+     * */
   } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_WPS_ER_SUCCESS) {
     arduino_event.event_id = ARDUINO_EVENT_WPS_ER_SUCCESS;
   } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_WPS_ER_FAILED) {
@@ -108,16 +108,16 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
     arduino_event.event_id = ARDUINO_EVENT_WPS_ER_PBC_OVERLAP;
 
     /*
-	 * FTM
-	 * */
+     * FTM
+     * */
   } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_FTM_REPORT) {
     arduino_event.event_id = ARDUINO_EVENT_WIFI_FTM_REPORT;
     memcpy(&arduino_event.event_info.wifi_ftm_report, event_data, sizeof(wifi_event_ftm_report_t));
 
 #if !CONFIG_ESP_HOSTED_ENABLED
     /*
-	 * SMART CONFIG
-	 * */
+     * SMART CONFIG
+     * */
   } else if (event_base == SC_EVENT && event_id == SC_EVENT_SCAN_DONE) {
     log_v("SC Scan Done");
     arduino_event.event_id = ARDUINO_EVENT_SC_SCAN_DONE;
@@ -126,8 +126,8 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
     arduino_event.event_id = ARDUINO_EVENT_SC_FOUND_CHANNEL;
   } else if (event_base == SC_EVENT && event_id == SC_EVENT_GOT_SSID_PSWD) {
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
-    smartconfig_event_got_ssid_pswd_t *event = (smartconfig_event_got_ssid_pswd_t *)event_data;
-    log_v("SC: SSID: %s, Password: %s", (const char *)event->ssid, (const char *)event->password);
+    smartconfig_event_got_ssid_pswd_t* event = (smartconfig_event_got_ssid_pswd_t*)event_data;
+    log_v("SC: SSID: %s, Password: %s", (const char*)event->ssid, (const char*)event->password);
 #endif
     arduino_event.event_id = ARDUINO_EVENT_SC_GOT_SSID_PSWD;
     memcpy(&arduino_event.event_info.sc_got_ssid_pswd, event_data, sizeof(smartconfig_event_got_ssid_pswd_t));
@@ -138,8 +138,8 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
 
 #if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
     /*
-	 * Provisioning
-	 * */
+     * Provisioning
+     * */
   } else if (event_base == NETWORK_PROV_EVENT && event_id == NETWORK_PROV_INIT) {
     log_v("Provisioning Initialized!");
     arduino_event.event_id = ARDUINO_EVENT_PROV_INIT;
@@ -155,15 +155,16 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
     arduino_event.event_id = ARDUINO_EVENT_PROV_END;
   } else if (event_base == NETWORK_PROV_EVENT && event_id == NETWORK_PROV_WIFI_CRED_RECV) {
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
-    wifi_sta_config_t *event = (wifi_sta_config_t *)event_data;
-    log_v("Provisioned Credentials: SSID: %s, Password: %s", (const char *)event->ssid, (const char *)event->password);
+    wifi_sta_config_t* event = (wifi_sta_config_t*)event_data;
+    log_v("Provisioned Credentials: SSID: %s, Password: %s", (const char*)event->ssid, (const char*)event->password);
 #endif
     arduino_event.event_id = ARDUINO_EVENT_PROV_CRED_RECV;
     memcpy(&arduino_event.event_info.prov_cred_recv, event_data, sizeof(wifi_sta_config_t));
   } else if (event_base == NETWORK_PROV_EVENT && event_id == NETWORK_PROV_WIFI_CRED_FAIL) {
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_ERROR
-    network_prov_wifi_sta_fail_reason_t *reason = (network_prov_wifi_sta_fail_reason_t *)event_data;
-    log_e("Provisioning Failed: Reason : %s", (*reason == NETWORK_PROV_WIFI_STA_AUTH_ERROR) ? "Authentication Failed" : "AP Not Found");
+    network_prov_wifi_sta_fail_reason_t* reason = (network_prov_wifi_sta_fail_reason_t*)event_data;
+    log_e("Provisioning Failed: Reason : %s",
+          (*reason == NETWORK_PROV_WIFI_STA_AUTH_ERROR) ? "Authentication Failed" : "AP Not Found");
 #endif
     arduino_event.event_id = ARDUINO_EVENT_PROV_CRED_FAIL;
     memcpy(&arduino_event.event_info.prov_fail_reason, event_data, sizeof(network_prov_wifi_sta_fail_reason_t));
@@ -283,7 +284,7 @@ bool wifiLowLevelInit(bool persistent) {
       cfg.static_tx_buf_num = 0;
       cfg.dynamic_tx_buf_num = 32;
       cfg.tx_buf_type = 1;
-      cfg.cache_tx_buf_num = 4;  // can't be zero!
+      cfg.cache_tx_buf_num = 4; // can't be zero!
       cfg.static_rx_buf_num = 4;
       cfg.dynamic_rx_buf_num = 32;
     }
@@ -379,7 +380,8 @@ static bool espWiFiStop() {
 }
 
 // -----------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------- Generic WiFi function -----------------------------------------------
+// ------------------------------------------------- Generic WiFi function
+// -----------------------------------------------
 // -----------------------------------------------------------------------------------------------------------------------
 
 bool WiFiGenericClass::_persistent = true;
@@ -392,19 +394,19 @@ wifi_ps_type_t WiFiGenericClass::_sleepEnabled = WIFI_PS_MIN_MODEM;
 
 WiFiGenericClass::WiFiGenericClass() {}
 
-const char *WiFiGenericClass::disconnectReasonName(wifi_err_reason_t reason) {
+const char* WiFiGenericClass::disconnectReasonName(wifi_err_reason_t reason) {
   return WiFi.STA.disconnectReasonName(reason);
 }
 
-const char *WiFiGenericClass::eventName(arduino_event_id_t id) {
+const char* WiFiGenericClass::eventName(arduino_event_id_t id) {
   return Network.eventName(id);
 }
 
-const char *WiFiGenericClass::getHostname() {
+const char* WiFiGenericClass::getHostname() {
   return NetworkManager::getHostname();
 }
 
-bool WiFiGenericClass::setHostname(const char *hostname) {
+bool WiFiGenericClass::setHostname(const char* hostname) {
   return NetworkManager::setHostname(hostname);
 }
 
@@ -412,9 +414,9 @@ bool WiFiGenericClass::setHostname(const char *hostname) {
  * callback for WiFi events
  * @param arg
  */
-void WiFiGenericClass::_eventCallback(arduino_event_t *event) {
+void WiFiGenericClass::_eventCallback(arduino_event_t* event) {
   if (!event) {
-    return;  //Null would crash this function
+    return; // Null would crash this function
   }
 
   // log_d("Arduino Event: %d - %s", event->event_id, WiFi.eventName(event->event_id));
@@ -423,9 +425,8 @@ void WiFiGenericClass::_eventCallback(arduino_event_t *event) {
 #if !CONFIG_ESP_HOSTED_ENABLED
   } else if (event->event_id == ARDUINO_EVENT_SC_GOT_SSID_PSWD) {
     WiFi.begin(
-      (const char *)event->event_info.sc_got_ssid_pswd.ssid, (const char *)event->event_info.sc_got_ssid_pswd.password, 0,
-      ((event->event_info.sc_got_ssid_pswd.bssid_set == true) ? event->event_info.sc_got_ssid_pswd.bssid : NULL)
-    );
+        (const char*)event->event_info.sc_got_ssid_pswd.ssid, (const char*)event->event_info.sc_got_ssid_pswd.password,
+        0, ((event->event_info.sc_got_ssid_pswd.bssid_set == true) ? event->event_info.sc_got_ssid_pswd.bssid : NULL));
   } else if (event->event_id == ARDUINO_EVENT_SC_SEND_ACK_DONE) {
     esp_smartconfig_stop();
     WiFiSTAClass::_smartConfigDone = true;
@@ -531,7 +532,7 @@ static bool _wifi_is_lr_enabled(wifi_interface_t ifx) {
   }
 #endif
   uint16_t protocol_bitmap = 0;
-  esp_err_t err2 = esp_wifi_get_protocol(ifx, (uint8_t *)&protocol_bitmap);
+  esp_err_t err2 = esp_wifi_get_protocol(ifx, (uint8_t*)&protocol_bitmap);
   if (err2 != ESP_OK) {
     log_e("Failed to get Current Protocols: 0x%x: %s", err2, esp_err_to_name(err2));
     return false;
@@ -870,7 +871,6 @@ wifi_band_mode_t WiFiGenericClass::getBandMode() {
 #endif
 }
 
-
 /**
  * get the current active wifi band
  * @return enum band
@@ -926,21 +926,22 @@ wifi_power_t WiFiGenericClass::getTxPower() {
 
 /**
  * Initiate FTM Session.
- * @param frm_count Number of FTM frames requested in terms of 4 or 8 bursts (allowed values - 0(No pref), 16, 24, 32, 64)
- * @param burst_period Requested time period between consecutive FTM bursts in 100's of milliseconds (allowed values - 0(No pref), 2 - 255)
+ * @param frm_count Number of FTM frames requested in terms of 4 or 8 bursts (allowed values - 0(No pref), 16, 24, 32,
+ * 64)
+ * @param burst_period Requested time period between consecutive FTM bursts in 100's of milliseconds (allowed values -
+ * 0(No pref), 2 - 255)
  * @param channel Primary channel of the FTM Responder
  * @param mac MAC address of the FTM Responder
  * @return true on success
  */
-bool WiFiGenericClass::initiateFTM(uint8_t frm_count, uint16_t burst_period, uint8_t channel, const uint8_t *mac) {
-  wifi_ftm_initiator_cfg_t ftmi_cfg = {
-    .resp_mac = {0, 0, 0, 0, 0, 0},
-    .channel = channel,
-    .frm_count = frm_count,
-    .burst_period = burst_period
+bool WiFiGenericClass::initiateFTM(uint8_t frm_count, uint16_t burst_period, uint8_t channel, const uint8_t* mac) {
+  wifi_ftm_initiator_cfg_t ftmi_cfg = {.resp_mac = {0, 0, 0, 0, 0, 0},
+                                       .channel = channel,
+                                       .frm_count = frm_count,
+                                       .burst_period = burst_period
 #if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)) && (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0))
-    ,
-    .use_get_report_api = true
+                                       ,
+                                       .use_get_report_api = true
 #endif
   };
   if (mac != NULL) {
@@ -957,13 +958,16 @@ bool WiFiGenericClass::initiateFTM(uint8_t frm_count, uint16_t burst_period, uin
 
 /**
  * Configure Dual antenna.
- * @param gpio_ant1 Configure the GPIO number for the antenna 1 connected to the RF switch (default GPIO2 on ESP32-WROOM-DA)
- * @param gpio_ant2 Configure the GPIO number for the antenna 2 connected to the RF switch (default GPIO25 on ESP32-WROOM-DA)
+ * @param gpio_ant1 Configure the GPIO number for the antenna 1 connected to the RF switch (default GPIO2 on
+ * ESP32-WROOM-DA)
+ * @param gpio_ant2 Configure the GPIO number for the antenna 2 connected to the RF switch (default GPIO25 on
+ * ESP32-WROOM-DA)
  * @param rx_mode Set the RX antenna mode. See wifi_rx_ant_t for the options.
  * @param tx_mode Set the TX antenna mode. See wifi_tx_ant_t for the options.
  * @return true on success
  */
-bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2, wifi_rx_ant_t rx_mode, wifi_tx_ant_t tx_mode) {
+bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2, wifi_rx_ant_t rx_mode,
+                                            wifi_tx_ant_t tx_mode) {
 #if !CONFIG_ESP_HOSTED_ENABLED && (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
 
   esp_phy_ant_gpio_config_t wifi_ant_io;
@@ -987,45 +991,53 @@ bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2
 
   // Set antenna default configuration
   esp_phy_ant_config_t ant_config = {
-    .rx_ant_mode = ESP_PHY_ANT_MODE_AUTO,
-    .rx_ant_default = ESP_PHY_ANT_MAX,  // Ignored in AUTO mode
-    .tx_ant_mode = ESP_PHY_ANT_MODE_AUTO,
-    .enabled_ant0 = 1,
-    .enabled_ant1 = 2,
+      .rx_ant_mode = ESP_PHY_ANT_MODE_AUTO,
+      .rx_ant_default = ESP_PHY_ANT_MAX, // Ignored in AUTO mode
+      .tx_ant_mode = ESP_PHY_ANT_MODE_AUTO,
+      .enabled_ant0 = 1,
+      .enabled_ant1 = 2,
   };
 
   switch (rx_mode) {
-    case WIFI_RX_ANT0: ant_config.rx_ant_mode = ESP_PHY_ANT_MODE_ANT0; break;
-    case WIFI_RX_ANT1: ant_config.rx_ant_mode = ESP_PHY_ANT_MODE_ANT1; break;
-    case WIFI_RX_ANT_AUTO:
-      log_i("TX Antenna will be automatically selected");
-      ant_config.rx_ant_default = ESP_PHY_ANT_ANT0;
-      ant_config.rx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
-      // Force TX for AUTO if RX is AUTO
-      ant_config.tx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
-      goto set_ant;
-      break;
-    default:
-      log_e("Invalid default antenna! Falling back to AUTO");
-      ant_config.rx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
-      break;
+  case WIFI_RX_ANT0:
+    ant_config.rx_ant_mode = ESP_PHY_ANT_MODE_ANT0;
+    break;
+  case WIFI_RX_ANT1:
+    ant_config.rx_ant_mode = ESP_PHY_ANT_MODE_ANT1;
+    break;
+  case WIFI_RX_ANT_AUTO:
+    log_i("TX Antenna will be automatically selected");
+    ant_config.rx_ant_default = ESP_PHY_ANT_ANT0;
+    ant_config.rx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
+    // Force TX for AUTO if RX is AUTO
+    ant_config.tx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
+    goto set_ant;
+    break;
+  default:
+    log_e("Invalid default antenna! Falling back to AUTO");
+    ant_config.rx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
+    break;
   }
 
   switch (tx_mode) {
-    case WIFI_TX_ANT0: ant_config.tx_ant_mode = ESP_PHY_ANT_MODE_ANT0; break;
-    case WIFI_TX_ANT1: ant_config.tx_ant_mode = ESP_PHY_ANT_MODE_ANT1; break;
-    case WIFI_TX_ANT_AUTO:
-      log_i("RX Antenna will be automatically selected");
-      ant_config.rx_ant_default = ESP_PHY_ANT_ANT0;
-      ant_config.tx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
-      // Force RX for AUTO if RX is AUTO
-      ant_config.rx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
-      break;
-    default:
-      log_e("Invalid default antenna! Falling back to AUTO");
-      ant_config.rx_ant_default = ESP_PHY_ANT_ANT0;
-      ant_config.tx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
-      break;
+  case WIFI_TX_ANT0:
+    ant_config.tx_ant_mode = ESP_PHY_ANT_MODE_ANT0;
+    break;
+  case WIFI_TX_ANT1:
+    ant_config.tx_ant_mode = ESP_PHY_ANT_MODE_ANT1;
+    break;
+  case WIFI_TX_ANT_AUTO:
+    log_i("RX Antenna will be automatically selected");
+    ant_config.rx_ant_default = ESP_PHY_ANT_ANT0;
+    ant_config.tx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
+    // Force RX for AUTO if RX is AUTO
+    ant_config.rx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
+    break;
+  default:
+    log_e("Invalid default antenna! Falling back to AUTO");
+    ant_config.rx_ant_default = ESP_PHY_ANT_ANT0;
+    ant_config.tx_ant_mode = ESP_PHY_ANT_MODE_AUTO;
+    break;
   }
 
 set_ant:
@@ -1039,13 +1051,14 @@ set_ant:
 }
 
 // -----------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------ Generic Network function ---------------------------------------------
+// ------------------------------------------------ Generic Network function
+// ---------------------------------------------
 // -----------------------------------------------------------------------------------------------------------------------
 
 /*
  * Deprecated Methods
-*/
-int WiFiGenericClass::hostByName(const char *aHostname, IPAddress &aResult) {
+ */
+int WiFiGenericClass::hostByName(const char* aHostname, IPAddress& aResult) {
   return Network.hostByName(aHostname, aResult);
 }
 

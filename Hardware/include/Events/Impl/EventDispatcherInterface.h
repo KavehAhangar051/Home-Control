@@ -12,9 +12,7 @@ class EventDispatcherCoreBase : public IEventDispatcher, protected BaseEventDisp
 public:
   EventDispatcherCoreBase() : BaseEventDispatcher<MaxEvents, MaxListeners>() {}
 
-  void dispatchByHash(void* event, uint32_t event_hash) override {
-    this->dispatchEvent(event, event_hash);
-  }
+  void dispatchByHash(void* event, uint32_t event_hash) override { this->dispatchEvent(event, event_hash); }
 
   // -------------------------------------------------------------------------
   // IEventDispatcher interface — string-based API (used via IEventDispatcher*)
@@ -25,26 +23,21 @@ public:
     this->dispatchEvent(event, hash_event_name(event_name));
   }
 
-  uint32_t registerListener(const char* event_name,
-                            void (*callback)(void*),
-                            bool is_once = false) override {
+  uint32_t registerListener(const char* event_name, void (*callback)(void*), bool is_once = false) override {
     if (UNLIKELY(!event_name || !callback)) return 0;
-    auto func = FastFunction<void(void*)>([callback](void* event) {
-        callback(event);
-    });
+    auto func = FastFunction<void(void*)>([callback](void* event) { callback(event); });
     return this->addListener(hash_event_name(event_name), std::move(func), is_once);
   }
 
   bool removeListenerById(const char* event_name, uint32_t listener_id) override {
     if (UNLIKELY(!event_name)) return false;
-    return this->BaseEventDispatcher<MaxEvents, MaxListeners>::removeListenerById(
-        hash_event_name(event_name), listener_id);
+    return this->BaseEventDispatcher<MaxEvents, MaxListeners>::removeListenerById(hash_event_name(event_name),
+                                                                                  listener_id);
   }
 
   size_t removeListener(const char* event_name) override {
     if (UNLIKELY(!event_name)) return 0;
-    return this->BaseEventDispatcher<MaxEvents, MaxListeners>::removeListener(
-        hash_event_name(event_name));
+    return this->BaseEventDispatcher<MaxEvents, MaxListeners>::removeListener(hash_event_name(event_name));
   }
 
   void clear() { this->BaseEventDispatcher<MaxEvents, MaxListeners>::clear(); }

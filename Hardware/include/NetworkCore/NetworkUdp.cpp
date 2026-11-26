@@ -18,7 +18,7 @@
 */
 
 #include "NetworkUdp.h"
-#include <new>  //std::nothrow
+#include <new> //std::nothrow
 #include <lwip/sockets.h>
 #include <lwip/netdb.h>
 #include <errno.h>
@@ -26,7 +26,8 @@
 #undef write
 #undef read
 
-NetworkUDP::NetworkUDP() : udp_server(-1), server_port(0), remote_port(0), tx_buffer(0), tx_buffer_len(0), rx_buffer(0) {}
+NetworkUDP::NetworkUDP()
+    : udp_server(-1), server_port(0), remote_port(0), tx_buffer(0), tx_buffer_len(0), rx_buffer(0) {}
 
 NetworkUDP::~NetworkUDP() {
   stop();
@@ -37,7 +38,7 @@ uint8_t NetworkUDP::begin(IPAddress address, uint16_t port) {
 
   server_port = port;
 
-  tx_buffer = (char *)malloc(1460);
+  tx_buffer = (char*)malloc(1460);
   if (!tx_buffer) {
     log_e("could not create tx buffer: %d", errno);
     return 0;
@@ -64,10 +65,10 @@ uint8_t NetworkUDP::begin(IPAddress address, uint16_t port) {
   size_t sock_size = 0;
 #if LWIP_IPV6
   if (address.type() == IPv6) {
-    struct sockaddr_in6 *tmpaddr = (struct sockaddr_in6 *)&serveraddr;
+    struct sockaddr_in6* tmpaddr = (struct sockaddr_in6*)&serveraddr;
     ip_addr_t addr;
     address.to_ip_addr_t(&addr);
-    memset((char *)tmpaddr, 0, sizeof(struct sockaddr_in6));
+    memset((char*)tmpaddr, 0, sizeof(struct sockaddr_in6));
     tmpaddr->sin6_family = AF_INET6;
     tmpaddr->sin6_port = htons(server_port);
     tmpaddr->sin6_scope_id = addr.u_addr.ip6.zone;
@@ -77,14 +78,14 @@ uint8_t NetworkUDP::begin(IPAddress address, uint16_t port) {
   } else
 #endif
   {
-    struct sockaddr_in *tmpaddr = (struct sockaddr_in *)&serveraddr;
-    memset((char *)tmpaddr, 0, sizeof(struct sockaddr_in));
+    struct sockaddr_in* tmpaddr = (struct sockaddr_in*)&serveraddr;
+    memset((char*)tmpaddr, 0, sizeof(struct sockaddr_in));
     tmpaddr->sin_family = AF_INET;
     tmpaddr->sin_port = htons(server_port);
     tmpaddr->sin_addr.s_addr = (in_addr_t)address;
     sock_size = sizeof(sockaddr_in);
   }
-  if (bind(udp_server, (sockaddr *)&serveraddr, sock_size) == -1) {
+  if (bind(udp_server, (sockaddr*)&serveraddr, sock_size) == -1) {
     log_e("could not bind socket: %d", errno);
     stop();
     return 0;
@@ -109,9 +110,9 @@ uint8_t NetworkUDP::beginMulticast(IPAddress address, uint16_t p) {
         inet6_addr_from_ip6addr(&mreq.ipv6mr_multiaddr, ip_2_ip6(&addr));
 
         // iterate on each interface
-        for (netif *intf = netif_list; intf != nullptr; intf = intf->next) {
+        for (netif* intf = netif_list; intf != nullptr; intf = intf->next) {
           mreq.ipv6mr_interface = intf->num + 1;
-          if (intf->name[0] != 'l' || intf->name[1] != 'o') {  // skip 'lo' local interface
+          if (intf->name[0] != 'l' || intf->name[1] != 'o') { // skip 'lo' local interface
             int ret = setsockopt(udp_server, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq, sizeof(mreq));
             if (ret >= 0) {
               joined = true;
@@ -149,7 +150,7 @@ void NetworkUDP::stop() {
   }
   tx_buffer_len = 0;
   if (rx_buffer) {
-    cbuf *b = rx_buffer;
+    cbuf* b = rx_buffer;
     rx_buffer = NULL;
     delete b;
   }
@@ -165,9 +166,9 @@ void NetworkUDP::stop() {
       inet6_addr_from_ip6addr(&mreq.ipv6mr_multiaddr, ip_2_ip6(&addr));
 
       // iterate on each interface
-      for (netif *intf = netif_list; intf != nullptr; intf = intf->next) {
+      for (netif* intf = netif_list; intf != nullptr; intf = intf->next) {
         mreq.ipv6mr_interface = intf->num + 1;
-        if (intf->name[0] != 'l' || intf->name[1] != 'o') {  // skip 'lo' local interface
+        if (intf->name[0] != 'l' || intf->name[1] != 'o') { // skip 'lo' local interface
           setsockopt(udp_server, IPPROTO_IPV6, IPV6_LEAVE_GROUP, &mreq, sizeof(mreq));
         }
       }
@@ -202,7 +203,7 @@ int NetworkUDP::beginPacket() {
 
   // allocate tx_buffer if is necessary
   if (!tx_buffer) {
-    tx_buffer = (char *)malloc(1460);
+    tx_buffer = (char*)malloc(1460);
     if (!tx_buffer) {
       log_e("could not create tx buffer: %d", errno);
       return 0;
@@ -231,14 +232,14 @@ int NetworkUDP::beginPacket(IPAddress ip, uint16_t port) {
   return beginPacket();
 }
 
-int NetworkUDP::beginPacket(const char *host, uint16_t port) {
-  struct hostent *server;
+int NetworkUDP::beginPacket(const char* host, uint16_t port) {
+  struct hostent* server;
   server = gethostbyname(host);
   if (server == NULL) {
     log_e("could not get host from dns: %d", errno);
     return 0;
   }
-  return beginPacket(IPAddress((const uint8_t *)(server->h_addr_list[0])), port);
+  return beginPacket(IPAddress((const uint8_t*)(server->h_addr_list[0])), port);
 }
 
 int NetworkUDP::endPacket() {
@@ -250,7 +251,7 @@ int NetworkUDP::endPacket() {
     recipient.sin_addr.s_addr = (uint32_t)remote_ip;
     recipient.sin_family = AF_INET;
     recipient.sin_port = htons(remote_port);
-    int sent = sendto(udp_server, tx_buffer, tx_buffer_len, 0, (struct sockaddr *)&recipient, sizeof(recipient));
+    int sent = sendto(udp_server, tx_buffer, tx_buffer_len, 0, (struct sockaddr*)&recipient, sizeof(recipient));
     if (sent < 0) {
       log_e("could not send data: %d", errno);
       return 0;
@@ -259,11 +260,11 @@ int NetworkUDP::endPacket() {
   } else {
     struct sockaddr_in6 recipient;
     recipient.sin6_flowinfo = 0;
-    recipient.sin6_addr = *(in6_addr *)(ip_addr_t *)(&addr);
+    recipient.sin6_addr = *(in6_addr*)(ip_addr_t*)(&addr);
     recipient.sin6_family = AF_INET6;
     recipient.sin6_port = htons(remote_port);
     recipient.sin6_scope_id = remote_ip.zone();
-    int sent = sendto(udp_server, tx_buffer, tx_buffer_len, 0, (struct sockaddr *)&recipient, sizeof(recipient));
+    int sent = sendto(udp_server, tx_buffer, tx_buffer_len, 0, (struct sockaddr*)&recipient, sizeof(recipient));
     if (sent < 0) {
       log_e("could not send data: %d", errno);
       return 0;
@@ -289,7 +290,7 @@ size_t NetworkUDP::write(uint8_t data) {
   return 1;
 }
 
-size_t NetworkUDP::write(const uint8_t *buffer, size_t size) {
+size_t NetworkUDP::write(const uint8_t* buffer, size_t size) {
   size_t i;
   for (i = 0; i < size; i++) {
     write(buffer[i]);
@@ -305,7 +306,7 @@ int NetworkUDP::parsePacket() {
   if (rx_buffer) {
     return 0;
   }
-  struct sockaddr_storage si_other_storage;  // enough storage for v4 and v6
+  struct sockaddr_storage si_other_storage; // enough storage for v4 and v6
   socklen_t slen = sizeof(sockaddr_storage);
   int len = 0;
   if (ioctl(udp_server, FIONREAD, &len) == -1) {
@@ -315,11 +316,12 @@ int NetworkUDP::parsePacket() {
   if (!len) {
     return 0;
   }
-  char *buf = (char *)malloc(1460);
+  char* buf = (char*)malloc(1460);
   if (!buf) {
     return 0;
   }
-  if ((len = recvfrom(udp_server, buf, 1460, MSG_DONTWAIT, (struct sockaddr *)&si_other_storage, (socklen_t *)&slen)) == -1) {
+  if ((len = recvfrom(udp_server, buf, 1460, MSG_DONTWAIT, (struct sockaddr*)&si_other_storage, (socklen_t*)&slen)) ==
+      -1) {
     free(buf);
     if (errno == EWOULDBLOCK) {
       return 0;
@@ -328,14 +330,14 @@ int NetworkUDP::parsePacket() {
     return 0;
   }
   if (si_other_storage.ss_family == AF_INET) {
-    struct sockaddr_in &si_other = (sockaddr_in &)si_other_storage;
+    struct sockaddr_in& si_other = (sockaddr_in&)si_other_storage;
     remote_ip = IPAddress(si_other.sin_addr.s_addr);
     remote_port = ntohs(si_other.sin_port);
   }
 #if LWIP_IPV6
   else if (si_other_storage.ss_family == AF_INET6) {
-    struct sockaddr_in6 &si_other = (sockaddr_in6 &)si_other_storage;
-    remote_ip = IPAddress(IPv6, (uint8_t *)&si_other.sin6_addr, si_other.sin6_scope_id);  // force IPv6
+    struct sockaddr_in6& si_other = (sockaddr_in6&)si_other_storage;
+    remote_ip = IPAddress(IPv6, (uint8_t*)&si_other.sin6_addr, si_other.sin6_scope_id); // force IPv6
     ip_addr_t addr;
     remote_ip.to_ip_addr_t(&addr);
     /* Dual-stack: Unmap IPv4 mapped IPv6 addresses */
@@ -354,7 +356,7 @@ int NetworkUDP::parsePacket() {
     remote_ip = ip_addr_any.addr;
     remote_port = 0;
   }
-#endif  // LWIP_IPV6=1
+#endif // LWIP_IPV6=1
   if (len > 0) {
     rx_buffer = new (std::nothrow) cbuf(len);
     if (!rx_buffer) {
@@ -364,7 +366,7 @@ int NetworkUDP::parsePacket() {
     }
     if (rx_buffer->write(buf, len) != (size_t)len) {
       log_e("failed to buffer %d bytes of received UDP data", len);
-      cbuf *b = rx_buffer;
+      cbuf* b = rx_buffer;
       rx_buffer = NULL;
       delete b;
       free(buf);
@@ -388,24 +390,24 @@ int NetworkUDP::read() {
   }
   int out = rx_buffer->read();
   if (!rx_buffer->available()) {
-    cbuf *b = rx_buffer;
+    cbuf* b = rx_buffer;
     rx_buffer = 0;
     delete b;
   }
   return out;
 }
 
-int NetworkUDP::read(unsigned char *buffer, size_t len) {
-  return read((char *)buffer, len);
+int NetworkUDP::read(unsigned char* buffer, size_t len) {
+  return read((char*)buffer, len);
 }
 
-int NetworkUDP::read(char *buffer, size_t len) {
+int NetworkUDP::read(char* buffer, size_t len) {
   if (!rx_buffer) {
     return 0;
   }
   int out = rx_buffer->read(buffer, len);
   if (!rx_buffer->available()) {
-    cbuf *b = rx_buffer;
+    cbuf* b = rx_buffer;
     rx_buffer = 0;
     delete b;
   }
@@ -423,7 +425,7 @@ void NetworkUDP::clear() {
   if (!rx_buffer) {
     return;
   }
-  cbuf *b = rx_buffer;
+  cbuf* b = rx_buffer;
   rx_buffer = 0;
   delete b;
 }

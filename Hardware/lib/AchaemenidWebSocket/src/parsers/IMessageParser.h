@@ -10,13 +10,13 @@ namespace uniuno {
  */
 class IMessageParser {
 public:
-    virtual ~IMessageParser() = default;
+  virtual ~IMessageParser() = default;
 
-    /**
-     * @brief Parse the incoming WebSocket message and trigger internal events.
-     * @param message The WebSocket message object.
-     */
-    virtual void parseMessage(const websockets::WebsocketsMessage& message) = 0;
+  /**
+   * @brief Parse the incoming WebSocket message and trigger internal events.
+   * @param message The WebSocket message object.
+   */
+  virtual void parseMessage(const websockets::WebsocketsMessage& message) = 0;
 };
 
 } // namespace uniuno

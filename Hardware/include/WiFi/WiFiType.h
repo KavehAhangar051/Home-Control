@@ -28,24 +28,24 @@
 #include "esp_wifi_types.h"
 
 #define WIFI_SCAN_RUNNING (-1)
-#define WIFI_SCAN_FAILED  (-2)
+#define WIFI_SCAN_FAILED (-2)
 
-#define WiFiMode_t  wifi_mode_t
-#define WIFI_OFF    WIFI_MODE_NULL
-#define WIFI_STA    WIFI_MODE_STA
-#define WIFI_AP     WIFI_MODE_AP
+#define WiFiMode_t wifi_mode_t
+#define WIFI_OFF WIFI_MODE_NULL
+#define WIFI_STA WIFI_MODE_STA
+#define WIFI_AP WIFI_MODE_AP
 #define WIFI_AP_STA WIFI_MODE_APSTA
 
 #ifndef WIFI_AUTH_OWE
 #define WIFI_AUTH_OWE ((wifi_auth_mode_t)0xFE)
 #endif
 
-#define WiFiEvent_t     arduino_event_id_t
+#define WiFiEvent_t arduino_event_id_t
 #define WiFiEventInfo_t arduino_event_info_t
-#define WiFiEventId_t   wifi_event_id_t
+#define WiFiEventId_t wifi_event_id_t
 
 typedef enum {
-  WL_NO_SHIELD = 255,  // for compatibility with WiFi Shield library
+  WL_NO_SHIELD = 255, // for compatibility with WiFi Shield library
   WL_STOPPED = 254,
   WL_IDLE_STATUS = 0,
   WL_NO_SSID_AVAIL = 1,

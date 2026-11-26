@@ -11,8 +11,7 @@ namespace uniuno {
  * @brief Represents a group of listeners for a specific event.
  * Enhanced with single-persistent fast-path cache to eliminate loop and depth tracking.
  */
-template <size_t MaxListeners = 8>
-struct EventGroup {
+template <size_t MaxListeners = 8> struct EventGroup {
   uint32_t event_hash = 0;
   bool active = false;
   bool single_persistent = false;
@@ -33,18 +32,16 @@ struct EventGroup {
 /**
  * @class EventStorage
  * @brief Ultra-fast Direct Open-Addressing Hash Storage with Direct Memory Pointers.
- * 
+ *
  * Memory-for-Speed:
  * 1. 128 buckets: Load factor < 15% eliminates linear probing collisions on 99%+ events.
  * 2. Direct pointers: Buckets store EventGroup* instead of group_idx, completely
  *    eliminating runtime multiplications by sizeof(EventGroup) (~648 bytes).
  * 3. Generation tracking for Template Static Group Cache synchronization.
  */
-template <size_t MaxEvents = 32, size_t MaxListeners = 8>
-class EventStorage {
+template <size_t MaxEvents = 32, size_t MaxListeners = 8> class EventStorage {
   // 128 buckets for zero-collision fast-path hashing
-  static constexpr size_t kBuckets = (MaxEvents <= 32) ? 128 :
-                                     (MaxEvents <= 64) ? 256 : 512;
+  static constexpr size_t kBuckets = (MaxEvents <= 32) ? 128 : (MaxEvents <= 64) ? 256 : 512;
 
   struct HashBucket {
     uint32_t hash;
@@ -52,9 +49,7 @@ class EventStorage {
   };
 
 public:
-  EventStorage() : generation_(1) {
-    clear();
-  }
+  EventStorage() : generation_(1) { clear(); }
 
   ~EventStorage() = default;
 
@@ -136,7 +131,7 @@ public:
   }
 
   FORCE_INLINE uint32_t generation() const { return generation_; }
-  
+
   const StaticArray<EventGroup<MaxListeners>, MaxEvents>& getAllGroups() const { return groups_; }
   StaticArray<EventGroup<MaxListeners>, MaxEvents>& getAllGroups() { return groups_; }
 

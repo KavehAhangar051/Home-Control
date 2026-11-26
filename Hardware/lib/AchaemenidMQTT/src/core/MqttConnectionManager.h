@@ -13,20 +13,20 @@ class AchaemenidMQTT; // Forward declaration
  */
 class MqttConnectionManager {
 public:
-    MqttConnectionManager(AchaemenidMQTT* mqttClient);
-    
-    void onConnect();
-    void onDisconnect();
-    void resetRetries();
-    void cancelReconnect();
-    void scheduleImmediateReconnect(float delaySeconds = 0.15f);
-    
+  MqttConnectionManager(AchaemenidMQTT* mqttClient);
+
+  void onConnect();
+  void onDisconnect();
+  void resetRetries();
+  void cancelReconnect();
+  void scheduleImmediateReconnect(float delaySeconds = 0.15f);
+
 private:
-    static void reconnectWrapper(AchaemenidMQTT* instance);
-    
-    AchaemenidMQTT* _mqttClient;
-    Ticker _reconnectTimer;
-    uint8_t _reconnectRetries = 0;
+  static void reconnectWrapper(AchaemenidMQTT* instance);
+
+  AchaemenidMQTT* _mqttClient;
+  Ticker _reconnectTimer;
+  uint8_t _reconnectRetries = 0;
 };
 
 } // namespace uniuno

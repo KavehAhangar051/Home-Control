@@ -4,4 +4,4 @@
 
 namespace AsyncMqttClientInternals {
 using UnsubAckPacket = AckWithIdPacket;
-}  // namespace AsyncMqttClientInternals
+} // namespace AsyncMqttClientInternals

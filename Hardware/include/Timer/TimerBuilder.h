@@ -2,9 +2,9 @@
  * @file TimerBuilder.h
  * @brief Builder pattern for Timer configuration
  * @author uniuno
- * 
+ *
  * PURPOSE: Provide fluent API for Timer construction
- * 
+ *
  * USAGE:
  * @code
  *   Timer timer = TimerBuilder()
@@ -25,12 +25,14 @@ namespace uniuno {
  */
 class TimerBuilder {
 public:
-  TimerBuilder() 
-    : time_source_(millis)
+  TimerBuilder()
+      : time_source_(millis)
 #ifdef TIMER_EVENTS_ENABLED
-    , dispatcher_(nullptr)
+        ,
+        dispatcher_(nullptr)
 #endif
-  {}
+  {
+  }
 
   TimerBuilder& withTimeSource(unsigned long (*source)()) {
     time_source_ = source;

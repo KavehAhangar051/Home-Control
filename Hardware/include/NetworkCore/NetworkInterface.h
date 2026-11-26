@@ -36,14 +36,13 @@ public:
   virtual ~NetworkInterface();
 
   // For server interfaces (WiFi AP), dns1 is the DHCP lease range start and dns2 is the DNS. dns3 is not used
-  bool config(
-    IPAddress local_ip = (uint32_t)0x00000000, IPAddress gateway = (uint32_t)0x00000000, IPAddress subnet = (uint32_t)0x00000000,
-    IPAddress dns1 = (uint32_t)0x00000000, IPAddress dns2 = (uint32_t)0x00000000, IPAddress dns3 = (uint32_t)0x00000000
-  );
+  bool config(IPAddress local_ip = (uint32_t)0x00000000, IPAddress gateway = (uint32_t)0x00000000,
+              IPAddress subnet = (uint32_t)0x00000000, IPAddress dns1 = (uint32_t)0x00000000,
+              IPAddress dns2 = (uint32_t)0x00000000, IPAddress dns3 = (uint32_t)0x00000000);
   bool dnsIP(uint8_t dns_no, IPAddress ip);
 
-  const char *getHostname() const;
-  bool setHostname(const char *hostname) const;
+  const char* getHostname() const;
+  bool setHostname(const char* hostname) const;
 
   bool started() const;
   bool connected() const;
@@ -53,8 +52,8 @@ public:
   bool enableIPv6(bool en = true);
 
   bool linkUp() const;
-  const char *ifkey() const;
-  const char *desc() const;
+  const char* ifkey() const;
+  const char* desc() const;
   String impl_name() const;
   int impl_index() const;
   int getRoutePrio() const;
@@ -64,7 +63,7 @@ public:
   bool setDefault();
   bool isDefault() const;
 
-  uint8_t *macAddress(uint8_t *mac) const;
+  uint8_t* macAddress(uint8_t* mac) const;
   String macAddress() const;
   IPAddress localIP() const;
   IPAddress subnetMask() const;
@@ -78,16 +77,14 @@ public:
   IPAddress globalIPv6() const;
 #endif
 
-  size_t printTo(Print &out) const;
+  size_t printTo(Print& out) const;
 
-  esp_netif_t *netif() {
-    return _esp_netif;
-  }
+  esp_netif_t* netif() { return _esp_netif; }
   int getStatusBits() const;
   int waitStatusBits(int bits, uint32_t timeout_ms) const;
 
 protected:
-  esp_netif_t *_esp_netif;
+  esp_netif_t* _esp_netif;
   EventGroupHandle_t _interface_event_group;
   int _initial_bits;
   int32_t _got_ip_event_id;
@@ -100,10 +97,10 @@ protected:
   int clearStatusBits(int bits);
 
   // virtual void getMac(uint8_t* mac) = 0;
-  virtual size_t printDriverInfo(Print &out) const = 0;
+  virtual size_t printDriverInfo(Print& out) const = 0;
 
 public:
-  void _onIpEvent(int32_t event_id, void *event_data);
+  void _onIpEvent(int32_t event_id, void* event_data);
 
 private:
   IPAddress calculateNetworkID(IPAddress ip, IPAddress subnet) const;

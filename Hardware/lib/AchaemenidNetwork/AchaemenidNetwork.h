@@ -12,31 +12,32 @@ namespace uniuno {
 
 class AchaemenidNetwork : public INetworkManager {
 public:
-    // سازنده: مقداردهی اولیه آداپتور و کانکتور وای‌فای از طریق تزریق وابستگی
-    AchaemenidNetwork(WiFiAdapter* wifiAdapter);
+  // سازنده: مقداردهی اولیه آداپتور و کانکتور وای‌فای از طریق تزریق
+  // وابستگی
+  AchaemenidNetwork(WiFiAdapter* wifiAdapter);
 
-    // تخریب‌کننده
-    ~AchaemenidNetwork() override;
+  // تخریب‌کننده
+  ~AchaemenidNetwork() override;
 
-    // اضافه کردن شبکه وای‌فای به لیست
-    void add_access_point(const char* ssid, const char* password) override;
+  // اضافه کردن شبکه وای‌فای به لیست
+  void add_access_point(const char* ssid, const char* password) override;
 
-    // اتصال با برگرداندن شیء Future
-    Future<void, void, Error> connectAsync() override;
+  // اتصال با برگرداندن شیء Future
+  Future<void, void, Error> connectAsync() override;
 
-    // بررسی برقرار بودن اتصال شبکه (در مسیر داغ)
-    HOT_PATH FORCE_INLINE bool isConnected() const override {
-        return _connected && (_wifiAdapter->status() == WL_CONNECTED);
-    }
+  // بررسی برقرار بودن اتصال شبکه (در مسیر داغ)
+  HOT_PATH FORCE_INLINE bool isConnected() const override {
+    return _connected && (_wifiAdapter->status() == WL_CONNECTED);
+  }
 
-    // دریافت رفرنس کانکتور وای‌فای
-    WiFiConnector* getConnector() override { return &_wifiConnector; }
+  // دریافت رفرنس کانکتور وای‌فای
+  WiFiConnector* getConnector() override { return &_wifiConnector; }
 
 private:
-    WiFiAdapter* _wifiAdapter;
-    WiFiConnector _wifiConnector;
-    Future<void, void, Error> _connectionFuture;
-    bool _connected;
+  WiFiAdapter* _wifiAdapter;
+  WiFiConnector _wifiConnector;
+  Future<void, void, Error> _connectionFuture;
+  bool _connected;
 };
 
 } // namespace uniuno

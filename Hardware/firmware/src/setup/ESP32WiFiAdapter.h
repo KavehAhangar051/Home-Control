@@ -21,18 +21,16 @@ class ESP32WiFiAdapter : public WiFiAdapter {
 public:
   ESP32WiFiAdapter() {}
 
-  FORCE_INLINE bool mode(WiFiMode_t m) override { 
+  FORCE_INLINE bool mode(WiFiMode_t m) override {
     WiFi.persistent(false);
-    bool result = WiFi.mode(m); 
+    bool result = WiFi.mode(m);
     WiFi.setSleep(false); // <--- ZERO LATENCY WIFI
     return result;
   }
 
-  FORCE_INLINE WiFiMode_t get_mode() override { 
-    return WiFi.getMode(); 
-  }
+  FORCE_INLINE WiFiMode_t get_mode() override { return WiFi.getMode(); }
 
-  bool add_access_point(const char *ssid, const char *passphrase) override {
+  bool add_access_point(const char* ssid, const char* passphrase) override {
     if (!net_config::isValidWifiCredential(ssid, passphrase)) {
       return false;
     }
@@ -60,9 +58,7 @@ public:
     return true;
   }
 
-  FORCE_INLINE wl_status_t status() override { 
-    return WiFi.status(); 
-  }
+  FORCE_INLINE wl_status_t status() override { return WiFi.status(); }
 
   wl_status_t run(unsigned int connectTimeoutMs = 5000) override {
     if (status() == WL_CONNECTED) {
@@ -89,8 +85,7 @@ public:
           const char* passArg = (cred.pass[0] != '\0') ? cred.pass : nullptr;
           WiFi.begin(cred.ssid, passArg);
           const unsigned long start = millis();
-          while (WiFi.status() != WL_CONNECTED &&
-                 static_cast<unsigned long>(millis() - start) < connectTimeoutMs) {
+          while (WiFi.status() != WL_CONNECTED && static_cast<unsigned long>(millis() - start) < connectTimeoutMs) {
             delay(50);
           }
           if (WiFi.status() == WL_CONNECTED) {
@@ -103,9 +98,7 @@ public:
     return res;
   }
 
-  FORCE_INLINE bool disconnect(bool wifioff = false) override {
-    return WiFi.disconnect(wifioff);
-  }
+  FORCE_INLINE bool disconnect(bool wifioff = false) override { return WiFi.disconnect(wifioff); }
 
 private:
   SmallVector<WiFiCredential, 5> credentials;
@@ -117,5 +110,3 @@ private:
 } // namespace uniuno
 
 #endif
-
-

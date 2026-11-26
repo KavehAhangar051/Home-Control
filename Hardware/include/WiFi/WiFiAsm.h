@@ -23,9 +23,9 @@ namespace wifi_asm {
  * @param out Output buffer (must be at least 18 bytes)
  * @return Pointer to out buffer
  */
-FORCE_INLINE char *formatMacStr(const uint8_t mac[6], char out[18]) {
+FORCE_INLINE char* formatMacStr(const uint8_t mac[6], char out[18]) {
   static constexpr char kHex[] = "0123456789ABCDEF";
-  char *dst = out;
+  char* dst = out;
   for (int i = 0; i < 6; ++i) {
     const uint8_t b = mac[i];
     *dst++ = kHex[(b >> 4) & 0x0F];
@@ -43,11 +43,9 @@ FORCE_INLINE char *formatMacStr(const uint8_t mac[6], char out[18]) {
  * @param b Second 6-byte MAC buffer
  * @return true if identical, false otherwise
  */
-FORCE_INLINE bool macEqual(const uint8_t *a, const uint8_t *b) {
-  const uint8_t diff = static_cast<uint8_t>(
-    (a[0] ^ b[0]) | (a[1] ^ b[1]) | (a[2] ^ b[2]) |
-    (a[3] ^ b[3]) | (a[4] ^ b[4]) | (a[5] ^ b[5])
-  );
+FORCE_INLINE bool macEqual(const uint8_t* a, const uint8_t* b) {
+  const uint8_t diff = static_cast<uint8_t>((a[0] ^ b[0]) | (a[1] ^ b[1]) | (a[2] ^ b[2]) | (a[3] ^ b[3]) |
+                                            (a[4] ^ b[4]) | (a[5] ^ b[5]));
   return diff == 0;
 }
 
@@ -57,27 +55,18 @@ constexpr uint32_t reasonMaskWord(uint8_t r, uint8_t wordIdx) {
 }
 
 constexpr uint32_t buildReconnectWord(uint8_t wordIdx) {
-  return reasonMaskWord(WIFI_REASON_UNSPECIFIED, wordIdx)
-       | reasonMaskWord(WIFI_REASON_AUTH_EXPIRE, wordIdx)
-       | reasonMaskWord(WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT, wordIdx)
-       | reasonMaskWord(WIFI_REASON_GROUP_KEY_UPDATE_TIMEOUT, wordIdx)
-       | reasonMaskWord(WIFI_REASON_802_1X_AUTH_FAILED, wordIdx)
-       | reasonMaskWord(WIFI_REASON_HANDSHAKE_TIMEOUT, wordIdx)
-       | reasonMaskWord(WIFI_REASON_AUTH_LEAVE, wordIdx)
-       | reasonMaskWord(WIFI_REASON_ASSOC_EXPIRE, wordIdx)
-       | reasonMaskWord(WIFI_REASON_ASSOC_TOOMANY, wordIdx)
-       | reasonMaskWord(WIFI_REASON_NOT_AUTHED, wordIdx)
-       | reasonMaskWord(WIFI_REASON_NOT_ASSOCED, wordIdx)
-       | reasonMaskWord(WIFI_REASON_ASSOC_NOT_AUTHED, wordIdx)
-       | reasonMaskWord(WIFI_REASON_MIC_FAILURE, wordIdx)
-       | reasonMaskWord(WIFI_REASON_IE_IN_4WAY_DIFFERS, wordIdx)
-       | reasonMaskWord(WIFI_REASON_INVALID_PMKID, wordIdx)
-       | reasonMaskWord(WIFI_REASON_BEACON_TIMEOUT, wordIdx)
-       | reasonMaskWord(WIFI_REASON_NO_AP_FOUND, wordIdx)
-       | reasonMaskWord(WIFI_REASON_ASSOC_FAIL, wordIdx)
-       | reasonMaskWord(WIFI_REASON_CONNECTION_FAIL, wordIdx)
-       | reasonMaskWord(WIFI_REASON_AP_TSF_RESET, wordIdx)
-       | reasonMaskWord(WIFI_REASON_ROAMING, wordIdx);
+  return reasonMaskWord(WIFI_REASON_UNSPECIFIED, wordIdx) | reasonMaskWord(WIFI_REASON_AUTH_EXPIRE, wordIdx) |
+         reasonMaskWord(WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT, wordIdx) |
+         reasonMaskWord(WIFI_REASON_GROUP_KEY_UPDATE_TIMEOUT, wordIdx) |
+         reasonMaskWord(WIFI_REASON_802_1X_AUTH_FAILED, wordIdx) |
+         reasonMaskWord(WIFI_REASON_HANDSHAKE_TIMEOUT, wordIdx) | reasonMaskWord(WIFI_REASON_AUTH_LEAVE, wordIdx) |
+         reasonMaskWord(WIFI_REASON_ASSOC_EXPIRE, wordIdx) | reasonMaskWord(WIFI_REASON_ASSOC_TOOMANY, wordIdx) |
+         reasonMaskWord(WIFI_REASON_NOT_AUTHED, wordIdx) | reasonMaskWord(WIFI_REASON_NOT_ASSOCED, wordIdx) |
+         reasonMaskWord(WIFI_REASON_ASSOC_NOT_AUTHED, wordIdx) | reasonMaskWord(WIFI_REASON_MIC_FAILURE, wordIdx) |
+         reasonMaskWord(WIFI_REASON_IE_IN_4WAY_DIFFERS, wordIdx) | reasonMaskWord(WIFI_REASON_INVALID_PMKID, wordIdx) |
+         reasonMaskWord(WIFI_REASON_BEACON_TIMEOUT, wordIdx) | reasonMaskWord(WIFI_REASON_NO_AP_FOUND, wordIdx) |
+         reasonMaskWord(WIFI_REASON_ASSOC_FAIL, wordIdx) | reasonMaskWord(WIFI_REASON_CONNECTION_FAIL, wordIdx) |
+         reasonMaskWord(WIFI_REASON_AP_TSF_RESET, wordIdx) | reasonMaskWord(WIFI_REASON_ROAMING, wordIdx);
 }
 } // namespace detail
 
@@ -89,12 +78,10 @@ constexpr uint32_t buildReconnectWord(uint8_t wordIdx) {
  * @return true if STA should attempt automatic reconnection
  */
 FORCE_INLINE bool isReconnectableReason(uint8_t reason) {
-  static constexpr uint32_t kReconnectMask[8] = {
-    detail::buildReconnectWord(0), detail::buildReconnectWord(1),
-    detail::buildReconnectWord(2), detail::buildReconnectWord(3),
-    detail::buildReconnectWord(4), detail::buildReconnectWord(5),
-    detail::buildReconnectWord(6), detail::buildReconnectWord(7)
-  };
+  static constexpr uint32_t kReconnectMask[8] = {detail::buildReconnectWord(0), detail::buildReconnectWord(1),
+                                                 detail::buildReconnectWord(2), detail::buildReconnectWord(3),
+                                                 detail::buildReconnectWord(4), detail::buildReconnectWord(5),
+                                                 detail::buildReconnectWord(6), detail::buildReconnectWord(7)};
   return ((kReconnectMask[reason >> 5] >> (reason & 31)) & 1UL) != 0;
 }
 
@@ -110,4 +97,3 @@ FORCE_INLINE uint8_t subnetCidr32(uint32_t subnetMask32) {
 }
 
 } // namespace wifi_asm
-

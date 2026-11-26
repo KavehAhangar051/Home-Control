@@ -37,15 +37,16 @@ extern "C" {
 }
 
 // -----------------------------------------------------------------------------------------------------------------------
-// ---------------------------------------------------------- Debug ------------------------------------------------------
+// ---------------------------------------------------------- Debug
+// ------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------------------------
 
 /**
  * Output WiFi settings to an object derived from Print interface (like Serial).
  * @param p Print interface
  */
-void WiFiClass::printDiag(Print &p) {
-  const char *modes[] = {"NULL", "STA", "AP", "STA+AP", "NAN"};
+void WiFiClass::printDiag(Print& p) {
+  const char* modes[] = {"NULL", "STA", "AP", "STA+AP", "NAN"};
 
   wifi_mode_t mode = WIFI_MODE_NULL;
   esp_wifi_get_mode(&mode);
@@ -71,13 +72,13 @@ void WiFiClass::printDiag(Print &p) {
   memset(&conf, 0, sizeof(wifi_config_t));
   esp_wifi_get_config((wifi_interface_t)WIFI_IF_STA, &conf);
 
-  const char *ssid = reinterpret_cast<const char *>(conf.sta.ssid);
+  const char* ssid = reinterpret_cast<const char*>(conf.sta.ssid);
   p.print("SSID (");
   p.print(strlen(ssid));
   p.print("): ");
   p.println(ssid);
 
-  const char *passphrase = reinterpret_cast<const char *>(conf.sta.password);
+  const char* passphrase = reinterpret_cast<const char*>(conf.sta.password);
   p.print("Passphrase (");
   p.print(strlen(passphrase));
   p.print("): ");

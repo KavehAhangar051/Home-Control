@@ -15,26 +15,26 @@ namespace uniuno {
  */
 class AchaemenidWebSocketServer {
 public:
-    AchaemenidWebSocketServer(IEventDispatcher* dispatcher, StateProvider stateProvider);
-    ~AchaemenidWebSocketServer() = default;
+  AchaemenidWebSocketServer(IEventDispatcher* dispatcher, StateProvider stateProvider);
+  ~AchaemenidWebSocketServer() = default;
 
-    void begin(uint16_t port);
-    HOT_PATH void loop();
-    void broadcastState(const String& stateJson);
-    void broadcastState(const char* stateJson);
+  void begin(uint16_t port);
+  HOT_PATH void loop();
+  void broadcastState(const String& stateJson);
+  void broadcastState(const char* stateJson);
 
 private:
-    void handleMessage(uint8_t idx, websockets::WebsocketsMessage msg);
-    void handleEvent(uint8_t idx, websockets::WebsocketsEvent event, String data);
+  void handleMessage(uint8_t idx, websockets::WebsocketsMessage msg);
+  void handleEvent(uint8_t idx, websockets::WebsocketsEvent event, String data);
 
-    websockets::WebsocketsServer server;
-    websockets::WebsocketsClient clients[WS_SERVER_MAX_CLIENTS];
-    uint8_t clientCount = 0;
-    bool _isStarted = false;
-    uint32_t _lastAcceptCycle = 0;
-    uint32_t _lastClientPollCycle = 0;
-    IEventDispatcher* dispatcher_;
-    WsServerParser parser_;
+  websockets::WebsocketsServer server;
+  websockets::WebsocketsClient clients[WS_SERVER_MAX_CLIENTS];
+  uint8_t clientCount = 0;
+  bool _isStarted = false;
+  uint32_t _lastAcceptCycle = 0;
+  uint32_t _lastClientPollCycle = 0;
+  IEventDispatcher* dispatcher_;
+  WsServerParser parser_;
 };
 
 } // namespace uniuno
