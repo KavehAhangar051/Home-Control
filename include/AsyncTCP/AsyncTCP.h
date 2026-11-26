@@ -23,7 +23,12 @@
 #define ASYNCTCP_H_
 
 #include "IPAddress.h"
+#if !defined(ESP_ARDUINO_VERSION_MAJOR) || (ESP_ARDUINO_VERSION_MAJOR < 3)
 #include "IPv6Address.h"
+#define ASYNCTCP_HAS_IPV6_ADDRESS 1
+#else
+#define ASYNCTCP_HAS_IPV6_ADDRESS 0
+#endif
 // <functional> removed: all callbacks use zero-heap FastFunction SBO
 #include "lwip/ip_addr.h"
 #include "lwip/ip6_addr.h"
@@ -88,7 +93,9 @@ public:
 
   bool operator!=(const AsyncClient& other) { return !(*this == other); }
   bool connect(IPAddress ip, uint16_t port);
+#if ASYNCTCP_HAS_IPV6_ADDRESS
   bool connect(IPv6Address ip, uint16_t port);
+#endif
   bool connect(const char* host, uint16_t port);
   void close(bool now = false);
   void stop();
@@ -144,8 +151,10 @@ public:
 #if LWIP_IPV6
   ip6_addr_t getRemoteAddress6();
   ip6_addr_t getLocalAddress6();
+#if ASYNCTCP_HAS_IPV6_ADDRESS
   IPv6Address remoteIP6();
   IPv6Address localIP6();
+#endif
 #endif
 
   // compatibility
@@ -237,7 +246,9 @@ public:
 class AsyncServer {
 public:
   AsyncServer(IPAddress addr, uint16_t port);
+#if ASYNCTCP_HAS_IPV6_ADDRESS
   AsyncServer(IPv6Address addr, uint16_t port);
+#endif
   AsyncServer(uint16_t port);
   ~AsyncServer();
   void onClient(AcConnectHandler cb, void* arg);
@@ -256,7 +267,9 @@ protected:
   bool _bind4 = false;
   bool _bind6 = false;
   IPAddress _addr;
+#if ASYNCTCP_HAS_IPV6_ADDRESS
   IPv6Address _addr6;
+#endif
   bool _noDelay;
   tcp_pcb* _pcb;
   AcConnectHandler _connect_cb;

@@ -33,6 +33,7 @@ public:
   int getActiveCount() const;
 
   void exportConfig(ParseResult& out) const;
+  size_t appendNodesJson(char* outBuf, size_t outBufSize, size_t offset = 0) const;
   void appendNodesJson(String& out) const;
   void printStatus() const;
 

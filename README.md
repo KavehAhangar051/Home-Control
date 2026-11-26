@@ -24,7 +24,8 @@
 │   ├── GpioSwitch/               # کنترل کلیدهای دیجیتال (Active-High / Active-Low)
 │   └── PinManager/               # رجیستری پین‌ها، اسکن بیتی GPIO، تایمرهای Auto-Off و خروجی State JSON
 ├── include/                      # لایه‌های پایه و کتابخانه‌های بهینه‌سازی‌شده (Optimization، Events، Timer، AsyncTCP، WiFi، ...)
-├── test/                         # ۷ مجموعه تست بومی (۱۱۸ تست در هر دو محیط native و native_core3)
+├── test/                         # ۸ مجموعه تست بومی (۱۳۲ تست در هر دو محیط native و native_core3)
+├── .github/workflows/ci.yml      # پایپ‌لاین CI (فرمت، تست‌های بومی، clang-tidy، بیلد Core v2/v3 و وب)
 ├── docs/                         # مستندات فنی پروتکل‌ها، داشبورد، حافظه و ابزارهای Clang
 ├── tools/                        # اسکریپت‌های wrapper برای RTK (r / rtk.sh)، PlatformIO (pio.sh) و Clang (cpp.sh)
 └── scripts/                      # اسکریپت‌های PlatformIO برای بیلد، خروجی prebuilt و فلش سریع
@@ -65,7 +66,8 @@ bun run r -- bash ./tools/cpp.sh format:check
 # تایپ‌چک معنایی و بررسی هدرهای اضافه با clangd
 bun run r -- bash ./tools/cpp.sh typecheck firmware/src/main.cpp
 
-# تحلیل استاتیک عمیق با clang-tidy
+# تحلیل استاتیک عمیق با clang-tidy (بدون آرگومان = بررسی خودکار تمام TUهای فعال در compile_commands.json)
+bun run r -- bash ./tools/cpp.sh tidy
 bun run r -- bash ./tools/cpp.sh tidy firmware/src/main.cpp
 
 # تحلیل استاتیک با cppcheck

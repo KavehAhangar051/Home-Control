@@ -14,6 +14,7 @@
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+#include <cstdio>
 #include <memory>
 
 static SemaphoreHandle_t segmentStorageMutex = nullptr;
@@ -441,8 +442,11 @@ auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
 auto onStateSyncRequest = [](StateSyncRequestEvent* evt) {
   if (evt == nullptr) return;
   INFO("[Event] Syncing full state to MQTT...");
-  String stateJson = pinManager.exportStateJson(&auxNodeManager);
-  mqttClient.publish(mqttClient.getBaseTopic() + "/State", stateJson, false);
+  static char stateBuf[3072];
+  const size_t stateLen = pinManager.exportStateJson(stateBuf, sizeof(stateBuf), &auxNodeManager);
+  char stateTopic[96];
+  std::snprintf(stateTopic, sizeof(stateTopic), "%s/State", mqttClient.getBaseTopicCStr());
+  mqttClient.publish(stateTopic, reinterpret_cast<const uint8_t*>(stateBuf), stateLen, false);
 };
 
 /**

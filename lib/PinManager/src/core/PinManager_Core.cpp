@@ -1,5 +1,6 @@
 #include "../PinManager.h"
 #include <AuxNodeManager.h>
+#include <Utilities/FixedJsonWriter.h>
 #include <Utilities/logging.h>
 #include <Timer/Timer.h>
 #include <cstdio>
@@ -139,44 +140,28 @@ void PinManager::printStatus() const {
   Serial.println("======================================");
 }
 
-static void appendJsonEscaped(String& out, const char* text) {
-  if (!text) return;
-  for (const char* p = text; *p != '\0'; ++p) {
-    const unsigned char c = static_cast<unsigned char>(*p);
-    if (c == '"' || c == '\\') {
-      out += '\\';
-      out += static_cast<char>(c);
-    } else if (c >= 0x20) {
-      out += static_cast<char>(c);
-    }
-  }
-}
-
-String PinManager::exportStateJson(const AuxNodeManager* auxNodes) const {
-  String json;
-  json.reserve(1024);
-  json += "{\"type\":\"state_sync\",\"states\":{";
+size_t PinManager::exportStateJson(char* outBuf, size_t outBufSize, const AuxNodeManager* auxNodes) const {
+  uniuno::FixedJsonWriter writer(outBuf, outBufSize);
+  writer.appendRaw("{\"type\":\"state_sync\",\"states\":{");
   bool pinStates[MAX_PINS] = {};
   bool first = true;
 
   for (int i = 0; i < MAX_PINS; i++) {
     const PinEntry* entry = _registry.getEntryByIndexConst(i);
     if (entry && entry->active) {
-      if (!first) json += ",";
-      char pinText[8];
-      snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
-      json += "\"";
-      json += pinText;
-      json += "\":";
+      if (!first) writer.appendChar(',');
+      writer.appendChar('"');
+      writer.appendInt(entry->pinNumber);
+      writer.appendRaw("\":");
 
       const bool state = _stateManager.getPinState(entry->pinNumber);
-      json += state ? "true" : "false";
+      writer.appendBool(state);
       pinStates[i] = state;
       first = false;
     }
   }
 
-  json += "},\"values\":{";
+  writer.appendRaw("},\"values\":{");
   first = true;
   for (int i = 0; i < MAX_PINS; i++) {
     const PinEntry* entry = _registry.getEntryByIndexConst(i);
@@ -185,19 +170,15 @@ String PinManager::exportStateJson(const AuxNodeManager* auxNodes) const {
     const int16_t analogVal = _stateManager.getPinAnalogValue(entry->pinNumber);
     if (analogVal < 0) continue;
 
-    if (!first) json += ",";
-    char pinText[8];
-    char valText[8];
-    snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
-    snprintf(valText, sizeof(valText), "%d", static_cast<int>(analogVal));
-    json += "\"";
-    json += pinText;
-    json += "\":";
-    json += valText;
+    if (!first) writer.appendChar(',');
+    writer.appendChar('"');
+    writer.appendInt(entry->pinNumber);
+    writer.appendRaw("\":");
+    writer.appendInt(static_cast<int>(analogVal));
     first = false;
   }
 
-  json += "},\"resolutions\":{";
+  writer.appendRaw("},\"resolutions\":{");
   first = true;
   for (int i = 0; i < MAX_PINS; i++) {
     const PinEntry* entry = _registry.getEntryByIndexConst(i);
@@ -206,58 +187,56 @@ String PinManager::exportStateJson(const AuxNodeManager* auxNodes) const {
     const uint8_t res = _stateManager.getPinAnalogResolution(entry->pinNumber);
     if (res == 0) continue;
 
-    if (!first) json += ",";
-    char pinText[8];
-    char resText[6];
-    snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
-    snprintf(resText, sizeof(resText), "%u", static_cast<unsigned int>(res));
-    json += "\"";
-    json += pinText;
-    json += "\":";
-    json += resText;
+    if (!first) writer.appendChar(',');
+    writer.appendChar('"');
+    writer.appendInt(entry->pinNumber);
+    writer.appendRaw("\":");
+    writer.appendUInt(static_cast<unsigned int>(res));
     first = false;
   }
 
   // Expose live pin -> stored segment ID mapping before "timers" so dashboards
   // can detect or reconcile segment ID drift without breaking timers parsing.
-  json += "},\"ids\":{";
+  writer.appendRaw("},\"ids\":{");
   first = true;
   for (int i = 0; i < MAX_PINS; i++) {
     const PinEntry* entry = _registry.getEntryByIndexConst(i);
     if (!entry || !entry->active || entry->segmentId[0] == '\0') continue;
 
-    if (!first) json += ",";
-    char pinText[8];
-    snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
-    json += "\"";
-    json += pinText;
-    json += "\":\"";
-    appendJsonEscaped(json, entry->segmentId);
-    json += "\"";
+    if (!first) writer.appendChar(',');
+    writer.appendChar('"');
+    writer.appendInt(entry->pinNumber);
+    writer.appendRaw("\":\"");
+    writer.appendJsonEscaped(entry->segmentId);
+    writer.appendChar('"');
     first = false;
   }
 
   // Expose live virtual pin -> {node, rpin} bindings
-  json += "},\"virtual\":{";
+  writer.appendRaw("},\"virtual\":{");
   first = true;
   for (int i = 0; i < MAX_PINS; i++) {
     const PinEntry* entry = _registry.getEntryByIndexConst(i);
     if (!entry || !entry->active || !entry->isVirtual) continue;
 
-    if (!first) json += ",";
-    char entryText[48];
-    snprintf(entryText, sizeof(entryText), "\"%d\":{\"node\":%u,\"rpin\":%u}", entry->pinNumber, entry->nodeId,
-             entry->remotePin);
-    json += entryText;
+    if (!first) writer.appendChar(',');
+    writer.appendChar('"');
+    writer.appendInt(entry->pinNumber);
+    writer.appendRaw("\":{\"node\":");
+    writer.appendUInt(entry->nodeId);
+    writer.appendRaw(",\"rpin\":");
+    writer.appendUInt(entry->remotePin);
+    writer.appendChar('}');
     first = false;
   }
 
   if (auxNodes != nullptr) {
-    json += "},\"nodes\":";
-    auxNodes->appendNodesJson(json);
-    json += ",\"timers\":{";
+    writer.appendRaw("},\"nodes\":");
+    const size_t newLen = auxNodes->appendNodesJson(outBuf, outBufSize, writer.length());
+    writer = uniuno::FixedJsonWriter(outBuf, outBufSize, newLen);
+    writer.appendRaw(",\"timers\":{");
   } else {
-    json += "},\"timers\":{";
+    writer.appendRaw("},\"timers\":{");
   }
 
   first = true;
@@ -268,17 +247,22 @@ String PinManager::exportStateJson(const AuxNodeManager* auxNodes) const {
     }
 
     const unsigned long remainingMs = pinStates[i] ? getAutoOffRemainingMsByPin(entry->pinNumber) : 0UL;
-    if (!first) json += ",";
-    char pinText[8];
-    char remainingText[12];
-    snprintf(pinText, sizeof(pinText), "%d", entry->pinNumber);
-    snprintf(remainingText, sizeof(remainingText), "%lu", (remainingMs + 999UL) / 1000UL);
-    json += "\"";
-    json += pinText;
-    json += "\":";
-    json += remainingText;
+    if (!first) writer.appendChar(',');
+    writer.appendChar('"');
+    writer.appendInt(entry->pinNumber);
+    writer.appendRaw("\":");
+    writer.appendULong((remainingMs + 999UL) / 1000UL);
     first = false;
   }
-  json += "}}";
+  writer.appendRaw("}}");
+  return writer.length();
+}
+
+String PinManager::exportStateJson(const AuxNodeManager* auxNodes) const {
+  char buf[3072];
+  const size_t len = exportStateJson(buf, sizeof(buf), auxNodes);
+  String json;
+  json.reserve(len + 1);
+  json.concat(buf, len);
   return json;
 }
