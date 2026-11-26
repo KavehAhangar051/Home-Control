@@ -15,7 +15,7 @@ import { useDissolveCore } from './react';
 
 export type { ElasticSliderSize };
 
-export type ElasticSliderProps = CoreProps & {
+export type ElasticSliderProps = Omit<CoreProps, 'label'> & {\n  label: string;
   /** React-friendly alias retained for existing DashboardSlider consumers. */
   onValueCommit?: (value: number) => void;
   icon?: ReactNode | ((props: { color: string; size: number }) => ReactNode);
