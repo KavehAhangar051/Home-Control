@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./reui-nova.css";
 @import "../styles/view-transitions.css";
+@import "../components/dissolve/theme.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 @custom-variant data-horizontal (&:where([data-orientation="horizontal"], [data-horizontal]));
