@@ -11,7 +11,7 @@
 | **مرحله ۱** | **Optimization Libs (`FastFunction` & `SmallVector`)** | ارتقای کالبک تست اتصال `ConnectionTestCB_t` در `WiFiMulti` از `std::function` به `uniuno::FastFunction<bool(void), 32>` (بافر SBO بدون Heap)؛ جایگزینی `std::vector<WifiAPlist_t>` با `uniuno::SmallVector<WifiAPlist_t, 8>`. |
 | **مرحله ۲** | **Memory-for-Speed (Zero-Heap Buffers)** | فعال‌سازی پیش‌فرض بافرهای استاتیک DMA در درایور WiFi (`_wifiUseStaticBuffers = true`) جهت حذف تخصیص و آزادسازی پویای بافرهای TX/RX؛ اختصاص استخر ایستا برای اسکن (`s_staticScanPool[16]`) در `WiFiScan.cpp` جهت حذف `calloc`/`free`؛ ذخیره ثابت `ssid`/`passphrase` در `WifiAPlist_t` و خواندن مستقیم `getScanInfoByIndex` به جای ساخت `String`های موقت در `WiFiMulti.cpp`. |
 | **مرحله ۳** | **Flash De-bloating** | حذف سوئیچ‌کیس‌های حجیم و جدول پرش در `STA.cpp` (`disconnectReasonName` با جدول متراکم O(1) برای کدهای ۱ تا ۳۹ و جدول خطی کدهای پراکنده) و حذف حلقه ۸ شاخه‌ای محاسبه CIDR و IPv4 در `WiFiGeneric.cpp`؛ ادغام رشته‌های لاگ تکراری در `WiFiMulti.cpp`. |
-| **مرحله ۴** | **Xtensa LX6 Hardware Primitives (`WiFiAsm.h`)** | پیاده‌سازی [WiFiAsm.h](file:///d:/Home-Control/Hardware/include/WiFi/WiFiAsm.h) شامل جدول بیت‌مسک بدون پرش (`isReconnectableReason` با استخراج بیتی `extui`-سازگار)، فرمت‌کننده سریع آدرس MAC بدون نیاز به `snprintf` (`formatMacStr`)، مقایسه بدون پرش BSSID (`macEqual`) و محاسبه تک‌دستوری CIDR (`subnetCidr32` با `__builtin_popcount`). |
+| **مرحله ۴** | **Xtensa LX6 Hardware Primitives (`WiFiAsm.h`)** | پیاده‌سازی [`WiFiAsm.h`](WiFiAsm.h) شامل جدول بیت‌مسک بدون پرش (`isReconnectableReason` با استخراج بیتی `extui`-سازگار)، فرمت‌کننده سریع آدرس MAC بدون نیاز به `snprintf` (`formatMacStr`)، مقایسه بدون پرش BSSID (`macEqual`) و محاسبه تک‌دستوری CIDR (`subnetCidr32` با `__builtin_popcount`). |
 | **مرحله ۵** | **Modular Architecture & Documentation** | جداسازی کامل از سورس فریمورک از طریق بریج کامپایل `WiFi_impl.cpp` و `lib_ignore`، گارد تداخل نمادهای استاتیک (`_WIFI_STRNCPY_DEFINED`)، مستندسازی استاندارد و نگهداری نسخه دست‌نخورده در `original/`. |
 
 ---
@@ -40,7 +40,7 @@ build_flags =
     -I Hardware/include/WiFi
 lib_ignore = ..., WiFi
 ```
-تمامی واحدهای کامپایل از طریق [WiFi_impl.cpp](file:///d:/Home-Control/Hardware/firmware/src/core/WiFi_impl.cpp) به صورت یکپارچه کامپایل می‌شوند.
+تمامی واحدهای کامپایل از طریق [`WiFi_impl.cpp`](../../firmware/src/core/WiFi_impl.cpp) به صورت یکپارچه کامپایل می‌شوند.
 
 ---
 
