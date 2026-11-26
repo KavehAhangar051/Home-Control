@@ -23,7 +23,7 @@ export default function VoiceCommandsSection() {
   const handleAddCommand = () => {
     const newCommand = {
       id: `voice_${Date.now()}`,
-      phrase: "دستور جدید",
+      phrase: "فرمان جدید",
       actions: [],
     };
 
@@ -43,7 +43,7 @@ export default function VoiceCommandsSection() {
     const trimmedPhrase = newCommandPhrase.trim();
 
     if (!trimmedPhrase) {
-      showToast("عبارت دستور صوتی نمی‌تواند خالی باشد.", "error");
+      showToast("عبارت فرمان صوتی را وارد کنید.", "error");
 
       return;
     }
@@ -62,7 +62,7 @@ export default function VoiceCommandsSection() {
     <div className="space-y-4 text-right">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-xs font-medium tabular-nums text-text-muted">
-          {(voiceCommands || []).length} دستور ثبت‌شده
+          {(voiceCommands || []).length} فرمان ثبت‌شده
         </span>
         <button
           type="button"
@@ -85,8 +85,8 @@ export default function VoiceCommandsSection() {
               exit={{ opacity: 0 }}
               className="text-center py-7 px-4 bg-card-bg-solid border border-dashed border-border-color rounded-2xl space-y-1"
             >
-              <p className="text-xs font-medium text-text-secondary">دستوری ثبت نشده است</p>
-              <p className="text-xs leading-5 text-text-muted">یک عبارت تعریف کنید و عملیات موردنظر را به آن وصل کنید.</p>
+              <p className="text-xs font-medium text-text-secondary">فرمانی ثبت نشده است</p>
+              <p className="text-xs leading-5 text-text-muted">عبارتی را که می‌خواهید بگویید وارد کنید و عملکرد آن را مشخص کنید.</p>
             </m.div>
           )}
 
