@@ -1,0 +1,21 @@
+/* Dissolve UI tokens mapped to the dashboard's live semantic theme. */
+:root,
+.dark,
+.light {
+  --dissolve-background: var(--bg-main, #141415);
+  --dissolve-surface: var(--card-bg, #19191b);
+  --dissolve-surface-2: var(--card-hover-bg, #232325);
+  --dissolve-foreground: var(--text-primary, #ededed);
+  --dissolve-muted: var(--text-muted, #96969d);
+  --dissolve-primary: var(--card-bg-solid, #19191b);
+  --dissolve-primary-foreground: var(--text-primary, #ededed);
+  --dissolve-success: var(--success, #34c759);
+  --dissolve-danger: var(--destructive, #ff3b30);
+  --dissolve-danger-foreground: var(--destructive-foreground, #ffffff);
+  --dissolve-accent: var(--accent3, #ededed);
+  --dissolve-border: var(--border-color, #27272a);
+  --dissolve-chart-1: var(--accent4, #3b82f6);
+  --dissolve-chart-2: var(--success, #34c759);
+  --dissolve-chart-3: var(--warning, #f5c451);
+  --dissolve-overlay-z: 2147483000;
+}
