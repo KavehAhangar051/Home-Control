@@ -39,7 +39,7 @@ export default function WakeLockToggle({ animationsEnabled }: WakeLockToggleProp
         aria-label={wakeLockEnabled
           ? "بیدار نگه‌داشتن نمایشگر · روشن"
           : "بیدار نگه‌داشتن نمایشگر · خاموش"}
-        className={`switch-toggle flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
+        className={`switch-toggle h-auto min-h-16 flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
           wakeLockEnabled
             ? "border-accent3 bg-card-hover-bg"
             : "border-border-color bg-card-bg hover:bg-card-hover-bg"
