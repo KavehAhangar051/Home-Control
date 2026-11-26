@@ -58,6 +58,7 @@ When «کشسان و غلتان» is selected in Settings → Appearance → Sli
 | `icon` | `({ color, size }) => ReactNode` | — | Optional leading icon; receives the correct foreground for each fill layer |
 | `size` | `"sm" | "md"` | `"md"` | Track height preset |
 | `showValue` | `boolean` | `true` | Hides the visible value when false |
+| `showTicks` | `boolean` | `true` | Shows boundary and per-step marks when the range has at most 20 steps |
 | `disabled` | `boolean` | `false` | Disables pointer and keyboard input |
 | `className` | `string` | — | Adds a class to the root |
 | `partClassNames` | `Partial<Record<ElasticSliderPart, string>>` | — | Styles individual parts |
