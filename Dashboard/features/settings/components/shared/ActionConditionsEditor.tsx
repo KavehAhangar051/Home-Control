@@ -706,36 +706,38 @@ export function ActionConditionsEditor({
       </div>
 
       {conditions.length >= 2 && (
-        <div className="text-[11px] leading-5 text-text-secondary">منطق ترکیب شرط‌ها</div>
-        <fieldset
-          aria-label={`منطق ترکیب شرط‌های ${actionLabel}`}
-          className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-card-bg-solid p-1"
-        >
-          <button
-            type="button"
-            aria-pressed={effectiveLogic === "and"}
-            onClick={() => onChange([...conditions], "and")}
-            className={`rounded-lg px-2 py-1 text-[10px] font-semibold transition-colors cursor-pointer ${
-              effectiveLogic === "and"
-                ? "bg-accent3 text-accent3-foreground"
-                : "text-text-secondary hover:text-text-primary"
-            }`}
+        <>
+          <div className="text-[11px] leading-5 text-text-secondary">منطق ترکیب شرط‌ها</div>
+          <fieldset
+            aria-label={`منطق ترکیب شرط‌های ${actionLabel}`}
+            className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-card-bg-solid p-1"
           >
-            همه شرط‌ها (AND)
-          </button>
-          <button
-            type="button"
-            aria-pressed={effectiveLogic === "or"}
-            onClick={() => onChange([...conditions], "or")}
-            className={`rounded-lg px-2 py-1 text-[10px] font-semibold transition-colors cursor-pointer ${
-              effectiveLogic === "or"
-                ? "bg-accent3 text-accent3-foreground"
-                : "text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            حداقل یکی (OR)
-          </button>
-        </fieldset>
+            <button
+              type="button"
+              aria-pressed={effectiveLogic === "and"}
+              onClick={() => onChange([...conditions], "and")}
+              className={`rounded-lg px-2 py-1 text-[10px] font-semibold transition-colors cursor-pointer ${
+                effectiveLogic === "and"
+                  ? "bg-accent3 text-accent3-foreground"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              همه شرط‌ها (AND)
+            </button>
+            <button
+              type="button"
+              aria-pressed={effectiveLogic === "or"}
+              onClick={() => onChange([...conditions], "or")}
+              className={`rounded-lg px-2 py-1 text-[10px] font-semibold transition-colors cursor-pointer ${
+                effectiveLogic === "or"
+                  ? "bg-accent3 text-accent3-foreground"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              حداقل یکی (OR)
+            </button>
+          </fieldset>
+        </>
       )}
 
       {conditions.length > 0 && (
