@@ -18,7 +18,7 @@ type SliderIconProps = {
   size: number;
 };
 
-type SliderPart =
+export type ElasticSliderPart =
   | "root"
   | "track"
   | "canvas"
@@ -43,7 +43,7 @@ export interface ElasticSliderProps {
   icon?: (props: SliderIconProps) => ReactNode;
   disabled?: boolean;
   className?: string;
-  partClassNames?: Partial<Record<SliderPart, string>>;
+  partClassNames?: Partial<Record<ElasticSliderPart, string>>;
 }
 
 type DragState = {
@@ -61,6 +61,7 @@ function roundToStep(value: number, min: number, max: number, step: number) {
     Math.max(
       0,
       (String(min).split(".")[1] ?? "").length,
+      (String(max).split(".")[1] ?? "").length,
       (String(step).split(".")[1] ?? "").length,
     ),
   );
@@ -116,9 +117,15 @@ export function ElasticSlider({
   const safeMax = Number.isFinite(max) && max > safeMin ? max : safeMin + 100;
   const safeStep = Number.isFinite(step) && step > 0 ? step : 1;
   const [internalValue, setInternalValue] = useState(() =>
-    roundToStep(defaultValue, safeMin, safeMax, safeStep),
+    roundToStep(Number.isFinite(defaultValue) ? defaultValue : safeMin, safeMin, safeMax, safeStep),
   );
-  const currentValue = roundToStep(value ?? internalValue, safeMin, safeMax, safeStep);
+  const rawCurrentValue = value ?? internalValue;
+  const currentValue = roundToStep(
+    Number.isFinite(rawCurrentValue) ? rawCurrentValue : safeMin,
+    safeMin,
+    safeMax,
+    safeStep,
+  );
   const percentage = ((currentValue - safeMin) / (safeMax - safeMin)) * 100;
   const formattedValue = formatValue(currentValue);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -127,10 +134,13 @@ export function ElasticSlider({
   const stretchRef = useRef(0);
   const frameRef = useRef<number | null>(null);
   const sizeRef = useRef({ width: 1, height: size === "sm" ? 28 : 36 });
+  const percentageRef = useRef(percentage);
+  percentageRef.current = percentage;
+  const colorsRef = useRef({ track: "#444444", fill: "#999999" });
   const valueRef = useRef(currentValue);
   valueRef.current = currentValue;
 
-  const part = (name: SliderPart) => partClassNames?.[name] ?? "";
+  const part = (name: ElasticSliderPart) => partClassNames?.[name] ?? "";
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -158,21 +168,19 @@ export function ElasticSlider({
     context.translate(anchorRight ? -width : 0, -height / 2);
 
     const radius = height / 2;
-    const trackColor = getComputedStyle(canvas).getPropertyValue("--dissolve-surface").trim()
-      || "var(--border-color)";
-    const fillColor = getComputedStyle(canvas).getPropertyValue("--dissolve-primary").trim()
-      || "var(--accent3)";
+    const { track: trackColor, fill: fillColor } = colorsRef.current;
     const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
+      if (w <= 0) return;
       context.beginPath();
-      context.roundRect(x, y, Math.max(0, w), h, r);
+      context.roundRect(x, y, w, h, r);
       context.fill();
     };
 
     context.fillStyle = trackColor;
     drawRoundRect(0, 0, width, height, radius);
     context.fillStyle = fillColor;
-    drawRoundRect(0, 0, width * (percentage / 100), height, radius);
-  }, [percentage]);
+    drawRoundRect(0, 0, width * (percentageRef.current / 100), height, radius);
+  }, []);
 
   const requestDraw = useCallback(() => {
     if (frameRef.current !== null) return;
@@ -247,6 +255,12 @@ export function ElasticSlider({
 
   const settleStretch = useCallback(() => {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      stretchRef.current = 0;
+      draw();
+      frameRef.current = null;
+      return;
+    }
     let velocity = 0;
     const animate = () => {
       const displacement = stretchRef.current;
@@ -306,12 +320,25 @@ export function ElasticSlider({
     const measure = () => {
       const rect = node.getBoundingClientRect();
       sizeRef.current = { width: rect.width || 1, height: size === "sm" ? 28 : 36 };
+      const styles = getComputedStyle(node);
+      colorsRef.current = {
+        track: styles.getPropertyValue("--dissolve-surface").trim() || styles.getPropertyValue("--border-color").trim() || "#444444",
+        fill: styles.getPropertyValue("--dissolve-primary").trim() || styles.getPropertyValue("--accent3").trim() || "#999999",
+      };
       draw();
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(node);
-    return () => observer.disconnect();
+    const themeObserver = new MutationObserver(measure);
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme", "style"],
+    });
+    return () => {
+      observer.disconnect();
+      themeObserver.disconnect();
+    };
   }, [draw, size]);
 
   useEffect(() => {
