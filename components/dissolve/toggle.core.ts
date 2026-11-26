@@ -176,7 +176,7 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
     const stateThumbColor = target
       ? styles.getPropertyValue('--accent3-foreground').trim()
       : styles.getPropertyValue('--text-secondary').trim();
-    thumbColor = o.thumbColor ?? stateThumbColor || 'rgb(255, 255, 255)';
+    thumbColor = o.thumbColor ?? (stateThumbColor || 'rgb(255, 255, 255)');
     ghost.style.background = thumb.style.background = thumbColor;
     ghost.style.boxShadow = thumb.style.boxShadow = SHADOW;
   }
