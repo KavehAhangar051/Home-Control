@@ -24,6 +24,7 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
       triggerHaptic("toggleOn", { force: true });
     } else {
       soundManager.playToggleOff();
+      triggerHaptic("toggleOff", { force: true });
     }
   };
 

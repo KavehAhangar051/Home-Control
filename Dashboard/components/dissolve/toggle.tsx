@@ -28,8 +28,11 @@ export function Toggle({ className, style, onClick, ...props }: ToggleProps) {
   return <button ref={host} type="button" className={className} style={style} onClick={onClick} />;
 }
 
+/** Props for a non-interactive grain switch inside an owning control. */
+export type ToggleIndicatorProps = Omit<ToggleProps, "onClick">;
+
 /** A non-interactive grain switch for status indicators inside an owning control. */
-export function ToggleIndicator({ className, style, ...props }: ToggleProps) {
+export function ToggleIndicator({ className, style, ...props }: ToggleIndicatorProps) {
   const { host } = useDissolveCore(createToggle, { ...props, interactive: false, haptics: false });
   return <span ref={host} className={className} style={style} aria-hidden="true" />;
 }
