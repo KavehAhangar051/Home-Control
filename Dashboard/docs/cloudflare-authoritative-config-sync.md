@@ -7,7 +7,7 @@ The Cloudflare Worker `GET /config` response is authoritative whenever it is suc
 ## Startup sequence
 
 1. If local configuration caching is enabled, hydrate the dashboard from the last valid local snapshot so the interface can render immediately.
-2. Request `/config` with Fetch `cache: "no-store"`, no-cache request headers, and a unique `_fresh` query value to avoid ordinary browser and URL-keyed edge cache reuse.
+2. Request `/config` with Fetch `cache: "no-store"` and a unique `_fresh` query value to avoid ordinary browser and URL-keyed edge cache reuse.
 3. Validate that the response contains the expected configuration structure.
 4. Cancel any queued write to the old cache key, replace the previous local snapshot synchronously, and apply the returned configuration to the store even when its serialized signature matches the fallback snapshot.
 5. If the Worker cannot be reached, retain or recover the last valid local snapshot. If no valid snapshot exists, initialize the empty fallback state.
