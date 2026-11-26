@@ -9,7 +9,7 @@ interface Props {
 export function MqttQosSelector({ qos, setQos }: Props) {
   return (
     <fieldset className="space-y-2 text-right pt-2">
-      <legend className="text-xs font-bold text-text-primary px-1">کیفیت سرویس (QoS)</legend>
+      <legend className="text-xs font-bold text-text-primary px-1">سطح تضمین تحویل پیام (QoS)</legend>
       <ToggleGroup
         variant="outline"
         spacing={2}
@@ -35,9 +35,9 @@ export function MqttQosSelector({ qos, setQos }: Props) {
         ))}
       </ToggleGroup>
       <p className="text-[11px] text-text-muted pt-1 px-1">
-        {qos === 0 && "حداکثر یک‌بار ارسال · سریع‌ترین حالت بدون تضمین تحویل"}
-        {qos === 1 && "حداقل یک‌بار ارسال · تضمین تحویل با احتمال تکرار"}
-        {qos === 2 && "دقیقاً یک‌بار ارسال · مطمئن‌ترین و کندترین حالت"}
+        {qos === 0 && "حداکثر یک‌بار ارسال · بدون تلاش مجدد در صورت گم‌شدن پیام"}
+        {qos === 1 && "حداقل یک‌بار تحویل · ممکن است پیام تکراری دریافت شود"}
+        {qos === 2 && "دقیقاً یک‌بار تحویل · سربار ارتباطی بیشتر"}
       </p>
     </fieldset>
   );

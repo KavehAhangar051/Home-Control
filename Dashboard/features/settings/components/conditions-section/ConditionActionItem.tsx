@@ -88,11 +88,11 @@ export function ConditionActionItem({
       <div className="flex flex-col gap-3 text-xs pr-2">
         <div>
           <Label htmlFor={holdId} className="block font-semibold mb-1.5">
-            شرط فعال‌سازی
+            نوع فشردن کلید
           </Label>
           <Select
             id={holdId}
-            aria-label="شرط فعال‌سازی"
+            aria-label="نوع فشردن کلید"
             value={action.reqHold}
             onChange={(e) => {
               const val = Number.parseInt(e.target.value, 10);
@@ -110,7 +110,7 @@ export function ConditionActionItem({
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <Label htmlFor={pinId} className="block font-semibold mb-1.5">
-              پایه هدف (GPIO)
+              GPIO خروجی مقصد
             </Label>
             <Input
               id={pinId}
@@ -158,7 +158,7 @@ export function ConditionActionItem({
         {isAnalogTarget && (
           <div className="space-y-2.5 rounded-xl border border-border-color bg-bg-primary/60 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-semibold text-text-secondary">حالت فرمان PWM</span>
+              <span className="font-semibold text-text-secondary">روش کنترل شدت PWM</span>
               <div className="inline-flex rounded-lg border border-border-color bg-card-bg-solid p-0.5">
                 <button
                   type="button"
@@ -170,7 +170,7 @@ export function ConditionActionItem({
                       : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
-                  کلید (حفظ شدت)
+                  روشن/خاموش با حفظ شدت
                 </button>
                 <button
                   type="button"

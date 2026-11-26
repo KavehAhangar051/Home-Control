@@ -151,7 +151,7 @@ export default function MacrosSection() {
 
       {!outputs.length && (
         <p className="rounded-xl border border-dashed border-border-color p-4 text-xs leading-6 text-text-secondary">
-          ابتدا در بخش «پالایه و ماژول‌ها» یک خروجی دیجیتال یا PWM بسازید
+          برای ساخت دکمه، ابتدا در «پالایه و ماژول‌ها» یک خروجی دیجیتال یا PWM اضافه کنید؛ سپس آن را به‌عنوان عملیات دکمه انتخاب کنید.
         </p>
       )}
 
@@ -237,7 +237,7 @@ export default function MacrosSection() {
 
                 {actions.length === 0 ? (
                   <p className="rounded-xl border border-dashed border-border-color bg-card-bg/60 px-3 py-4 text-center text-xs text-text-muted">
-                    عملیاتی ثبت نشده است
+                    برای اجرای دکمه، دست‌کم یک عملیات و قطعه هدف به آن اضافه کنید.
                   </p>
                 ) : (
                   <div className="space-y-3">
