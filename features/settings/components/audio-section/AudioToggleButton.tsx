@@ -2,6 +2,7 @@
 
 import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
 import { Activity, VolumeX } from "@/components/ui/hugeicons-groups/media";
+import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import { useReducedMotion } from "motion/react";
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 
 export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
   const prefersReducedMotion = useReducedMotion();
+  const hapticsEnabled = usePreferencesStore((s) => s.hapticsEnabled);
 
   return (
     <div>
@@ -33,7 +35,7 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
           size="sm"
           onColor="var(--accent3)"
           offColor="var(--card-hover-bg)"
-          haptics={false}
+          haptics={hapticsEnabled}
           reducedMotion={Boolean(prefersReducedMotion)}
           accessibilityLabel="موزیک پس‌زمینه"
           className="shrink-0"
