@@ -354,7 +354,8 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     if (p().disabled) return;
     const { min, max, step } = range();
     const big = Math.max(step, (max - min) / 10);
-    const d: Record<string, number> = { ArrowRight: step, ArrowUp: step, ArrowLeft: -step, ArrowDown: -step, PageUp: big, PageDown: -big };
+    const small = e.shiftKey ? big : step;
+    const d: Record<string, number> = { ArrowRight: small, ArrowUp: small, ArrowLeft: -small, ArrowDown: -small, PageUp: big, PageDown: -big };
     let v: number | null = null;
     if (e.key in d) v = snap(last + d[e.key]);
     else if (e.key === 'Home') v = min;
@@ -401,6 +402,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
       settle();
       if (reducedMotion()) { over.set(0); press.set(0); }
       else { over.spring(0, BOUNCE); press.spring(0, SETTLE); }
+      p().onSlidingComplete?.(last);
     }
     host.style.opacity = p().disabled ? '0.5' : '';
     host.setAttribute('aria-disabled', String(p().disabled));
