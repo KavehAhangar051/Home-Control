@@ -158,8 +158,9 @@ export function createToast(host: HTMLElement, initial: ToastProps = {}): ToastI
     card.className = cls;
     Object.assign(card.style, { width: w + 'px', height: L.h + 'px', opacity: '0', backgroundColor: 'transparent' });
     probe.replaceWith(card);
-    card.setAttribute('role', 'status');
+    card.setAttribute('role', o.tone === 'error' ? 'alert' : 'status');
     card.setAttribute('aria-label', [o.title, o.message, o.action ? `${o.action.label} available` : ''].filter(Boolean).join('. '));
+    if (o.action) card.tabIndex = 0;
 
     const it: Item = {
       id, o, slot, gone: false, timer: undefined,
