@@ -88,15 +88,17 @@ export function WifiNetworkEditor({
             <Label htmlFor="wifi-network-password" className="min-w-0 text-sm font-bold">
               رمز عبور شبکه
             </Label>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setShowPassword((visible) => !visible)}
-              className="min-h-8 shrink-0 rounded-md px-2 text-xs font-semibold text-accent3 hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+              className="min-h-8 shrink-0 px-2 text-xs font-semibold text-accent3"
               aria-label={showPassword ? "مخفی کردن رمز عبور شبکه" : "نمایش رمز عبور شبکه"}
               aria-pressed={showPassword}
             >
               {showPassword ? "پنهان کردن" : "نمایش رمز"}
-            </button>
+            </Button>
           </div>
           <Input
             id="wifi-network-password"

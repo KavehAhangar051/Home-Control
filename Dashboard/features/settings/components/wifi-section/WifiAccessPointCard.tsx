@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check } from "@/components/ui/hugeicons-groups/controls";
+import { Check, Edit2 } from "@/components/ui/hugeicons-groups/controls";
 import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
@@ -161,13 +161,14 @@ export function WifiAccessPointCard() {
                 </dd>
               </div>
             </dl>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleEditAccessPoint}
                 className="min-h-11"
               >
+                <Edit2 className="size-4" aria-hidden="true" />
                 ویرایش تنظیمات
               </Button>
               {isApSaved ? (
