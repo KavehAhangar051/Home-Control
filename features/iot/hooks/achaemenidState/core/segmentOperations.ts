@@ -2,6 +2,7 @@ import type {
   AnalogRangeRule,
   AuxNodeConfig,
   GroupsSlice,
+  RuleGuardCondition,
   Segment,
 } from "@/features/iot/hooks/store/types";
 import { resolveSegmentGroup } from "@/features/iot/services/cloudflare/mappers";
@@ -13,6 +14,8 @@ import {
   isAnalogInputType,
   isReadOnlyInputSegment,
   MAX_ANALOG_RANGE_RULES,
+  MAX_RULE_ACTIONS_PER_SIDE,
+  MAX_RULE_CONDITIONS_PER_ACTION,
   normalizeAnalogInputConfig,
   RULE_TRIGGER_DOUBLE_CLICK,
 } from "@/features/iot/utils/analogInput";
@@ -36,6 +39,7 @@ import {
   MAX_AUX_NODES,
   MAX_TOTAL_SEGMENTS,
 } from "@/features/iot/utils/auxNodeUtils";
+import { validateConditionEntry } from "@/features/iot/utils/macroEngine";
 import { validateEsp32Pin, validateManagedPin } from "@/features/iot/utils/pinValidation";
 
 export interface AddSegmentInput {
@@ -350,11 +354,15 @@ export function validateRuleActionList(
     actionType?: number;
     delay?: number;
     targetValue?: number | null;
+    conditions?: RuleGuardCondition[];
   }>,
   segments?: readonly Segment[],
+  inputPin?: string,
 ): string | null {
   if (!actions) return null;
-  if (actions.length > 4) return "هر حالت حداکثر می‌تواند ۴ عملیات داشته باشد.";
+  if (actions.length > MAX_RULE_ACTIONS_PER_SIDE) {
+    return `هر حالت حداکثر می‌تواند ${MAX_RULE_ACTIONS_PER_SIDE} عملیات داشته باشد.`;
+  }
 
   for (let i = 0; i < actions.length; i++) {
     const action = actions[i];
@@ -409,6 +417,23 @@ export function validateRuleActionList(
         action.targetValue > MAX_ANALOG_OUTPUT_VALUE)
     ) {
       return "مقدار دقیق PWM باید عددی صحیح بین ۰ تا ۴۰۹۵ باشد.";
+    }
+
+    if (Array.isArray(action.conditions) && action.conditions.length > 0) {
+      if (action.conditions.length > MAX_RULE_CONDITIONS_PER_ACTION) {
+        return `عملیات ${i + 1}: حداکثر ${MAX_RULE_CONDITIONS_PER_ACTION} شرط برای هر عملیات مجاز است.`;
+      }
+      if (segments) {
+        for (let c = 0; c < action.conditions.length; c++) {
+          const condErr = validateConditionEntry(
+            action.conditions[c],
+            `عملیات ${i + 1} (شرط ${c + 1})`,
+            segments,
+            inputPin,
+          );
+          if (condErr) return condErr;
+        }
+      }
     }
   }
 
@@ -507,6 +532,23 @@ export function validateAnalogRangeRuleList(
 
       if (!Number.isInteger(r.targetValue) || r.targetValue < 0 || r.targetValue > targetMax) {
         return `بازه ${indexLabel}: مقدار دقیق PWM باید بین ۰ تا ${targetMax} باشد.`;
+      }
+    }
+
+    if (Array.isArray(r.conditions) && r.conditions.length > 0) {
+      if (r.conditions.length > MAX_RULE_CONDITIONS_PER_ACTION) {
+        return `بازه ${indexLabel}: حداکثر ${MAX_RULE_CONDITIONS_PER_ACTION} شرط برای هر بازه مجاز است.`;
+      }
+      if (segments) {
+        for (let c = 0; c < r.conditions.length; c++) {
+          const condErr = validateConditionEntry(
+            r.conditions[c],
+            `بازه ${indexLabel} (شرط ${c + 1})`,
+            segments,
+            normalizedInputPin,
+          );
+          if (condErr) return condErr;
+        }
       }
     }
   }

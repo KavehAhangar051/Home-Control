@@ -16,6 +16,7 @@ import {
   percentToAnalogDuty,
 } from "@/features/iot/utils/analogOutput";
 import {
+  getMacroActionConditions,
   isControllableMacroOutput,
   normalizeMacroRecord,
   validateMacroDraft,
@@ -291,7 +292,9 @@ export default function MacrosSection() {
           const analogCount = macro.actions.filter((a) =>
             hasExplicitAnalogTargetValue(a.targetValue),
           ).length;
-          const conditionedCount = macro.actions.filter((a) => a.condition?.enabled).length;
+          const conditionedCount = macro.actions.filter((a) =>
+            getMacroActionConditions(a).some((c) => c.enabled),
+          ).length;
 
           return (
             <article

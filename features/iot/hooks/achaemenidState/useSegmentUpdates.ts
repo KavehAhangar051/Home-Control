@@ -78,13 +78,13 @@ export function useSegmentUpdates() {
           active: isSegmentRuleActive(rule),
         };
         setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, rule: nextRule } : s)));
-        publishUpdateAnalogRangeRulesCommand(inputPin, rule.analogRanges);
+        publishUpdateAnalogRangeRulesCommand(inputPin, rule.analogRanges, store.segments);
         return;
       }
 
       const errorMessage =
-        validateRuleActionList(rule.highActions, store.segments) ??
-        validateRuleActionList(rule.lowActions, store.segments);
+        validateRuleActionList(rule.highActions, store.segments, targetSegment.pin) ??
+        validateRuleActionList(rule.lowActions, store.segments, targetSegment.pin);
 
       if (errorMessage !== null) {
         store.showToast(`خطا در پایه: ${errorMessage}`, "error");
@@ -97,7 +97,7 @@ export function useSegmentUpdates() {
         active: isSegmentRuleActive(rule),
       };
       setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, rule: nextRule } : s)));
-      publishUpdateRuleCommand(inputPin, rule.highActions || [], rule.lowActions || []);
+      publishUpdateRuleCommand(inputPin, rule.highActions || [], rule.lowActions || [], store.segments);
     },
     [setSegments],
   );

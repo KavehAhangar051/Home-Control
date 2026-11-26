@@ -87,7 +87,7 @@ export default function ConditionsSection() {
                 };
 
                 updateSegmentRule(segment.id, nextRule);
-                const delivered = publishUpdateAnalogRangeRulesCommand(inputPin, nextRanges);
+                const delivered = publishUpdateAnalogRangeRulesCommand(inputPin, nextRanges, segments);
                 showToast(
                   delivered
                     ? "قوانین چندبازه‌ای آنالوگ ثبت و به دستگاه ارسال شدند."
@@ -98,8 +98,8 @@ export default function ConditionsSection() {
               }
 
               const digitalError =
-                validateRuleActionList(rule.highActions, segments) ??
-                validateRuleActionList(rule.lowActions, segments);
+                validateRuleActionList(rule.highActions, segments, segment.pin) ??
+                validateRuleActionList(rule.lowActions, segments, segment.pin);
 
               if (digitalError !== null) {
                 showToast(`خطا در پایه: ${digitalError}`, "error");
@@ -118,6 +118,7 @@ export default function ConditionsSection() {
                 inputPin,
                 nextRule.highActions,
                 nextRule.lowActions,
+                segments,
               );
               showToast(
                 delivered

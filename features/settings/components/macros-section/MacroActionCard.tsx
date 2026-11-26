@@ -17,6 +17,7 @@ import {
   isAnalogOutputSegment,
   percentToAnalogDuty,
 } from "@/features/iot/utils/analogOutput";
+import { getMacroActionConditions } from "@/features/iot/utils/macroEngine";
 import { MacroConditionEditor } from "./MacroConditionEditor";
 
 const PWM_PERCENT_PRESETS = [0, 25, 50, 75, 100] as const;
@@ -54,6 +55,8 @@ export function MacroActionCard({
       ? maxDuty
       : 0;
   const currentPercent = analogDutyToPercent(currentDuty, pwmResolution);
+  const actionConditions = getMacroActionConditions(action);
+  const activeConditionsCount = actionConditions.filter((c) => c.enabled !== false).length;
 
   const handleTargetPinChange = (nextPin: string) => {
     const nextSegment = outputs.find((seg) => seg.pin.trim() === nextPin.trim());
@@ -89,9 +92,9 @@ export function MacroActionCard({
           <span className="rounded-md border border-border-color bg-secondary px-2 py-0.5 text-[10px] font-medium text-text-secondary">
             {isAnalogTarget ? `خروجی آنالوگ PWM (${pwmResolution} بیت)` : "خروجی دیجیتال"}
           </span>
-          {action.condition?.enabled && (
+          {activeConditionsCount > 0 && (
             <span className="rounded-md border border-accent3/40 bg-accent3/15 px-2 py-0.5 text-[10px] font-semibold text-accent3">
-              شرط‌دار
+              {activeConditionsCount === 1 ? "شرط‌دار" : `${activeConditionsCount} شرط`}
             </span>
           )}
         </div>
@@ -238,9 +241,16 @@ export function MacroActionCard({
       {/* Per-Action Dashboard Condition */}
       <MacroConditionEditor
         index={index}
-        condition={action.condition}
+        conditions={actionConditions}
+        conditionLogic={action.conditionLogic}
         segments={allSegments}
-        onChange={(nextCondition) => onChange({ condition: nextCondition })}
+        onChange={(nextConditions, nextLogic) =>
+          onChange({
+            condition: undefined,
+            conditions: nextConditions.length > 0 ? nextConditions : undefined,
+            conditionLogic: nextConditions.length > 1 ? nextLogic : undefined,
+          })
+        }
       />
     </div>
   );

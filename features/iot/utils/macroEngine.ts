@@ -1,4 +1,5 @@
 import type {
+  ConditionLogic,
   Macro,
   MacroAction,
   MacroActionCondition,
@@ -6,6 +7,8 @@ import type {
   MacroConditionParameter,
   MacroNumericOperator,
   MacroValueUnit,
+  RuleGuardCondition,
+  SegmentConditionParameter,
 } from "@/features/iot/services/config/types";
 import {
   adcValueToPercent,
@@ -150,6 +153,13 @@ const VALID_PARAMETERS = new Set<MacroConditionParameter>([
   "analog_output",
 ]);
 
+const VALID_SEGMENT_PARAMETERS = new Set<SegmentConditionParameter>([
+  "digital_input",
+  "analog_input",
+  "digital_output",
+  "analog_output",
+]);
+
 const VALID_NUMERIC_OPERATORS = new Set<MacroNumericOperator>([
   "gt",
   "gte",
@@ -171,6 +181,16 @@ const VALID_ANALOG_OUTPUT_OPERATORS = new Set<MacroAnalogOutputOperator>([
   "between",
   "outside",
 ]);
+
+export function getMacroActionConditions(
+  action?: Pick<MacroAction, "condition" | "conditions"> | null,
+): MacroActionCondition[] {
+  if (!action) return [];
+  if (Array.isArray(action.conditions)) {
+    return action.conditions;
+  }
+  return action.condition ? [action.condition] : [];
+}
 
 export function isRangeOperator(op?: MacroAnalogOutputOperator): boolean {
   return op === "between" || op === "outside";
@@ -459,6 +479,53 @@ export function evaluateMacroCondition(
  * splitting passing actions into digital batch (`0x08`) and explicit analog PWM (`0x0A`)
  * commands while collecting user-defined failure messages for blocked actions.
  */
+export function evaluateMacroConditionList(
+  conditions: readonly MacroActionCondition[],
+  logic: ConditionLogic | undefined,
+  context: MacroEvaluationContext,
+  targetTitle: string,
+): { passed: boolean; message?: string } {
+  const enabled = conditions.filter((c) => c.enabled);
+  if (enabled.length === 0) {
+    return { passed: true };
+  }
+
+  const failureMessages: string[] = [];
+  if (logic === "or") {
+    for (let i = 0; i < enabled.length; i++) {
+      const cond = enabled[i];
+      const res = evaluateMacroCondition(cond, context);
+      if (res.passed) {
+        return { passed: true };
+      }
+      const msg = cond.failureMessage?.trim() || res.fallbackReason;
+      if (msg) failureMessages.push(msg);
+    }
+    return {
+      passed: false,
+      message: failureMessages[0] || `هیچ‌یک از شرط‌های «${targetTitle}» برقرار نیست.`,
+    };
+  }
+
+  for (let i = 0; i < enabled.length; i++) {
+    const cond = enabled[i];
+    const res = evaluateMacroCondition(cond, context);
+    if (!res.passed) {
+      const msg = cond.failureMessage?.trim() || res.fallbackReason;
+      if (msg) failureMessages.push(msg);
+    }
+  }
+
+  if (failureMessages.length > 0) {
+    return {
+      passed: false,
+      message: Array.from(new Set(failureMessages)).join(" • "),
+    };
+  }
+
+  return { passed: true };
+}
+
 export function evaluateMacroExecution(
   macro: Macro,
   context: MacroEvaluationContext,
@@ -476,26 +543,28 @@ export function evaluateMacroExecution(
     const targetPin = String(action.targetPin ?? "").trim();
     if (!targetPin) continue;
 
-    const evalResult = evaluateMacroCondition(action.condition, context);
+    const targetSeg = context.segments.find((s) => s.pin.trim() === targetPin);
+    const actionConditions = getMacroActionConditions(action);
+    const evalResult = evaluateMacroConditionList(
+      actionConditions,
+      action.conditionLogic,
+      context,
+      targetSeg?.title ?? `GPIO ${targetPin}`,
+    );
 
     if (!evalResult.passed) {
-      const customMessage = action.condition?.failureMessage?.trim();
-      const targetSeg = context.segments.find((s) => s.pin.trim() === targetPin);
-      const fallback =
-        evalResult.fallbackReason ??
-        `شرط اجرای عملیات روی «${targetSeg?.title ?? `GPIO ${targetPin}`}» برقرار نیست.`;
-
       blockedActions.push({
         action,
         index: i,
-        message: customMessage || fallback,
+        message:
+          evalResult.message ||
+          `شرط اجرای عملیات روی «${targetSeg?.title ?? `GPIO ${targetPin}`}» برقرار نیست.`,
       });
       continue;
     }
 
     passedCount += 1;
 
-    const targetSeg = context.segments.find((s) => s.pin.trim() === targetPin);
     if (isAnalogOutputSegment(targetSeg) && hasExplicitAnalogTargetValue(action.targetValue)) {
       const resolution = clampPwmResolution(
         context.pinsPwmResolution?.[targetPin] ?? targetSeg?.pwmResolution,
@@ -649,6 +718,35 @@ export function normalizeMacroActionCondition(
 }
 
 /**
+ * Normalizes an ESP32 hardware guard condition (`RuleGuardCondition`) at boundaries.
+ */
+export function normalizeRuleGuardCondition(
+  raw?: Partial<RuleGuardCondition> | null,
+): RuleGuardCondition | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const parameter: SegmentConditionParameter =
+    raw.parameter && VALID_SEGMENT_PARAMETERS.has(raw.parameter) ? raw.parameter : "digital_input";
+  const normalized = normalizeMacroActionCondition({
+    enabled: raw.enabled,
+    parameter,
+    sourcePin: raw.sourcePin,
+    expectedState: raw.expectedState,
+    operator: raw.operator,
+    unit: raw.unit,
+    value: raw.value,
+    maxValue: raw.maxValue,
+    failureMessage: "",
+  });
+  if (!normalized) return undefined;
+  const { failureMessage: _ignored, parameter: segParam, sourcePin, ...rest } = normalized;
+  return {
+    ...rest,
+    parameter: segParam as SegmentConditionParameter,
+    sourcePin: sourcePin ?? "",
+  };
+}
+
+/**
  * Normalizes a persisted `Macro` at the Cloudflare boundary while keeping legacy
  * `{ targetPin, actionOn }` actions untouched when no analog value or condition is present.
  */
@@ -659,9 +757,16 @@ export function normalizeMacroRecord(raw: Macro): Macro {
         const clampedTargetValue = hasExplicitAnalogTargetValue(action.targetValue)
           ? Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.max(0, Math.round(action.targetValue)))
           : undefined;
-        const normalizedCondition = action.condition
-          ? normalizeMacroActionCondition(action.condition)
+        const hasConditionsArray = Array.isArray(action.conditions);
+        const normalizedConditions = hasConditionsArray
+          ? action.conditions!
+              .map((c) => normalizeMacroActionCondition(c))
+              .filter((c): c is MacroActionCondition => Boolean(c))
           : undefined;
+        const normalizedLegacyCondition =
+          !hasConditionsArray && action.condition
+            ? normalizeMacroActionCondition(action.condition)
+            : undefined;
 
         const nextAction: MacroAction = {
           targetPin: String(action.targetPin ?? "").trim(),
@@ -672,8 +777,13 @@ export function normalizeMacroRecord(raw: Macro): Macro {
           nextAction.targetValue = clampedTargetValue;
         }
 
-        if (normalizedCondition) {
-          nextAction.condition = normalizedCondition;
+        if (normalizedConditions && normalizedConditions.length > 0) {
+          nextAction.conditions = normalizedConditions;
+          if (action.conditionLogic === "or" && normalizedConditions.length > 1) {
+            nextAction.conditionLogic = "or";
+          }
+        } else if (normalizedLegacyCondition) {
+          nextAction.condition = normalizedLegacyCondition;
         }
 
         return nextAction;
@@ -691,6 +801,73 @@ export function normalizeMacroRecord(raw: Macro): Macro {
 /**
  * Validates a macro draft before saving in `MacrosSection`.
  */
+export function validateConditionEntry(
+  cond: MacroActionCondition | RuleGuardCondition,
+  labelPrefix: string,
+  segments: readonly MacroSegmentSnapshot[],
+  excludeSourcePin?: string,
+): string | null {
+  if (!cond.enabled) return null;
+
+  if (cond.parameter === "time_range") {
+    if (
+      parseClockTimeMinutes(cond.startTime) === null ||
+      parseClockTimeMinutes(cond.endTime) === null
+    ) {
+      return `${labelPrefix}: ساعت شروع و پایان شرط زمان را به‌درستی وارد کنید.`;
+    }
+    return null;
+  }
+
+  const sourcePin = String(cond.sourcePin ?? "").trim();
+  if (!sourcePin) {
+    return `${labelPrefix}: سگمنت مرجع شرط را انتخاب کنید.`;
+  }
+
+  if (excludeSourcePin && sourcePin === excludeSourcePin.trim()) {
+    return `${labelPrefix}: پایه مرجع شرط نمی‌تواند همان پایه ورودی (GPIO ${sourcePin}) باشد.`;
+  }
+
+  const sourceSeg = segments.find((s) => s.pin.trim() === sourcePin && s.type !== "placeholder");
+  if (!sourceSeg) {
+    return `${labelPrefix}: سگمنت مرجع شرط (GPIO ${sourcePin}) در داشبورد وجود ندارد.`;
+  }
+
+  if (cond.parameter === "analog_input") {
+    const maxLimit =
+      cond.unit === "raw" ? getAdcMaxValue(clampAdcResolution(sourceSeg.adcResolution)) : 100;
+    const val = cond.value ?? -1;
+    if (!Number.isFinite(val) || val < 0 || val > maxLimit) {
+      return `${labelPrefix}: مقدار شرط سنسور آنالوگ باید بین ۰ تا ${maxLimit} باشد.`;
+    }
+    if (isRangeOperator(cond.operator)) {
+      const maxV = cond.maxValue ?? -1;
+      if (!Number.isFinite(maxV) || maxV < 0 || maxV > maxLimit || val > maxV) {
+        return `${labelPrefix}: بازه شرط سنسور آنالوگ معتبر نیست (حداقل نباید از حداکثر بیشتر باشد).`;
+      }
+    }
+  } else if (
+    cond.parameter === "analog_output" &&
+    cond.operator !== "is_on" &&
+    cond.operator !== "is_off"
+  ) {
+    const maxLimit =
+      cond.unit === "raw" ? getAnalogMaxDuty(clampPwmResolution(sourceSeg.pwmResolution)) : 100;
+    const val = cond.value ?? -1;
+    if (!Number.isFinite(val) || val < 0 || val > maxLimit) {
+      return `${labelPrefix}: مقدار شرط خروجی آنالوگ باید بین ۰ تا ${maxLimit} باشد.`;
+    }
+    if (isRangeOperator(cond.operator)) {
+      const maxV = cond.maxValue ?? -1;
+      if (!Number.isFinite(maxV) || maxV < 0 || maxV > maxLimit || val > maxV) {
+        return `${labelPrefix}: بازه شرط خروجی آنالوگ معتبر نیست.`;
+      }
+    }
+  }
+
+  return null;
+}
+
 export function validateMacroDraft(
   title: string,
   actions: readonly MacroAction[],
@@ -727,59 +904,14 @@ export function validateMacroDraft(
       }
     }
 
-    const cond = action.condition;
-    if (!cond?.enabled) continue;
-
-    if (cond.parameter === "time_range") {
-      if (
-        parseClockTimeMinutes(cond.startTime) === null ||
-        parseClockTimeMinutes(cond.endTime) === null
-      ) {
-        return `عملیات ${indexLabel}: ساعت شروع و پایان شرط زمان را به‌درستی وارد کنید.`;
-      }
-      continue;
-    }
-
-    const sourcePin = String(cond.sourcePin ?? "").trim();
-    if (!sourcePin) {
-      return `عملیات ${indexLabel}: سگمنت مرجع شرط را انتخاب کنید.`;
-    }
-
-    const sourceSeg = segments.find((s) => s.pin.trim() === sourcePin && s.type !== "placeholder");
-    if (!sourceSeg) {
-      return `عملیات ${indexLabel}: سگمنت مرجع شرط (GPIO ${sourcePin}) در داشبورد وجود ندارد.`;
-    }
-
-    if (cond.parameter === "analog_input") {
-      const maxLimit =
-        cond.unit === "raw" ? getAdcMaxValue(clampAdcResolution(sourceSeg.adcResolution)) : 100;
-      const val = cond.value ?? -1;
-      if (!Number.isFinite(val) || val < 0 || val > maxLimit) {
-        return `عملیات ${indexLabel}: مقدار شرط سنسور آنالوگ باید بین ۰ تا ${maxLimit} باشد.`;
-      }
-      if (isRangeOperator(cond.operator)) {
-        const maxV = cond.maxValue ?? -1;
-        if (!Number.isFinite(maxV) || maxV < 0 || maxV > maxLimit || val > maxV) {
-          return `عملیات ${indexLabel}: بازه شرط سنسور آنالوگ معتبر نیست (حداقل نباید از حداکثر بیشتر باشد).`;
-        }
-      }
-    } else if (
-      cond.parameter === "analog_output" &&
-      cond.operator !== "is_on" &&
-      cond.operator !== "is_off"
-    ) {
-      const maxLimit =
-        cond.unit === "raw" ? getAnalogMaxDuty(clampPwmResolution(sourceSeg.pwmResolution)) : 100;
-      const val = cond.value ?? -1;
-      if (!Number.isFinite(val) || val < 0 || val > maxLimit) {
-        return `عملیات ${indexLabel}: مقدار شرط خروجی آنالوگ باید بین ۰ تا ${maxLimit} باشد.`;
-      }
-      if (isRangeOperator(cond.operator)) {
-        const maxV = cond.maxValue ?? -1;
-        if (!Number.isFinite(maxV) || maxV < 0 || maxV > maxLimit || val > maxV) {
-          return `عملیات ${indexLabel}: بازه شرط خروجی آنالوگ معتبر نیست.`;
-        }
-      }
+    const actionConditions = getMacroActionConditions(action);
+    for (let cIdx = 0; cIdx < actionConditions.length; cIdx++) {
+      const condError = validateConditionEntry(
+        actionConditions[cIdx],
+        actionConditions.length > 1 ? `عملیات ${indexLabel} (شرط ${cIdx + 1})` : `عملیات ${indexLabel}`,
+        segments,
+      );
+      if (condError) return condError;
     }
   }
 

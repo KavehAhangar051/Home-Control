@@ -1,19 +1,25 @@
+import { useState } from "react";
 import { Info } from "@/components/ui/hugeicons-groups/controls";
 import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
   DIGITAL_HOLD_TIME_VALUES,
+  MAX_RULE_ACTIONS_PER_SIDE,
   RULE_TRIGGER_DOUBLE_CLICK,
 } from "@/features/iot/utils/analogInput";
 import { type ConditionAction, ConditionActionItem } from "./ConditionActionItem";
 
 interface Props {
   type: "high" | "low";
+  inputPin: string;
   actions: ConditionAction[];
   onUpdate: (actions: ConditionAction[]) => void;
 }
 
-export function ConditionActionsList({ type, actions, onUpdate }: Props) {
+export function ConditionActionsList({ type, inputPin, actions, onUpdate }: Props) {
+  const [rowKeys, setRowKeys] = useState<string[]>(() =>
+    actions.map((_, pos) => `act-${pos}-${Math.random().toString(36).slice(2, 8)}`),
+  );
   const showToast = useIoTStore((state) => state.showToast);
   const isHigh = type === "high";
   const colorClasses = isHigh ? "text-accent3" : "text-text-primary";
@@ -28,24 +34,29 @@ export function ConditionActionsList({ type, actions, onUpdate }: Props) {
   const hasClickCoexistence = hasSingleClick && hasDoubleClick;
 
   const addAction = () => {
-    if (actions.length >= 4) {
-      showToast("حداکثر ۴ عملیات برای هر وضعیت مجاز است", "error");
+    if (actions.length >= MAX_RULE_ACTIONS_PER_SIDE) {
+      showToast(`حداکثر ${MAX_RULE_ACTIONS_PER_SIDE} عملیات برای هر وضعیت مجاز است`, "error");
 
       return;
     }
 
-    const availableHolds = DIGITAL_HOLD_TIME_VALUES.filter(
+    const unusedHold = DIGITAL_HOLD_TIME_VALUES.find(
       (hold) => !actions.some((action) => action.reqHold === hold),
     );
+    const defaultHold = unusedHold ?? 0;
 
-    if (availableHolds.length === 0) return;
+    setRowKeys((prev) => [
+      ...prev.slice(0, actions.length),
+      `act-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    ]);
     onUpdate([
       ...actions,
-      { reqHold: availableHolds[0], targetPin: "", actionOn: true, actionType: 0, delay: 0 },
+      { reqHold: defaultHold, targetPin: "", actionOn: true, actionType: 0, delay: 0 },
     ]);
   };
 
   const removeAction = (index: number) => {
+    setRowKeys((prev) => prev.filter((_, i) => i !== index));
     const next = [...actions];
     next.splice(index, 1);
     onUpdate(next);
@@ -67,7 +78,7 @@ export function ConditionActionsList({ type, actions, onUpdate }: Props) {
         <button
           type="button"
           onClick={addAction}
-          disabled={actions.length >= 4}
+          disabled={actions.length >= MAX_RULE_ACTIONS_PER_SIDE}
           className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors disabled:opacity-50 ${
             isHigh
               ? "border-accent3 text-accent3 hover:bg-accent3 hover:text-accent3-foreground"
@@ -97,13 +108,12 @@ export function ConditionActionsList({ type, actions, onUpdate }: Props) {
         <div className="space-y-3">
           {actions.map((action, idx) => (
             <ConditionActionItem
-              key={action.reqHold}
+              key={rowKeys[idx] ?? `act-${action.reqHold}-${idx}`}
               action={action}
               idx={idx}
-              actions={actions}
+              inputPin={inputPin}
               onRemove={() => removeAction(idx)}
               onUpdate={(updates) => updateAction(idx, updates)}
-              showToast={showToast}
             />
           ))}
         </div>

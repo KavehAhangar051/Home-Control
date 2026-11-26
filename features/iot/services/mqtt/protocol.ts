@@ -32,6 +32,10 @@ export const MQTT_OPCODES = {
   DELETE_AUX_NODE: 0x10,
   /** Add a virtual segment bound to an Auxiliary ESP node & remote GPIO */
   ADD_VIRTUAL_SEGMENT: 0x11,
+  /** Update digital input automation rule with guard conditions (0x12) */
+  UPDATE_RULE_CONDITIONAL: 0x12,
+  /** Update analog_input multi-range rules with guard conditions (0x13) */
+  UPDATE_ANALOG_RANGE_RULES_CONDITIONAL: 0x13,
 } as const;
 
 /** Binary byte sizes and flags for protocol framing */
@@ -54,7 +58,10 @@ export const RULE_ACTION_SIZE = 11;
 export const RULE_ANALOG_ACTION_SIZE = 13;
 export const RULE_TARGET_VALUE_BOOLEAN = -1;
 export const RULE_TRIGGER_DOUBLE_CLICK = -1;
-export const MAX_RULE_ACTIONS_PER_SIDE = 4;
+export const MAX_RULE_ACTIONS_PER_SIDE = 6;
+export const MAX_RULE_CONDITIONS_PER_ACTION = 4;
+export const RULE_CONDITION_SIZE = 6;
+export const RULE_CONDITIONAL_ACTION_BASE_SIZE = 14;
 
 /** Binary state encodings */
 export const PIN_STATE_HIGH = 0x01;

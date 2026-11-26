@@ -13,6 +13,7 @@ import type {
   Segment,
 } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { RuleGuardConditionsEditor } from "@/features/settings/components/shared/ActionConditionsEditor";
 import {
   adcValueToPercent,
   getMaxAnalogHysteresis,
@@ -62,6 +63,7 @@ export function AnalogRangeRuleCard({
   const actionTypeId = `${baseId}-action-type`;
   const delayId = `${baseId}-delay`;
 
+  const segments = useIoTStore((state) => state.segments);
   const pinsPwmResolution = useIoTStore((state) => state.pinsPwmResolution);
 
   const isEnabled = rule.enabled !== false;
@@ -517,6 +519,15 @@ export function AnalogRangeRuleCard({
             </div>
           )}
         </div>
+
+        <RuleGuardConditionsEditor
+          actionLabel={`بازه ${index + 1}`}
+          conditions={rule.conditions}
+          conditionLogic={rule.conditionLogic}
+          segments={segments}
+          excludeSourcePin={inputPin}
+          onChange={(conditions, conditionLogic) => onUpdate({ conditions, conditionLogic })}
+        />
       </div>
     </div>
   );
