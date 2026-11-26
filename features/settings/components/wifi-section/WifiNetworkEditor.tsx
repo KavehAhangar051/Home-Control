@@ -46,7 +46,7 @@ export function WifiNetworkEditor({
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-5 @lg:grid-cols-2">
         <div className="min-w-0 space-y-2">
-          <div className="flex min-h-8 items-center justify-between gap-3">
+          <div className="flex min-h-11 items-center justify-between gap-3">
             <Label htmlFor="wifi-network-ssid" className="min-w-0 text-sm font-bold">
               نام شبکه (SSID)
             </Label>
@@ -84,7 +84,7 @@ export function WifiNetworkEditor({
         </div>
 
         <div className="min-w-0 space-y-2">
-          <div className="flex min-h-8 items-center justify-between gap-3">
+          <div className="flex min-h-11 items-center justify-between gap-3">
             <Label htmlFor="wifi-network-password" className="min-w-0 text-sm font-bold">
               رمز عبور شبکه
             </Label>
@@ -93,7 +93,7 @@ export function WifiNetworkEditor({
               variant="ghost"
               size="sm"
               onClick={() => setShowPassword((visible) => !visible)}
-              className="min-h-8 shrink-0 px-2 text-xs font-semibold text-accent3"
+              className="min-h-11 shrink-0 px-2 text-xs font-semibold text-accent3"
               aria-label={showPassword ? "مخفی کردن رمز عبور شبکه" : "نمایش رمز عبور شبکه"}
               aria-pressed={showPassword}
             >

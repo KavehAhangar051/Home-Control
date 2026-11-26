@@ -57,7 +57,7 @@ export function WifiAccessPointEditor({
     <div className="@container space-y-4">
       <div className="grid grid-cols-1 gap-x-6 gap-y-5 @lg:grid-cols-2">
         <div className="min-w-0 space-y-2">
-          <div className="flex min-h-8 items-center justify-between gap-3">
+          <div className="flex min-h-11 items-center justify-between gap-3">
             <Label htmlFor="esp-ap-ssid" className="min-w-0 text-sm font-bold">
               نام شبکه (SSID)
             </Label>
@@ -96,7 +96,7 @@ export function WifiAccessPointEditor({
         </div>
 
         <div className="min-w-0 space-y-2">
-          <div className="flex min-h-8 items-center justify-between gap-3">
+          <div className="flex min-h-11 items-center justify-between gap-3">
             <Label htmlFor="esp-ap-password" className="min-w-0 text-sm font-bold">
               رمز عبور اکسس‌پوینت
             </Label>
@@ -106,7 +106,7 @@ export function WifiAccessPointEditor({
               size="sm"
               onClick={onTogglePassword}
               disabled={isSaving}
-              className="min-h-8 shrink-0 px-2 text-xs font-semibold text-accent3"
+              className="min-h-11 shrink-0 px-2 text-xs font-semibold text-accent3"
               aria-label={showPassword ? "مخفی کردن رمز اکسس‌پوینت" : "نمایش رمز اکسس‌پوینت"}
               aria-pressed={showPassword}
             >
