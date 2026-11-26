@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { Save } from "@/components/ui/hugeicons-groups/controls";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,23 +116,25 @@ export function WifiAccessPointEditor({
           بازگشت به پیش‌فرض دستگاه
         </button>
         <div className="flex flex-wrap items-center gap-2">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={onCancel}
             disabled={isSaving}
-            className="min-h-11 rounded-xl border border-border-color px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-card-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 disabled:opacity-60"
+            className="min-h-11"
           >
             لغو
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="accent"
             onClick={onSave}
             disabled={isSaving}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent3 px-4 py-2.5 text-sm font-bold text-accent3-foreground transition-colors hover:bg-accent3-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 disabled:opacity-60"
+            className="min-h-11"
           >
             <Save className="size-4" aria-hidden="true" />
             {isSaving ? "در حال ذخیره..." : "ذخیره اکسس‌پوینت"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
