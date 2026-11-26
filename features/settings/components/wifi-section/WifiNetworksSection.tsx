@@ -84,7 +84,7 @@ export function WifiNetworksSection() {
             شبکه‌های Wi-Fi
           </h3>
           <p className="text-xs text-text-secondary">
-            ESP32 برای اتصال به شبکه‌های ذخیره‌شده از این فهرست استفاده می‌کند.
+            این فهرست، شبکه‌هایی را نگه می‌دارد که ESP32 برای اتصال به روتر امتحان می‌کند. برای هر شبکه، نام Wi-Fi (SSID) و در صورت نیاز رمز همان شبکه را وارد کنید.
           </p>
         </div>
         <Button
@@ -101,7 +101,7 @@ export function WifiNetworksSection() {
       </div>
 
       <div className="flex items-center justify-between gap-3 rounded-xl border border-border-color bg-card-bg-solid px-3 py-2.5">
-        <span className="text-xs text-text-secondary">شبکه‌های ذخیره‌شده</span>
+        <span className="text-xs text-text-secondary">ظرفیت شبکه‌های ذخیره‌شده روی ESP32</span>
         <span className="text-sm font-bold tabular-nums text-text-primary">
           {wifiNetworks.length} از {MAX_WIFI_NETWORKS}
         </span>
@@ -109,7 +109,7 @@ export function WifiNetworksSection() {
 
       {wifiNetworks.length === 1 ? (
         <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-xs leading-5 text-amber-800 dark:text-amber-300">
-          حذف آخرین شبکه باعث راه‌اندازی مجدد ESP32 و بازگشت آن به اکسس‌پوینت راه‌اندازی می‌شود.
+          با حذف آخرین شبکه، ESP32 دیگر اطلاعاتی برای اتصال به روتر ندارد و برای راه‌اندازی، به اکسس‌پوینت مستقل خود برمی‌گردد.
         </p>
       ) : null}
 
@@ -155,7 +155,7 @@ export function WifiNetworksSection() {
           <div className="space-y-1">
             <p className="text-sm font-semibold text-text-primary">شبکه‌ای اضافه نشده است</p>
             <p className="text-xs leading-5 text-text-secondary">
-              یک شبکه Wi-Fi اضافه کنید تا ESP32 بتواند به آن متصل شود.
+              اطلاعات شبکهٔ روتر خانه یا محل کار را وارد کنید تا ESP32 بتواند از طریق Wi-Fi به شبکهٔ محلی متصل شود.
             </p>
           </div>
           <Button
@@ -173,7 +173,7 @@ export function WifiNetworksSection() {
 
       {wifiNetworks.length >= MAX_WIFI_NETWORKS ? (
         <p className="text-xs text-text-muted">
-          ظرفیت پنج شبکه تکمیل شده است. برای افزودن شبکهٔ دیگر، ابتدا یکی را حذف کنید.
+          حافظهٔ پیکربندی ESP32 حداکثر ۵ شبکه را نگه می‌دارد. برای ثبت شبکهٔ جدید، ابتدا یکی از شبکه‌های فعلی را حذف کنید.
         </p>
       ) : null}
     </section>

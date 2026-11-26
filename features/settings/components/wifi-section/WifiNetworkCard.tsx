@@ -42,7 +42,7 @@ export function WifiNetworkViewCard({ net, onEditStart, onDelete }: WifiNetworkV
         >
           <span className="mb-1 font-bold text-sm text-text-primary">{net.ssid}</span>
           <span className="text-xs text-text-secondary">
-            {net.password ? "رمز عبور ذخیره شده" : "شبکهٔ بدون رمز"}
+            {net.password ? "رمز این شبکه برای اتصال ESP32 ذخیره شده" : "این شبکه برای اتصال به رمز نیاز ندارد"}
           </span>
         </button>
         <DeleteButton

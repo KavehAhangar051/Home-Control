@@ -140,7 +140,10 @@ export function WifiAccessPointCard() {
                 : `نام شبکه: ${wifiApConfig?.ssid || "ثبت نشده"}`}
             </p>
             <p className="text-xs text-text-muted">
-              {isDefaultAccessPoint ? "تنظیم پیش‌فرض دستگاه" : "رمز عبور سفارشی ذخیره شده"}
+              {isDefaultAccessPoint ? "نام و رمز پیش‌فرض دستگاه بر اساس شناسهٔ سخت‌افزاری ساخته می‌شود." : "نام و رمز سفارشی برای شبکهٔ راه‌اندازی ذخیره شده است."}
+            </p>
+            <p className="max-w-2xl text-xs leading-5 text-text-secondary">
+              این اکسس‌پوینت یک شبکهٔ مستقل برای اتصال مستقیم به ESP32 است؛ با شبکهٔ روتر خانه که در فهرست بالا ثبت می‌کنید تفاوت دارد.
             </p>
             {isApSaved ? (
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">

@@ -41,6 +41,12 @@ export function WifiNetworkEditor({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
+        <h4 className="text-sm font-bold text-text-primary">اطلاعات اتصال به روتر</h4>
+        <p className="text-xs leading-5 text-text-secondary">
+          نام و رمز شبکه‌ای را وارد کنید که می‌خواهید ESP32 از طریق آن به شبکهٔ محلی وصل شود؛ این اطلاعات با نام و رمز اکسس‌پوینت راه‌اندازی متفاوت است.
+        </p>
+      </div>
+      <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor="wifi-network-ssid" className="text-sm font-bold">
             نام شبکه Wi-Fi (SSID)
@@ -65,7 +71,7 @@ export function WifiNetworkEditor({
           error={errors.ssid}
         />
         <p id="wifi-network-ssid-help" className="text-xs leading-5 text-text-muted">
-          نام شبکه پس از حذف فاصله‌های ابتدا و انتها، حداکثر ۳۲ بایت UTF-8 است.
+          نامی را دقیقاً مطابق نام Wi-Fi روتر وارد کنید. پس از حذف فاصله‌های ابتدا و انتها، حداکثر ۳۲ بایت UTF-8 مجاز است.
         </p>
       </div>
 
@@ -101,7 +107,7 @@ export function WifiNetworkEditor({
           error={errors.password}
         />
         <p id="wifi-network-password-help" className="text-xs leading-5 text-text-muted">
-          برای شبکهٔ بدون رمز، این فیلد را خالی بگذارید؛ در غیر این صورت رمز باید ۸ تا ۶۳ بایت باشد.
+          این رمز برای ورود ESP32 به روتر استفاده می‌شود. اگر شبکه باز است، فیلد را خالی بگذارید؛ در غیر این صورت رمز باید ۸ تا ۶۳ بایت باشد.
           <span className="ms-1 tabular-nums">({passwordBytes}/۶۳ بایت)</span>
         </p>
       </div>
