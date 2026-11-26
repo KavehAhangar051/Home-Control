@@ -88,11 +88,11 @@ export function ConditionActionItem({
       <div className="flex flex-col gap-3 text-xs pr-2">
         <div>
           <Label htmlFor={holdId} className="block font-semibold mb-1.5">
-            نوع فشردن کلید
+            الگوی فشردن کلید
           </Label>
           <Select
             id={holdId}
-            aria-label="نوع فشردن کلید"
+            aria-label="الگوی فشردن کلید"
             value={action.reqHold}
             onChange={(e) => {
               const val = Number.parseInt(e.target.value, 10);
@@ -100,17 +100,17 @@ export function ConditionActionItem({
             }}
             className="bg-bg-primary p-2.5 rounded-lg text-xs"
           >
-            <option value={0}>تک کلیک / لحظه‌ای (فوری)</option>
-            <option value={-1}>دابل کلیک (۲ بار فشردن سریع)</option>
-            <option value={3}>نگه‌داشتن ۳ ثانیه</option>
-            <option value={5}>نگه‌داشتن ۵ ثانیه</option>
-            <option value={10}>نگه‌داشتن ۱۰ ثانیه</option>
+            <option value={0}>یک‌بار فشردن (لحظه‌ای)</option>
+            <option value={-1}>دو بار فشردن سریع</option>
+            <option value={3}>نگه‌داشتن به‌مدت ۳ ثانیه</option>
+            <option value={5}>نگه‌داشتن به‌مدت ۵ ثانیه</option>
+            <option value={10}>نگه‌داشتن به‌مدت ۱۰ ثانیه</option>
           </Select>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <Label htmlFor={pinId} className="block font-semibold mb-1.5">
-              GPIO خروجی مقصد
+              پایه خروجی GPIO
             </Label>
             <Input
               id={pinId}
@@ -134,7 +134,7 @@ export function ConditionActionItem({
           {!isExactPwmMode && (
             <div className="flex-1">
               <Label htmlFor={stateId} className="block font-semibold mb-1.5">
-                وضعیت
+                وضعیت خروجی
               </Label>
               <Select
                 id={stateId}
@@ -170,7 +170,7 @@ export function ConditionActionItem({
                       : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
-                  روشن/خاموش با حفظ شدت
+                  روشن/خاموش با شدت قبلی
                 </button>
                 <button
                   type="button"
@@ -256,7 +256,7 @@ export function ConditionActionItem({
 
         <div>
           <Label htmlFor={typeId} className="block font-semibold mb-1.5">
-            نوع عملیات
+            زمان‌بندی عملیات
           </Label>
           <Select
             id={typeId}
@@ -266,14 +266,14 @@ export function ConditionActionItem({
             className="bg-bg-primary p-2.5 rounded-lg text-xs"
           >
             <option value={0}>فوری</option>
-            <option value={1}>اجرا پس از تاخیر</option>
+            <option value={1}>اجرا پس از تأخیر</option>
             <option value={2}>اجرا برای مدت مشخص</option>
           </Select>
         </div>
         {(action.actionType || 0) > 0 && (
           <div>
             <Label htmlFor={delayId} className="block font-semibold mb-1.5">
-              زمان عملیات (ثانیه)
+              {action.actionType === 1 ? "مدت تأخیر (ثانیه)" : "مدت اجرا (ثانیه)"}
             </Label>
             <Input
               id={delayId}
