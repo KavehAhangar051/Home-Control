@@ -104,7 +104,6 @@ export function WifiNetworksSection() {
         </div>
       </div>
 
-
       {wifiNetworks.length === 1 ? (
         <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-xs leading-5 text-amber-800 dark:text-amber-300">
           با حذف آخرین شبکه، ESP32 دیگر اطلاعاتی برای اتصال به روتر ندارد و برای راه‌اندازی، به اکسس‌پوینت مستقل خود برمی‌گردد.

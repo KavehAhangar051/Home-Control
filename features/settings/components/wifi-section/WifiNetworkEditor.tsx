@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Save } from "@/components/ui/hugeicons-groups/controls";
 import { Button } from "@/components/ui/button";
+import { Save } from "@/components/ui/hugeicons-groups/controls";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getUtf8ByteLength, type WifiCredentialErrors } from "./wifiValidation";
@@ -42,7 +42,9 @@ export function WifiNetworkEditor({
     <div className="space-y-6">
       <div className="space-y-1">
         <h4 className="text-sm font-bold text-text-primary">اطلاعات اتصال به روتر</h4>
-        <p className="text-xs leading-5 text-text-secondary">ESP32 با این اطلاعات به شبکهٔ محلی وصل می‌شود.</p>
+        <p className="text-xs leading-5 text-text-secondary">
+          ESP32 با این اطلاعات به شبکهٔ محلی وصل می‌شود.
+        </p>
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
@@ -110,7 +112,9 @@ export function WifiNetworkEditor({
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border-color/70 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel} className="min-h-11">لغو</Button>
+        <Button type="button" variant="outline" onClick={onCancel} className="min-h-11">
+          لغو
+        </Button>
         <Button type="button" variant="accent" onClick={onSave} className="min-h-11">
           <Save className="size-4" aria-hidden="true" />
           ذخیره شبکه

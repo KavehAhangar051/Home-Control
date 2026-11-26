@@ -131,8 +131,12 @@ export function WifiAccessPointCard() {
       {!isApEditing ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <h3 id="wifi-ap-heading" className="text-base font-bold text-text-primary">اکسس‌پوینت راه‌اندازی (AP)</h3>
-            <p className="text-xs leading-5 text-text-secondary">شبکهٔ مستقلی برای اتصال مستقیم به ESP32؛ جدا از شبکهٔ روتر خانه.</p>
+            <h3 id="wifi-ap-heading" className="text-base font-bold text-text-primary">
+              اکسس‌پوینت راه‌اندازی (AP)
+            </h3>
+            <p className="text-xs leading-5 text-text-secondary">
+              شبکهٔ مستقلی برای اتصال مستقیم به ESP32؛ جدا از شبکهٔ روتر خانه.
+            </p>
             <p className="text-sm font-semibold text-text-primary">
               {isDefaultAccessPoint ? "استفاده از مقادیر پیش‌فرض دستگاه" : wifiApConfig?.ssid || "نام شبکه ثبت نشده"}
             </p>

@@ -6,7 +6,7 @@ import type { WifiNetwork } from "@/features/iot/hooks/store/types";
 import type { WifiCredentialErrors } from "./wifiValidation";
 import { WifiNetworkEditor } from "./WifiNetworkEditor";
 
-function WifiNetworkCardFrame({ children }: { children: React.ReactNode }) {
+function WifiNetworkRow({ children }: { children: React.ReactNode }) {
   return <div className="py-4 first:pt-0 last:pb-0">{children}</div>;
 }
 
@@ -18,7 +18,7 @@ interface WifiNetworkViewCardProps {
 
 export function WifiNetworkViewCard({ net, onEditStart, onDelete }: WifiNetworkViewCardProps) {
   return (
-    <WifiNetworkCardFrame>
+    <WifiNetworkRow>
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-bg-main text-text-secondary">
           <Wifi className="size-5" aria-hidden="true" />
@@ -30,14 +30,27 @@ export function WifiNetworkViewCard({ net, onEditStart, onDelete }: WifiNetworkV
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Button type="button" variant="ghost" size="sm" onClick={onEditStart} className="min-h-11 gap-1.5 px-3 text-xs" aria-label={`ویرایش شبکه ${net.ssid}`}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onEditStart}
+            className="min-h-11 gap-1.5 px-3 text-xs"
+            aria-label={"ویرایش شبکه " + net.ssid}
+          >
             <Edit2 className="size-4" aria-hidden="true" />
             ویرایش
           </Button>
-          <DeleteButton size="sm" resetAfter={0} onConfirm={onDelete} label={`حذف شبکه ${net.ssid}`} className="min-h-11 min-w-11 shrink-0" />
+          <DeleteButton
+            size="sm"
+            resetAfter={0}
+            onConfirm={onDelete}
+            label={"حذف شبکه " + net.ssid}
+            className="min-h-11 min-w-11 shrink-0"
+          />
         </div>
       </div>
-    </WifiNetworkCardFrame>
+    </WifiNetworkRow>
   );
 }
 
@@ -51,12 +64,28 @@ interface WifiNetworkEditCardProps {
   onCancel: () => void;
 }
 
-export function WifiNetworkEditCard({ tempSsid, setTempSsid, tempPassword, setTempPassword, errors, onSave, onCancel }: WifiNetworkEditCardProps) {
+export function WifiNetworkEditCard({
+  tempSsid,
+  setTempSsid,
+  tempPassword,
+  setTempPassword,
+  errors,
+  onSave,
+  onCancel,
+}: WifiNetworkEditCardProps) {
   return (
-    <WifiNetworkCardFrame>
+    <WifiNetworkRow>
       <div className="rounded-xl bg-bg-main p-4 sm:p-5">
-        <WifiNetworkEditor tempSsid={tempSsid} setTempSsid={setTempSsid} tempPassword={tempPassword} setTempPassword={setTempPassword} errors={errors} onSave={onSave} onCancel={onCancel} />
+        <WifiNetworkEditor
+          tempSsid={tempSsid}
+          setTempSsid={setTempSsid}
+          tempPassword={tempPassword}
+          setTempPassword={setTempPassword}
+          errors={errors}
+          onSave={onSave}
+          onCancel={onCancel}
+        />
       </div>
-    </WifiNetworkCardFrame>
+    </WifiNetworkRow>
   );
 }
