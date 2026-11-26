@@ -1,4 +1,5 @@
 import { Check } from "@/components/ui/hugeicons-groups/controls";
+import { soundManager } from "@/lib/audio";
 
 interface Props {
   qos: 0 | 1 | 2;
@@ -39,6 +40,7 @@ export function MqttQosSelector({ qos, setQos }: Props) {
               type="button"
               aria-pressed={isSelected}
               onClick={() => {
+                soundManager.playClick();
                 setQos(option.value);
               }}
               className={`relative flex min-h-28 cursor-pointer flex-col items-start gap-2 rounded-xl border p-4 text-start transition-[border-color,background-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2 focus-visible:ring-offset-ring-offset ${
