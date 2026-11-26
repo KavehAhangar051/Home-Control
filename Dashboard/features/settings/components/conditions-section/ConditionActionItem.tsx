@@ -260,7 +260,7 @@ export function ConditionActionItem({
           </Label>
           <Select
             id={typeId}
-            aria-label="نوع عملیات"
+            aria-label="زمان‌بندی عملیات"
             value={action.actionType || 0}
             onChange={(e) => onUpdate({ actionType: Number.parseInt(e.target.value, 10) })}
             className="bg-bg-primary p-2.5 rounded-lg text-xs"
@@ -277,7 +277,7 @@ export function ConditionActionItem({
             </Label>
             <Input
               id={delayId}
-              aria-label="زمان عملیات به ثانیه"
+              aria-label={action.actionType === 1 ? "مدت تأخیر به ثانیه" : "مدت اجرا به ثانیه"}
               type="number"
               min="1"
               max="60"
