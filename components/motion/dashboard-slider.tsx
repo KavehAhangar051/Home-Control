@@ -178,7 +178,7 @@ export function DashboardSlider({
           showValue={showValue}
           haptics={hapticsEnabled}
           disabled={disabled}
-          className={cn("dashboard-elastic-slider", className)}
+          className={cn("w-full min-w-0", className)}
         />
       );
     }
