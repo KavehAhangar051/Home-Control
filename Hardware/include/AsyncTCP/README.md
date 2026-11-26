@@ -25,9 +25,10 @@ Ultra-optimized, zero-heap asynchronous TCP library for Espressif ESP32 dual-cor
 - Added 4-byte aligned `asm_strlen()` (Mycroft zero-byte word detection) for `AsyncClient::write(const char*)` alongside `asm_min()` (`movltz`), `asm_in_range()`, and `uniuno::xtensa_asm::asm_copy_words` (`loopnez`) for 32-byte event ring transfers.
 - Packed `AsyncClient` hot scalar fields (`_pcb`, `_closed_slot`, `_ack_pcb`, `_tx_last_packet`, `_rx_ack_len`, `_rx_last_packet`, `_rx_timeout`, `_rx_last_ack`, `_ack_timeout`) into the first 32-byte cache line ahead of cold callbacks.
 
-### 5. Hot-Path Inlining (`AsyncTCP.h`) & Build Verification
+### 5. Hot-Path Inlining (`AsyncTCP.h`), Compact 16B SBO Callbacks & Build Verification
 - Removed unused `<functional>` header and moved hot queries (`canSend()`, `space()`, `state()`, `connected()`, `freeable()`, `hasPollInterest()`, `getMss()`) to `FORCE_INLINE` definitions inside `AsyncTCP.h` (requires `#include "lwip/tcp.h"`).
-- **Verified Build (`esp32dev`, PlatformIO):** `[SUCCESS]` — zero warnings in `AsyncTCP` files; `RAM: 36.3% (119,028 B)`, `Flash: 62.2% (1,223,597 B)`. Note: runtime on physical ESP32 hardware was not executed here.
+- Right-sized all 6 `Ac*Handler` typedefs to `uniuno::FastFunction<..., 16>` (`32 B` total = 1 L1 cache line per handler, zero heap allocations verified via `nm`), shrinking `AsyncClient` and improving cache locality.
+- **Verified Builds (PlatformIO):** `esp32dev` (`RAM: 24.6% / 80,752 B`, `Flash: 59.1% / 1,162,805 B`) and `esp32dev_core3` (`RAM: 26.3% / 86,324 B`, `Flash: 66.3% / 1,302,923 B`) — `[SUCCESS]` with zero warnings in `AsyncTCP` files.
 
 ---
 

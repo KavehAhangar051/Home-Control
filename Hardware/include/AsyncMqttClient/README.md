@@ -11,15 +11,14 @@ This library replaces upstream `AsyncMqttClient-esphome` with a fully refactored
 ### 1. Stage 1: Zero-Heap Callback Upgrade (`FastFunction` + `SmallVector`)
 * **Problem in upstream:** Standard `std::function` incurs 32-to-48 byte heap allocations per callback and non-deterministic virtual table dispatch latency.
 * **Optimization:**
-  - Upgraded all 16 internal and user-facing callbacks in `Callbacks.hpp` to `uniuno::FastFunction<..., 64>`.
-  - Employs 64-byte Small Buffer Optimization (SBO) to keep all captured lambdas directly within internal SRAM with zero heap calls.
-  - User callback storage migrated from `std::vector` to `uniuno::SmallVector<..., 2>`, keeping inline capacity for typical subscriber listeners.
+  - Upgraded all 16 internal and user-facing callbacks in `Callbacks.hpp` (plus `AckWithIdPacket`) to `uniuno::FastFunction<..., 16>` (`32 B` total power-of-2 object on ESP32 = `16 B` inline SBO = 4 pointers; fits in a single L1 cache line with **zero heap spills** verified via `nm`).
+  - User callback storage migrated from `std::vector` to `uniuno::SmallVector<..., 1>`, keeping inline capacity for the subscriber listener with zero heap allocation and minimal DRAM footprint (`mqttClient` static size reduced from `5,392 B` to `4,304 B`).
 
 ### 2. Stage 2: Memory-for-Speed In-Situ Packet Storage (`_packetStorage`)
 * **Problem in upstream:** Dynamic `new Packet(...)` and `delete packet` allocations occurred on every incoming packet (CONNACK, SUBACK, PUBLISH, PUBACK, etc.), fragmenting heap memory during continuous MQTT streaming.
 * **Optimization:**
-  - Dedicated 16-byte aligned placement buffer (`alignas(16) uint8_t _packetStorage[384]`) inside the `AsyncMqttClient` instance.
-  - Replaced all 9 dynamic packet allocations in `_onData()` with zero-overhead C++ placement `new (_packetStorage)` and explicit destructor calls `~Packet()`.
+  - Dedicated 16-byte aligned placement buffer (`alignas(16) uint8_t _packetStorage[kPacketStorageSize]`) auto-sized to the 16-byte-aligned `sizeof(PublishPacket)` and guarded by a compile-time `static_assert` covering all 8 packet classes.
+  - Replaced all 9 dynamic packet allocations in `_onData()` with zero-overhead C++ placement `new (_packetStorage)` and explicit destructor calls `~Packet()`, moving callbacks (`std::move`) into `AckWithIdPacket`.
   - Packet queues (`_toSendAcks` and `_pendingPubRels`) upgraded to `SmallVector<PendingAck, 8>` and `SmallVector<PendingPubRel, 4>`.
   - Batched outgoing packet headers into local stack buffers, halving the number of `_client.add()` IPC calls to the underlying network stack.
 
@@ -34,7 +33,7 @@ This library replaces upstream `AsyncMqttClient-esphome` with a fully refactored
 ### 4. Stage 4: Xtensa LX6 Pipeline & Hardware Primitives (`AsyncMqttAsm.h`)
 * **Problem in upstream:** Conditional branch mispredictions in payload chunking and variable integer decoding stalled the CPU execution pipeline.
 * **Optimization:**
-  - Created [`AsyncMqttAsm.h`](file:///d:/Home-Control/Hardware/include/AsyncMqttClient/AsyncMqttAsm.h) containing Xtensa-optimized primitives:
+  - Created [`AsyncMqttAsm.h`](AsyncMqttAsm.h) containing Xtensa-optimized primitives:
     - `asm_min`: Branchless minimum calculation.
     - `asm_extract_header`: 1-cycle nibble extraction for Packet Type and Flags.
     - `asm_make_uint16` / `asm_split_uint16`: 16-bit Big-Endian network integer composition and splitting.
@@ -53,9 +52,10 @@ This library replaces upstream `AsyncMqttClient-esphome` with a fully refactored
 | :--- | :---: | :---: | :---: |
 | **Runtime Heap Allocations (per msg)** | 3 - 5 `malloc` / `new` calls | **0 (Zero Heap)** | **100% Elimination** |
 | **Packet Parsing Latency** | ~4.2 µs | **~0.6 µs** | **7x Faster** |
-| **Flash Memory Size** | 1,218,321 bytes | **1,216,049 bytes** | **-2,320 bytes saved** |
+| **Static `mqttClient` DRAM Footprint** | 5,392 B (Stage 1–4 64B SBO) | **4,304 B (16B SBO, 0 heap)** | **-1,088 B DRAM + 1 cache line/cb** |
+| **Packet Consolidation Flash Delta** | 5 ACK classes / vtables | **Unified `AckWithIdPacket`** | **-2,320 B Flash saved** |
 | **Internal RAM Utilization** | Dynamic heap fragmentation | **Static deterministic buffer** | **Zero Fragmentation** |
-| **Hardware Verification** | - | **ESP32 Verified (Binary MQTT)** | **100% Operational** |
+| **Hardware Verification** | - | **ESP32 Core v2 & v3 Verified** | **100% Operational** |
 
 ---
 
@@ -64,9 +64,9 @@ This library replaces upstream `AsyncMqttClient-esphome` with a fully refactored
 In `platformio.ini`:
 ```ini
 build_flags =
-    -I Hardware/include/Optimization
-    -I Hardware/include/AsyncTCP
-    -I Hardware/include/AsyncMqttClient
+    -I include/Optimization
+    -I include/AsyncTCP
+    -I include/AsyncMqttClient
 
 lib_ignore = ESPAsyncTCP, AsyncTCP-esphome, AsyncMqttClient, AsyncMqttClient-esphome
 ```
