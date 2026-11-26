@@ -342,7 +342,7 @@ export function createToggle(host: HTMLElement, initial: ToggleProps = {}): Togg
   return {
     update(next) {
       const changed = props.update(next);
-      if (changed.has('size')) layout();
+      if (changed.has('size') || changed.has('shape')) layout();
       if (changed.has('value') && p().value !== undefined) set(p().value ? 1 : 0, false);
       if (changed.has('onColor') || changed.has('offColor') || changed.has('thumbColor')) { paint(); kick(); }
       if (changed.has('disabled')) disable();
