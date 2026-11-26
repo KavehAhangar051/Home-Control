@@ -27,7 +27,6 @@ import {
   hasExplicitAnalogTargetValue,
   isAnalogOutputSegment,
   MAX_ANALOG_OUTPUT_VALUE,
-  percentToAnalogDuty,
 } from "@/features/iot/utils/analogOutput";
 
 export interface MacroSegmentSnapshot {
@@ -569,7 +568,7 @@ export function evaluateMacroExecution(
     const rawAction = macro.actions[i];
     if (rawAction.actionKind === "http") {
       const httpCfg = normalizeMacroHttpRequest(rawAction.httpRequest);
-      if (!httpCfg || !httpCfg.url) continue;
+      if (!httpCfg?.url) continue;
       const actionLabel = httpCfg.label || `${httpCfg.method} ${httpCfg.url}`;
       const evalResult = evaluateMacroConditionList(
         getMacroActionConditions(rawAction),
