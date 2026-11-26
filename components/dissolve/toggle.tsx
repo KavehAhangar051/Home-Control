@@ -27,3 +27,9 @@ export function Toggle({ className, style, onClick, ...props }: ToggleProps) {
   const { host } = useDissolveCore(createToggle, props);
   return <button ref={host} type="button" className={className} style={style} onClick={onClick} />;
 }
+
+/** A non-interactive grain switch for status indicators inside an owning control. */
+export function ToggleIndicator({ className, style, ...props }: ToggleProps) {
+  const { host } = useDissolveCore(createToggle, { ...props, interactive: false, haptics: false });
+  return <span ref={host} className={className} style={style} aria-hidden="true" />;
+}
