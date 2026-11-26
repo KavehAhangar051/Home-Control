@@ -74,6 +74,7 @@ export function DashboardSlider({
   formatValueText,
 }: DashboardSliderProps) {
   const preference = usePreferencesStore((s) => s.sliderStyle);
+  const hapticsEnabled = usePreferencesStore((s) => s.hapticsEnabled);
   const variant = variantOverride ?? resolveEffectiveSliderVariant(preference, defaultVariant);
 
   const sharedOptions: SliderOptions = {
@@ -170,6 +171,7 @@ export function DashboardSlider({
           formatValueText={formatValueText}
           showTicks={showTicks}
           showValue={showValue}
+          haptics={hapticsEnabled}
           disabled={disabled}
           className={cn("dashboard-elastic-slider", className)}
         />
