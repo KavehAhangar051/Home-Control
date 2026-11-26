@@ -138,13 +138,34 @@
 
 ---
 
+## فاز ۳: متمرکزسازی توکن‌ها (`include/ProjectConfig.h`) و کاهش مجدد Flash / IRAM / RAM
+
+تمام مقادیر قابل تنظیم فاز ۱ و ۲ (استک‌ها، ظرفیت `EventBus`، `Executor`، `MAX_ANALOG_SLOTS`، `FastFunction` SBO، فلگ‌های `Timer`، `ErrorHandler`، `ESP_NOW` و تنظیمات لاگینگ/شبکه) اکنون در یک فایل واحد یعنی **`include/ProjectConfig.h`** متمرکز شده‌اند؛ بنابراین برای تغییر یا بازگردانی هر مورد، دیگر نیازی به ویرایش چندین فایل نیست.
+
+### بهینه‌سازی‌های اضافه‌شده در فاز ۳ (صفر یا منفی سیکل CPU)
+1. **یکپارچه‌سازی ماکروهای لاگ (`include/Utilities/logging.h`):** جایگزینی ۴ تا ۵ فراخوانی `Serial.print/printf/println` در ۲۲۰ نقطه لاگ با دو تابع `noinline, cold` مشترک (`emitMsg` / `emitFmt`) با فقط ۱ قفل UART در هر خط لاگ + کنترل `ACHAEMENID_LOG_INCLUDE_FILE_LINE`.
+2. **گیت کردن `ESP_NOW` استفاده‌نشده (`ACHAEMENID_ENABLE_ESP_NOW = 0`):** حذف کامل آبجکت سراسری `ESP_NOW` و توابع IRAM درایور آن تا زمان نیاز واقعی.
+3. **حذف تایمر مرده ۶۰ ثانیه‌ای در `SystemSetup.cpp`**، **ارسال `const RuleConfig&` به‌جای کپی ارزشی در `PinManager`**، **حذف نوشتن‌های تکراری پیش از `reset()` در `NvsSegmentStorage.cpp`** و **حذف اینلاین ۵برابری `applyState` + اشتراک لامبدای تایمر در `ActionStrategies.cpp`**.
+
+### نتیجه نهایی پس از فاز ۳ (اندازه‌گیری‌شده از ELF و `firmware.bin`)
+- **`esp32dev` (Core v2):**
+  - RAM استاتیک: **`80,484 B`** (`24.6%`, `-268 B` نسبت به فاز ۲)
+  - IRAM (`.iram0.text`): **`85,099 B`** (`-2,032 B` نسبت به فاز ۲)
+  - Flash گزارش PlatformIO: **`1,146,565 B`** (`58.3%`, **`-16,240 B`** نسبت به فاز ۲) | `firmware.bin`: **`1,153,136 B`** (`-15,984 B`)
+- **`esp32dev_core3` (Core v3):**
+  - RAM استاتیک: **`86,052 B`** (`26.3%`, `-272 B` نسبت به فاز ۲)
+  - IRAM (`.iram0.text`): **`91,939 B`** (`-1,788 B` نسبت به فاز ۲)
+  - Flash گزارش PlatformIO: **`1,288,063 B`** (`65.5%`, **`-14,860 B`** نسبت به فاز ۲) | `firmware.bin`: **`1,292,848 B`** (`-14,864 B`)
+
+---
+
 ## نکته مهم هنگام بازگردانی تغییرات
 
-پس از برگرداندن هرکدام از موارد بالا، حتماً با یکی از محیط‌های کامپایل کامل بیلد بگیرید تا باینری‌های `firmware/prebuilt/` هم به‌روزرسانی شوند:
+پس از تغییر هر توکن در `include/ProjectConfig.h`، با یکی از محیط‌های کامپایل کامل بیلد بگیرید تا باینری‌های `firmware/prebuilt/` هم به‌روزرسانی شوند:
 ```bash
-pio run -e esp32dev
+bun run r -- pio run -e esp32dev
 # یا برای Core v3:
-pio run -e esp32dev_core3
+bun run r -- pio run -e esp32dev_core3
 ```
 
 

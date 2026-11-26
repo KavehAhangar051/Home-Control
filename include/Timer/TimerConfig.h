@@ -37,6 +37,8 @@
 
 #pragma once
 
+#include <ProjectConfig.h>
+
 // ============================================
 // EVENT PRESETS (Optional - use for convenience)
 // ============================================
@@ -134,7 +136,9 @@
  *
  * @see Timer::set_immediate()
  */
-// #define TIMER_ENABLE_IMMEDIATE
+#if ACHAEMENID_ENABLE_TIMER_IMMEDIATE
+#define TIMER_ENABLE_IMMEDIATE
+#endif
 
 /**
  * @def TIMER_ENABLE_INTERVAL_UNTIL
@@ -147,7 +151,9 @@
  *
  * @see Timer::set_interval_until()
  */
-// #define TIMER_ENABLE_INTERVAL_UNTIL
+#if ACHAEMENID_ENABLE_TIMER_INTERVAL_UNTIL
+#define TIMER_ENABLE_INTERVAL_UNTIL
+#endif
 
 /**
  * @def TIMER_ENABLE_ON_LOOP
@@ -183,17 +189,10 @@
  * PURPOSE: Manage multiple timers as a group
  * MEMORY: ~300 bytes Flash + 24 bytes per group
  * USE CASE: Pause/resume/clear multiple timers together
- *
- * USAGE:
- * @code
- *   #include <Timer/TimerGroup.h>
- *   TimerGroup group;
- *   group.add(timer.setTimeout(...));
- *   group.pauseAll();
- *   group.resumeAll();
- * @endcode
  */
-// #define TIMER_ENABLE_GROUPS
+#if ACHAEMENID_ENABLE_TIMER_GROUPS
+#define TIMER_ENABLE_GROUPS
+#endif
 
 // ============================================
 // ASYNC/FUTURE SUPPORT (Optional)

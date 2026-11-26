@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <ProjectConfig.h>
 #include <AsyncMqttClient.h>
 #include <Optimization/FastFunction.h>
 #include "MqttConfig.h"
@@ -10,7 +11,8 @@ namespace uniuno {
 
 class AchaemenidMQTT {
 public:
-  using MessageCallback = uniuno::FastFunction<void(const uint8_t* payload, size_t length), 16>;
+  using MessageCallback =
+      uniuno::FastFunction<void(const uint8_t* payload, size_t length), ACHAEMENID_CALLBACK_SBO_BYTES>;
 
   AchaemenidMQTT();
   ~AchaemenidMQTT();

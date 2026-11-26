@@ -4,12 +4,14 @@
  *
  * بهینه‌سازی‌های اعمال‌شده روی loop() (Memory-for-Speed):
  *  1. IRAM_ATTR روی loop() — حذف flash cache miss در hot path
- *  2. LoopFn Dispatch Table — حذف null-check pointer هر سیکل
+ *  2. Inline Fast-Gates در IRAM — حذف callx8 غیرمستقیم و فراخوانی Flash در تیک‌های
+ * عادی
  *  3. Pre-cached Callbacks — حذف StaticFunction::bind() از hot path
- *  4. CCOUNT Throttle — wsServer/wsClient هر 1ms و Watchdog/OTA health هر 500ms
+ *  4. CCOUNT Throttle — wsServer/wsClient و Watchdog/OTA health با توکن‌های ProjectConfig.h
  */
 
 #include <Arduino.h>
+#include <ProjectConfig.h>
 #include <core/Globals.h>
 #include <setup/SystemSetup.h>
 #include <BootManager.h>
@@ -27,9 +29,9 @@
 // ============================================================================
 // Stack size override
 // ============================================================================
-// Override weak Arduino-ESP32 loopTask stack size (default 8KB → 16KB)
+// Override weak Arduino-ESP32 loopTask stack size (configured via ProjectConfig.h)
 size_t getArduinoLoopTaskStackSize(void) {
-  return 10240;
+  return ACHAEMENID_LOOP_TASK_STACK_SIZE;
 }
 
 // ============================================================================
@@ -67,7 +69,7 @@ static void onAnalogChanged_cached(const AnalogInputChange& ch, const RuleConfig
 }
 
 // ============================================================================
-// Cold out-of-line WebSocket poll slow path (runs at most once per 1ms)
+// Cold out-of-line WebSocket poll slow path (runs at most once per WS interval)
 // ============================================================================
 static __attribute__((noinline)) void pollWebSocketsSlowPath() {
   if (wsServer) wsServer->loop();
@@ -79,20 +81,20 @@ static __attribute__((noinline)) void pollWebSocketsSlowPath() {
 // ============================================================================
 
 void setup() {
-  Serial.begin(115200);
-  delay(1000);
+  Serial.begin(ACHAEMENID_SERIAL_BAUD);
+  delay(ACHAEMENID_BOOT_DELAY_MS);
 
   Serial.println("\n==========================================");
   Serial.println("  Achaemenid IoT Node - Modular Async     ");
   Serial.println("==========================================");
 
   setupErrorHandler();
-  setupWatchdog(15);
+  setupWatchdog(ACHAEMENID_WDT_TIMEOUT_SEC);
   setupEventBus();
   setupNetworkAndTime();
   setupTimer();
   if (appTimer != nullptr) {
-    appTimer->startHardwareTimer(1000);
+    appTimer->startHardwareTimer(ACHAEMENID_HW_TIMER_RESOLUTION_US);
     INFO("[System] Hardware timer started at 1ms resolution.");
   }
   setupMqtt();
@@ -100,8 +102,8 @@ void setup() {
   setupRuleEngine();
 
   // Load Network Configuration from NVS
-  String savedSSID[5];
-  String savedPass[5];
+  String savedSSID[ACHAEMENID_MAX_SAVED_WIFI_NETWORKS];
+  String savedPass[ACHAEMENID_MAX_SAVED_WIFI_NETWORKS];
   int savedCount = 0;
   MqttConfig savedMqtt;
   loadNetworkConfig(savedSSID, savedPass, savedCount, savedMqtt);
@@ -116,11 +118,12 @@ void setup() {
   if (savedMqtt.valid) {
     mqttClient.begin(String(savedMqtt.host), savedMqtt.port, String(savedMqtt.baseTopic), savedMqtt.qos,
                      String(savedMqtt.user), String(savedMqtt.password));
-    mqttClient.subscribe(String(savedMqtt.baseTopic) + "/Command");
+    mqttClient.subscribe(String(savedMqtt.baseTopic) + ACHAEMENID_FALLBACK_MQTT_COMMAND_SUFFIX);
     INFOF("[System] Restored MQTT settings from NVS (Host: %s)", savedMqtt.host);
   } else {
-    mqttClient.begin("broker.emqx.io", 1883, "KamyarIoT/Achaemenid", 1, "", "");
-    mqttClient.subscribe("KamyarIoT/Achaemenid/Command");
+    mqttClient.begin(ACHAEMENID_FALLBACK_MQTT_HOST, ACHAEMENID_FALLBACK_MQTT_PORT, ACHAEMENID_FALLBACK_MQTT_TOPIC,
+                     ACHAEMENID_FALLBACK_MQTT_QOS, ACHAEMENID_FALLBACK_MQTT_USER, ACHAEMENID_FALLBACK_MQTT_PASS);
+    mqttClient.subscribe(ACHAEMENID_FALLBACK_MQTT_TOPIC ACHAEMENID_FALLBACK_MQTT_COMMAND_SUFFIX);
     WARNING("[System] No MQTT settings in NVS. Configured fallback broker independently of Cloudflare.");
   }
 

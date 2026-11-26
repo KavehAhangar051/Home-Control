@@ -2,6 +2,10 @@
 #define logging_h
 #pragma once
 
+#include <ProjectConfig.h>
+#include <stdarg.h>
+#include <stdio.h>
+
 #define LOG_LEVEL_TRACE 0
 #define LOG_LEVEL_DEBUG 100
 #define LOG_LEVEL_INFO 200
@@ -13,96 +17,97 @@
 #define LOG_LEVEL_EMERGENCY 600
 
 #ifndef LOG_LEVEL
-#define LOG_LEVEL LOG_LEVEL_INFO
+#define LOG_LEVEL ACHAEMENID_LOG_LEVEL
 #endif
 
 #ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
-static const __FlashStringHelper* get_level_name(int level) {
+namespace uniuno {
+namespace log_detail {
+
+inline const char* levelName(int level) {
   switch (level) {
-  case 100:
-    return F("DEBUG");
-  case 200:
-    return F("INFO");
-  case 250:
-    return F("NOTICE");
-  case 300:
-    return F("WARNING");
-  case 400:
-    return F("ERROR");
-  case 500:
-    return F("CRITICAL");
-  case 550:
-    return F("ALERT");
-  case 600:
-    return F("EMERGENCY");
-  }
-  return F("TRACE");
-}
-
-#define LOGF(level, f_, ...)                                                                                           \
-  {                                                                                                                    \
-    if (LOG_LEVEL <= level) {                                                                                          \
-      Serial.print(F("["));                                                                                            \
-      Serial.print(get_level_name(level));                                                                             \
-      Serial.printf_P(PSTR("]::[%s:%d]:"), __FILE__, __LINE__);                                                        \
-      Serial.printf_P(PSTR((f_)), __VA_ARGS__);                                                                        \
-      Serial.println();                                                                                                \
-    }                                                                                                                  \
-  }
-#define LOG(level, msg)                                                                                                \
-  {                                                                                                                    \
-    if (LOG_LEVEL <= level) {                                                                                          \
-      Serial.print(F("["));                                                                                            \
-      Serial.print(get_level_name(level));                                                                             \
-      Serial.printf_P(PSTR("]::[%s:%d]:"), __FILE__, __LINE__);                                                        \
-      Serial.println(F(msg));                                                                                          \
-    }                                                                                                                  \
-  }
-
-#else
-
-static const char* get_level_name(int level) {
-  switch (level) {
-  case 100:
+  case LOG_LEVEL_DEBUG:
     return "DEBUG";
-  case 200:
+  case LOG_LEVEL_INFO:
     return "INFO";
-  case 250:
+  case LOG_LEVEL_NOTICE:
     return "NOTICE";
-  case 300:
+  case LOG_LEVEL_WARNING:
     return "WARNING";
-  case 400:
+  case LOG_LEVEL_ERROR:
     return "ERROR";
-  case 500:
+  case LOG_LEVEL_CRITICAL:
     return "CRITICAL";
-  case 550:
+  case LOG_LEVEL_ALERT:
     return "ALERT";
-  case 600:
+  case LOG_LEVEL_EMERGENCY:
     return "EMERGENCY";
+  default:
+    return "TRACE";
   }
-  return "TRACE";
 }
 
-#define LOG(level, msg)                                                                                                \
-  {                                                                                                                    \
-    if (LOG_LEVEL <= level) {                                                                                          \
-      printf("[%s]", get_level_name(level));                                                                           \
-      printf("::[%s:%d]:", __FILE__, __LINE__);                                                                        \
-      printf("%s\n", msg);                                                                                             \
-    }                                                                                                                  \
-  }
+// Single linkonce cold helper: shrinks every log call site from 5 Serial calls to 1
+// and acquires the HardwareSerial mutex only once per line (faster + atomic + huge Flash savings).
+inline __attribute__((noinline, cold)) void emitMsg(int level, const char* file, int line, const char* msg) {
+#if ACHAEMENID_LOG_INCLUDE_FILE_LINE
+#ifdef ARDUINO
+  Serial.printf("[%s]::[%s:%d]:%s\n", levelName(level), file, line, msg);
+#else
+  printf("[%s]::[%s:%d]:%s\n", levelName(level), file, line, msg);
+#endif
+#else
+  (void)file;
+  (void)line;
+#ifdef ARDUINO
+  Serial.printf("[%s]: %s\n", levelName(level), msg);
+#else
+  printf("[%s]: %s\n", levelName(level), msg);
+#endif
+#endif
+}
 
-#define LOGF(level, f_, ...)                                                                                           \
-  {                                                                                                                    \
-    if (LOG_LEVEL <= level) {                                                                                          \
-      printf("[%s]", get_level_name(level));                                                                           \
-      printf("::[%s:%d]:", __FILE__, __LINE__);                                                                        \
-      printf(f_, __VA_ARGS__);                                                                                         \
-      printf("\n");                                                                                                    \
+inline __attribute__((noinline, cold)) void emitFmt(int level, const char* file, int line, const char* fmt, ...) {
+  char buf[ACHAEMENID_LOG_LINE_BUF_SIZE];
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, args);
+  va_end(args);
+  emitMsg(level, file, line, buf);
+}
+
+} // namespace log_detail
+} // namespace uniuno
+
+#if ACHAEMENID_LOG_INCLUDE_FILE_LINE
+#define LOG(level, msg)                                                                                                \
+  do {                                                                                                                 \
+    if (LOG_LEVEL <= (level)) {                                                                                        \
+      ::uniuno::log_detail::emitMsg((level), __FILE__, __LINE__, (msg));                                               \
     }                                                                                                                  \
-  }
+  } while (0)
+#define LOGF(level, f_, ...)                                                                                           \
+  do {                                                                                                                 \
+    if (LOG_LEVEL <= (level)) {                                                                                        \
+      ::uniuno::log_detail::emitFmt((level), __FILE__, __LINE__, (f_), __VA_ARGS__);                                   \
+    }                                                                                                                  \
+  } while (0)
+#else
+#define LOG(level, msg)                                                                                                \
+  do {                                                                                                                 \
+    if (LOG_LEVEL <= (level)) {                                                                                        \
+      ::uniuno::log_detail::emitMsg((level), nullptr, 0, (msg));                                                       \
+    }                                                                                                                  \
+  } while (0)
+#define LOGF(level, f_, ...)                                                                                           \
+  do {                                                                                                                 \
+    if (LOG_LEVEL <= (level)) {                                                                                        \
+      ::uniuno::log_detail::emitFmt((level), nullptr, 0, (f_), __VA_ARGS__);                                           \
+    }                                                                                                                  \
+  } while (0)
 #endif
 
 #if LOG_LEVEL <= LOG_LEVEL_TRACE

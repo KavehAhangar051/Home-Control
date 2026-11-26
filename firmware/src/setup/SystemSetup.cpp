@@ -1,4 +1,5 @@
 #include "SystemSetup.h"
+#include <ProjectConfig.h>
 #include <core/Globals.h>
 #include <Core/Error/ErrorHandler.h>
 #include <Utilities/SystemDiagnostics.h>
@@ -35,12 +36,12 @@ void setupErrorHandler() {
                                                                         : "INFO";
     Serial.printf("[%s] %s: %s\n", sev, info.context, info.message);
   });
-  uniuno::ErrorHandler::getInstance().setThrottle("HTTP", 5000);
-  uniuno::ErrorHandler::getInstance().setThrottle("MQTT", 5000);
+  uniuno::ErrorHandler::getInstance().setThrottle("HTTP", ACHAEMENID_ERROR_THROTTLE_MS);
+  uniuno::ErrorHandler::getInstance().setThrottle("MQTT", ACHAEMENID_ERROR_THROTTLE_MS);
 }
 
 void setupWatchdog(uint32_t timeoutSec) {
-  s_otaHealthGate.begin(millis(), 30000UL);
+  s_otaHealthGate.begin(millis(), ACHAEMENID_OTA_CONFIRM_DELAY_MS);
 
 #ifdef ESP32
   const char* reason = uniuno::diagnostics::resetReasonToString(static_cast<int>(esp_reset_reason()));
@@ -110,18 +111,6 @@ void setupTimer() {
   features.clear = true;
   static uniuno::Timer timerInstance(features, millis, &eventBus);
   appTimer = &timerInstance;
-
-  // حذف شد: safety-net interval که هر ۶۰ ثانیه printStatus صدا میزد
-  // و باعث می‌شد که sync غیرضروری برای پین‌ها صورت بگیرد.
-  // وضعیت پین‌ها فقط هنگام بوت (BootManager) یک‌بار چاپ می‌شود.
-
-  appTimer->setInterval(
-      [] {
-        if (!configLoaded || !::network || !::network->isConnected()) return;
-        // Ping removed: MQTT connection is natively maintained by AsyncMqttClient (keep-alive)
-        // LWT (Last Will and Testament) on /Status topic now handles offline detection.
-      },
-      60000);
 }
 
 void setupMqtt() {
@@ -151,7 +140,7 @@ void setupWebSocket() {
   wsClient = &wsClientInstance;
   wsServer = &wsServerInstance;
 
-  wsClient->begin("wss://db.home-control.enddev.ir/ws");
+  wsClient->begin(ACHAEMENID_DEFAULT_WS_URL);
 }
 
 void setupRuleEngine() {

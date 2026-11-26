@@ -149,13 +149,19 @@ private:
   std::vector<std::array<uint8_t, SHA1_SIZE>> _secureServerFingerprints;
 #endif
 
-  // Zero-Heap Callback Vectors (Max-Velocity SmallVector; inline capacity 1 fits single subscriber with 0 heap)
-  uniuno::SmallVector<AsyncMqttClientInternals::OnConnectUserCallback, 1> _onConnectUserCallbacks;
-  uniuno::SmallVector<AsyncMqttClientInternals::OnDisconnectUserCallback, 1> _onDisconnectUserCallbacks;
-  uniuno::SmallVector<AsyncMqttClientInternals::OnSubscribeUserCallback, 1> _onSubscribeUserCallbacks;
-  uniuno::SmallVector<AsyncMqttClientInternals::OnUnsubscribeUserCallback, 1> _onUnsubscribeUserCallbacks;
-  uniuno::SmallVector<AsyncMqttClientInternals::OnMessageUserCallback, 1> _onMessageUserCallbacks;
-  uniuno::SmallVector<AsyncMqttClientInternals::OnPublishUserCallback, 1> _onPublishUserCallbacks;
+  // Zero-Heap Callback Vectors (configured via ACHAEMENID_MQTT_USER_CB_INLINE_CAP)
+  uniuno::SmallVector<AsyncMqttClientInternals::OnConnectUserCallback, ACHAEMENID_MQTT_USER_CB_INLINE_CAP>
+      _onConnectUserCallbacks;
+  uniuno::SmallVector<AsyncMqttClientInternals::OnDisconnectUserCallback, ACHAEMENID_MQTT_USER_CB_INLINE_CAP>
+      _onDisconnectUserCallbacks;
+  uniuno::SmallVector<AsyncMqttClientInternals::OnSubscribeUserCallback, ACHAEMENID_MQTT_USER_CB_INLINE_CAP>
+      _onSubscribeUserCallbacks;
+  uniuno::SmallVector<AsyncMqttClientInternals::OnUnsubscribeUserCallback, ACHAEMENID_MQTT_USER_CB_INLINE_CAP>
+      _onUnsubscribeUserCallbacks;
+  uniuno::SmallVector<AsyncMqttClientInternals::OnMessageUserCallback, ACHAEMENID_MQTT_USER_CB_INLINE_CAP>
+      _onMessageUserCallbacks;
+  uniuno::SmallVector<AsyncMqttClientInternals::OnPublishUserCallback, ACHAEMENID_MQTT_USER_CB_INLINE_CAP>
+      _onPublishUserCallbacks;
 
   // Zero-Heap Placement-New Packet Storage (exact 16-byte aligned size for largest packet)
   AsyncMqttClientInternals::ParsingInformation _parsingInformation;

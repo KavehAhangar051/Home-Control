@@ -10,7 +10,7 @@ namespace rules {
 /**
  * @brief Helper to update physical pin state (digital or analog PWM) and dispatch state change event.
  */
-HOT_PATH FORCE_INLINE static void applyState(int targetPin, bool stateToApply, int16_t analogValue, RuleContext& ctx) {
+HOT_PATH static void applyState(int targetPin, bool stateToApply, int16_t analogValue, RuleContext& ctx) {
   if (ctx.pinManager == nullptr) return;
 
   // An independent automation transition supersedes any Dashboard auto-off timer.
@@ -38,6 +38,26 @@ HOT_PATH FORCE_INLINE static void applyState(int targetPin, bool stateToApply, i
   } else {
     WARNINGF("[Rule] Action failed: target GPIO %d is not registered as an output segment", targetPin);
   }
+}
+
+/**
+ * @brief Shared helper to schedule a deferred rule action timer (used by AFTER_DELAY and FOR_DURATION).
+ *        Eliminates duplicate lambda instantiations in Flash while keeping hot-path code compact.
+ */
+static void scheduleDeferredRuleAction(RuleContext& ctx, int targetPin, bool stateToApply, int16_t analogValue,
+                                       int actDelay) {
+  ctx.pinManager->setPendingRuleActionState(targetPin, stateToApply);
+  ctx.pinManager->setPendingRuleActionAnalogValue(targetPin, analogValue);
+  uniuno::TimerHandle newTimer = ctx.appTimer->setTimeout(
+      [ctx, targetPin, stateToApply, analogValue]() mutable {
+        if (ctx.pinManager != nullptr) {
+          ctx.pinManager->setRuleActionTimerIdByPin(targetPin, uniuno::TimerHandle());
+          ctx.pinManager->setPendingRuleActionAnalogValue(targetPin, RULE_ANALOG_VALUE_UNSET);
+        }
+        applyState(targetPin, stateToApply, analogValue, ctx);
+      },
+      actDelay * 1000);
+  ctx.pinManager->setRuleActionTimerIdByPin(targetPin, newTimer);
 }
 
 /**
@@ -120,18 +140,7 @@ HOT_PATH void ActionExecutor::executeUnchecked(const RuleAction& act, int source
       INFOF("[Rule] Executing AFTER_DELAY action: Set Pin %d to %s after %ds", tPin, aState ? "HIGH" : "LOW", actDelay);
     }
     if (ctx.appTimer != nullptr && actDelay > 0 && actDelay <= 60) {
-      ctx.pinManager->setPendingRuleActionState(tPin, aState);
-      ctx.pinManager->setPendingRuleActionAnalogValue(tPin, aVal);
-      uniuno::TimerHandle newTimer = ctx.appTimer->setTimeout(
-          [ctx, tPin, aState, aVal]() mutable {
-            if (ctx.pinManager != nullptr) {
-              ctx.pinManager->setRuleActionTimerIdByPin(tPin, uniuno::TimerHandle());
-              ctx.pinManager->setPendingRuleActionAnalogValue(tPin, RULE_ANALOG_VALUE_UNSET);
-            }
-            applyState(tPin, aState, aVal, ctx);
-          },
-          actDelay * 1000);
-      ctx.pinManager->setRuleActionTimerIdByPin(tPin, newTimer);
+      scheduleDeferredRuleAction(ctx, tPin, aState, aVal, actDelay);
     } else {
       applyState(tPin, aState, aVal, ctx);
     }
@@ -149,18 +158,7 @@ HOT_PATH void ActionExecutor::executeUnchecked(const RuleAction& act, int source
       const bool reverseState = (aVal >= 0) ? (aVal == 0) : !aState;
       const int16_t reverseAnalog =
           (aVal > 0 && ctx.pinManager->isAnalogOutputPin(tPin)) ? static_cast<int16_t>(0) : RULE_ANALOG_VALUE_UNSET;
-      ctx.pinManager->setPendingRuleActionState(tPin, reverseState);
-      ctx.pinManager->setPendingRuleActionAnalogValue(tPin, reverseAnalog);
-      uniuno::TimerHandle newTimer = ctx.appTimer->setTimeout(
-          [ctx, tPin, reverseState, reverseAnalog]() mutable {
-            if (ctx.pinManager != nullptr) {
-              ctx.pinManager->setRuleActionTimerIdByPin(tPin, uniuno::TimerHandle());
-              ctx.pinManager->setPendingRuleActionAnalogValue(tPin, RULE_ANALOG_VALUE_UNSET);
-            }
-            applyState(tPin, reverseState, reverseAnalog, ctx);
-          },
-          actDelay * 1000);
-      ctx.pinManager->setRuleActionTimerIdByPin(tPin, newTimer);
+      scheduleDeferredRuleAction(ctx, tPin, reverseState, reverseAnalog, actDelay);
     }
     break;
   }

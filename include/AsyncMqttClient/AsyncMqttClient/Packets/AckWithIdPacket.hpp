@@ -14,7 +14,7 @@ namespace AsyncMqttClientInternals {
 class AckWithIdPacket : public Packet {
 public:
   explicit AckWithIdPacket(ParsingInformation* parsingInformation,
-                           uniuno::FastFunction<void(uint16_t packetId), 16> callback);
+                           uniuno::FastFunction<void(uint16_t packetId), ACHAEMENID_CALLBACK_SBO_BYTES> callback);
   ~AckWithIdPacket() override;
 
   void parseVariableHeader(uint8_t* data, size_t len, size_t* currentBytePosition) override;
@@ -22,7 +22,7 @@ public:
 
 private:
   ParsingInformation* _parsingInformation;
-  uniuno::FastFunction<void(uint16_t packetId), 16> _callback;
+  uniuno::FastFunction<void(uint16_t packetId), ACHAEMENID_CALLBACK_SBO_BYTES> _callback;
 
   uint8_t _bytePosition;
   uint8_t _packetIdMsb;

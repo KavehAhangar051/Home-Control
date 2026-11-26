@@ -55,8 +55,10 @@ extern "C" {
 #define CONFIG_ASYNC_TCP_USE_WDT 1      // if enabled, adds between 33us and 200us per event
 #endif
 
+#include <ProjectConfig.h>
+
 #ifndef CONFIG_ASYNC_TCP_STACK_SIZE
-#define CONFIG_ASYNC_TCP_STACK_SIZE 8192
+#define CONFIG_ASYNC_TCP_STACK_SIZE ACHAEMENID_ASYNC_TCP_STACK_SIZE
 #endif
 
 class AsyncClient;
@@ -70,13 +72,15 @@ class AsyncClient;
 #include <Optimization/FastFunction.h>
 #include <Optimization/CompilerTraits.h>
 
-// Max-Velocity 32-byte Power-of-2 SBO callbacks (16B inline = 4 pointers, zero heap)
-typedef uniuno::FastFunction<void(void*, AsyncClient*), 16> AcConnectHandler;
-typedef uniuno::FastFunction<void(void*, AsyncClient*, size_t len, uint32_t time), 16> AcAckHandler;
-typedef uniuno::FastFunction<void(void*, AsyncClient*, int8_t error), 16> AcErrorHandler;
-typedef uniuno::FastFunction<void(void*, AsyncClient*, void* data, size_t len), 16> AcDataHandler;
-typedef uniuno::FastFunction<void(void*, AsyncClient*, struct pbuf* pb), 16> AcPacketHandler;
-typedef uniuno::FastFunction<void(void*, AsyncClient*, uint32_t time), 16> AcTimeoutHandler;
+// Max-Velocity Power-of-2 SBO callbacks (configured via ACHAEMENID_CALLBACK_SBO_BYTES)
+typedef uniuno::FastFunction<void(void*, AsyncClient*), ACHAEMENID_CALLBACK_SBO_BYTES> AcConnectHandler;
+typedef uniuno::FastFunction<void(void*, AsyncClient*, size_t len, uint32_t time), ACHAEMENID_CALLBACK_SBO_BYTES>
+    AcAckHandler;
+typedef uniuno::FastFunction<void(void*, AsyncClient*, int8_t error), ACHAEMENID_CALLBACK_SBO_BYTES> AcErrorHandler;
+typedef uniuno::FastFunction<void(void*, AsyncClient*, void* data, size_t len), ACHAEMENID_CALLBACK_SBO_BYTES>
+    AcDataHandler;
+typedef uniuno::FastFunction<void(void*, AsyncClient*, struct pbuf* pb), ACHAEMENID_CALLBACK_SBO_BYTES> AcPacketHandler;
+typedef uniuno::FastFunction<void(void*, AsyncClient*, uint32_t time), ACHAEMENID_CALLBACK_SBO_BYTES> AcTimeoutHandler;
 
 struct tcp_pcb;
 struct ip_addr;

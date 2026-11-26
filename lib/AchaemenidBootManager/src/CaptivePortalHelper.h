@@ -1,6 +1,7 @@
 #ifndef CAPTIVE_PORTAL_HELPER_H
 #define CAPTIVE_PORTAL_HELPER_H
 
+#include <ProjectConfig.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -8,13 +9,13 @@
 namespace uniuno {
 namespace captive_portal {
 
-constexpr const char* kDefaultMdnsHostname = "achaemenid";
-constexpr const char* kDefaultMdnsFqdn = "achaemenid.local";
-constexpr const char* kDefaultPortalUrl = "http://achaemenid.local/";
-constexpr const char* kDefaultApIp = "192.168.4.1";
-constexpr uint16_t kDnsPort = 53;
-constexpr uint32_t kDnsTtlSeconds = 60;
-constexpr unsigned long kDefaultProvisioningIdleRetryMs = 180000UL; // 3 minutes
+constexpr const char* kDefaultMdnsHostname = ACHAEMENID_MDNS_HOSTNAME;
+constexpr const char* kDefaultMdnsFqdn = ACHAEMENID_MDNS_HOSTNAME ".local";
+constexpr const char* kDefaultPortalUrl = "http://" ACHAEMENID_MDNS_HOSTNAME ".local/";
+constexpr const char* kDefaultApIp = ACHAEMENID_AP_IP;
+constexpr uint16_t kDnsPort = ACHAEMENID_DNS_PORT;
+constexpr uint32_t kDnsTtlSeconds = ACHAEMENID_DNS_TTL_SECONDS;
+constexpr unsigned long kDefaultProvisioningIdleRetryMs = ACHAEMENID_PROVISIONING_IDLE_RETRY_MS;
 
 inline char toLowerAscii(char c) {
   return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
