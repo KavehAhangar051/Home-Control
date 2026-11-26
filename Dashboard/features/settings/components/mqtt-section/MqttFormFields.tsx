@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { MqttValidationErrors } from "./mqttValidation";
 
 interface Props {
   brokerWsUrl: string;
@@ -8,6 +9,7 @@ interface Props {
   setBrokerHost: (val: string) => void;
   brokerPort: number;
   setBrokerPort: (val: number) => void;
+  errors: MqttValidationErrors;
 }
 
 export function MqttFormFields({
@@ -17,6 +19,7 @@ export function MqttFormFields({
   setBrokerHost,
   brokerPort,
   setBrokerPort,
+  errors,
 }: Props) {
   return (
     <div className="space-y-7">
@@ -33,16 +36,23 @@ export function MqttFormFields({
           </Label>
           <Input
             id="mqtt-broker-ws-url"
-            aria-describedby="mqtt-broker-ws-url-help"
+            aria-invalid={Boolean(errors.brokerWsUrl)}
+            aria-describedby={errors.brokerWsUrl ? "mqtt-broker-ws-url-help mqtt-broker-ws-url-error" : "mqtt-broker-ws-url-help"}
             type="text"
             dir="ltr"
             autoCapitalize="none"
             spellCheck={false}
+            required
             value={brokerWsUrl}
             onChange={(event) => setBrokerWsUrl(event.target.value)}
             className="h-11 font-mono text-base sm:text-sm"
             placeholder="wss://broker.emqx.io:8084/mqtt"
           />
+          {errors.brokerWsUrl && (
+            <p id="mqtt-broker-ws-url-error" className="text-xs leading-5 text-red-700 dark:text-red-300">
+              {errors.brokerWsUrl}
+            </p>
+          )}
         </div>
       </fieldset>
 
@@ -64,14 +74,21 @@ export function MqttFormFields({
               dir="ltr"
               autoCapitalize="none"
               spellCheck={false}
-              aria-describedby="mqtt-tcp-connection-help"
+              required
+              aria-invalid={Boolean(errors.brokerHost)}
+              aria-describedby={errors.brokerHost ? "mqtt-tcp-connection-help mqtt-broker-host-error" : "mqtt-tcp-connection-help"}
               value={brokerHost}
               onChange={(event) => setBrokerHost(event.target.value)}
               className="h-11 font-mono text-base sm:text-sm"
               placeholder="broker.emqx.io"
             />
+            {errors.brokerHost && (
+              <p id="mqtt-broker-host-error" className="text-xs leading-5 text-red-700 dark:text-red-300">
+                {errors.brokerHost}
+              </p>
+            )}
           </div>
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Label htmlFor="mqtt-broker-port" className="text-sm font-bold text-text-primary">
               پورت TCP
             </Label>
@@ -79,12 +96,22 @@ export function MqttFormFields({
               id="mqtt-broker-port"
               type="number"
               dir="ltr"
-              aria-describedby="mqtt-tcp-connection-help"
-              value={brokerPort}
-              onChange={(event) => setBrokerPort(Number.parseInt(event.target.value, 10) || 1883)}
+              min={1}
+              max={65535}
+              step={1}
+              required
+              aria-invalid={Boolean(errors.brokerPort)}
+              aria-describedby={errors.brokerPort ? "mqtt-tcp-connection-help mqtt-broker-port-error" : "mqtt-tcp-connection-help"}
+              value={brokerPort || ""}
+              onChange={(event) => setBrokerPort(Number(event.target.value))}
               className="h-11 font-mono text-base tabular-nums sm:text-sm"
               placeholder="1883"
             />
+            {errors.brokerPort && (
+              <p id="mqtt-broker-port-error" className="text-xs leading-5 text-red-700 dark:text-red-300">
+                {errors.brokerPort}
+              </p>
+            )}
           </div>
         </div>
       </fieldset>
