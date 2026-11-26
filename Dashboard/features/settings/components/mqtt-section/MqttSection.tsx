@@ -163,7 +163,7 @@ export default function MqttSection() {
     <form onSubmit={handleWizardSubmit} className="space-y-6">
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1">
+          <div aria-live="polite" aria-atomic="true" className="min-w-0 space-y-1">
             <h3 className="text-base font-bold text-text-primary">{currentStepCopy.title}</h3>
             <p className="text-xs leading-5 text-text-secondary sm:text-[13px]">
               {currentStepCopy.description}
