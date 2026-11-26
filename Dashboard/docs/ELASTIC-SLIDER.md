@@ -57,11 +57,11 @@ When «کشسان و غلتان» is selected in Settings → Appearance → Sli
 | `formatValueText` | `(value: number) => string` | visible formatted value | Optional screen-reader value announcement |
 | `icon` | `({ color, size }) => ReactNode` | — | Optional leading icon; receives the correct foreground for each fill layer |
 | `size` | `"sm" | "md" | "lg"` | `"md"` | Track height preset (32 / 44 / 56px) |
-| `showValue` | `boolean` | `true` | Hides the visible value when false |\n| `showTicks` | `boolean` | `true` | Shows boundary and per-step dots when the range has at most 20 steps |\n| `formatValueText` | `(value: number) => string` | formatted value | Optional screen-reader value text |
+| `showValue` | `boolean` | `true` | Hides the visible value when false |
+| `showTicks` | `boolean` | `true` | Shows boundary and per-step dots when the range has at most 20 steps |
 | `haptics` | `boolean` | `true` | Enables short haptic feedback at endpoints and on ranges with 20 steps or fewer |
 | `disabled` | `boolean` | `false` | Disables pointer and keyboard input |
 | `className` | `string` | — | Adds a class to the root |
-| `partClassNames` | `Partial<Record<ElasticSliderPart, string>>` | — | Styles individual parts |
 
 ## Interaction
 
