@@ -113,7 +113,7 @@ export function RangeSlider({ showTicks = true, className, ...options }: RangeSl
       {/* Keep the handle inside the rounded progress fill at both ends. */}
       <m.div
         {...sliderProps}
-        animate={reduce ? undefined : { scaleY: dragging ? 1.35 : 1 }}
+        animate={reduce ? undefined : { scaleX: dragging ? 1.12 : 1, scaleY: dragging ? 1.35 : 1 }}
         transition={SPRING_BOUNCY}
         className="absolute left-0 top-1/2 h-6 w-1 rounded-full bg-accent3 outline-none ring-inset ring-accent3/30 focus-visible:ring-4"
         style={{ x: thumbX, y: "-50%", willChange: "transform", backfaceVisibility: "hidden" }}
