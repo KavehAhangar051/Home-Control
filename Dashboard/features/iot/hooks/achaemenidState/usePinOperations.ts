@@ -362,6 +362,60 @@ export async function executeBatchPinUpdate(
   }
 }
 
+async function executeHttpMacroRequests(
+  httpActions: MacroExecutionPlan["httpActions"],
+  showToast: ShowToastFn,
+): Promise<boolean> {
+  const results = await Promise.all(
+    httpActions.map(async ({ request }) => {
+      const controller = new AbortController();
+      const timeoutMs = request.timeoutMs ?? 5000;
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const headers = new Headers();
+        if (request.contentType && request.method !== "GET" && request.body) {
+          headers.set("Content-Type", request.contentType);
+        }
+        for (const header of request.headers ?? []) {
+          if (header.key.trim()) {
+            headers.set(header.key.trim(), header.value);
+          }
+        }
+
+        const response = await fetch(request.url, {
+          method: request.method,
+          headers,
+          body: request.method !== "GET" && request.body ? request.body : undefined,
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const label = request.label || request.url;
+          showToast(`درخواست HTTP (${label}) با خطای ${response.status} مواجه شد.`, "error");
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        const label = request.label || request.url;
+        const isAbort = error instanceof Error && error.name === "AbortError";
+        showToast(
+          isAbort
+            ? `مهلت زمانی درخواست HTTP (${label}) به پایان رسید.`
+            : `خطا در ارسال درخواست HTTP (${label}).`,
+          "error",
+        );
+        return false;
+      } finally {
+        clearTimeout(timer);
+      }
+    }),
+  );
+
+  return results.some(Boolean);
+}
+
 export interface MacroExecutionOutcome {
   plan: MacroExecutionPlan;
   delivered: boolean;
@@ -423,6 +477,13 @@ export async function executeMacroActions(
         ),
       );
     }
+  }
+
+  if (plan.httpActions.length > 0) {
+    if (plan.digitalActions.length === 0 && plan.analogActions.length === 0) {
+      soundManager.playToggleOn();
+    }
+    dispatchPromises.push(executeHttpMacroRequests(plan.httpActions, showToast));
   }
 
   if (plan.blockedActions.length > 0) {

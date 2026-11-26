@@ -9,6 +9,7 @@ import type {
   MacroValueUnit,
   RuleGuardCondition,
   SegmentConditionParameter,
+  MacroHttpRequestConfig,
 } from "@/features/iot/services/config/types";
 import {
   adcValueToPercent,
@@ -26,6 +27,7 @@ import {
   hasExplicitAnalogTargetValue,
   isAnalogOutputSegment,
   MAX_ANALOG_OUTPUT_VALUE,
+  percentToAnalogDuty,
 } from "@/features/iot/utils/analogOutput";
 
 export interface MacroSegmentSnapshot {
@@ -69,9 +71,31 @@ export interface MacroBlockedAction {
   message: string;
 }
 
+export {
+  DEFAULT_MACRO_HTTP_TIMEOUT_MS,
+  isValidHttpUrl,
+  normalizeMacroHttpRequest,
+  resolveMacroAnalogStepTarget,
+  VALID_MACRO_HTTP_METHODS,
+} from "@/features/iot/utils/macroActionHelpers";
+
+import {
+  normalizeExtendedMacroAction,
+  normalizeMacroHttpRequest,
+  resolveAnalogSegmentMacroDispatch,
+  validateAnalogStepOrPowerAction,
+  validateHttpMacroAction,
+} from "@/features/iot/utils/macroActionHelpers";
+
+export interface MacroHttpDispatchAction {
+  index: number;
+  request: MacroHttpRequestConfig;
+}
+
 export interface MacroExecutionPlan {
   digitalActions: MacroDigitalDispatchAction[];
   analogActions: MacroAnalogDispatchAction[];
+  httpActions: MacroHttpDispatchAction[];
   blockedActions: MacroBlockedAction[];
   passedCount: number;
   blockedCount: number;
@@ -536,9 +560,36 @@ export function evaluateMacroExecution(
     | { kind: "analog"; targetPin: string; targetValue: number; actionOn: boolean }
   >();
   const blockedActions: MacroBlockedAction[] = [];
+  const httpActions: MacroHttpDispatchAction[] = [];
+  const runningAnalogByPin = new Map<string, number>();
+  const runningBoolByPin = new Map<string, boolean>();
   let passedCount = 0;
 
   for (let i = 0; i < macro.actions.length; i++) {
+    const rawAction = macro.actions[i];
+    if (rawAction.actionKind === "http") {
+      const httpCfg = normalizeMacroHttpRequest(rawAction.httpRequest);
+      if (!httpCfg || !httpCfg.url) continue;
+      const actionLabel = httpCfg.label || `${httpCfg.method} ${httpCfg.url}`;
+      const evalResult = evaluateMacroConditionList(
+        getMacroActionConditions(rawAction),
+        rawAction.conditionLogic,
+        context,
+        actionLabel,
+      );
+      if (!evalResult.passed) {
+        blockedActions.push({
+          action: rawAction,
+          index: i,
+          message:
+            evalResult.message || `شرط اجرای درخواست «${actionLabel}» برقرار نیست.`,
+        });
+        continue;
+      }
+      passedCount += 1;
+      httpActions.push({ index: i, request: httpCfg });
+      continue;
+    }
     const action = macro.actions[i];
     const targetPin = String(action.targetPin ?? "").trim();
     if (!targetPin) continue;
@@ -564,6 +615,21 @@ export function evaluateMacroExecution(
     }
 
     passedCount += 1;
+
+    if (isAnalogOutputSegment(targetSeg)) {
+      resolvedByPin.set(
+        targetPin,
+        resolveAnalogSegmentMacroDispatch(
+          action,
+          targetPin,
+          targetSeg,
+          context,
+          runningAnalogByPin,
+          runningBoolByPin,
+        ),
+      );
+      continue;
+    }
 
     if (isAnalogOutputSegment(targetSeg) && hasExplicitAnalogTargetValue(action.targetValue)) {
       const resolution = clampPwmResolution(
@@ -617,6 +683,7 @@ export function evaluateMacroExecution(
   return {
     digitalActions,
     analogActions,
+    httpActions,
     blockedActions,
     passedCount,
     blockedCount: blockedActions.length,
@@ -753,6 +820,11 @@ export function normalizeRuleGuardCondition(
 export function normalizeMacroRecord(raw: Macro): Macro {
   const normalizedActions: MacroAction[] = Array.isArray(raw.actions)
     ? raw.actions.map((action) => {
+        const normalizedExtended = normalizeExtendedMacroAction(
+          action,
+          normalizeMacroActionCondition,
+        );
+        if (normalizedExtended) return normalizedExtended;
         const hasAnalog = hasExplicitAnalogTargetValue(action.targetValue);
         const clampedTargetValue = hasExplicitAnalogTargetValue(action.targetValue)
           ? Math.min(MAX_ANALOG_OUTPUT_VALUE, Math.max(0, Math.round(action.targetValue)))
@@ -884,6 +956,17 @@ export function validateMacroDraft(
   for (let i = 0; i < actions.length; i++) {
     const action = actions[i];
     const indexLabel = i + 1;
+    if (action.actionKind === "http") {
+      const httpError = validateHttpMacroAction(
+        action,
+        indexLabel,
+        segments,
+        getMacroActionConditions,
+        validateConditionEntry,
+      );
+      if (httpError) return httpError;
+      continue;
+    }
     const targetPin = String(action.targetPin ?? "").trim();
     const targetSegment = segments.find(
       (segment) => isControllableMacroOutput(segment) && segment.pin.trim() === targetPin,
@@ -893,7 +976,13 @@ export function validateMacroDraft(
       return `عملیات ${indexLabel}: پایه خروجی انتخاب‌شده معتبر نیست.`;
     }
 
-    if (isAnalogOutputSegment(targetSegment) && hasExplicitAnalogTargetValue(action.targetValue)) {
+    if (
+      isAnalogOutputSegment(targetSegment) &&
+      (action.analogMode === "step" || action.analogMode === "power")
+    ) {
+      const analogStepError = validateAnalogStepOrPowerAction(action, indexLabel, targetSegment);
+      if (analogStepError) return analogStepError;
+    } else if (isAnalogOutputSegment(targetSegment) && hasExplicitAnalogTargetValue(action.targetValue)) {
       const maxDuty = getAnalogMaxDuty(clampPwmResolution(targetSegment.pwmResolution));
       if (
         !Number.isInteger(action.targetValue) ||

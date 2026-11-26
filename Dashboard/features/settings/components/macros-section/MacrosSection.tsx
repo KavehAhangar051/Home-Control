@@ -70,7 +70,25 @@ export default function MacrosSection() {
 
   const addAction = () => {
     const firstOutput = outputs[0];
-    if (!firstOutput) return;
+    if (!firstOutput) {
+      setFormError("");
+      setActions((current) => [
+        ...current,
+        {
+          actionKind: "http",
+          targetPin: "",
+          actionOn: true,
+          httpRequest: {
+            method: "POST",
+            url: "",
+            contentType: "application/json",
+            timeoutMs: 5000,
+          },
+          draftId: crypto.randomUUID(),
+        },
+      ]);
+      return;
+    }
 
     const isAnalog = isAnalogOutputSegment(firstOutput);
     const defaultDuty = isAnalog
@@ -226,8 +244,7 @@ export default function MacrosSection() {
                   </span>
                   <button
                     type="button"
-                    disabled={!outputs.length}
-                    onClick={addAction}
+                    onClick={() => addAction()}
                     className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-border-color bg-bg-main px-3 text-xs font-medium text-text-primary transition-colors hover:border-accent3 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <Plus className="size-3.5" strokeWidth={2} aria-hidden="true" />
@@ -289,9 +306,14 @@ export default function MacrosSection() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         {macros.map((macro) => {
-          const analogCount = macro.actions.filter((a) =>
-            hasExplicitAnalogTargetValue(a.targetValue),
+          const analogCount = macro.actions.filter(
+            (a) =>
+              a.actionKind !== "http" &&
+              (a.analogMode === "step" ||
+                a.analogMode === "power" ||
+                hasExplicitAnalogTargetValue(a.targetValue)),
           ).length;
+          const httpCount = macro.actions.filter((a) => a.actionKind === "http").length;
           const conditionedCount = macro.actions.filter((a) =>
             getMacroActionConditions(a).some((c) => c.enabled),
           ).length;
@@ -311,7 +333,8 @@ export default function MacrosSection() {
                   </h4>
                   <p className="text-[11px] text-text-muted">
                     {macro.actions.length} عملیات
-                    {analogCount > 0 ? ` • ${analogCount} آنالوگ` : ""}
+            {analogCount > 0 ? ` • ${analogCount} آنالوگ` : ""}
+            {httpCount > 0 ? ` • ${httpCount} HTTP` : ""}
                     {conditionedCount > 0 ? ` • ${conditionedCount} شرط‌دار` : ""}
                   </p>
                 </div>

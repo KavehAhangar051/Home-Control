@@ -13,6 +13,14 @@ import type {
   RuleGuardCondition,
   SegmentConditionParameter,
 } from "@/features/iot/services/config/types";
+export type {
+  MacroActionKind,
+  MacroAnalogMode,
+  MacroAnalogStepUnit,
+  MacroHttpHeader,
+  MacroHttpMethod,
+  MacroHttpRequestConfig,
+} from "@/features/iot/services/config/types";
 import type { DashboardFontId } from "@/lib/fonts";
 
 export type {
