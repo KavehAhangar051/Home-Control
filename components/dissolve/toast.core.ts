@@ -127,7 +127,7 @@ export function createToast(host: HTMLElement, initial: ToastProps = {}): ToastI
 
   host.dataset.dissolve = 'toast';
   host.setAttribute('aria-live', 'polite');
-  const place = () => host.style.setProperty('--dissolve-toast-top', p().top + 'px');
+  const place = () => host.style.setProperty('--dissolve-toast-top', `${p().top}px`);
   place();
 
   function show(o: ToastOptions) {
@@ -138,7 +138,7 @@ export function createToast(host: HTMLElement, initial: ToastProps = {}): ToastI
 
     // The card's CSS gives the colors and the radius; the canvas, drawn off the document so page
     // font smoothing does not thin its text, paints them.
-    const cls = 'dissolve-toast-card' + (p().cardClassName ? ' ' + p().cardClassName : '');
+    const cls = `dissolve-toast-card${p().cardClassName ? ` ${p().cardClassName}` : ''}`;
     const probe = el('canvas', cls);
     const slot = el('div', 'dissolve-toast-slot');
     slot.append(probe);
@@ -156,7 +156,7 @@ export function createToast(host: HTMLElement, initial: ToastProps = {}): ToastI
     const L = layoutOf(probe.getContext('2d')!, w, o, font);
     const card = snapshot(w, L.h, (ctx) => draw(ctx, L, o, look));
     card.className = cls;
-    Object.assign(card.style, { width: w + 'px', height: L.h + 'px', opacity: '0', backgroundColor: 'transparent' });
+    Object.assign(card.style, { width: `${w}px`, height: `${L.h}px`, opacity: '0', backgroundColor: 'transparent' });
     probe.replaceWith(card);
     card.setAttribute('role', o.tone === 'error' ? 'alert' : 'status');
     card.setAttribute('aria-label', [o.title, o.message, o.action ? `${o.action.label} available` : ''].filter(Boolean).join('. '));
@@ -173,7 +173,7 @@ export function createToast(host: HTMLElement, initial: ToastProps = {}): ToastI
         await sc.track(play({ source: card, ...r, preset: o.exit ?? 'dust', duration: 1100, fixed })).done;
         if (!sc.alive) return;
         // The stack closes up (LinearTransition 320 ms on the native side).
-        slot.style.height = slot.offsetHeight + 'px';
+        slot.style.height = `${slot.offsetHeight}px`;
         void slot.offsetHeight;
         slot.dataset.gone = '';
         await sc.wait(330);
@@ -199,7 +199,9 @@ export function createToast(host: HTMLElement, initial: ToastProps = {}): ToastI
 
     // Over the limit, the oldest leaves as dust instead of vanishing.
     const live = items.filter((x) => !x.gone);
-    live.slice(0, Math.max(0, live.length - p().max)).forEach((x) => x.leave());
+    for (const item of live.slice(0, Math.max(0, live.length - p().max))) {
+      void item.leave();
+    }
 
     (async () => {
       await frame();
