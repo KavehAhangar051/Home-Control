@@ -165,8 +165,8 @@ function ensureStage(): Stage {
   const resize = () => {
     overlay.width = innerWidth * DPR;
     overlay.height = innerHeight * DPR;
-    overlay.style.width = innerWidth + 'px';
-    overlay.style.height = innerHeight + 'px';
+    overlay.style.width = `${innerWidth}px`;
+    overlay.style.height = `${innerHeight}px`;
   };
   resize();
   addEventListener('resize', resize);
@@ -193,7 +193,7 @@ function ensureStage(): Stage {
 
 function cloudScale(P: Params) {
   const s = Math.sqrt(P.w * P.h) / 160;
-  return s < 0.6 ? 0.6 : s > 1.8 ? 1.8 : s;
+  return Math.min(1.8, Math.max(0.6, s));
 }
 
 /** Shared by snap and charge: outward push plus tangential swirl from (ox, oy). */
@@ -201,7 +201,7 @@ function burstOut(d: Float32Array, P: Params, strength: number, extraIdx: number
   return (k: number) => {
     const dx = d[k] - P.ox, dy = d[k + 1] - P.oy;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    let ux, uy;
+    let ux: number, uy: number;
     if (dist < 1) {
       const an = (randomDir ? Math.random() : d[k + 5]) * Math.PI * 2;
       ux = Math.cos(an); uy = Math.sin(an);
@@ -355,7 +355,7 @@ const stream: GrainVariant = {
       const ex = P.tx + (r2 - 0.5) * jx, ey = P.ty + (r3 - 0.5) * jy;
       const dx = p0x - ex, dy = p0y - ey, D = Math.sqrt(dx * dx + dy * dy) || 1;
       const near = Math.min(1, 0.35 + D / 450);
-      let c1x, c1y;
+      let c1x: number, c1y: number;
       if (P.dir === 0) {
         c1x = (p0x + ex) / 2 + (r4 - 0.5) * 120 * near;
         c1y = Math.min(p0y, ey) - (80 + r2 * 120) * near;
@@ -464,7 +464,7 @@ const charge: GrainVariant = {
     }
   },
   step(o, t, d, k, _P, a0, a1) {
-    const c = a0 < 0 ? 0 : a0 > 1 ? 1 : a0;
+    const c = Math.min(1, Math.max(0, a0));
     if (c > 0) {
       const c2 = c * c, keep = 1 - t, r2 = d[k + 3], r4 = d[k + 5];
       const A = c2 * 2.5 * keep;
@@ -681,7 +681,7 @@ export function morph(a: Snapshot, b: Snapshot, { grain = 4, duration = 1100, re
     const ax = a.x + ((ia % colsA) + 0.5) * g, ay = a.y + (Math.floor(ia / colsA) + 0.5) * g;
     const bx = b.x + ((ib % colsB) + 0.5) * g, by = b.y + (Math.floor(ib / colsB) + 0.5) * g;
     const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy);
-    let px, py;
+    let px: number, py: number;
     if (len > 1e-3) { px = -dy / len; py = dx / len; } else { const an = Math.random() * Math.PI * 2; px = Math.cos(an); py = Math.sin(an); }
     const off = (Math.random() - 0.5) * Math.min(48, 10 + len * 0.3); // gentle arcs
     const j = k * MS;
@@ -699,7 +699,7 @@ export function morph(a: Snapshot, b: Snapshot, { grain = 4, duration = 1100, re
       for (let k = 0; k < N; k++) {
         const j = k * MS;
         let t = (p - d[j + 6]) / d[j + 7];
-        t = t < 0 ? 0 : t > 1 ? 1 : t;
+        t = Math.min(1, Math.max(0, t));
         const u = ss(t), v = 1 - u;
         const cx = v * v * d[j] + 2 * v * u * d[j + 4] + u * u * d[j + 2] + offX;
         const cy = v * v * d[j + 1] + 2 * v * u * d[j + 5] + u * u * d[j + 3] + offY;
@@ -1138,7 +1138,7 @@ function frame(now: number) {
       if (o.a <= 0.01 || o.s <= 0) continue;
       const cs = Math.cos(o.rot) * o.s * DPR, sn = Math.sin(o.rot) * o.s * DPR;
       x.setTransform(cs, sn, -sn, cs, (o.cx + offX) * DPR, (o.cy + offY) * DPR);
-      x.globalAlpha = o.a > 1 ? 1 : o.a;
+      x.globalAlpha = Math.min(1, o.a);
       const sx = d[k] * DPR - sg / 2, sy = d[k + 1] * DPR - sg / 2;
       if (o.paper > 0) {
         const pv = Math.round(o.paper * 246);
@@ -1153,7 +1153,7 @@ function frame(now: number) {
         x.fillRect(-g / 2, -g / 2, g, g);
       }
       if (o.k > 0.01 && b.tinted) {
-        x.globalAlpha = (o.a > 1 ? 1 : o.a) * (o.k > 1 ? 1 : o.k);
+        x.globalAlpha = Math.min(1, o.a) * Math.min(1, o.k);
         x.drawImage(b.tinted, sx, sy, sg, sg, -g / 2, -g / 2, g, g);
         if (o.shade < 1) {
           x.globalAlpha = (1 - o.shade) * 0.9;
