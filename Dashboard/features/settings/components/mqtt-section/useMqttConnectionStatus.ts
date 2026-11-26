@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMqttClient } from "@/features/iot/services/mqttService";
+import { getMqttClient, reconnectMqtt } from "@/features/iot/services/mqttService";
 
 export type MqttConnectionStatus =
   | "starting"
@@ -10,7 +10,12 @@ export type MqttConnectionStatus =
   | "offline"
   | "error";
 
-export function useMqttConnectionStatus(): MqttConnectionStatus {
+export interface MqttConnectionState {
+  status: MqttConnectionStatus;
+  retry: () => void;
+}
+
+export function useMqttConnectionStatus(): MqttConnectionState {
   const [status, setStatus] = useState<MqttConnectionStatus>("starting");
 
   useEffect(() => {
@@ -74,5 +79,10 @@ export function useMqttConnectionStatus(): MqttConnectionStatus {
     };
   }, []);
 
-  return status;
+  function retry(): void {
+    setStatus("reconnecting");
+    reconnectMqtt();
+  }
+
+  return { status, retry };
 }

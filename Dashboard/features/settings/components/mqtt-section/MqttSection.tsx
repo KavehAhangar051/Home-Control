@@ -113,7 +113,7 @@ export default function MqttSection() {
   const showToast = useIoTStore((state) => state.showToast);
   const isEsp32Online = useIoTStore((state) => state.isLocal);
   const esp32Ip = useIoTStore((state) => state.localIp);
-  const brokerStatus = useMqttConnectionStatus();
+  const { status: brokerStatus, retry: retryBrokerConnection } = useMqttConnectionStatus();
 
   const [overrides, setOverrides] = useState<MqttLocalOverrides>({});
   const [validationErrors, setValidationErrors] = useState<MqttValidationErrors>({});
@@ -269,6 +269,7 @@ export default function MqttSection() {
         baseTopic={baseTopic}
         qos={qos}
         onEdit={openEditor}
+        onReconnect={retryBrokerConnection}
       />
     );
   }

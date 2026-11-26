@@ -1,3 +1,4 @@
+import { MqttConnectionStatusPanel } from "./MqttConnectionStatusPanel";
 import type { MqttConnectionStatus } from "./useMqttConnectionStatus";
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
   baseTopic: string;
   qos: 0 | 1 | 2;
   onEdit: () => void;
+  onReconnect: () => void;
 }
 
 const BROKER_STATUS_COPY: Record<MqttConnectionStatus, { label: string; tone: string }> = {
@@ -57,9 +59,8 @@ export function MqttOverview({
   baseTopic,
   qos,
   onEdit,
+  onReconnect,
 }: Props) {
-  const brokerState = BROKER_STATUS_COPY[brokerStatus];
-  const esp32Status = isEsp32Online ? "آنلاین" : esp32Ip ? "آفلاین" : "هنوز دریافت نشده";
 
   return (
     <div className="space-y-6">
@@ -79,37 +80,12 @@ export function MqttOverview({
         </button>
       </div>
 
-      <section
-        aria-label="وضعیت اتصال"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className="space-y-4 rounded-xl border border-border-color bg-bg-main p-4"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-sm font-semibold text-text-primary">اتصال داشبورد به بروکر</span>
-          <span className="inline-flex items-center gap-2 text-sm font-bold text-text-primary">
-            <span aria-hidden="true" className={`size-2.5 rounded-full ${brokerState.tone}`} />
-            {brokerState.label}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-sm font-semibold text-text-primary">وضعیت برد ESP32</span>
-          <span className="inline-flex items-center gap-2 text-sm font-bold text-text-primary">
-            <span
-              aria-hidden="true"
-              className={`size-2.5 rounded-full ${isEsp32Online ? "bg-success" : esp32Ip ? "bg-red-500" : "bg-text-muted"}`}
-            />
-            {esp32Status}
-          </span>
-        </div>
-        {esp32Ip && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-color/70 pt-3">
-            <span className="text-xs text-text-secondary">آخرین IP گزارش‌شده</span>
-            <span dir="ltr" className="font-mono text-sm text-text-primary">{esp32Ip}</span>
-          </div>
-        )}
-      </section>
+      <MqttConnectionStatusPanel
+        brokerStatus={brokerStatus}
+        isEsp32Online={isEsp32Online}
+        esp32Ip={esp32Ip}
+        onReconnect={onReconnect}
+      />
 
       <section className="space-y-3">
         <h4 className="text-sm font-bold text-text-primary">پیکربندی فعلی</h4>
