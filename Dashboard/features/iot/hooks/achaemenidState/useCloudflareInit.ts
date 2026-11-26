@@ -17,7 +17,7 @@ import { executeBypassFallback, executeCloudflareInitSync } from "./core/cloudfl
 
 const REFRESH_CONFIG_EVENT = "home-control:refresh-cloudflare-config";
 
-interface RefreshConfigEvent extends CustomEvent<{ resolve?: (success: boolean) => void }> {}
+type RefreshConfigEvent = CustomEvent<{ resolve?: (success: boolean) => void }>;
 
 interface UseCloudflareInitProps {
   mounted: boolean;
@@ -95,47 +95,48 @@ export function useCloudflareInit({ handleApplyEspConfig }: UseCloudflareInitPro
     async (options?: { hydrateCache?: boolean }) => {
       bypassedRef.current = false;
 
-      return executeCloudflareInitSync({
-      configLocalCacheEnabled: FEATURE_FLAGS.configLocalCache,
-      isCloudflareEnabled,
-      isOnline: () => globalThis.navigator?.onLine !== false,
-      isBypassed: () => bypassedRef.current,
-      fetchConfig: (timeoutMs) => fetchConfigFromCloudflare({ timeoutMs, retryAttempts: 1 }),
-      readLocalCache,
-      writeLocalCache: (cfConfig) => {
-        if (globalThis.window === undefined) return;
+      return executeCloudflareInitSync(
+        {
+          configLocalCacheEnabled: FEATURE_FLAGS.configLocalCache,
+          isCloudflareEnabled,
+          isOnline: () => globalThis.navigator?.onLine !== false,
+          isBypassed: () => bypassedRef.current,
+          fetchConfig: (timeoutMs) => fetchConfigFromCloudflare({ timeoutMs, retryAttempts: 1 }),
+          readLocalCache,
+          writeLocalCache: (cfConfig) => {
+            if (globalThis.window === undefined) return;
 
-        cancelIdleStorageWrite("cached_esp_config");
+            cancelIdleStorageWrite("cached_esp_config");
 
-        try {
-          localStorage.removeItem("cached_esp_config");
-          localStorage.setItem("cached_esp_config", JSON.stringify(cfConfig));
-        } catch (error) {
-          debugLog.error("ConfigSync", "Could not replace configuration cache.", error);
-        }
-      },
-      clearLocalCache: () => {
-        if (globalThis.window === undefined) return;
+            try {
+              localStorage.removeItem("cached_esp_config");
+              localStorage.setItem("cached_esp_config", JSON.stringify(cfConfig));
+            } catch (error) {
+              debugLog.error("ConfigSync", "Could not replace configuration cache.", error);
+            }
+          },
+          clearLocalCache: () => {
+            if (globalThis.window === undefined) return;
 
-        cancelIdleStorageWrite("cached_esp_config");
+            cancelIdleStorageWrite("cached_esp_config");
 
-        try {
-          localStorage.removeItem("cached_esp_config");
-        } catch (error) {
-          debugLog.warn("ConfigSync", "Could not clear the legacy configuration cache.", error);
-        }
-      },
-      applyConfig: handleApplyEspConfig,
-      onWorkerUrlChange: handleWorkerUrlChange,
-      onResetEmptyState: resetEmptyState,
-      onSyncStatus: setSyncStatus,
-      onBumpRemoteEpoch: bumpRemoteEpoch,
-      onReady: markReady,
-      warn: debugLog.warn,
-      info: debugLog.info,
-      },
-      options,
-    );
+            try {
+              localStorage.removeItem("cached_esp_config");
+            } catch (error) {
+              debugLog.warn("ConfigSync", "Could not clear the legacy configuration cache.", error);
+            }
+          },
+          applyConfig: handleApplyEspConfig,
+          onWorkerUrlChange: handleWorkerUrlChange,
+          onResetEmptyState: resetEmptyState,
+          onSyncStatus: setSyncStatus,
+          onBumpRemoteEpoch: bumpRemoteEpoch,
+          onReady: markReady,
+          warn: debugLog.warn,
+          info: debugLog.info,
+        },
+        options,
+      );
     },
     [
       bumpRemoteEpoch,
