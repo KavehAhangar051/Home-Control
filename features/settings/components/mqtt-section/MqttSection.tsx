@@ -10,7 +10,6 @@ import { getMqttSettings, reconnectMqtt } from "@/features/iot/services/mqttServ
 import { soundManager } from "@/lib/audio";
 import { MqttFormFields } from "./MqttFormFields";
 import { MqttMessageSettingsStep } from "./MqttMessageSettingsStep";
-import { MqttQosSelector } from "./MqttQosSelector";
 import { MqttReviewStep } from "./MqttReviewStep";
 
 type MqttLocalOverrides = {
@@ -22,6 +21,20 @@ type MqttLocalOverrides = {
 };
 
 const MQTT_STEPS = ["اتصال بروکر", "تنظیم پیام‌ها", "بازبینی و ذخیره"];
+const MQTT_STEP_COPY = [
+  {
+    title: "نشانی‌های اتصال",
+    description: "نشانی اتصال مرورگر و مشخصات اتصال ESP32 به بروکر را وارد کنید.",
+  },
+  {
+    title: "تنظیم پیام‌ها",
+    description: "پیشوند موضوع‌ها و کیفیت تحویل پیام‌ها را مشخص کنید.",
+  },
+  {
+    title: "بازبینی تنظیمات",
+    description: "مقادیر انتخاب‌شده را پیش از ذخیره بررسی کنید.",
+  },
+] as const;
 
 const subscribeMqttDefaults = () => () => {};
 const getServerMqttSettingsSnapshot = () => "";
@@ -81,6 +94,8 @@ export default function MqttSection() {
     mqttConfig,
     initialSettings,
   );
+
+  const currentStepCopy = MQTT_STEP_COPY[step];
 
   const setBrokerWsUrl = (val: string) => setOverrides((prev) => ({ ...prev, brokerWsUrl: val }));
   const setBrokerHost = (val: string) => setOverrides((prev) => ({ ...prev, brokerHost: val }));
@@ -149,19 +164,9 @@ export default function MqttSection() {
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <h3 className="text-base font-bold text-text-primary">
-              {step === 0
-                ? "نشانی‌های اتصال"
-                : step === 1
-                  ? "تنظیم پیام‌ها"
-                  : "بازبینی تنظیمات"}
-            </h3>
+            <h3 className="text-base font-bold text-text-primary">{currentStepCopy.title}</h3>
             <p className="text-xs leading-5 text-text-secondary sm:text-[13px]">
-              {step === 0
-                ? "نشانی اتصال مرورگر و مشخصات اتصال ESP32 به بروکر را وارد کنید."
-                : step === 1
-                  ? "مسیر پیام‌ها و سطح اطمینان تحویل آن‌ها را مشخص کنید."
-                  : "پیش از ذخیره، مقادیر انتخاب‌شده را بررسی کنید."}
+              {currentStepCopy.description}
             </p>
           </div>
           <span className="shrink-0 rounded-lg bg-secondary px-2.5 py-1.5 text-xs font-semibold tabular-nums text-text-secondary">
@@ -205,6 +210,8 @@ export default function MqttSection() {
             brokerPort={brokerPort}
             baseTopic={baseTopic}
             qos={qos}
+            onEditConnection={() => setStep(0)}
+            onEditMessages={() => setStep(1)}
           />
         )}
       </div>
