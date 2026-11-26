@@ -11,7 +11,7 @@ public:
 
   GenericEspTcpClient() {}
 
-  bool connect(const WSString& host, const int port) {
+  bool connect(const WSString& host, const int port) override {
     auto didConnect = client.connect(host.c_str(), port);
     if (didConnect) {
       client.setNoDelay(true);

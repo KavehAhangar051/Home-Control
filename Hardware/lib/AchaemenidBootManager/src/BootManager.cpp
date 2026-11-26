@@ -1,4 +1,5 @@
 #include "BootManager.h"
+#include "CaptivePortalHelper.h"
 #include <NetworkConfigHelper.h>
 #include <Utilities/logging.h>
 #include <ConfigApplier.h>

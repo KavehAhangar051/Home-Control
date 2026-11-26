@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 enum class AsyncMqttClientDisconnectReason : int8_t {
   TCP_DISCONNECTED = 0,
 

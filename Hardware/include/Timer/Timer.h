@@ -274,7 +274,7 @@ public:
    * @brief Cancel scheduled timeout
    * @param timeoutId ID returned by set_timeout()
    */
-  void clear_timeout(TimerId timeoutId) { manager_.remove(timeoutId); }
+  void clear_timeout(TimerId timeoutId) override { manager_.remove(timeoutId); }
 #endif
 
 #ifdef TIMER_ENABLE_INTERVAL
@@ -282,7 +282,7 @@ public:
    * @brief Stop recurring interval
    * @param interval_id ID returned by set_interval()
    */
-  void clear_interval(TimerId interval_id) { manager_.remove(interval_id); }
+  void clear_interval(TimerId interval_id) override { manager_.remove(interval_id); }
 #endif
 #endif
 
@@ -324,7 +324,7 @@ public:
    *   - No stack push/pop between process() calls
    *   - Branch prediction optimized
    */
-  HOT_PATH void tick() {
+  HOT_PATH void tick() override {
     // Re-entrancy guard: prevents concurrent access when the hardware timer
     // (running from the esp_timer task / other core) and a manual tick() in
     // loop() are both active. The MEMORY_BARRIER() after the write forces the

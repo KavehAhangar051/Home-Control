@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 namespace AsyncMqttClientInternals {
 struct PendingPubRel {
   uint16_t packetId;

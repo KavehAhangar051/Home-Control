@@ -15,9 +15,16 @@
 #pragma once
 
 #ifdef ARDUINO
-unsigned long millis();
+#include <Arduino.h>
 #else
 #include <native/millis.hpp>
+#endif
+
+#if defined(ESP32)
+#include <esp_attr.h>
+#endif
+#ifndef IRAM_ATTR
+#define IRAM_ATTR
 #endif
 
 namespace uniuno {
