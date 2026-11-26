@@ -183,7 +183,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     const external = p().value;
     return external !== undefined
       ? snap(Number.isFinite(external) ? external : range().min)
-      : inner;
+      : snap(inner);
   };
   let last = shown();
   let W = 0;
@@ -294,6 +294,12 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     else host.removeAttribute('aria-label');
     W = host.clientWidth;
     updateTicks();
+    if (!ptr) {
+      const current = shown();
+      last = current;
+      if (p().value === undefined) inner = current;
+      fillP.set((current - min) / (max - min));
+    }
     writeValue();
     render();
   }
