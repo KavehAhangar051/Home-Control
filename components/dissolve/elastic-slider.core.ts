@@ -417,8 +417,8 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     icon: (on) => (on ? inked : base).icon,
     update(next) {
       const changed = props.update(next);
-      if ((['size', 'label', 'min', 'max', 'step', 'showValue', 'showTicks', 'formatValue'] as const).some((k) => changed.has(k))) layout();
-      if (changed.has('formatValueText')) writeValue();
+      if ((['size', 'label', 'min', 'max', 'step', 'showValue', 'showTicks'] as const).some((k) => changed.has(k))) layout();
+      if (changed.has('formatValue') || changed.has('formatValueText')) writeValue();
       if (changed.has('value') && p().value !== undefined && !ptr) {
         const v = shown();
         if (v !== last) { last = v; writeValue(); settle(); }
