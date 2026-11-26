@@ -2,6 +2,7 @@
 
 import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import { soundManager } from "@/lib/audio";
 
 interface AnimationsToggleProps {
@@ -18,6 +19,8 @@ export default function AnimationsToggle({
   animationsFps = 60,
   setAnimationsFps,
 }: AnimationsToggleProps) {
+  const hapticsEnabled = usePreferencesStore((s) => s.hapticsEnabled);
+
   const handleToggle = () => {
     const nextVal = !animationsEnabled;
     setAnimationsEnabled(nextVal);
@@ -54,7 +57,7 @@ export default function AnimationsToggle({
           size="sm"
           onColor="var(--accent3)"
           offColor="var(--bg-main)"
-          haptics={false}
+          haptics={hapticsEnabled}
           reducedMotion={!animationsEnabled}
           accessibilityLabel="انیمیشن‌های رابط کاربری"
           className="shrink-0"
