@@ -428,7 +428,7 @@ export default function AddSegmentForm({
                 className="space-y-7"
               >
                 <h2 className="text-lg font-bold leading-snug text-balance text-text-primary sm:text-xl">
-                  پایه و تنظیمات سخت‌افزاری
+                  اتصال و تنظیمات سخت‌افزاری
                 </h2>
 
                 {sourceMode === "virtual" ? (
@@ -463,7 +463,7 @@ export default function AddSegmentForm({
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-bold text-text-primary">
-                          شدت اولیه هنگام ساخت
+                          مقدار اولیه خروجی
                         </span>
                         <span
                           className="font-mono text-sm font-semibold tabular-nums text-text-primary"
@@ -472,6 +472,7 @@ export default function AddSegmentForm({
                           {initialPercent}% ({initialDuty}/{maxDuty})
                         </span>
                       </div>
+                      <p className="text-xs leading-5 text-text-secondary">این مقدار بلافاصله پس از ساخت قطعه اعمال می‌شود؛ ۰٪ یعنی خاموش و ۱۰۰٪ یعنی بیشترین خروجی.</p>
                       <DashboardSlider
                         defaultVariant="bubble"
                         min={0}
@@ -500,7 +501,7 @@ export default function AddSegmentForm({
                             strokeWidth={1.75}
                             aria-hidden="true"
                           />
-                          تنظیمات تخصصی PWM (دقت و فرکانس)
+                          تنظیمات PWM
                         </span>
                         <ChevronDown
                           className={cn(
@@ -540,7 +541,7 @@ export default function AddSegmentForm({
                                   htmlFor="pwm-resolution-select"
                                   className="block text-sm font-bold text-text-primary"
                                 >
-                                  دقت خروجی (بیت)
+                                  وضوح PWM (بیت)
                                 </Label>
                                 <Select
                                   id="pwm-resolution-select"
@@ -574,7 +575,7 @@ export default function AddSegmentForm({
                                   htmlFor="pwm-frequency-input"
                                   className="block text-sm font-bold text-text-primary"
                                 >
-                                  فرکانس (هرتز)
+                                  فرکانس PWM (Hz)
                                 </Label>
                                 <Input
                                   id="pwm-frequency-input"
@@ -654,7 +655,7 @@ export default function AddSegmentForm({
                 className="space-y-6"
               >
                 <h2 className="text-lg font-bold leading-snug text-balance text-text-primary sm:text-xl">
-                  نام‌گذاری و محل نمایش
+                  نام قطعه و گروه نمایش
                 </h2>
 
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-color bg-secondary/40 px-4 py-3">
