@@ -615,7 +615,7 @@ export function evaluateMacroExecution(
 
     passedCount += 1;
 
-    if (isAnalogOutputSegment(targetSeg)) {
+    if (targetSeg && isAnalogOutputSegment(targetSeg)) {
       resolvedByPin.set(
         targetPin,
         resolveAnalogSegmentMacroDispatch(
