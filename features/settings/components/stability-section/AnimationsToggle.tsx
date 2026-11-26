@@ -1,7 +1,6 @@
 "use client";
 
-import { ToggleIndicator } from "@/components/dissolve/toggle";
-import { Toggle } from "@/components/ui/toggle";
+import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { soundManager } from "@/lib/audio";
 import { triggerHaptic } from "@/lib/haptics";
@@ -30,15 +29,11 @@ export default function AnimationsToggle({
 
   return (
     <div className="space-y-3 border-b border-border-color pb-3.5 sm:space-y-3.5 sm:pb-4">
-      <Toggle
-        variant="outline"
-        pressed={animationsEnabled}
-        onPressedChange={handleToggle}
-        aria-label="انیمیشن‌های رابط کاربری"
-        className={`switch-toggle flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
+      <div
+        className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right sm:p-4 ${
           animationsEnabled
             ? "border-accent3 bg-card-hover-bg"
-            : "border-border-color bg-card-bg hover:bg-card-hover-bg"
+            : "border-border-color bg-card-bg"
         }`}
       >
         <span className="min-w-0 flex-1 space-y-1 text-right">
@@ -53,15 +48,18 @@ export default function AnimationsToggle({
               : "غیرفعال · کاهش بار پردازشی دستگاه"}
           </span>
         </span>
-        <ToggleIndicator
+        <DissolveToggle
           value={animationsEnabled}
+          onValueChange={handleToggle}
           size="sm"
           onColor="var(--accent3)"
           offColor="var(--bg-main)"
+          haptics={false}
           reducedMotion={!animationsEnabled}
+          accessibilityLabel="انیمیشن‌های رابط کاربری"
           className="shrink-0"
         />
-      </Toggle>
+      </div>
       {animationsEnabled && setAnimationsFps && (
         <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 sm:px-2">
           <span className="text-xs font-medium text-text-secondary">نرخ فریم انیمیشن</span>
