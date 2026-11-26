@@ -13,12 +13,12 @@
 - نصب/بروزرسانی محیط‌ها و کتابخانه‌ها: `bun run pio:setup`
 
 ## ۳. ابزارهای Format، Lint، تایپ‌چک و تحلیل استاتیک C/C++
-- ابزارهای C/C++ در `.agent-state/cpp-tools/` و تنظیمات آن‌ها در فایل‌های `.clang-format`، `.clang-tidy` و `.clangd` قرار دارند.
-- تولید `compile_commands.json`: `bun run cpp:compiledb`
-- بررسی فرمت: `bun run cpp:format:check` (یا `bun run cpp:format`)
-- تحلیل استاتیک: `bun run cpp:lint`
-- تحلیل عمیق: `bun run cpp:tidy`
-- تایپ‌چک معنایی: `bun run cpp:typecheck`
+- ابزارهای C/C++ در `.agent-state/cpp-tools/` و تنظیمات آن‌ها در فایل‌های `.clang-format`، `.clang-tidy` و `.clangd` قرار دارند (راهنمای کامل: `docs/CLANG_TOOLING_GUIDE.md`).
+- تولید `compile_commands.json` با تزریق خودکار `--target=xtensa-esp32-elf` و فیلتر فلگ‌های اختصاصی GCC: `bun run r -- bash ./tools/cpp.sh compiledb esp32dev` (یا `esp32dev_core3` برای Core v3).
+- بررسی فرمت: `bun run r -- bash ./tools/cpp.sh format:check` (یا `format`؛ پوشه‌های `test/mocks/` و بکاپ‌های `*/original/` به‌صورت خودکار مستثنی هستند).
+- تحلیل استاتیک (`cppcheck`): `bun run r -- bash ./tools/cpp.sh lint`
+- تحلیل عمیق (`clang-tidy`): `bun run r -- bash ./tools/cpp.sh tidy <file.cpp>` (توجه: فایل‌های پل Core v3 شامل `NetworkClientSecure_impl.cpp`، `NetworkCore_impl.cpp` و `WiFi_impl.cpp` فقط با `compiledb esp32dev_core3` قابل بررسی هستند).
+- تایپ‌چک معنایی و بررسی هدرهای اضافه (`clangd` با `UnusedIncludes: Strict`): `bun run r -- bash ./tools/cpp.sh typecheck <file.cpp>`
 - نصب/تعمیر ابزارها: `bun run cpp:setup`
 
 ## ۴. نگهداری داده‌ها
