@@ -1,6 +1,6 @@
 /**
  * @file lib/sliderStyles.ts
- * @description Registry and resolution helpers for the 6 beUI motion slider variants
+ * @description Registry and resolution helpers for all dashboard slider styles
  * plus the context-aware `"auto"` mode selectable in dashboard appearance settings.
  */
 
