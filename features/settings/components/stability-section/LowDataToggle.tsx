@@ -1,8 +1,7 @@
 "use client";
 
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
 import { WifiOff } from "@/components/ui/hugeicons-groups/shell";
-import { Toggle } from "@/components/ui/toggle";
 import { soundManager } from "@/lib/audio";
 import { triggerHaptic } from "@/lib/haptics";
 
@@ -28,15 +27,11 @@ export default function LowDataToggle({
 
   return (
     <div className="border-b border-border-color pb-3.5 sm:pb-4">
-      <Toggle
-        variant="outline"
-        pressed={lowDataMode}
-        onPressedChange={handleToggle}
-        aria-label={lowDataMode ? "حالت کم‌مصرف اینترنت · روشن" : "حالت کم‌مصرف اینترنت · خاموش"}
-        className={`switch-toggle flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
+      <div
+        className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right sm:p-4 ${
           lowDataMode
             ? "border-accent3 bg-card-hover-bg"
-            : "border-border-color bg-card-bg hover:bg-card-hover-bg"
+            : "border-border-color bg-card-bg"
         }`}
       >
         <div className="min-w-0 flex-1 space-y-1 text-right">
@@ -56,15 +51,18 @@ export default function LowDataToggle({
               : "خاموش · همگام‌سازی خودکار پس‌زمینه با کلودفلر"}
           </span>
         </div>
-        <ToggleIndicator
+        <DissolveToggle
           value={lowDataMode}
+          onValueChange={handleToggle}
           size="sm"
           onColor="var(--accent3)"
           offColor="var(--bg-main)"
+          haptics={false}
           reducedMotion={!animationsEnabled}
+          accessibilityLabel="حالت کم‌مصرف اینترنت"
           className="shrink-0"
         />
-      </Toggle>
+      </div>
     </div>
   );
 }
