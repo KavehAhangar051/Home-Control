@@ -1,16 +1,12 @@
 /**
  * @file durable-object/alarm-manager.ts
  * منطق زمانبندی و اجرای اتوماسیون‌ها از طریق DO Alarms
- *
- * بهینه‌سازی‌های اعمال‌شده:
- * - محاسبه timestamp در یک پاس (به جای دو پاس قبلی)
- * - نوشتن storage و setAlarm به‌صورت موازی با Promise.all
- * - خواندن automations و nextAlarmIds به‌صورت موازی در fireAlarm
+ * پشتیبانی از فرمان دسته‌ای دیجیتال (0x08) و فرمان PWM آنالوگ (0x0A) روی پین‌های 0..127
  */
 
 import { getNextTriggerTimestamp } from "../utils/scheduler";
 import { getCurrentTemperature } from "../utils/weather";
-import type { Automation } from "../types";
+import type { Automation, Macro } from "../types";
 
 /** ساختار داخلی برای نگه‌داشتن زمان محاسبه‌شده هر اتوماسیون */
 interface ScheduledEntry {
@@ -18,11 +14,14 @@ interface ScheduledEntry {
 	ts: number;
 }
 
+export interface PendingAutomationPin {
+	pin: number;
+	state: boolean;
+	analogValue?: number;
+}
+
 /**
  * محاسبه و ثبت آلارم بعدی بر اساس لیست اتوماسیون‌های فعال.
- *
- * بهینه‌سازی: همه timestamp ها در یک پاس محاسبه می‌شوند،
- * و نوشتن به storage و setAlarm به‌صورت موازی اجرا می‌شود.
  */
 export async function scheduleNextAlarm(storage: DurableObjectStorage): Promise<void> {
 	const automations = (await storage.get<Automation[]>("automations")) ?? [];
@@ -33,7 +32,6 @@ export async function scheduleNextAlarm(storage: DurableObjectStorage): Promise<
 		return;
 	}
 
-	// یک پاس: محاسبه timestamp برای همه اتوماسیون‌های فعال
 	const now = new Date();
 	const scheduled: ScheduledEntry[] = activeAutomations
 		.map((auto) => ({ id: auto.id, ts: getNextTriggerTimestamp(auto.time, auto.days, now, auto.intervalMinutes) }))
@@ -44,11 +42,9 @@ export async function scheduleNextAlarm(storage: DurableObjectStorage): Promise<
 		return;
 	}
 
-	// پیدا کردن نزدیک‌ترین زمان
 	const nextTime = Math.min(...scheduled.map((e) => e.ts));
 	const nextAlarmIds = scheduled.filter((e) => e.ts === nextTime).map((e) => e.id);
 
-	// نوشتن storage و ثبت آلارم به‌صورت موازی
 	await Promise.all([
 		storage.put("nextAlarmTime", nextTime),
 		storage.put("nextAlarmIds", nextAlarmIds),
@@ -56,33 +52,41 @@ export async function scheduleNextAlarm(storage: DurableObjectStorage): Promise<
 	]);
 }
 
+function broadcastBinary(sockets: WebSocket[], payload: Uint8Array): void {
+	for (const ws of sockets) {
+		try {
+			ws.send(payload);
+		} catch {
+			// اتصال قطع شده — نادیده گرفته می‌شود
+		}
+	}
+}
+
+function encodeAnalogFrame(pin: number, value: number): Uint8Array {
+	const clamped = Math.max(0, Math.min(4095, Math.round(value)));
+	return new Uint8Array([0x0a, pin & 0xff, clamped & 0xff, (clamped >> 8) & 0xff]);
+}
+
 /**
  * اجرای اتوماسیون‌هایی که الان باید فعال شوند و ارسال payload به ESP از طریق WebSocket.
- *
- * بهینه‌سازی: خواندن automations و nextAlarmIds به‌صورت موازی.
  */
 export async function fireAlarm(
 	storage: DurableObjectStorage,
 	getWebSockets: () => WebSocket[]
 ): Promise<void> {
-	// خواندن موازی از storage
 	const [automations, nextAlarmIds, macros] = await Promise.all([
 		storage.get<Automation[]>("automations").then((v) => v ?? []),
 		storage.get<string[]>("nextAlarmIds").then((v) => v ?? []),
-		storage.get<import("../types").Macro[]>("macros").then((v) => v ?? []),
+		storage.get<Macro[]>("macros").then((v) => v ?? []),
 	]);
 
 	const idSet = new Set(nextAlarmIds);
 	const fired = automations.filter((a) => idSet.has(a.id));
 	const sockets = getWebSockets();
 	let automationsChanged = false;
-
-	// کشِ دیتای آب‌وهوا برای جلوگیری از ریکوئست‌های تکراری در یک دوره‌ی اجرای آلارم
 	const weatherCache = new Map<string, number | null>();
 
-	// ارسال payload برای هر اتوماسیون فعال‌شده
 	for (const auto of fired) {
-		// --- بررسی شرط آب‌وهوا ---
 		if (auto.conditionType === "weather" && auto.city) {
 			let currentTemp: number | null = null;
 			if (weatherCache.has(auto.city)) {
@@ -91,13 +95,13 @@ export async function fireAlarm(
 				currentTemp = await getCurrentTemperature(auto.city);
 				weatherCache.set(auto.city, currentTemp);
 			}
-			
+
 			if (currentTemp !== null && auto.temperatureThreshold !== undefined) {
 				const isGreater = auto.temperatureCondition === "greater";
-				const conditionMet = isGreater 
-					? currentTemp > auto.temperatureThreshold 
+				const conditionMet = isGreater
+					? currentTemp > auto.temperatureThreshold
 					: currentTemp < auto.temperatureThreshold;
-				
+
 				if (!conditionMet) {
 					console.log(`[Automation] Skipped ${auto.id} due to weather condition (${currentTemp}°C vs threshold ${auto.temperatureThreshold}°C)`);
 					continue;
@@ -105,7 +109,6 @@ export async function fireAlarm(
 			}
 		}
 
-		// --- به‌روزرسانی تعداد تکرار (یک‌بار مصرف) ---
 		if (auto.repeatCount !== undefined && auto.repeatCount > 0) {
 			auto.repeatCount -= 1;
 			automationsChanged = true;
@@ -115,54 +118,63 @@ export async function fireAlarm(
 			}
 		}
 
-		const allPins: { pin: number; state: boolean }[] = [];
+		const allPins: PendingAutomationPin[] = [];
+
+		const pushPinAction = (rawPin: string | undefined, actionOn: boolean | undefined, targetValue?: number | null) => {
+			if (!rawPin) return;
+			const pin = Number.parseInt(rawPin, 10);
+			if (!Number.isInteger(pin) || pin < 0 || pin > 127) return;
+
+			if (typeof targetValue === "number" && Number.isFinite(targetValue) && targetValue >= 0) {
+				const clamped = Math.min(4095, Math.round(targetValue));
+				allPins.push({ pin, state: clamped > 0, analogValue: clamped });
+			} else {
+				allPins.push({ pin, state: !!actionOn });
+			}
+		};
 
 		if (auto.actions) {
 			for (const action of auto.actions) {
 				if (action.targetMacro) {
-					const m = macros.find(m => m.id === action.targetMacro);
-					if (m && m.actions) {
+					const m = macros.find((macro) => macro.id === action.targetMacro);
+					if (m?.actions) {
 						for (const ma of m.actions) {
-							const pin = parseInt(ma.targetPin, 10);
-							if (!isNaN(pin)) allPins.push({ pin, state: !!ma.actionOn });
+							pushPinAction(ma.targetPin, ma.actionOn, ma.targetValue);
 						}
 					}
-				} else if (action.targetPin) {
-					const pin = parseInt(action.targetPin, 10);
-					if (!isNaN(pin)) allPins.push({ pin, state: !!action.actionOn });
+				} else {
+					pushPinAction(action.targetPin, action.actionOn, action.targetValue);
 				}
 			}
 		}
 
 		if (allPins.length === 0) continue;
 
-		// ساختن کامند 0x08
-		const count = Math.min(allPins.length, 32);
-		const payload = new Uint8Array(2 + count * 2);
-		payload[0] = 0x08;
-		payload[1] = count;
-		for (let i = 0; i < count; i++) {
-			payload[2 + i * 2] = allPins[i].pin;
-			payload[3 + i * 2] = allPins[i].state ? 1 : 0;
-		}
+		const digitalPins = allPins.filter((p) => p.analogValue === undefined);
+		const analogPins = allPins.filter((p) => p.analogValue !== undefined);
 
-		for (const ws of sockets) {
-			try {
-				ws.send(payload);
-			} catch {
-				// اتصال قطع شده — نادیده گرفته می‌شود
+		if (digitalPins.length > 0) {
+			const count = Math.min(digitalPins.length, 32);
+			const payload = new Uint8Array(2 + count * 2);
+			payload[0] = 0x08;
+			payload[1] = count;
+			for (let i = 0; i < count; i++) {
+				payload[2 + i * 2] = digitalPins[i].pin & 0xff;
+				payload[3 + i * 2] = digitalPins[i].state ? 1 : 0;
 			}
+			broadcastBinary(sockets, payload);
 		}
 
-		// ذخیره وضعیت پین‌ها تا با دریافت فیدبک، مقدار نهایی در DO آپدیت شود
+		for (const ap of analogPins) {
+			broadcastBinary(sockets, encodeAnalogFrame(ap.pin, ap.analogValue!));
+		}
+
 		await storage.put("pending_automation_states", allPins);
 	}
 
-	// ذخیره تغییرات اتوماسیون‌ها (مانند غیرفعال شدن اتوماسیون‌های یک‌بار مصرف)
 	if (automationsChanged) {
 		await storage.put("automations", automations);
 	}
 
-	// آلارم بعدی را برنامه‌ریزی کن
 	await scheduleNextAlarm(storage);
 }

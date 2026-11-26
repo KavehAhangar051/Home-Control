@@ -5,94 +5,14 @@
  * بهینه‌سازی‌های اعمال‌شده:
  * - در POST: KV.put و DO.updateAutomations به‌صورت موازی اجرا می‌شوند
  * - JSON یک‌بار parse می‌شود و نتیجه در هر دو مسیر استفاده می‌شود
- * - buildEspConfigText از Promise.all برای خواندن همزمان وضعیت پین‌ها استفاده می‌کند
  */
 
 import { jsonResponse } from "../utils/response";
-import type { PinConfig } from "../types";
+import { buildEspConfigText } from "../utils/esp-config";
+
+export { buildEspConfigText };
 
 const CONFIG_KEY = "main_config";
-
-/**
- * ساخت یک خط S برای فرمت ESP_CFG_V2
- */
-function buildSegmentLine(seg: PinConfig, pinValue: boolean): string {
-	return `S id=${seg.id} type=${seg.type} pin=${seg.pin} val=${pinValue ? 1 : 0} ao=${seg.autoOffDelay ?? 0}\n`;
-}
-
-/**
- * ساخت خطوط Rule برای یک پین
- */
-function buildRuleLines(seg: PinConfig): string {
-	if (!seg.rule) return "";
-	let lines = "";
-	for (const act of seg.rule.highActions ?? []) {
-		lines += `RH tgt=${act.targetPin} hld=${act.requiredHoldTime ?? 0} ast=${act.actionState ? 1 : 0} atp=${act.actionType ?? 0} dly=${act.delay ?? 0}\n`;
-	}
-	for (const act of seg.rule.lowActions ?? []) {
-		lines += `RL tgt=${act.targetPin} hld=${act.requiredHoldTime ?? 0} ast=${act.actionState ? 1 : 0} atp=${act.actionType ?? 0} dly=${act.delay ?? 0}\n`;
-	}
-	return lines;
-}
-
-/**
- * ساخت متن فرمت ESP_CFG_V2 برای ارسال به میکروکنترلر.
- * وضعیت همه پین‌ها به‌صورت موازی از DO خوانده می‌شود.
- */
-export async function buildEspConfigText(env: Env, value: string | null): Promise<string> {
-	const parsed = JSON.parse(value ?? "{}");
-	const data = parsed?.payload ?? parsed ?? {};
-	const segmentDefinitions = data.segments_definition ?? data.segments;
-	const segments: PinConfig[] = Array.isArray(segmentDefinitions) ? segmentDefinitions : [];
-
-	
-
-	// خواندن موازی وضعیت همه پین‌ها
-	const pinStates = await Promise.all(
-		segments.map(async (seg) => {
-			try {
-				const stub = env.MY_DURABLE_OBJECT.getByName("pin_" + seg.pin);
-				return (await (stub as any).getState()) as { value?: boolean };
-			} catch {
-				return {} as { value?: boolean };
-			}
-		})
-	);
-
-	let text = "ESP_CFG_V2\n";
-	if (Array.isArray(segmentDefinitions)) text += "C n=1\n";
-	
-	const encodeValue = (value: string): string => encodeURIComponent(value);
-
-	if (data.mqtt) {
-		const m = data.mqtt;
-		if (m.broker_host && m.base_topic) {
-			text += `M h=${encodeValue(m.broker_host)} p=${m.broker_port || 1883} t=${encodeValue(m.base_topic)} q=${m.qos ?? 1}\n`;
-		}
-	}
-
-	if (data.wifi && Array.isArray(data.wifi.networks)) {
-		text += "W n=1\n";
-		for (const net of data.wifi.networks) {
-			if (net?.ssid) {
-				text += `W s=${encodeValue(net.ssid)} p=${encodeValue(net.password ?? "")}\n`;
-			}
-		}
-	}
-
-	const accessPoint = data.wifi?.access_point;
-	if (accessPoint && typeof accessPoint.ssid === "string" && typeof accessPoint.password === "string") {
-		text += `A s=${encodeValue(accessPoint.ssid)} p=${encodeValue(accessPoint.password)}\n`;
-	}
-
-	for (let i = 0; i < segments.length; i++) {
-		const seg = segments[i];
-		if (!seg || seg.pin == null) continue;
-		text += buildSegmentLine(seg, !!pinStates[i]?.value);
-		text += buildRuleLines(seg);
-	}
-	return text;
-}
 
 /**
  * Handler اصلی برای /config
