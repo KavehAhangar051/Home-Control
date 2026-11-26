@@ -6,6 +6,10 @@ CompileFlags:
     - -fno-tree-switch-conversion
     - -mtext-section-literals
     - -mdisable-hardware-atomics
+    - -freorder-blocks
+    - -fno-shrink-wrap
+    - -fstack-usage
+    - -mfix-esp32-*
   Add:
     - -Wno-unknown-warning-option
 

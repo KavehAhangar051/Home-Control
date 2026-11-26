@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PLATFORMIO_CORE_DIR="$ROOT_DIR/.agent-state/platformio"
+export PATH="$ROOT_DIR/.agent-state/rtk/bin:$ROOT_DIR/.agent-state/platformio/penv/bin:$ROOT_DIR/.agent-state/cpp-tools/venv/bin:$HOME/.local/bin:$PATH"
+
+bash "$ROOT_DIR/tools/rtk.sh" ensure >/dev/null 2>&1 || true
+
+if [ "$#" -eq 0 ]; then
+  echo "Usage: tools/r [--raw] <command> [args...]" >&2
+  exit 2
+fi
+
+if [ "$1" = "--raw" ]; then
+  shift
+  exec "$@"
+fi
+
+exec bash "$ROOT_DIR/tools/rtk.sh" run -- "$@"
