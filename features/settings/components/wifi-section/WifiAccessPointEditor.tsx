@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "@/components/ui/hugeicons-groups/controls";
+import { WifiPasswordInput } from "./WifiPasswordInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { WifiCredentialErrors } from "./wifiValidation";
@@ -96,38 +97,25 @@ export function WifiAccessPointEditor({
         </div>
 
         <div className="min-w-0 space-y-2">
-          <div className="flex min-h-11 items-center justify-between gap-3">
-            <Label htmlFor="esp-ap-password" className="min-w-0 text-sm font-bold">
+          <div className="flex min-h-11 items-center">
+            <Label htmlFor="esp-ap-password" className="text-sm font-bold">
               رمز عبور اکسس‌پوینت
             </Label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onTogglePassword}
-              disabled={isSaving}
-              className="min-h-11 shrink-0 px-2 text-xs font-semibold text-accent3"
-              aria-label={showPassword ? "مخفی کردن رمز اکسس‌پوینت" : "نمایش رمز اکسس‌پوینت"}
-              aria-pressed={showPassword}
-            >
-              {showPassword ? "پنهان کردن" : "نمایش رمز"}
-            </Button>
           </div>
-          <Input
+          <WifiPasswordInput
             id="esp-ap-password"
-            ref={passwordInputRef}
             name="esp-ap-password"
-            type={showPassword ? "text" : "password"}
-            dir="ltr"
-            autoComplete="new-password"
-            autoCapitalize="none"
-            spellCheck={false}
-            maxLength={63}
-            disabled={isSaving}
+            inputRef={passwordInputRef}
             value={password}
             onChange={(event) => onPasswordChange(event.target.value)}
+            showPassword={showPassword}
+            onTogglePassword={onTogglePassword}
+            maxLength={63}
+            disabled={isSaving}
+            autoComplete="new-password"
             placeholder="۸ تا ۶۳ بایت"
-            className="h-11 bg-card-bg-solid text-base sm:text-sm"
+            dir="ltr"
+            className="h-11 bg-card-bg-solid pe-12 text-base sm:text-sm"
             aria-invalid={Boolean(passwordError) || undefined}
             aria-describedby={
               passwordError ? "esp-ap-password-error" : "esp-ap-password-help"

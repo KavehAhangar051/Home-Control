@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "@/components/ui/hugeicons-groups/controls";
+import { WifiPasswordInput } from "./WifiPasswordInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getUtf8ByteLength, type WifiCredentialErrors } from "./wifiValidation";
@@ -84,35 +85,23 @@ export function WifiNetworkEditor({
         </div>
 
         <div className="min-w-0 space-y-2">
-          <div className="flex min-h-11 items-center justify-between gap-3">
-            <Label htmlFor="wifi-network-password" className="min-w-0 text-sm font-bold">
+          <div className="flex min-h-11 items-center">
+            <Label htmlFor="wifi-network-password" className="text-sm font-bold">
               رمز عبور شبکه
             </Label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowPassword((visible) => !visible)}
-              className="min-h-11 shrink-0 px-2 text-xs font-semibold text-accent3"
-              aria-label={showPassword ? "مخفی کردن رمز عبور شبکه" : "نمایش رمز عبور شبکه"}
-              aria-pressed={showPassword}
-            >
-              {showPassword ? "پنهان کردن" : "نمایش رمز"}
-            </Button>
           </div>
-          <Input
+          <WifiPasswordInput
             id="wifi-network-password"
-            ref={passwordInputRef}
             name="wifi-network-password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="new-password"
-            autoCapitalize="none"
-            spellCheck={false}
-            maxLength={63}
+            inputRef={passwordInputRef}
             value={tempPassword}
             onChange={(event) => setTempPassword(event.target.value)}
-            className="h-11 bg-card-bg-solid text-base sm:text-sm"
+            showPassword={showPassword}
+            onTogglePassword={() => setShowPassword((visible) => !visible)}
+            maxLength={63}
+            autoComplete="new-password"
             dir="ltr"
+            className="h-11 bg-card-bg-solid pe-12 text-base sm:text-sm"
             aria-invalid={Boolean(errors.password) || undefined}
             aria-describedby={
               errors.password ? "wifi-network-password-error" : "wifi-network-password-help"
