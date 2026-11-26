@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, Save } from "@/components/ui/hugeicons-groups/controls";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Check } from "@/components/ui/hugeicons-groups/controls";
 import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
 import { soundManager } from "@/lib/audio";
 import { getUtf8ByteLength, validateWifiAccessPoint } from "./wifiValidation";
+import { WifiAccessPointEditor } from "./WifiAccessPointEditor";
 
 interface ApDraftOverrides {
   ssid?: string;
@@ -40,9 +39,6 @@ export function WifiAccessPointCard() {
   const trimmedApSsid = apSsid.trim();
   const apErrors = validateWifiAccessPoint(apSsid, apPassword);
   const hasApErrors = Boolean(apErrors.ssid || apErrors.password);
-  const hasApChanges =
-    trimmedApSsid !== (wifiApConfig?.ssid ?? "").trim() ||
-    apPassword !== (wifiApConfig?.password ?? "");
   const isDefaultAccessPoint = !wifiApConfig?.ssid && !wifiApConfig?.password;
 
   function scheduleApSavedReset(): void {
@@ -166,125 +162,26 @@ export function WifiAccessPointCard() {
         <>
           <div className="space-y-1">
             <h3 id="wifi-ap-heading" className="text-sm font-bold text-text-primary">
-              اکسس‌پوینت راه‌اندازی (AP)
-            </h3>
-            <p className="text-xs leading-5 text-text-secondary">
-              این شبکه برای اتصال مستقیم به ESP32 هنگام راه‌اندازی است. برای بازگشت به تنظیم پیش‌فرض دستگاه، هر دو فیلد را خالی بگذارید.
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="esp-ap-ssid">نام شبکه (SSID)</Label>
-              <span className="text-xs tabular-nums text-text-muted">{apSsidByteLength}/۳۲ بایت</span>
-            </div>
-            <Input
-              id="esp-ap-ssid"
-              name="esp-ap-ssid"
-              type="text"
-              dir="auto"
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              maxLength={32}
-              value={apSsid}
-              onChange={(event) => {
-                setIsApSaved(false);
-                setApDraft((previous) => ({ ...previous, ssid: event.target.value }));
-              }}
-              placeholder="Achaemenid-XXXXXX"
-              aria-describedby="esp-ap-ssid-help"
-              error={hasAttemptedApSave ? apErrors.ssid : undefined}
-            />
-            <p id="esp-ap-ssid-help" className="text-xs leading-5 text-text-muted">
-              نام شبکه پس از حذف فاصله‌های ابتدا و انتها، حداکثر ۳۲ بایت UTF-8 است.
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="esp-ap-password">رمز عبور اکسس‌پوینت</Label>
-              <button
-                type="button"
-                onClick={() => setShowApPassword((visible) => !visible)}
-                className="min-h-11 rounded-lg px-3 text-xs font-semibold text-accent3 hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
-                aria-label={showApPassword ? "مخفی کردن رمز اکسس‌پوینت" : "نمایش رمز اکسس‌پوینت"}
-                aria-pressed={showApPassword}
-              >
-                {showApPassword ? "پنهان کردن" : "نمایش رمز"}
-              </button>
-            </div>
-            <Input
-              id="esp-ap-password"
-              name="esp-ap-password"
-              type={showApPassword ? "text" : "password"}
-              dir="ltr"
-              autoComplete="new-password"
-              autoCapitalize="none"
-              spellCheck={false}
-              maxLength={63}
-              value={apPassword}
-              onChange={(event) => {
-                setIsApSaved(false);
-                setApDraft((previous) => ({ ...previous, password: event.target.value }));
-              }}
-              placeholder="۸ تا ۶۳ بایت"
-              aria-describedby="esp-ap-password-help"
-              error={hasAttemptedApSave ? apErrors.password : undefined}
-            />
-            <p id="esp-ap-password-help" className="text-xs leading-5 text-text-muted">
-              رمز سفارشی باید ۸ تا ۶۳ بایت UTF-8 باشد.
-              <span className="ms-1 tabular-nums">({apPasswordByteLength}/۶۳ بایت)</span>
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border-color/70 pt-3">
-            <button
-              type="button"
-              onClick={handleResetAccessPointDraft}
-              className="min-h-11 rounded-lg px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-card-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
-            >
-              بازگشت به پیش‌فرض دستگاه
-            </button>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancelAccessPointEdit}
-                disabled={isSavingAp}
-                className="min-h-11"
-              >
-                لغو
-              </Button>
-              <Button
-                type="button"
-                variant={isApSaved && !hasApChanges ? "outline" : "accent"}
-                disabled={isSavingAp}
-                onClick={handleSaveAccessPoint}
-                className={`min-h-11 h-auto rounded-xl px-4 py-2.5 text-sm font-bold ${
-                  isApSaved && !hasApChanges
-                    ? "border-success/40 bg-success-soft text-success hover:border-success/40 hover:bg-success-soft hover:text-success"
-                    : ""
-                }`}
-              >
-                {isSavingAp ? (
-                  "در حال ذخیره اکسس‌پوینت..."
-                ) : isApSaved && !hasApChanges ? (
-                  <>
-                    <Check className="size-4" />
-                    ذخیره شد
-                  </>
-                ) : (
-                  <>
-                    <Save className="size-4" />
-                    ذخیره اکسس‌پوینت
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
-    </section>
-  );
-}
+              اکسس‌پو      ) : (
+        <WifiAccessPointEditor
+          ssid={apSsid}
+          password={apPassword}
+          ssidByteLength={apSsidByteLength}
+          passwordByteLength={apPasswordByteLength}
+          showPassword={showApPassword}
+          hasAttemptedSave={hasAttemptedApSave}
+          isSaving={isSavingAp}
+          errors={apErrors}
+          onSsidChange={(value) => {
+            setIsApSaved(false);
+            setApDraft((previous) => ({ ...previous, ssid: value }));
+          }}
+          onPasswordChange={(value) => {
+            setIsApSaved(false);
+            setApDraft((previous) => ({ ...previous, password: value }));
+          }}
+          onTogglePassword={() => setShowApPassword((visible) => !visible)}
+          onResetToDefault={handleResetAccessPointDraft}
+          onCancel={handleCancelAccessPointEdit}
+          onSave={handleSaveAccessPoint}
+        />
