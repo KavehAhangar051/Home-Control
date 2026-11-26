@@ -40,36 +40,34 @@ export function MqttFormFields({
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="sm:col-span-2 space-y-2 text-right">
-          <Label htmlFor="mqtt-broker-host" className="px-1 font-bold">
-            میزبان بروکر MQTT برای ESP32
-          </Label>
-          <p className="px-1 text-xs leading-5 text-text-secondary">ESP32 از طریق TCP به این میزبان و پورت متصل می‌شود.</p>
-          <Input
-            id="mqtt-broker-host"
-            type="text"
-            dir="ltr"
-            value={brokerHost}
-            onChange={(e) => setBrokerHost(e.target.value)}
-            className="h-11 bg-card-bg-solid px-4 py-3 text-xs text-text-secondary"
-            placeholder="broker.emqx.io"
-          />
-        </div>
-        <div className="sm:col-span-1 space-y-2 text-right">
-          <Label htmlFor="mqtt-broker-port" className="px-1 font-bold">
-            پورت TCP بروکر
-          </Label>
-          <Input
-            id="mqtt-broker-port"
-            type="number"
-            dir="ltr"
-            value={brokerPort}
-            onChange={(e) => setBrokerPort(parseInt(e.target.value, 10) || 1883)}
-            className="h-11 bg-card-bg-solid px-4 py-3 text-xs text-text-secondary"
-            placeholder="1883"
-          />
-        </div>
+      <div className="grid grid-cols-1 gap-3 text-right sm:grid-cols-3">
+        <p className="px-1 text-xs leading-5 text-text-secondary sm:col-span-3">
+          ESP32 از طریق TCP به میزبان و پورت بروکر متصل می‌شود.
+        </p>
+        <Label htmlFor="mqtt-broker-host" className="px-1 font-bold sm:col-span-2">
+          میزبان بروکر MQTT برای ESP32
+        </Label>
+        <Label htmlFor="mqtt-broker-port" className="px-1 font-bold sm:col-span-1">
+          پورت TCP بروکر
+        </Label>
+        <Input
+          id="mqtt-broker-host"
+          type="text"
+          dir="ltr"
+          value={brokerHost}
+          onChange={(e) => setBrokerHost(e.target.value)}
+          className="h-11 bg-card-bg-solid px-4 py-3 text-xs text-text-secondary sm:col-span-2"
+          placeholder="broker.emqx.io"
+        />
+        <Input
+          id="mqtt-broker-port"
+          type="number"
+          dir="ltr"
+          value={brokerPort}
+          onChange={(e) => setBrokerPort(parseInt(e.target.value, 10) || 1883)}
+          className="h-11 bg-card-bg-solid px-4 py-3 text-xs text-text-secondary sm:col-span-1"
+          placeholder="1883"
+        />
       </div>
 
       <div className="space-y-2 text-right">
