@@ -1,6 +1,6 @@
 "use client";
 
-import { Toggle } from "@/components/ui/toggle";
+import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { soundManager } from "@/lib/audio";
 
@@ -14,7 +14,7 @@ interface AnimationsToggleProps {
 
 function getToggleSurfaceClass(animationsEnabled: boolean, _isDark: boolean): string {
   if (animationsEnabled) {
-    return "bg-card-hover-bg aria-pressed:bg-card-hover-bg data-[state=on]:bg-card-hover-bg border-accent3";
+    return "bg-card-hover-bg border-accent3";
   }
 
   return "bg-card-bg border-border-color hover:bg-card-hover-bg";
@@ -41,26 +41,13 @@ export default function AnimationsToggle({
     else soundManager.playToggleOff();
   };
 
-  const statusLabel = animationsEnabled
-    ? "انیمیشن‌های رابط کاربری · فعال"
-    : "انیمیشن‌های رابط کاربری · غیرفعال";
-
-  const surfaceClass = getToggleSurfaceClass(animationsEnabled, isDark);
+    const surfaceClass = getToggleSurfaceClass(animationsEnabled, isDark);
   const titleClass = getTitleTextClass(animationsEnabled, isDark);
-
-  const trackBgClass = animationsEnabled
-    ? "bg-accent3 border border-transparent"
-    : "bg-bg-main border border-border-color";
 
   return (
     <div className="space-y-3 border-b border-border-color pb-3.5 sm:space-y-3.5 sm:pb-4">
-      <Toggle
-        variant="outline"
-        pressed={animationsEnabled}
-        onPressedChange={handleToggle}
-        aria-label={statusLabel}
-        className={`switch-toggle w-full h-auto gap-3 p-3 sm:p-4 rounded-xl border whitespace-normal transition-[background-color,border-color] duration-150 flex items-center justify-between cursor-pointer text-right group ${surfaceClass}`}
-      >
+      <div className={`w-full h-auto gap-3 p-3 sm:p-4 rounded-xl border whitespace-normal transition-[background-color,border-color] duration-150 flex items-center justify-between cursor-pointer text-right group ${surfaceClass}`}>
+
         <span className="min-w-0 flex-1 text-right space-y-1">
           <span
             className={`font-sans font-medium text-xs block leading-5 transition-colors duration-150 ${titleClass}`}
@@ -73,15 +60,18 @@ export default function AnimationsToggle({
               : "غیرفعال · کاهش بار پردازشی دستگاه"}
           </span>
         </span>
-        <span
-          aria-hidden="true"
-          className={`relative inline-flex h-6 w-11 rounded-[8px] p-0.5 items-center transition-colors duration-150 shrink-0 select-none ${trackBgClass}`}
-        >
-          <span
-            className={`pointer-events-none inline-block h-[18px] w-[18px] rounded-[5px] shadow-sm transform ${animationsEnabled ? "bg-accent3-foreground transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] -translate-x-5" : "bg-text-secondary translate-x-0"}`}
-          />
-        </span>
-      </Toggle>
+        <DissolveToggle
+          value={animationsEnabled}
+          onValueChange={handleToggle}
+          size="sm"
+          onColor="var(--accent3)"
+          offColor="var(--bg-main)"
+          haptics={false}
+          reducedMotion={!animationsEnabled}
+          accessibilityLabel="انیمیشن‌های رابط کاربری"
+          className="shrink-0"
+        />
+      </div>
       {animationsEnabled && setAnimationsFps && (
         <div className="px-0.5 sm:px-2 flex flex-wrap justify-between items-center gap-2">
           <span className="text-xs text-text-secondary font-medium">نرخ فریم انیمیشن</span>
