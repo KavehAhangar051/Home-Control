@@ -706,6 +706,7 @@ export function ActionConditionsEditor({
       </div>
 
       {conditions.length >= 2 && (
+        <div className="text-[11px] leading-5 text-text-secondary">منطق ترکیب شرط‌ها</div>
         <fieldset
           aria-label={`منطق ترکیب شرط‌های ${actionLabel}`}
           className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-card-bg-solid p-1"
@@ -780,9 +781,11 @@ export function RuleGuardConditionsEditor({
   onChange,
 }: RuleGuardConditionsEditorProps) {
   return (
-    <ActionConditionsEditor
+    <div className="space-y-2">
+      <p className="text-xs leading-5 text-text-secondary">این شرط‌ها روی خود ESP32 و پیش از اجرای عملیات بررسی می‌شوند؛ برای اجرای آن‌ها به اتصال لحظه‌ای داشبورد نیاز نیست.</p>
+      <ActionConditionsEditor
       actionLabel={actionLabel}
-      title="شرط‌های پیش‌نیاز (ESP32)"
+      title="شرط‌های پیش‌نیاز روی ESP32"
       conditions={(conditions ?? []).map((c) => ({ ...c, failureMessage: "" }))}
       conditionLogic={conditionLogic}
       segments={segments}
@@ -803,6 +806,7 @@ export function RuleGuardConditionsEditor({
           guardConds.length > 1 ? nextLogic : undefined,
         );
       }}
-    />
+      />
+    </div>
   );
 }
