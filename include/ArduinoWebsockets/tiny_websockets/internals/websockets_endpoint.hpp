@@ -52,9 +52,11 @@ namespace websockets {
         bool send(const char* data, const size_t len, const uint8_t opcode, const bool fin);    
         bool send(const WSString& data, const uint8_t opcode, const bool fin);
         
+        bool ping(const char* msg, size_t len);
         bool ping(const WSString& msg);
         bool ping(const WSString&& msg);
 
+        bool pong(const char* msg, size_t len);
         bool pong(const WSString& msg);
         bool pong(const WSString&& msg);
 
@@ -70,6 +72,35 @@ namespace websockets {
 
         virtual ~WebsocketsEndpoint();
     private:
+        enum class RxStage : uint8_t {
+            Header = 0,
+            ExtLen,
+            MaskKey,
+            Payload
+        };
+
+        struct PartialFrameState {
+            RxStage stage = RxStage::Header;
+            uint8_t hdr_buf[8]{};
+            uint8_t hdr_read = 0;
+            uint8_t hdr_need = 2;
+            Header  header{};
+            uint8_t masking_key[4]{};
+            uint64_t payload_len = 0;
+            uint64_t payload_done = 0;
+            WSString payload;
+
+            void reset() {
+                stage = RxStage::Header;
+                hdr_read = 0;
+                hdr_need = 2;
+                header.payload = 0;
+                payload_len = 0;
+                payload_done = 0;
+                payload.clear();
+            }
+        };
+
         std::shared_ptr<network::TcpClient> _client;
         FragmentsPolicy _fragmentsPolicy;
         enum RecvMode {
@@ -79,8 +110,10 @@ namespace websockets {
         WebsocketsMessage::StreamBuilder _streamBuilder;
         CloseReason _closeReason;
         bool _useMasking = true;
+        PartialFrameState _rxState;
 
         WebsocketsFrame _recv();
+        bool stepRxFrame();
         void handleMessageInternally(WebsocketsMessage& msg);
 
         WebsocketsMessage handleFrameInStreamingMode(WebsocketsFrame& frame);

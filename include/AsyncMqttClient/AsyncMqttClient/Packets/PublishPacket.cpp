@@ -1,3 +1,4 @@
+#include <cstring>
 #include "PublishPacket.hpp"
 #include "../../AsyncMqttAsm.h"
 
@@ -27,6 +28,23 @@ PublishPacket::~PublishPacket() {
 }
 
 void PublishPacket::parseVariableHeader(uint8_t* data, size_t len, size_t* currentBytePosition) {
+  if (LIKELY(_bytePosition >= 2U && _bytePosition < static_cast<size_t>(2U + _topicLength))) {
+    const size_t availTopic = static_cast<size_t>(2U + _topicLength) - _bytePosition;
+    const size_t availChunk = len - (*currentBytePosition);
+    const size_t copyLen = uniuno::asyncmqtt_asm::asm_min(availTopic, availChunk);
+    if (LIKELY(!_ignore && copyLen > 0U)) {
+      std::memcpy(_parsingInformation->topicBuffer + (_bytePosition - 2U), data + (*currentBytePosition), copyLen);
+    }
+    _bytePosition += copyLen;
+    (*currentBytePosition) += copyLen;
+    if (_bytePosition == static_cast<size_t>(2U + _topicLength) && _qos == 0) {
+      const uint32_t payloadLen = (_parsingInformation->remainingLength >= _bytePosition)
+                                  ? (_parsingInformation->remainingLength - _bytePosition) : 0U;
+      _preparePayloadHandling(payloadLen);
+    }
+    return;
+  }
+
   uint8_t currentByte = data[(*currentBytePosition)++];
   if (_bytePosition == 0) {
     _topicLengthMsb = currentByte;
@@ -36,16 +54,6 @@ void PublishPacket::parseVariableHeader(uint8_t* data, size_t len, size_t* curre
       _ignore = true;
     } else {
       _parsingInformation->topicBuffer[_topicLength] = '\0';
-    }
-  } else if (_bytePosition >= 2 && _bytePosition < 2 + _topicLength) {
-    // Starting from here, _ignore might be true
-    if (LIKELY(!_ignore)) _parsingInformation->topicBuffer[_bytePosition - 2] = currentByte;
-    if (_bytePosition == 2 + _topicLength - 1 && _qos == 0) {
-      uint32_t varHeaderLen = _bytePosition + 1;
-      uint32_t payloadLen = (_parsingInformation->remainingLength >= varHeaderLen)
-                            ? (_parsingInformation->remainingLength - varHeaderLen) : 0;
-      _preparePayloadHandling(payloadLen);
-      return;
     }
   } else if (_bytePosition == 2 + _topicLength) {
     _packetIdMsb = currentByte;

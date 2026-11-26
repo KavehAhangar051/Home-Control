@@ -42,28 +42,6 @@ namespace websockets {
 
 namespace internals {
 
-    uint32_t swapEndianess(uint32_t num) {
-        uint32_t highest = (num >> 24);
-        uint32_t second = (num << 8) >> 24;
-        uint32_t third = (num << 16) >> 24;
-        uint32_t lowest = (num << 24) >> 24;
-
-        return highest | (second << 8) | (third << 16) | (lowest << 24);
-    }
-
-    uint64_t swapEndianess(uint64_t num) {
-        uint32_t upper = (num >> 32);
-        uint32_t lower = (num << 32) >> 32;
-    
-        upper = swapEndianess(upper);
-        lower = swapEndianess(lower);
-    
-        uint64_t upperLong = upper;
-        uint64_t lowerLong = lower;
-        
-        return upperLong | (lowerLong << 32);
-    }
-
     WebsocketsEndpoint::WebsocketsEndpoint(std::shared_ptr<network::TcpClient> client, FragmentsPolicy fragmentsPolicy) : 
         _client(client),
         _fragmentsPolicy(fragmentsPolicy),
@@ -79,9 +57,11 @@ namespace internals {
         _recvMode(other._recvMode), 
         _streamBuilder(other._streamBuilder), 
         _closeReason(other._closeReason),
-        _useMasking(other._useMasking) {
+        _useMasking(other._useMasking),
+        _rxState(other._rxState) {
 
         const_cast<WebsocketsEndpoint&>(other)._client = nullptr;
+        const_cast<WebsocketsEndpoint&>(other)._rxState.reset();
     }
     WebsocketsEndpoint::WebsocketsEndpoint(const WebsocketsEndpoint&& other) : 
         _client(other._client), 
@@ -89,9 +69,11 @@ namespace internals {
         _recvMode(other._recvMode), 
         _streamBuilder(other._streamBuilder), 
         _closeReason(other._closeReason),
-        _useMasking(other._useMasking) {
+        _useMasking(other._useMasking),
+        _rxState(std::move(const_cast<WebsocketsEndpoint&>(other)._rxState)) {
 
         const_cast<WebsocketsEndpoint&>(other)._client = nullptr;
+        const_cast<WebsocketsEndpoint&>(other)._rxState.reset();
     }
 
     WebsocketsEndpoint& WebsocketsEndpoint::operator=(const WebsocketsEndpoint& other) {
@@ -101,8 +83,10 @@ namespace internals {
         this->_streamBuilder = other._streamBuilder;
         this->_closeReason = other._closeReason;
         this->_useMasking = other._useMasking;
+        this->_rxState = other._rxState;
 
         const_cast<WebsocketsEndpoint&>(other)._client = nullptr;
+        const_cast<WebsocketsEndpoint&>(other)._rxState.reset();
 
         return *this;
     }
@@ -113,77 +97,21 @@ namespace internals {
         this->_streamBuilder = other._streamBuilder;
         this->_closeReason = other._closeReason;
         this->_useMasking = other._useMasking;
+        this->_rxState = std::move(const_cast<WebsocketsEndpoint&>(other)._rxState);
 
         const_cast<WebsocketsEndpoint&>(other)._client = nullptr;
+        const_cast<WebsocketsEndpoint&>(other)._rxState.reset();
 
         return *this;
     }
 
     void WebsocketsEndpoint::setInternalSocket(std::shared_ptr<network::TcpClient> socket) {
         this->_client = socket;
+        this->_rxState.reset();
     }
 
     bool WebsocketsEndpoint::poll() {
         return this->_client->poll();
-    }
-
-    uint32_t readUntilSuccessfullOrError(network::TcpClient& socket, uint8_t* buffer, const uint32_t len) {
-        auto numRead = socket.read(buffer, len);
-        while(numRead == static_cast<uint32_t>(-1) && socket.available()) {
-            numRead = socket.read(buffer, len);
-        }
-        return numRead;
-    }
-
-    Header readHeaderFromSocket(network::TcpClient& socket) {
-        Header header;
-        header.payload = 0;
-        readUntilSuccessfullOrError(socket, reinterpret_cast<uint8_t*>(&header), 2);
-        return header;
-    }
-
-    uint64_t readExtendedPayloadLength(network::TcpClient& socket, const Header& header) {
-        uint64_t extendedPayload = header.payload;
-        // in case of extended payload length
-        if (header.payload == 126) {
-            // read next 16 bits as payload length
-            uint16_t tmp = 0;
-            readUntilSuccessfullOrError(socket, reinterpret_cast<uint8_t*>(&tmp), 2);
-            tmp = (tmp << 8) | (tmp >> 8);
-            extendedPayload = tmp;
-        }
-        else if (header.payload == 127) {
-            uint64_t tmp = 0;
-            readUntilSuccessfullOrError(socket, reinterpret_cast<uint8_t*>(&tmp), 8);
-            extendedPayload = swapEndianess(tmp);
-        }
-
-        return extendedPayload;
-    }
-
-    void readMaskingKey(network::TcpClient& socket, uint8_t* outputBuffer) {
-        readUntilSuccessfullOrError(socket, reinterpret_cast<uint8_t*>(outputBuffer), 4);
-    }
-
-    WSString readData(network::TcpClient& socket, uint64_t extendedPayload) {
-        WSString data(extendedPayload, '\0');
-        uint64_t done_reading = 0;
-        while (done_reading < extendedPayload && socket.available()) {
-            uint32_t to_read = (extendedPayload - done_reading >= 1024) 
-                ? 1024 
-                : static_cast<uint32_t>(extendedPayload - done_reading);
-            uint32_t numReceived = readUntilSuccessfullOrError(socket, 
-                reinterpret_cast<uint8_t*>(&data[done_reading]), to_read);
-
-            // On failed reads or EOF, terminate
-            if(!socket.available() || numReceived == static_cast<uint32_t>(-1) || numReceived == 0) break;
-
-            done_reading += numReceived;
-        }
-        if (done_reading < extendedPayload) {
-            data.resize(done_reading);
-        }
-        return data;
     }
 
     void remaskData(WSString& data, const uint8_t* const maskingKey, uint64_t payloadLength) {
@@ -192,48 +120,119 @@ namespace internals {
         }
     }
 
-    WebsocketsFrame WebsocketsEndpoint::_recv() {
-        auto header = readHeaderFromSocket(*this->_client);
-        if(!_client->available()) return WebsocketsFrame(); // In case of faliure
+    bool WebsocketsEndpoint::stepRxFrame() {
+        if (UNLIKELY(!_client || !_client->available())) {
+            _rxState.reset();
+            return false;
+        }
 
-        uint64_t payloadLength = readExtendedPayloadLength(*this->_client, header);
-        if(!_client->available()) return WebsocketsFrame(); // In case of faliure
+        // Non-blocking partial frame state machine: progresses through Header -> ExtLen -> MaskKey -> Payload
+        // Returns false immediately when socket has no more bytes, avoiding busy-wait stalls on loopTask.
+        for (;;) {
+            if (_rxState.stage == RxStage::Header) {
+                const uint32_t need = static_cast<uint32_t>(_rxState.hdr_need - _rxState.hdr_read);
+                const uint32_t got = _client->read(_rxState.hdr_buf + _rxState.hdr_read, need);
+                if (got == 0U) return false;
+                _rxState.hdr_read += static_cast<uint8_t>(got);
+                if (_rxState.hdr_read < _rxState.hdr_need) return false;
+
+                memcpy(&_rxState.header, _rxState.hdr_buf, 2U);
+                _rxState.hdr_read = 0U;
+                if (_rxState.header.payload == 126U) {
+                    _rxState.hdr_need = 2U;
+                    _rxState.stage = RxStage::ExtLen;
+                } else if (_rxState.header.payload == 127U) {
+                    _rxState.hdr_need = 8U;
+                    _rxState.stage = RxStage::ExtLen;
+                } else {
+                    _rxState.payload_len = _rxState.header.payload;
+                    _rxState.hdr_need = 4U;
+                    _rxState.stage = _rxState.header.mask ? RxStage::MaskKey : RxStage::Payload;
+                    if (!_rxState.header.mask) {
+                        _rxState.payload_done = 0U;
+                        _rxState.payload.resize(static_cast<size_t>(_rxState.payload_len));
+                    }
+                }
+            } else if (_rxState.stage == RxStage::ExtLen) {
+                const uint32_t need = static_cast<uint32_t>(_rxState.hdr_need - _rxState.hdr_read);
+                const uint32_t got = _client->read(_rxState.hdr_buf + _rxState.hdr_read, need);
+                if (got == 0U) return false;
+                _rxState.hdr_read += static_cast<uint8_t>(got);
+                if (_rxState.hdr_read < _rxState.hdr_need) return false;
+
+                if (_rxState.hdr_need == 2U) {
+                    uint16_t tmp = 0U;
+                    memcpy(&tmp, _rxState.hdr_buf, 2U);
+                    _rxState.payload_len = asm_opt::bswap16(tmp);
+                } else {
+                    uint64_t tmp = 0ULL;
+                    memcpy(&tmp, _rxState.hdr_buf, 8U);
+                    _rxState.payload_len = asm_opt::bswap64(tmp);
+                }
 
 #ifdef _WS_CONFIG_MAX_MESSAGE_SIZE
-        if(payloadLength > _WS_CONFIG_MAX_MESSAGE_SIZE) {
+                if (UNLIKELY(_rxState.payload_len > _WS_CONFIG_MAX_MESSAGE_SIZE)) {
+#else
+                if (UNLIKELY(_rxState.payload_len > 32768ULL)) {
+#endif
+                    _rxState.reset();
+                    close(CloseReason_MessageTooBig);
+                    return false;
+                }
+
+                _rxState.hdr_read = 0U;
+                if (_rxState.header.mask) {
+                    _rxState.hdr_need = 4U;
+                    _rxState.stage = RxStage::MaskKey;
+                } else {
+                    _rxState.payload_done = 0U;
+                    _rxState.payload.resize(static_cast<size_t>(_rxState.payload_len));
+                    _rxState.stage = RxStage::Payload;
+                }
+            } else if (_rxState.stage == RxStage::MaskKey) {
+                const uint32_t need = static_cast<uint32_t>(4U - _rxState.hdr_read);
+                const uint32_t got = _client->read(_rxState.masking_key + _rxState.hdr_read, need);
+                if (got == 0U) return false;
+                _rxState.hdr_read += static_cast<uint8_t>(got);
+                if (_rxState.hdr_read < 4U) return false;
+
+                _rxState.payload_done = 0U;
+                _rxState.payload.resize(static_cast<size_t>(_rxState.payload_len));
+                _rxState.stage = RxStage::Payload;
+            } else { // RxStage::Payload
+                while (_rxState.payload_done < _rxState.payload_len) {
+                    const uint64_t rem = _rxState.payload_len - _rxState.payload_done;
+                    const uint32_t to_read = (rem > 4096ULL) ? 4096U : static_cast<uint32_t>(rem);
+                    const uint32_t got = _client->read(
+                        reinterpret_cast<uint8_t*>(&_rxState.payload[static_cast<size_t>(_rxState.payload_done)]),
+                        to_read
+                    );
+                    if (got == 0U) return false;
+                    _rxState.payload_done += got;
+                }
+                return true;
+            }
+        }
+    }
+
+    WebsocketsFrame WebsocketsEndpoint::_recv() {
+        if (!stepRxFrame()) {
             return WebsocketsFrame();
         }
-#endif
 
-        uint8_t maskingKey[4];
-        // if masking is set
-        if (header.mask) {
-            readMaskingKey(*this->_client, maskingKey);
-            if(!_client->available()) return WebsocketsFrame(); // In case of faliure
+        if (_rxState.header.mask) {
+            remaskData(_rxState.payload, _rxState.masking_key, _rxState.payload_len);
         }
 
         WebsocketsFrame frame;
-        // read the message's payload (data) according to the read length
-        frame.payload = readData(*this->_client, payloadLength);
-        if(!_client->available()) return WebsocketsFrame(); // In case of faliure
+        frame.payload = std::move(_rxState.payload);
+        frame.fin = _rxState.header.fin;
+        frame.mask = _rxState.header.mask;
+        memcpy(frame.mask_buf, _rxState.masking_key, 4U);
+        frame.opcode = _rxState.header.opcode;
+        frame.payload_length = _rxState.payload_len;
 
-        // if masking is set un-mask the message
-        if (header.mask) {
-            remaskData(frame.payload, maskingKey, payloadLength);
-        }
-
-        // Construct frame from data and header that was read
-        frame.fin = header.fin;
-        frame.mask = header.mask;
-
-        frame.mask_buf[0] = maskingKey[0];
-        frame.mask_buf[1] = maskingKey[1];
-        frame.mask_buf[2] = maskingKey[2];
-        frame.mask_buf[3] = maskingKey[3];
-
-        frame.opcode = header.opcode;
-        frame.payload_length = payloadLength;
-
+        _rxState.reset();
         return frame;
     }
 
@@ -321,13 +320,13 @@ namespace internals {
 
     void WebsocketsEndpoint::handleMessageInternally(WebsocketsMessage& msg) {
         if(msg.isPing()) {
-            pong(internals::fromInterfaceString(msg.data()));
+            pong(msg.c_str(), msg.length());
         } else if(msg.isClose()) {
             // is there a reason field
-            if(internals::fromInterfaceString(msg.data()).size() >= 2) {
-                uint16_t reason = *(reinterpret_cast<const uint16_t*>(msg.data().c_str()));
-                reason = reason >> 8 | reason << 8;
-                this->_closeReason = GetCloseReason(reason);
+            if(msg.length() >= 2U) {
+                uint16_t reason = 0U;
+                memcpy(&reason, msg.c_str(), 2U);
+                this->_closeReason = GetCloseReason(asm_opt::bswap16(reason));
             } else {
                 this->_closeReason = CloseReason_GoingAway;
             }
@@ -349,22 +348,21 @@ namespace internals {
 
     static size_t formatHeaderBytes(uint8_t* out, uint64_t len, uint8_t opcode, bool fin, bool mask) {
         out[0] = (fin ? 0x80 : 0x00) | (opcode & 0x0F);
-        uint8_t mask_bit = mask ? 0x80 : 0x00;
+        const uint8_t mask_bit = mask ? 0x80 : 0x00;
 
-        if (len < 126) {
+        if (LIKELY(len < 126ULL)) {
             out[1] = mask_bit | static_cast<uint8_t>(len);
-            return 2;
-        } else if (len < 65536) {
-            out[1] = mask_bit | 126;
-            out[2] = static_cast<uint8_t>(len >> 8);
-            out[3] = static_cast<uint8_t>(len & 0xFF);
-            return 4;
+            return 2U;
+        } else if (len < 65536ULL) {
+            out[1] = mask_bit | 126U;
+            const uint16_t be16 = asm_opt::bswap16(static_cast<uint16_t>(len));
+            memcpy(out + 2U, &be16, 2U);
+            return 4U;
         } else {
-            out[1] = mask_bit | 127;
-            for (int i = 7; i >= 0; --i) {
-                out[2 + (7 - i)] = static_cast<uint8_t>((len >> (i * 8)) & 0xFF);
-            }
-            return 10;
+            out[1] = mask_bit | 127U;
+            const uint64_t be64 = asm_opt::bswap64(len);
+            memcpy(out + 2U, &be64, 8U);
+            return 10U;
         }
     }
 
@@ -386,9 +384,13 @@ namespace internals {
             return false;
         }
 #endif
+        const bool active_mask = mask && (maskingKey != nullptr) &&
+            ((static_cast<uint8_t>(maskingKey[0]) | static_cast<uint8_t>(maskingKey[1]) |
+              static_cast<uint8_t>(maskingKey[2]) | static_cast<uint8_t>(maskingKey[3])) != 0U);
+
         // Zero-heap fast path for frames up to 1536 bytes
         static constexpr size_t kStackFrameLimit = 1536;
-        if (len <= kStackFrameLimit) {
+        if (LIKELY(len <= kStackFrameLimit)) {
             uint8_t frame_buf[kStackFrameLimit + 14];
             size_t frame_len = formatHeaderBytes(frame_buf, len, opcode, fin, mask);
 
@@ -399,7 +401,7 @@ namespace internals {
 
             if (len > 0 && data != nullptr) {
                 memcpy(frame_buf + frame_len, data, len);
-                if (mask && memcmp(maskingKey, __TINY_WS_INTERNAL_DEFAULT_MASK, 4) != 0) {
+                if (active_mask) {
                     asm_opt::fast_mask(frame_buf + frame_len, len, reinterpret_cast<const uint8_t*>(maskingKey));
                 }
                 frame_len += len;
@@ -421,7 +423,7 @@ namespace internals {
         }
         if (len > 0 && data != nullptr) {
             memcpy(heap_buf.get() + frame_len, data, len);
-            if (mask && memcmp(maskingKey, __TINY_WS_INTERNAL_DEFAULT_MASK, 4) != 0) {
+            if (active_mask) {
                 asm_opt::fast_mask(heap_buf.get() + frame_len, len, reinterpret_cast<const uint8_t*>(maskingKey));
             }
             frame_len += len;
@@ -433,14 +435,14 @@ namespace internals {
 
     void WebsocketsEndpoint::close(CloseReason reason) {
         this->_closeReason = reason;
+        this->_rxState.reset();
         
         if(!this->_client->available()) return;
 
         if(reason == CloseReason_None) {
             send(nullptr, 0, internals::ContentType::Close, true, this->_useMasking);
         } else {
-            uint16_t reasonNum = static_cast<uint16_t>(reason);
-            reasonNum = (reasonNum >> 8) | (reasonNum << 8);
+            uint16_t reasonNum = asm_opt::bswap16(static_cast<uint16_t>(reason));
             send(reinterpret_cast<const char*>(&reasonNum), 2, internals::ContentType::Close, true, this->_useMasking);
         }
         this->_client->close();
@@ -450,42 +452,28 @@ namespace internals {
         return _closeReason;
     }
 
+    bool WebsocketsEndpoint::ping(const char* msg, size_t len) {
+        if (UNLIKELY(len > 125U)) return false;
+        return send(msg, len, ContentType::Ping, true, this->_useMasking);
+    }
+
     bool WebsocketsEndpoint::ping(const WSString& msg) {
-        // Ping data must be shorter than 125 bytes
-        if(msg.size() > 125) {
-            return false;
-        }
-        else {
-            return send(msg, ContentType::Ping, true, this->_useMasking);
-        }
+        return ping(msg.c_str(), msg.size());
     }
     bool WebsocketsEndpoint::ping(const WSString&& msg) {
-        // Ping data must be shorter than 125 bytes
-        if(msg.size() > 125) {
-            return false;
-        }
-        else {
-            return send(msg, ContentType::Ping, true, this->_useMasking);
-        }
+        return ping(msg.c_str(), msg.size());
+    }
+
+    bool WebsocketsEndpoint::pong(const char* msg, size_t len) {
+        if (UNLIKELY(len > 125U)) return false;
+        return send(msg, len, ContentType::Pong, true, this->_useMasking);
     }
 
     bool WebsocketsEndpoint::pong(const WSString& msg) {
-        // Pong data must be shorter than 125 bytes
-        if(msg.size() > 125)  {
-            return false;
-        }
-        else {
-            return this->send(msg, ContentType::Pong, true, this->_useMasking);
-        }
+        return pong(msg.c_str(), msg.size());
     }
     bool WebsocketsEndpoint::pong(const WSString&& msg) {
-        // Pong data must be shorter than 125 bytes
-        if(msg.size() > 125)  {
-            return false;
-        }
-        else {
-            return this->send(msg, ContentType::Pong, true, this->_useMasking);
-        }
+        return pong(msg.c_str(), msg.size());
     }
 
     void WebsocketsEndpoint::setFragmentsPolicy(FragmentsPolicy newPolicy) {

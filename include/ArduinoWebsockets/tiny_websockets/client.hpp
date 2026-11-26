@@ -6,7 +6,6 @@
 #include <tiny_websockets/internals/websockets_endpoint.hpp>
 #include <tiny_websockets/message.hpp>
 #include <memory>
-#include <functional>
 #include <utility>
 #include <type_traits>
 #include <Optimization/FastFunction.h>
@@ -60,7 +59,7 @@ namespace websockets {
         -> decltype(std::declval<typename std::decay<F>::type&>()(
             std::declval<WebsocketsMessage&>()), void()) {
         this->_messagesCallback = [cb = std::forward<F>(callback)](WebsocketsClient&, WebsocketsMessage msg) mutable {
-            cb(msg);
+            cb(std::move(msg));
         };
     }
 
@@ -85,7 +84,7 @@ namespace websockets {
             std::declval<WebsocketsEvent>(), 
             std::declval<WSInterfaceString&>()), void()) {
         this->_eventsCallback = [cb = std::forward<F>(callback)](WebsocketsClient&, WebsocketsEvent event, WSInterfaceString data) mutable {
-            cb(event, data);
+            cb(event, std::move(data));
         };
     }
 
@@ -101,21 +100,21 @@ namespace websockets {
     bool send(const char* data);
     bool send(const char* data, const size_t len);
 
-    bool sendBinary(const WSInterfaceString data);
+    bool sendBinary(const WSInterfaceString& data);
     bool sendBinary(const char* data, const size_t len);
 
     // stream messages
-    bool stream(const WSInterfaceString data = "");
-    bool streamBinary(const WSInterfaceString data = "");
-    bool end(const WSInterfaceString data = "");
+    bool stream(const WSInterfaceString& data = "");
+    bool streamBinary(const WSInterfaceString& data = "");
+    bool end(const WSInterfaceString& data = "");
     
     void setFragmentsPolicy(const FragmentsPolicy newPolicy);
     FragmentsPolicy getFragmentsPolicy() const;
     
     WebsocketsMessage readBlocking();
 
-    bool ping(const WSInterfaceString data = "");
-    bool pong(const WSInterfaceString data = "");
+    bool ping(const WSInterfaceString& data = "");
+    bool pong(const WSInterfaceString& data = "");
 
     void close(const CloseReason reason = CloseReason_NormalClosure);
     CloseReason getCloseReason() const;
