@@ -583,8 +583,8 @@ This is an APK-only development pipeline. It intentionally excludes AAB, release
 
 ## 34. Wi-Fi Access Point Explicit Save (`WifiSection.tsx`, 22 November 2026)
 
-- `features/settings/components/wifi-section/WifiSection.tsx` keeps ESP32 Provisioning Access Point inputs (`ssid`, `password`) in local draft state with explicit validation (`1..32` chars SSID and `8..63` chars password, or both empty to reset to MAC default) and commits via a dedicated **«ذخیره اکسس‌پوینت»** button (`setWifiApConfig` + `persistStoreConfigToCloudflare` with `overrides.wifiApConfig`).
-- Access Point, Wi-Fi network, and MQTT broker configurations persist strictly to the Cloudflare Worker (`POST /config`) and local browser cache rather than binary MQTT commands (`MQTT_OPCODES` handles pin, segment, rule, presence, and ADC commands only).
+- `features/settings/components/wifi-section/WifiSection.tsx` presents saved Wi-Fi networks first and the provisioning Access Point as a read-only summary until explicit edit. New network credentials remain in local draft state until validation and save; cancel never mutates `wifiNetworks`. `wifiValidation.ts` enforces the firmware's five-network limit, SSID (1..32 UTF-8 bytes), open or WPA passphrase (8..63 UTF-8 bytes), and exact duplicate detection. Removing the last saved network is preceded by a visible warning that the ESP32 restarts into its provisioning AP mode.
+- The Access Point editor keeps draft values separate until the existing explicit save action, validates custom SSID/password pairs by UTF-8 byte length, supports password reveal, and can stage the explicit empty/empty reset to the device's MAC-derived default. Cloudflare persistence remains on the existing `persistStoreConfigToCloudflare` path.
 
 ## 35. Segment ID Sync & `DELETE_SEGMENT (0x03)` v2 Protocol (22 November 2026)
 

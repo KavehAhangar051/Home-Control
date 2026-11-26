@@ -1,13 +1,16 @@
+import { useState } from "react";
 import { Check } from "@/components/ui/hugeicons-groups/controls";
 import { X } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getUtf8ByteLength, type WifiCredentialErrors } from "./wifiValidation";
 
 interface Props {
   tempSsid: string;
   setTempSsid: (val: string) => void;
   tempPassword: string;
   setTempPassword: (val: string) => void;
+  errors: WifiCredentialErrors;
   onSave: () => void;
   onCancel: () => void;
 }
@@ -17,54 +20,96 @@ export function WifiNetworkEditor({
   setTempSsid,
   tempPassword,
   setTempPassword,
+  errors,
   onSave,
   onCancel,
 }: Props) {
+  const [showPassword, setShowPassword] = useState(false);
+  const ssidBytes = getUtf8ByteLength(tempSsid.trim());
+  const passwordBytes = getUtf8ByteLength(tempPassword);
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="wifi-network-ssid" className="text-sm font-bold">
-          نام شبکه Wi-Fi (SSID)
-        </Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="wifi-network-ssid" className="text-sm font-bold">
+            نام شبکه Wi-Fi (SSID)
+          </Label>
+          <span className="text-xs tabular-nums text-text-muted">{ssidBytes}/۳۲ بایت</span>
+        </div>
         <Input
           id="wifi-network-ssid"
+          name="wifi-network-ssid"
           type="text"
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={32}
           value={tempSsid}
-          onChange={(e) => setTempSsid(e.target.value)}
+          onChange={(event) => setTempSsid(event.target.value)}
           placeholder="نام شبکه"
           className="h-11 bg-card-bg-solid text-base sm:text-sm"
           dir="auto"
+          error={errors.ssid}
         />
+        <p className="text-xs leading-5 text-text-muted">
+          نام شبکه پس از حذف فاصله‌های ابتدا و انتها، حداکثر ۳۲ بایت UTF-8 است.
+        </p>
       </div>
+
       <div className="space-y-2">
-        <Label htmlFor="wifi-network-password" className="text-sm font-bold">
-          رمز عبور شبکه
-        </Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="wifi-network-password" className="text-sm font-bold">
+            رمز عبور شبکه
+          </Label>
+          <button
+            type="button"
+            onClick={() => setShowPassword((visible) => !visible)}
+            className="min-h-11 rounded-lg px-3 text-xs font-semibold text-accent3 hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+            aria-label={showPassword ? "مخفی کردن رمز عبور شبکه" : "نمایش رمز عبور شبکه"}
+            aria-pressed={showPassword}
+          >
+            {showPassword ? "پنهان کردن" : "نمایش رمز"}
+          </button>
+        </div>
         <Input
           id="wifi-network-password"
-          type="password"
+          name="wifi-network-password"
+          type={showPassword ? "text" : "password"}
+          autoComplete="new-password"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={63}
           value={tempPassword}
-          onChange={(e) => setTempPassword(e.target.value)}
+          onChange={(event) => setTempPassword(event.target.value)}
           className="h-11 bg-card-bg-solid text-base sm:text-sm"
           dir="ltr"
+          error={errors.password}
         />
+        <p className="text-xs leading-5 text-text-muted">
+          برای شبکهٔ بدون رمز، این فیلد را خالی بگذارید؛ در غیر این صورت رمز باید ۸ تا ۶۳ بایت باشد.
+          <span className="ms-1 tabular-nums">({passwordBytes}/۶۳ بایت)</span>
+        </p>
       </div>
-      <div className="flex items-center gap-2 pt-2">
+
+      <div className="flex items-center gap-2 pt-1">
         <button
           type="button"
           onClick={onSave}
-          className="flex-1 min-h-11 p-2.5 bg-accent3 text-accent3-foreground rounded-xl hover:bg-accent3-dark transition-colors flex items-center justify-center gap-2 shadow-xs"
+          className="flex-1 min-h-11 rounded-xl bg-accent3 p-2.5 text-accent3-foreground shadow-xs transition-colors hover:bg-accent3-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2"
         >
-          <Check aria-hidden="true" className="size-4" />
-          <span className="text-sm font-bold">ذخیره</span>
+          <span className="flex items-center justify-center gap-2 text-sm font-bold">
+            <Check aria-hidden="true" className="size-4" />
+            ذخیره شبکه
+          </span>
         </button>
         <button
           type="button"
           onClick={onCancel}
-          aria-label="لغو ویرایش شبکه"
-          className="size-11 shrink-0 border border-border-color text-text-secondary rounded-xl hover:border-text-muted hover:text-text-primary transition-colors flex items-center justify-center bg-card-bg-solid"
+          className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-border-color bg-card-bg-solid px-4 text-sm font-semibold text-text-secondary transition-colors hover:border-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
         >
           <X aria-hidden="true" className="size-4" />
+          لغو
         </button>
       </div>
     </div>

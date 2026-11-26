@@ -3,20 +3,8 @@ import type React from "react";
 import { DeleteButton } from "@/components/ui/delete-button";
 import type { WifiNetwork } from "@/features/iot/hooks/store/types";
 import { TRANSITION_ENTER_STANDARD, TRANSITION_EXIT_STANDARD } from "@/lib/ease";
+import type { WifiCredentialErrors } from "./wifiValidation";
 import { WifiNetworkEditor } from "./WifiNetworkEditor";
-
-interface Props {
-  net: WifiNetwork;
-  isEditing: boolean;
-  tempSsid: string;
-  setTempSsid: (val: string) => void;
-  tempPassword: string;
-  setTempPassword: (val: string) => void;
-  onEditStart: () => void;
-  onDelete: () => void;
-  onSave: () => void;
-  onCancel: () => void;
-}
 
 function WifiNetworkCardFrame({ children }: { children: React.ReactNode }) {
   return (
@@ -29,7 +17,7 @@ function WifiNetworkCardFrame({ children }: { children: React.ReactNode }) {
         transition: TRANSITION_EXIT_STANDARD,
       }}
       transition={TRANSITION_ENTER_STANDARD}
-      className="p-4 bg-card-bg-solid border border-border-color rounded-2xl shadow-sm relative overflow-hidden"
+      className="relative overflow-hidden rounded-2xl border border-border-color bg-card-bg-solid p-4 shadow-sm"
     >
       {children}
     </m.div>
@@ -48,23 +36,21 @@ export function WifiNetworkViewCard({ net, onEditStart, onDelete }: WifiNetworkV
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
-          className="flex-1 min-h-11 cursor-pointer text-right flex flex-col justify-center"
+          className="flex min-h-11 flex-1 cursor-pointer flex-col justify-center text-right focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 focus-visible:ring-offset-2"
           onClick={onEditStart}
           aria-label={`ویرایش شبکه ${net.ssid}`}
         >
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-bold text-sm text-text-primary">{net.ssid}</span>
-          </div>
-          <div className="text-xs text-text-secondary opacity-70">
-            {net.password ? "رمز عبور تنظیم شده" : "بدون رمز عبور"}
-          </div>
+          <span className="mb-1 font-bold text-sm text-text-primary">{net.ssid}</span>
+          <span className="text-xs text-text-secondary">
+            {net.password ? "رمز عبور ذخیره شده" : "شبکهٔ بدون رمز"}
+          </span>
         </button>
         <DeleteButton
           size="sm"
           resetAfter={0}
           onConfirm={onDelete}
           label={`حذف شبکه ${net.ssid}`}
-          className="ms-2 shrink-0"
+          className="ms-2 min-h-11 min-w-11 shrink-0"
         />
       </div>
     </WifiNetworkCardFrame>
@@ -76,6 +62,7 @@ interface WifiNetworkEditCardProps {
   setTempSsid: (val: string) => void;
   tempPassword: string;
   setTempPassword: (val: string) => void;
+  errors: WifiCredentialErrors;
   onSave: () => void;
   onCancel: () => void;
 }
@@ -85,6 +72,7 @@ export function WifiNetworkEditCard({
   setTempSsid,
   tempPassword,
   setTempPassword,
+  errors,
   onSave,
   onCancel,
 }: WifiNetworkEditCardProps) {
@@ -95,37 +83,10 @@ export function WifiNetworkEditCard({
         setTempSsid={setTempSsid}
         tempPassword={tempPassword}
         setTempPassword={setTempPassword}
+        errors={errors}
         onSave={onSave}
         onCancel={onCancel}
       />
     </WifiNetworkCardFrame>
   );
-}
-
-export function WifiNetworkCard({
-  net,
-  isEditing,
-  tempSsid,
-  setTempSsid,
-  tempPassword,
-  setTempPassword,
-  onEditStart,
-  onDelete,
-  onSave,
-  onCancel,
-}: Props) {
-  if (isEditing) {
-    return (
-      <WifiNetworkEditCard
-        tempSsid={tempSsid}
-        setTempSsid={setTempSsid}
-        tempPassword={tempPassword}
-        setTempPassword={setTempPassword}
-        onSave={onSave}
-        onCancel={onCancel}
-      />
-    );
-  }
-
-  return <WifiNetworkViewCard net={net} onEditStart={onEditStart} onDelete={onDelete} />;
 }
