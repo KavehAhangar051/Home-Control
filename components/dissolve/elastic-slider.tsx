@@ -15,7 +15,7 @@ import { useDissolveCore } from './react';
 
 export type { ElasticSliderSize };
 
-export type ElasticSliderProps = Omit<CoreProps, 'onSlidingComplete'> & {
+export type ElasticSliderProps = CoreProps & {
   /** React-friendly alias retained for existing DashboardSlider consumers. */
   onValueCommit?: (value: number) => void;
   icon?: ReactNode | ((props: { color: string; size: number }) => ReactNode);
@@ -28,11 +28,12 @@ export function ElasticSlider({
   className,
   style,
   onValueCommit,
+  onSlidingComplete,
   ...props
 }: ElasticSliderProps) {
   const coreProps: CoreProps = {
     ...props,
-    onSlidingComplete: onValueCommit,
+    onSlidingComplete: onValueCommit ?? onSlidingComplete,
   };
   const { host, instance } = useDissolveCore(createElasticSlider, coreProps);
   const glyphSize = Math.round(({ sm: 13, md: 15, lg: 17 }[props.size ?? 'md']) * 1.2);
