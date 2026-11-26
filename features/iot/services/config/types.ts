@@ -59,11 +59,46 @@ export interface MacroActionCondition {
   maxValue?: number;
 }
 
+export type MacroActionKind = "segment" | "http";
+
+export type MacroAnalogMode = "set" | "step" | "power";
+
+export type MacroAnalogStepUnit = "percent" | "raw";
+
+export type MacroHttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+export interface MacroHttpHeader {
+  key: string;
+  value: string;
+}
+
+export interface MacroHttpRequestConfig {
+  label?: string;
+  method: MacroHttpMethod;
+  url: string;
+  contentType?: string;
+  headers?: MacroHttpHeader[];
+  body?: string;
+  timeoutMs?: number;
+}
+
 export interface MacroAction {
+  /** Action discriminator; omitted or `"segment"` targets a dashboard GPIO segment. */
+  actionKind?: MacroActionKind;
   targetPin: string;
   actionOn: boolean;
   /** Explicit PWM duty (`0..4095`) for `analog_output` targets; omitted/null for digital ON/OFF. */
   targetValue?: number | null;
+  /** Analog PWM operation mode: explicit value (`"set"`), incremental step (`"step"`), or ON/OFF/Toggle (`"power"`). */
+  analogMode?: MacroAnalogMode;
+  /** Signed step delta added/subtracted on click when `analogMode === "step"`. */
+  stepDelta?: number;
+  /** Unit of `stepDelta`: `"percent"` (`-100..100`) or `"raw"` PWM duty. */
+  stepUnit?: MacroAnalogStepUnit;
+  /** When `analogMode === "power"` is set and `powerToggle` is true, flips current ON/OFF state cleanly. */
+  powerToggle?: boolean;
+  /** Side-effect HTTP/HTTPS request configuration when `actionKind === "http"`. */
+  httpRequest?: MacroHttpRequestConfig;
   /** Optional client-side condition evaluated in the dashboard before sending ESP32 commands. */
   condition?: MacroActionCondition;
   /** Multiple client-side conditions evaluated in the dashboard before sending ESP32 commands. */

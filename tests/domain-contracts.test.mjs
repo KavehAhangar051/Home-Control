@@ -842,6 +842,106 @@ describe("Custom Button (Macro) Analog & Client-Side Condition Engine Contracts"
   });
 });
 
+describe("Extended Macro Actions (Analog Step/Power & HTTP)", () => {
+  const pwmSegments = [
+    { id: "seg-pwm", pin: "18", title: "دیمر نور", type: "analog_output", pwmResolution: 8 },
+    { id: "seg-in", pin: "4", title: "سنسور در", type: "digital_input" },
+  ];
+
+  it("evaluates analog step (+/- percent and raw), analog power/toggle, and http actions", () => {
+    const macro = normalizeMacroRecord({
+      id: "m-ext",
+      title: "کنترل دیمر و WLED",
+      actions: [
+        {
+          targetPin: "18",
+          actionOn: true,
+          analogMode: "step",
+          stepDelta: 10,
+          stepUnit: "percent",
+        },
+        {
+          actionKind: "http",
+          targetPin: "",
+          actionOn: true,
+          httpRequest: {
+            label: "WLED",
+            method: "POST",
+            url: "http://192.168.1.50/json/state",
+            contentType: "application/json",
+            body: '{"on":true}',
+          },
+        },
+      ],
+    });
+
+    const plan = evaluateMacroExecution(macro, {
+      segments: pwmSegments,
+      pinsState: { 18: true },
+      pinsAnalogValue: { 18: 128 },
+      pinsPwmResolution: { 18: 8 },
+    });
+
+    assert.equal(plan.passedCount, 2);
+    assert.equal(plan.analogActions.length, 1);
+    assert.equal(plan.analogActions[0].targetValue, 153);
+    assert.equal(plan.httpActions.length, 1);
+    assert.equal(plan.httpActions[0].request.method, "POST");
+  });
+
+  it("routes analog power mode (and toggle) to digitalActions without overwriting duty", () => {
+    const macro = normalizeMacroRecord({
+      id: "m-pwr",
+      title: "تغییر وضعیت دیمر",
+      actions: [
+        {
+          targetPin: "18",
+          actionOn: false,
+          analogMode: "power",
+          powerToggle: true,
+        },
+      ],
+    });
+
+    const plan = evaluateMacroExecution(macro, {
+      segments: pwmSegments,
+      pinsState: { 18: true },
+      pinsAnalogValue: { 18: 128 },
+      pinsPwmResolution: { 18: 8 },
+    });
+
+    assert.deepEqual(plan.analogActions, []);
+    assert.deepEqual(plan.digitalActions, [{ targetPin: "18", actionOn: false }]);
+  });
+
+  it("validates HTTP URL, JSON body, and non-zero analog step deltas", () => {
+    assert.notEqual(
+      validateMacroDraft(
+        "خطا",
+        [{ actionKind: "http", targetPin: "", actionOn: true, httpRequest: { method: "POST", url: "ftp://bad" } }],
+        pwmSegments,
+      ),
+      null,
+    );
+    assert.notEqual(
+      validateMacroDraft(
+        "خطا",
+        [{ targetPin: "18", actionOn: true, analogMode: "step", stepDelta: 0, stepUnit: "percent" }],
+        pwmSegments,
+      ),
+      null,
+    );
+    assert.equal(
+      validateMacroDraft(
+        "معتبر",
+        [{ actionKind: "http", targetPin: "", actionOn: true, httpRequest: { method: "POST", url: "https://example.com/hook", contentType: "application/json", body: '{"ok":true}' } }],
+        pwmSegments,
+      ),
+      null,
+    );
+  });
+});
+
 describe("IDeviceSyncPort In-Memory Boundary Contract", () => {
   it("records single and batch pin synchronization without network side effects", async () => {
     const adapter = new InMemoryDeviceSyncAdapter();
