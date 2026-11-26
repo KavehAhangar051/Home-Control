@@ -34,6 +34,7 @@ case "$1" in
     ;;
   bun|npm)
     if [ "${2:-}" = "run" ] && [ -n "${3:-}" ]; then
+      runner="$1"
       script="$3"
       shift 3
       [ "${1:-}" = "--" ] && shift
@@ -42,9 +43,7 @@ case "$1" in
           exec bash "$ROOT_DIR/tools/r" "$@"
           ;;
         pio|pio:*|cpp:*|rtk|rtk:*)
-          if [ "$1" = "bun" ] || [ "$1" = "npm" ]; then
-            exec "$1" run "$script" "$@"
-          fi
+          exec "$runner" run "$script" "$@"
           ;;
       esac
       ensure_rtk
