@@ -265,6 +265,7 @@ export function createElasticSlider(host: HTMLElement, initial: ElasticSliderPro
     fill.style.background = o.fillColor ?? fg;
     base.t.style.color = fg;
     inked.t.style.color = bg;
+    render();
   }
 
   function layout() {
