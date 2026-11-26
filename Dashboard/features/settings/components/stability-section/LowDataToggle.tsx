@@ -1,7 +1,7 @@
 "use client";
 
-import { WifiOff } from "@/components/ui/hugeicons-groups/shell";
 import { Toggle as DissolveToggle } from "@/components/dissolve/toggle";
+import { WifiOff } from "@/components/ui/hugeicons-groups/shell";
 import { soundManager } from "@/lib/audio";
 
 interface LowDataToggleProps {
@@ -11,60 +11,49 @@ interface LowDataToggleProps {
   isDark?: boolean;
 }
 
-function getLowDataSurfaceClass(lowDataMode: boolean, _isDark: boolean): string {
-  if (lowDataMode) {
-    return "bg-card-hover-bg border-accent3";
-  }
-
-  return "bg-card-bg border-border-color hover:bg-card-hover-bg";
-}
-
-function getLowDataTitleClass(lowDataMode: boolean, _isDark: boolean): string {
-  if (lowDataMode) {
-    return "text-accent3";
-  }
-
-  return "text-text-primary";
-}
-
 export default function LowDataToggle({
   lowDataMode,
   setLowDataMode,
   animationsEnabled,
-  isDark = true,
 }: LowDataToggleProps) {
   const handleToggle = () => {
     const nextVal = !lowDataMode;
     setLowDataMode(nextVal);
-
     if (nextVal) soundManager.playToggleOn();
     else soundManager.playToggleOff();
   };
 
-    return (
+  return (
     <div className="border-b border-border-color pb-3.5 sm:pb-4">
-      <div className={`w-full h-auto gap-3 p-3 sm:p-4 rounded-xl border whitespace-normal transition-[background-color,border-color] duration-150 flex items-center justify-between cursor-pointer text-right group ${surfaceClass}`}>
-
-        <div className="min-w-0 flex-1 text-right space-y-1">
-          <span
-            className={`font-sans font-medium text-xs flex items-center gap-1.5 w-full justify-start transition-colors duration-150 ${titleClass}`}
-          >
+      <div
+        onClick={handleToggle}
+        className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
+          lowDataMode
+            ? "border-accent3 bg-card-hover-bg"
+            : "border-border-color bg-card-bg hover:bg-card-hover-bg"
+        }`}
+      >
+        <div className="min-w-0 flex-1 space-y-1 text-right">
+          <span className={`flex w-full items-center justify-start gap-1.5 font-sans text-xs font-medium leading-5 transition-colors duration-150 ${
+            lowDataMode ? "text-accent3" : "text-text-primary"
+          }`}>
             <WifiOff
               strokeWidth={1.5}
+              aria-hidden="true"
               className={`size-4 shrink-0 ${lowDataMode ? "text-accent3" : "text-text-secondary"}`}
             />
-            <span className="leading-5">حالت کم‌مصرف اینترنت</span>
+            حالت کم‌مصرف اینترنت
           </span>
-          <span className="text-[11px] sm:text-xs block leading-relaxed font-sans text-text-muted sm:text-text-secondary">
+          <span className="block font-sans text-[11px] leading-relaxed text-text-muted sm:text-xs sm:text-text-secondary">
             {lowDataMode
               ? "روشن · همگام‌سازی فقط با درخواست دستی"
               : "خاموش · همگام‌سازی خودکار پس‌زمینه با کلودفلر"}
           </span>
         </div>
-
         <DissolveToggle
           value={lowDataMode}
           onValueChange={handleToggle}
+          onClick={(event) => event.stopPropagation()}
           size="sm"
           onColor="var(--accent3)"
           offColor="var(--bg-main)"
