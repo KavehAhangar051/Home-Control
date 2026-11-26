@@ -49,18 +49,18 @@ export default function PwaInstallCard() {
                 />
               )}
               <span className="leading-5">
-                {isStandalone ? "اپلیکیشن نصب شده است" : "نصب داشبورد به‌صورت اپلیکیشن"}
+                {isStandalone ? "داشبورد در حالت مستقل اجرا می‌شود" : "نصب داشبورد به‌صورت اپلیکیشن"}
               </span>
             </span>
 
             <p className="text-[11px] sm:text-xs leading-relaxed font-sans text-text-muted sm:text-text-secondary">
               {isStandalone
-                ? "پوسته و فونت‌ها در حافظه آفلاین مرورگر ذخیره شده‌اند"
+                ? "داشبورد در پنجره‌ای مستقل از مرورگر اجرا می‌شود"
                 : isInstallable
-                  ? "نصب مستقیم روی صفحه اصلی دستگاه با اجرای تمام‌صفحه"
+                  ? "با نصب، داشبورد از صفحه اصلی و در پنجره‌ای مستقل اجرا می‌شود"
                   : isIOS
                     ? "در Safari دکمه Share و سپس Add to Home Screen را بزنید"
-                    : "از منو یا نوار آدرس مرورگر گزینه نصب اپلیکیشن را انتخاب کنید"}
+                    : "از منوی مرورگر، گزینه نصب برنامه را انتخاب کنید"}
             </p>
           </div>
 
@@ -72,7 +72,7 @@ export default function PwaInstallCard() {
               className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-accent3 text-accent3-foreground hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
             >
               <Download strokeWidth={1.7} aria-hidden="true" className="size-3.5" />
-              <span>{isPrompting ? "در حال نصب..." : "نصب اپ"}</span>
+              <span>{isPrompting ? "در حال نصب..." : "نصب برنامه"}</span>
             </button>
           )}
         </div>
@@ -95,7 +95,7 @@ export default function PwaInstallCard() {
               aria-hidden="true"
               className="size-3.5 shrink-0 text-destructive"
             />
-            <span>اتصال اینترنت قطع است؛ نمایش از کش آفلاین</span>
+            <span>اتصال اینترنت برقرار نیست؛ ممکن است بخش‌های وابسته به سرور در دسترس نباشند</span>
           </div>
         )}
       </div>

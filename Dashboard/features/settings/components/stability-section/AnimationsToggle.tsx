@@ -84,7 +84,7 @@ export default function AnimationsToggle({
       </Toggle>
       {animationsEnabled && setAnimationsFps && (
         <div className="px-0.5 sm:px-2 flex flex-wrap justify-between items-center gap-2">
-          <span className="text-xs text-text-secondary font-medium">نرخ نوسازی انیمیشن</span>
+          <span className="text-xs text-text-secondary font-medium">نرخ فریم انیمیشن</span>
           <ToggleGroup
             variant="outline"
             size="sm"

@@ -66,9 +66,9 @@ export default function HapticsToggle({ animationsEnabled }: HapticsToggleProps)
           <span className="text-[11px] sm:text-xs block leading-relaxed font-sans text-text-muted sm:text-text-secondary">
             {supported
               ? hapticsEnabled
-                ? "روشن · لرزش کوتاه هنگام لمس کلیدها و ماکروها"
+                ? "روشن · لرزش کوتاه هنگام استفاده از کنترل‌ها و اجرای ماکروها"
                 : "خاموش · بدون لرزش لمسی"
-              : "ذخیره می‌شود؛ این مرورگر از لرزش پشتیبانی نمی‌کند"}
+              : "این مرورگر از لرزش لمسی پشتیبانی نمی‌کند"}
           </span>
         </div>
 

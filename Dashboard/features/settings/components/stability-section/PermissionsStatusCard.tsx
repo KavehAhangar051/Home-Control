@@ -23,11 +23,11 @@ const STATUS_ROWS: ReadonlyArray<{
   label: string;
   Icon: HugeIconComponent;
 }> = [
-  { id: "storage", label: "کوکی و حافظه محلی", Icon: HardDrive },
+  { id: "storage", label: "ذخیره‌سازی مرورگر", Icon: HardDrive },
   { id: "microphone", label: "میکروفون فرمان صوتی", Icon: Mic },
-  { id: "audio", label: "خروجی صدا", Icon: Volume2 },
+  { id: "audio", label: "صدای داشبورد", Icon: Volume2 },
   { id: "notifications", label: "اعلان‌های پس‌زمینه", Icon: Bell },
-  { id: "wakeLock", label: "بیداری نمایشگر", Icon: Monitor },
+  { id: "wakeLock", label: "روشن‌ماندن نمایشگر", Icon: Monitor },
 ];
 
 function getStatusText(status?: PermissionStateStatus): {
@@ -36,13 +36,13 @@ function getStatusText(status?: PermissionStateStatus): {
 } {
   switch (status) {
     case "granted":
-      return { label: "تاییدشده", className: "text-success" };
+      return { label: "مجاز", className: "text-success" };
     case "denied":
-      return { label: "مسدودشده", className: "text-destructive" };
+      return { label: "ردشده", className: "text-destructive" };
     case "unsupported":
       return { label: "پشتیبانی نمی‌شود", className: "text-text-muted" };
     default:
-      return { label: "در انتظار تایید", className: "text-text-secondary" };
+      return { label: "درخواست‌نشده", className: "text-text-secondary" };
   }
 }
 
@@ -79,7 +79,7 @@ export default function PermissionsStatusCard() {
     clearDashboardConsent();
     setHasCookie(false);
     openPermissionsSetupModal();
-    showToast("کوکی رضایت اولیه پاک‌سازی شد.", "success");
+    showToast("تنظیمات راه‌اندازی اولیه بازنشانی شد.", "success");
   };
 
   return (
@@ -92,7 +92,7 @@ export default function PermissionsStatusCard() {
             ) : (
               <ShieldCheck aria-hidden="true" className="size-4 shrink-0 text-text-secondary" />
             )}
-            <span>{hasCookie ? "دسترسی‌های مرورگر" : "دسترسی‌های مرورگر · در انتظار تایید"}</span>
+            <span>{hasCookie ? "راه‌اندازی اولیه تکمیل شده است" : "راه‌اندازی اولیه تکمیل نشده است"}</span>
           </span>
 
           <button
@@ -128,7 +128,7 @@ export default function PermissionsStatusCard() {
             className="inline-flex min-h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-accent3 px-3 py-2 text-xs font-medium text-accent3-foreground transition-opacity hover:opacity-90 whitespace-nowrap"
           >
             <ShieldCheck aria-hidden="true" className="size-3.5 shrink-0" />
-            <span>بررسی و درخواست دسترسی‌ها</span>
+            <span>بازبینی و درخواست دسترسی‌ها</span>
           </button>
 
           {hasCookie && (
@@ -138,7 +138,7 @@ export default function PermissionsStatusCard() {
               className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border-color bg-bg-main px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary whitespace-nowrap"
             >
               <RefreshCw aria-hidden="true" className="size-3.5 shrink-0" />
-              <span>بازنشانی</span>
+              <span>بازنشانی راه‌اندازی</span>
             </button>
           )}
         </div>
