@@ -1,5 +1,6 @@
 "use client";
 
+import { ElasticSlider } from "@/components/dissolve/elastic-slider";
 import { usePreferencesStore } from "@/features/iot/hooks/usePreferencesStore";
 import type { SliderOptions } from "@/lib/hooks/use-slider";
 import { resolveEffectiveSliderVariant, type SliderVariant } from "@/lib/sliderStyles";
@@ -43,7 +44,7 @@ export interface DashboardSliderProps extends SliderOptions {
 }
 
 /**
- * Unified adaptive slider facade over all 6 beUI motion slider components.
+ * Unified adaptive slider facade over six beUI motion sliders and Dissolve ElasticSlider.
  * Honors the user's global `sliderStyle` preference (`"auto"` falls back to each
  * control's context-optimized `defaultVariant`) while keeping DOM counts bounded
  * and heights well-proportioned across full forms, popovers, and compact IoT tiles.
@@ -146,6 +147,26 @@ export function DashboardSlider({
           {...sharedOptions}
           format={format ?? ((v) => (unit ? `${v} ${unit}` : String(v)))}
           className={cn(heightClass, className)}
+        />
+      );
+    }
+
+    case "elastic": {
+      return (
+        <ElasticSlider
+          label={label ?? ariaLabel ?? "مقدار"}
+          value={value}
+          defaultValue={defaultValue}
+          onValueChange={onValueChange}
+          onValueCommit={onValueCommit}
+          min={min}
+          max={max}
+          step={step}
+          size={isCompact || isUltra ? "sm" : "md"}
+          formatValue={format ?? ((current) => (unit ? `${current} ${unit}` : String(current)))}
+          formatValueText={formatValueText}
+          disabled={disabled}
+          className={cn("dashboard-elastic-slider", className)}
         />
       );
     }
