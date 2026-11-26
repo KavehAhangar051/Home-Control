@@ -116,7 +116,7 @@ Informational MQTT connection and state-message logs are development-only to avo
 
 Owns settings UI and configuration controls. The current repository groups these under `features/settings/components/`; follow the existing subdivisions found there. Keep editing/validation logic separated from display code when that improves clarity, but avoid creating abstractions for one-off code without a real reuse or testing benefit.
 
-- `features/settings/components/mqtt-section/` owns the MQTT settings interface. `MqttSection` presents broker endpoints, message topic/QoS, and a final review in a three-step UI flow; it delegates presentation to the local step components while retaining the existing save, reconnect, and Cloudflare persistence path.
+- `features/settings/components/mqtt-section/` owns the MQTT settings interface. `MqttSection` opens with a read-only overview of broker connection state, ESP32 presence, and the active configuration; explicit editing opens the three-step broker/message/review flow. `useMqttConnectionStatus` observes the existing MQTT client events without changing transport behavior, and `mqttValidation` provides UI-only field validation. Save, reconnect, and Cloudflare persistence remain on the existing service path.
 
 ### Shared utilities and audio — `lib/`
 

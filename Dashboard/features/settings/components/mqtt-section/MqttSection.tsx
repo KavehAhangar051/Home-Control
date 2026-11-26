@@ -322,6 +322,7 @@ export default function MqttSection() {
             setBaseTopic={setBaseTopic}
             qos={qos}
             setQos={setQos}
+            errors={validationErrors}
           />
         ) : (
           <MqttReviewStep

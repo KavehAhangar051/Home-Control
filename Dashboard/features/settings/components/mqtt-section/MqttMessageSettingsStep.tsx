@@ -1,12 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MqttQosSelector } from "./MqttQosSelector";
+import type { MqttValidationErrors } from "./mqttValidation";
 
 interface Props {
   baseTopic: string;
   setBaseTopic: (val: string) => void;
   qos: 0 | 1 | 2;
   setQos: (val: 0 | 1 | 2) => void;
+  errors: MqttValidationErrors;
 }
 
 export function MqttMessageSettingsStep({
@@ -14,6 +16,7 @@ export function MqttMessageSettingsStep({
   setBaseTopic,
   qos,
   setQos,
+  errors,
 }: Props) {
   return (
     <div className="space-y-7">
@@ -31,11 +34,19 @@ export function MqttMessageSettingsStep({
           dir="ltr"
           autoCapitalize="none"
           spellCheck={false}
+          required
+          aria-invalid={Boolean(errors.baseTopic)}
+          aria-describedby={errors.baseTopic ? "mqtt-base-topic-help mqtt-base-topic-error" : "mqtt-base-topic-help"}
           value={baseTopic}
           onChange={(event) => setBaseTopic(event.target.value)}
           className="h-11 font-mono text-base sm:text-sm"
           placeholder="KamyarIoT/Achaemenid"
         />
+        {errors.baseTopic && (
+          <p id="mqtt-base-topic-error" className="text-xs leading-5 text-red-700 dark:text-red-300">
+            {errors.baseTopic}
+          </p>
+        )}
       </div>
 
       <MqttQosSelector qos={qos} setQos={setQos} />
