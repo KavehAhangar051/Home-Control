@@ -35,7 +35,7 @@ export default function AnimationsToggle({
         pressed={animationsEnabled}
         onPressedChange={handleToggle}
         aria-label="انیمیشن‌های رابط کاربری"
-        className={`switch-toggle flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
+        className={`switch-toggle h-auto min-h-16 flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
           animationsEnabled
             ? "border-accent3 bg-card-hover-bg"
             : "border-border-color bg-card-bg hover:bg-card-hover-bg"
