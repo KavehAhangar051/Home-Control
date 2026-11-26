@@ -68,10 +68,10 @@ When «کشسان و غلتان» is selected in Settings → Appearance → Sli
 - Tap/click anywhere on the track to jump to that value; dragging follows the pointer's displacement.
 - Pulling beyond either endpoint stretches the entire track with rubber-band resistance; release springs it back with a bounce.
 - Numeric characters roll independently as the value changes.
-- Haptic feedback is controlled by the upstream `haptics` prop and only runs after browser user activation.
+- Haptic feedback follows the dashboard's Stability → Haptics preference and only runs after browser user activation.
 - Arrow keys adjust by one step; Shift + Arrow and Page Up/Down use a larger increment; Home and End select the bounds.
 - The slider exposes `role="slider"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, and `aria-valuetext`; `formatValueText` can localize the announcement separately from the visible value.
 - Haptic feedback runs at endpoints and on every step when the range has 20 steps or fewer. This dashboard extension also draws small boundary and per-step dots for ranges of 20 steps or fewer.
 - In dashboard usage, `size="sm"` is selected for compact/ultra controls; the upstream component uses its natural parent width.
 
-The fill direction is intentionally left-to-right, independent of the dashboard's RTL document direction. Colors inherit from `--dissolve-background` and `--dissolve-foreground`; the fill uses the foreground token and the empty track derives a low-alpha foreground tint.
+The fill direction and label/value ordering are explicitly LTR inside the control, independent of the dashboard's RTL document direction. Colors inherit from `--dissolve-background` and `--dissolve-foreground`; the fill uses the foreground token and the empty track derives a low-alpha foreground tint.
