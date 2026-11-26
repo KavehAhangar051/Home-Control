@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ToggleIndicator } from "@/components/dissolve/toggle";
+import { GrainToggleEffect } from "@/components/dissolve/toggle";
 import { useReducedMotion } from "motion/react";
 import { triggerHaptic } from "@/lib/haptics";
 import { CloudLightning, Server } from "@/components/ui/hugeicons-groups/controls";
@@ -113,7 +113,7 @@ export default function CloudflareIntegration({
               checked={manualSaveMode}
               onChange={(e) => handleManualSaveModeChange(e.target.checked)}
             />
-            <ToggleIndicator
+            <GrainToggleEffect
               value={manualSaveMode}
               size="sm"
               onColor="var(--accent3)"
