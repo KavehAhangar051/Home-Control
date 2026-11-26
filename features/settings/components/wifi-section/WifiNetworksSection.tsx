@@ -1,4 +1,3 @@
-
 import { AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -18,106 +17,6 @@ export function WifiNetworksSection() {
   const [tempSsid, setTempSsid] = useState("");
   const [tempPassword, setTempPassword] = useState("");
   const [networkErrors, setNetworkErrors] = useState<ReturnType<typeof validateWifiNetwork>>({});
-
-const [editingId, setEditingId] = useState<string | null>(null);
-  const [draftNewNetwork, setDraftNewNetwork] = useState<WifiNetwork | null>(null);
-  const [tempSsid, setTempSsid] = useState("");
-  const [tempPassword, setTempPassword] = useState("");
-  const [networkErrors, setNetworkErrors] = useState<ReturnType<typeof validateWifiNetwork>>({});
-
-  useEffect(() => {
-    return () => {
-      if (savedResetTimerRef.current !== null) {
-        clearTimeout(savedResetTimerRef.current);
-      }
-    };
-  }, []);
-
-  const apSsid = apDraft.ssid ?? wifiApConfig?.ssid ?? "";
-  const apPassword = apDraft.password ?? wifiApConfig?.password ?? "";
-  const trimmedApSsid = apSsid.trim();
-  const apErrors = validateWifiAccessPoint(apSsid, apPassword);
-  const hasApErrors = Boolean(apErrors.ssid || apErrors.password);
-  const hasApChanges =
-    trimmedApSsid !== (wifiApConfig?.ssid ?? "").trim() ||
-    apPassword !== (wifiApConfig?.password ?? "");
-  const isDefaultAccessPoint = !wifiApConfig?.ssid && !wifiApConfig?.password;
-
-  function scheduleApSavedReset(): void {
-    setIsApSaved(true);
-
-    if (savedResetTimerRef.current !== null) {
-      clearTimeout(savedResetTimerRef.current);
-    }
-
-    savedResetTimerRef.current = setTimeout(() => {
-      savedResetTimerRef.current = null;
-      setIsApSaved(false);
-    }, 2000);
-  }
-
-  async function handleSaveAccessPoint(): Promise<void> {
-    soundManager.playClick();
-    setHasAttemptedApSave(true);
-
-    if (hasApErrors) {
-      showToast(apErrors.ssid || apErrors.password || "اطلاعات اکسس‌پوینت را بررسی کنید.", "error");
-      return;
-    }
-
-    const nextApConfig = { ssid: trimmedApSsid, password: apPassword };
-    setWifiApConfig(nextApConfig);
-    setApDraft({});
-
-    if (!isCloudflareEnabled()) {
-      showToast("تنظیمات اکسس‌پوینت در حافظه داشبورد ذخیره شد.", "success");
-      setIsApEditing(false);
-      setHasAttemptedApSave(false);
-      scheduleApSavedReset();
-      return;
-    }
-
-    setIsSavingAp(true);
-
-    try {
-      const { result } = await persistStoreConfigToCloudflare({
-        overrides: { wifiApConfig: nextApConfig },
-        successToast: "تنظیمات اکسس‌پوینت ذخیره شد.",
-        errorToast: "خطا در ذخیره تنظیمات اکسس‌پوینت.",
-      });
-
-      if (result.success) {
-        setIsApEditing(false);
-        setHasAttemptedApSave(false);
-        scheduleApSavedReset();
-      }
-    } catch (error) {
-      console.error("Failed to save Access Point settings to cloud", error);
-      showToast("خطا در ارتباط با سرور کلودفلر.", "error");
-    } finally {
-      setIsSavingAp(false);
-    }
-  }
-
-  function handleEditAccessPoint(): void {
-    setApDraft({});
-    setHasAttemptedApSave(false);
-    setIsApSaved(false);
-    setIsApEditing(true);
-  }
-
-  function handleCancelAccessPointEdit(): void {
-    setApDraft({});
-    setHasAttemptedApSave(false);
-    setIsApEditing(false);
-  }
-
-  function handleResetAccessPointDraft(): void {
-    setApDraft({ ssid: "", password: "" });
-    setHasAttemptedApSave(false);
-    setIsApSaved(false);
-    setShowApPassword(false);
-  }
 
   function handleAddNetwork(): void {
     if (wifiNetworks.length >= MAX_WIFI_NETWORKS || editingId !== null) return;
@@ -179,6 +78,7 @@ const [editingId, setEditingId] = useState<string | null>(null);
       setNetworkErrors({});
     }
   }
+
   const canAddNetwork = wifiNetworks.length < MAX_WIFI_NETWORKS && editingId === null;
 
   return (
@@ -212,14 +112,14 @@ const [editingId, setEditingId] = useState<string | null>(null);
         </span>
       </div>
 
-      {wifiNetworks.length === 1 && (
+      {wifiNetworks.length === 1 ? (
         <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-xs leading-5 text-amber-800 dark:text-amber-300">
           حذف آخرین شبکه باعث راه‌اندازی مجدد ESP32 و بازگشت آن به اکسس‌پوینت راه‌اندازی می‌شود.
         </p>
-      )}
+      ) : null}
 
       <AnimatePresence initial={false}>
-        {draftNewNetwork && editingId === draftNewNetwork.id && (
+        {draftNewNetwork && editingId === draftNewNetwork.id ? (
           <WifiNetworkEditCard
             key={draftNewNetwork.id}
             tempSsid={tempSsid}
@@ -230,7 +130,7 @@ const [editingId, setEditingId] = useState<string | null>(null);
             onSave={() => handleSaveNetwork(draftNewNetwork.id)}
             onCancel={handleCancelNetworkEdit}
           />
-        )}
+        ) : null}
         {wifiNetworks.map((network) =>
           editingId === network.id ? (
             <WifiNetworkEditCard
