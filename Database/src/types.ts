@@ -126,10 +126,12 @@ export interface PinState {
 /** یک اتوماسیون زمانبندی‌شده */
 export interface Automation {
 	id: string;
+	title?: string;
 	time: string;
 	days: number[];
 	enabled: boolean;
 	repeatCount?: number;
+	targetTimestamp?: number;
 	intervalMinutes?: number;
 	conditionType?: "time" | "weather";
 	city?: string;

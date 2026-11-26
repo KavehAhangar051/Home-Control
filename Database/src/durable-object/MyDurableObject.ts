@@ -9,6 +9,7 @@
 
 import { DurableObject } from "cloudflare:workers";
 import { scheduleNextAlarm, fireAlarm, type PendingAutomationPin } from "./alarm-manager";
+import { formatTehranTime } from "../utils/scheduler";
 import { buildEspConfigText, isAnalogInputType, isAnalogOutputType, parseManagedPin } from "../utils/esp-config";
 import type { Automation, Macro, PinConfig, PinState } from "../types";
 
@@ -211,28 +212,30 @@ export class MyDurableObject extends DurableObject {
 		return updated;
 	}
 
-	/** ذخیره اتوماسیون‌ها و زمانبندی آلارم بعدی — موازی */
+	/** ذخیره اتوماسیون‌ها، زمانبندی آلارم بعدی در Worker و ارسال تاییدیه به ESP32 */
 	async updateAutomations(automations: Automation[], macros: Macro[] = []): Promise<void> {
 		await Promise.all([
 			this.ctx.storage.put("automations", automations),
 			this.ctx.storage.put("macros", macros),
 		]);
 
-		const times = automations.map((a) => a.time).join(", ");
-		const debugMsg = `[TEST-WS] Worker received automations for times: ${times || "none"}`;
+		const summary = await scheduleNextAlarm(this.ctx.storage);
+		const confirmMsg =
+			summary.nextTime !== null
+				? `[Worker][Automation] Saved ${automations.length} automation(s) (${summary.activeCount} active). Next alarm: ${formatTehranTime(summary.nextTime)} IRST (in ${Math.max(0, Math.round((summary.nextTime - Date.now()) / 1000))}s) -> [${summary.nextAlarmTitles.join(", ")}]`
+				: `[Worker][Automation] Saved ${automations.length} automation(s) (${summary.activeCount} active). No upcoming alarm scheduled.`;
 
-		await Promise.all([
-			Promise.resolve(
-				void this.ctx.getWebSockets().forEach((ws) => {
-					try { ws.send(debugMsg); } catch { /* ignored */ }
-				})
-			),
-			scheduleNextAlarm(this.ctx.storage),
-		]);
+		for (const ws of this.ctx.getWebSockets()) {
+			try {
+				ws.send(confirmMsg);
+			} catch {
+				// اتصال قطع شده — نادیده گرفته می‌شود
+			}
+		}
 	}
 
 	/** فراخوانی توسط Cloudflare هنگام رسیدن زمان آلارم */
 	async alarm(): Promise<void> {
-		await fireAlarm(this.ctx.storage, () => this.ctx.getWebSockets());
+		await fireAlarm(this.ctx.storage, () => this.ctx.getWebSockets(), this.env);
 	}
 }

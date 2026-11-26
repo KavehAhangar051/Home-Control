@@ -244,6 +244,7 @@ export interface EspConfig {
     days: number[];
     enabled: boolean;
     repeatCount?: number;
+    targetTimestamp?: number;
     intervalMinutes?: number;
     conditionType?: "time" | "weather";
     city?: string;

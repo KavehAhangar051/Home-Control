@@ -11,7 +11,16 @@ import type { Automation, Macro } from "../types";
 /** ساختار داخلی برای نگه‌داشتن زمان محاسبه‌شده هر اتوماسیون */
 interface ScheduledEntry {
 	id: string;
+	title: string;
 	ts: number;
+}
+
+export interface ScheduleSummary {
+	activeCount: number;
+	scheduledCount: number;
+	nextTime: number | null;
+	nextAlarmIds: string[];
+	nextAlarmTitles: string[];
 }
 
 export interface PendingAutomationPin {
@@ -23,33 +32,62 @@ export interface PendingAutomationPin {
 /**
  * محاسبه و ثبت آلارم بعدی بر اساس لیست اتوماسیون‌های فعال.
  */
-export async function scheduleNextAlarm(storage: DurableObjectStorage): Promise<void> {
+export async function scheduleNextAlarm(storage: DurableObjectStorage): Promise<ScheduleSummary> {
 	const automations = (await storage.get<Automation[]>("automations")) ?? [];
 	const activeAutomations = automations.filter((a) => a.enabled);
 
 	if (activeAutomations.length === 0) {
 		await storage.deleteAlarm();
-		return;
+		return {
+			activeCount: 0,
+			scheduledCount: 0,
+			nextTime: null,
+			nextAlarmIds: [],
+			nextAlarmTitles: [],
+		};
 	}
 
 	const now = new Date();
 	const scheduled: ScheduledEntry[] = activeAutomations
-		.map((auto) => ({ id: auto.id, ts: getNextTriggerTimestamp(auto.time, auto.days, now, auto.intervalMinutes) }))
+		.map((auto) => ({
+			id: auto.id,
+			title: auto.title || auto.id,
+			ts: getNextTriggerTimestamp(auto.time, auto.days, now, auto.intervalMinutes, {
+				repeatCount: auto.repeatCount,
+				targetTimestamp: auto.targetTimestamp,
+			}),
+		}))
 		.filter((entry): entry is ScheduledEntry => entry.ts !== null);
 
 	if (scheduled.length === 0) {
 		await storage.deleteAlarm();
-		return;
+		return {
+			activeCount: activeAutomations.length,
+			scheduledCount: 0,
+			nextTime: null,
+			nextAlarmIds: [],
+			nextAlarmTitles: [],
+		};
 	}
 
 	const nextTime = Math.min(...scheduled.map((e) => e.ts));
-	const nextAlarmIds = scheduled.filter((e) => e.ts === nextTime).map((e) => e.id);
+	const nextEntries = scheduled.filter((e) => e.ts === nextTime);
+	const nextAlarmIds = nextEntries.map((e) => e.id);
+	const nextAlarmTitles = nextEntries.map((e) => e.title);
 
 	await Promise.all([
 		storage.put("nextAlarmTime", nextTime),
 		storage.put("nextAlarmIds", nextAlarmIds),
 		storage.setAlarm(nextTime),
 	]);
+
+	return {
+		activeCount: activeAutomations.length,
+		scheduledCount: scheduled.length,
+		nextTime,
+		nextAlarmIds,
+		nextAlarmTitles,
+	};
 }
 
 function broadcastBinary(sockets: WebSocket[], payload: Uint8Array): void {
@@ -62,9 +100,36 @@ function broadcastBinary(sockets: WebSocket[], payload: Uint8Array): void {
 	}
 }
 
+function broadcastText(sockets: WebSocket[], message: string): void {
+	for (const ws of sockets) {
+		try {
+			ws.send(message);
+		} catch {
+			// اتصال قطع شده — نادیده گرفته می‌شود
+		}
+	}
+}
+
 function encodeAnalogFrame(pin: number, value: number): Uint8Array {
 	const clamped = Math.max(0, Math.min(4095, Math.round(value)));
 	return new Uint8Array([0x0a, pin & 0xff, clamped & 0xff, (clamped >> 8) & 0xff]);
+}
+
+async function syncUpdatedAutomationsToKv(dashKv: KVNamespace | undefined, automations: Automation[]): Promise<void> {
+	if (!dashKv) return;
+	try {
+		const raw = await dashKv.get("main_config");
+		if (!raw) return;
+		const parsed = JSON.parse(raw) as Record<string, any>;
+		if (parsed?.payload && Array.isArray(parsed.payload.automations)) {
+			parsed.payload.automations = automations;
+		} else {
+			parsed.automations = automations;
+		}
+		await dashKv.put("main_config", JSON.stringify(parsed));
+	} catch (err) {
+		console.error("[Automation] Failed to sync expired automation state to KV:", err);
+	}
 }
 
 /**
@@ -72,7 +137,8 @@ function encodeAnalogFrame(pin: number, value: number): Uint8Array {
  */
 export async function fireAlarm(
 	storage: DurableObjectStorage,
-	getWebSockets: () => WebSocket[]
+	getWebSockets: () => WebSocket[],
+	env?: Env
 ): Promise<void> {
 	const [automations, nextAlarmIds, macros] = await Promise.all([
 		storage.get<Automation[]>("automations").then((v) => v ?? []),
@@ -85,6 +151,7 @@ export async function fireAlarm(
 	const sockets = getWebSockets();
 	let automationsChanged = false;
 	const weatherCache = new Map<string, number | null>();
+	const allPendingPins: PendingAutomationPin[] = [];
 
 	for (const auto of fired) {
 		if (auto.conditionType === "weather" && auto.city) {
@@ -169,11 +236,37 @@ export async function fireAlarm(
 			broadcastBinary(sockets, encodeAnalogFrame(ap.pin, ap.analogValue!));
 		}
 
-		await storage.put("pending_automation_states", allPins);
+		broadcastText(
+			sockets,
+			`[Worker][Automation] Executed "${auto.title || auto.id}" (${allPins.length} pin(s))`
+		);
+
+		allPendingPins.push(...allPins);
+	}
+
+	if (allPendingPins.length > 0) {
+		await storage.put("pending_automation_states", allPendingPins);
+
+		if (env?.MY_DURABLE_OBJECT && sockets.length > 0) {
+			await Promise.all(
+				allPendingPins.map(async (p) => {
+					const pinDo = env.MY_DURABLE_OBJECT.get(env.MY_DURABLE_OBJECT.idFromName("pin_" + p.pin));
+					const update: Record<string, unknown> = { value: p.state };
+					if (typeof p.analogValue === "number" && Number.isFinite(p.analogValue)) {
+						update.analogValue = p.analogValue;
+						if (p.analogValue > 0) update.lastNonZeroValue = p.analogValue;
+					}
+					await (pinDo as any).setState(update);
+				})
+			);
+		}
 	}
 
 	if (automationsChanged) {
-		await storage.put("automations", automations);
+		await Promise.all([
+			storage.put("automations", automations),
+			syncUpdatedAutomationsToKv(env?.DASH_KV, automations),
+		]);
 	}
 
 	await scheduleNextAlarm(storage);
