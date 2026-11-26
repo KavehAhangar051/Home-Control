@@ -44,6 +44,7 @@ components/
   motion/                Shared Motion primitives (`dock.tsx`, `expandable-tabs.tsx`, `expandable-tabs-layout.ts`, `composited-bezier-particle.tsx`)
   reui/                  ReUI `@reui/emoji-picker`, `@reui/c-emoji-picker-1`, and `DashboardIconPicker`
   ui/                    Shared Base UI / shadcn `base-nova` primitives (`button`, `card`, `dropdown-menu`, `empty`, `input`, `input-group`, `popover`, `skeleton`, `tabs`, `textarea`, `toggle-group`, `tooltip`, etc.)
+  dissolve/              Official dissolve-ui React web components (`toggle.tsx`, `toggle.core.ts`) plus the shared canvas/React helpers in `kit.ts` and `react.ts`
   AudioInitializer.tsx   Audio initialization integration
 features/
   dashboard/
@@ -86,6 +87,7 @@ This is a high-level map, not an exhaustive listing. Inspect the relevant direct
 - `app/layout.tsx` is the root layout. Global CSS belongs in `app/globals.css`; route-level composition belongs in the App Router files.
 - `app/page.tsx` is the root route and should stay focused on composing the application rather than accumulating feature implementation.
 - `components/` contains UI or providers shared by multiple features. Keep feature-specific behavior inside the owning `features/<feature>/` directory.
+- `components/dissolve/` owns copied, source-controlled dissolve-ui web components. `Toggle` is the interactive iOS-style grain switch; `ToggleIndicator` reuses its canvas core for non-interactive state visuals such as the smart-home card footer. Keep the existing `kit.ts` and `react.ts` lifecycle helpers shared rather than duplicating canvas or React mounting logic.
 - `components/MasterHeader.tsx` and `components/MasterHeader/` implement the desktop right-rail header system (`md:` and above).
 - `components/motion/{dock.tsx,expandable-tabs.tsx,expandable-tabs-layout.ts}` and `features/dashboard/components/layout/MobileDockNav.tsx` implement the mobile-only (`< md`) floating bottom Dock with upward-expanding panels and integrated press-and-hold voice control. Before changing navigation or header positioning, inspect both desktop and mobile layout owners.
 - `components/AudioInitializer.tsx` integrates audio initialization with the UI lifecycle.
