@@ -46,11 +46,11 @@ export function WifiNetworkEditor({
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="min-w-0 space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="wifi-network-ssid" className="text-sm font-bold">
+          <div className="flex min-h-11 items-center justify-between gap-3">
+            <Label htmlFor="wifi-network-ssid" className="min-w-0 text-sm font-bold">
               نام شبکه (SSID)
             </Label>
-            <span className="text-xs tabular-nums text-text-secondary">{ssidBytes}/۳۲ بایت</span>
+            <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-text-secondary">{ssidBytes}/۳۲ بایت</span>
           </div>
           <Input
             id="wifi-network-ssid"
@@ -68,20 +68,20 @@ export function WifiNetworkEditor({
             aria-describedby="wifi-network-ssid-help"
             error={errors.ssid}
           />
-          <p id="wifi-network-ssid-help" className="text-xs leading-5 text-text-secondary">
+          <p id="wifi-network-ssid-help" className="min-h-10 text-xs leading-5 text-text-secondary">
             حداکثر ۳۲ بایت UTF-8.
           </p>
         </div>
 
         <div className="min-w-0 space-y-2">
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="wifi-network-password" className="text-sm font-bold">
+            <Label htmlFor="wifi-network-password" className="min-w-0 text-sm font-bold">
               رمز عبور شبکه
             </Label>
             <button
               type="button"
               onClick={() => setShowPassword((visible) => !visible)}
-              className="min-h-11 rounded-lg px-3 text-xs font-semibold text-accent3 hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+              className="min-h-8 shrink-0 rounded-md px-2 text-xs font-semibold text-accent3 hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
               aria-label={showPassword ? "مخفی کردن رمز عبور شبکه" : "نمایش رمز عبور شبکه"}
               aria-pressed={showPassword}
             >
@@ -104,7 +104,7 @@ export function WifiNetworkEditor({
             aria-describedby="wifi-network-password-help"
             error={errors.password}
           />
-          <p id="wifi-network-password-help" className="text-xs leading-5 text-text-secondary">
+          <p id="wifi-network-password-help" className="min-h-10 text-xs leading-5 text-text-secondary">
             برای شبکهٔ بدون رمز، خالی بگذارید؛ در غیر این صورت ۸ تا ۶۳ بایت.
             <span className="ms-1 tabular-nums">({passwordBytes}/۶۳)</span>
           </p>

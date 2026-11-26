@@ -55,11 +55,11 @@ export function WifiAccessPointEditor({
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="min-w-0 space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="esp-ap-ssid" className="text-sm font-bold">
+          <div className="flex min-h-11 items-center justify-between gap-3">
+            <Label htmlFor="esp-ap-ssid" className="min-w-0 text-sm font-bold">
               نام شبکه (SSID)
             </Label>
-            <span className="text-xs tabular-nums text-text-secondary">{ssidByteLength}/۳۲ بایت</span>
+            <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-text-secondary">{ssidByteLength}/۳۲ بایت</span>
           </div>
           <Input
             id="esp-ap-ssid"
@@ -78,21 +78,21 @@ export function WifiAccessPointEditor({
             aria-describedby="esp-ap-ssid-help"
             error={hasAttemptedSave ? errors.ssid : undefined}
           />
-          <p id="esp-ap-ssid-help" className="text-xs leading-5 text-text-secondary">
+          <p id="esp-ap-ssid-help" className="min-h-10 text-xs leading-5 text-text-secondary">
             حداکثر ۳۲ بایت UTF-8.
           </p>
         </div>
 
         <div className="min-w-0 space-y-2">
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="esp-ap-password" className="text-sm font-bold">
+            <Label htmlFor="esp-ap-password" className="min-w-0 text-sm font-bold">
               رمز عبور اکسس‌پوینت
             </Label>
             <button
               type="button"
               onClick={onTogglePassword}
               disabled={isSaving}
-              className="min-h-11 rounded-lg px-3 text-xs font-semibold text-accent3 hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+              className="min-h-8 shrink-0 rounded-md px-2 text-xs font-semibold text-accent3 hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
               aria-label={showPassword ? "مخفی کردن رمز اکسس‌پوینت" : "نمایش رمز اکسس‌پوینت"}
               aria-pressed={showPassword}
             >
@@ -117,7 +117,7 @@ export function WifiAccessPointEditor({
             aria-describedby="esp-ap-password-help"
             error={hasAttemptedSave ? errors.password : undefined}
           />
-          <p id="esp-ap-password-help" className="text-xs leading-5 text-text-secondary">
+          <p id="esp-ap-password-help" className="min-h-10 text-xs leading-5 text-text-secondary">
             ۸ تا ۶۳ بایت UTF-8.
             <span className="ms-1 tabular-nums">({passwordByteLength}/۶۳)</span>
           </p>
