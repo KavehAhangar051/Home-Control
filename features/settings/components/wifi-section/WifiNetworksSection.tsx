@@ -72,11 +72,6 @@ export function WifiNetworksSection() {
 
   function handleRemoveNetwork(id: string): void {
     setWifiNetworks((previous) => previous.filter((network) => network.id !== id));
-
-    if (editingId === id) {
-      setEditingId(null);
-      setNetworkErrors({});
-    }
   }
 
   const canAddNetwork = wifiNetworks.length < MAX_WIFI_NETWORKS && editingId === null;

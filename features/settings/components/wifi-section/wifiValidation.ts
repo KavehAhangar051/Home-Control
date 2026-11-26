@@ -26,7 +26,7 @@ export function validateWifiNetwork(
     errors.ssid = "نام شبکه را وارد کنید.";
   } else if (ssidBytes > 32) {
     errors.ssid = `نام شبکه نباید بیشتر از ۳۲ بایت باشد (اکنون ${ssidBytes} بایت).`;
-  } else if (networks.some((network) => network.id !== editingId && network.ssid === normalizedSsid)) {
+  } else if (networks.some((network) => network.id !== editingId && network.ssid.trim() === normalizedSsid)) {
     errors.ssid = "این نام شبکه قبلاً اضافه شده است.";
   }
 
