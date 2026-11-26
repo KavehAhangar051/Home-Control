@@ -78,43 +78,46 @@ export async function handleConfig(
 			try {
 				const text = await buildEspConfigText(env, value);
 				return new Response(text, {
-					headers: { "Content-Type": "text/plain", "Cache-Control": "no-store" },
+					headers: { "Content-Type": "text/plain", "Cache-Control": "no-store, private" },
 				});
 			} catch {
-				return new Response("ESP_CFG_V2\n", { headers: { "Content-Type": "text/plain" } });
+				return new Response("ESP_CFG_V2\n", {
+					headers: { "Content-Type": "text/plain", "Cache-Control": "no-store, private" },
+				});
 			}
 		}
 
-		// برای داشبورد: کل JSON تنظیمات همراه با تضمین فیلدهای preferences
+		// Dashboard configuration is mutable user data and must never be HTTP cached.
 		if (!value) {
 			return new Response("{}", {
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store, private",
-        },
-      });
+				headers: {
+					"Content-Type": "application/json",
+					"Cache-Control": "no-store, private",
+				},
+			});
 		}
+
 		try {
 			const parsed = JSON.parse(value) as Record<string, any>;
 			if (normalizeStoredConfigPreferences(parsed)) {
 				return new Response(JSON.stringify(parsed), {
 					headers: {
-                    "Content-Type": "application/json",
-                    "Cache-Control": "no-store, private",
-                  },
+						"Content-Type": "application/json",
+						"Cache-Control": "no-store, private",
+					},
 				});
 			}
 		} catch {
 			// اگر مقدار ذخیره شده JSON معتبر نباشد همان متن برگردانده می‌شود
 		}
-		return new Response(value, {
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-store, private",
-          },
-        });
-	}
 
+		return new Response(value, {
+			headers: {
+				"Content-Type": "application/json",
+				"Cache-Control": "no-store, private",
+			},
+		});
+	}
 	if (method === "POST" && !path[1]) {
 		let bodyText: string;
 		let configData: Record<string, any>;
