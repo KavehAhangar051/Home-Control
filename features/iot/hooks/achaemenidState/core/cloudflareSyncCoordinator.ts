@@ -96,10 +96,6 @@ export async function executeCloudflareInitSync(
     const cachedConfig = deps.readLocalCache();
 
     if (isValidCachedConfig(cachedConfig)) {
-      if (cachedConfig.worker_url) {
-        deps.onWorkerUrlChange(cachedConfig.worker_url);
-      }
-
       deps.applyConfig(cachedConfig);
       deps.onBumpRemoteEpoch();
       deps.onReady();
