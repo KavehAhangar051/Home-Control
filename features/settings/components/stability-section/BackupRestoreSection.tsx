@@ -117,7 +117,7 @@ export default function BackupRestoreSection() {
       <div className="space-y-0.5">
         <div className="text-xs font-bold text-text-primary">پشتیبان‌گیری و بازیابی</div>
         <p className="text-[11px] leading-5 text-text-tertiary">
-          ذخیره، اشتراک‌گذاری یا بازیابی کامل قطعات، چیدمان‌ها و گردش‌های کاری در فایل JSON
+          تنظیمات داشبورد، قطعات، قوانین، اتصال‌ها، چیدمان‌ها و گردش‌های کاری را در یک فایل JSON ذخیره یا بازیابی کنید.
         </p>
       </div>
 
