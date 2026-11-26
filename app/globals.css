@@ -890,3 +890,9 @@ html[data-perf-tier="lite"] [class*="backdrop-blur"] {
   line-height: 1em;
 }
 
+
+@media (prefers-reduced-motion: reduce) {
+  .dissolve-elastic-digit > span {
+    transition: none;
+  }
+}
