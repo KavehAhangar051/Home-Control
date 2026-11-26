@@ -28,22 +28,26 @@ export function MqttConnectionStatusPanel({
 }: Props) {
   const brokerState = BROKER_STATUS_COPY[brokerStatus];
   const isBrokerConnected = brokerStatus === "connected";
-  const canRetry = brokerStatus === "disconnected" || brokerStatus === "offline" || brokerStatus === "error";
-  const esp32Status = !isBrokerConnected
-    ? "نامشخص تا اتصال بروکر"
-    : !hasReceivedMqttStatus
-      ? "هنوز گزارشی دریافت نشده"
-      : isEsp32Online
-        ? "آنلاین"
-        : "آفلاین";
-  const esp32Tone = !isBrokerConnected || !hasReceivedMqttStatus
-    ? "bg-text-muted"
-    : isEsp32Online
-      ? "bg-success"
-      : "bg-red-500";
+  const canRetry =
+    brokerStatus === "disconnected" || brokerStatus === "offline" || brokerStatus === "error";
+  let esp32Status = "نامشخص تا اتصال بروکر";
+  let esp32Tone = "bg-text-muted";
+
+  if (isBrokerConnected && !hasReceivedMqttStatus) {
+    esp32Status = "هنوز گزارشی دریافت نشده";
+  } else if (isBrokerConnected && isEsp32Online) {
+    esp32Status = "آنلاین";
+    esp32Tone = "bg-success";
+  } else if (isBrokerConnected && hasReceivedMqttStatus) {
+    esp32Status = "آفلاین";
+    esp32Tone = "bg-red-500";
+  }
 
   return (
-    <section aria-label="وضعیت اتصال" className="space-y-4 rounded-xl border border-border-color bg-bg-main p-4">
+    <section
+      aria-label="وضعیت اتصال"
+      className="space-y-4 rounded-xl border border-border-color bg-bg-main p-4"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm font-semibold text-text-primary">اتصال داشبورد به بروکر</span>
         <span className="inline-flex items-center gap-2 text-sm font-bold text-text-primary">
