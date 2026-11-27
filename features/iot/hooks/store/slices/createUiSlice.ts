@@ -70,6 +70,17 @@ export const createUiSlice: StateCreator<IoTStoreState, [], [], UiSlice> = (set)
   setIsLocal: (local) => set({ isLocal: local }),
   setIsLocalWebSocketConnected: (connected) => set({ isLocalWebSocketConnected: connected }),
   setIsMqttDeviceOnline: (online) => set({ isMqttDeviceOnline: online }),
-  setLocalIp: (ip) => set({ localIp: ip }),
+  setLocalIp: (ip) => {
+    set({ localIp: ip });
+    if (!ip || typeof window === "undefined") return;
+    try {
+      const host = ip.trim();
+      if (host && host !== "0.0.0.0") {
+        window.localStorage.setItem("home-control:local-ws-host", host);
+      }
+    } catch {
+      // Local host persistence is optional; connection discovery still has mDNS/AP fallbacks.
+    }
+  },
   setHasReceivedMqttStatus: (received) => set({ hasReceivedMqttStatus: received }),
 });
