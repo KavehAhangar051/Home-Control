@@ -248,6 +248,7 @@ auto onAuxNodeUpsert = [](AuxNodeUpsertRequestEvent* evt) {
     snprintf(ackBuf, sizeof(ackBuf),
              "{\"type\":\"aux_node_ack\",\"action\":\"upsert\",\"id\":%u,\"mac\":\"%s\",\"cap\":%u,\"chip\":%u}",
              evt->nodeId, macText, evt->pinCapacity, static_cast<unsigned int>(evt->chipType));
+    if (wsServer) wsServer->broadcastState(ackBuf);
     mqttClient.publish(mqttClient.getBaseTopic() + "/State", ackBuf);
   }
 };
@@ -267,6 +268,7 @@ auto onAuxNodeRemove = [](AuxNodeRemoveRequestEvent* evt) {
     persistCurrentAuxNodeConfig("aux node remove");
     char ackBuf[96];
     snprintf(ackBuf, sizeof(ackBuf), "{\"type\":\"aux_node_ack\",\"action\":\"delete\",\"id\":%u}", removedId);
+    if (wsServer) wsServer->broadcastState(ackBuf);
     mqttClient.publish(mqttClient.getBaseTopic() + "/State", ackBuf);
   }
 };
@@ -334,6 +336,7 @@ auto onPinChanged = [](PinStateChangedEvent* evt) {
       snprintf(ackBuf, sizeof(ackBuf), "{\"type\":\"command_ack\",\"pin\":%d,\"state\":%s}", evt->pin,
                evt->state ? "true" : "false");
     }
+    if (wsServer) wsServer->broadcastState(ackBuf);
     mqttClient.publish(mqttClient.getBaseTopic() + "/State", ackBuf);
     return;
   }

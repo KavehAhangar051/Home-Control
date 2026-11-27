@@ -26,7 +26,10 @@ import {
   planRemoveGroup,
   validateRuleActionList,
 } from "../features/iot/hooks/achaemenidState/core/segmentOperations.ts";
-import { createLocalWebSocketController } from "../features/iot/hooks/achaemenidState/useConnectionStrategy.ts";
+import {
+  createLocalWebSocketController,
+  resolveLocalWebSocketCandidates,
+} from "../features/iot/hooks/achaemenidState/useConnectionStrategy.ts";
 import {
   createVoiceRecognitionSession,
   extractTranscriptText,
@@ -286,6 +289,19 @@ describe("Legacy Seams: MQTT Client Settings, Publishing, Connect & State Queue"
 });
 
 describe("Legacy Seams: Local WebSocket Connection Controller", () => {
+  it("discovers the firmware mDNS host and SoftAP IP without MQTT or a remembered IP", () => {
+    assert.deepEqual(resolveLocalWebSocketCandidates(null, null), [
+      "achaemenid.local",
+      "192.168.4.1",
+    ]);
+    assert.deepEqual(
+      resolveLocalWebSocketCandidates("192.168.1.50", createMemoryStorage({
+        "home-control:local-ws-host": "192.168.1.50",
+      })),
+      ["192.168.1.50", "achaemenid.local", "192.168.4.1"],
+    );
+  });
+
   it("skips WebSocket creation outside native Capacitor runtime", () => {
     let created = 0;
     const cleanup = createLocalWebSocketController({
@@ -316,6 +332,9 @@ describe("Legacy Seams: Local WebSocket Connection Controller", () => {
     const cleanup = createLocalWebSocketController({
       localIp: "192.168.1.50",
       isNativeRuntime: () => true,
+      storage: createMemoryStorage(),
+      setIsLocalWebSocketConnected: () => {},
+      getIsMqttDeviceOnline: () => false,
       createWebSocket: (url) => {
         const sock = {
           url,
@@ -355,10 +374,14 @@ describe("Legacy Seams: Local WebSocket Connection Controller", () => {
     assert.equal(sockets[0].url, "ws://192.168.1.50:81");
 
     sockets[0].onopen();
-    assert.deepEqual(sockets[0].sent, [{ command: "get_state" }]);
-    assert.equal(isLocalEvents.at(-1), true);
+    assert.deepEqual(sockets[0].sent, [
+      { command: "client_hello", client: "capacitor-dashboard" },
+      { command: "get_state" },
+    ]);
+    assert.equal(isLocalEvents.length, 0);
 
     sockets[0].onmessage({ data: JSON.stringify({ type: "state_sync", states: { 2: true } }) });
+    assert.equal(isLocalEvents.at(-1), true);
     assert.deepEqual(pinsState, { 2: true });
 
     sockets[0].onmessage({ data: JSON.stringify({ pin: 4, state: 1 }) });
@@ -369,18 +392,57 @@ describe("Legacy Seams: Local WebSocket Connection Controller", () => {
     sockets[0].onclose();
     assert.equal(isLocalEvents.at(-1), false);
     assert.equal(wsRefs.at(-1), null);
-    assert.equal(scheduledTimeouts.length, 1);
-    assert.equal(scheduledTimeouts[0].delayMs, 500);
+    assert.equal(scheduledTimeouts.length, 2); // handshake timeout + reconnect timer
+    assert.equal(scheduledTimeouts.at(-1).delayMs, 400);
 
-    // Fire reconnect
-    scheduledTimeouts[0].fn();
+    // Fire the next discovery attempt (mDNS) after the remembered IP disconnects.
+    scheduledTimeouts.at(-1).fn();
     assert.equal(sockets.length, 2);
+    assert.equal(sockets[1].url, "ws://achaemenid.local:81");
 
     // Cleanup closes active socket cleanly without scheduling another reconnect
     cleanup();
     assert.equal(sockets[1].closed, true);
-    assert.equal(scheduledTimeouts.length, 1);
+    assert.equal(scheduledTimeouts.length, 2);
     assert.equal(isLocalEvents.at(-1), false);
+  });
+});
+
+describe("Legacy Seams: MQTT and Local WebSocket transport isolation", () => {
+  it("keeps the device reachable and ignores stale MQTT state while Local WebSocket is active", () => {
+    let isLocal = true;
+    let mqttOnline = true;
+    let pins = {};
+    const queued = [];
+    const snapshot = {
+      isLocal,
+      isLocalWebSocketConnected: true,
+      isPageVisible: true,
+      localIp: null,
+      setIsLocal: (value) => { isLocal = value; snapshot.isLocal = value; },
+      setIsMqttDeviceOnline: (value) => { mqttOnline = value; },
+      setHasReceivedMqttStatus: () => {},
+      setLocalIp: () => {},
+      setPinsState: (updater) => { pins = typeof updater === "function" ? updater(pins) : updater; },
+    };
+    const handler = createMqttMessageHandler({
+      commandTopic: "T/Command",
+      stateTopic: "T/State",
+      statusTopic: "T/Status",
+      qos: 1,
+      isCurrentGeneration: () => true,
+      getSnapshot: () => snapshot,
+      queueStateUpdate: (pinId, state) => queued.push({ pinId, state }),
+      publishFrame: () => {},
+    });
+
+    handler("T/Status", textEncoder.encode("offline"));
+    assert.equal(mqttOnline, false);
+    assert.equal(isLocal, true);
+
+    handler("T/State", textEncoder.encode('{"type":"pin_update","pin":4,"state":false}'));
+    assert.deepEqual(queued, []);
+    assert.deepEqual(pins, {});
   });
 });
 

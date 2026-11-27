@@ -16,6 +16,8 @@ export type PinsNumberUpdater =
  */
 export interface IoTStoreBridge {
   isLocal: boolean;
+  isLocalWebSocketConnected?: boolean;
+  isMqttDeviceOnline?: boolean;
   hasReceivedMqttStatus: boolean;
   isPageVisible: boolean;
   localIp: string | null;
@@ -24,6 +26,8 @@ export interface IoTStoreBridge {
   mqttConfig: EspConfig["mqtt"] | null;
   showToast: (message: string, type: "success" | "error") => void;
   setIsLocal: (val: boolean) => void;
+  setIsLocalWebSocketConnected?: (connected: boolean) => void;
+  setIsMqttDeviceOnline?: (online: boolean) => void;
   setLocalIp: (ip: string | null) => void;
   setHasReceivedMqttStatus: (received: boolean) => void;
   setPinsState: (updater: PinsStateUpdater) => void;
@@ -40,6 +44,8 @@ export interface IoTStoreBridge {
 
 const NOOP_BRIDGE: IoTStoreBridge = {
   isLocal: false,
+  isLocalWebSocketConnected: false,
+  isMqttDeviceOnline: false,
   hasReceivedMqttStatus: false,
   isPageVisible: true,
   localIp: null,
@@ -48,6 +54,8 @@ const NOOP_BRIDGE: IoTStoreBridge = {
   mqttConfig: null,
   showToast: () => {},
   setIsLocal: () => {},
+  setIsLocalWebSocketConnected: () => {},
+  setIsMqttDeviceOnline: () => {},
   setLocalIp: () => {},
   setHasReceivedMqttStatus: () => {},
   setPinsState: () => {},

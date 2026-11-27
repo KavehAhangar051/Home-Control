@@ -1,5 +1,7 @@
 {
   "appId": "com.homecontrol.dashboard",
   "appName": "Home Control",
-  "webDir": "out"
+  "webDir": "out",
+  "android": { "allowMixedContent": true },
+  "server": { "cleartext": true }
 }

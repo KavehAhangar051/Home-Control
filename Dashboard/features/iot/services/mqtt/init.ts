@@ -358,7 +358,8 @@ export function createMqttMessageHandler(
 
   const markEspStatus = (isOnline: boolean) => {
     const snapshot = deps.getSnapshot();
-    snapshot.setIsLocal(isOnline);
+    snapshot.setIsMqttDeviceOnline?.(isOnline);
+    snapshot.setIsLocal(isOnline || snapshot.isLocalWebSocketConnected === true);
     snapshot.setHasReceivedMqttStatus(true);
 
     if (isOnline) {
@@ -388,6 +389,8 @@ export function createMqttMessageHandler(
         console.error("[MQTT] Failed to parse status JSON", parsedStatus.error);
       }
     } else if (topic === deps.stateTopic) {
+      // Local WebSocket is authoritative after its state handshake; ignore stale MQTT state frames.
+      if (deps.getSnapshot().isLocalWebSocketConnected === true) return;
       const parsedState = parseMqttStateMessage(payload);
 
       if (parsedState.kind === "aux_node_ack") {
