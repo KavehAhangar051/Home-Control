@@ -89,9 +89,7 @@ bool BootManager::startMdnsResponder(bool apMode) {
   mdnsStarted_ = true;
   MDNS.setInstanceName(apMode ? "Achaemenid Wi-Fi Setup" : "Achaemenid IoT Node");
   MDNS.addService("http", "tcp", 80);
-  if (!apMode) {
-    MDNS.addService("ws", "tcp", 81);
-  }
+  MDNS.addService("ws", "tcp", 81);
 
   INFOF("[mDNS] Responder active at %s (%s mode)", portalUrl_, apMode ? "AP" : "STA");
   return true;
@@ -109,9 +107,7 @@ bool BootManager::startMdnsResponder(bool apMode) {
   mdnsStarted_ = true;
   mdns_instance_name_set(apMode ? "Achaemenid Wi-Fi Setup" : "Achaemenid IoT Node");
   mdns_service_add(nullptr, "_http", "_tcp", 80, nullptr, 0);
-  if (!apMode) {
-    mdns_service_add(nullptr, "_ws", "_tcp", 81, nullptr, 0);
-  }
+  mdns_service_add(nullptr, "_ws", "_tcp", 81, nullptr, 0);
 
   INFOF("[mDNS] ESP-IDF responder active at %s (%s mode)", portalUrl_, apMode ? "AP" : "STA");
   return true;
@@ -717,6 +713,10 @@ void BootManager::startProvisioningPortal() {
   registerCaptivePortalRoutes();
   provisioningServer_.begin();
   provisioningServerStarted_ = true;
+#ifndef UNIUNO_NATIVE_TEST
+  // Start local WebSocket even when the phone connects directly to the ESP32 SoftAP.
+  if (wsServer) wsServer->begin(81);
+#endif
   state_ = BootState::PROVISIONING;
 
   touchProvisioningActivity();

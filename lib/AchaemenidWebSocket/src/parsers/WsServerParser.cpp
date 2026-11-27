@@ -5,6 +5,7 @@
 #include <Events/EventHash.h>
 #include <utility>
 #include <cstdlib>
+#include <cstring>
 
 namespace uniuno {
 
@@ -30,8 +31,16 @@ HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::Webso
   constexpr uint32_t HASH_SET_ANALOG = hash_event_name("set_analog");
   constexpr uint32_t HASH_READ_ANALOG = hash_event_name("read_analog");
   constexpr uint32_t HASH_CONFIG_ANALOG_INPUT = hash_event_name("config_analog_input");
+  constexpr uint32_t HASH_BATCH_STATE = hash_event_name("batch_state");
+  constexpr uint32_t HASH_CLIENT_HELLO = hash_event_name("client_hello");
 
   switch (cmdHash) {
+  case HASH_CLIENT_HELLO: {
+    Serial.println("[LocalWS] Capacitor dashboard identified; local WebSocket transport selected.");
+    client.send(String("{\"type\":\"transport_ack\",\"transport\":\"websocket\"}"));
+    break;
+  }
+
   case HASH_GET_STATE: {
     const String stateJson = _stateProvider ? _stateProvider() : "{}";
     client.send(stateJson);
@@ -61,6 +70,35 @@ HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::Webso
         PinStateChangeRequestEvent evt{pin, state == 1, autoOff, PinStateChangeOrigin::DashboardCommand};
         _dispatcher->dispatch(evt);
       }
+    }
+    break;
+  }
+
+  case HASH_BATCH_STATE: {
+    const int actionsIdx = data.indexOf("\"actions\"");
+    const int arrayStart = actionsIdx >= 0 ? data.indexOf('[', actionsIdx) : -1;
+    const int arrayEnd = arrayStart >= 0 ? data.indexOf(']', arrayStart) : -1;
+    if (arrayStart >= 0 && arrayEnd > arrayStart && _dispatcher != nullptr) {
+      int cursor = data.indexOf('{', arrayStart);
+      uint8_t dispatched = 0;
+      while (cursor >= 0 && cursor < arrayEnd && dispatched < 32) {
+        const int objectEnd = data.indexOf('}', cursor);
+        if (objectEnd < 0 || objectEnd > arrayEnd) break;
+        const int pinIdx = data.indexOf("\"pin\":", cursor);
+        const int stateIdx = data.indexOf("\"state\":", cursor);
+        if (pinIdx >= cursor && pinIdx < objectEnd && stateIdx >= cursor && stateIdx < objectEnd) {
+          const int pin = atoi(data.c_str() + pinIdx + 6);
+          const char* statePtr = data.c_str() + stateIdx + 8;
+          const bool state = (strncmp(statePtr, "true", 4) == 0) || (atoi(statePtr) == 1);
+          const int timerIdx = data.indexOf("\"timer\":", cursor);
+          const int autoOff = (timerIdx >= cursor && timerIdx < objectEnd) ? atoi(data.c_str() + timerIdx + 8) : 0;
+          PinStateChangeRequestEvent evt{pin, state, autoOff, PinStateChangeOrigin::DashboardCommand};
+          _dispatcher->dispatch(evt);
+          ++dispatched;
+        }
+        cursor = data.indexOf('{', objectEnd + 1);
+      }
+      Serial.printf("[LocalWS] Batch command dispatched: %u action(s)\n", static_cast<unsigned int>(dispatched));
     }
     break;
   }
