@@ -31,6 +31,8 @@ export const createUiSlice: StateCreator<IoTStoreState, [], [], UiSlice> = (set)
   activeSegmentId: null,
   activeGroupId: null,
   isLocal: false,
+  isLocalWebSocketConnected: false,
+  isMqttDeviceOnline: false,
   localIp: null,
   hasReceivedMqttStatus: false,
 
@@ -66,6 +68,8 @@ export const createUiSlice: StateCreator<IoTStoreState, [], [], UiSlice> = (set)
   setActiveSegmentId: (id) => set({ activeSegmentId: id }),
   setActiveGroupId: (id) => set({ activeGroupId: id }),
   setIsLocal: (local) => set({ isLocal: local }),
+  setIsLocalWebSocketConnected: (connected) => set({ isLocalWebSocketConnected: connected }),
+  setIsMqttDeviceOnline: (online) => set({ isMqttDeviceOnline: online }),
   setLocalIp: (ip) => set({ localIp: ip }),
   setHasReceivedMqttStatus: (received) => set({ hasReceivedMqttStatus: received }),
 });

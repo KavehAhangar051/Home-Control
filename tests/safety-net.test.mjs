@@ -329,7 +329,8 @@ describe("Phase 1 Safety Net: LiveDeviceSyncAdapter Multi-Transport Routing", ()
     const cfSent = [];
 
     const adapter = new LiveDeviceSyncAdapter({
-      getIsLocal: () => true,
+      getIsLocal: () => false,
+      getIsLocalWebSocketConnected: () => true,
       getLocalWs: () => ({ readyState: 1, send: (data) => wsSent.push(JSON.parse(data)) }),
       getSegments: () => [{ pin: "2", mode: "push" }],
       getShowToast: () => undefined,
@@ -356,8 +357,9 @@ describe("Phase 1 Safety Net: LiveDeviceSyncAdapter Multi-Transport Routing", ()
   it("shows offline error toast when neither WS, MQTT, nor Cloudflare succeeds", async () => {
     const toasts = [];
     const adapter = new LiveDeviceSyncAdapter({
-      getIsLocal: () => false,
-      getLocalWs: () => null,
+      getIsLocal: () => true,
+      getIsLocalWebSocketConnected: () => false,
+      getLocalWs: () => ({ readyState: 1, send: () => assert.fail("MQTT-online flag must not select WS") }),
       getSegments: () => [{ pin: "4", mode: "switch" }],
       getShowToast: () => (msg, type) => toasts.push({ msg, type }),
       publishPinCommand: () => false,
@@ -378,6 +380,7 @@ describe("Phase 1 Safety Net: LiveDeviceSyncAdapter Multi-Transport Routing", ()
     const cfBatches = [];
     const adapter = new LiveDeviceSyncAdapter({
       getIsLocal: () => false,
+      getIsLocalWebSocketConnected: () => false,
       getLocalWs: () => null,
       getSegments: () => [
         { pin: "2", mode: "switch", auto_off: 1000 },

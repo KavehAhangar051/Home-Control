@@ -148,6 +148,7 @@ export interface LocalWsSocketLike {
 
 export interface LiveDeviceSyncDependencies {
   getIsLocal?: () => boolean;
+  getIsLocalWebSocketConnected?: () => boolean;
   getSegments?: () => Array<{ pin: string; auto_off?: number; mode?: string }>;
   getShowToast?: () => ((message: string, type: "success" | "error") => void) | undefined;
   getLocalWs?: () => LocalWsSocketLike | null;
@@ -179,6 +180,9 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
   constructor(dependencies: LiveDeviceSyncDependencies = {}) {
     this.deps = {
       getIsLocal: dependencies.getIsLocal ?? (() => getIoTStoreSnapshot().isLocal),
+      getIsLocalWebSocketConnected:
+        dependencies.getIsLocalWebSocketConnected ??
+        (() => getIoTStoreSnapshot().isLocalWebSocketConnected ?? false),
       getSegments: dependencies.getSegments ?? (() => getIoTStoreSnapshot().segments),
       getShowToast: dependencies.getShowToast ?? (() => getIoTStoreSnapshot().showToast),
       getLocalWs: dependencies.getLocalWs ?? (() => getLocalWs()),
@@ -214,15 +218,11 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
     },
     mqttSend: () => boolean,
   ): boolean {
-    const isLocal = this.deps.getIsLocal();
     const ws = this.deps.getLocalWs();
-
-    if (isLocal && ws?.readyState === WS_OPEN_READY_STATE) {
-      ws.send(JSON.stringify(wsPayload));
-
-      return true;
+    if (this.deps.getIsLocalWebSocketConnected() && ws?.readyState === WS_OPEN_READY_STATE) {
+      try { ws.send(JSON.stringify(wsPayload)); return true; }
+      catch (error) { console.warn("[DeviceSync] Local WebSocket send failed; falling back to MQTT.", error); }
     }
-
     return mqttSend();
   }
 

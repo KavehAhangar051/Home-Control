@@ -246,6 +246,8 @@ export interface UiSlice {
   activeSegmentId: string | null;
   activeGroupId: string | null;
   isLocal: boolean;
+  isLocalWebSocketConnected: boolean;
+  isMqttDeviceOnline: boolean;
   localIp: string | null;
   hasReceivedMqttStatus: boolean;
   setWorkspaceDisplayMode: (mode: WorkspaceDisplayMode) => void;
@@ -259,6 +261,8 @@ export interface UiSlice {
   setActiveSegmentId: (id: string | null) => void;
   setActiveGroupId: (id: string | null) => void;
   setIsLocal: (local: boolean) => void;
+  setIsLocalWebSocketConnected: (connected: boolean) => void;
+  setIsMqttDeviceOnline: (online: boolean) => void;
   setLocalIp: (ip: string | null) => void;
   setHasReceivedMqttStatus: (received: boolean) => void;
 }

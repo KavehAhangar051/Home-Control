@@ -12,6 +12,49 @@ import { computeFullJitterDelayMs } from "@/lib/resilience";
 
 const LOCAL_WS_RECONNECT_BASE_MS = 1000;
 const LOCAL_WS_RECONNECT_MAX_MS = 30_000;
+const LOCAL_WS_HANDSHAKE_TIMEOUT_MS = 5_000;
+const LOCAL_WS_DISCOVERY_RETRY_MS = 400;
+export const LOCAL_WS_HOST_STORAGE_KEY = "home-control:local-ws-host";
+const DEFAULT_LOCAL_WS_HOSTS = ["achaemenid.local", "192.168.4.1"] as const;
+
+type LocalWsHostStorage = Pick<Storage, "getItem" | "setItem">;
+
+function normalizeLocalWsHost(value: string | null | undefined): string | null {
+  if (!value) return null;
+  let host = value.trim();
+  if (host.toLowerCase().startsWith("ws://")) host = host.slice(5);
+  else if (host.toLowerCase().startsWith("wss://")) host = host.slice(6);
+  host = host.split("/")[0].replace(/:81$/, "");
+  return /^[a-z0-9.-]+$/i.test(host) ? host : null;
+}
+
+export function resolveLocalWebSocketCandidates(
+  localIp?: string | null,
+  storage?: Pick<Storage, "getItem"> | null,
+): string[] {
+  let rememberedHost: string | null = null;
+  try {
+    const activeStorage = storage !== undefined ? storage : typeof window !== "undefined" ? window.localStorage : null;
+    rememberedHost = activeStorage?.getItem(LOCAL_WS_HOST_STORAGE_KEY) ?? null;
+  } catch {}
+  const seen = new Set<string>();
+  const candidates: string[] = [];
+  for (const rawHost of [localIp, rememberedHost, ...DEFAULT_LOCAL_WS_HOSTS]) {
+    const host = normalizeLocalWsHost(rawHost);
+    if (host && !seen.has(host)) { seen.add(host); candidates.push(host); }
+  }
+  return candidates;
+}
+
+function isCapacitorNativeRuntime(): boolean {
+  if (typeof window === "undefined") return false;
+  const capacitor = (window as Window & { Capacitor?: {
+    isNativePlatform?: () => boolean; isNative?: boolean; getPlatform?: () => string;
+  }}).Capacitor;
+  if (typeof capacitor?.isNativePlatform === "function") return capacitor.isNativePlatform();
+  if (typeof capacitor?.isNative === "boolean") return capacitor.isNative;
+  return typeof capacitor?.getPlatform === "function" && capacitor.getPlatform() !== "web";
+}
 
 export interface LocalWebSocketLike {
   readyState: number;
@@ -24,7 +67,7 @@ export interface LocalWebSocketLike {
 }
 
 export interface LocalWebSocketControllerDeps {
-  localIp: string;
+  localIp?: string | null;
   setIsLocal: (val: boolean) => void;
   setPinsState: (
     updater: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>),
@@ -49,6 +92,11 @@ export interface LocalWebSocketControllerDeps {
   scheduleTimeout?: (fn: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
   clearTimeoutFn?: (id: ReturnType<typeof setTimeout>) => void;
   randomFn?: () => number;
+  setIsLocalWebSocketConnected?: (connected: boolean) => void;
+  getIsMqttDeviceOnline?: () => boolean;
+  storage?: LocalWsHostStorage | null;
+  handshakeTimeoutMs?: number;
+  discoveryRetryMs?: number;
 }
 
 /**
@@ -57,11 +105,7 @@ export interface LocalWebSocketControllerDeps {
  * and bounded exponential backoff + full jitter reconnects.
  */
 export function createLocalWebSocketController(deps: LocalWebSocketControllerDeps): () => void {
-  const isNativeRuntime =
-    deps.isNativeRuntime ??
-    (() =>
-      // @ts-expect-error Capacitor global is injected only in native mobile builds
-      typeof window !== "undefined" && Boolean(window.Capacitor?.isNative));
+  const isNativeRuntime = deps.isNativeRuntime ?? isCapacitorNativeRuntime;
 
   // SAFETY: Native browser WebSocket implements LocalWebSocketLike handler slots and send/close
   const createWebSocket =
@@ -73,45 +117,88 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
   const clearTimeoutFn = deps.clearTimeoutFn ?? ((id) => clearTimeout(id));
   const randomFn = deps.randomFn ?? Math.random;
 
+  const candidates = resolveLocalWebSocketCandidates(deps.localIp, deps.storage);
   let ws: LocalWebSocketLike | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let handshakeTimer: ReturnType<typeof setTimeout> | null = null;
   let reconnectAttempt = 0;
+  let candidateIndex = 0;
+  let candidateFailures = 0;
   let synchronizedTimers: Record<string, number> = {};
+  let isConnected = false;
   let isMounted = true;
-
   const WS_CONNECTING = 0;
   const WS_OPEN = 1;
 
+  const clearHandshakeTimer = () => {
+    if (handshakeTimer !== null) { clearTimeoutFn(handshakeTimer); handshakeTimer = null; }
+  };
+
+  const scheduleReconnect = () => {
+    if (!isMounted) return;
+    if (reconnectTimer !== null) clearTimeoutFn(reconnectTimer);
+    candidateFailures += 1;
+    const delayMs = candidateFailures < candidates.length
+      ? (deps.discoveryRetryMs ?? LOCAL_WS_DISCOVERY_RETRY_MS)
+      : computeFullJitterDelayMs(reconnectAttempt++, LOCAL_WS_RECONNECT_BASE_MS, LOCAL_WS_RECONNECT_MAX_MS, randomFn);
+    if (candidateFailures >= candidates.length) candidateFailures = 0;
+    reconnectTimer = scheduleTimeout(connect, delayMs);
+  };
+
   const connect = () => {
     if (!isMounted) return;
-
-    // فقط در محیط Capacitor (موبایل) اجازه اتصال WebSocket محلی می‌دهیم
-    // در مرورگر وب به دلیل خطای Mixed Content فقط از MQTT استفاده می‌شود
     if (!isNativeRuntime()) {
-      console.log("[LocalWS] Skipped: Not running in Native Capacitor App.");
+      console.log("[LocalWS] Skipped: not running inside a native Capacitor app.");
+      deps.setIsLocalWebSocketConnected?.(false);
       return;
     }
-
     if (ws?.readyState === WS_OPEN || ws?.readyState === WS_CONNECTING) return;
 
-    console.log(`[LocalWS] Attempting connection to ws://${deps.localIp}:81`);
-    ws = createWebSocket(`ws://${deps.localIp}:81`);
-    setLocalWsFn(ws);
+    const hostIndex = candidateIndex % candidates.length;
+    const host = candidates[hostIndex];
+    candidateIndex = (hostIndex + 1) % candidates.length;
+    console.log(`[LocalWS] Probing ESP32 at ws://${host}:81`);
 
-    ws.onopen = () => {
-      if (!isMounted) return;
+    let socket: LocalWebSocketLike;
+    try { socket = createWebSocket(`ws://${host}:81`); }
+    catch (error) { console.warn(`[LocalWS] Could not create socket for ${host}:`, error); scheduleReconnect(); return; }
 
-      reconnectAttempt = 0;
-      console.log("[LocalWS] Connected successfully to ESP32.");
-      deps.setIsLocal(true);
-      ws?.send(JSON.stringify({ command: "get_state" }));
+    ws = socket;
+    isConnected = false;
+    setLocalWsFn(socket);
+    handshakeTimer = scheduleTimeout(() => {
+      if (!isMounted || ws !== socket || isConnected) return;
+      console.warn(`[LocalWS] No valid ESP32 state handshake from ${host}; trying another host.`);
+      socket.close();
+    }, deps.handshakeTimeoutMs ?? LOCAL_WS_HANDSHAKE_TIMEOUT_MS);
+
+    socket.onopen = () => {
+      if (!isMounted || ws !== socket) return;
+      try {
+        socket.send(JSON.stringify({ command: "client_hello", client: "capacitor-dashboard" }));
+        socket.send(JSON.stringify({ command: "get_state" }));
+      } catch (error) { console.warn("[LocalWS] Failed to start the local handshake:", error); socket.close(); }
     };
 
-    ws.onmessage = (event) => {
+    socket.onmessage = (event) => {
       if (!isMounted) return;
 
       try {
         const data = JSON.parse(event.data);
+        if (data.type === "state_sync" && data.states && typeof data.states === "object" && !Array.isArray(data.states) && !isConnected) {
+          isConnected = true;
+          reconnectAttempt = 0;
+          candidateFailures = 0;
+          candidateIndex = hostIndex;
+          if (handshakeTimer !== null) { clearTimeoutFn(handshakeTimer); handshakeTimer = null; }
+          deps.setIsLocalWebSocketConnected?.(true);
+          deps.setIsLocal(true);
+          try {
+            const activeStorage = deps.storage !== undefined ? deps.storage : typeof window !== "undefined" ? window.localStorage : null;
+            activeStorage?.setItem(LOCAL_WS_HOST_STORAGE_KEY, host);
+          } catch {}
+          console.info("[LocalWS] ESP32 state handshake confirmed; local transport is active.");
+        }
 
         if (data.type === "state_sync" && data.states) {
           deps.setPinsState(data.states);
@@ -241,58 +328,46 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
       }
     };
 
-    ws.onclose = () => {
-      if (!isMounted) return;
 
+    socket.onclose = () => {
+      if (!isMounted || ws !== socket) return;
+      const wasConnected = isConnected;
+      clearHandshakeTimer();
       ws = null;
-      console.warn("[LocalWS] Disconnected. Falling back to Global (MQTT).");
-      deps.setIsLocal(false);
+      isConnected = false;
+      if (wasConnected) candidateIndex = (hostIndex + 1) % candidates.length;
+      deps.setIsLocalWebSocketConnected?.(false);
+      deps.setIsLocal(deps.getIsMqttDeviceOnline?.() ?? false);
       setLocalWsFn(null);
-
-      if (reconnectTimer !== null) clearTimeoutFn(reconnectTimer);
-
-      const delayMs = computeFullJitterDelayMs(
-        reconnectAttempt,
-        LOCAL_WS_RECONNECT_BASE_MS,
-        LOCAL_WS_RECONNECT_MAX_MS,
-        randomFn,
-      );
-
-      reconnectAttempt += 1;
-      reconnectTimer = scheduleTimeout(connect, delayMs);
+      console.warn("[LocalWS] Local connection closed; trying the next discovery target.");
+      scheduleReconnect();
     };
-
-    ws.onerror = (_err) => {
-      // Will trigger onclose automatically
-    };
+    socket.onerror = () => { if (ws === socket) socket.close(); };
   };
-
   connect();
 
   return () => {
     isMounted = false;
 
-    if (reconnectTimer !== null) {
-      clearTimeoutFn(reconnectTimer);
-      reconnectTimer = null;
-    }
-
+    if (reconnectTimer !== null) { clearTimeoutFn(reconnectTimer); reconnectTimer = null; }
+    clearHandshakeTimer();
     if (ws) {
-      ws.onopen = null;
-      ws.onmessage = null;
-      ws.onclose = null;
-      ws.onerror = null;
-      ws.close();
+      const activeSocket = ws;
       ws = null;
+      activeSocket.onopen = null; activeSocket.onmessage = null; activeSocket.onclose = null; activeSocket.onerror = null;
+      activeSocket.close();
       setLocalWsFn(null);
-      deps.setIsLocal(false);
     }
+    isConnected = false;
+    deps.setIsLocalWebSocketConnected?.(false);
+    deps.setIsLocal(deps.getIsMqttDeviceOnline?.() ?? false);
   };
 }
 
 export function useConnectionStrategy() {
   const localIp = useIoTStore((state) => state.localIp);
   const setIsLocal = useIoTStore((state) => state.setIsLocal);
+  const setIsLocalWebSocketConnected = useIoTStore((state) => state.setIsLocalWebSocketConnected);
   const setPinsState = useIoTStore((state) => state.setPinsState);
   const setAutoOffRemaining = useIoTStore((state) => state.setAutoOffRemaining);
   const setPinsAnalogValue = useIoTStore((state) => state.setPinsAnalogValue);
@@ -302,11 +377,11 @@ export function useConnectionStrategy() {
   const showToast = useIoTStore((state) => state.showToast);
 
   useEffect(() => {
-    if (!localIp) return;
-
     return createLocalWebSocketController({
       localIp,
       setIsLocal,
+      setIsLocalWebSocketConnected,
+      getIsMqttDeviceOnline: () => useIoTStore.getState().isMqttDeviceOnline,
       setPinsState,
       setAutoOffRemaining,
       setPinsAnalogValue,
@@ -318,6 +393,7 @@ export function useConnectionStrategy() {
   }, [
     localIp,
     setIsLocal,
+    setIsLocalWebSocketConnected,
     setPinsState,
     setAutoOffRemaining,
     setPinsAnalogValue,
