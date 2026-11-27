@@ -18,8 +18,9 @@ struct MqttConfig {
 
   uniuno::StaticString<64> clientId;
   uniuno::StaticString<64> baseTopic;
-  uniuno::StaticString<64> commandTopic;
-  uniuno::StaticString<64> willTopic;
+  uniuno::StaticString<80> commandTopic;
+  uniuno::StaticString<80> willTopic;
+  uniuno::StaticString<80> stateTopic;
 
   bool isValid() const { return !server.empty() && !baseTopic.empty(); }
 

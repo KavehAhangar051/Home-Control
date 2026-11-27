@@ -3,7 +3,6 @@
 #include <AppEvents.h>
 #include <Utilities/logging.h>
 #include <Optimization/CompilerTraits.h>
-#include <memory>
 
 namespace uniuno {
 
@@ -24,9 +23,9 @@ void RuleParsers::handle(const uint8_t* payload, size_t len, IEventDispatcher* d
 HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateRule(const uint8_t* payload, size_t len, IEventDispatcher* dispatcher) {
   if (payload == nullptr || dispatcher == nullptr || len < 4) return;
 
-  std::unique_ptr<SegmentUpdateRuleRequestEvent> evt(new (std::nothrow) SegmentUpdateRuleRequestEvent());
+  auto evt = uniuno::ruleEventPool().acquireOrHeap();
   if (!evt) {
-    WARNING("[MQTT Handler] Out of heap memory parsing UPDATE_RULE");
+    WARNING("[MQTT Handler] Out of memory acquiring UPDATE_RULE event");
     return;
   }
 
@@ -44,9 +43,9 @@ HOT_PATH IRAM_ATTR void RuleParsers::parseUpdateAnalogRangeRules(const uint8_t* 
                                                                  IEventDispatcher* dispatcher) {
   if (payload == nullptr || dispatcher == nullptr || len < 3) return;
 
-  std::unique_ptr<SegmentUpdateRuleRequestEvent> evt(new (std::nothrow) SegmentUpdateRuleRequestEvent());
+  auto evt = uniuno::ruleEventPool().acquireOrHeap();
   if (!evt) {
-    WARNING("[MQTT Handler] Out of heap memory parsing UPDATE_ANALOG_RANGE_RULES");
+    WARNING("[MQTT Handler] Out of memory acquiring UPDATE_ANALOG_RANGE_RULES event");
     return;
   }
 

@@ -245,11 +245,16 @@ auto onAuxNodeUpsert = [](AuxNodeUpsertRequestEvent* evt) {
     char macText[18];
     formatMacAddress(evt->mac, macText, sizeof(macText));
     char ackBuf[160];
-    snprintf(ackBuf, sizeof(ackBuf),
-             "{\"type\":\"aux_node_ack\",\"action\":\"upsert\",\"id\":%u,\"mac\":\"%s\",\"cap\":%u,\"chip\":%u}",
-             evt->nodeId, macText, evt->pinCapacity, static_cast<unsigned int>(evt->chipType));
+    const int ackLen = std::snprintf(
+        ackBuf, sizeof(ackBuf),
+        "{\"type\":\"aux_node_ack\",\"action\":\"upsert\",\"id\":%u,\"mac\":\"%s\",\"cap\":%u,\"chip\":%u}",
+        evt->nodeId, macText, evt->pinCapacity, static_cast<unsigned int>(evt->chipType));
     if (wsServer) wsServer->broadcastState(ackBuf);
-    mqttClient.publish(mqttClient.getBaseTopic() + "/State", ackBuf);
+    if (ackLen > 0) {
+      const size_t safeLen =
+          static_cast<size_t>(ackLen) < sizeof(ackBuf) ? static_cast<size_t>(ackLen) : (sizeof(ackBuf) - 1);
+      mqttClient.publishState(ackBuf, safeLen);
+    }
   }
 };
 
@@ -267,9 +272,14 @@ auto onAuxNodeRemove = [](AuxNodeRemoveRequestEvent* evt) {
     }
     persistCurrentAuxNodeConfig("aux node remove");
     char ackBuf[96];
-    snprintf(ackBuf, sizeof(ackBuf), "{\"type\":\"aux_node_ack\",\"action\":\"delete\",\"id\":%u}", removedId);
+    const int ackLen =
+        std::snprintf(ackBuf, sizeof(ackBuf), "{\"type\":\"aux_node_ack\",\"action\":\"delete\",\"id\":%u}", removedId);
     if (wsServer) wsServer->broadcastState(ackBuf);
-    mqttClient.publish(mqttClient.getBaseTopic() + "/State", ackBuf);
+    if (ackLen > 0) {
+      const size_t safeLen =
+          static_cast<size_t>(ackLen) < sizeof(ackBuf) ? static_cast<size_t>(ackLen) : (sizeof(ackBuf) - 1);
+      mqttClient.publishState(ackBuf, safeLen);
+    }
   }
 };
 
@@ -327,17 +337,22 @@ auto onPinChanged = [](PinStateChangedEvent* evt) {
   // A command ACK must never be interpreted as a new pin state.
   if (evt->origin == PinStateChangeOrigin::DashboardCommand) {
     char ackBuf[128];
+    int ackLen = 0;
     if (evt->analogValue >= 0) {
-      snprintf(ackBuf, sizeof(ackBuf),
-               "{\"type\":\"command_ack\",\"pin\":%d,\"state\":%s,\"value\":%d,\"resolution\":%u}", evt->pin,
-               evt->state ? "true" : "false", static_cast<int>(evt->analogValue),
-               static_cast<unsigned int>(evt->resolution));
+      ackLen = std::snprintf(ackBuf, sizeof(ackBuf),
+                             "{\"type\":\"command_ack\",\"pin\":%d,\"state\":%s,\"value\":%d,\"resolution\":%u}",
+                             evt->pin, evt->state ? "true" : "false", static_cast<int>(evt->analogValue),
+                             static_cast<unsigned int>(evt->resolution));
     } else {
-      snprintf(ackBuf, sizeof(ackBuf), "{\"type\":\"command_ack\",\"pin\":%d,\"state\":%s}", evt->pin,
-               evt->state ? "true" : "false");
+      ackLen = std::snprintf(ackBuf, sizeof(ackBuf), "{\"type\":\"command_ack\",\"pin\":%d,\"state\":%s}", evt->pin,
+                             evt->state ? "true" : "false");
     }
     if (wsServer) wsServer->broadcastState(ackBuf);
-    mqttClient.publish(mqttClient.getBaseTopic() + "/State", ackBuf);
+    if (ackLen > 0) {
+      const size_t safeLen =
+          static_cast<size_t>(ackLen) < sizeof(ackBuf) ? static_cast<size_t>(ackLen) : (sizeof(ackBuf) - 1);
+      mqttClient.publishState(ackBuf, safeLen);
+    }
     return;
   }
 
@@ -360,18 +375,25 @@ auto onPinChanged = [](PinStateChangedEvent* evt) {
   }
 
   char stateBuf[160];
+  int stateLen = 0;
   if (evt->analogValue >= 0) {
-    snprintf(stateBuf, sizeof(stateBuf),
-             "{\"type\":\"pin_update\",\"pin\":%d,\"state\":%s,\"value\":%d,\"resolution\":%u,\"source\":\"%s\"}",
-             evt->pin, evt->state ? "true" : "false", static_cast<int>(evt->analogValue),
-             static_cast<unsigned int>(evt->resolution), source);
+    stateLen = std::snprintf(
+        stateBuf, sizeof(stateBuf),
+        "{\"type\":\"pin_update\",\"pin\":%d,\"state\":%s,\"value\":%d,\"resolution\":%u,\"source\":\"%s\"}", evt->pin,
+        evt->state ? "true" : "false", static_cast<int>(evt->analogValue), static_cast<unsigned int>(evt->resolution),
+        source);
   } else {
-    snprintf(stateBuf, sizeof(stateBuf), "{\"type\":\"pin_update\",\"pin\":%d,\"state\":%s,\"source\":\"%s\"}",
-             evt->pin, evt->state ? "true" : "false", source);
+    stateLen =
+        std::snprintf(stateBuf, sizeof(stateBuf), "{\"type\":\"pin_update\",\"pin\":%d,\"state\":%s,\"source\":\"%s\"}",
+                      evt->pin, evt->state ? "true" : "false", source);
   }
 
   if (wsServer) wsServer->broadcastState(stateBuf);
-  const bool mqttPublished = mqttClient.publish(mqttClient.getBaseTopic() + "/State", stateBuf);
+  const size_t safeStateLen =
+      stateLen > 0
+          ? (static_cast<size_t>(stateLen) < sizeof(stateBuf) ? static_cast<size_t>(stateLen) : (sizeof(stateBuf) - 1))
+          : 0;
+  const bool mqttPublished = safeStateLen > 0 && mqttClient.publishState(stateBuf, safeStateLen);
   if (!mqttPublished) {
     WARNINGF("[StateSync] MQTT publish failed for pin %d (source=%s); dashboard may remain stale", evt->pin, source);
   }
@@ -425,17 +447,23 @@ auto onConfigLoaded = [](ConfigLoadedEvent* evt) {
 
   if (evt->mqtt.valid) {
     INFOF("[MQTT] Configuring dynamically: host=%s, port=%d, qos=%d", evt->mqtt.host, evt->mqtt.port, evt->mqtt.qos);
-    mqttClient.begin(String(evt->mqtt.host), evt->mqtt.port, String(evt->mqtt.baseTopic), evt->mqtt.qos,
-                     String(evt->mqtt.user), String(evt->mqtt.password));
-    mqttClient.subscribe(String(evt->mqtt.baseTopic) + "/Command");
+    mqttClient.begin(evt->mqtt.host, evt->mqtt.port, evt->mqtt.baseTopic, evt->mqtt.qos, evt->mqtt.user,
+                     evt->mqtt.password);
+    char cmdTopic[96];
+    std::snprintf(cmdTopic, sizeof(cmdTopic), "%s" ACHAEMENID_FALLBACK_MQTT_COMMAND_SUFFIX, evt->mqtt.baseTopic);
+    mqttClient.subscribe(cmdTopic);
     mqttClient.connect();
-  } else if (mqttClient.getBaseTopic().length() > 0) {
-    mqttClient.subscribe(mqttClient.getBaseTopic() + "/Command");
+  } else if (mqttClient.getBaseTopicCStr()[0] != '\0') {
+    char cmdTopic[96];
+    std::snprintf(cmdTopic, sizeof(cmdTopic), "%s" ACHAEMENID_FALLBACK_MQTT_COMMAND_SUFFIX,
+                  mqttClient.getBaseTopicCStr());
+    mqttClient.subscribe(cmdTopic);
     mqttClient.connect();
   } else {
     WARNING("[MQTT] No valid MQTT config received from server or NVS. Using fallback.");
-    mqttClient.begin("broker.emqx.io", 1883, "KamyarIoT/Achaemenid", 1, "", "");
-    mqttClient.subscribe("KamyarIoT/Achaemenid/Command");
+    mqttClient.begin(ACHAEMENID_FALLBACK_MQTT_HOST, ACHAEMENID_FALLBACK_MQTT_PORT, ACHAEMENID_FALLBACK_MQTT_TOPIC,
+                     ACHAEMENID_FALLBACK_MQTT_QOS, ACHAEMENID_FALLBACK_MQTT_USER, ACHAEMENID_FALLBACK_MQTT_PASS);
+    mqttClient.subscribe(ACHAEMENID_FALLBACK_MQTT_TOPIC ACHAEMENID_FALLBACK_MQTT_COMMAND_SUFFIX);
     mqttClient.connect();
   }
 };
@@ -453,9 +481,7 @@ auto onStateSyncRequest = [](StateSyncRequestEvent* evt) {
     return;
   }
   const size_t stateLen = pinManager.exportStateJson(stateBuf.get(), kStateBufSize, &auxNodeManager);
-  char stateTopic[96];
-  std::snprintf(stateTopic, sizeof(stateTopic), "%s/State", mqttClient.getBaseTopicCStr());
-  mqttClient.publish(stateTopic, reinterpret_cast<const uint8_t*>(stateBuf.get()), stateLen, false);
+  mqttClient.publishState(stateBuf.get(), stateLen, false);
 };
 
 /**

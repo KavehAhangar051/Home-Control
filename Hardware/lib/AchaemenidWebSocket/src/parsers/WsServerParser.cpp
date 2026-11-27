@@ -15,12 +15,14 @@ WsServerParser::WsServerParser(IEventDispatcher* dispatcher, StateProvider state
 /**
  * @brief Zero-heap message parser for dashboard commands using single-scan hash dispatch.
  */
-HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::WebsocketsClient& client) {
-  // Single search for command tag instead of multi-pass indexOf scans
-  const int cmdIdx = data.indexOf("\"command\":\"");
-  if (cmdIdx < 0) return;
+HOT_PATH void WsServerParser::parseMessage(const char* data, websockets::WebsocketsClient& client) {
+  if (data == nullptr || *data == '\0') return;
 
-  const char* cmdPtr = data.c_str() + cmdIdx + 11;
+  // Single scan for command tag instead of multi-pass String indexOf calls
+  const char* cmdTag = std::strstr(data, "\"command\":\"");
+  if (cmdTag == nullptr) return;
+
+  const char* cmdPtr = cmdTag + 11;
   uint32_t cmdHash = 5381;
   while (*cmdPtr && *cmdPtr != '"') {
     cmdHash = ((cmdHash << 5) + cmdHash) + static_cast<uint8_t>(*cmdPtr++);
@@ -37,7 +39,7 @@ HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::Webso
   switch (cmdHash) {
   case HASH_CLIENT_HELLO: {
     Serial.println("[LocalWS] Capacitor dashboard identified; local WebSocket transport selected.");
-    client.send(String("{\"type\":\"transport_ack\",\"transport\":\"websocket\"}"));
+    client.send("{\"type\":\"transport_ack\",\"transport\":\"websocket\"}");
     break;
   }
 
@@ -49,24 +51,24 @@ HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::Webso
 
   case HASH_SET_STATE:
   case HASH_SET_ANALOG: {
-    // Zero-heap integer parsing avoiding temporary String substring allocations
-    const int pinIdx = data.indexOf("\"pin\":");
-    const int valueIdx = data.indexOf("\"value\":");
-    const int stateIdx = data.indexOf("\"state\":");
-    if (pinIdx >= 0 && _dispatcher != nullptr) {
-      const int pin = atoi(data.c_str() + pinIdx + 6);
-      const int timerIdx = data.indexOf("\"timer\":");
-      const int autoOff = timerIdx >= 0 ? atoi(data.c_str() + timerIdx + 8) : 0;
+    // Zero-heap integer parsing directly over the frame buffer
+    const char* pinTag = std::strstr(data, "\"pin\":");
+    const char* valueTag = std::strstr(data, "\"value\":");
+    const char* stateTag = std::strstr(data, "\"state\":");
+    if (pinTag != nullptr && _dispatcher != nullptr) {
+      const int pin = std::atoi(pinTag + 6);
+      const char* timerTag = std::strstr(data, "\"timer\":");
+      const int autoOff = timerTag != nullptr ? std::atoi(timerTag + 8) : 0;
 
-      if (valueIdx >= 0) {
-        int rawVal = atoi(data.c_str() + valueIdx + 8);
+      if (valueTag != nullptr) {
+        int rawVal = std::atoi(valueTag + 8);
         if (rawVal < 0) rawVal = 0;
         if (rawVal > MAX_ANALOG_OUTPUT_VALUE) rawVal = MAX_ANALOG_OUTPUT_VALUE;
         PinStateChangeRequestEvent evt = PinStateChangeRequestEvent::analog(pin, static_cast<uint16_t>(rawVal), autoOff,
                                                                             PinStateChangeOrigin::DashboardCommand);
         _dispatcher->dispatch(evt);
-      } else if (stateIdx >= 0) {
-        const int state = atoi(data.c_str() + stateIdx + 8);
+      } else if (stateTag != nullptr) {
+        const int state = std::atoi(stateTag + 8);
         PinStateChangeRequestEvent evt{pin, state == 1, autoOff, PinStateChangeOrigin::DashboardCommand};
         _dispatcher->dispatch(evt);
       }
@@ -75,28 +77,28 @@ HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::Webso
   }
 
   case HASH_BATCH_STATE: {
-    const int actionsIdx = data.indexOf("\"actions\"");
-    const int arrayStart = actionsIdx >= 0 ? data.indexOf('[', actionsIdx) : -1;
-    const int arrayEnd = arrayStart >= 0 ? data.indexOf(']', arrayStart) : -1;
-    if (arrayStart >= 0 && arrayEnd > arrayStart && _dispatcher != nullptr) {
-      int cursor = data.indexOf('{', arrayStart);
+    const char* actionsTag = std::strstr(data, "\"actions\"");
+    const char* arrayStart = actionsTag != nullptr ? std::strchr(actionsTag, '[') : nullptr;
+    const char* arrayEnd = arrayStart != nullptr ? std::strchr(arrayStart, ']') : nullptr;
+    if (arrayStart != nullptr && arrayEnd != nullptr && arrayEnd > arrayStart && _dispatcher != nullptr) {
+      const char* cursor = std::strchr(arrayStart, '{');
       uint8_t dispatched = 0;
-      while (cursor >= 0 && cursor < arrayEnd && dispatched < 32) {
-        const int objectEnd = data.indexOf('}', cursor);
-        if (objectEnd < 0 || objectEnd > arrayEnd) break;
-        const int pinIdx = data.indexOf("\"pin\":", cursor);
-        const int stateIdx = data.indexOf("\"state\":", cursor);
-        if (pinIdx >= cursor && pinIdx < objectEnd && stateIdx >= cursor && stateIdx < objectEnd) {
-          const int pin = atoi(data.c_str() + pinIdx + 6);
-          const char* statePtr = data.c_str() + stateIdx + 8;
-          const bool state = (strncmp(statePtr, "true", 4) == 0) || (atoi(statePtr) == 1);
-          const int timerIdx = data.indexOf("\"timer\":", cursor);
-          const int autoOff = (timerIdx >= cursor && timerIdx < objectEnd) ? atoi(data.c_str() + timerIdx + 8) : 0;
+      while (cursor != nullptr && cursor < arrayEnd && dispatched < 32) {
+        const char* objectEnd = std::strchr(cursor, '}');
+        if (objectEnd == nullptr || objectEnd > arrayEnd) break;
+        const char* pinTag = std::strstr(cursor, "\"pin\":");
+        const char* stateTag = std::strstr(cursor, "\"state\":");
+        if (pinTag != nullptr && pinTag < objectEnd && stateTag != nullptr && stateTag < objectEnd) {
+          const int pin = std::atoi(pinTag + 6);
+          const char* statePtr = stateTag + 8;
+          const bool state = (std::strncmp(statePtr, "true", 4) == 0) || (std::atoi(statePtr) == 1);
+          const char* timerTag = std::strstr(cursor, "\"timer\":");
+          const int autoOff = (timerTag != nullptr && timerTag < objectEnd) ? std::atoi(timerTag + 8) : 0;
           PinStateChangeRequestEvent evt{pin, state, autoOff, PinStateChangeOrigin::DashboardCommand};
           _dispatcher->dispatch(evt);
           ++dispatched;
         }
-        cursor = data.indexOf('{', objectEnd + 1);
+        cursor = std::strchr(objectEnd + 1, '{');
       }
       Serial.printf("[LocalWS] Batch command dispatched: %u action(s)\n", static_cast<unsigned int>(dispatched));
     }
@@ -104,9 +106,9 @@ HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::Webso
   }
 
   case HASH_READ_ANALOG: {
-    const int pinIdx = data.indexOf("\"pin\":");
-    if (pinIdx >= 0 && _dispatcher != nullptr) {
-      const int pin = atoi(data.c_str() + pinIdx + 6);
+    const char* pinTag = std::strstr(data, "\"pin\":");
+    if (pinTag != nullptr && _dispatcher != nullptr) {
+      const int pin = std::atoi(pinTag + 6);
       if (isValidManagedPin(pin)) {
         AnalogInputReadRequestEvent evt{pin};
         _dispatcher->dispatch(evt);
@@ -116,21 +118,21 @@ HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::Webso
   }
 
   case HASH_CONFIG_ANALOG_INPUT: {
-    const int pinIdx = data.indexOf("\"pin\":");
-    if (pinIdx >= 0 && _dispatcher != nullptr) {
-      const int pin = atoi(data.c_str() + pinIdx + 6);
+    const char* pinTag = std::strstr(data, "\"pin\":");
+    if (pinTag != nullptr && _dispatcher != nullptr) {
+      const int pin = std::atoi(pinTag + 6);
       if (isValidManagedPin(pin)) {
-        const int sintIdx = data.indexOf("\"sint\":");
-        const int deltaIdx = data.indexOf("\"delta\":");
-        const int athIdx = data.indexOf("\"ath\":");
-        const int atlIdx = data.indexOf("\"atl\":");
-        const int resIdx = data.indexOf("\"res\":");
+        const char* sintTag = std::strstr(data, "\"sint\":");
+        const char* deltaTag = std::strstr(data, "\"delta\":");
+        const char* athTag = std::strstr(data, "\"ath\":");
+        const char* atlTag = std::strstr(data, "\"atl\":");
+        const char* resTag = std::strstr(data, "\"res\":");
 
-        const int rawSint = sintIdx >= 0 ? atoi(data.c_str() + sintIdx + 7) : DEFAULT_ADC_SAMPLE_INTERVAL_MS;
-        const int rawDelta = deltaIdx >= 0 ? atoi(data.c_str() + deltaIdx + 8) : DEFAULT_ADC_DELTA_THRESHOLD;
-        const int rawAth = athIdx >= 0 ? atoi(data.c_str() + athIdx + 6) : 0;
-        const int rawAtl = atlIdx >= 0 ? atoi(data.c_str() + atlIdx + 6) : 0;
-        const int rawRes = resIdx >= 0 ? atoi(data.c_str() + resIdx + 6) : 0;
+        const int rawSint = sintTag != nullptr ? std::atoi(sintTag + 7) : DEFAULT_ADC_SAMPLE_INTERVAL_MS;
+        const int rawDelta = deltaTag != nullptr ? std::atoi(deltaTag + 8) : DEFAULT_ADC_DELTA_THRESHOLD;
+        const int rawAth = athTag != nullptr ? std::atoi(athTag + 6) : 0;
+        const int rawAtl = atlTag != nullptr ? std::atoi(atlTag + 6) : 0;
+        const int rawRes = resTag != nullptr ? std::atoi(resTag + 6) : 0;
 
         const uint16_t sint = rawSint < 0 ? 0 : (rawSint > 65535 ? 65535 : static_cast<uint16_t>(rawSint));
         const uint16_t delta = rawDelta < 0 ? 0
@@ -153,6 +155,10 @@ HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::Webso
   default:
     break;
   }
+}
+
+HOT_PATH void WsServerParser::parseMessage(const String& data, websockets::WebsocketsClient& client) {
+  parseMessage(data.c_str(), client);
 }
 
 } // namespace uniuno

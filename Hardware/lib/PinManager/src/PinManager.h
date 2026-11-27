@@ -166,7 +166,7 @@ public:
     }
   }
 
-  HOT_PATH FORCE_INLINE RuleConfig getRuleByPin(int pin) const { return _stateManager.getRuleByPin(pin); }
+  HOT_PATH FORCE_INLINE const RuleConfig& getRuleByPin(int pin) const { return _stateManager.getRuleByPin(pin); }
 
   HOT_PATH FORCE_INLINE const RuleConfig* getRuleByPinPtr(int pin) const { return _stateManager.getRuleByPinPtr(pin); }
 
@@ -190,7 +190,7 @@ public:
     _stateManager.setPendingRuleActionAnalogValue(pin, value);
   }
 
-  HOT_PATH FORCE_INLINE RuleAction getPendingHoldAction(int pin) const {
+  HOT_PATH FORCE_INLINE const RuleAction& getPendingHoldAction(int pin) const {
     return _stateManager.getPendingHoldAction(pin);
   }
 

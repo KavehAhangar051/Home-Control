@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ProjectConfig.h>
 #include <Optimization/StaticString.h>
 #include <Optimization/FastFunction.h>
 #include <Arduino.h>
@@ -25,7 +26,7 @@ static constexpr unsigned long WS_SERVER_POLL_INTERVAL_MS = 15UL;   // 15ms (~66
 // FreeRTOS task parameters
 static constexpr uint32_t WS_CONNECT_TASK_STACK = 8192;
 static constexpr UBaseType_t WS_CONNECT_TASK_PRIO = 1;
-static constexpr BaseType_t WS_CONNECT_TASK_CORE = 0; // Core 0 — away from Arduino loop
+static constexpr BaseType_t WS_CONNECT_TASK_CORE = ACHAEMENID_WS_CONNECT_CORE; // Core 0 — away from Arduino loop
 
 /**
  * @brief WebSocket Configuration container using stack/bss-friendly StaticString.

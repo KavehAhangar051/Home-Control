@@ -43,6 +43,10 @@ public:
         sentMessages.push_back(String(msg ? msg : ""));
         return true;
     }
+    bool send(const char* msg, size_t len) {
+        sentMessages.push_back(msg ? String(std::string(msg, len)) : String(""));
+        return true;
+    }
     bool sendBinary(const char*, size_t) { return true; }
     bool available(bool = false) const { return connected; }
     void poll() {}

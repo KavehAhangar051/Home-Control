@@ -4,6 +4,7 @@
 #include <Utilities/logging.h>
 #include <Optimization/CompilerTraits.h>
 #include <WiFi.h>
+#include <cstdio>
 #include <cstring>
 #ifdef ESP32
 #include <esp_system.h>
@@ -14,7 +15,9 @@ namespace uniuno {
 AchaemenidMQTT::AchaemenidMQTT() : _connManager(this) {
   String mac = WiFi.macAddress();
   mac.replace(":", "");
-  _config.clientId = ("ESP32-" + mac).c_str();
+  char cidBuf[32];
+  std::snprintf(cidBuf, sizeof(cidBuf), "ESP32-%s", mac.c_str());
+  _config.clientId = cidBuf;
 
   _mqttClient.onConnect([this](bool sessionPresent) { this->_onMqttConnect(sessionPresent); });
 
@@ -27,23 +30,34 @@ AchaemenidMQTT::AchaemenidMQTT() : _connManager(this) {
 
 AchaemenidMQTT::~AchaemenidMQTT() {}
 
-void AchaemenidMQTT::begin(const String& server, uint16_t port, const String& baseTopic, uint8_t qos,
-                           const String& user, const String& password) {
+void AchaemenidMQTT::begin(const char* server, uint16_t port, const char* baseTopic, uint8_t qos, const char* user,
+                           const char* password) {
+  const char* safeServer = (server != nullptr) ? server : "";
+  const char* safeBase = (baseTopic != nullptr) ? baseTopic : "";
+  const char* safeUser = (user != nullptr) ? user : "";
+  const char* safePass = (password != nullptr) ? password : "";
+
   char normalizedTopic[64] = {0};
-  if (!net_config::normalizeMqttBaseTopic(baseTopic.c_str(), normalizedTopic, sizeof(normalizedTopic))) {
-    net_config::copySafeString(normalizedTopic, sizeof(normalizedTopic), baseTopic.c_str());
+  if (!net_config::normalizeMqttBaseTopic(safeBase, normalizedTopic, sizeof(normalizedTopic))) {
+    net_config::copySafeString(normalizedTopic, sizeof(normalizedTopic), safeBase);
   }
 
+  char topicBuf[80];
   MqttConfig nextConfig;
   nextConfig.clientId = _config.clientId;
-  nextConfig.server = server.c_str();
+  nextConfig.server = safeServer;
   nextConfig.port = static_cast<uint16_t>(net_config::sanitizeMqttPort(port));
   nextConfig.baseTopic = normalizedTopic;
   nextConfig.qos = static_cast<uint8_t>(net_config::sanitizeMqttQos(qos));
-  nextConfig.user = user.c_str();
-  nextConfig.password = password.c_str();
-  nextConfig.willTopic = (String(normalizedTopic) + "/Status").c_str();
-  nextConfig.commandTopic = (String(normalizedTopic) + "/Command").c_str();
+  nextConfig.user = safeUser;
+  nextConfig.password = safePass;
+
+  std::snprintf(topicBuf, sizeof(topicBuf), "%s/Status", normalizedTopic);
+  nextConfig.willTopic = topicBuf;
+  std::snprintf(topicBuf, sizeof(topicBuf), "%s%s", normalizedTopic, ACHAEMENID_FALLBACK_MQTT_COMMAND_SUFFIX);
+  nextConfig.commandTopic = topicBuf;
+  std::snprintf(topicBuf, sizeof(topicBuf), "%s/State", normalizedTopic);
+  nextConfig.stateTopic = topicBuf;
 
   const bool configChanged = _configured && !_config.matchesConnectionParams(nextConfig);
   _config = nextConfig;
@@ -76,6 +90,11 @@ void AchaemenidMQTT::begin(const String& server, uint16_t port, const String& ba
   }
 }
 
+void AchaemenidMQTT::begin(const String& server, uint16_t port, const String& baseTopic, uint8_t qos,
+                           const String& user, const String& password) {
+  begin(server.c_str(), port, baseTopic.c_str(), qos, user.c_str(), password.c_str());
+}
+
 void AchaemenidMQTT::connect() {
   if (WiFi.status() != WL_CONNECTED || _mqttClient.connected() || _reconnectAfterDisconnect) return;
   if (!_config.isValid()) return;
@@ -96,14 +115,19 @@ void AchaemenidMQTT::setCallback(MessageCallback callback) {
   _messageCallback = std::move(callback);
 }
 
-void AchaemenidMQTT::subscribe(const String& topic) {
-  const bool topicChanged = (_config.commandTopic != topic.c_str());
-  _config.commandTopic = topic.c_str();
+void AchaemenidMQTT::subscribe(const char* topic) {
+  if (topic == nullptr) return;
+  const bool topicChanged = (_config.commandTopic != topic);
+  _config.commandTopic = topic;
   if (_mqttClient.connected() && !_reconnectAfterDisconnect && (topicChanged || !_subscribed)) {
     _mqttClient.subscribe(_config.commandTopic.c_str(), _config.qos);
     _subscribed = true;
     Serial.printf("[MQTT] Subscribed to topic: %s\n", _config.commandTopic.c_str());
   }
+}
+
+void AchaemenidMQTT::subscribe(const String& topic) {
+  subscribe(topic.c_str());
 }
 
 bool AchaemenidMQTT::publish(const char* topic, const uint8_t* payload, size_t length, bool retained) {
@@ -115,16 +139,38 @@ bool AchaemenidMQTT::publish(const char* topic, const uint8_t* payload, size_t l
   return false;
 }
 
+bool AchaemenidMQTT::publish(const char* topic, const char* payload, bool retained) {
+  if (LIKELY(topic != nullptr && payload != nullptr && _mqttClient.connected())) {
+    const uint16_t packetId = _mqttClient.publish(topic, _config.qos, retained, payload, std::strlen(payload));
+    return packetId != 0;
+  }
+  return false;
+}
+
 bool AchaemenidMQTT::publish(const String& topic, const uint8_t* payload, size_t length, bool retained) {
   return publish(topic.c_str(), payload, length, retained);
 }
 
 bool AchaemenidMQTT::publish(const String& topic, const String& payload, bool retained) {
-  if (LIKELY(_mqttClient.connected())) {
-    const uint16_t packetId = _mqttClient.publish(topic.c_str(), _config.qos, retained, payload.c_str());
-    return packetId != 0;
+  return publish(topic.c_str(), reinterpret_cast<const uint8_t*>(payload.c_str()), payload.length(), retained);
+}
+
+bool AchaemenidMQTT::publishState(const char* payload, size_t length, bool retained) {
+  if (UNLIKELY(_config.stateTopic.empty() || payload == nullptr)) return false;
+  return publish(_config.stateTopic.c_str(), reinterpret_cast<const uint8_t*>(payload), length, retained);
+}
+
+bool AchaemenidMQTT::publishState(const char* payload, bool retained) {
+  if (UNLIKELY(payload == nullptr)) return false;
+  return publishState(payload, std::strlen(payload), retained);
+}
+
+HOT_PATH void AchaemenidMQTT::processQueue() {
+  if (UNLIKELY(!_messageCallback)) {
+    _rxRing.clear();
+    return;
   }
-  return false;
+  _rxRing.drain([this](const uint8_t* payload, size_t length) { _messageCallback(payload, length); });
 }
 
 void AchaemenidMQTT::_onMqttConnect(bool sessionPresent) {
@@ -171,6 +217,20 @@ HOT_PATH IRAM_ATTR void AchaemenidMQTT::_onMqttMessage(char* /*topic*/, char* pa
                                                        size_t index, size_t total) {
   if (UNLIKELY(!_messageCallback || payload == nullptr || total == 0)) return;
 
+  // Fast path: 99.9% of MQTT commands arrive in a single TCP segment (index == 0 && len == total).
+  if (LIKELY(index == 0 && len == total && total <= MAX_COMMAND_PAYLOAD)) {
+    const uint8_t* raw = reinterpret_cast<const uint8_t*>(payload);
+#if ACHAEMENID_MQTT_DUAL_CORE_QUEUE
+    if (UNLIKELY(!_rxRing.push(raw, total))) {
+      Serial.printf("[MQTT] RX ring full; dropped %u-byte command (total dropped=%lu)\n", static_cast<unsigned>(total),
+                    static_cast<unsigned long>(_rxRing.droppedCount()));
+    }
+#else
+    _messageCallback(raw, total);
+#endif
+    return;
+  }
+
   if (index == 0) {
     _messageTotal = total;
     _messageReceived = 0;
@@ -189,7 +249,14 @@ HOT_PATH IRAM_ATTR void AchaemenidMQTT::_onMqttMessage(char* /*topic*/, char* pa
   _messageReceived += len;
 
   if (_messageReceived == _messageTotal) {
+#if ACHAEMENID_MQTT_DUAL_CORE_QUEUE
+    if (UNLIKELY(!_rxRing.push(_messageBuffer, _messageTotal))) {
+      Serial.printf("[MQTT] RX ring full; dropped %u-byte reassembled command (total dropped=%lu)\n",
+                    static_cast<unsigned>(_messageTotal), static_cast<unsigned long>(_rxRing.droppedCount()));
+    }
+#else
     _messageCallback(_messageBuffer, _messageTotal);
+#endif
     _messageTotal = 0;
     _messageReceived = 0;
   }

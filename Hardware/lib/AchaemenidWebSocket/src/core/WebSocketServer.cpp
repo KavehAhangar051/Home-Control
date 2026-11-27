@@ -73,7 +73,7 @@ HOT_PATH void AchaemenidWebSocketServer::loop() {
 
 void AchaemenidWebSocketServer::handleMessage(uint8_t idx, const websockets::WebsocketsMessage& msg) {
   if (msg.isText()) {
-    parser_.parseMessage(msg.data(), clients[idx]);
+    parser_.parseMessage(msg.c_str(), clients[idx]);
   }
 }
 

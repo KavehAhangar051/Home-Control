@@ -27,6 +27,8 @@ public:
 
   void begin(const String& serverUrl);
   void stop();
+  void sendText(const char* payload, size_t len);
+  void sendText(const char* payload);
   void sendText(const String& payload);
   void requestConfig();
   void syncPinState(int pin, bool state, int16_t analogValue = -1, uint8_t resolution = 0);

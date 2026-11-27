@@ -49,5 +49,18 @@ public:
         ++subscribeCallCount;
         return 1;
     }
-    uint16_t publish(const char*, uint8_t, bool, const char* = nullptr, size_t = 0) { return 1; }
+    std::string mockLastPublishedTopic;
+    std::string mockLastPublishedPayload;
+    int publishCallCount = 0;
+
+    uint16_t publish(const char* topic, uint8_t, bool, const char* payload = nullptr, size_t len = 0) {
+        mockLastPublishedTopic = topic ? topic : "";
+        if (payload != nullptr) {
+            mockLastPublishedPayload = (len > 0) ? std::string(payload, len) : std::string(payload);
+        } else {
+            mockLastPublishedPayload.clear();
+        }
+        ++publishCallCount;
+        return 1;
+    }
 };

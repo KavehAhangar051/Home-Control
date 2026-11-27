@@ -5,6 +5,7 @@
 #include <Optimization/CompilerTraits.h>
 #include <Timer/Optimization/TimerAsm.h>
 #include <utility>
+#include <cstring>
 #include "WssUrlParser.h"
 #include "../parsers/WsClientParser.h"
 #include <WiFi.h>
@@ -34,32 +35,48 @@ AchaemenidWebSocketClient::~AchaemenidWebSocketClient() {
   }
 }
 
-void AchaemenidWebSocketClient::sendText(const String& payload) {
-  if (UNLIKELY((flags_ & FLAG_CONNECTING) || client_ == nullptr)) return;
+void AchaemenidWebSocketClient::sendText(const char* payload, size_t len) {
+  if (UNLIKELY(payload == nullptr || len == 0U || (flags_ & FLAG_CONNECTING) || client_ == nullptr)) return;
 
   portENTER_CRITICAL(&clientMux_);
   const bool canSend = (client_ != nullptr && client_->available());
   portEXIT_CRITICAL(&clientMux_);
 
   if (LIKELY(canSend)) {
-    client_->send(payload);
+    client_->send(payload, len);
   }
 }
 
+void AchaemenidWebSocketClient::sendText(const char* payload) {
+  if (UNLIKELY(payload == nullptr)) return;
+  sendText(payload, std::strlen(payload));
+}
+
+void AchaemenidWebSocketClient::sendText(const String& payload) {
+  sendText(payload.c_str(), payload.length());
+}
+
 void AchaemenidWebSocketClient::requestConfig() {
-  sendText("{\"type\":\"get_config\"}");
+  static constexpr char kGetConfig[] = "{\"type\":\"get_config\"}";
+  sendText(kGetConfig, sizeof(kGetConfig) - 1U);
 }
 
 void AchaemenidWebSocketClient::syncPinState(int pin, bool state, int16_t analogValue, uint8_t resolution) {
   char payload[96];
+  int written = 0;
   if (analogValue >= 0) {
-    snprintf(payload, sizeof(payload), "{\"type\":\"sync_pin\",\"pin\":%d,\"state\":%s,\"value\":%d,\"resolution\":%u}",
-             pin, state ? "true" : "false", static_cast<int>(analogValue), static_cast<unsigned int>(resolution));
+    written = snprintf(payload, sizeof(payload),
+                       "{\"type\":\"sync_pin\",\"pin\":%d,\"state\":%s,\"value\":%d,\"resolution\":%u}", pin,
+                       state ? "true" : "false", static_cast<int>(analogValue), static_cast<unsigned int>(resolution));
   } else {
-    snprintf(payload, sizeof(payload), "{\"type\":\"sync_pin\",\"pin\":%d,\"state\":%s}", pin,
-             state ? "true" : "false");
+    written = snprintf(payload, sizeof(payload), "{\"type\":\"sync_pin\",\"pin\":%d,\"state\":%s}", pin,
+                       state ? "true" : "false");
   }
-  sendText(payload);
+  if (written > 0) {
+    const size_t len =
+        (static_cast<size_t>(written) < sizeof(payload)) ? static_cast<size_t>(written) : (sizeof(payload) - 1U);
+    sendText(payload, len);
+  }
 }
 
 void AchaemenidWebSocketClient::begin(const String& serverUrl) {

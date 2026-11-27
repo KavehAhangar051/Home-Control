@@ -33,6 +33,8 @@
 #include "lwip/ip_addr.h"
 #include "lwip/ip6_addr.h"
 
+#include <ProjectConfig.h>
+
 #ifndef LIBRETINY
 #include "sdkconfig.h"
 extern "C" {
@@ -45,17 +47,15 @@ extern "C" {
 #include <semphr.h>
 #include <lwip/pbuf.h>
 }
-#define CONFIG_ASYNC_TCP_RUNNING_CORE 1 // Pinned to Core 1 (App CPU) for dual-core concurrency
+#define CONFIG_ASYNC_TCP_RUNNING_CORE ACHAEMENID_ASYNC_TCP_CORE
 #define CONFIG_ASYNC_TCP_USE_WDT 0
 #endif
 
-// If core is not defined, then we are running in Arduino or PIO
+// Pin AsyncTCP to Core 0 (PRO_CPU, alongside Wi-Fi/LwIP) so Core 1 (APP_CPU) runs loop() unimpeded.
 #ifndef CONFIG_ASYNC_TCP_RUNNING_CORE
-#define CONFIG_ASYNC_TCP_RUNNING_CORE 1 // Pinned to Core 1 (App CPU) for dual-core concurrency
-#define CONFIG_ASYNC_TCP_USE_WDT 1      // if enabled, adds between 33us and 200us per event
+#define CONFIG_ASYNC_TCP_RUNNING_CORE ACHAEMENID_ASYNC_TCP_CORE
+#define CONFIG_ASYNC_TCP_USE_WDT 1 // if enabled, adds between 33us and 200us per event
 #endif
-
-#include <ProjectConfig.h>
 
 #ifndef CONFIG_ASYNC_TCP_STACK_SIZE
 #define CONFIG_ASYNC_TCP_STACK_SIZE ACHAEMENID_ASYNC_TCP_STACK_SIZE
