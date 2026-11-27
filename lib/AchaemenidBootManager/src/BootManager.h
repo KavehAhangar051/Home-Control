@@ -25,6 +25,7 @@ struct BootContext {
   String* rawConfigPayload;
   AuxNodeManager* auxNodeManager = nullptr;
   uniuno::IAuxNodeStorage* auxNodeStorage = nullptr;
+  void (*startLocalWebSocketServer)() = nullptr;
 };
 
 enum class BootState : uint8_t { CONNECT_WIFI = 0, DONE = 1, PROVISIONING = 2, RECONNECTING = 3 };

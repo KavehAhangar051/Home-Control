@@ -9,10 +9,6 @@
 #include <Preferences.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
-#ifndef UNIUNO_NATIVE_TEST
-#include <core/Globals.h>
-#include <core/WebSocketServer.h>
-#endif
 #include <memory>
 
 // In Arduino-ESP32 Core v3+, ESPmDNS.h wraps MDNSResponder and `extern MDNSResponder MDNS;`
@@ -717,10 +713,8 @@ void BootManager::startProvisioningPortal() {
   registerCaptivePortalRoutes();
   provisioningServer_.begin();
   provisioningServerStarted_ = true;
-#ifndef UNIUNO_NATIVE_TEST
   // Start local WebSocket even when the phone connects directly to the ESP32 SoftAP.
-  if (wsServer) wsServer->begin(81);
-#endif
+  if (ctx_.startLocalWebSocketServer) ctx_.startLocalWebSocketServer();
   state_ = BootState::PROVISIONING;
 
   touchProvisioningActivity();

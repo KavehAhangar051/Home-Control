@@ -76,6 +76,10 @@ static __attribute__((noinline)) void pollWebSocketsSlowPath() {
   if (wsClient) wsClient->loop();
 }
 
+static void startLocalWebSocketServer() {
+  if (wsServer) wsServer->begin(81);
+}
+
 // ============================================================================
 // SETUP
 // ============================================================================
@@ -138,6 +142,7 @@ void setup() {
 
   BootContext bootCtx = {::network,      &pinManager,   &executor,         &eventBus,       appTimer,
                          segmentStorage, &configLoaded, &rawConfigPayload, &auxNodeManager, auxNodeStorage};
+  bootCtx.startLocalWebSocketServer = &startLocalWebSocketServer;
   bootManager->startBootSequenceAsync(bootCtx);
 
   // -------------------------------------------------------------------------
