@@ -1,4 +1,7 @@
-interface Props {
+import { Button } from "@/components/ui/button";
+import { Edit2 } from "@/components/ui/hugeicons-groups/controls";
+
+interface MqttReviewStepProps {
   brokerWsUrl: string;
   brokerHost: string;
   brokerPort: number;
@@ -8,33 +11,11 @@ interface Props {
   onEditMessages: () => void;
 }
 
-const QOS_SUMMARIES = {
-  0: "ارسال بدون تأیید؛ پیام ممکن است از دست برود.",
-  1: "تحویل با تأیید؛ ممکن است پیام تکراری دریافت شود.",
-  2: "تحویل دقیقاً یک‌بار؛ با سربار ارتباطی بیشتر.",
-} as const;
-
-function SummaryItem({
-  label,
-  value,
-  direction = "auto",
-}: {
-  label: string;
-  value: string;
-  direction?: "auto" | "ltr";
-}) {
-  return (
-    <div className="min-w-0 space-y-1">
-      <dt className="text-xs font-medium text-text-secondary">{label}</dt>
-      <dd
-        dir={direction}
-        className="break-all text-sm font-semibold leading-6 text-text-primary"
-      >
-        {value || "وارد نشده"}
-      </dd>
-    </div>
-  );
-}
+const QOS_TITLES: Record<0 | 1 | 2, string> = {
+  0: "QoS 0 — بدون تأیید",
+  1: "QoS 1 — تحویل با تأیید",
+  2: "QoS 2 — تحویل دقیقاً یک‌بار",
+};
 
 export function MqttReviewStep({
   brokerWsUrl,
@@ -44,57 +25,68 @@ export function MqttReviewStep({
   qos,
   onEditConnection,
   onEditMessages,
-}: Props) {
+}: MqttReviewStepProps) {
   return (
-    <div className="space-y-6">
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
+    <div className="space-y-4 text-right">
+      <div className="rounded-xl border border-border-color bg-bg-main p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2 border-b border-border-color/70 pb-2.5">
           <h4 className="text-sm font-bold text-text-primary">نشانی‌های اتصال</h4>
-          <button
+          <Button
             type="button"
-            aria-label="ویرایش نشانی‌های اتصال"
+            variant="ghost"
+            size="sm"
             onClick={onEditConnection}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg px-3 text-sm font-semibold text-accent3 transition-colors hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+            className="min-h-9 gap-1.5 text-xs"
           >
+            <Edit2 className="size-3.5" aria-hidden="true" />
             ویرایش
-          </button>
+          </Button>
         </div>
-        <dl className="grid grid-cols-1 gap-4 rounded-xl border border-border-color bg-bg-main p-4 sm:grid-cols-2">
-          <SummaryItem
-            label="نشانی WebSocket داشبورد"
-            value={brokerWsUrl}
-            direction="ltr"
-          />
-          <SummaryItem label="میزبان TCP برای ESP32" value={brokerHost} direction="ltr" />
-          <SummaryItem
-            label="پورت TCP"
-            value={String(brokerPort)}
-            direction="ltr"
-          />
-        </dl>
-      </section>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h4 className="text-sm font-bold text-text-primary">تنظیم پیام‌ها</h4>
-          <button
+        <dl className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
+          <div className="space-y-1">
+            <dt className="text-text-secondary">نشانی WebSocket داشبورد</dt>
+            <dd dir="ltr" className="truncate font-mono text-text-primary">
+              {brokerWsUrl}
+            </dd>
+          </div>
+          <div className="space-y-1">
+            <dt className="text-text-secondary">اتصال TCP برد ESP32</dt>
+            <dd dir="ltr" className="truncate font-mono tabular-nums text-text-primary">
+              {brokerHost}:{brokerPort}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="rounded-xl border border-border-color bg-bg-main p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2 border-b border-border-color/70 pb-2.5">
+          <h4 className="text-sm font-bold text-text-primary">تنظیمات پیام</h4>
+          <Button
             type="button"
-            aria-label="ویرایش تنظیم پیام‌ها"
+            variant="ghost"
+            size="sm"
             onClick={onEditMessages}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg px-3 text-sm font-semibold text-accent3 transition-colors hover:bg-accent3/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+            className="min-h-9 gap-1.5 text-xs"
           >
+            <Edit2 className="size-3.5" aria-hidden="true" />
             ویرایش
-          </button>
+          </Button>
         </div>
-        <dl className="grid grid-cols-1 gap-4 rounded-xl border border-border-color bg-bg-main p-4 sm:grid-cols-2">
-          <SummaryItem label="پیشوند موضوع‌ها (Base Topic)" value={baseTopic} direction="ltr" />
-          <SummaryItem label={`کیفیت تحویل پیام (QoS ${qos})`} value={QOS_SUMMARIES[qos]} />
-        </dl>
-      </section>
 
-      <p className="rounded-xl bg-secondary/60 px-4 py-3 text-xs leading-5 text-text-secondary sm:text-[13px]">
-        این مقادیر هنوز ذخیره نشده‌اند. با انتخاب «ذخیره و اتصال مجدد»، تنظیمات اعمال می‌شوند و داشبورد اتصال MQTT را دوباره برقرار می‌کند.
-      </p>
+        <dl className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
+          <div className="space-y-1">
+            <dt className="text-text-secondary">پیشوند موضوع پایه</dt>
+            <dd dir="ltr" className="truncate font-mono text-text-primary">
+              {baseTopic}
+            </dd>
+          </div>
+          <div className="space-y-1">
+            <dt className="text-text-secondary">سطح کیفیت تحویل</dt>
+            <dd className="font-semibold text-accent3">{QOS_TITLES[qos]}</dd>
+          </div>
+        </dl>
+      </div>
     </div>
   );
 }

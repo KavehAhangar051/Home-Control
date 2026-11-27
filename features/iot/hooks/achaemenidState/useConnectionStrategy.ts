@@ -34,23 +34,33 @@ export function resolveLocalWebSocketCandidates(
 ): string[] {
   let rememberedHost: string | null = null;
   try {
-    const activeStorage = storage !== undefined ? storage : typeof window !== "undefined" ? window.localStorage : null;
+    const activeStorage =
+      storage !== undefined ? storage : typeof window !== "undefined" ? window.localStorage : null;
     rememberedHost = activeStorage?.getItem(LOCAL_WS_HOST_STORAGE_KEY) ?? null;
   } catch {}
   const seen = new Set<string>();
   const candidates: string[] = [];
   for (const rawHost of [localIp, rememberedHost, ...DEFAULT_LOCAL_WS_HOSTS]) {
     const host = normalizeLocalWsHost(rawHost);
-    if (host && !seen.has(host)) { seen.add(host); candidates.push(host); }
+    if (host && !seen.has(host)) {
+      seen.add(host);
+      candidates.push(host);
+    }
   }
   return candidates;
 }
 
 function isCapacitorNativeRuntime(): boolean {
   if (typeof window === "undefined") return false;
-  const capacitor = (window as Window & { Capacitor?: {
-    isNativePlatform?: () => boolean; isNative?: boolean; getPlatform?: () => string;
-  }}).Capacitor;
+  const capacitor = (
+    window as Window & {
+      Capacitor?: {
+        isNativePlatform?: () => boolean;
+        isNative?: boolean;
+        getPlatform?: () => string;
+      };
+    }
+  ).Capacitor;
   if (typeof capacitor?.isNativePlatform === "function") return capacitor.isNativePlatform();
   if (typeof capacitor?.isNative === "boolean") return capacitor.isNative;
   return typeof capacitor?.getPlatform === "function" && capacitor.getPlatform() !== "web";
@@ -131,16 +141,25 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
   const WS_OPEN = 1;
 
   const clearHandshakeTimer = () => {
-    if (handshakeTimer !== null) { clearTimeoutFn(handshakeTimer); handshakeTimer = null; }
+    if (handshakeTimer !== null) {
+      clearTimeoutFn(handshakeTimer);
+      handshakeTimer = null;
+    }
   };
 
   const scheduleReconnect = () => {
     if (!isMounted) return;
     if (reconnectTimer !== null) clearTimeoutFn(reconnectTimer);
     candidateFailures += 1;
-    const delayMs = candidateFailures < candidates.length
-      ? (deps.discoveryRetryMs ?? LOCAL_WS_DISCOVERY_RETRY_MS)
-      : computeFullJitterDelayMs(reconnectAttempt++, LOCAL_WS_RECONNECT_BASE_MS, LOCAL_WS_RECONNECT_MAX_MS, randomFn);
+    const delayMs =
+      candidateFailures < candidates.length
+        ? (deps.discoveryRetryMs ?? LOCAL_WS_DISCOVERY_RETRY_MS)
+        : computeFullJitterDelayMs(
+            reconnectAttempt++,
+            LOCAL_WS_RECONNECT_BASE_MS,
+            LOCAL_WS_RECONNECT_MAX_MS,
+            randomFn,
+          );
     if (candidateFailures >= candidates.length) candidateFailures = 0;
     reconnectTimer = scheduleTimeout(connect, delayMs);
   };
@@ -160,8 +179,13 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
     console.log(`[LocalWS] Probing ESP32 at ws://${host}:81`);
 
     let socket: LocalWebSocketLike;
-    try { socket = createWebSocket(`ws://${host}:81`); }
-    catch (error) { console.warn(`[LocalWS] Could not create socket for ${host}:`, error); scheduleReconnect(); return; }
+    try {
+      socket = createWebSocket(`ws://${host}:81`);
+    } catch (error) {
+      console.warn(`[LocalWS] Could not create socket for ${host}:`, error);
+      scheduleReconnect();
+      return;
+    }
 
     ws = socket;
     isConnected = false;
@@ -177,7 +201,10 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
       try {
         socket.send(JSON.stringify({ command: "client_hello", client: "capacitor-dashboard" }));
         socket.send(JSON.stringify({ command: "get_state" }));
-      } catch (error) { console.warn("[LocalWS] Failed to start the local handshake:", error); socket.close(); }
+      } catch (error) {
+        console.warn("[LocalWS] Failed to start the local handshake:", error);
+        socket.close();
+      }
     };
 
     socket.onmessage = (event) => {
@@ -185,16 +212,30 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
 
       try {
         const data = JSON.parse(event.data);
-        if (data.type === "state_sync" && data.states && typeof data.states === "object" && !Array.isArray(data.states) && !isConnected) {
+        if (
+          data.type === "state_sync" &&
+          data.states &&
+          typeof data.states === "object" &&
+          !Array.isArray(data.states) &&
+          !isConnected
+        ) {
           isConnected = true;
           reconnectAttempt = 0;
           candidateFailures = 0;
           candidateIndex = hostIndex;
-          if (handshakeTimer !== null) { clearTimeoutFn(handshakeTimer); handshakeTimer = null; }
+          if (handshakeTimer !== null) {
+            clearTimeoutFn(handshakeTimer);
+            handshakeTimer = null;
+          }
           deps.setIsLocalWebSocketConnected?.(true);
           deps.setIsLocal(true);
           try {
-            const activeStorage = deps.storage !== undefined ? deps.storage : typeof window !== "undefined" ? window.localStorage : null;
+            const activeStorage =
+              deps.storage !== undefined
+                ? deps.storage
+                : typeof window !== "undefined"
+                  ? window.localStorage
+                  : null;
             activeStorage?.setItem(LOCAL_WS_HOST_STORAGE_KEY, host);
           } catch {}
           console.info("[LocalWS] ESP32 state handshake confirmed; local transport is active.");
@@ -328,7 +369,6 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
       }
     };
 
-
     socket.onclose = () => {
       if (!isMounted || ws !== socket) return;
       const wasConnected = isConnected;
@@ -342,19 +382,27 @@ export function createLocalWebSocketController(deps: LocalWebSocketControllerDep
       console.warn("[LocalWS] Local connection closed; trying the next discovery target.");
       scheduleReconnect();
     };
-    socket.onerror = () => { if (ws === socket) socket.close(); };
+    socket.onerror = () => {
+      if (ws === socket) socket.close();
+    };
   };
   connect();
 
   return () => {
     isMounted = false;
 
-    if (reconnectTimer !== null) { clearTimeoutFn(reconnectTimer); reconnectTimer = null; }
+    if (reconnectTimer !== null) {
+      clearTimeoutFn(reconnectTimer);
+      reconnectTimer = null;
+    }
     clearHandshakeTimer();
     if (ws) {
       const activeSocket = ws;
       ws = null;
-      activeSocket.onopen = null; activeSocket.onmessage = null; activeSocket.onclose = null; activeSocket.onerror = null;
+      activeSocket.onopen = null;
+      activeSocket.onmessage = null;
+      activeSocket.onclose = null;
+      activeSocket.onerror = null;
       activeSocket.close();
       setLocalWsFn(null);
     }

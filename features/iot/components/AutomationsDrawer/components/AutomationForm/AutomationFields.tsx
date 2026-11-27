@@ -138,7 +138,9 @@ export function WeatherIntervalFields({
 
   return (
     <div className="col-span-2">
-      <p className="mb-2 text-xs leading-5 text-text-secondary">وضعیت آب‌وهوا با این فاصله دوباره بررسی می‌شود.</p>
+      <p className="mb-2 text-xs leading-5 text-text-secondary">
+        وضعیت آب‌وهوا با این فاصله دوباره بررسی می‌شود.
+      </p>
       <Label htmlFor={intervalId} className="block mb-1">
         فاصله بررسی وضعیت هوا
       </Label>
@@ -194,7 +196,9 @@ export function WeatherConditionFields({
         <Label htmlFor={cityId} className="block mb-1">
           نام شهر یا مختصات جغرافیایی
         </Label>
-        <p className="mb-2 text-xs leading-5 text-text-secondary">نام شهر را وارد کنید یا مختصات را به‌شکل عرض و طول جغرافیایی بنویسید.</p>
+        <p className="mb-2 text-xs leading-5 text-text-secondary">
+          نام شهر را وارد کنید یا مختصات را به‌شکل عرض و طول جغرافیایی بنویسید.
+        </p>
         <div className="flex min-w-0 gap-2">
           <Input
             id={cityId}

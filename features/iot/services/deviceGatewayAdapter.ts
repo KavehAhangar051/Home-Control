@@ -220,8 +220,12 @@ export class LiveDeviceSyncAdapter implements IDeviceSyncPort {
   ): boolean {
     const ws = this.deps.getLocalWs();
     if (this.deps.getIsLocalWebSocketConnected() && ws?.readyState === WS_OPEN_READY_STATE) {
-      try { ws.send(JSON.stringify(wsPayload)); return true; }
-      catch (error) { console.warn("[DeviceSync] Local WebSocket send failed; falling back to MQTT.", error); }
+      try {
+        ws.send(JSON.stringify(wsPayload));
+        return true;
+      } catch (error) {
+        console.warn("[DeviceSync] Local WebSocket send failed; falling back to MQTT.", error);
+      }
     }
     return mqttSend();
   }

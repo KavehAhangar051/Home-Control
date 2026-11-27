@@ -1,167 +1,269 @@
+"use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Info } from "@/components/ui/hugeicons-groups/controls";
 import { Plus } from "@/components/ui/hugeicons-groups/shell";
+import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
 import type { WifiNetwork } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
+import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
+import { soundManager } from "@/lib/audio";
 import { WifiNetworkEditCard, WifiNetworkViewCard } from "./WifiNetworkCard";
-import { MAX_WIFI_NETWORKS, validateWifiNetwork } from "./wifiValidation";
+import {
+  MAX_WIFI_NETWORKS,
+  validateWifiNetworkCredentials,
+  type WifiCredentialErrors,
+} from "./wifiValidation";
 
 export function WifiNetworksSection() {
   const wifiNetworks = useIoTStore((state) => state.wifiNetworks);
   const setWifiNetworks = useIoTStore((state) => state.setWifiNetworks);
+  const showToast = useIoTStore((state) => state.showToast);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draftNewNetwork, setDraftNewNetwork] = useState<WifiNetwork | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [tempSsid, setTempSsid] = useState("");
   const [tempPassword, setTempPassword] = useState("");
-  const [networkErrors, setNetworkErrors] = useState<ReturnType<typeof validateWifiNetwork>>({});
+  const [errors, setErrors] = useState<WifiCredentialErrors>({});
 
-  function handleAddNetwork(): void {
-    if (wifiNetworks.length >= MAX_WIFI_NETWORKS || editingId !== null) return;
+  const isMaxReached = wifiNetworks.length >= MAX_WIFI_NETWORKS;
+  const isFormOpen = isAdding || editingId !== null;
 
-    const newId = `wifi_${Date.now()}`;
-    setDraftNewNetwork({ id: newId, ssid: "", password: "" });
-    setEditingId(newId);
+  const resetDraft = () => {
+    setIsAdding(false);
+    setEditingId(null);
     setTempSsid("");
     setTempPassword("");
-    setNetworkErrors({});
-  }
+    setErrors({});
+  };
 
-  function handleEditNetwork(id: string, ssid: string, password?: string): void {
-    setEditingId(id);
-    setTempSsid(ssid);
-    setTempPassword(password || "");
-    setNetworkErrors({});
-  }
+  const startAdding = () => {
+    if (isMaxReached || isSaving) return;
+    setEditingId(null);
+    setTempSsid("");
+    setTempPassword("");
+    setErrors({});
+    setIsAdding(true);
+  };
 
-  function handleSaveNetwork(id: string): void {
-    const errors = validateWifiNetwork(tempSsid, tempPassword, wifiNetworks, id);
-    setNetworkErrors(errors);
+  const startEditing = (net: WifiNetwork) => {
+    if (isSaving) return;
+    setIsAdding(false);
+    setEditingId(net.id);
+    setTempSsid(net.ssid);
+    setTempPassword(net.password ?? "");
+    setErrors({});
+  };
 
-    if (errors.ssid || errors.password) return;
+  const commitNetworks = async (
+    nextNetworks: WifiNetwork[],
+    successMsg: string,
+    closeFormOnSuccess: boolean,
+  ) => {
+    const previousNetworks = wifiNetworks;
+    setWifiNetworks(nextNetworks);
 
-    const nextNetwork = {
-      id,
-      ssid: tempSsid.trim(),
+    if (!isCloudflareEnabled()) {
+      showToast(successMsg, "success");
+      if (closeFormOnSuccess) resetDraft();
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { result } = await persistStoreConfigToCloudflare({
+        overrides: {
+          wifiNetworks: nextNetworks,
+          wifiNetworksConfigured: true,
+        },
+      });
+
+      if (result.success) {
+        if (closeFormOnSuccess) resetDraft();
+      } else {
+        setWifiNetworks(previousNetworks);
+        showToast(result.message || "خطا در ذخیره شبکه‌های وای‌فای در کلودفلر.", "error");
+      }
+    } catch {
+      setWifiNetworks(previousNetworks);
+      showToast("خطا در ارتباط با سرور کلودفلر؛ تغییرات بازگردانی شد.", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveDraft = () => {
+    if (isSaving) return;
+    soundManager.playClick();
+
+    if (isAdding && isMaxReached) {
+      showToast(`حداکثر ${MAX_WIFI_NETWORKS} شبکه وای‌فای پشتیبانی می‌شود.`, "error");
+      return;
+    }
+
+    const validationErrors = validateWifiNetworkCredentials({
+      ssid: tempSsid,
       password: tempPassword,
-    };
+      existingNetworks: wifiNetworks,
+      editingNetworkId: editingId,
+    });
+    setErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) return;
 
-    if (draftNewNetwork?.id === id) {
-      setWifiNetworks((previous) => [...previous, nextNetwork]);
-      setDraftNewNetwork(null);
-    } else {
-      setWifiNetworks((previous) =>
-        previous.map((network) => (network.id === id ? nextNetwork : network)),
+    const cleanSsid = tempSsid.trim();
+    const cleanPassword = tempPassword || undefined;
+
+    if (isAdding) {
+      const created: WifiNetwork = {
+        id: `wifi_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        ssid: cleanSsid,
+        ...(cleanPassword ? { password: cleanPassword } : {}),
+      };
+      void commitNetworks([...wifiNetworks, created], `شبکه «${cleanSsid}» ذخیره شد.`, true);
+      return;
+    }
+
+    if (editingId) {
+      const nextNetworks = wifiNetworks.map((net) =>
+        net.id === editingId
+          ? {
+              ...net,
+              ssid: cleanSsid,
+              ...(cleanPassword ? { password: cleanPassword } : { password: "" }),
+            }
+          : net,
       );
+      void commitNetworks(nextNetworks, `تغییرات شبکه «${cleanSsid}» ذخیره شد.`, true);
     }
+  };
 
-    setEditingId(null);
-    setNetworkErrors({});
-  }
-
-  function handleCancelNetworkEdit(): void {
-    if (draftNewNetwork?.id === editingId) {
-      setDraftNewNetwork(null);
+  const handleDeleteNetwork = (target: WifiNetwork) => {
+    if (isSaving) return;
+    soundManager.playClick();
+    const nextNetworks = wifiNetworks.filter((net) => net.id !== target.id);
+    if (editingId === target.id) {
+      resetDraft();
     }
-
-    setEditingId(null);
-    setNetworkErrors({});
-  }
-
-  function handleRemoveNetwork(id: string): void {
-    setWifiNetworks((previous) => previous.filter((network) => network.id !== id));
-  }
-
-  const canAddNetwork = wifiNetworks.length < MAX_WIFI_NETWORKS && editingId === null;
+    void commitNetworks(
+      nextNetworks,
+      nextNetworks.length === 0
+        ? "آخرین شبکه حذف شد؛ ESP32 در اتصال بعدی وارد حالت اکسس‌پوینت می‌شود."
+        : `شبکه «${target.ssid}» حذف شد.`,
+      false,
+    );
+  };
 
   return (
     <section
       aria-labelledby="wifi-networks-heading"
-      className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[minmax(12rem,0.8fr)_minmax(0,1.7fr)] lg:gap-10"
+      className="grid grid-cols-1 gap-6 lg:grid-cols-12"
     >
-      <div className="space-y-2">
-        <h3 id="wifi-networks-heading" className="text-sm font-bold text-text-primary">
-          شبکه‌های Wi-Fi
-        </h3>
-        <p className="max-w-xs text-sm leading-6 text-text-secondary">
-          ESP32 شبکه‌ها را به‌ترتیب فهرست برای اتصال به روتر امتحان می‌کند.
-        </p>
-        <p className="text-xs tabular-nums text-text-secondary">
-          {wifiNetworks.length} از {MAX_WIFI_NETWORKS} شبکه
-        </p>
-      </div>
-
-      <div className="min-w-0 space-y-3">
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            onClick={handleAddNetwork}
-            variant="accent"
-            disabled={!canAddNetwork}
-            className="min-h-11 gap-2"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            افزودن شبکه
-          </Button>
+      <div className="space-y-3 lg:col-span-5 text-right">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <h3 id="wifi-networks-heading" className="text-sm font-bold text-text-primary">
+              شبکه‌های وای‌فای ذخیره‌شده
+            </h3>
+            <span
+              dir="ltr"
+              className="rounded-md border border-border-color bg-bg-main px-2 py-0.5 font-mono text-xs tabular-nums text-text-secondary"
+            >
+              {wifiNetworks.length} / {MAX_WIFI_NETWORKS}
+            </span>
+          </div>
+          <p className="text-xs leading-5 text-text-secondary">
+            ESP32 به‌ترتیب فهرست به اولین شبکهٔ در دسترس متصل می‌شود. حداکثر {MAX_WIFI_NETWORKS} شبکه
+            قابل ثبت است.
+          </p>
         </div>
 
-        {wifiNetworks.length === 1 ? (
-          <p className="text-xs leading-5 text-amber-800 dark:text-amber-300">
-            با حذف آخرین شبکه، ESP32 برای راه‌اندازی به اکسس‌پوینت مستقل خود برمی‌گردد.
-          </p>
-        ) : null}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={startAdding}
+          disabled={isMaxReached || isFormOpen || isSaving}
+          className="min-h-11 w-full justify-center gap-1.5 sm:w-auto"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          افزودن شبکه جدید
+        </Button>
 
-        {wifiNetworks.length > 0 || draftNewNetwork ? (
-          <div className="divide-y divide-border-color/70 border-y border-border-color/70">
-            {wifiNetworks.map((network, index) =>
-              editingId === network.id ? (
+        {isMaxReached && (
+          <p className="text-[11px] text-amber-700 dark:text-amber-300">
+            حداکثر ظرفیت فهرست ({MAX_WIFI_NETWORKS} شبکه) تکمیل شده است.
+          </p>
+        )}
+
+        {wifiNetworks.length === 1 && (
+          <div className="flex items-start gap-2 rounded-xl border border-amber-500/35 bg-amber-500/10 p-3 text-[11px] leading-5 text-amber-800 dark:text-amber-200">
+            <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>
+              با حذف تنها شبکهٔ باقی‌مانده، ESP32 پس از راه‌اندازی مجدد به حالت اکسس‌پوینت (AP)
+              برمی‌گردد.
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="min-w-0 lg:col-span-7">
+        {wifiNetworks.length === 0 && !isAdding ? (
+          <div className="rounded-xl border border-dashed border-border-color bg-bg-main/50 p-6 text-center text-xs text-text-secondary">
+            هنوز شبکهٔ وای‌فایی ثبت نشده است.
+          </div>
+        ) : (
+          <div className="divide-y divide-border-color/70">
+            {wifiNetworks.map((net, index) =>
+              editingId === net.id ? (
                 <WifiNetworkEditCard
-                  key={network.id}
-                  title="ویرایش شبکه"
+                  key={net.id}
+                  title={`ویرایش شبکه «${net.ssid}»`}
                   tempSsid={tempSsid}
-                  setTempSsid={setTempSsid}
+                  setTempSsid={(val) => {
+                    setTempSsid(val);
+                    if (errors.ssid) setErrors((prev) => ({ ...prev, ssid: undefined }));
+                  }}
                   tempPassword={tempPassword}
-                  setTempPassword={setTempPassword}
-                  errors={networkErrors}
-                  onSave={() => handleSaveNetwork(network.id)}
-                  onCancel={handleCancelNetworkEdit}
+                  setTempPassword={(val) => {
+                    setTempPassword(val);
+                    if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                  }}
+                  errors={errors}
+                  onSave={handleSaveDraft}
+                  onCancel={resetDraft}
                 />
               ) : (
                 <WifiNetworkViewCard
-                  key={network.id}
-                  net={network}
+                  key={net.id}
+                  net={net}
                   position={index + 1}
-                  onEditStart={() => handleEditNetwork(network.id, network.ssid, network.password)}
-                  onDelete={() => handleRemoveNetwork(network.id)}
+                  onEditStart={() => startEditing(net)}
+                  onDelete={() => handleDeleteNetwork(net)}
                 />
               ),
             )}
 
-            {draftNewNetwork && editingId === draftNewNetwork.id ? (
+            {isAdding && (
               <WifiNetworkEditCard
-                key={draftNewNetwork.id}
-                title="افزودن شبکه"
+                title="افزودن شبکه وای‌فای جدید"
                 tempSsid={tempSsid}
-                setTempSsid={setTempSsid}
+                setTempSsid={(val) => {
+                  setTempSsid(val);
+                  if (errors.ssid) setErrors((prev) => ({ ...prev, ssid: undefined }));
+                }}
                 tempPassword={tempPassword}
-                setTempPassword={setTempPassword}
-                errors={networkErrors}
-                onSave={() => handleSaveNetwork(draftNewNetwork.id)}
-                onCancel={handleCancelNetworkEdit}
+                setTempPassword={(val) => {
+                  setTempPassword(val);
+                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                errors={errors}
+                onSave={handleSaveDraft}
+                onCancel={resetDraft}
               />
-            ) : null}
+            )}
           </div>
-        ) : (
-          <p className="border-y border-border-color/70 py-5 text-sm text-text-secondary">
-            هنوز شبکه‌ای ثبت نشده است. برای اتصال ESP32، نام شبکه و رمز روتر را اضافه کنید.
-          </p>
         )}
-
-        {wifiNetworks.length >= MAX_WIFI_NETWORKS ? (
-          <p className="text-xs text-text-secondary">
-            ظرفیت ذخیره‌سازی تکمیل است؛ برای افزودن شبکه، یکی از موارد فعلی را حذف کنید.
-          </p>
-        ) : null}
       </div>
     </section>
   );

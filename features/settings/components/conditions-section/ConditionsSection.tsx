@@ -87,7 +87,11 @@ export default function ConditionsSection() {
                 };
 
                 updateSegmentRule(segment.id, nextRule);
-                const delivered = publishUpdateAnalogRangeRulesCommand(inputPin, nextRanges, segments);
+                const delivered = publishUpdateAnalogRangeRulesCommand(
+                  inputPin,
+                  nextRanges,
+                  segments,
+                );
                 showToast(
                   delivered
                     ? "قوانین چندبازه‌ای آنالوگ ثبت و به دستگاه ارسال شدند."

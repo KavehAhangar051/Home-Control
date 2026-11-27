@@ -26,9 +26,7 @@ export function WifiNetworkViewCard({
   return (
     <WifiNetworkRow>
       <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3">
-        <span className="w-6 shrink-0 text-xs tabular-nums text-text-secondary">
-          {position}
-        </span>
+        <span className="w-6 shrink-0 text-xs tabular-nums text-text-secondary">{position}</span>
         <div className="min-w-0 flex-1 space-y-1">
           <p className="truncate text-sm font-semibold text-text-primary">{net.ssid}</p>
           <p className="text-xs text-text-secondary">

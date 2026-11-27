@@ -580,8 +580,7 @@ export function evaluateMacroExecution(
         blockedActions.push({
           action: rawAction,
           index: i,
-          message:
-            evalResult.message || `شرط اجرای درخواست «${actionLabel}» برقرار نیست.`,
+          message: evalResult.message || `شرط اجرای درخواست «${actionLabel}» برقرار نیست.`,
         });
         continue;
       }
@@ -830,8 +829,8 @@ export function normalizeMacroRecord(raw: Macro): Macro {
           : undefined;
         const hasConditionsArray = Array.isArray(action.conditions);
         const normalizedConditions = hasConditionsArray
-          ? action.conditions!
-              .map((c) => normalizeMacroActionCondition(c))
+          ? action
+              .conditions!.map((c) => normalizeMacroActionCondition(c))
               .filter((c): c is MacroActionCondition => Boolean(c))
           : undefined;
         const normalizedLegacyCondition =
@@ -981,7 +980,10 @@ export function validateMacroDraft(
     ) {
       const analogStepError = validateAnalogStepOrPowerAction(action, indexLabel, targetSegment);
       if (analogStepError) return analogStepError;
-    } else if (isAnalogOutputSegment(targetSegment) && hasExplicitAnalogTargetValue(action.targetValue)) {
+    } else if (
+      isAnalogOutputSegment(targetSegment) &&
+      hasExplicitAnalogTargetValue(action.targetValue)
+    ) {
       const maxDuty = getAnalogMaxDuty(clampPwmResolution(targetSegment.pwmResolution));
       if (
         !Number.isInteger(action.targetValue) ||
@@ -996,7 +998,9 @@ export function validateMacroDraft(
     for (let cIdx = 0; cIdx < actionConditions.length; cIdx++) {
       const condError = validateConditionEntry(
         actionConditions[cIdx],
-        actionConditions.length > 1 ? `عملیات ${indexLabel} (شرط ${cIdx + 1})` : `عملیات ${indexLabel}`,
+        actionConditions.length > 1
+          ? `عملیات ${indexLabel} (شرط ${cIdx + 1})`
+          : `عملیات ${indexLabel}`,
         segments,
       );
       if (condError) return condError;

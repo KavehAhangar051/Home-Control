@@ -147,20 +147,20 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
   return (
     <Container
       size="lg"
-      className="@container/workspace max-w-5xl space-y-3.5 px-0 py-1.5 text-right sm:space-y-6 sm:px-4 sm:py-6 lg:px-6 @lg/workspace:py-8"
+      className="@container/workspace max-w-5xl space-y-3 px-0 py-1 text-right sm:space-y-6 sm:px-4 sm:py-6 lg:px-6 @lg/workspace:py-8"
       dir="rtl"
     >
-      <header className="flex flex-col gap-3 border-b border-border-color pb-4 sm:pb-6 @sm/workspace:flex-row @sm/workspace:items-end @sm/workspace:justify-between">
+      <header className="flex items-center justify-between gap-2.5 border-b border-border-color pb-3 sm:pb-5 md:items-end md:pb-6">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border-color bg-card-bg text-accent3 dark:shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)] sm:size-12">
-            <Icon className="size-5 sm:size-6" aria-hidden="true" />
+          <div className="hidden size-12 shrink-0 items-center justify-center rounded-xl border border-border-color bg-card-bg text-accent3 dark:shadow-[inset_0_1px_0_0_oklch(1_0_0/0.08)] md:flex">
+            <Icon className="size-6" aria-hidden="true" />
           </div>
           <div className="min-w-0 space-y-1">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+            <span className="hidden items-center gap-1.5 text-xs font-medium text-text-secondary md:inline-flex">
               <SubsectionIcon className="size-3.5 shrink-0 text-accent3" aria-hidden="true" />
               <span>{meta.title}</span>
             </span>
-            <h1 className="text-2xl font-bold leading-snug tracking-tight text-balance text-text-primary sm:text-[1.75rem] lg:text-[2rem]">
+            <h1 className="truncate text-lg font-bold leading-snug tracking-tight text-balance text-text-primary sm:text-[1.75rem] lg:text-[2rem]">
               {activeSubsection.title}
             </h1>
           </div>
@@ -170,10 +170,12 @@ export default function WorkspaceSection({ view }: { view: WorkspaceSectionView 
           <button
             type="button"
             onClick={() => openAuxNodeModal()}
-            className="inline-flex min-h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border-color bg-card-bg px-4 text-sm font-medium text-text-primary transition-colors duration-150 hover:border-accent3 hover:bg-accent3 hover:text-accent3-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3"
+            aria-label="افزودن برد کمکی (ESP)"
+            className="inline-flex min-h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border-color bg-card-bg px-3 text-xs font-medium text-text-primary transition-colors duration-150 hover:border-accent3 hover:bg-accent3 hover:text-accent3-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent3 sm:gap-2 sm:px-4 sm:text-sm"
           >
             <Cpu className="size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-            <span>افزودن برد کمکی (ESP)</span>
+            <span className="sm:hidden">برد کمکی</span>
+            <span className="hidden sm:inline">افزودن برد کمکی (ESP)</span>
           </button>
         )}
       </header>
@@ -196,12 +198,24 @@ function MobileSubsectionTabs<T extends string>({
   onSelect: (id: T) => void;
   ariaLabel: string;
 }) {
+  const useSegmentedGrid = items.length <= 3;
+
   return (
     <nav
       aria-label={ariaLabel}
-      className="min-w-0 overflow-x-auto rounded-xl border border-border-color/85 bg-card-bg-solid p-1 shadow-xs [&::-webkit-scrollbar]:hidden [scrollbar-width:none] md:hidden"
+      className={`min-w-0 rounded-xl border border-border-color/85 bg-card-bg-solid p-1 shadow-xs md:hidden ${
+        useSegmentedGrid
+          ? ""
+          : "overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+      }`}
     >
-      <div className="flex min-w-max snap-x snap-mandatory items-center gap-1">
+      <div
+        className={
+          useSegmentedGrid
+            ? `grid gap-1 ${items.length === 2 ? "grid-cols-2" : "grid-cols-3"}`
+            : "flex min-w-max snap-x snap-mandatory items-center gap-1"
+        }
+      >
         {items.map((tab) => {
           const isActive = tab.id === activeId;
           const TabIcon = tab.icon;
@@ -212,9 +226,11 @@ function MobileSubsectionTabs<T extends string>({
               type="button"
               onClick={() => onSelect(tab.id)}
               aria-current={isActive ? "page" : undefined}
-              className={`inline-flex min-h-9 shrink-0 snap-start cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ease-out sm:text-xs ${
+              className={`inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors duration-200 ease-out ${
+                useSegmentedGrid ? "justify-center" : "shrink-0 snap-start"
+              } ${
                 isActive
-                  ? "border-accent3 bg-accent3/12 text-text-primary shadow-2xs"
+                  ? "border-accent3 bg-accent3/12 font-semibold text-text-primary shadow-2xs"
                   : "border-transparent text-text-secondary hover:bg-card-hover-bg hover:text-text-primary"
               }`}
             >
@@ -223,7 +239,7 @@ function MobileSubsectionTabs<T extends string>({
                 strokeWidth={1.75}
                 className={`size-3.5 shrink-0 ${isActive ? "text-accent3" : "text-text-muted"}`}
               />
-              <span>{tab.compactTitle}</span>
+              <span className="truncate">{tab.compactTitle}</span>
             </button>
           );
         })}
@@ -247,7 +263,7 @@ function ModulesWorkspace() {
     : undefined;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       <MobileSubsectionTabs
         items={MODULES_TABS}
         activeId={activeModulesTab}

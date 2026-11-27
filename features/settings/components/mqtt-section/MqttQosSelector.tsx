@@ -27,9 +27,7 @@ const QOS_OPTIONS = [
 export function MqttQosSelector({ qos, setQos }: Props) {
   return (
     <fieldset className="space-y-3 text-right">
-      <legend className="text-sm font-bold text-text-primary">
-        کیفیت تحویل پیام (QoS)
-      </legend>
+      <legend className="text-sm font-bold text-text-primary">کیفیت تحویل پیام (QoS)</legend>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {QOS_OPTIONS.map((option) => {
           const isSelected = qos === option.value;
@@ -51,9 +49,7 @@ export function MqttQosSelector({ qos, setQos }: Props) {
               }`}
             >
               <span className="flex w-full items-center justify-between gap-2">
-                <span className="text-sm font-bold text-text-primary">
-                  QoS {option.value}
-                </span>
+                <span className="text-sm font-bold text-text-primary">QoS {option.value}</span>
                 <span
                   aria-hidden="true"
                   className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${

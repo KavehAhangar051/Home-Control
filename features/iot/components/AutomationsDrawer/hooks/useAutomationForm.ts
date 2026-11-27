@@ -1,6 +1,13 @@
 import { useState } from "react";
-import type { Automation, ConditionLogic, RuleGuardCondition } from "@/features/iot/hooks/store/types";
-import { normalizeRuleGuardCondition, validateConditionEntry } from "@/features/iot/utils/macroEngine";
+import type {
+  Automation,
+  ConditionLogic,
+  RuleGuardCondition,
+} from "@/features/iot/hooks/store/types";
+import {
+  normalizeRuleGuardCondition,
+  validateConditionEntry,
+} from "@/features/iot/utils/macroEngine";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 
 interface AutomationFormDraftInput {
@@ -280,8 +287,8 @@ export function useAutomationForm() {
       setTemperatureCondition(auto.temperatureCondition || "greater");
     } else {
       setHasWeatherCondition(false);
-    setSegmentConditions([]);
-    setSegmentConditionLogic("and");
+      setSegmentConditions([]);
+      setSegmentConditionLogic("and");
       setCity("");
       setTemperatureThreshold("");
     }

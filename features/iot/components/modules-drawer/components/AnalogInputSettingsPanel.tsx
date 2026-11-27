@@ -294,8 +294,8 @@ export default function AnalogInputSettingsPanel({
                 </div>
 
                 <p className="text-xs leading-5 text-text-secondary">
-                  فاصله نمونه‌برداری زمان بین دو خواندن ADC را تعیین می‌کند. مقدار Delta حداقل تغییر لازم
-                  برای ارسال مقدار جدید است؛ ATH وضعیت را فعال و ATL آن را غیرفعال می‌کند.
+                  فاصله نمونه‌برداری زمان بین دو خواندن ADC را تعیین می‌کند. مقدار Delta حداقل تغییر
+                  لازم برای ارسال مقدار جدید است؛ ATH وضعیت را فعال و ATL آن را غیرفعال می‌کند.
                 </p>
                 {hasInvalidThresholds ? (
                   <p

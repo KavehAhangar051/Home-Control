@@ -1,12 +1,8 @@
 "use client";
 
-import { useId, useState } from "react";
-import { useReducedMotion } from "motion/react";
-import { triggerHaptic } from "@/lib/haptics";
-import { GrainToggleEffect } from "@/components/dissolve/toggle";
+import { useId } from "react";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { ShieldCheck } from "@/components/ui/hugeicons-groups/controls";
-import { Clock, Plus } from "@/components/ui/hugeicons-groups/shell";
+import { Plus } from "@/components/ui/hugeicons-groups/shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -15,14 +11,13 @@ import type {
   MacroActionCondition,
   MacroAnalogOutputOperator,
   MacroConditionParameter,
+  MacroNumericOperator,
   MacroValueUnit,
   RuleGuardCondition,
   Segment,
   SegmentConditionParameter,
 } from "@/features/iot/hooks/store/types";
-import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import {
-  adcValueToPercent,
   clampAdcResolution,
   getAdcMaxValue,
   isAnalogInputSegment,
@@ -30,7 +25,6 @@ import {
   MAX_RULE_CONDITIONS_PER_ACTION,
 } from "@/features/iot/utils/analogInput";
 import {
-  analogDutyToPercent,
   clampPwmResolution,
   getAnalogMaxDuty,
   isAnalogOutputSegment,
@@ -45,695 +39,128 @@ import {
   MACRO_WEEKDAY_OPTIONS,
 } from "@/features/iot/utils/macroEngine";
 
-interface ConditionRowProps {
+interface ActionConditionsEditorProps {
   actionLabel: string;
-  conditionIndex: number;
-  condition: MacroActionCondition;
-  segments: readonly Segment[];
-  allowTimeRange: boolean;
-  allowFailureMessage: boolean;
-  excludeSourcePin?: string;
-  onChange: (next: MacroActionCondition) => void;
-  onRemove: () => void;
-}
-
-function getAvailableSegmentsForParam(
-  parameter: MacroConditionParameter,
-  segments: readonly Segment[],
-  excludeSourcePin?: string,
-): Segment[] {
-  const excluded = excludeSourcePin?.trim();
-  const notExcluded = (s: Segment) =>
-    s.pin.trim().length > 0 && (!excluded || s.pin.trim() !== excluded);
-
-  switch (parameter) {
-    case "digital_input":
-      return segments.filter((s) => isDigitalInputSegment(s) && notExcluded(s));
-    case "analog_input":
-      return segments.filter((s) => isAnalogInputSegment(s) && notExcluded(s));
-    case "digital_output":
-      return segments.filter((s) => isDigitalMacroOutput(s) && notExcluded(s));
-    case "analog_output":
-      return segments.filter((s) => isAnalogOutputSegment(s) && notExcluded(s));
-    default:
-      return [];
-  }
-}
-
-function createInitialSegmentCondition(
-  parameter: MacroConditionParameter,
-  segments: readonly Segment[],
-  excludeSourcePin?: string,
-  previousFailureMessage = "",
-): MacroActionCondition {
-  const filteredSegments = excludeSourcePin
-    ? segments.filter((s) => s.pin.trim() !== excludeSourcePin.trim())
-    : segments;
-  return createDefaultMacroCondition(parameter, filteredSegments, previousFailureMessage);
-}
-
-function ConditionRow({
-  actionLabel,
-  conditionIndex,
-  condition,
-  segments,
-  allowTimeRange,
-  allowFailureMessage,
-  excludeSourcePin,
-  onChange,
-  onRemove,
-}: ConditionRowProps) {
-  const baseId = useId();
-  const prefersReducedMotion = useReducedMotion();
-  const paramId = `${baseId}-param`;
-  const sourcePinId = `${baseId}-source`;
-  const opId = `${baseId}-op`;
-  const valId = `${baseId}-val`;
-  const maxValId = `${baseId}-max`;
-  const startId = `${baseId}-start`;
-  const endId = `${baseId}-end`;
-  const msgId = `${baseId}-msg`;
-
-  const pinsState = useIoTStore((state) => state.pinsState);
-  const pinsAnalogValue = useIoTStore((state) => state.pinsAnalogValue);
-  const pinsPwmResolution = useIoTStore((state) => state.pinsPwmResolution);
-
-  const isEnabled = condition.enabled !== false;
-  const parameterOptions = allowTimeRange
-    ? MACRO_CONDITION_PARAMETER_META
-    : MACRO_CONDITION_PARAMETER_META.filter((item) => item.id !== "time_range");
-
-  const matchingSegments = getAvailableSegmentsForParam(
-    condition.parameter,
-    segments,
-    excludeSourcePin,
-  );
-
-  const selectedSourcePin = String(condition.sourcePin ?? "").trim();
-  const selectedSourceSeg = selectedSourcePin
-    ? segments.find((s) => s.pin.trim() === selectedSourcePin)
-    : undefined;
-
-  const isAnalogNumeric =
-    condition.parameter === "analog_input" ||
-    (condition.parameter === "analog_output" &&
-      condition.operator !== "is_on" &&
-      condition.operator !== "is_off");
-
-  const unit: MacroValueUnit = condition.unit === "raw" ? "raw" : "percent";
-  const maxRawLimit = (() => {
-    if (condition.parameter === "analog_input") {
-      return getAdcMaxValue(
-        clampAdcResolution(
-          pinsPwmResolution[selectedSourcePin] ?? selectedSourceSeg?.adcResolution,
-        ),
-      );
-    }
-
-    return getAnalogMaxDuty(
-      clampPwmResolution(pinsPwmResolution[selectedSourcePin] ?? selectedSourceSeg?.pwmResolution),
-    );
-  })();
-  const numericMaxLimit = unit === "percent" ? 100 : maxRawLimit;
-
-  const liveReadoutText = (() => {
-    if (!selectedSourcePin || !selectedSourceSeg) return null;
-
-    if (condition.parameter === "digital_input" || condition.parameter === "digital_output") {
-      const liveOn = Object.hasOwn(pinsState, selectedSourcePin)
-        ? Boolean(pinsState[selectedSourcePin])
-        : Boolean(selectedSourceSeg.state);
-
-      return liveOn ? "وضعیت فعلی: روشن / فعال" : "وضعیت فعلی: خاموش / غیرفعال";
-    }
-
-    if (condition.parameter === "analog_input") {
-      const res = clampAdcResolution(
-        pinsPwmResolution[selectedSourcePin] ?? selectedSourceSeg.adcResolution,
-      );
-      const raw = pinsAnalogValue[selectedSourcePin] ?? selectedSourceSeg.analogValue ?? 0;
-
-      return `مقدار فعلی: ${raw} (${adcValueToPercent(raw, res)}%)`;
-    }
-
-    if (condition.parameter === "analog_output") {
-      const res = clampPwmResolution(
-        pinsPwmResolution[selectedSourcePin] ?? selectedSourceSeg.pwmResolution,
-      );
-      const raw = pinsAnalogValue[selectedSourcePin] ?? selectedSourceSeg.analogValue ?? 0;
-
-      return `شدت فعلی: ${analogDutyToPercent(raw, res)}% (${raw}/${getAnalogMaxDuty(res)})`;
-    }
-
-    return null;
-  })();
-
-  const selectedDays = condition.days ?? [];
-
-  const patchCondition = (patch: Partial<MacroActionCondition>) => {
-    onChange({ ...condition, ...patch });
-  };
-
-  const toggleWeekday = (day: number) => {
-    const exists = selectedDays.includes(day);
-    const nextDays = exists ? selectedDays.filter((d) => d !== day) : [...selectedDays, day];
-    patchCondition({ days: nextDays });
-  };
-
-  return (
-    <div
-      className={`rounded-xl border p-3 space-y-2.5 transition-colors ${
-        isEnabled
-          ? "border-border-color bg-card-bg-solid"
-          : "border-border-color/60 bg-card-bg-solid opacity-65"
-      }`}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-color/60 pb-2">
-        <span className="rounded-md border border-border-color bg-bg-primary px-2 py-0.5 text-[11px] font-bold text-text-primary">
-          شرط {conditionIndex + 1}
-        </span>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isEnabled}
-            aria-label={`وضعیت شرط ${conditionIndex + 1} برای ${actionLabel}`}
-            onClick={() => {
-              const nextEnabled = !isEnabled;
-              patchCondition({ enabled: nextEnabled });
-              triggerHaptic(nextEnabled ? "toggleOn" : "toggleOff");
-            }}
-            className={`rounded-lg border px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${
-              isEnabled
-                ? "border-accent3/50 bg-accent3/15 text-accent3"
-                : "border-border-color bg-bg-primary text-text-muted"
-            }`}
-          >
-            <span>{isEnabled ? "فعال" : "غیرفعال"}</span>
-            <GrainToggleEffect
-              value={isEnabled}
-              size="sm"
-              onColor="var(--accent3)"
-              offColor="var(--bg-main)"
-              reducedMotion={Boolean(prefersReducedMotion)}
-              className="scale-[0.75]"
-            />
-          </button>
-          <DeleteButton
-            size="sm"
-            resetAfter={0}
-            onConfirm={onRemove}
-            label={`حذف شرط ${conditionIndex + 1}`}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2.5 text-xs">
-        <div className="space-y-1">
-          <Label htmlFor={paramId} className="font-semibold text-text-secondary">
-            بررسی بر اساس
-          </Label>
-          <Select
-            id={paramId}
-            aria-label={`پارامتر شرط ${conditionIndex + 1} ${actionLabel}`}
-            value={condition.parameter}
-            onChange={(e) => {
-              const nextParam = e.target.value as MacroConditionParameter;
-              onChange(
-                createInitialSegmentCondition(
-                  nextParam,
-                  segments,
-                  excludeSourcePin,
-                  condition.failureMessage ?? "",
-                ),
-              );
-            }}
-            className="bg-bg-primary text-xs"
-          >
-            {parameterOptions.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        {allowTimeRange && condition.parameter === "time_range" ? (
-          <div className="space-y-2.5">
-            <fieldset
-              aria-label={`حالت بازه زمانی شرط ${conditionIndex + 1} ${actionLabel}`}
-              className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-bg-primary p-1"
-            >
-              <button
-                type="button"
-                aria-pressed={condition.timeMode !== "outside"}
-                onClick={() => patchCondition({ timeMode: "inside" })}
-                className={`rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors cursor-pointer ${
-                  condition.timeMode !== "outside"
-                    ? "bg-accent3 text-accent3-foreground"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                فقط در این بازه زمانی
-              </button>
-              <button
-                type="button"
-                aria-pressed={condition.timeMode === "outside"}
-                onClick={() => patchCondition({ timeMode: "outside" })}
-                className={`rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors cursor-pointer ${
-                  condition.timeMode === "outside"
-                    ? "bg-accent3 text-accent3-foreground"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                خارج از این بازه
-              </button>
-            </fieldset>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="space-y-1">
-                <Label htmlFor={startId} className="font-semibold text-text-secondary">
-                  از ساعت
-                </Label>
-                <Input
-                  id={startId}
-                  type="time"
-                  dir="ltr"
-                  value={condition.startTime ?? "18:00"}
-                  onChange={(e) => patchCondition({ startTime: e.target.value })}
-                  className="bg-bg-primary text-xs font-mono tabular-nums"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor={endId} className="font-semibold text-text-secondary">
-                  تا ساعت
-                </Label>
-                <Input
-                  id={endId}
-                  type="time"
-                  dir="ltr"
-                  value={condition.endTime ?? "06:00"}
-                  onChange={(e) => patchCondition({ endTime: e.target.value })}
-                  className="bg-bg-primary text-xs font-mono tabular-nums"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between gap-2 text-[11px] text-text-muted">
-                <span className="inline-flex items-center gap-1">
-                  <Clock aria-hidden="true" className="size-3" />
-                  روزهای هفته (اختیاری؛ خالی = همه روزها)
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {MACRO_WEEKDAY_OPTIONS.map((w) => {
-                  const active = selectedDays.includes(w.day);
-
-                  return (
-                    <button
-                      key={w.day}
-                      type="button"
-                      aria-pressed={active}
-                      title={w.label}
-                      onClick={() => toggleWeekday(w.day)}
-                      className={`min-w-8 rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
-                        active
-                          ? "border-accent3 bg-accent3 text-accent3-foreground"
-                          : "border-border-color bg-bg-primary text-text-secondary hover:text-text-primary"
-                      }`}
-                    >
-                      {w.shortLabel}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center justify-between gap-1.5">
-                <Label htmlFor={sourcePinId} className="font-semibold text-text-secondary">
-                  قطعه مرجع
-                </Label>
-                {liveReadoutText && (
-                  <span className="font-mono text-[10px] text-accent3 tabular-nums">
-                    {liveReadoutText}
-                  </span>
-                )}
-              </div>
-              <Select
-                id={sourcePinId}
-                aria-label={`قطعه مرجع شرط ${conditionIndex + 1} ${actionLabel}`}
-                value={selectedSourcePin}
-                onChange={(e) => patchCondition({ sourcePin: e.target.value })}
-                className="bg-bg-primary text-xs"
-              >
-                <option value="">
-                  {matchingSegments.length === 0
-                    ? "هیچ قطعه‌ای از این نوع در داشبورد ثبت نشده است"
-                    : "انتخاب قطعه..."}
-                </option>
-                {selectedSourcePin &&
-                  !matchingSegments.some((s) => s.pin.trim() === selectedSourcePin) && (
-                    <option value={selectedSourcePin}>
-                      GPIO {selectedSourcePin} (ثبت‌شده قبلی)
-                    </option>
-                  )}
-                {matchingSegments.map((seg) => (
-                  <option key={seg.id} value={seg.pin.trim()}>
-                    {seg.title} (GPIO {seg.pin})
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            {(condition.parameter === "digital_input" ||
-              condition.parameter === "digital_output") && (
-              <fieldset
-                aria-label={`وضعیت مورد انتظار شرط ${conditionIndex + 1} ${actionLabel}`}
-                className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-bg-primary p-1"
-              >
-                <button
-                  type="button"
-                  aria-pressed={Boolean(condition.expectedState)}
-                  onClick={() => patchCondition({ expectedState: true })}
-                  className={`rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors cursor-pointer ${
-                    condition.expectedState
-                      ? "bg-accent3 text-accent3-foreground"
-                      : "text-text-secondary hover:text-text-primary"
-                  }`}
-                >
-                  {condition.parameter === "digital_input" ? "فعال باشد" : "روشن باشد"}
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={!condition.expectedState}
-                  onClick={() => patchCondition({ expectedState: false })}
-                  className={`rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors cursor-pointer ${
-                    !condition.expectedState
-                      ? "bg-destructive text-destructive-foreground"
-                      : "text-text-secondary hover:text-text-primary"
-                  }`}
-                >
-                  {condition.parameter === "digital_input" ? "غیرفعال باشد" : "خاموش باشد"}
-                </button>
-              </fieldset>
-            )}
-
-            {(condition.parameter === "analog_input" ||
-              condition.parameter === "analog_output") && (
-              <div className="space-y-2.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label htmlFor={opId} className="font-semibold text-text-secondary">
-                      شرط مقایسه
-                    </Label>
-                    <Select
-                      id={opId}
-                      value={
-                        condition.operator ??
-                        (condition.parameter === "analog_output" ? "is_on" : "gt")
-                      }
-                      onChange={(e) => {
-                        const nextOp = e.target.value as MacroAnalogOutputOperator;
-                        patchCondition({
-                          operator: nextOp,
-                          ...(isRangeOperator(nextOp) && condition.maxValue === undefined
-                            ? { maxValue: Math.min(numericMaxLimit, (condition.value ?? 0) + 20) }
-                            : {}),
-                        });
-                      }}
-                      className="bg-bg-primary text-xs"
-                    >
-                      {(condition.parameter === "analog_output"
-                        ? MACRO_ANALOG_OUTPUT_OPERATOR_LABELS
-                        : MACRO_NUMERIC_OPERATOR_LABELS
-                      ).map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-
-                  {isAnalogNumeric && (
-                    <div className="space-y-1">
-                      <span className="block font-semibold text-text-secondary">واحد مقدار</span>
-                      <fieldset
-                        aria-label={`واحد مقدار شرط ${conditionIndex + 1} ${actionLabel}`}
-                        className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-bg-primary p-1"
-                      >
-                        <button
-                          type="button"
-                          aria-pressed={unit === "percent"}
-                          onClick={() =>
-                            patchCondition({
-                              unit: "percent",
-                              value: Math.min(100, condition.value ?? 50),
-                              ...(isRangeOperator(condition.operator)
-                                ? { maxValue: Math.min(100, condition.maxValue ?? 80) }
-                                : {}),
-                            })
-                          }
-                          className={`rounded-lg px-2 py-1 text-[11px] font-semibold transition-colors cursor-pointer ${
-                            unit === "percent"
-                              ? "bg-accent3 text-accent3-foreground"
-                              : "text-text-secondary hover:text-text-primary"
-                          }`}
-                        >
-                          درصد (%)
-                        </button>
-                        <button
-                          type="button"
-                          aria-pressed={unit === "raw"}
-                          onClick={() =>
-                            patchCondition({
-                              unit: "raw",
-                              value: Math.min(maxRawLimit, condition.value ?? 0),
-                              ...(isRangeOperator(condition.operator)
-                                ? {
-                                    maxValue: Math.min(
-                                      maxRawLimit,
-                                      condition.maxValue ?? maxRawLimit,
-                                    ),
-                                  }
-                                : {}),
-                            })
-                          }
-                          className={`rounded-lg px-2 py-1 text-[11px] font-semibold transition-colors cursor-pointer ${
-                            unit === "raw"
-                              ? "bg-accent3 text-accent3-foreground"
-                              : "text-text-secondary hover:text-text-primary"
-                          }`}
-                        >
-                          عدد خام
-                        </button>
-                      </fieldset>
-                    </div>
-                  )}
-                </div>
-
-                {isAnalogNumeric && (
-                  <div
-                    className={`grid gap-2 ${isRangeOperator(condition.operator) ? "grid-cols-2" : "grid-cols-1"}`}
-                  >
-                    <div className="space-y-1">
-                      <Label htmlFor={valId} className="font-semibold text-text-secondary">
-                        {isRangeOperator(condition.operator) ? "از مقدار" : "مقدار آستانه"} (0 تا{" "}
-                        {numericMaxLimit}
-                        {unit === "percent" ? "%" : ""})
-                      </Label>
-                      <Input
-                        id={valId}
-                        type="number"
-                        dir="ltr"
-                        min={0}
-                        max={numericMaxLimit}
-                        value={condition.value ?? 0}
-                        onChange={(e) => {
-                          const parsed = Number.parseInt(e.target.value, 10);
-                          const nextVal = Number.isFinite(parsed)
-                            ? Math.min(numericMaxLimit, Math.max(0, parsed))
-                            : 0;
-                          patchCondition({ value: nextVal });
-                        }}
-                        className="bg-bg-primary text-xs font-mono tabular-nums"
-                      />
-                    </div>
-
-                    {isRangeOperator(condition.operator) && (
-                      <div className="space-y-1">
-                        <Label htmlFor={maxValId} className="font-semibold text-text-secondary">
-                          تا مقدار (0 تا {numericMaxLimit}
-                          {unit === "percent" ? "%" : ""})
-                        </Label>
-                        <Input
-                          id={maxValId}
-                          type="number"
-                          dir="ltr"
-                          min={0}
-                          max={numericMaxLimit}
-                          value={condition.maxValue ?? numericMaxLimit}
-                          onChange={(e) => {
-                            const parsed = Number.parseInt(e.target.value, 10);
-                            const nextMax = Number.isFinite(parsed)
-                              ? Math.min(numericMaxLimit, Math.max(0, parsed))
-                              : 0;
-                            patchCondition({ maxValue: nextMax });
-                          }}
-                          className="bg-bg-primary text-xs font-mono tabular-nums"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {allowFailureMessage && (
-          <div className="space-y-1 border-t border-border-color/60 pt-2.5">
-            <Label htmlFor={msgId} className="font-semibold text-text-secondary">
-              پیام در صورت برقرار نبودن شرط
-            </Label>
-            <Input
-              id={msgId}
-              value={condition.failureMessage ?? ""}
-              maxLength={140}
-              onChange={(e) => patchCondition({ failureMessage: e.target.value })}
-              placeholder="مثلاً: به دلیل روز بودن هوا، چراغ حیاط روشن نشد."
-              className="bg-bg-primary text-xs"
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export interface ActionConditionsEditorProps {
-  actionLabel: string;
+  title?: string;
   conditions: readonly MacroActionCondition[];
   conditionLogic?: ConditionLogic;
   segments: readonly Segment[];
   allowTimeRange?: boolean;
   allowFailureMessage?: boolean;
-  excludeSourcePin?: string;
   maxConditions?: number;
-  title?: string;
+  excludeSourcePin?: string;
   onChange: (nextConditions: MacroActionCondition[], nextLogic?: ConditionLogic) => void;
+}
+
+function createInitialCondition(
+  segments: readonly Segment[],
+  allowTimeRange: boolean,
+  excludeSourcePin?: string,
+): MacroActionCondition {
+  const usableSegments = excludeSourcePin
+    ? segments.filter((s) => s.pin.trim() !== excludeSourcePin.trim())
+    : segments;
+
+  if (allowTimeRange) {
+    return createDefaultMacroCondition("time_range", usableSegments);
+  }
+
+  if (usableSegments.some((s) => isDigitalInputSegment(s) && s.pin.trim().length > 0)) {
+    return createDefaultMacroCondition("digital_input", usableSegments);
+  }
+  if (usableSegments.some((s) => isAnalogInputSegment(s) && s.pin.trim().length > 0)) {
+    return createDefaultMacroCondition("analog_input", usableSegments);
+  }
+  if (usableSegments.some((s) => isDigitalMacroOutput(s))) {
+    return createDefaultMacroCondition("digital_output", usableSegments);
+  }
+  if (usableSegments.some((s) => isAnalogOutputSegment(s) && s.pin.trim().length > 0)) {
+    return createDefaultMacroCondition("analog_output", usableSegments);
+  }
+
+  return createDefaultMacroCondition("digital_input", usableSegments);
 }
 
 export function ActionConditionsEditor({
   actionLabel,
+  title = "شرط‌های اجرای عملیات",
   conditions,
-  conditionLogic,
+  conditionLogic = "and",
   segments,
-  allowTimeRange = false,
-  allowFailureMessage = false,
+  allowTimeRange = true,
+  allowFailureMessage = true,
+  maxConditions = 6,
   excludeSourcePin,
-  maxConditions,
-  title = "شرط‌های اجرا",
   onChange,
 }: ActionConditionsEditorProps) {
-  const [rowKeys, setRowKeys] = useState<string[]>(() =>
-    conditions.map((_, pos) => `cnd-${pos}-${Math.random().toString(36).slice(2, 8)}`),
+  const baseId = useId();
+  const excludedPin = excludeSourcePin?.trim();
+  const eligibleSegments = excludedPin
+    ? segments.filter((s) => s.pin.trim() !== excludedPin)
+    : segments;
+
+  const parameterOptions = MACRO_CONDITION_PARAMETER_META.filter(
+    (meta) => allowTimeRange || meta.id !== "time_range",
   );
 
-  const activeCount = conditions.filter((c) => c.enabled !== false).length;
-  const isMaxReached = maxConditions !== undefined && conditions.length >= maxConditions;
-  const effectiveLogic: ConditionLogic = conditionLogic === "or" ? "or" : "and";
-
-  const pickDefaultParameter = (): MacroConditionParameter => {
-    if (allowTimeRange && conditions.length === 0) return "time_range";
-
-    const candidateOrder: MacroConditionParameter[] = [
-      "digital_output",
-      "digital_input",
-      "analog_input",
-      "analog_output",
-    ];
-    for (const param of candidateOrder) {
-      if (getAvailableSegmentsForParam(param, segments, excludeSourcePin).length > 0) {
-        return param;
-      }
-    }
-    return allowTimeRange ? "time_range" : "digital_output";
-  };
+  const canAddMore = conditions.length < maxConditions;
 
   const handleAddCondition = () => {
-    if (isMaxReached) return;
-    const nextCond = createInitialSegmentCondition(
-      pickDefaultParameter(),
-      segments,
-      excludeSourcePin,
-    );
-    setRowKeys((prev) => [
-      ...prev.slice(0, conditions.length),
-      `cnd-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    ]);
-    onChange([...conditions, nextCond], effectiveLogic);
+    if (!canAddMore) return;
+    const nextCond = createInitialCondition(segments, allowTimeRange, excludeSourcePin);
+    const nextList = [...conditions, nextCond];
+    onChange(nextList, nextList.length > 1 ? conditionLogic : undefined);
   };
 
   const handleUpdateCondition = (index: number, nextCond: MacroActionCondition) => {
-    const next = conditions.map((item, i) => (i === index ? nextCond : item));
-    onChange(next, effectiveLogic);
+    const nextList = conditions.map((c, idx) => (idx === index ? nextCond : c));
+    onChange(nextList, nextList.length > 1 ? conditionLogic : undefined);
   };
 
   const handleRemoveCondition = (index: number) => {
-    setRowKeys((prev) => prev.filter((_, i) => i !== index));
-    const next = conditions.filter((_, i) => i !== index);
-    onChange(next, next.length > 1 ? effectiveLogic : undefined);
+    const nextList = conditions.filter((_, idx) => idx !== index);
+    onChange(nextList, nextList.length > 1 ? conditionLogic : undefined);
   };
 
   return (
-    <div className="rounded-xl border border-border-color/80 bg-bg-primary/50 p-3 space-y-2.5">
+    <div className="space-y-2.5 rounded-xl border border-border-color/80 bg-bg-primary/60 p-3 text-xs">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-text-primary">
-          <ShieldCheck
-            aria-hidden="true"
-            className={`size-3.5 shrink-0 ${activeCount > 0 ? "text-accent3" : "text-text-muted"}`}
-          />
-          <span>{title}</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-bold text-text-primary">{title}</span>
           {conditions.length > 0 && (
             <span
               dir="ltr"
               className="rounded-md border border-border-color bg-card-bg-solid px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-text-secondary"
             >
-              {conditions.length}
-              {maxConditions !== undefined ? ` / ${maxConditions}` : ""}
+              {conditions.length} / {maxConditions}
             </span>
           )}
         </div>
 
         <button
           type="button"
-          disabled={isMaxReached}
           onClick={handleAddCondition}
-          className="inline-flex items-center gap-1 rounded-lg border border-border-color bg-card-bg-solid px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition-colors hover:border-accent3 hover:text-text-primary disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer"
+          disabled={!canAddMore}
+          aria-label={`افزودن شرط به ${actionLabel}`}
+          className="inline-flex min-h-9 cursor-pointer items-center gap-1 rounded-lg border border-accent3/50 bg-accent3/10 px-2.5 py-1 text-[11px] font-semibold text-accent3 transition-colors hover:bg-accent3 hover:text-accent3-foreground disabled:cursor-not-allowed disabled:opacity-45"
         >
-          <Plus aria-hidden="true" className="size-3" />
-          <span>افزودن شرط</span>
+          <Plus className="size-3.5" aria-hidden="true" />
+          افزودن شرط
         </button>
       </div>
 
-      {conditions.length >= 2 && (
-        <>
-          <div className="text-[11px] leading-5 text-text-secondary">منطق ترکیب شرط‌ها</div>
-          <fieldset
-            aria-label={`منطق ترکیب شرط‌های ${actionLabel}`}
-            className="grid grid-cols-2 gap-1 rounded-xl border border-border-color bg-card-bg-solid p-1"
-          >
+      {conditions.length > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-color bg-card-bg-solid px-2.5 py-1.5">
+          <span className="text-[11px] font-medium text-text-secondary">
+            ترکیب منطقی شرط‌های {actionLabel}:
+          </span>
+          <div className="inline-flex rounded-lg border border-border-color bg-bg-primary p-0.5">
             <button
               type="button"
-              aria-pressed={effectiveLogic === "and"}
+              aria-pressed={conditionLogic !== "or"}
               onClick={() => onChange([...conditions], "and")}
-              className={`rounded-lg px-2 py-1 text-[10px] font-semibold transition-colors cursor-pointer ${
-                effectiveLogic === "and"
+              className={`cursor-pointer rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                conditionLogic !== "or"
                   ? "bg-accent3 text-accent3-foreground"
                   : "text-text-secondary hover:text-text-primary"
               }`}
@@ -742,37 +169,434 @@ export function ActionConditionsEditor({
             </button>
             <button
               type="button"
-              aria-pressed={effectiveLogic === "or"}
+              aria-pressed={conditionLogic === "or"}
               onClick={() => onChange([...conditions], "or")}
-              className={`rounded-lg px-2 py-1 text-[10px] font-semibold transition-colors cursor-pointer ${
-                effectiveLogic === "or"
+              className={`cursor-pointer rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                conditionLogic === "or"
                   ? "bg-accent3 text-accent3-foreground"
                   : "text-text-secondary hover:text-text-primary"
               }`}
             >
-              حداقل یکی (OR)
+              حداقل یک شرط (OR)
             </button>
-          </fieldset>
-        </>
+          </div>
+        </div>
       )}
 
-      {conditions.length > 0 && (
+      {conditions.length === 0 ? (
+        <p className="text-[11px] leading-5 text-text-muted">
+          شرطی تعریف نشده است؛ عملیات بدون محدودیت اجرا می‌شود.
+        </p>
+      ) : (
         <div className="space-y-2.5">
-          {conditions.map((cond, cIdx) => {
-            const key = rowKeys[cIdx] ?? `cnd-${cond.parameter}-${cIdx}`;
+          {conditions.map((cond, idx) => {
+            const condId = `${baseId}-cond-${idx}`;
+            const paramId = `${condId}-param`;
+            const sourceId = `${condId}-source`;
+            const opId = `${condId}-op`;
+            const unitId = `${condId}-unit`;
+            const valId = `${condId}-val`;
+            const maxValId = `${condId}-maxval`;
+            const startId = `${condId}-start`;
+            const endId = `${condId}-end`;
+            const timeModeId = `${condId}-timemode`;
+            const msgId = `${condId}-msg`;
+
+            const matchingSegments = eligibleSegments.filter((seg) => {
+              if (seg.type === "placeholder" || !seg.pin.trim()) return false;
+              switch (cond.parameter) {
+                case "digital_input":
+                  return isDigitalInputSegment(seg);
+                case "analog_input":
+                  return isAnalogInputSegment(seg);
+                case "digital_output":
+                  return isDigitalMacroOutput(seg);
+                case "analog_output":
+                  return isAnalogOutputSegment(seg);
+                default:
+                  return false;
+              }
+            });
+
+            const selectedSegment = matchingSegments.find(
+              (s) => s.pin.trim() === (cond.sourcePin ?? "").trim(),
+            );
+            const rawMaxLimit =
+              cond.parameter === "analog_input"
+                ? getAdcMaxValue(clampAdcResolution(selectedSegment?.adcResolution))
+                : getAnalogMaxDuty(clampPwmResolution(selectedSegment?.pwmResolution));
+            const numericMax = cond.unit === "raw" ? rawMaxLimit : 100;
+            const showNumericFields =
+              cond.parameter === "analog_input" ||
+              (cond.parameter === "analog_output" &&
+                cond.operator !== "is_on" &&
+                cond.operator !== "is_off");
+
             return (
-              <ConditionRow
-                key={key}
-                actionLabel={actionLabel}
-                conditionIndex={cIdx}
-                condition={cond}
-                segments={segments}
-                allowTimeRange={allowTimeRange}
-                allowFailureMessage={allowFailureMessage}
-                excludeSourcePin={excludeSourcePin}
-                onChange={(nextCond) => handleUpdateCondition(cIdx, nextCond)}
-                onRemove={() => handleRemoveCondition(cIdx)}
-              />
+              <div
+                key={condId}
+                className={`space-y-2.5 rounded-xl border border-border-color bg-card-bg-solid p-3 ${
+                  cond.enabled === false ? "opacity-65" : ""
+                }`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-color/60 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-md bg-bg-primary px-2 py-0.5 text-[11px] font-bold text-text-primary">
+                      شرط {idx + 1}
+                    </span>
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-text-secondary">
+                      <input
+                        type="checkbox"
+                        checked={cond.enabled !== false}
+                        onChange={(e) =>
+                          handleUpdateCondition(idx, { ...cond, enabled: e.target.checked })
+                        }
+                        className="size-3.5 accent-accent3"
+                      />
+                      <span>فعال</span>
+                    </label>
+                  </div>
+
+                  <DeleteButton
+                    size="sm"
+                    resetAfter={0}
+                    onConfirm={() => handleRemoveCondition(idx)}
+                    label={`حذف شرط ${idx + 1} از ${actionLabel}`}
+                  />
+                </div>
+
+                {/* Condition parameter type */}
+                <div className="space-y-1">
+                  <Label htmlFor={paramId} className="font-semibold text-text-secondary">
+                    نوع شرط
+                  </Label>
+                  <Select
+                    id={paramId}
+                    value={cond.parameter}
+                    onChange={(e) => {
+                      const nextParam = e.target.value as MacroConditionParameter;
+                      const rebuilt = createDefaultMacroCondition(
+                        nextParam,
+                        eligibleSegments,
+                        cond.failureMessage,
+                      );
+                      handleUpdateCondition(idx, { ...rebuilt, enabled: cond.enabled });
+                    }}
+                    className="bg-bg-primary text-xs"
+                  >
+                    {parameterOptions.map((meta) => (
+                      <option key={meta.id} value={meta.id}>
+                        {meta.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                {cond.parameter === "time_range" ? (
+                  <div className="space-y-2.5">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <div className="space-y-1">
+                        <Label htmlFor={startId} className="font-semibold text-text-secondary">
+                          از ساعت
+                        </Label>
+                        <Input
+                          id={startId}
+                          type="time"
+                          dir="ltr"
+                          value={cond.startTime ?? "18:00"}
+                          onChange={(e) =>
+                            handleUpdateCondition(idx, { ...cond, startTime: e.target.value })
+                          }
+                          className="bg-bg-primary font-mono text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={endId} className="font-semibold text-text-secondary">
+                          تا ساعت
+                        </Label>
+                        <Input
+                          id={endId}
+                          type="time"
+                          dir="ltr"
+                          value={cond.endTime ?? "06:00"}
+                          onChange={(e) =>
+                            handleUpdateCondition(idx, { ...cond, endTime: e.target.value })
+                          }
+                          className="bg-bg-primary font-mono text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={timeModeId} className="font-semibold text-text-secondary">
+                          وضعیت بازه
+                        </Label>
+                        <Select
+                          id={timeModeId}
+                          value={cond.timeMode === "outside" ? "outside" : "inside"}
+                          onChange={(e) =>
+                            handleUpdateCondition(idx, {
+                              ...cond,
+                              timeMode: e.target.value === "outside" ? "outside" : "inside",
+                            })
+                          }
+                          className="bg-bg-primary text-xs"
+                        >
+                          <option value="inside">داخل بازه زمانی</option>
+                          <option value="outside">خارج از بازه زمانی</option>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="block text-[11px] font-medium text-text-secondary">
+                        روزهای هفته (در صورت انتخاب نشدن، هر روز بررسی می‌شود)
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {MACRO_WEEKDAY_OPTIONS.map((w) => {
+                          const activeDays = cond.days ?? [];
+                          const selected = activeDays.includes(w.day);
+                          return (
+                            <button
+                              key={w.day}
+                              type="button"
+                              aria-pressed={selected}
+                              title={w.label}
+                              onClick={() => {
+                                const nextDays = selected
+                                  ? activeDays.filter((d) => d !== w.day)
+                                  : [...activeDays, w.day];
+                                handleUpdateCondition(idx, {
+                                  ...cond,
+                                  days: nextDays.length > 0 ? nextDays : undefined,
+                                });
+                              }}
+                              className={`min-h-8 min-w-8 cursor-pointer rounded-lg border px-2 text-[11px] font-semibold transition-colors ${
+                                selected
+                                  ? "border-accent3 bg-accent3 text-accent3-foreground"
+                                  : "border-border-color bg-bg-primary text-text-secondary hover:text-text-primary"
+                              }`}
+                            >
+                              {w.shortLabel}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <div className="space-y-1">
+                      <Label htmlFor={sourceId} className="font-semibold text-text-secondary">
+                        قطعه مرجع شرط
+                      </Label>
+                      <Select
+                        id={sourceId}
+                        value={cond.sourcePin ?? ""}
+                        onChange={(e) =>
+                          handleUpdateCondition(idx, { ...cond, sourcePin: e.target.value })
+                        }
+                        className="bg-bg-primary text-xs"
+                      >
+                        <option value="">
+                          {matchingSegments.length === 0
+                            ? "قطعه متناسبی در داشبورد یافت نشد"
+                            : "انتخاب قطعه مرجع..."}
+                        </option>
+                        {matchingSegments.map((seg) => (
+                          <option key={seg.id} value={seg.pin.trim()}>
+                            {seg.title} — GPIO {seg.pin}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+
+                    {(cond.parameter === "digital_input" ||
+                      cond.parameter === "digital_output") && (
+                      <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-border-color bg-bg-primary p-1">
+                        <button
+                          type="button"
+                          aria-pressed={Boolean(cond.expectedState)}
+                          onClick={() =>
+                            handleUpdateCondition(idx, { ...cond, expectedState: true })
+                          }
+                          className={`cursor-pointer rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors ${
+                            cond.expectedState
+                              ? "bg-accent3 text-accent3-foreground"
+                              : "text-text-secondary hover:text-text-primary"
+                          }`}
+                        >
+                          {cond.parameter === "digital_input" ? "فعال (HIGH)" : "روشن"}
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={!cond.expectedState}
+                          onClick={() =>
+                            handleUpdateCondition(idx, { ...cond, expectedState: false })
+                          }
+                          className={`cursor-pointer rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors ${
+                            !cond.expectedState
+                              ? "bg-destructive text-destructive-foreground"
+                              : "text-text-secondary hover:text-text-primary"
+                          }`}
+                        >
+                          {cond.parameter === "digital_input" ? "غیرفعال (LOW)" : "خاموش"}
+                        </button>
+                      </div>
+                    )}
+
+                    {(cond.parameter === "analog_input" || cond.parameter === "analog_output") && (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label htmlFor={opId} className="font-semibold text-text-secondary">
+                              عملگر مقایسه
+                            </Label>
+                            <Select
+                              id={opId}
+                              value={
+                                cond.operator ??
+                                (cond.parameter === "analog_output" ? "is_on" : "gt")
+                              }
+                              onChange={(e) => {
+                                const nextOp = e.target.value as MacroAnalogOutputOperator;
+                                handleUpdateCondition(idx, {
+                                  ...cond,
+                                  operator:
+                                    cond.parameter === "analog_input"
+                                      ? (nextOp as MacroNumericOperator)
+                                      : nextOp,
+                                });
+                              }}
+                              className="bg-bg-primary text-xs"
+                            >
+                              {(cond.parameter === "analog_output"
+                                ? MACRO_ANALOG_OUTPUT_OPERATOR_LABELS
+                                : MACRO_NUMERIC_OPERATOR_LABELS
+                              ).map((op) => (
+                                <option key={op.value} value={op.value}>
+                                  {op.label}
+                                </option>
+                              ))}
+                            </Select>
+                          </div>
+
+                          {showNumericFields && (
+                            <div className="space-y-1">
+                              <Label htmlFor={unitId} className="font-semibold text-text-secondary">
+                                واحد مقدار
+                              </Label>
+                              <Select
+                                id={unitId}
+                                value={cond.unit === "raw" ? "raw" : "percent"}
+                                onChange={(e) => {
+                                  const nextUnit: MacroValueUnit =
+                                    e.target.value === "raw" ? "raw" : "percent";
+                                  handleUpdateCondition(idx, {
+                                    ...cond,
+                                    unit: nextUnit,
+                                    value:
+                                      nextUnit === "percent" ? 50 : Math.round(rawMaxLimit / 2),
+                                    ...(isRangeOperator(cond.operator)
+                                      ? {
+                                          maxValue:
+                                            nextUnit === "percent"
+                                              ? 80
+                                              : Math.round(rawMaxLimit * 0.8),
+                                        }
+                                      : {}),
+                                  });
+                                }}
+                                className="bg-bg-primary text-xs"
+                              >
+                                <option value="percent">درصد (۰ تا ۱۰۰٪)</option>
+                                <option value="raw">مقدار خام (۰ تا {rawMaxLimit})</option>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
+
+                        {showNumericFields && (
+                          <div
+                            className={`grid gap-2 ${
+                              isRangeOperator(cond.operator) ? "grid-cols-2" : "grid-cols-1"
+                            }`}
+                          >
+                            <div className="space-y-1">
+                              <Label htmlFor={valId} className="font-semibold text-text-secondary">
+                                {isRangeOperator(cond.operator) ? "حداقل مقدار" : "مقدار آستانه"}
+                              </Label>
+                              <Input
+                                id={valId}
+                                type="number"
+                                dir="ltr"
+                                min={0}
+                                max={numericMax}
+                                value={cond.value ?? 0}
+                                onChange={(e) => {
+                                  const parsed = Number.parseInt(e.target.value, 10);
+                                  handleUpdateCondition(idx, {
+                                    ...cond,
+                                    value: Number.isFinite(parsed)
+                                      ? Math.min(numericMax, Math.max(0, parsed))
+                                      : 0,
+                                  });
+                                }}
+                                className="bg-bg-primary font-mono text-xs tabular-nums"
+                              />
+                            </div>
+
+                            {isRangeOperator(cond.operator) && (
+                              <div className="space-y-1">
+                                <Label
+                                  htmlFor={maxValId}
+                                  className="font-semibold text-text-secondary"
+                                >
+                                  حداکثر مقدار
+                                </Label>
+                                <Input
+                                  id={maxValId}
+                                  type="number"
+                                  dir="ltr"
+                                  min={0}
+                                  max={numericMax}
+                                  value={cond.maxValue ?? numericMax}
+                                  onChange={(e) => {
+                                    const parsed = Number.parseInt(e.target.value, 10);
+                                    handleUpdateCondition(idx, {
+                                      ...cond,
+                                      maxValue: Number.isFinite(parsed)
+                                        ? Math.min(numericMax, Math.max(0, parsed))
+                                        : 0,
+                                    });
+                                  }}
+                                  className="bg-bg-primary font-mono text-xs tabular-nums"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {allowFailureMessage && (
+                  <div className="space-y-1">
+                    <Label htmlFor={msgId} className="font-semibold text-text-secondary">
+                      پیام خطای دلخواه در صورت برقرار نبودن شرط (اختیاری)
+                    </Label>
+                    <Input
+                      id={msgId}
+                      type="text"
+                      value={cond.failureMessage ?? ""}
+                      onChange={(e) =>
+                        handleUpdateCondition(idx, { ...cond, failureMessage: e.target.value })
+                      }
+                      placeholder="مثال: در پارکینگ بسته است"
+                      className="bg-bg-primary text-xs"
+                    />
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -783,51 +607,53 @@ export function ActionConditionsEditor({
 
 interface RuleGuardConditionsEditorProps {
   actionLabel: string;
+  title?: string;
   conditions?: readonly RuleGuardCondition[];
   conditionLogic?: ConditionLogic;
   segments: readonly Segment[];
-  excludeSourcePin: string;
+  excludeSourcePin?: string;
   onChange: (nextConditions: RuleGuardCondition[] | undefined, nextLogic?: ConditionLogic) => void;
 }
 
 export function RuleGuardConditionsEditor({
   actionLabel,
-  conditions,
+  title = "شرط‌های نگهبان سخت‌افزاری",
+  conditions = [],
   conditionLogic,
   segments,
   excludeSourcePin,
   onChange,
 }: RuleGuardConditionsEditorProps) {
+  const mapped: MacroActionCondition[] = conditions.map((cond) => ({
+    ...cond,
+    failureMessage: "",
+  }));
+
   return (
-    <div className="space-y-2">
-      <p className="text-xs leading-5 text-text-secondary">
-        این شرط‌ها روی خود ESP32 و پیش از اجرای عملیات بررسی می‌شوند؛ برای اجرای آن‌ها به اتصال
-        لحظه‌ای داشبورد نیاز نیست.
-      </p>
-      <ActionConditionsEditor
-        actionLabel={actionLabel}
-        title="شرط‌های پیش‌نیاز روی ESP32"
-        conditions={(conditions ?? []).map((c) => ({ ...c, failureMessage: "" }))}
-        conditionLogic={conditionLogic}
-        segments={segments}
-        allowTimeRange={false}
-        allowFailureMessage={false}
-        excludeSourcePin={excludeSourcePin}
-        maxConditions={MAX_RULE_CONDITIONS_PER_ACTION}
-        onChange={(nextConds, nextLogic) => {
-          const guardConds: RuleGuardCondition[] = nextConds
-            .filter((c) => c.parameter !== "time_range")
-            .map(({ failureMessage: _ignored, parameter, sourcePin, ...rest }) => ({
-              ...rest,
-              parameter: parameter as SegmentConditionParameter,
-              sourcePin: sourcePin ?? "",
-            }));
-          onChange(
-            guardConds.length > 0 ? guardConds : undefined,
-            guardConds.length > 1 ? nextLogic : undefined,
-          );
-        }}
-      />
-    </div>
+    <ActionConditionsEditor
+      actionLabel={actionLabel}
+      title={title}
+      conditions={mapped}
+      conditionLogic={conditionLogic}
+      segments={segments}
+      allowTimeRange={false}
+      allowFailureMessage={false}
+      maxConditions={MAX_RULE_CONDITIONS_PER_ACTION}
+      excludeSourcePin={excludeSourcePin}
+      onChange={(nextList, nextLogic) => {
+        const cleaned: RuleGuardCondition[] = nextList
+          .filter((c) => c.parameter !== "time_range")
+          .map(({ failureMessage: _ignored, parameter, sourcePin, ...rest }) => ({
+            ...rest,
+            parameter: parameter as SegmentConditionParameter,
+            sourcePin: sourcePin ?? "",
+          }));
+
+        onChange(
+          cleaned.length > 0 ? cleaned : undefined,
+          cleaned.length > 1 ? (nextLogic ?? "and") : undefined,
+        );
+      }}
+    />
   );
 }

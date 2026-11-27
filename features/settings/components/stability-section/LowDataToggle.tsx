@@ -40,9 +40,11 @@ export default function LowDataToggle({
         }`}
       >
         <div className="min-w-0 flex-1 space-y-1 text-right">
-          <span className={`flex w-full items-center justify-start gap-1.5 font-sans text-xs font-medium leading-5 transition-colors duration-150 ${
-            lowDataMode ? "text-accent3" : "text-text-primary"
-          }`}>
+          <span
+            className={`flex w-full items-center justify-start gap-1.5 font-sans text-xs font-medium leading-5 transition-colors duration-150 ${
+              lowDataMode ? "text-accent3" : "text-text-primary"
+            }`}
+          >
             <WifiOff
               strokeWidth={1.5}
               aria-hidden="true"

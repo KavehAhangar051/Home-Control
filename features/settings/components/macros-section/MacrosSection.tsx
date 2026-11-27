@@ -169,7 +169,8 @@ export default function MacrosSection() {
 
       {!outputs.length && (
         <p className="rounded-xl border border-dashed border-border-color p-4 text-xs leading-6 text-text-secondary">
-          برای ساخت دکمه، ابتدا در «پالایه و ماژول‌ها» یک خروجی دیجیتال یا PWM اضافه کنید؛ سپس آن را به‌عنوان عملیات دکمه انتخاب کنید.
+          برای ساخت دکمه، ابتدا در «پالایه و ماژول‌ها» یک خروجی دیجیتال یا PWM اضافه کنید؛ سپس آن را
+          به‌عنوان عملیات دکمه انتخاب کنید.
         </p>
       )}
 
@@ -333,8 +334,8 @@ export default function MacrosSection() {
                   </h4>
                   <p className="text-[11px] text-text-muted">
                     {macro.actions.length} عملیات
-            {analogCount > 0 ? ` • ${analogCount} آنالوگ` : ""}
-            {httpCount > 0 ? ` • ${httpCount} HTTP` : ""}
+                    {analogCount > 0 ? ` • ${analogCount} آنالوگ` : ""}
+                    {httpCount > 0 ? ` • ${httpCount} HTTP` : ""}
                     {conditionedCount > 0 ? ` • ${conditionedCount} شرط‌دار` : ""}
                   </p>
                 </div>

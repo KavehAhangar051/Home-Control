@@ -1,59 +1,78 @@
 import type { WifiNetwork } from "@/features/iot/hooks/store/types";
 
 export const MAX_WIFI_NETWORKS = 5;
+export const MAX_SSID_BYTES = 32;
+export const MIN_PASSWORD_BYTES = 8;
+export const MAX_PASSWORD_BYTES = 63;
 
 export interface WifiCredentialErrors {
   ssid?: string;
   password?: string;
 }
 
+const utf8Encoder = new TextEncoder();
+
+/** Returns exact UTF-8 byte length of a string (ESP32 NVS / Wi-Fi 32/63-byte bounds). */
 export function getUtf8ByteLength(value: string): number {
-  return new TextEncoder().encode(value).length;
+  return utf8Encoder.encode(value).length;
 }
 
-export function validateWifiNetwork(
-  ssid: string,
-  password: string,
-  networks: WifiNetwork[],
-  editingId?: string,
-): WifiCredentialErrors {
-  const normalizedSsid = ssid.trim();
+export function validateWifiNetworkCredentials(params: {
+  ssid: string;
+  password: string;
+  existingNetworks: readonly WifiNetwork[];
+  editingNetworkId?: string | null;
+}): WifiCredentialErrors {
   const errors: WifiCredentialErrors = {};
-  const ssidBytes = getUtf8ByteLength(normalizedSsid);
-  const passwordBytes = getUtf8ByteLength(password);
+  const trimmedSsid = params.ssid.trim();
+  const ssidBytes = getUtf8ByteLength(trimmedSsid);
+  const passwordBytes = getUtf8ByteLength(params.password);
 
-  if (!normalizedSsid) {
-    errors.ssid = "نام شبکه را وارد کنید.";
-  } else if (ssidBytes > 32) {
-    errors.ssid = `نام شبکه نباید بیشتر از ۳۲ بایت باشد (اکنون ${ssidBytes} بایت).`;
-  } else if (networks.some((network) => network.id !== editingId && network.ssid.trim() === normalizedSsid)) {
-    errors.ssid = "این نام شبکه قبلاً اضافه شده است.";
+  if (!trimmedSsid) {
+    errors.ssid = "نام شبکه (SSID) را وارد کنید.";
+  } else if (ssidBytes > MAX_SSID_BYTES) {
+    errors.ssid = `نام شبکه نباید بیشتر از ${MAX_SSID_BYTES} بایت UTF-8 باشد.`;
+  } else if (
+    params.existingNetworks.some(
+      (net) => net.id !== params.editingNetworkId && net.ssid.trim() === trimmedSsid,
+    )
+  ) {
+    errors.ssid = "این شبکه قبلاً در فهرست ذخیره شده است.";
   }
 
-  if (password && (passwordBytes < 8 || passwordBytes > 63)) {
-    errors.password = `رمز شبکه باید ۸ تا ۶۳ بایت باشد (اکنون ${passwordBytes} بایت).`;
+  if (passwordBytes > 0 && passwordBytes < MIN_PASSWORD_BYTES) {
+    errors.password = `رمز عبور باید حداقل ${MIN_PASSWORD_BYTES} بایت باشد (یا برای شبکهٔ باز خالی بگذارید).`;
+  } else if (passwordBytes > MAX_PASSWORD_BYTES) {
+    errors.password = `رمز عبور نباید بیشتر از ${MAX_PASSWORD_BYTES} بایت باشد.`;
   }
 
   return errors;
 }
 
-export function validateWifiAccessPoint(ssid: string, password: string): WifiCredentialErrors {
-  const normalizedSsid = ssid.trim();
+export function validateWifiAccessPointCredentials(params: {
+  ssid: string;
+  password: string;
+}): WifiCredentialErrors {
   const errors: WifiCredentialErrors = {};
+  const trimmedSsid = params.ssid.trim();
+  const ssidBytes = getUtf8ByteLength(trimmedSsid);
+  const passwordBytes = getUtf8ByteLength(params.password);
 
-  if (!normalizedSsid && !password) return errors;
-
-  const ssidBytes = getUtf8ByteLength(normalizedSsid);
-  const passwordBytes = getUtf8ByteLength(password);
-
-  if (!normalizedSsid) {
-    errors.ssid = "برای تنظیم اکسس‌پوینت سفارشی، نام شبکه را وارد کنید.";
-  } else if (ssidBytes > 32) {
-    errors.ssid = `نام شبکه نباید بیشتر از ۳۲ بایت باشد (اکنون ${ssidBytes} بایت).`;
+  // Explicit empty/empty resets provisioning AP to device MAC-derived default.
+  if (!trimmedSsid && !params.password) {
+    return errors;
   }
 
-  if (normalizedSsid && (passwordBytes < 8 || passwordBytes > 63)) {
-    errors.password = `رمز اکسس‌پوینت باید ۸ تا ۶۳ بایت باشد (اکنون ${passwordBytes} بایت).`;
+  if (!trimmedSsid) {
+    errors.ssid = "برای تعیین رمز عبور سفارشی، نام شبکه (SSID) اکسس‌پوینت را هم وارد کنید.";
+  } else if (ssidBytes > MAX_SSID_BYTES) {
+    errors.ssid = `نام اکسس‌پوینت نباید بیشتر از ${MAX_SSID_BYTES} بایت UTF-8 باشد.`;
+  }
+
+  if (passwordBytes < MIN_PASSWORD_BYTES) {
+    errors.password = `رمز عبور اکسس‌پوینت باید بین ${MIN_PASSWORD_BYTES} تا ${MAX_PASSWORD_BYTES} بایت باشد.`;
+  } else if (passwordBytes > MAX_PASSWORD_BYTES) {
+    errors.password = `رمز عبور اکسس‌پوینت نباید بیشتر از ${MAX_PASSWORD_BYTES} بایت باشد.`;
   }
 
   return errors;

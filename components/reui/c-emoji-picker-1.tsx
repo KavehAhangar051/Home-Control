@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import {
   EmojiPicker,
   type EmojiPickerData,
@@ -49,42 +50,42 @@ const PERSIAN_EMOJI_PICKER_I18N: EmojiPickerI18nOverrides = {
 };
 
 const OFFLINE_EMOJI_HINTS: Record<string, { label: string; tags: string[] }> = {
-  "⚡": { label: "high voltage power", tags: ["electricity", "energy", "switch"] },
-  "🚀": { label: "rocket", tags: ["fast", "boost"] },
-  "💡": { label: "light bulb lamp", tags: ["light", "led", "room"] },
-  "🌙": { label: "crescent moon night", tags: ["night", "sleep"] },
-  "☀️": { label: "sun day morning", tags: ["light", "weather"] },
-  "🔒": { label: "locked security", tags: ["lock", "door", "alarm"] },
-  "🔓": { label: "unlocked open", tags: ["unlock", "door"] },
-  "🎵": { label: "musical note audio", tags: ["music", "sound"] },
-  "🎬": { label: "clapper board movie", tags: ["cinema", "tv"] },
-  "🚪": { label: "door entrance", tags: ["gate", "room"] },
-  "🚿": { label: "shower bath", tags: ["water", "pump"] },
-  "☕": { label: "hot beverage coffee", tags: ["kitchen", "kettle"] },
-  "❄️": { label: "snowflake cool ac", tags: ["cold", "cooler", "fan"] },
-  "🔥": { label: "fire heat heater", tags: ["warm", "gas"] },
-  "💨": { label: "dashing away fan wind", tags: ["air", "ventilation"] },
-  "🌿": { label: "herb plant garden", tags: ["garden", "irrigation"] },
-  "🔔": { label: "bell notification alarm", tags: ["alert", "chime"] },
-  "💤": { label: "zzz sleep", tags: ["night", "rest"] },
-  "🎉": { label: "party popper celebration", tags: ["scene", "fun"] },
-  "🎥": { label: "movie camera cctv", tags: ["security", "video"] },
-  "🚗": { label: "automobile car garage", tags: ["parking", "gate"] },
-  "🔌": { label: "electric plug socket", tags: ["outlet", "relay"] },
-  "🔋": { label: "battery power", tags: ["ups", "solar"] },
-  "📡": { label: "satellite antenna wifi", tags: ["mqtt", "signal"] },
-  "🔦": { label: "flashlight torch", tags: ["light", "spot"] },
-  "📱": { label: "mobile phone", tags: ["device", "app"] },
-  "💻": { label: "laptop computer", tags: ["desk", "work"] },
-  "🖥️": { label: "desktop monitor", tags: ["pc", "screen"] },
-  "🖨️": { label: "printer", tags: ["office"] },
-  "🕹️": { label: "joystick", tags: ["gaming"] },
-  "🎮": { label: "video game", tags: ["console", "gaming"] },
-  "📺": { label: "television tv", tags: ["living room", "media"] },
-  "📻": { label: "radio", tags: ["audio", "fm"] },
-  "🎙️": { label: "studio microphone voice", tags: ["mic", "audio"] },
-  "🎚️": { label: "level slider dimmer", tags: ["pwm", "control"] },
-  "🎛️": { label: "control knobs", tags: ["panel", "iot"] },
+  "⚡": { label: "high voltage power", tags: ["electricity", "energy", "switch", "برق"] },
+  "🚀": { label: "rocket", tags: ["fast", "boost", "سریع"] },
+  "💡": { label: "light bulb lamp", tags: ["light", "led", "room", "چراغ", "لامپ"] },
+  "🌙": { label: "crescent moon night", tags: ["night", "sleep", "شب"] },
+  "☀️": { label: "sun day morning", tags: ["light", "weather", "خورشید", "روز"] },
+  "🔒": { label: "locked security", tags: ["lock", "door", "alarm", "قفل"] },
+  "🔓": { label: "unlocked open", tags: ["unlock", "door", "باز"] },
+  "🎵": { label: "musical note audio", tags: ["music", "sound", "موسیقی"] },
+  "🎬": { label: "clapper board movie", tags: ["cinema", "tv", "سینما"] },
+  "🚪": { label: "door entrance", tags: ["gate", "room", "درب"] },
+  "🚿": { label: "shower bath", tags: ["water", "pump", "حمام", "آب"] },
+  "☕": { label: "hot beverage coffee", tags: ["kitchen", "kettle", "قهوه"] },
+  "❄️": { label: "snowflake cool ac", tags: ["cold", "cooler", "fan", "کولر", "سرما"] },
+  "🔥": { label: "fire heat heater", tags: ["warm", "gas", "گرما", "بخاری"] },
+  "💨": { label: "dashing away fan wind", tags: ["air", "ventilation", "باد", "فن"] },
+  "🌿": { label: "herb plant garden", tags: ["garden", "irrigation", "گیاه", "باغچه"] },
+  "🔔": { label: "bell notification alarm", tags: ["alert", "chime", "زنگ"] },
+  "💤": { label: "zzz sleep", tags: ["night", "rest", "خواب"] },
+  "🎉": { label: "party popper celebration", tags: ["scene", "fun", "جشن"] },
+  "🎥": { label: "movie camera cctv", tags: ["security", "video", "دوربین"] },
+  "🚗": { label: "automobile car garage", tags: ["parking", "gate", "پارکینگ"] },
+  "🔌": { label: "electric plug socket", tags: ["outlet", "relay", "پریز"] },
+  "🔋": { label: "battery power", tags: ["ups", "solar", "باتری"] },
+  "📡": { label: "satellite antenna wifi", tags: ["mqtt", "signal", "آنتن"] },
+  "🔦": { label: "flashlight torch", tags: ["light", "spot", "چراغ"] },
+  "📱": { label: "mobile phone", tags: ["device", "app", "موبایل"] },
+  "💻": { label: "laptop computer", tags: ["desk", "work", "لپتاپ"] },
+  "🖥️": { label: "desktop monitor", tags: ["pc", "screen", "مانیتور"] },
+  "🖨️": { label: "printer", tags: ["office", "پرینتر"] },
+  "🕹️": { label: "joystick", tags: ["gaming", "بازی"] },
+  "🎮": { label: "video game", tags: ["console", "gaming", "گیم"] },
+  "📺": { label: "television tv", tags: ["living room", "media", "تلویزیون"] },
+  "📻": { label: "radio", tags: ["audio", "fm", "رادیو"] },
+  "🎙️": { label: "studio microphone voice", tags: ["mic", "audio", "میکروفون"] },
+  "🎚️": { label: "level slider dimmer", tags: ["pwm", "control", "دیمر"] },
+  "🎛️": { label: "control knobs", tags: ["panel", "iot", "کنترل"] },
 };
 
 const OFFLINE_EMOJI_PICKER_DATA: EmojiPickerData = {
@@ -112,41 +113,56 @@ export interface CEmojiPicker1Props {
   onValueChange?: (value: string | null) => void;
   size?: EmojiPickerProps["size"];
   columns?: EmojiPickerProps["columns"];
+  bare?: boolean;
   className?: string;
   panelClassName?: string;
+  panelStyle?: CSSProperties;
 }
 
 /**
  * ReUI `@reui/c-emoji-picker-1` pattern wrapped for Home-Control-Dashboard:
- * localized Persian labels, RTL-safe sizing (`[container-type:normal]` so
- * `w-fit` never collapses inside `@container/card`), and offline fallback
- * dataset when operating on an air-gapped ESP32 local network.
+ * localized Persian labels, RTL-safe sizing, `bare` unboxed mode for sheets/modals,
+ * and offline fallback dataset when operating on an air-gapped ESP32 local network.
  */
 export function CEmojiPicker1({
   value,
   onValueChange,
   size = "default",
-  columns = 8,
+  columns,
+  bare = false,
   className,
   panelClassName,
+  panelStyle,
 }: CEmojiPicker1Props) {
   const isOnline = useOnlineStatus();
+  const resolvedColumns = columns ?? (bare ? "auto" : 8);
+
+  const picker = (
+    <EmojiPicker
+      value={value ?? null}
+      onValueChange={onValueChange}
+      size={size}
+      columns={resolvedColumns}
+      data={isOnline ? undefined : OFFLINE_EMOJI_PICKER_DATA}
+      locale="en"
+      i18n={PERSIAN_EMOJI_PICKER_I18N}
+    >
+      <EmojiPickerPanel
+        className={cn(bare && "[--emoji-picker-surface:var(--card-bg-solid)]", panelClassName)}
+        style={panelStyle}
+      />
+    </EmojiPicker>
+  );
+
+  if (bare) {
+    return <div className={cn("w-full min-w-0", className)}>{picker}</div>;
+  }
 
   return (
     <Card
       className={cn("w-fit max-w-full overflow-hidden py-0 [container-type:normal]!", className)}
     >
-      <EmojiPicker
-        value={value ?? null}
-        onValueChange={onValueChange}
-        size={size}
-        columns={columns}
-        data={isOnline ? undefined : OFFLINE_EMOJI_PICKER_DATA}
-        locale="en"
-        i18n={PERSIAN_EMOJI_PICKER_I18N}
-      >
-        <EmojiPickerPanel className={panelClassName} />
-      </EmojiPicker>
+      {picker}
     </Card>
   );
 }

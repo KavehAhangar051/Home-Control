@@ -1,55 +1,31 @@
 "use client";
 
-import { useEffect } from "react";
-import { ToastProvider, useToast } from "@/components/dissolve/toast";
+import { type ReactNode, useEffect } from "react";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
-import { soundManager } from "@/lib/audio";
-import { triggerHaptic } from "@/lib/haptics";
+import { ToastProvider, useToast } from "./toast";
 
-function LegacyToastBridge() {
+function StoreToastBridge() {
+  const storeToast = useIoTStore((state) => state.toast);
+  const clearToast = useIoTStore((state) => state.clearToast);
   const toast = useToast();
 
   useEffect(() => {
-    const showLegacyToast = (item: { message: string; type: "success" | "error" }) => {
-      toast.show({
-        title: item.message,
-        tone: item.type,
-        duration: item.type === "success" ? 2200 : 3600,
-      });
+    if (!storeToast) return;
 
-      if (item.type === "success") {
-        soundManager.playSuccess();
-        triggerHaptic("success");
-      } else {
-        soundManager.playError();
-        triggerHaptic("error");
-      }
-
-      useIoTStore.getState().clearToast();
-    };
-
-    const current = useIoTStore.getState().toast;
-    if (current) showLegacyToast(current);
-
-    return useIoTStore.subscribe((state, previousState) => {
-      if (state.toast && state.toast !== previousState.toast) {
-        showLegacyToast(state.toast);
-      }
+    toast.show({
+      title: storeToast.message,
+      tone: storeToast.type,
     });
-  }, [toast]);
+    clearToast();
+  }, [storeToast, clearToast, toast]);
 
   return null;
 }
 
-export function GlobalToastProvider({ children }: { children: React.ReactNode }) {
+export function GlobalToastProvider({ children }: { children: ReactNode }) {
   return (
-    <ToastProvider
-      top={8}
-      max={3}
-      className="!z-[200]"
-      cardClassName="border border-[var(--border-color)] shadow-lg"
-    >
-      <LegacyToastBridge />
+    <ToastProvider>
+      <StoreToastBridge />
       {children}
     </ToastProvider>
   );
