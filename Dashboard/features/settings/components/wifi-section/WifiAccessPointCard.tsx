@@ -1,16 +1,185 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, Edit2 } from "@/components/ui/hugeicons-groups/controls";
+import { DeleteButton } from "@/components/ui/delete-button";
+import { Edit2, Save } from "@/components/ui/hugeicons-groups/controls";
+import { RefreshCw } from "@/components/ui/hugeicons-groups/shell";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { persistStoreConfigToCloudflare } from "@/features/iot/hooks/achaemenidState/core/buildEspConfig";
+import type { WifiAccessPointConfig } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { isCloudflareEnabled } from "@/features/iot/services/cloudflareService";
 import { soundManager } from "@/lib/audio";
-import { getUtf8ByteLength, validateWifiAccessPoint } from "./wifiValidation";
-import { WifiAccessPointEditor } from "./WifiAccessPointEditor";
+import { WifiPasswordInput } from "./WifiPasswordInput";
+import {
+  getUtf8ByteLength,
+  validateWifiAccessPointCredentials,
+  type WifiCredentialErrors,
+} from "./wifiValidation";
 
-interface ApDraftOverrides {
-  ssid?: string;
-  password?: string;
+interface WifiAccessPointEditorProps {
+  tempSsid: string;
+  setTempSsid: (val: string) => void;
+  tempPassword: string;
+  setTempPassword: (val: string) => void;
+  errors: WifiCredentialErrors;
+  isSaving: boolean;
+  onResetDefault: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+}
+
+function WifiAccessPointEditor({
+  tempSsid,
+  setTempSsid,
+  tempPassword,
+  setTempPassword,
+  errors,
+  isSaving,
+  onResetDefault,
+  onSave,
+  onCancel,
+}: WifiAccessPointEditorProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const ssidInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const ssidBytes = getUtf8ByteLength(tempSsid.trim());
+  const passwordBytes = getUtf8ByteLength(tempPassword);
+
+  useEffect(() => {
+    if (errors.ssid) {
+      ssidInputRef.current?.focus();
+    } else if (errors.password) {
+      passwordInputRef.current?.focus();
+    }
+  }, [errors.ssid, errors.password]);
+
+  return (
+    <div className="@container space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h4 className="text-sm font-semibold text-text-primary">ویرایش مشخصات اکسس‌پوینت</h4>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onResetDefault}
+          disabled={isSaving}
+          className="min-h-11 gap-1.5 px-3 text-xs text-text-secondary hover:text-text-primary"
+        >
+          <RefreshCw className="size-3.5" aria-hidden="true" />
+          بازنشانی به پیش‌فرض دستگاه
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-x-6 gap-y-5 @lg:grid-cols-2">
+        <div className="min-w-0 space-y-2">
+          <div className="flex min-h-11 items-center justify-between gap-3">
+            <Label htmlFor="wifi-ap-ssid" className="min-w-0 text-sm font-bold">
+              نام شبکه (SSID) اکسس‌پوینت
+            </Label>
+            <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-text-secondary">
+              {ssidBytes}/۳۲ بایت
+            </span>
+          </div>
+          <Input
+            id="wifi-ap-ssid"
+            ref={ssidInputRef}
+            name="wifi-ap-ssid"
+            type="text"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={tempSsid}
+            onChange={(event) => setTempSsid(event.target.value)}
+            placeholder="خالی = نام پیش‌فرض دستگاه"
+            className="h-11 bg-card-bg-solid text-base sm:text-sm"
+            dir="auto"
+            aria-invalid={Boolean(errors.ssid) || undefined}
+            aria-describedby={errors.ssid ? "wifi-ap-ssid-error" : "wifi-ap-ssid-help"}
+          />
+          <div className="min-h-10 pt-1">
+            {errors.ssid ? (
+              <p
+                id="wifi-ap-ssid-error"
+                className="text-xs leading-5 text-destructive"
+                role="alert"
+              >
+                {errors.ssid}
+              </p>
+            ) : (
+              <p id="wifi-ap-ssid-help" className="text-xs leading-5 text-text-secondary">
+                در صورت خالی بودن هر دو فیلد، نام پیش‌فرض مبتنی بر MAC استفاده می‌شود.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="min-w-0 space-y-2">
+          <div className="flex min-h-11 items-center">
+            <Label htmlFor="wifi-ap-password" className="text-sm font-bold">
+              رمز عبور اکسس‌پوینت
+            </Label>
+          </div>
+          <WifiPasswordInput
+            id="wifi-ap-password"
+            name="wifi-ap-password"
+            inputRef={passwordInputRef}
+            value={tempPassword}
+            onChange={(event) => setTempPassword(event.target.value)}
+            showPassword={showPassword}
+            onTogglePassword={() => setShowPassword((visible) => !visible)}
+            maxLength={63}
+            autoComplete="new-password"
+            dir="ltr"
+            placeholder="حداقل ۸ کاراکتر"
+            className="h-11 bg-card-bg-solid text-base sm:text-sm"
+            aria-invalid={Boolean(errors.password) || undefined}
+            aria-describedby={errors.password ? "wifi-ap-password-error" : "wifi-ap-password-help"}
+          />
+          <div className="min-h-10 pt-1">
+            {errors.password ? (
+              <p
+                id="wifi-ap-password-error"
+                className="text-xs leading-5 text-destructive"
+                role="alert"
+              >
+                {errors.password}
+              </p>
+            ) : (
+              <p id="wifi-ap-password-help" className="text-xs leading-5 text-text-secondary">
+                برای نام سفارشی، رمز ۸ تا ۶۳ بایت الزامی است.
+                <span className="ms-1 tabular-nums">({passwordBytes}/۶۳)</span>
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSaving}
+          className="min-h-11"
+        >
+          لغو
+        </Button>
+        <Button
+          type="button"
+          variant="accent"
+          onClick={onSave}
+          disabled={isSaving}
+          className="min-h-11"
+        >
+          <Save className="size-4" aria-hidden="true" />
+          {isSaving ? "در حال ذخیره..." : "ذخیره اکسس‌پوینت"}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export function WifiAccessPointCard() {
@@ -18,193 +187,164 @@ export function WifiAccessPointCard() {
   const setWifiApConfig = useIoTStore((state) => state.setWifiApConfig);
   const showToast = useIoTStore((state) => state.showToast);
 
-  const [apDraft, setApDraft] = useState<ApDraftOverrides>({});
-  const [isApEditing, setIsApEditing] = useState(false);
-  const [isSavingAp, setIsSavingAp] = useState(false);
-  const [isApSaved, setIsApSaved] = useState(false);
-  const [hasAttemptedApSave, setHasAttemptedApSave] = useState(false);
-  const [showApPassword, setShowApPassword] = useState(false);
-  const savedResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [tempSsid, setTempSsid] = useState("");
+  const [tempPassword, setTempPassword] = useState("");
+  const [errors, setErrors] = useState<WifiCredentialErrors>({});
 
-  useEffect(() => {
-    return () => {
-      if (savedResetTimerRef.current !== null) {
-        clearTimeout(savedResetTimerRef.current);
-      }
-    };
-  }, []);
+  const hasCustomAp = Boolean(wifiApConfig?.ssid?.trim());
 
-  const apSsid = apDraft.ssid ?? wifiApConfig?.ssid ?? "";
-  const apPassword = apDraft.password ?? wifiApConfig?.password ?? "";
-  const trimmedApSsid = apSsid.trim();
-  const apErrors = validateWifiAccessPoint(apSsid, apPassword);
-  const hasApErrors = Boolean(apErrors.ssid || apErrors.password);
-  const isDefaultAccessPoint = !wifiApConfig?.ssid && !wifiApConfig?.password;
+  const openEditor = () => {
+    setTempSsid(wifiApConfig?.ssid ?? "");
+    setTempPassword(wifiApConfig?.password ?? "");
+    setErrors({});
+    setIsEditing(true);
+  };
 
-  function scheduleApSavedReset(): void {
-    setIsApSaved(true);
+  const closeEditor = () => {
+    setErrors({});
+    setIsEditing(false);
+  };
 
-    if (savedResetTimerRef.current !== null) {
-      clearTimeout(savedResetTimerRef.current);
-    }
-
-    savedResetTimerRef.current = setTimeout(() => {
-      savedResetTimerRef.current = null;
-      setIsApSaved(false);
-    }, 2000);
-  }
-
-  async function handleSaveAccessPoint(): Promise<void> {
-    soundManager.playClick();
-    setHasAttemptedApSave(true);
-
-    if (hasApErrors) {
-      showToast(apErrors.ssid || apErrors.password || "اطلاعات اکسس‌پوینت را بررسی کنید.", "error");
-      return;
-    }
-
-    const nextApConfig = { ssid: trimmedApSsid, password: apPassword };
-    const previousApConfig = wifiApConfig;
-    setWifiApConfig(nextApConfig);
-    setApDraft({});
+  const persistApChange = async (
+    nextConfig: WifiAccessPointConfig | null,
+    keepEditorOpenOnFailure: boolean,
+  ) => {
+    const previousConfig = wifiApConfig;
+    setWifiApConfig(nextConfig);
 
     if (!isCloudflareEnabled()) {
-      showToast("تنظیمات اکسس‌پوینت در حافظه داشبورد ذخیره شد.", "success");
-      setIsApEditing(false);
-      setHasAttemptedApSave(false);
-      scheduleApSavedReset();
+      showToast(
+        nextConfig?.ssid
+          ? "تنظیمات اکسس‌پوینت ذخیره شد."
+          : "اکسس‌پوینت به حالت پیش‌فرض دستگاه بازنشانی شد.",
+        "success",
+      );
+      if (keepEditorOpenOnFailure) closeEditor();
       return;
     }
 
-    setIsSavingAp(true);
-
+    setIsSaving(true);
     try {
       const { result } = await persistStoreConfigToCloudflare({
-        overrides: { wifiApConfig: nextApConfig },
-        successToast: "تنظیمات اکسس‌پوینت ذخیره شد.",
-        errorToast: "خطا در ذخیره تنظیمات اکسس‌پوینت.",
+        overrides: { wifiApConfig: nextConfig },
       });
 
       if (result.success) {
-        setIsApEditing(false);
-        setHasAttemptedApSave(false);
-        scheduleApSavedReset();
+        if (keepEditorOpenOnFailure) closeEditor();
       } else {
-        setWifiApConfig(previousApConfig);
-        setApDraft(nextApConfig);
+        setWifiApConfig(previousConfig);
+        showToast(result.message || "خطا در ذخیره تنظیمات اکسس‌پوینت در کلودفلر.", "error");
       }
-    } catch (error) {
-      setWifiApConfig(previousApConfig);
-      setApDraft(nextApConfig);
-      console.error("Failed to save Access Point settings to cloud", error);
-      showToast("خطا در ارتباط با سرور کلودفلر.", "error");
+    } catch {
+      setWifiApConfig(previousConfig);
+      showToast("خطا در ارتباط با سرور کلودفلر؛ تغییرات بازگردانی شد.", "error");
     } finally {
-      setIsSavingAp(false);
+      setIsSaving(false);
     }
-  }
+  };
 
-  function handleEditAccessPoint(): void {
-    setApDraft({});
-    setHasAttemptedApSave(false);
-    setIsApSaved(false);
-    setIsApEditing(true);
-  }
+  const handleSave = () => {
+    if (isSaving) return;
+    soundManager.playClick();
 
-  function handleCancelAccessPointEdit(): void {
-    setApDraft({});
-    setHasAttemptedApSave(false);
-    setIsApEditing(false);
-  }
+    const validationErrors = validateWifiAccessPointCredentials({
+      ssid: tempSsid,
+      password: tempPassword,
+    });
+    setErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) return;
 
-  function handleResetAccessPointDraft(): void {
-    setApDraft({ ssid: "", password: "" });
-    setHasAttemptedApSave(false);
-    setIsApSaved(false);
-    setShowApPassword(false);
-  }
+    const trimmedSsid = tempSsid.trim();
+    const nextConfig: WifiAccessPointConfig =
+      !trimmedSsid && !tempPassword
+        ? { ssid: "", password: "" }
+        : { ssid: trimmedSsid, password: tempPassword };
 
-  const apSsidByteLength = getUtf8ByteLength(trimmedApSsid);
-  const apPasswordByteLength = getUtf8ByteLength(apPassword);
+    void persistApChange(nextConfig, true);
+  };
+
+  const handleClearToDefault = () => {
+    if (isSaving) return;
+    soundManager.playClick();
+    void persistApChange({ ssid: "", password: "" }, false);
+  };
 
   return (
-    <section
-      aria-labelledby="wifi-ap-heading"
-      className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[minmax(12rem,0.8fr)_minmax(0,1.7fr)] lg:gap-10"
-    >
-      <div className="space-y-2">
+    <section aria-labelledby="wifi-ap-heading" className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="space-y-1.5 lg:col-span-5 text-right">
         <h3 id="wifi-ap-heading" className="text-sm font-bold text-text-primary">
-          اکسس‌پوینت راه‌اندازی (AP)
+          اکسس‌پوینت راه‌اندازی (Provisioning AP)
         </h3>
-        <p className="max-w-xs text-sm leading-6 text-text-secondary">
-          این شبکه برای اتصال مستقیم گوشی یا رایانه به ESP32 است؛ با شبکهٔ روتر متفاوت است.
+        <p className="text-xs leading-5 text-text-secondary">
+          هنگامی که ESP32 نتواند به شبکه‌های ذخیره‌شده متصل شود، با این مشخصات نقطه دسترسی محلی ایجاد
+          می‌کند تا امکان تنظیم مجدد فراهم بماند.
         </p>
       </div>
 
-      <div className="min-w-0">
-        {!isApEditing ? (
-          <div className="space-y-4">
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <dt className="text-xs text-text-secondary">نام شبکه</dt>
-                <dd className="break-all text-sm font-semibold text-text-primary">
-                  {isDefaultAccessPoint ? "پیش‌فرض دستگاه" : wifiApConfig?.ssid || "ثبت نشده"}
-                </dd>
-              </div>
-              <div className="space-y-1">
-                <dt className="text-xs text-text-secondary">رمز عبور</dt>
-                <dd className="text-sm font-semibold text-text-primary">
-                  {isDefaultAccessPoint
-                    ? "پیش‌فرض دستگاه"
-                    : wifiApConfig?.password
-                      ? "رمز سفارشی ذخیره شده"
-                      : "تنظیم نشده"}
-                </dd>
-              </div>
-            </dl>
-            <div className="flex flex-wrap items-center gap-2">
+      <div className="min-w-0 lg:col-span-7">
+        {isEditing ? (
+          <WifiAccessPointEditor
+            tempSsid={tempSsid}
+            setTempSsid={(val) => {
+              setTempSsid(val);
+              if (errors.ssid) setErrors((prev) => ({ ...prev, ssid: undefined }));
+            }}
+            tempPassword={tempPassword}
+            setTempPassword={(val) => {
+              setTempPassword(val);
+              if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+            }}
+            errors={errors}
+            isSaving={isSaving}
+            onResetDefault={() => {
+              setTempSsid("");
+              setTempPassword("");
+              setErrors({});
+            }}
+            onSave={handleSave}
+            onCancel={closeEditor}
+          />
+        ) : (
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-3 py-2">
+            <div className="min-w-0 flex-1 space-y-1 text-right">
+              <p className="truncate text-sm font-semibold text-text-primary">
+                {hasCustomAp ? wifiApConfig?.ssid : "پیش‌فرض خودکار دستگاه (بر اساس آدرس MAC)"}
+              </p>
+              <p className="text-xs text-text-secondary">
+                {hasCustomAp && wifiApConfig?.password
+                  ? "رمز عبور سفارشی ذخیره شده است"
+                  : "در حالت پیش‌فرض از شناسه و رمز کارخانه‌ای دستگاه استفاده می‌شود"}
+              </p>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1">
               <Button
                 type="button"
-                variant="outline"
-                onClick={handleEditAccessPoint}
-                className="min-h-11"
+                variant="ghost"
+                size="sm"
+                onClick={openEditor}
+                disabled={isSaving}
+                className="min-h-11 gap-1.5 px-3 text-xs"
+                aria-label="ویرایش اکسس‌پوینت"
               >
                 <Edit2 className="size-4" aria-hidden="true" />
-                ویرایش تنظیمات
+                ویرایش
               </Button>
-              {isApSaved ? (
-                <span
-                  role="status"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-success"
-                >
-                  <Check className="size-3.5" aria-hidden="true" />
-                  ذخیره شد
-                </span>
-              ) : null}
+
+              {hasCustomAp && (
+                <DeleteButton
+                  size="sm"
+                  cornerRadius={11}
+                  resetAfter={0}
+                  onConfirm={handleClearToDefault}
+                  label="بازنشانی اکسس‌پوینت به پیش‌فرض"
+                  className="min-h-11 min-w-11 shrink-0"
+                />
+              )}
             </div>
           </div>
-        ) : (
-          <WifiAccessPointEditor
-            ssid={apSsid}
-            password={apPassword}
-            ssidByteLength={apSsidByteLength}
-            passwordByteLength={apPasswordByteLength}
-            showPassword={showApPassword}
-            hasAttemptedSave={hasAttemptedApSave}
-            isSaving={isSavingAp}
-            errors={apErrors}
-            onSsidChange={(value) => {
-              setIsApSaved(false);
-              setApDraft((previous) => ({ ...previous, ssid: value }));
-            }}
-            onPasswordChange={(value) => {
-              setIsApSaved(false);
-              setApDraft((previous) => ({ ...previous, password: value }));
-            }}
-            onTogglePassword={() => setShowApPassword((visible) => !visible)}
-            onResetToDefault={handleResetAccessPointDraft}
-            onCancel={handleCancelAccessPointEdit}
-            onSave={handleSaveAccessPoint}
-          />
         )}
       </div>
     </section>

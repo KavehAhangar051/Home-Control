@@ -274,7 +274,10 @@ export default function AuxNodeModal() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs leading-5 text-text-secondary">آدرس MAC شناسه یکتای برد در شبکه است؛ آن را از تنظیمات یا برچسب همان برد وارد کنید.</p>
+                  <p className="text-xs leading-5 text-text-secondary">
+                    آدرس MAC شناسه یکتای برد در شبکه است؛ آن را از تنظیمات یا برچسب همان برد وارد
+                    کنید.
+                  </p>
                   <Input
                     id="aux-node-mac"
                     type="text"

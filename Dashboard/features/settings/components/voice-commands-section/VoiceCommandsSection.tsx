@@ -86,7 +86,9 @@ export default function VoiceCommandsSection() {
               className="text-center py-7 px-4 bg-card-bg-solid border border-dashed border-border-color rounded-2xl space-y-1"
             >
               <p className="text-xs font-medium text-text-secondary">فرمانی ثبت نشده است</p>
-              <p className="text-xs leading-5 text-text-muted">عبارتی را که می‌خواهید بگویید وارد کنید و عملکرد آن را مشخص کنید.</p>
+              <p className="text-xs leading-5 text-text-muted">
+                عبارتی را که می‌خواهید بگویید وارد کنید و عملکرد آن را مشخص کنید.
+              </p>
             </m.div>
           )}
 

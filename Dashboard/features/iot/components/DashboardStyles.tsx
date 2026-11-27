@@ -125,7 +125,10 @@ function DashboardStyles({
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
 
       if (metaThemeColor) {
-        metaThemeColor.setAttribute("content", themeVars["--bg-main"] || (isDark ? "#141415" : "#fafafa"));
+        metaThemeColor.setAttribute(
+          "content",
+          themeVars["--bg-main"] || (isDark ? "#141415" : "#fafafa"),
+        );
       }
 
       if (pendingRafRef.current !== null) {

@@ -525,8 +525,7 @@ function encodeConditionListForWire(
     };
 
     const value = resolveVal(rawValInput);
-    const maxValue =
-      op === "between" || op === "outside" ? resolveVal(rawMaxInput) : 0;
+    const maxValue = op === "between" || op === "outside" ? resolveVal(rawMaxInput) : 0;
     items.push({
       sourcePin: parsedPin,
       opCode,
@@ -682,7 +681,8 @@ export const buildUpdateRuleConditionalFrame = (
   const lo = encodeSide(lowActions);
   const sideBytes = (side: ReturnType<typeof encodeSide>) =>
     side.reduce(
-      (sum, entry) => sum + RULE_CONDITIONAL_ACTION_BASE_SIZE + entry.cond.items.length * RULE_CONDITION_SIZE,
+      (sum, entry) =>
+        sum + RULE_CONDITIONAL_ACTION_BASE_SIZE + entry.cond.items.length * RULE_CONDITION_SIZE,
       0,
     );
 
@@ -755,10 +755,7 @@ export const publishUpdateRuleCommand = (
       ? "update_rule_analog(0x0B)"
       : "update_rule(0x05)";
 
-  return publishMqttCommand(
-    buf,
-    `Published ${label}: input_pin=${inputPin} size=${buf.length}b`,
-  );
+  return publishMqttCommand(buf, `Published ${label}: input_pin=${inputPin} size=${buf.length}b`);
 };
 
 export interface AnalogRangeRuleFrameInput {

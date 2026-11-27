@@ -119,7 +119,8 @@ export default function AutomationList({
                       <>
                         <span aria-hidden="true">·</span>
                         <span>
-                          {auto.segmentConditions.filter((c) => c.enabled !== false).length} شرط سگمنت
+                          {auto.segmentConditions.filter((c) => c.enabled !== false).length} شرط
+                          سگمنت
                           {auto.segmentConditions.filter((c) => c.enabled !== false).length > 1
                             ? ` (${auto.segmentConditionLogic === "or" ? "OR" : "AND"})`
                             : ""}

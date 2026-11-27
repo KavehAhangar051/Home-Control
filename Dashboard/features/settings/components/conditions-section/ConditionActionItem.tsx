@@ -4,10 +4,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import type {
-  ConditionLogic,
-  RuleGuardCondition,
-} from "@/features/iot/hooks/store/types";
+import type { ConditionLogic, RuleGuardCondition } from "@/features/iot/hooks/store/types";
 import { useIoTStore } from "@/features/iot/hooks/useIoTStore";
 import { RuleGuardConditionsEditor } from "@/features/settings/components/shared/ActionConditionsEditor";
 import {
@@ -42,13 +39,7 @@ interface Props {
   onUpdate: (updates: Partial<ConditionAction>) => void;
 }
 
-export function ConditionActionItem({
-  action,
-  idx,
-  inputPin,
-  onRemove,
-  onUpdate,
-}: Props) {
+export function ConditionActionItem({ action, idx, inputPin, onRemove, onUpdate }: Props) {
   const baseId = useId();
   const holdId = `${baseId}-hold`;
   const pinId = `${baseId}-pin`;

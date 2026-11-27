@@ -34,7 +34,10 @@ import {
   MAX_AUX_NODES,
   normalizeAuxNodeRecord,
 } from "@/features/iot/utils/auxNodeUtils";
-import { normalizeMacroRecord, normalizeRuleGuardCondition } from "@/features/iot/utils/macroEngine";
+import {
+  normalizeMacroRecord,
+  normalizeRuleGuardCondition,
+} from "@/features/iot/utils/macroEngine";
 import { CANONICAL_CONFIG_VERSION, createDefaultDeviceInfo } from "../config/defaults";
 import { getCloudflareWorkerUrl } from "./config";
 
@@ -297,10 +300,14 @@ export function normalizeSegmentRule(
   };
 
   const highActions = rule.highActions
-    ? (rule.highActions as RawRuleActionInput[]).slice(0, MAX_RULE_ACTIONS_PER_SIDE).map(normalizeAction)
+    ? (rule.highActions as RawRuleActionInput[])
+        .slice(0, MAX_RULE_ACTIONS_PER_SIDE)
+        .map(normalizeAction)
     : [];
   const lowActions = rule.lowActions
-    ? (rule.lowActions as RawRuleActionInput[]).slice(0, MAX_RULE_ACTIONS_PER_SIDE).map(normalizeAction)
+    ? (rule.lowActions as RawRuleActionInput[])
+        .slice(0, MAX_RULE_ACTIONS_PER_SIDE)
+        .map(normalizeAction)
     : [];
 
   const analogRanges = Array.isArray(rule.analogRanges)

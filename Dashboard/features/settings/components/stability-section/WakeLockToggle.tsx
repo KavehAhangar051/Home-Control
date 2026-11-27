@@ -36,9 +36,9 @@ export default function WakeLockToggle({ animationsEnabled }: WakeLockToggleProp
         variant="outline"
         pressed={wakeLockEnabled}
         onPressedChange={handleToggle}
-        aria-label={wakeLockEnabled
-          ? "بیدار نگه‌داشتن نمایشگر · روشن"
-          : "بیدار نگه‌داشتن نمایشگر · خاموش"}
+        aria-label={
+          wakeLockEnabled ? "بیدار نگه‌داشتن نمایشگر · روشن" : "بیدار نگه‌داشتن نمایشگر · خاموش"
+        }
         className={`switch-toggle h-auto min-h-16 flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-[background-color,border-color] duration-150 sm:p-4 ${
           wakeLockEnabled
             ? "border-accent3 bg-card-hover-bg"
@@ -46,9 +46,11 @@ export default function WakeLockToggle({ animationsEnabled }: WakeLockToggleProp
         }`}
       >
         <div className="min-w-0 flex-1 space-y-1 text-right">
-          <span className={`flex w-full items-center justify-start gap-1.5 font-sans text-xs font-medium leading-5 transition-colors duration-150 ${
-            wakeLockEnabled ? "text-accent3" : "text-text-primary"
-          }`}>
+          <span
+            className={`flex w-full items-center justify-start gap-1.5 font-sans text-xs font-medium leading-5 transition-colors duration-150 ${
+              wakeLockEnabled ? "text-accent3" : "text-text-primary"
+            }`}
+          >
             <Monitor
               strokeWidth={1.6}
               aria-hidden="true"

@@ -102,9 +102,7 @@ export function MacroActionCard({
     const nextSegment = outputs.find((seg) => seg.pin.trim() === nextPin.trim());
 
     if (isAnalogOutputSegment(nextSegment)) {
-      const nextRes = clampPwmResolution(
-        pinsPwmResolution[nextPin] ?? nextSegment?.pwmResolution,
-      );
+      const nextRes = clampPwmResolution(pinsPwmResolution[nextPin] ?? nextSegment?.pwmResolution);
       const nextDuty = hasExplicitAnalogTargetValue(action.targetValue)
         ? action.targetValue
         : percentToAnalogDuty(50, nextRes);

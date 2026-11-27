@@ -73,7 +73,11 @@ export function WifiNetworkEditor({
           />
           <div className="min-h-10 pt-1">
             {errors.ssid ? (
-              <p id="wifi-network-ssid-error" className="text-xs leading-5 text-destructive" role="alert">
+              <p
+                id="wifi-network-ssid-error"
+                className="text-xs leading-5 text-destructive"
+                role="alert"
+              >
                 {errors.ssid}
               </p>
             ) : (

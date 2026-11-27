@@ -100,8 +100,8 @@ export default function CloudflareIntegration({
         <span className="text-[11px] text-text-tertiary">همگام‌سازی تنظیمات و چیدمان‌ها</span>
       </div>
       <p className="text-xs leading-5 text-text-secondary">
-        نشانی پایه Cloudflare Worker را وارد کنید. داشبورد برای دریافت و ذخیره تنظیمات و چیدمان‌ها
-        از این سرویس استفاده می‌کند.
+        نشانی پایه Cloudflare Worker را وارد کنید. داشبورد برای دریافت و ذخیره تنظیمات و چیدمان‌ها از
+        این سرویس استفاده می‌کند.
       </p>
       <div className="flex flex-col-reverse sm:flex-row gap-2">
         <button
@@ -164,10 +164,13 @@ export default function CloudflareIntegration({
           disabled={isRefreshingConfig || !isCfConnected}
           className="w-full min-h-11 rounded-xl border border-accent3/35 bg-accent3/15 px-4 py-2.5 text-xs font-bold text-accent3 transition-colors hover:bg-accent3 hover:text-accent3-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isRefreshingConfig ? "در حال دریافت و اعمال تنظیمات..." : "دریافت و اعمال آخرین تنظیمات از سرور"}
+          {isRefreshingConfig
+            ? "در حال دریافت و اعمال تنظیمات..."
+            : "دریافت و اعمال آخرین تنظیمات از سرور"}
         </button>
         <p className="text-[11px] leading-5 text-text-tertiary">
-          تنظیمات فعلی سرور دریافت می‌شود، جایگزین کش قبلی خواهد شد و بدون استفاده از نسخه قدیمی دوباره روی داشبورد اعمال می‌شود.
+          تنظیمات فعلی سرور دریافت می‌شود، جایگزین کش قبلی خواهد شد و بدون استفاده از نسخه قدیمی
+          دوباره روی داشبورد اعمال می‌شود.
         </p>
       </div>
       <div

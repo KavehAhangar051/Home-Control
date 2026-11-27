@@ -158,7 +158,8 @@ export default function PinSelector({
 
         {isAnalogInput && (
           <p className="text-xs leading-6 text-text-secondary">
-            GPIOهای ۳۴، ۳۵، ۳۶ و ۳۹ فقط ورودی‌اند و مقاومت Pull-up/Pull-down داخلی ندارند. ولتاژ سنسور متصل‌شده باید بین ۰ تا ۳.۳ ولت باشد.
+            GPIOهای ۳۴، ۳۵، ۳۶ و ۳۹ فقط ورودی‌اند و مقاومت Pull-up/Pull-down داخلی ندارند. ولتاژ
+            سنسور متصل‌شده باید بین ۰ تا ۳.۳ ولت باشد.
           </p>
         )}
       </div>

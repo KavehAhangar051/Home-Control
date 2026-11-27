@@ -97,7 +97,12 @@ export function useSegmentUpdates() {
         active: isSegmentRuleActive(rule),
       };
       setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, rule: nextRule } : s)));
-      publishUpdateRuleCommand(inputPin, rule.highActions || [], rule.lowActions || [], store.segments);
+      publishUpdateRuleCommand(
+        inputPin,
+        rule.highActions || [],
+        rule.lowActions || [],
+        store.segments,
+      );
     },
     [setSegments],
   );

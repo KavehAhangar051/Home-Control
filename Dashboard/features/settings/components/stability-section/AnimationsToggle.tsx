@@ -42,9 +42,11 @@ export default function AnimationsToggle({
         }`}
       >
         <span className="min-w-0 flex-1 space-y-1 text-right">
-          <span className={`block font-sans text-xs font-medium leading-5 transition-colors duration-150 ${
-            animationsEnabled ? "text-accent3" : "text-text-primary"
-          }`}>
+          <span
+            className={`block font-sans text-xs font-medium leading-5 transition-colors duration-150 ${
+              animationsEnabled ? "text-accent3" : "text-text-primary"
+            }`}
+          >
             انیمیشن‌های رابط کاربری
           </span>
           <span className="block font-sans text-[11px] leading-relaxed text-text-muted sm:text-xs sm:text-text-secondary">

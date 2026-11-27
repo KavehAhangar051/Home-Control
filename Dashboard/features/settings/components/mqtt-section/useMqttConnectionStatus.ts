@@ -1,99 +1,127 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import type { MqttClient } from "mqtt";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getMqttClient, reconnectMqtt } from "@/features/iot/services/mqttService";
 
-export type MqttConnectionStatus =
-  | "starting"
+export type MqttBrokerConnectionStatus =
   | "connecting"
   | "connected"
   | "reconnecting"
   | "disconnected"
-  | "offline"
   | "error";
 
-export interface MqttConnectionState {
-  status: MqttConnectionStatus;
-  retry: () => void;
+function deriveInitialStatus(client: MqttClient | null): MqttBrokerConnectionStatus {
+  if (!client) return "connecting";
+  if (client.connected) return "connected";
+  if (client.reconnecting) return "reconnecting";
+  return "disconnected";
 }
 
-export function useMqttConnectionStatus(): MqttConnectionState {
-  const [status, setStatus] = useState<MqttConnectionStatus>("starting");
+/**
+ * Observes the singleton MQTT client connection lifecycle without initiating extra connections
+ * except when the user explicitly clicks Retry. Ignores events emitted by replaced clients.
+ */
+export function useMqttConnectionStatus() {
+  const [status, setStatus] = useState<MqttBrokerConnectionStatus>(() =>
+    deriveInitialStatus(getMqttClient()),
+  );
+  const attachedClientRef = useRef<MqttClient | null>(null);
+  const startWatchRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    let activeClient: ReturnType<typeof getMqttClient> = null;
-    let removeListeners: (() => void) | null = null;
+    let disposed = false;
+    let pollTimer: number | null = null;
+    let cleanupCurrent: (() => void) | null = null;
 
-    function syncClient(): void {
-      const nextClient = getMqttClient();
-
-      if (nextClient === activeClient) return;
-
-      removeListeners?.();
-      removeListeners = null;
-      activeClient = nextClient;
-
-      if (!nextClient) {
-        setStatus("starting");
-        return;
+    const attachToClient = (client: MqttClient) => {
+      if (cleanupCurrent) {
+        cleanupCurrent();
+        cleanupCurrent = null;
       }
 
-      const client = nextClient;
-      const isActiveClient = () => getMqttClient() === client;
-      const onConnect = () => {
-        if (isActiveClient()) setStatus("connected");
-      };
-      const onReconnect = () => {
-        if (isActiveClient()) setStatus("reconnecting");
-      };
-      const onClose = () => {
-        if (isActiveClient()) setStatus("disconnected");
-      };
-      const onOffline = () => {
-        if (isActiveClient()) setStatus("offline");
-      };
-      const onError = () => {
-        if (isActiveClient()) setStatus("error");
-      };
+      attachedClientRef.current = client;
+      const isCurrent = () => !disposed && getMqttClient() === client;
 
-      client.on("connect", onConnect);
-      client.on("reconnect", onReconnect);
-      client.on("close", onClose);
-      client.on("offline", onOffline);
-      client.on("error", onError);
-      client.on("end", onClose);
-
-      removeListeners = () => {
-        client.removeListener("connect", onConnect);
-        client.removeListener("reconnect", onReconnect);
-        client.removeListener("close", onClose);
-        client.removeListener("offline", onOffline);
-        client.removeListener("error", onError);
-        client.removeListener("end", onClose);
-      };
-
-      if (client.connected) {
+      const handleConnect = () => {
+        if (!isCurrent()) return;
         setStatus("connected");
-      } else if (client.reconnecting) {
+      };
+      const handleReconnect = () => {
+        if (!isCurrent()) return;
         setStatus("reconnecting");
-      } else {
-        setStatus("connecting");
+      };
+      const handleDisconnect = () => {
+        if (!isCurrent()) return;
+        setStatus("disconnected");
+      };
+      const handleError = () => {
+        if (!isCurrent()) return;
+        setStatus("error");
+      };
+
+      client.on("connect", handleConnect);
+      client.on("reconnect", handleReconnect);
+      client.on("close", handleDisconnect);
+      client.on("offline", handleDisconnect);
+      client.on("end", handleDisconnect);
+      client.on("error", handleError);
+
+      setStatus(deriveInitialStatus(client));
+
+      cleanupCurrent = () => {
+        client.off("connect", handleConnect);
+        client.off("reconnect", handleReconnect);
+        client.off("close", handleDisconnect);
+        client.off("offline", handleDisconnect);
+        client.off("end", handleDisconnect);
+        client.off("error", handleError);
+      };
+    };
+
+    const syncClientAttachment = () => {
+      if (disposed) return;
+      const liveClient = getMqttClient();
+      if (liveClient && liveClient !== attachedClientRef.current) {
+        attachToClient(liveClient);
+        if (pollTimer !== null) {
+          window.clearInterval(pollTimer);
+          pollTimer = null;
+        }
       }
-    }
+    };
 
-    syncClient();
+    const startWatching = () => {
+      syncClientAttachment();
+      if (!attachedClientRef.current && pollTimer === null) {
+        pollTimer = window.setInterval(syncClientAttachment, 400);
+      } else if (attachedClientRef.current !== getMqttClient() && pollTimer === null) {
+        pollTimer = window.setInterval(syncClientAttachment, 400);
+      }
+    };
 
-    // The MQTT client can be replaced during reconnect; poll only for that reference change.
-    const intervalId = window.setInterval(syncClient, 1500);
+    startWatchRef.current = startWatching;
+    startWatching();
 
     return () => {
-      window.clearInterval(intervalId);
-      removeListeners?.();
+      disposed = true;
+      startWatchRef.current = null;
+      if (pollTimer !== null) {
+        window.clearInterval(pollTimer);
+      }
+      if (cleanupCurrent) {
+        cleanupCurrent();
+      }
+      attachedClientRef.current = null;
     };
   }, []);
 
-  function retry(): void {
-    setStatus("reconnecting");
+  const retry = useCallback(() => {
+    setStatus("connecting");
+    attachedClientRef.current = null;
     reconnectMqtt();
-  }
+    startWatchRef.current?.();
+  }, []);
 
   return { status, retry };
 }

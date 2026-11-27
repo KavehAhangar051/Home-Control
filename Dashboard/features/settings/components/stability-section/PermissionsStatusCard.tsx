@@ -92,7 +92,9 @@ export default function PermissionsStatusCard() {
             ) : (
               <ShieldCheck aria-hidden="true" className="size-4 shrink-0 text-text-secondary" />
             )}
-            <span>{hasCookie ? "راه‌اندازی اولیه تکمیل شده است" : "راه‌اندازی اولیه تکمیل نشده است"}</span>
+            <span>
+              {hasCookie ? "راه‌اندازی اولیه تکمیل شده است" : "راه‌اندازی اولیه تکمیل نشده است"}
+            </span>
           </span>
 
           <button

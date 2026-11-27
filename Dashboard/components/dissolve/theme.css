@@ -1,21 +1,36 @@
-/* Dissolve UI tokens mapped to the dashboard's live semantic theme. */
-:root,
-.dark,
-.light {
-  --dissolve-background: var(--bg-main, #141415);
-  --dissolve-surface: var(--card-bg, #19191b);
+/* Fallback Dissolve UI theme tokens. Runtime themeStyles.ts and globals.css customize these values. */
+:where(:root, .dark) {
+  --dissolve-background: var(--card-bg-solid, #19191b);
+  --dissolve-surface: var(--secondary, #232325);
   --dissolve-surface-2: var(--card-hover-bg, #232325);
   --dissolve-foreground: var(--text-primary, #ededed);
   --dissolve-muted: var(--text-muted, #96969d);
-  --dissolve-primary: var(--card-bg-solid, #19191b);
-  --dissolve-primary-foreground: var(--text-primary, #ededed);
-  --dissolve-success: var(--success, #34c759);
-  --dissolve-danger: var(--destructive, #ff3b30);
-  --dissolve-danger-foreground: var(--destructive-foreground, #ffffff);
+  --dissolve-primary: var(--accent3, #ededed);
+  --dissolve-primary-foreground: var(--accent3-foreground, #0f0f10);
+  --dissolve-success: var(--success, oklch(72.3% 0.16 160));
+  --dissolve-danger: var(--destructive, oklch(62.8% 0.225 25.3));
+  --dissolve-danger-foreground: var(--destructive-foreground, #ededed);
   --dissolve-accent: var(--accent3, #ededed);
   --dissolve-border: var(--border-color, #27272a);
-  --dissolve-chart-1: var(--accent4, #3b82f6);
-  --dissolve-chart-2: var(--success, #34c759);
-  --dissolve-chart-3: var(--warning, #f5c451);
-  --dissolve-overlay-z: 2147483000;
+  --dissolve-chart-1: var(--accent3, #ededed);
+  --dissolve-chart-2: var(--text-secondary, #a1a1a6);
+  --dissolve-chart-3: var(--warning, oklch(79.5% 0.184 86.05));
+}
+
+:where(.light) {
+  --dissolve-background: var(--card-bg-solid, #ffffff);
+  --dissolve-surface: var(--secondary, #f4f4f5);
+  --dissolve-surface-2: var(--card-hover-bg, #f4f4f5);
+  --dissolve-foreground: var(--text-primary, #171717);
+  --dissolve-muted: var(--text-muted, #636369);
+  --dissolve-primary: var(--accent3, #171717);
+  --dissolve-primary-foreground: var(--accent3-foreground, #ffffff);
+  --dissolve-success: var(--success, oklch(62.7% 0.194 149.2));
+  --dissolve-danger: var(--destructive, oklch(57.7% 0.245 27.3));
+  --dissolve-danger-foreground: var(--destructive-foreground, #ffffff);
+  --dissolve-accent: var(--accent3, #171717);
+  --dissolve-border: var(--border-color, #e4e4e7);
+  --dissolve-chart-1: var(--accent3, #171717);
+  --dissolve-chart-2: var(--text-secondary, #525252);
+  --dissolve-chart-3: var(--warning, oklch(79.5% 0.184 86.05));
 }

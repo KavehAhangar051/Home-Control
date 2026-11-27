@@ -45,9 +45,11 @@ export function AudioToggleButton({ isMusicOn, isLoading, onToggle }: Props) {
         />
 
         <div className="min-w-0 flex-1 space-y-1 text-start">
-          <span className={`block text-sm font-bold transition-colors ${
-            isMusicOn ? "text-accent3" : "text-text-secondary"
-          }`}>
+          <span
+            className={`block text-sm font-bold transition-colors ${
+              isMusicOn ? "text-accent3" : "text-text-secondary"
+            }`}
+          >
             موزیک پس‌زمینه
           </span>
           <span className="block text-xs leading-relaxed text-text-muted">
