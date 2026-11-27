@@ -275,9 +275,9 @@ public:
   processAnalogInputs(const uniuno::StaticFunction<void, const AnalogInputChange&, const RuleConfig&>& onAnalogChanged);
   void rebuildInputCache();
 
-  HOT_PATH FORCE_INLINE RuleConfig getRuleByPin(int pin) const {
+  HOT_PATH FORCE_INLINE const RuleConfig& getRuleByPin(int pin) const {
     const PinEntry* entry = _registry.getEntryByPinConst(pin);
-    return entry ? entry->getRuleRef() : RuleConfig();
+    return entry ? entry->getRuleRef() : PinEntry::emptyRule();
   }
 
   HOT_PATH FORCE_INLINE const RuleConfig* getRuleByPinPtr(int pin) const {
@@ -315,9 +315,10 @@ public:
     if (entry) entry->pendingRuleActionAnalogValue = value;
   }
 
-  HOT_PATH FORCE_INLINE RuleAction getPendingHoldAction(int pin) const {
+  HOT_PATH FORCE_INLINE const RuleAction& getPendingHoldAction(int pin) const {
+    static const RuleAction kEmptyAction{};
     const PinEntry* entry = _registry.getEntryByPinConst(pin);
-    return entry ? entry->pendingHoldAction : RuleAction();
+    return entry ? entry->pendingHoldAction : kEmptyAction;
   }
 
   HOT_PATH FORCE_INLINE void setPendingHoldAction(int pin, const RuleAction& action) {

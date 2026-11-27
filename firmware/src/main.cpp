@@ -25,6 +25,7 @@
 #include <NvsSegmentStorage.h>
 #include <NvsAuxNodeStorage.h>
 #include "core/LoopOptimizer.h"
+#include <cstdio>
 
 // ============================================================================
 // Stack size override
@@ -120,9 +121,11 @@ void setup() {
   }
 
   if (savedMqtt.valid) {
-    mqttClient.begin(String(savedMqtt.host), savedMqtt.port, String(savedMqtt.baseTopic), savedMqtt.qos,
-                     String(savedMqtt.user), String(savedMqtt.password));
-    mqttClient.subscribe(String(savedMqtt.baseTopic) + ACHAEMENID_FALLBACK_MQTT_COMMAND_SUFFIX);
+    mqttClient.begin(savedMqtt.host, savedMqtt.port, savedMqtt.baseTopic, savedMqtt.qos, savedMqtt.user,
+                     savedMqtt.password);
+    char cmdTopic[96];
+    std::snprintf(cmdTopic, sizeof(cmdTopic), "%s" ACHAEMENID_FALLBACK_MQTT_COMMAND_SUFFIX, savedMqtt.baseTopic);
+    mqttClient.subscribe(cmdTopic);
     INFOF("[System] Restored MQTT settings from NVS (Host: %s)", savedMqtt.host);
   } else {
     mqttClient.begin(ACHAEMENID_FALLBACK_MQTT_HOST, ACHAEMENID_FALLBACK_MQTT_PORT, ACHAEMENID_FALLBACK_MQTT_TOPIC,
@@ -158,7 +161,12 @@ void setup() {
 // ============================================================================
 
 LOOP_IRAM_ATTR void loop() {
-  // ① Executor poll — Xtensa NSA bitmask (~2 cycles idle, 100% IRAM)
+  // 0. Dual-core MQTT RX drain (~2-cycle atomic head!=tail check in IRAM)
+  if (UNLIKELY(mqttClient.hasPendingCommands())) {
+    mqttClient.processQueue();
+  }
+
+  // 1. Executor poll (Xtensa NSA bitmask, ~2 cycles idle, 100% IRAM)
   executor.poll();
 
   // ② BootManager WiFi health / Captive Portal — inline ~4-cycle IRAM fast-gate

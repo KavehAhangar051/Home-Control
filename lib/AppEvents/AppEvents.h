@@ -1,6 +1,8 @@
 #ifndef APP_EVENTS_H
 #define APP_EVENTS_H
 #include <ConfigTypes.h>
+#include <ProjectConfig.h>
+#include <Optimization/ObjectPool.h>
 
 /**
  * @file AppEvents.h
@@ -262,5 +264,18 @@ struct AuxNodesBootstrappedEvent {
   static constexpr const char* Name = "aux_nodes.bootstrapped";
   int nodeCount;
 };
+
+namespace uniuno {
+
+/**
+ * @brief Shared StaticObjectPool for ~724-byte SegmentUpdateRuleRequestEvent frames.
+ *        Eliminates repeated heap new/delete churn in MQTT and WebSocket rule parsers.
+ */
+inline StaticObjectPool<SegmentUpdateRuleRequestEvent, ACHAEMENID_RULE_EVENT_POOL_SLOTS>& ruleEventPool() {
+  static StaticObjectPool<SegmentUpdateRuleRequestEvent, ACHAEMENID_RULE_EVENT_POOL_SLOTS> pool;
+  return pool;
+}
+
+} // namespace uniuno
 
 #endif // APP_EVENTS_H

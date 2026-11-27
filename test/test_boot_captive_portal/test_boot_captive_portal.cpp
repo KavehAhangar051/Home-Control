@@ -238,12 +238,14 @@ void test_bootmanager_instant_captive_portal_dns_mdns_and_redirects() {
   TEST_ASSERT_EQUAL_STRING("*", mockDnsState().domain.c_str());
   TEST_ASSERT_EQUAL_STRING("192.168.4.1", mockDnsState().resolvedIp.toString().c_str());
 
-  // ESPmDNS responder active with _http._tcp:80
+  // ESPmDNS responder active with _http._tcp:80 and _ws._tcp:81 (local WebSocket in AP mode)
   TEST_ASSERT_TRUE(mockMdnsState().started);
   TEST_ASSERT_EQUAL_STRING("achaemenid", mockMdnsState().hostname.c_str());
-  TEST_ASSERT_EQUAL_UINT(1, mockMdnsState().services.size());
+  TEST_ASSERT_EQUAL_UINT(2, mockMdnsState().services.size());
   TEST_ASSERT_EQUAL_STRING("http", mockMdnsState().services[0].service.c_str());
   TEST_ASSERT_EQUAL_UINT16(80, mockMdnsState().services[0].port);
+  TEST_ASSERT_EQUAL_STRING("ws", mockMdnsState().services[1].service.c_str());
+  TEST_ASSERT_EQUAL_UINT16(81, mockMdnsState().services[1].port);
 
   // OS Captive Portal probes & foreign hosts redirect 302 -> http://achaemenid.local/
   auto& srv = boot.testServer();

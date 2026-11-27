@@ -19,6 +19,7 @@ public:
     _stateProvider = std::move(stateProvider);
   }
 
+  HOT_PATH void parseMessage(const char* data, websockets::WebsocketsClient& client);
   HOT_PATH void parseMessage(const String& data, websockets::WebsocketsClient& client);
 
 private:

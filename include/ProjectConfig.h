@@ -230,4 +230,37 @@
 #define ACHAEMENID_ERROR_MAP_CAPACITY 8
 #endif
 
+// ============================================================================
+// 7. DUAL-CORE CONCURRENCY & OBJECT POOLING TOKENS
+// ============================================================================
+
+/// FreeRTOS core affinity for AsyncTCP (MQTT TCP I/O) and WebSocket TLS connect task.
+/// Core 0 (PRO_CPU) hosts Wi-Fi + LwIP + MQTT/TLS I/O while Core 1 (APP_CPU) runs real-time loop().
+#ifndef ACHAEMENID_ASYNC_TCP_CORE
+#define ACHAEMENID_ASYNC_TCP_CORE 0
+#endif
+
+#ifndef ACHAEMENID_WS_CONNECT_CORE
+#define ACHAEMENID_WS_CONNECT_CORE 0
+#endif
+
+/// Enable lock-free Core 0 -> Core 1 SPSC command queue in AchaemenidMQTT on ESP32
+#ifndef ACHAEMENID_MQTT_DUAL_CORE_QUEUE
+#ifdef ESP32
+#define ACHAEMENID_MQTT_DUAL_CORE_QUEUE 1
+#else
+#define ACHAEMENID_MQTT_DUAL_CORE_QUEUE 0
+#endif
+#endif
+
+/// Power-of-2 byte capacity for the lock-free Core 0 -> Core 1 MQTT command ring buffer
+#ifndef ACHAEMENID_MQTT_RX_RING_BYTES
+#define ACHAEMENID_MQTT_RX_RING_BYTES 2048
+#endif
+
+/// Pre-allocated StaticObjectPool slot count for SegmentUpdateRuleRequestEvent (~724 B/slot)
+#ifndef ACHAEMENID_RULE_EVENT_POOL_SLOTS
+#define ACHAEMENID_RULE_EVENT_POOL_SLOTS 1
+#endif
+
 #endif // ACHAEMENID_PROJECT_CONFIG_H

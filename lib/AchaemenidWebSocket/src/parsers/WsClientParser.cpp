@@ -5,6 +5,7 @@
 #include <Optimization/CompilerTraits.h>
 #include <AchaemenidConfigProtocol.h>
 #include <cstdlib>
+#include <cstring>
 #include <memory>
 
 namespace uniuno {
@@ -78,27 +79,30 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
         _dispatcher->dispatch(event);
       }
     }
-    // Digital rule updates (0x05 / 0x0B / 0x12 conditional)
+    // Digital rule updates (0x05 / 0x0B / 0x12 conditional) — pooled zero-heap event reuse
     else if (len >= 4 && (static_cast<uint8_t>(data[0]) == 0x05 || static_cast<uint8_t>(data[0]) == 0x0B ||
                           static_cast<uint8_t>(data[0]) == 0x12)) {
-      std::unique_ptr<SegmentUpdateRuleRequestEvent> event(new (std::nothrow) SegmentUpdateRuleRequestEvent());
+      auto event = uniuno::ruleEventPool().acquireOrHeap();
       if (event &&
           rule_codec::parseBinaryRuleUpdate(reinterpret_cast<const uint8_t*>(data), len, event->pin, event->rule)) {
         _dispatcher->dispatch(*event);
       }
     }
-    // Multi-range analog rules update (0x0E / 0x13 conditional)
+    // Multi-range analog rules update (0x0E / 0x13 conditional) — pooled zero-heap event reuse
     else if (len >= 3 && (static_cast<uint8_t>(data[0]) == 0x0E || static_cast<uint8_t>(data[0]) == 0x13)) {
-      std::unique_ptr<SegmentUpdateRuleRequestEvent> event(new (std::nothrow) SegmentUpdateRuleRequestEvent());
+      auto event = uniuno::ruleEventPool().acquireOrHeap();
       if (event && rule_codec::parseBinaryAnalogRangeUpdate(reinterpret_cast<const uint8_t*>(data), len, event->pin,
                                                             event->rule)) {
         _dispatcher->dispatch(*event);
       }
     }
   } else {
-    // Text message
-    const String text = message.data();
-    if (text.startsWith("ESP_CFG_V2")) {
+    // Zero-copy text message view directly over internal WebSocket buffer (avoids String heap copy)
+    const char* text = message.c_str();
+    const size_t textLen = message.length();
+    if (text == nullptr || textLen == 0U) return;
+
+    if (textLen >= 10U && std::strncmp(text, "ESP_CFG_V2", 10U) == 0) {
       Serial.println("[WebSocket] Received Config payload");
       AchaemenidConfigProtocol configParser;
       std::unique_ptr<ParseResult> parsed(new (std::nothrow) ParseResult());
@@ -107,7 +111,7 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
         return;
       }
       (*parsed).reset();
-      if (configParser.parse(text.c_str(), *parsed) &&
+      if (configParser.parse(text, *parsed) &&
           (parsed->segmentsProvided || parsed->auxNodesProvided || parsed->wifiProvided || parsed->apProvided ||
            parsed->mdnsProvided || parsed->mqtt.valid)) {
         ConfigLoadedEvent event;
@@ -122,10 +126,10 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
       } else {
         Serial.println("[WebSocket] Rejected invalid configuration payload.");
       }
-    } else if (text.indexOf("\"state_sync\"") >= 0) {
+    } else if (std::strstr(text, "\"state_sync\"") != nullptr) {
       Serial.println("[WebSocket] Received state_sync payload from Cloudflare");
       StaticJsonDocument<2048> doc;
-      DeserializationError error = deserializeJson(doc, text);
+      DeserializationError error = deserializeJson(doc, text, textLen);
       if (!error) {
         if (doc.containsKey("states")) {
           JsonObject states = doc["states"].as<JsonObject>();
@@ -153,7 +157,7 @@ HOT_PATH void WsClientParser::parseMessage(const websockets::WebsocketsMessage& 
         Serial.println("[WebSocket] Initial states applied successfully.");
       }
     } else {
-      Serial.printf("[WebSocket] Text: %s\n", text.c_str());
+      Serial.printf("[WebSocket] Text: %s\n", text);
     }
   }
 }

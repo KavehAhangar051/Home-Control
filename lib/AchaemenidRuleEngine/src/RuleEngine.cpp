@@ -7,7 +7,7 @@
 #include "strategies/ActionStrategies.h"
 #include <Optimization/CompilerTraits.h>
 
-RuleEngine::RuleEngine(RuleContext ctx) : _ctx(ctx) {}
+RuleEngine::RuleEngine(const RuleContext& ctx) : _ctx(ctx) {}
 
 void RuleEngine::executeAction(const RuleAction& act, int sourcePin) {
   uniuno::rules::ActionExecutor::execute(act, sourcePin, _ctx);
