@@ -389,9 +389,20 @@ export function createMqttMessageHandler(
         console.error("[MQTT] Failed to parse status JSON", parsedStatus.error);
       }
     } else if (topic === deps.stateTopic) {
-      // Local WebSocket is authoritative after its state handshake; ignore stale MQTT state frames.
-      if (deps.getSnapshot().isLocalWebSocketConnected === true) return;
       const parsedState = parseMqttStateMessage(payload);
+      const localWebSocketActive = deps.getSnapshot().isLocalWebSocketConnected === true;
+
+      // Local WebSocket is authoritative for live state and also carries the corresponding
+      // command/aux-node acknowledgements. Keep MQTT ping handling alive for presence.
+      if (
+        localWebSocketActive &&
+        (parsedState.kind === "pin_update" ||
+          parsedState.kind === "state_sync" ||
+          parsedState.kind === "command_ack" ||
+          parsedState.kind === "aux_node_ack")
+      ) {
+        return;
+      }
 
       if (parsedState.kind === "aux_node_ack") {
         logMqttDebug(
