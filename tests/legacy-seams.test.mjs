@@ -403,7 +403,7 @@ describe("Legacy Seams: Local WebSocket Connection Controller", () => {
     // Cleanup closes active socket cleanly without scheduling another reconnect
     cleanup();
     assert.equal(sockets[1].closed, true);
-    assert.equal(scheduledTimeouts.length, 2);
+    assert.equal(scheduledTimeouts.length, 3); // both connection attempts schedule handshake timeouts
     assert.equal(isLocalEvents.at(-1), false);
   });
 });
