@@ -9,6 +9,10 @@
 #include <Preferences.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
+#ifndef UNIUNO_NATIVE_TEST
+#include <core/Globals.h>
+#include <core/WebSocketServer.h>
+#endif
 #include <memory>
 
 // In Arduino-ESP32 Core v3+, ESPmDNS.h wraps MDNSResponder and `extern MDNSResponder MDNS;`
